@@ -1,0 +1,25 @@
+column,Portfolio,Benchmark,Difference,Category
+Range,0.78283047,0.29833440,0.48449607,Absolute Risk
+Standard Deviation,0.26449097,0.10558510,0.15890586,Absolute Risk
+Annualized Standard Deviation,0.52898194,0.21117021,0.31781173,Absolute Risk
+Downside Probability,0.60000000,0.40000000,0.20000000,Downside Risk
+Expected Downside Value,-0.06963408,-0.01968272,-0.04995136,Downside Risk
+Downside Deviation,0.11522015,0.04246905,0.07275110,Downside Risk
+Annualized Downside Deviation,0.23044030,0.08493810,0.14550220,Downside Risk
+Value At Risk (VAR),43481.43024500,17751.62723675,25729.80300825,Downside Risk
+Correlation,0.46222424,NaN,NaN,Benchmark-Relative Risk
+R-Squared,0.21365125,NaN,NaN,Benchmark-Relative Risk
+Tracking Error,0.23513242,NaN,NaN,Benchmark-Relative Risk
+Annualized Tracking Error,0.47026484,NaN,NaN,Benchmark-Relative Risk
+Sharpe Ratio,-0.02892990,-0.03383850,0.00490860,Risk-Adjusted Performance
+Annualized Sharpe Ratio,-0.05785980,-0.06767700,0.00981720,Risk-Adjusted Performance
+Sortino Ratio,-0.07667863,-0.08114880,0.00447016,Risk-Adjusted Performance
+Annualized Sortino Ratio,-0.15335727,-0.16229759,0.00894032,Risk-Adjusted Performance
+Information Ratio,-0.01734706,NaN,NaN,Risk-Adjusted Performance
+M_Squared,0.00436251,NaN,NaN,Risk-Adjusted Performance
+Treynor Ratio,-0.00528673,NaN,NaN,Risk-Adjusted Performance
+Beta,1.44734120,NaN,NaN,Regression
+Alpha,-0.00579854,NaN,NaN,Regression
+Annualized Alpha,-0.01159708,NaN,NaN,Regression
+Jensens Alpha,-0.00248058,NaN,NaN,Regression
+Annualized Jensens Alpha,-0.00496115,NaN,NaN,Regression

@@ -1,0 +1,3 @@
+beginning_date,ending_date,Portfolio_Return,Benchmark_Return,Active_Return,Portfolio_Contribution_Simple,Benchmark_Contribution_Simple,Active_Contribution_Simple,Allocation_Effect_Simple,Selection_Effect_Simple,Total_Effect_Simple
+2024-01-31,2024-02-29,0.17002913,0.04055750,0.12947163,0.17002913,0.04055750,0.12947163,0.06466734,0.06480429,0.12947163
+2024-02-29,2024-03-28,0.04628279,0.03642217,0.00986062,0.04628279,0.03642217,0.00986062,0.02112268,-0.01126206,0.00986062
