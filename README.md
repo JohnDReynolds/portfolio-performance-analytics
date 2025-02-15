@@ -16,10 +16,10 @@ portfolio-performance-analytics (ppa) is published under an “All Rights Reserv
 
 ## Description
 
-portfolio-performance-analytics (ppa) is a python-based application that produces multi-period attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
+portfolio-performance-analytics (ppa) is a python-based application that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
 
 The inputs required to produce the analytics fall into three categories:
-1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*.  (Required)
+1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*. They will typically be beginning-of-period weights and period returns. (Required)
 2. Classification items and descriptions. (Optional)
 3. Mappings from the classification scheme of the weights and returns to a reporting classification. (Optional)
 

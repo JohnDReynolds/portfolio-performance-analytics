@@ -279,12 +279,12 @@ class Analytics:
             # self._subperiod_dates periods.
             if len(self._subperiod_dates) < performance.df.shape[0]:
                 # Consolidate the subperiods.
-                performance.df = self._consolidate_subperiods(performance)
+                performance.df = self._consolidate_subperiods(performance).collect()
 
             # Calculate perf.df_overall now that the dates have been firmly established.
             performance.df_overall = performance.calculate_df_overall()
 
-    def _consolidate_subperiods(self, performance: Performance) -> pl.DataFrame:
+    def _consolidate_subperiods(self, performance: Performance) -> pl.LazyFrame:
         """
         Consolidate performance.df into one row for each subperiod in self._subperiod_dates.
         For instance, consolidate daily to monthly, or monthly to quarterly.
@@ -293,7 +293,7 @@ class Analytics:
             performance (Performance): The Performance instance.
 
         Returns:
-            DataFrame: _type_: The consolidated Performance DataFrame (df).
+            LazyFrame: _type_: The consolidated Performance LazyFrame.
         """
         # Create a DataFrame, one row per subperiod.
         df_subperiods = (
@@ -346,7 +346,7 @@ class Analytics:
 
         # Get the final consolidated subperiods by linking the returns, summing the day-weighted
         # weights, and summing the contributions after applying the linking coefficients.
-        consolidated_subperiods = (
+        consolidated_subperiods_lf = (
             joined.group_by("subperiod_id")
             .agg(
                 [
@@ -373,7 +373,7 @@ class Analytics:
         performance.subperiods_have_been_consolidated = True
 
         # Collect and return the consolidated subperiods.
-        return consolidated_subperiods.collect()
+        return consolidated_subperiods_lf
 
     def _ending_date(self) -> dt.date:
         """
@@ -491,30 +491,27 @@ class Analytics:
     def _map_columns(
         self,
         performance: Performance,
-        mapping: dict[str, str],
+        to_column_name_mapping: defaultdict[str, list[str]],
         suffix: str,
-    ) -> pl.DataFrame:
+    ) -> pl.LazyFrame:
         """
         Map (sum) columns using the mapping.
 
         Args:
             performance (Performance): The Performance to be mapped (summed).
-            mapping (dict[str, str]): A mapping from the Performance Classification to the
-                desired to_classification.
+            to_column_name_mapping: defaultdict[str, list[str]],: A mapping from the
+                Performance Classification to the desired to_classification.
             suffix (str): The suffix for the column names that will be mapped
                 (e.g., '.con' or '.wgt').
 
         Returns:
-            pl.DataFrame: The resulting mapped columns.
+            pl.LazyFrame: The resulting mapped columns.
         """
-        # Create a reverse mapping from `to_value` to the list of `from_column_names`.
-        to_column_name_mapping: defaultdict[str, list[str]] = defaultdict(list)
-        for from_value, to_value in mapping.items():
-            to_column_name_mapping[to_value].append(f"{from_value}{suffix}")
-
         # Create aggregated columns using Polars expressions
         aggregated_columns = [
-            pl.sum_horizontal([pl.col(col) for col in from_columns]).alias(f"{to_value}{suffix}")
+            pl.sum_horizontal([pl.col(f"{col}{suffix}") for col in from_columns]).alias(
+                f"{to_value}{suffix}"
+            )
             for to_value, from_columns in to_column_name_mapping.items()
         ]
 
@@ -524,14 +521,15 @@ class Analytics:
         # there could be close to 10,000 expressions, which polars struggles with.  It can run into
         # memory issues, even in lazy mode.  So chunk them into batches.
         batch_size = 1000
-        horizontally_summed_dfs: list[pl.DataFrame] = []
+        horizontally_summed_lfs: list[pl.LazyFrame] = []
+        performance_lf = performance.df.lazy()
         for i in range(0, len(aggregated_columns), batch_size):
-            horizontally_summed_dfs.append(
-                performance.df.lazy().select(aggregated_columns[i : i + batch_size]).collect()
+            horizontally_summed_lfs.append(
+                performance_lf.select(aggregated_columns[i : i + batch_size])
             )
 
         # Concatenate and return the horizontally_summed_dfs.
-        return pl.concat(horizontally_summed_dfs, how="horizontal")
+        return pl.concat(horizontally_summed_lfs, how="horizontal")
 
     def _map_performance(
         self,
@@ -563,16 +561,23 @@ class Analytics:
             mapping_data_source,
         ).mappings
 
+        # Create a reverse mapping from `to_value` to the list of `from_column_names`.
+        to_column_name_mapping: defaultdict[str, list[str]] = defaultdict(list)
+        for from_value, to_value in mapping.items():
+            to_column_name_mapping[to_value].append(from_value)
+
         # Get DataFrames of the resulting mapped columns with the new mapped identifiers as the new
         # column names.  For instance if the roll-up is from security to Gics Sub-Industry, then
         # the columns ['aapl.con', 'hpq.con'] will be horizontally summed into a single new column
         # named '45202030'.
-        mapped_contribs = self._map_columns(performance, mapping, CON)
-        mapped_weights = self._map_columns(performance, mapping, WGT)
+        mapped_contribs_lf = self._map_columns(performance, to_column_name_mapping, CON)
+        mapped_weights_lf = self._map_columns(performance, to_column_name_mapping, WGT)
 
-        mapped_df = (
-            # Calulate the returns by dividing contribs / weights.  Note that LazyFrames cannot be
-            # divided by one-another.
+        # Get the mapped_df.  Note that LazyFrames cannot be divided by one-another.
+        mapped_contribs = mapped_contribs_lf.collect()
+        mapped_weights = mapped_weights_lf.collect()
+        mapped_lf = (
+            # Calulate the returns by dividing contribs / weights.
             (
                 (mapped_contribs / mapped_weights)
                 .lazy()
@@ -584,11 +589,11 @@ class Analytics:
             .with_columns(mapped_weights)
             # Add the dates
             .with_columns(performance.df[cols.BEGINNING_DATE, cols.ENDING_DATE])
-        ).collect()
+        )
 
         # Return the new mapped Performance.
         return Performance(
-            mapped_df, name=performance.name, classification_name=to_classification_name
+            mapped_lf.collect(), name=performance.name, classification_name=to_classification_name
         )
 
     def _message_suffix(self, base_message: str) -> str:

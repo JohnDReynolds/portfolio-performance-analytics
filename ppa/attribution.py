@@ -403,7 +403,7 @@ class Attribution:
         # Set the portfolio and benchmark.
         portfolio, benchmark = self.performances
 
-        # Get pre-computed values.
+        # Get pre-computed values.  You cannot do arithmetic on 2 LazyFrames, so you must collect()
         portfolio_consolidated_returns = portfolio.consolidated_returns()
         benchmark_consolidated_returns = benchmark.consolidated_returns()
         portfolio_linking_coefficients = portfolio.linking_coefficients()  # for contribution
@@ -426,11 +426,11 @@ class Attribution:
             ]
         )
 
-        # Construct df_lazy.
-        df_lazy = pl.LazyFrame()
-        df_lazy = (
+        # Construct lf.
+        lf = pl.LazyFrame()
+        lf = (
             # Dates
-            df_lazy.with_columns(portfolio.df.select(cols.DATE_COLUMNS))
+            lf.with_columns(portfolio.df.select(cols.DATE_COLUMNS))
             # Simple portfolio contribution.
             .with_columns(
                 (portfolio.df[portfolio.col_names(CON)]).rename(
@@ -493,10 +493,10 @@ class Attribution:
 
         # Append columns that are the horizontal summations of the contributions and attribution
         # effects.  And vertically sum the cumulative columns.  And then collect().
-        df = self._sum_columns_and_rows(df_lazy, portfolio)
+        lf = self._sum_columns_and_rows(lf, portfolio)
 
         # Return self._df.
-        return df
+        return lf.collect()
 
     def _calculate_df_overall(self) -> pl.DataFrame:
         """
@@ -752,12 +752,12 @@ class Attribution:
         # Get the base dataframe associated with the view.
         match view:
             case View.CUMULATIVE_ATTRIBUTION | View.SUBPERIOD_SUMMARY:
-                df_lazy = self._df.lazy()
+                lf = self._df.lazy()
             case _:  # View.SUBPERIOD_ATTRIBUTION | View.OVERALL_ATTRIBUTION
-                df_lazy = self._construct_df_for_detail_views(view)
+                lf = self._construct_df_for_detail_views(view)
 
         # Select only the needed columns.
-        df_lazy = df_lazy.select(_VIEW_COLUMN_NAMES[view])
+        lf = lf.select(_VIEW_COLUMN_NAMES[view])
 
         # For cosmetic purposes, convert the classification identifier (symbol) to upper-case.
         have_classification_columns = view in (
@@ -765,12 +765,10 @@ class Attribution:
             View.SUBPERIOD_ATTRIBUTION,
         )
         if have_classification_columns:
-            df_lazy = df_lazy.with_columns(
-                pl.col(cols.CLASSIFICATION_IDENTIFIER).str.to_uppercase()
-            )
+            lf = lf.with_columns(pl.col(cols.CLASSIFICATION_IDENTIFIER).str.to_uppercase())
 
-        # Collect before building the total_row
-        df = df_lazy.collect()
+        # Must collect() before adding the total_row
+        df = lf.collect()
 
         # Add the total_row
         if view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
@@ -782,21 +780,21 @@ class Attribution:
 
     def _sum_columns_and_rows(
         self,
-        df_lazy: pl.LazyFrame,
+        lf: pl.LazyFrame,
         performance: Performance,
-    ) -> pl.DataFrame:
+    ) -> pl.LazyFrame:
         """
         Horizontally append columns that are the horizontal summations of the contributions and
         attribution effects.  Also create vertical cumulative sums.
 
         Args:
-            df_lazy (pl.LazyFrame): The LazyFrame.
+            lf (pl.LazyFrame): The LazyFrame.
             performance (Performance): Either the portfolio or benchmark Performance instance.
                 Since both the portfolio and benchmark have the same column names, either one will
                 suffice.
 
         Returns:
-            pl.DataFrame: The new df with the new horizontal summation columns and cumulative
+            pl.LazyFrame: The new lf with the new horizontal summation columns and cumulative
             columns added.
         """
         # Horizontally sum the portfolio contribs, benchmark contribs and attribution effects.
@@ -819,10 +817,10 @@ class Attribution:
                 cols.TOTAL_EFFECT_SMOOTHED,
             ),
         ):
-            df_lazy = df_lazy.with_columns(pl.sum_horizontal(col_names).alias(alias))
+            lf = lf.with_columns(pl.sum_horizontal(col_names).alias(alias))
 
         # Vertically accumulate the linked columns and cumulative columns.
-        df_lazy = df_lazy.with_columns(
+        lf = lf.with_columns(
             # CUMULATIVE_PORTFOLIO_RETURN
             pl.col(cols.PORTFOLIO_RETURN)
             .add(1)
@@ -856,8 +854,8 @@ class Attribution:
         )
 
         # You cannot subtract 2 lazyframe columns, so you need to collect first.
-        df = df_lazy.collect()
-        df = (
+        df = lf.collect()
+        lf = (
             df.lazy()
             # Active return
             .with_columns(
@@ -887,10 +885,10 @@ class Attribution:
                 .cum_sum()
                 .alias(cols.CUMULATIVE_ACTIVE_CONTRIB)
             )
-        ).collect()
+        )
 
         # Return the resulting DataFrame
-        return df
+        return lf
 
     def _title_lines(self, chart_or_view: Chart | View) -> tuple[str, str]:
         """

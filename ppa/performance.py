@@ -223,7 +223,7 @@ class Performance:
         )
 
         # Calculate the overall linked return, sum of contributions, and day-weighted weights.
-        df_overall_lazy = (
+        lf_overall = (
             self.df.lazy()
             .select(all_return_col_names + self.col_names(WGT) + self.col_names(CON))
             .with_columns(
@@ -248,7 +248,7 @@ class Performance:
         )
 
         # Return df_overall
-        return df_overall_lazy.collect()
+        return lf_overall.collect()
 
     def _cast_and_validate_columns(self) -> None:
         """
@@ -458,25 +458,25 @@ class Performance:
             if util.is_empty(name):
                 name = util.file_basename_without_extension(data_source)
             # Load the csv file
-            df_lazy = pl.scan_csv(source=data_source, try_parse_dates=True)
+            lf = pl.scan_csv(source=data_source, try_parse_dates=True)
         elif isinstance(data_source, pd.DataFrame):
             # Convert from pandas to polars
-            df_lazy = pl.from_pandas(data_source).lazy()
+            lf = pl.from_pandas(data_source).lazy()
         else:  # isinstance(data_source, pl.DataFrame):
             # Is already a polars DataFrame
-            df_lazy = data_source.lazy()
+            lf = data_source.lazy()
 
         # Change all column names to lower case for case-sensitive key matching.
-        df_lazy = df_lazy.rename({col: col.lower() for col in df_lazy.collect_schema().names()})
+        lf = lf.rename({col: col.lower() for col in lf.collect_schema().names()})
 
         # Filter on the dates.
         if beginning_date != dt.date.min:
-            df_lazy = df_lazy.filter(beginning_date <= pl.col(cols.BEGINNING_DATE))
+            lf = lf.filter(beginning_date <= pl.col(cols.BEGINNING_DATE))
         if ending_date != dt.date.max:
-            df_lazy = df_lazy.filter(pl.col(cols.ENDING_DATE) <= ending_date)
+            lf = lf.filter(pl.col(cols.ENDING_DATE) <= ending_date)
 
         # Return the performance name and it's DataFrame.
-        return name, df_lazy.collect()
+        return name, lf.collect()
 
     def overall_return(self) -> float:
         """
