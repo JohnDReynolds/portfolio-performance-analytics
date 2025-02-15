@@ -35,7 +35,6 @@ class Performance:
         classification_name: str = util.EMPTY,
         beginning_date: str | dt.date = dt.date.min,
         ending_date: str | dt.date = dt.date.max,
-        do_calculate_df_overall: bool = True,
     ):
         """
         The constructor.
@@ -98,7 +97,7 @@ class Performance:
         # Establish self.identifiers
         self._column_names: dict[str, list[str]] = {}
         self.identifiers: list[str] = []
-        self.reset_column_names()
+        self._reset_column_names()
 
         # Cast the columns to their correct data types and validate that there are not any missing
         # values.
@@ -134,12 +133,8 @@ class Performance:
             self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0
         ).all(), f"{errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1}{self.message_in_file_path}"
 
-        # if do_calculate_df_overall, then calculate df_overall(). If not do_calculate_df_overall,
-        # then set it to an empty DataFrame, and then it will be calculated in the Attribution
-        # class.
-        self.df_overall = (
-            self.calculate_df_overall() if do_calculate_df_overall else pl.DataFrame()
-        )
+        # self._df_overall is one row for the entire overall period.
+        self._df_overall = pl.DataFrame()
 
     def audit(self) -> None:
         """Audit the Performance (self)."""
@@ -205,7 +200,7 @@ class Performance:
                 portfolio.classification_name == benchmark.classification_name
             ), f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Common classification name error."
 
-    def calculate_df_overall(self) -> pl.DataFrame:
+    def _calculate_df_overall(self) -> pl.DataFrame:
         """
         Calculate df_overall, which is one total row for the entire overall period.  It is either
         called from the constructor or from the Attribution class after the dates have been
@@ -423,6 +418,12 @@ class Performance:
             .rename(lambda column_name: f"{column_name[:-4]}.ret")
         )
 
+    def df_overall(self) -> pl.DataFrame:
+        """Get the DataFrame representing the overall total period."""
+        if self._df_overall.is_empty():
+            self._df_overall = self._calculate_df_overall()
+        return self._df_overall
+
     def linking_coefficients(self) -> pl.Series:
         """Return the linking coefficients."""
         return util.logarithmic_linking_coefficients(
@@ -485,11 +486,33 @@ class Performance:
         Returns:
             float: The total return for the entire overall time period in self.df.
         """
-        return self.df_overall.item(0, cols.TOTAL_RETURN)
+        return self.df_overall().item(0, cols.TOTAL_RETURN)
 
-    def reset_column_names(self) -> None:
+    def _reset_column_names(self) -> None:
         """
         Reset the column name instance variables.
         """
+        # Set self._column_names to empty so they will be forced to be recalculated.
         self._column_names = {}
+
+        # Restablish self.identifiers.
         self.identifiers = [name[:-4] for name in self._col_names_from_schema(RET)]
+
+    def reset_df(self, df: pl.DataFrame, do_reset_column_names: bool = True) -> None:
+        """
+        Reset the DataFrame self.df
+
+        Args:
+            df (pl.DataFrame): The new dataframe.
+            reset_column_names (bool, optional): Reset the column names if they have changed.
+                Defaults to True.
+        """
+        # Set self._df_overall to empty so it will be forced to be recalculated.
+        self._df_overall = pl.DataFrame()
+
+        # Set self.df with the new dataframe.
+        self.df = df
+
+        # Reset the column names.
+        if do_reset_column_names:
+            self._reset_column_names()

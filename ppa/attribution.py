@@ -566,8 +566,8 @@ class Attribution:
             case View.OVERALL_ATTRIBUTION:
                 attribution_df, portfolio_df, benchmark_df = (
                     self._df_overall,
-                    portfolio.df_overall,
-                    benchmark.df_overall,
+                    portfolio.df_overall(),
+                    benchmark.df_overall(),
                 )
             case _:
                 raise errs.PpaError(
@@ -727,13 +727,8 @@ class Attribution:
                     + cols.col_names(missing_return_col_names, WGT)
                     + cols.col_names(missing_return_col_names, CON)
                 )
-                # Add the missing_col_names to the dataframes.
-                target.df = target.df.hstack(source.df[missing_col_names] * 0)
-                target.df_overall = target.df_overall.hstack(
-                    source.df_overall[missing_col_names] * 0
-                )
-                # Reset the Performance column names since some have been added.
-                target.reset_column_names()
+                # Add the missing_col_names to the dataframe.
+                target.reset_df(target.df.hstack(source.df[missing_col_names] * 0))
 
     def _fetch_dataframe(self, view: View) -> pl.DataFrame:
         """

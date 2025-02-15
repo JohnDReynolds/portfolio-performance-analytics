@@ -141,7 +141,6 @@ class Analytics:
                 classification_name=portfolio_classification_name,
                 beginning_date=beginning_date,
                 ending_date=ending_date,
-                do_calculate_df_overall=False,
             ),
             # Benchmark
             Performance(
@@ -150,7 +149,6 @@ class Analytics:
                 classification_name=benchmark_classification_name,
                 beginning_date=beginning_date,
                 ending_date=ending_date,
-                do_calculate_df_overall=False,
             ),
         )
 
@@ -213,11 +211,11 @@ class Analytics:
             for each subperiod.
         """
 
-        def common_dates(dates1: pl.Series, dates2: pl.Series) -> list[dt.date]:
+        def common_dates(dates1: pl.Series, dates2: pl.Series) -> pl.Series:
             """Return the dates common between dates1 and dates2."""
-            return dates1.filter(dates1.is_in(dates2)).sort().to_list()
+            return dates1.filter(dates1.is_in(dates2)).sort()
 
-        def filter_dates_on_frequency(dates: list[dt.date]) -> list[dt.date]:
+        def filter_dates_on_frequency(dates: pl.Series) -> list[dt.date]:
             """Filter the dates based on self._frequency."""
             return [date for date in dates if date_matches_frequency(date, self._frequency)]
 
@@ -279,10 +277,10 @@ class Analytics:
             # self._subperiod_dates periods.
             if len(self._subperiod_dates) < performance.df.shape[0]:
                 # Consolidate the subperiods.
-                performance.df = self._consolidate_subperiods(performance).collect()
-
-            # Calculate perf.df_overall now that the dates have been firmly established.
-            performance.df_overall = performance.calculate_df_overall()
+                performance.reset_df(
+                    self._consolidate_subperiods(performance).collect(),
+                    do_reset_column_names=False,
+                )
 
     def _consolidate_subperiods(self, performance: Performance) -> pl.LazyFrame:
         """
