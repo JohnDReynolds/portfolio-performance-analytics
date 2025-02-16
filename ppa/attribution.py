@@ -895,6 +895,13 @@ class Attribution:
         # Determine if chart_or_view is a Chart or a View
         is_view = isinstance(chart_or_view, View)
 
+        # Line 1: Portfolio Name (vs Benchmark Name)
+        line1 = (
+            self.performances[0].name
+            if (chart_or_view in (Chart.HEATMAP_CONTRIBUTION, Chart.HEATMAP_RETURN))
+            else f"{self.performances[0].name} vs {self.performances[1].name}"
+        )
+
         # Get the classification description if it is relevant.
         classification_description = (
             f" by {self._classification.name}"
@@ -902,32 +909,14 @@ class Attribution:
             else ""
         )
 
-        # Put the portfolio name in line 1
-        line1 = (
-            self.performances[0].name
-            if (chart_or_view in (Chart.HEATMAP_CONTRIBUTION, Chart.HEATMAP_RETURN))
-            else f"{self.performances[0].name} vs {self.performances[1].name}"
+        # Line 2: Chart/View name, classification, frequency, dates.
+        line2 = (
+            f"{chart_or_view.value}{classification_description}: {self._frequency.value}"
+            f" from {self._beginning_date()} to {self._ending_date()}"
         )
-        # line1 +=
-        #         case Chart.HEATMAP_CONTRIBUTION:
-        #             # Adjust the first title line to be just the portfolio name.
-        #             title_lines = (self.performances[0].name, title_lines[1])
-        #             column_name = cols.PORTFOLIO_CONTRIB_SIMPLE
-        #         case Chart.HEATMAP_RETURN:
-        #             # Adjust the first title line to be just the portfolio name.
-        #             title_lines = (self.performances[0].name, title_lines[1])
-        #             column_name = cols.PORTFOLIO_RETURN
 
         # Return the title and subtitle.
-        return (
-            # Portfolio Name (vs Benchmark Name)
-            line1,
-            # Chart/View name, classification, frequency, dates.
-            (
-                f"{chart_or_view.value}{classification_description}: {self._frequency.value}"
-                f" from {self._beginning_date()} to {self._ending_date()}"
-            ),
-        )
+        return (line1, line2)
 
     def to_chart(self, chart: Chart) -> bytes:
         """
