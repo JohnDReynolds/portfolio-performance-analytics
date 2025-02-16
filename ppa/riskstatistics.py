@@ -10,10 +10,12 @@ The RiskStatistics class calculates the ex-post risk statistics enumerated in th
 
 The public methods to retrieve the resulting statistics are:
     1. to_html()
-    2. to_pandas()
-    3. to_polars()
-    4. to_table()
-    5. write_csv()
+    2. to_json()
+    3. to_pandas()
+    4. to_polars()
+    5. to_table()
+    6. to_xml()
+    7. write_csv()
 """
 
 # Python Imports
@@ -520,6 +522,15 @@ class RiskStatistics:
             .opt_row_striping()
         )
 
+    def to_xml(self) -> str:
+        """
+        Returns the view as an xml string.
+
+        Returns:
+            str: The view as an xml string.
+        """
+        return self.to_pandas().to_xml()
+
     def write_csv(self, file_path: str, float_precision: int = _DEFAULT_OUTPUT_PRECISION) -> None:
         """
         Writes a csv file of the view.
@@ -531,12 +542,3 @@ class RiskStatistics:
                 Defaults to util._DEFAULT_OUTPUT_PRECISION.
         """
         self._df.write_csv(file_path, float_precision=float_precision)
-
-    def to_xml(self) -> str:
-        """
-        Returns the view as an xml string.
-
-        Returns:
-            str: The view as an xml string.
-        """
-        return self.to_pandas().to_xml()

@@ -9,13 +9,17 @@ purpose, without the express prior written permission of John D. Reynolds.
 The Attribution class contains the portfolio Performance, the benchmark Performance, the
 Classification, and the reulting contribution and attribution effects.
 
+An Attribution instance can be created using the method Analytics.get_attribution().
+
 The public methods to retrieve the resulting output are:
     1. to_chart(chart)
     2. to_html(view)
-    3. to_pandas(view)
-    4. to_polars(view)
-    5. to_table(view)
-    6. write_csv(view)
+    3. to_json(view)
+    4. to_pandas(view)
+    5. to_polars(view)
+    6. to_table(view)
+    7. to_xml(view)
+    8. write_csv(view)
 """
 
 ## Overrides for pylint and pylance
