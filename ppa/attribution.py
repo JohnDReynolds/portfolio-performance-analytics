@@ -892,17 +892,36 @@ class Attribution:
         Args:
             chart_or_view (Chart | View): The type of Chart or View.
         """
+        # Determine if chart_or_view is a Chart or a View
+        is_view = isinstance(chart_or_view, View)
+
         # Get the classification description if it is relevant.
         classification_description = (
             f" by {self._classification.name}"
-            if (isinstance(chart_or_view, View) or "Attribution" in chart_or_view.value)
+            if (is_view or "Attribution" in chart_or_view.value)
             else ""
         )
 
+        # Put the portfolio name in line 1
+        line1 = (
+            self.performances[0].name
+            if (chart_or_view in (Chart.HEATMAP_CONTRIBUTION, Chart.HEATMAP_RETURN))
+            else f"{self.performances[0].name} vs {self.performances[1].name}"
+        )
+        # line1 +=
+        #         case Chart.HEATMAP_CONTRIBUTION:
+        #             # Adjust the first title line to be just the portfolio name.
+        #             title_lines = (self.performances[0].name, title_lines[1])
+        #             column_name = cols.PORTFOLIO_CONTRIB_SIMPLE
+        #         case Chart.HEATMAP_RETURN:
+        #             # Adjust the first title line to be just the portfolio name.
+        #             title_lines = (self.performances[0].name, title_lines[1])
+        #             column_name = cols.PORTFOLIO_RETURN
+
         # Return the title and subtitle.
         return (
-            # Portfolio Name vs Benchmark Name
-            f"{self.performances[0].name} vs {self.performances[1].name}",
+            # Portfolio Name (vs Benchmark Name)
+            line1,
             # Chart/View name, classification, frequency, dates.
             (
                 f"{chart_or_view.value}{classification_description}: {self._frequency.value}"
@@ -976,12 +995,8 @@ class Attribution:
                     case Chart.HEATMAP_ATTRIBUTION:
                         column_name = cols.TOTAL_EFFECT_SIMPLE
                     case Chart.HEATMAP_CONTRIBUTION:
-                        # Adjust the first title line to be just the portfolio name.
-                        title_lines = (self.performances[0].name, title_lines[1])
                         column_name = cols.PORTFOLIO_CONTRIB_SIMPLE
                     case Chart.HEATMAP_RETURN:
-                        # Adjust the first title line to be just the portfolio name.
-                        title_lines = (self.performances[0].name, title_lines[1])
                         column_name = cols.PORTFOLIO_RETURN
                 # Get the chart png
                 png = format_chart.heatmap(df, column_name, title_lines)
