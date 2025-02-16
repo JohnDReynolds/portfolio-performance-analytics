@@ -203,10 +203,9 @@ def logarithmic_linking_coefficients(overall_return: float, returns: pl.Series) 
     Returns:
         pl.Series: The linking coefficients for each subperiod.
     """
-    # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So assert
-    # that the returns are greater than -1.0.  So assert that the return is greater than -1.0.
-    # Note that this logic exactly mimics the logic in logarithmic_smoothing_coefficients(), only
-    # it is done for a single value.
+    # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So assert that
+    # the return is greater than -1.0.  Note that this logic exactly mimics the logic in
+    # logarithmic_smoothing_coefficients(), only it is done for a single value.
     assert _UNDEFINED_RETURN < overall_return, f"{errs.ERROR_203_UNDEFINED_RETURN}{overall_return}"
     denominator = np.log(1.0 + overall_return) / overall_return if overall_return != 0.0 else 1.0
 

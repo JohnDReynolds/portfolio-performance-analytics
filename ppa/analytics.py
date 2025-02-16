@@ -15,6 +15,7 @@ The public methods to retrieve the resulting analytical calculations are:
 """
 
 # Python Imports
+import bisect
 from collections import defaultdict
 import datetime as dt
 
@@ -211,47 +212,43 @@ class Analytics:
             for each subperiod.
         """
 
-        def common_dates(dates1: pl.Series, dates2: pl.Series) -> pl.Series:
-            """Return the dates common between dates1 and dates2."""
+        def _common_dates(dates1: pl.Series, dates2: pl.Series) -> pl.Series:
+            """Return the sorted dates common between dates1 and dates2."""
+            # Note that using set intersection is MUCH slower.
+            # return sorted(set(dates1) & set(dates2))
             return dates1.filter(dates1.is_in(dates2)).sort()
 
-        def filter_dates_on_frequency(dates: pl.Series) -> list[dt.date]:
+        def _filter_dates_on_frequency(dates: pl.Series) -> list[dt.date]:
             """Filter the dates based on self._frequency."""
             return [date for date in dates if date_matches_frequency(date, self._frequency)]
 
-        # Get the beginning_dates that are common between the 2 self._performances
-        common_beginning_dates = common_dates(
-            self.performances[0].df[cols.BEGINNING_DATE],
-            self.performances[1].df[cols.BEGINNING_DATE],
-        )
+        # Cache the performance DataFrames.
+        df0 = self.performances[0].df
+        df1 = self.performances[1].df
 
-        # Get the ending_dates that are common between the 2 self._performances
-        common_ending_dates = common_dates(
-            self.performances[0].df[cols.ENDING_DATE],
-            self.performances[1].df[cols.ENDING_DATE],
-        )
+        # Compute sorted common beginning and ending dates.
+        common_beginning_dates = _common_dates(df0[cols.BEGINNING_DATE], df1[cols.BEGINNING_DATE])
+        common_ending_dates = _common_dates(df0[cols.ENDING_DATE], df1[cols.ENDING_DATE])
 
-        # Filter common_beginning_dates and common_ending_dates on self.frequency.
+        # Filter the dates based on frequency.
         if self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE:
-            common_beginning_dates = filter_dates_on_frequency(common_beginning_dates)
-            common_ending_dates = filter_dates_on_frequency(common_ending_dates)
+            common_beginning_dates = _filter_dates_on_frequency(common_beginning_dates)
+            common_ending_dates = _filter_dates_on_frequency(common_ending_dates)
 
-        # Iterate through common_beginning_dates and common_ending_dates to get the common
-        # suberiod dates.  Note that the rows are unique on beginning_date, and are also unique
-        # on ending_date.
+        # For each beginning date, find the first ending date that is strictly greater.
         subperiod_dates: list[tuple[dt.date, dt.date]] = []
-        for idx, beginning_date in enumerate(common_beginning_dates):
-            # Ensure there is a corresponding ending date
-            if idx < len(common_ending_dates) and beginning_date < common_ending_dates[idx]:
-                ending_date = common_ending_dates[idx]
-            elif idx + 1 < len(common_ending_dates):
-                ending_date = common_ending_dates[idx + 1]
-                assert beginning_date < ending_date, f"{errs.ERROR_999_UNEXPECTED}{message_suffix}"
-            else:
-                break
-            subperiod_dates.append((beginning_date, ending_date))
+        idx = 0
+        len_common_end_dates = len(common_ending_dates)
+        for begin_date in common_beginning_dates:
+            if idx < len_common_end_dates and common_ending_dates[idx] <= begin_date:
+                # bisect_right returns the insertion point which is the index of the first ending
+                # date > b.
+                idx = bisect.bisect_right(common_ending_dates, begin_date, lo=idx + 1)
+            if idx < len_common_end_dates:
+                subperiod_dates.append((begin_date, common_ending_dates[idx]))
+                idx += 1
 
-        # Assert that you hae at least one subperiod.
+        # Assert that there is at least one subperiod.
         assert 0 < len(subperiod_dates), f"{errs.ERROR_202_NO_REPORTABLE_DATES}{message_suffix}"
 
         # Return the common beginning and ending dates that define the subperiods.
@@ -278,7 +275,7 @@ class Analytics:
             if len(self._subperiod_dates) < performance.df.shape[0]:
                 # Consolidate the subperiods.
                 performance.reset_df(
-                    self._consolidate_subperiods(performance).collect(),
+                    df=self._consolidate_subperiods(performance).collect(),
                     do_reset_column_names=False,
                 )
 

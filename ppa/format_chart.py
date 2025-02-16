@@ -38,6 +38,14 @@ _MAXIMUM_LABEL_LENGTH = 45  # characters
 _MINIMUM_FIGURE_HEIGHT = 0.9 * _DEFAULT_FIGSIZE[1]  # in inches
 _MINIMUM_FIGURE_WIDTH = 0.9 * _DEFAULT_FIGSIZE[0]  # in inches
 
+# Chart colors
+# 0 = portfolio, 1 = benchmark, 2 = active
+# 0 = allocation effect, 1 = selection effect, 2 = total effect
+_COLORS = ("green", "blue", "orange")
+
+# The _TOP_MARGIN will allow room for the suptitle at the top.
+_TOP_MARGIN = 0.99
+
 
 def cumulative_lines(
     df: pl.DataFrame,
@@ -70,13 +78,12 @@ def cumulative_lines(
     dates = df[cols.ENDING_DATE]
 
     # Plot the lines
-    colors = ("green", "blue", "orange")
     for idx, column_name in enumerate(column_names):
         ax.plot(
             dates,
             df[column_name],
             label=cols.short_column_name(column_name),
-            color=colors[idx],
+            color=_COLORS[idx],
         )
 
     # Set the y-axis labels.
@@ -180,7 +187,7 @@ def heatmap(
     # rect=[left, bottom, right, top], where (0, 0, 1, 1) means the entire figure.
     # The bottom_margin will allow room for the rotated dates at the bottom.
     bottom_margin = 0.02
-    fig.tight_layout(rect=(0, bottom_margin, 1, 1))
+    fig.tight_layout(rect=(0, bottom_margin, 1, _TOP_MARGIN))
 
     # Return the png.
     return _to_png(fig)
@@ -250,9 +257,7 @@ def overall_attribution(
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
 
     # Automatically adjust the spacing between subplots.
-    # The top_margin will allow room for the suptitle at the top.
-    top_margin = 0.99
-    fig.tight_layout(rect=(0, 0, 1, top_margin))
+    fig.tight_layout(rect=(0, 0, 1, _TOP_MARGIN))
 
     # Return the png.
     return _to_png(fig)
@@ -335,9 +340,7 @@ def overall_contribution(
     # tight_layout() is a "best pratice" that does some automatic spacing between subplots
     # rect=[left, bottom, right, top], where (0, 0, 1, 1) means the entire figure.
     # The bottom_margin will allow room for the legend at the bottom.
-    # The top_margin will allow room for the suptitle at the top.
-    top_margin = 0.99
-    fig.tight_layout(rect=(0, bottom_margin, 1, top_margin))
+    fig.tight_layout(rect=(0, bottom_margin, 1, _TOP_MARGIN))
 
     # Create a legend for the portfolio and benchmark.
     portfolio_patch = mpatches.Patch(color="green", label=portfolio_name)
@@ -403,7 +406,6 @@ def vertical_bars(
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
 
     # Plot the bars
-    colors = ("green", "blue", "orange")
     for idx, column_name in enumerate(column_names):
         location = indices
         if idx == 0:
@@ -412,7 +414,7 @@ def vertical_bars(
             location = indices
         elif idx == 2:
             location = indices + bar_width
-        ax.bar(location, df[column_name], width=bar_width, color=colors[idx])
+        ax.bar(location, df[column_name], width=bar_width, color=_COLORS[idx])
 
     # Set x-axis labels and formatting.
     # ha="right" will align the rotated dates so they are positioned at the x-axis tick.
@@ -434,7 +436,7 @@ def vertical_bars(
     patches: list[mpatches.Patch] = []
     for idx, column_name in enumerate(column_names):
         patches.append(
-            mpatches.Patch(color=colors[idx], label=cols.short_column_name(column_name))
+            mpatches.Patch(color=_COLORS[idx], label=cols.short_column_name(column_name))
         )
     fig.legend(handles=patches, loc="lower center", ncol=len(patches), fontsize=12)
 
@@ -485,11 +487,4 @@ def _word_wrap(phrases: pl.Series) -> list[str]:
     Returns:
         list[str]: The word-wrapped list of phrases.
     """
-    return [
-        (
-            textwrap.fill(phrase, width=_MAXIMUM_LABEL_LENGTH)
-            if len(phrase) > _MAXIMUM_LABEL_LENGTH
-            else phrase
-        )
-        for phrase in phrases
-    ]
+    return [textwrap.fill(phrase, width=_MAXIMUM_LABEL_LENGTH) for phrase in phrases]
