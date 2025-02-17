@@ -510,11 +510,11 @@ class Analytics:
             for to_value, from_columns in to_column_name_mapping.items()
         ]
 
-        # Perform the horizontal summations of the expressions.
-        # Typically, there will only be 10 - 50 expressions (e.g. qty of to_columns, e.g. reporting
-        # classification items).  But if they have 10,000 securities and incomplete mappings, then
-        # there could be close to 10,000 expressions, which polars struggles with.  It can run into
-        # memory issues, even in lazy mode.  So chunk them into batches.
+        # Perform the horizontal summations of the expressions.  Note that typically there will
+        # only be 10 - 50 expressions (e.g. the qty of "to" columns, e.g. the qty of the reporting
+        # "to" classification items).  But if they have 10,000 securities and incomplete mappings,
+        # then there could be close to 10,000 expressions, which polars struggles with.  It can run
+        # into memory issues, even in lazy mode.  So chunk them into batches.
         batch_size = 1000
         horizontally_summed_lfs: list[pl.LazyFrame] = []
         performance_lf = performance.df.lazy()

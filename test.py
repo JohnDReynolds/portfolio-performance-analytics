@@ -783,6 +783,8 @@ class Test(unittest.TestCase):
         test_results: pl.DataFrame = pl.read_csv(test_file_path)
         expected_file_path = util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
         expected_results: pl.DataFrame = pl.read_csv(expected_file_path)
+        # if not test_results.equals(expected_results):
+        #     pause_it = 9
         assert test_results.equals(expected_results)
         os.remove(test_file_path)
 
@@ -795,7 +797,7 @@ class Test(unittest.TestCase):
         test_results2: list[str] = test_util.read_html_table(test_file_path)
         expected_file_path = util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
         expected_results2: list[str] = test_util.read_html_table(expected_file_path)
-        # if test_results != expected_results:
+        # if test_results2 != expected_results2:
         #     pause_it = 9
         # else:
         assert test_results2 == expected_results2

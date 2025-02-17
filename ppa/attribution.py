@@ -407,7 +407,7 @@ class Attribution:
         # Set the portfolio and benchmark.
         portfolio, benchmark = self.performances
 
-        # Get pre-computed values.  You cannot do arithmetic on 2 LazyFrames, so you must collect()
+        # Get pre-computed values.
         portfolio_consolidated_returns = portfolio.consolidated_returns()
         benchmark_consolidated_returns = benchmark.consolidated_returns()
         portfolio_linking_coefficients = portfolio.linking_coefficients()  # for contribution
@@ -416,6 +416,8 @@ class Attribution:
         benchmark_overall_return = benchmark.overall_return()
         portfolio_total_returns = portfolio.df[cols.TOTAL_RETURN]  # pl.Series
         benchmark_total_returns = benchmark.df[cols.TOTAL_RETURN]  # pl.Series
+
+        # Must pre-compute the weight dfs because you cannot do arithmetic on 2 LazyFrames.
         portfolio_weights = portfolio.df.lazy().select(portfolio.col_names(WGT)).collect()
         benchmark_weights = benchmark.df.lazy().select(benchmark.col_names(WGT)).collect()
 
