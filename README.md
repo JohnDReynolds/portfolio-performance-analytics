@@ -83,7 +83,7 @@ The below sample outputs portray a large-cap alpha strategy that has achieved a 
 <img src="images/CumulativeReturns.png" alt="Cumulative Returns Chart" width="100%" />
 
 - **Ex-Post Risk Statistics**:
-<img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="50%" />
+<img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
 
 ---
 
