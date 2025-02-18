@@ -160,9 +160,16 @@ def heatmap(
     # Set the overall figure title.
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
 
+    # If it is a "portfolio-only" heatmap, then get rid of the cells where the portfolio weight is
+    # zero.  They are there because the benchmark weight is not 0.0.
+    if column_name in (cols.PORTFOLIO_CONTRIB_SIMPLE, cols.PORTFOLIO_RETURN):
+        df = df.filter(pl.col(cols.PORTFOLIO_WEIGHT) != 0)
+
+    # Select just the needed columns.
+    df = df[["date_label", "classification_label", column_name]]
+
     # Pivot the data for the heatmap.  Cannot get it to work for polars, so convert to pandas.
-    heatmap_df = df[["date_label", "classification_label", column_name]].to_pandas()
-    heatmap_data = heatmap_df.pivot(
+    heatmap_data = df.to_pandas().pivot(
         index="classification_label",
         columns="date_label",
         values=column_name,

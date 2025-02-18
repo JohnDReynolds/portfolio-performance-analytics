@@ -324,13 +324,14 @@ def open_in_browser(html_or_png: str | bytes) -> None:
 
         # Open the file in a browser. Sometimes it takes a while for the file to be fully written
         # and accesible to the browser, so give it 2 seconds before failing.  If you are
-        # rapid-firing multiple files to this function, the browser can get overwhelmed, so sleep
-        # 0.4 seconds after opening the file.  Note that the os will delete the temp file.
+        # rapid-firing multiple files to this function, the image browser can get overwhelmed,
+        # especially on old win10 machines.  So sleep 0.7 seconds after opening the file.  Note
+        # that the os will delete the temp file.
         qty_trys = 10
         for i in range(qty_trys):
             try:
                 webbrowser.open(url)
-                time.sleep(0.4)
+                time.sleep(0.7)
                 break
             except Exception as e:  # pylint: disable=broad-exception-caught
                 if i == qty_trys - 1:

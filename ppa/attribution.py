@@ -66,8 +66,8 @@ class Chart(Enum):
     HEATMAP_ACTIVE_CONTRIBUTION = "Active Contributions"
     HEATMAP_ACTIVE_RETURN = "Active Returns"
     HEATMAP_ATTRIBUTION = "Total Attribution Effects"
-    HEATMAP_CONTRIBUTION = "Portfolio Contributions"
-    HEATMAP_RETURN = "Portfolio Returns"
+    HEATMAP_PORTFOLIO_CONTRIBUTION = "Portfolio Contributions"
+    HEATMAP_PORTFOLIO_RETURN = "Portfolio Returns"
     OVERALL_ATTRIBUTION = "Overall Attribution"
     OVERALL_CONTRIBUTION = "Overall Contribution"
     SUBPERIOD_ATTRIBUTION = "Sub-Period Attribution Effects"
@@ -904,7 +904,10 @@ class Attribution:
         # Line 1: Portfolio Name (vs Benchmark Name)
         line1 = (
             self.performances[0].name
-            if (chart_or_view in (Chart.HEATMAP_CONTRIBUTION, Chart.HEATMAP_RETURN))
+            if (
+                chart_or_view
+                in (Chart.HEATMAP_PORTFOLIO_CONTRIBUTION, Chart.HEATMAP_PORTFOLIO_RETURN)
+            )
             else f"{self.performances[0].name} vs {self.performances[1].name}"
         )
 
@@ -976,8 +979,8 @@ class Attribution:
                 Chart.HEATMAP_ACTIVE_CONTRIBUTION
                 | Chart.HEATMAP_ACTIVE_RETURN
                 | Chart.HEATMAP_ATTRIBUTION
-                | Chart.HEATMAP_CONTRIBUTION
-                | Chart.HEATMAP_RETURN
+                | Chart.HEATMAP_PORTFOLIO_CONTRIBUTION
+                | Chart.HEATMAP_PORTFOLIO_RETURN
             ):
                 # Set the DataFrame.
                 df = self.to_polars(View.SUBPERIOD_ATTRIBUTION)
@@ -989,9 +992,9 @@ class Attribution:
                         column_name = cols.ACTIVE_RETURN
                     case Chart.HEATMAP_ATTRIBUTION:
                         column_name = cols.TOTAL_EFFECT_SIMPLE
-                    case Chart.HEATMAP_CONTRIBUTION:
+                    case Chart.HEATMAP_PORTFOLIO_CONTRIBUTION:
                         column_name = cols.PORTFOLIO_CONTRIB_SIMPLE
-                    case Chart.HEATMAP_RETURN:
+                    case Chart.HEATMAP_PORTFOLIO_RETURN:
                         column_name = cols.PORTFOLIO_RETURN
                 # Get the chart png
                 png = format_chart.heatmap(df, column_name, title_lines)

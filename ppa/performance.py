@@ -436,6 +436,48 @@ class Performance:
     def _convert_to_wide_format(self) -> pl.DataFrame:
         """
         Convert self.df to the "wide" format that has multiple identifier.ret and identifier.wgt
+        columns using a single pivot operation.
+
+        Returns:
+            pl.DataFrame: The "wide" self.df.
+        """
+        # Return self.df if it is empty or already in the wide format.
+        if self.df.shape[0] == 0 or not all(
+            col in self.df.columns for col in (cols.IDENTIFIER, cols.RETURN, cols.WEIGHT)
+        ):
+            return self.df
+
+        # Perform a pivot: use the date columns as the index, and pivot on the identifier.
+        # The 'values' are both WEIGHT and RETURN; we use an aggregate function of "first" since
+        # there should be one value per date-identifier combination.
+        pivoted = self.df.pivot(
+            index=cols.DATE_COLUMNS,
+            on=cols.IDENTIFIER,
+            values=[cols.WEIGHT, cols.RETURN],
+            aggregate_function="first",
+        ).fill_null(0)
+
+        # The pivot produces columns with names like return_msft and weight_aapl.  So change these
+        # to the correct f"{identifier}{RET}" and f"{identifier}{WGT}".
+        new_columns: dict[str, str] = {}
+        return_prefix = f"{cols.RETURN}_"
+        weight_prefix = f"{cols.WEIGHT}_"
+        for col in pivoted.columns:
+            if col.startswith(return_prefix):
+                # Change return_msft to msft.ret
+                new_columns[col] = f"{col[len(return_prefix):]}{RET}"
+            elif col.startswith(weight_prefix):
+                # Change weight_aapl to appl.wgt
+                new_columns[col] = f"{col[len(weight_prefix):]}{WGT}"
+            else:
+                # Leave the date column names unchanged.
+                new_columns[col] = col
+
+        return pivoted.rename(new_columns)
+
+    def _convert_to_wide_format_old(self) -> pl.DataFrame:
+        """
+        Convert self.df to the "wide" format that has multiple identifier.ret and identifier.wgt
         columns.  This format is needed for the lightning-fast polars series and matrix operations.
 
         Returns:
