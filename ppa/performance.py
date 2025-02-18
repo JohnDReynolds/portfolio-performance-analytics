@@ -446,7 +446,7 @@ class Performance:
             """Join two lazyframes with an outer ("full") join on the date columns."""
             # Define re-used constants.
             left_on = cols.DATE_COLUMNS
-            right_on = ("temp1", "temp2")
+            right_on = ("__temp_1__", "__temp_2__")
 
             # Rename the join key columns in the right LazyFrame to temporary names
             right_temp = right.rename({left_on[0]: right_on[0], left_on[1]: right_on[1]})
@@ -454,8 +454,13 @@ class Performance:
             # Perform an outer ("full") join using left_on and right_on parameters.
             joined = left.join(right_temp, left_on=left_on, right_on=right_on, how="full")
 
+            # Make sure the dates are not null.
+            joined = joined.with_columns(
+                pl.col(left_on[0]).fill_null(pl.col(right_on[0]))
+            ).with_columns(pl.col(left_on[1]).fill_null(pl.col(right_on[1])))
+
             # Drop the temporary join key columns from the right side
-            return joined.drop(right_on)
+            return joined.fill_null(0).drop(right_on)
 
         # Return self.df if it is empty or already in the wide format.
         if self.df.shape[0] == 0 or not all(
