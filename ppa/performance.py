@@ -11,7 +11,6 @@ The Performance class contains asset/category weights and returns in a polars Da
 
 # Python Imports
 import datetime as dt
-from functools import reduce
 
 # Third-Party Imports
 import pandas as pd
@@ -474,64 +473,6 @@ class Performance:
                 new_columns[col] = col
 
         return pivoted.rename(new_columns)
-
-    def _convert_to_wide_format_old(self) -> pl.DataFrame:
-        """
-        Convert self.df to the "wide" format that has multiple identifier.ret and identifier.wgt
-        columns.  This format is needed for the lightning-fast polars series and matrix operations.
-
-        Returns:
-            pl.DataFrame: The "wide" self.df.
-        """
-
-        def _join_two_lfs(left: pl.LazyFrame, right: pl.LazyFrame) -> pl.LazyFrame:
-            """Join two lazyframes with an outer ("full") join on the date columns."""
-            # Define re-used constants.
-            left_on = cols.DATE_COLUMNS
-            right_on = ("__temp_1__", "__temp_2__")
-
-            # Rename the join key columns in the right LazyFrame to temporary names
-            right_temp = right.rename({left_on[0]: right_on[0], left_on[1]: right_on[1]})
-
-            # Perform an outer ("full") join using left_on and right_on parameters.
-            joined = left.join(right_temp, left_on=left_on, right_on=right_on, how="full")
-
-            # Make sure the dates are not null.
-            joined = joined.with_columns(
-                pl.col(left_on[0]).fill_null(pl.col(right_on[0]))
-            ).with_columns(pl.col(left_on[1]).fill_null(pl.col(right_on[1])))
-
-            # Drop the temporary join key columns from the right side
-            return joined.fill_null(0).drop(right_on)
-
-        # Return self.df if it is empty or already in the wide format.
-        if self.df.shape[0] == 0 or not all(
-            col in self.df.columns for col in (cols.IDENTIFIER, cols.RETURN, cols.WEIGHT)
-        ):
-            return self.df
-
-        # Declare polars expressions once since they will be used in each loop iteration below.
-        identifier_expression = pl.col(cols.IDENTIFIER)
-        columns_expressions = (
-            pl.col(cols.BEGINNING_DATE),
-            pl.col(cols.ENDING_DATE),
-            pl.col(cols.WEIGHT),
-            pl.col(cols.RETURN),
-        )
-
-        # Create multiple lfs, one for each identifier, each one having a .wgt and a .ret column.
-        lfs = [
-            (
-                self.df.lazy()
-                .filter(identifier_expression == identifier)
-                .select(columns_expressions)
-                .rename({cols.WEIGHT: f"{identifier}{WGT}", cols.RETURN: f"{identifier}{RET}"})
-            )
-            for identifier in set(self.df[cols.IDENTIFIER])
-        ]
-
-        # Use reduce to join all lazyframes in the lfs list, then collect, then return.
-        return reduce(_join_two_lfs, lfs).collect()
 
     def df_overall(self) -> pl.DataFrame:
         """Get the DataFrame representing the overall total period."""

@@ -506,10 +506,9 @@ class RiskStatistics:
         """
         if column_name == Statistic.VALUE_AT_RISK.value:
             return f"{self._frequency.value} {column_name} for ${portfolio_value:,.0f}"
-        elif not column_name.startswith("Annualized"):
+        if not column_name.startswith("Annualized"):
             return f"{self._frequency.value} {column_name}"
-        else:
-            return column_name
+        return column_name
 
     @staticmethod
     def _parametric_var(

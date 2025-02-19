@@ -200,7 +200,7 @@ class Attribution:
         self._equalize_columns()
 
         # Create the Attribution DataFrames.
-        self._df = self._calculate_attribution()
+        self._df = self._calculate_attribution().collect()
         self._df_overall = self._calculate_df_overall()
 
         # Initialize the cached dataframes for each View.
@@ -396,13 +396,13 @@ class Attribution:
         """
         return self.performances[0].df[cols.BEGINNING_DATE][0]
 
-    def _calculate_attribution(self) -> pl.DataFrame:
+    def _calculate_attribution(self) -> pl.LazyFrame:
         """
-        Summary:
-            Calculates the contributions and Attribution effects for the portfolio vs benchmark.
+        Calculates the contributions and Attribution effects for the portfolio vs benchmark.
 
-        Returns: self._df = Multiple rows with contributions and Attribution effects for the
-            portfolio vs benchmark for the multiple subperiods.
+        Returns:
+            pl.LazyFrame: Multiple rows (one for each subperiod) with contributions and Attribution
+            effects for the portfolio vs benchmark.  This will be self.df.
         """
         # Set the portfolio and benchmark.
         portfolio, benchmark = self.performances
@@ -433,10 +433,10 @@ class Attribution:
         )
 
         # Construct lf.
-        lf = pl.LazyFrame()
         lf = (
             # Dates
-            lf.with_columns(portfolio.df.select(cols.DATE_COLUMNS))
+            pl.LazyFrame()
+            .with_columns(portfolio.df.select(cols.DATE_COLUMNS))
             # Simple portfolio contribution.
             .with_columns(
                 (portfolio.df[portfolio.col_names(CON)]).rename(
@@ -448,20 +448,6 @@ class Attribution:
                 (benchmark.df[benchmark.col_names(CON)]).rename(
                     lambda column_name: f"{column_name[:-4]}{BCS}"
                 )
-            )
-            # Smoothed (log-linked) portfolio contribution
-            .with_columns(
-                [
-                    (pl.col(f"{id}{PCS}") * portfolio_linking_coefficients).alias(f"{id}{PCL}")
-                    for id in portfolio.identifiers
-                ]
-            )
-            # Smoothed (log-linked) benchmark contribution
-            .with_columns(
-                [
-                    (pl.col(f"{id}{BCS}") * benchmark_linking_coefficients).alias(f"{id}{BCL}")
-                    for id in benchmark.identifiers
-                ]
             )
             # Simple Brinson-Fachler allocation effects for each subperiod.
             .with_columns(
@@ -477,32 +463,42 @@ class Attribution:
                     * (portfolio_consolidated_returns - benchmark_consolidated_returns)
                 ).rename(lambda column_name: f"{column_name[:-4]}{SES}")
             )
-            # Smoothed (log-lLinked) Brinson-Fachler allocation effects for each subperiod.
             .with_columns(
                 [
-                    (pl.col(f"{id}{AES}") * linking_coefficients).alias(f"{id}{AEL}")
-                    for id in portfolio.identifiers
+                    # Smoothed (log-linked) portfolio contribution
+                    *[
+                        (pl.col(f"{id}{PCS}") * portfolio_linking_coefficients).alias(f"{id}{PCL}")
+                        for id in portfolio.identifiers
+                    ],
+                    # Smoothed (log-linked) benchmark contribution
+                    *[
+                        (pl.col(f"{id}{BCS}") * benchmark_linking_coefficients).alias(f"{id}{BCL}")
+                        for id in benchmark.identifiers
+                    ],
+                    # Smoothed (log-lLinked) Brinson-Fachler allocation effects for each subperiod.
+                    *[
+                        (pl.col(f"{id}{AES}") * linking_coefficients).alias(f"{id}{AEL}")
+                        for id in portfolio.identifiers
+                    ],
+                    # Smoothed (log-lLinked) Brinson-Fachler selection effects for each subperiod.
+                    *[
+                        (pl.col(f"{id}{SES}") * linking_coefficients).alias(f"{id}{SEL}")
+                        for id in portfolio.identifiers
+                    ],
+                    # Portfolio Return
+                    portfolio_total_returns.alias(cols.PORTFOLIO_RETURN),
+                    # Benchmark Return
+                    benchmark_total_returns.alias(cols.BENCHMARK_RETURN),
                 ]
-            )
-            # Smoothed (log-lLinked) Brinson-Fachler selection effects for each subperiod.
-            .with_columns(
-                [
-                    (pl.col(f"{id}{SES}") * linking_coefficients).alias(f"{id}{SEL}")
-                    for id in portfolio.identifiers
-                ]
-            )
-            # # Portfolio, Benchmark # and Active Returns
-            .with_columns(portfolio_total_returns.alias(cols.PORTFOLIO_RETURN)).with_columns(
-                benchmark_total_returns.alias(cols.BENCHMARK_RETURN)
             )
         )
 
         # Append columns that are the horizontal summations of the contributions and attribution
-        # effects.  And vertically sum the cumulative columns.  And then collect().
+        # effects.  And vertically sum the cumulative columns.
         lf = self._sum_columns_and_rows(lf, portfolio)
 
-        # Return self._df.
-        return lf.collect()
+        # Return lazy version of self.df.
+        return lf
 
     def _calculate_df_overall(self) -> pl.DataFrame:
         """
@@ -798,8 +794,9 @@ class Attribution:
             pl.LazyFrame: The new lf with the new horizontal summation columns and cumulative
             columns added.
         """
-        # Horizontally sum the portfolio contribs, benchmark contribs and attribution effects.
-        # parameters = [(name, alias)
+        # Horizontally sum the contributions, allocation effects and selection effects.
+        # parameters = (col_names, alias)
+        expressions: list[pl.Expr] = []
         for col_names, alias in (
             (performance.col_names(PCS), cols.PORTFOLIO_CONTRIB_SIMPLE),
             (performance.col_names(BCS), cols.BENCHMARK_CONTRIB_SIMPLE),
@@ -809,6 +806,14 @@ class Attribution:
             (performance.col_names(SES), cols.SELECTION_EFFECT_SIMPLE),
             (performance.col_names(AEL), cols.ALLOCATION_EFFECT_SMOOTHED),
             (performance.col_names(SEL), cols.SELECTION_EFFECT_SMOOTHED),
+        ):
+            expressions.append(pl.sum_horizontal(col_names).alias(alias))
+        lf = lf.with_columns(expressions)
+
+        # Horizontally sum the total effects.
+        # parameters = (col_names, alias)
+        expressions = []
+        for col_names, alias in (
             (
                 [cols.ALLOCATION_EFFECT_SIMPLE, cols.SELECTION_EFFECT_SIMPLE],
                 cols.TOTAL_EFFECT_SIMPLE,
@@ -818,67 +823,68 @@ class Attribution:
                 cols.TOTAL_EFFECT_SMOOTHED,
             ),
         ):
-            lf = lf.with_columns(pl.sum_horizontal(col_names).alias(alias))
+            expressions.append(pl.sum_horizontal(col_names).alias(alias))
+        lf = lf.with_columns(expressions)
 
-        # Vertically accumulate the linked columns and cumulative columns.
+        # Vertically accumulate the cumulative columns.
         lf = lf.with_columns(
-            # CUMULATIVE_PORTFOLIO_RETURN
-            pl.col(cols.PORTFOLIO_RETURN)
-            .add(1)
-            .cum_prod()
-            .sub(1)
-            .alias(cols.CUMULATIVE_PORTFOLIO_RETURN),
-            # CUMULATIVE_BENCHMARK_RETURN
-            pl.col(cols.BENCHMARK_RETURN)
-            .add(1)
-            .cum_prod()
-            .sub(1)
-            .alias(cols.CUMULATIVE_BENCHMARK_RETURN),
-            # CUMULATIVE_PORTFOLIO_CONTRIB
-            pl.col(cols.PORTFOLIO_CONTRIB_SMOOTHED)
-            .cum_sum()
-            .alias(cols.CUMULATIVE_PORTFOLIO_CONTRIB),
-            # CUMULATIVE_BENCHMARK_CONTRIB
-            pl.col(cols.BENCHMARK_CONTRIB_SMOOTHED)
-            .cum_sum()
-            .alias(cols.CUMULATIVE_BENCHMARK_CONTRIB),
-            # CUMULATIVE_ALLOCATION_EFFECT
-            pl.col(cols.ALLOCATION_EFFECT_SMOOTHED)
-            .cum_sum()
-            .alias(cols.CUMULATIVE_ALLOCATION_EFFECT),
-            # CUMULATIVE_SELECTION_EFFECT
-            pl.col(cols.SELECTION_EFFECT_SMOOTHED)
-            .cum_sum()
-            .alias(cols.CUMULATIVE_SELECTION_EFFECT),
-            # CUMULATIVE_TOTAL_EFFECT
-            pl.col(cols.TOTAL_EFFECT_SMOOTHED).cum_sum().alias(cols.CUMULATIVE_TOTAL_EFFECT),
+            [
+                # CUMULATIVE_PORTFOLIO_RETURN
+                pl.col(cols.PORTFOLIO_RETURN)
+                .add(1)
+                .cum_prod()
+                .sub(1)
+                .alias(cols.CUMULATIVE_PORTFOLIO_RETURN),
+                # CUMULATIVE_BENCHMARK_RETURN
+                pl.col(cols.BENCHMARK_RETURN)
+                .add(1)
+                .cum_prod()
+                .sub(1)
+                .alias(cols.CUMULATIVE_BENCHMARK_RETURN),
+                # CUMULATIVE_PORTFOLIO_CONTRIB
+                pl.col(cols.PORTFOLIO_CONTRIB_SMOOTHED)
+                .cum_sum()
+                .alias(cols.CUMULATIVE_PORTFOLIO_CONTRIB),
+                # CUMULATIVE_BENCHMARK_CONTRIB
+                pl.col(cols.BENCHMARK_CONTRIB_SMOOTHED)
+                .cum_sum()
+                .alias(cols.CUMULATIVE_BENCHMARK_CONTRIB),
+                # CUMULATIVE_ALLOCATION_EFFECT
+                pl.col(cols.ALLOCATION_EFFECT_SMOOTHED)
+                .cum_sum()
+                .alias(cols.CUMULATIVE_ALLOCATION_EFFECT),
+                # CUMULATIVE_SELECTION_EFFECT
+                pl.col(cols.SELECTION_EFFECT_SMOOTHED)
+                .cum_sum()
+                .alias(cols.CUMULATIVE_SELECTION_EFFECT),
+                # CUMULATIVE_TOTAL_EFFECT
+                pl.col(cols.TOTAL_EFFECT_SMOOTHED).cum_sum().alias(cols.CUMULATIVE_TOTAL_EFFECT),
+            ]
         )
 
+        # Calculate the active columns.
         # You cannot subtract 2 lazyframe columns, so you need to collect first.
         df = lf.collect()
         lf = (
-            df.lazy()
-            # Active return
-            .with_columns(
-                (df[cols.PORTFOLIO_RETURN] - df[cols.BENCHMARK_RETURN]).alias(cols.ACTIVE_RETURN)
-            )
-            # Cumulative active return
-            .with_columns(
-                (
-                    df[cols.CUMULATIVE_PORTFOLIO_RETURN] - df[cols.CUMULATIVE_BENCHMARK_RETURN]
-                ).alias(cols.CUMULATIVE_ACTIVE_RETURN)
-            )
-            # Simple active contribution
-            .with_columns(
-                (df[cols.PORTFOLIO_CONTRIB_SIMPLE] - df[cols.BENCHMARK_CONTRIB_SIMPLE]).alias(
-                    cols.ACTIVE_CONTRIB_SIMPLE
-                )
-            )
-            # Linked active contribution
-            .with_columns(
-                (df[cols.PORTFOLIO_CONTRIB_SMOOTHED] - df[cols.BENCHMARK_CONTRIB_SMOOTHED]).alias(
-                    cols.ACTIVE_CONTRIB_SMOOTHED
-                )
+            df.lazy().with_columns(
+                [
+                    # Active return (no distinction between simple and smoothed)
+                    (df[cols.PORTFOLIO_RETURN] - df[cols.BENCHMARK_RETURN]).alias(
+                        cols.ACTIVE_RETURN
+                    ),
+                    # Cumulative active return
+                    (
+                        df[cols.CUMULATIVE_PORTFOLIO_RETURN] - df[cols.CUMULATIVE_BENCHMARK_RETURN]
+                    ).alias(cols.CUMULATIVE_ACTIVE_RETURN),
+                    # Simple active contribution
+                    (df[cols.PORTFOLIO_CONTRIB_SIMPLE] - df[cols.BENCHMARK_CONTRIB_SIMPLE]).alias(
+                        cols.ACTIVE_CONTRIB_SIMPLE
+                    ),
+                    # Smoothed (log-linked) active contribution
+                    (
+                        df[cols.PORTFOLIO_CONTRIB_SMOOTHED] - df[cols.BENCHMARK_CONTRIB_SMOOTHED]
+                    ).alias(cols.ACTIVE_CONTRIB_SMOOTHED),
+                ]
             )
             # Cumulative active contribution
             .with_columns(
@@ -888,7 +894,7 @@ class Attribution:
             )
         )
 
-        # Return the resulting DataFrame
+        # Return the resulting LazyFrame
         return lf
 
     def _title_lines(self, chart_or_view: Chart | View) -> tuple[str, str]:

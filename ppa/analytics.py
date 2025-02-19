@@ -328,8 +328,8 @@ class Analytics:
             [pl.col(cols.TOTAL_RETURN).add(1).cum_prod().last().sub(1).alias("subperiod_return")]
         )
 
-        # Join the subperiod_returns.  Since LazyFrames cannot be subtracted from one-another, you
-        # must collect() here.
+        # Join the subperiod_returns.  Since LazyFrame columns cannot have arithmetic performed on
+        # themselves, you must collect() here.
         joined = joined.join(subperiod_returns, on="subperiod_id").collect()
 
         # Append the day-weighting coefficients and the linking coefficients.
@@ -579,7 +579,7 @@ class Analytics:
         mapped_contribs_lf = self._map_columns(performance, to_column_name_mapping, CON)
         mapped_weights_lf = self._map_columns(performance, to_column_name_mapping, WGT)
 
-        # Get the mapped_df.  Note that LazyFrames cannot be divided by one-another.
+        # Get the mapped_df.  Note that LazyFrames cannot be divided by one-another, so collect().
         mapped_contribs = mapped_contribs_lf.collect()
         mapped_weights = mapped_weights_lf.collect()
         mapped_lf = (
