@@ -54,7 +54,10 @@ class Analytics:
         annual_minimum_acceptable_return: float = util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN,
         annual_risk_free_rate: float = util.DEFAULT_ANNUAL_RISK_FREE_RATE,
         confidence_level: float = util.DEFAULT_CONFIDENCE_LEVEL,
-        portfolio_value: float = util.DEFAULT_PORTFOLIO_VALUE,
+        portfolio_value: tuple[float, str] = (
+            util.DEFAULT_PORTFOLIO_VALUE,
+            util.DEFAULT_CURRENCY_SYMBOL,
+        ),
     ):
         """
         The constructor.  Reads and validates portfolio and benchmark Performance data, and
@@ -96,8 +99,9 @@ class Analytics:
                 Defaults to util.DEFAULT_ANNUAL_RISK_FREE_RATE.
             confidence_level (float, optional): The confidence level for calculating the
                 value-at-risk (VAR).  Defaults to util.DEFAULT_CONFIDENCE_LEVEL.
-            portfolio_value (float, optional): The portfolio value (stated in a currency) for
-                calculating the value-at-risk (VAR).  Defaults to util.DEFAULT_PORTFOLIO_VALUE.
+            portfolio_value (tuple[float, str], optional): A tuple of the portfolio value and it's
+                associated currency that will be used when calculating the value-at-risk (VaR).
+                Defaults to (util.DEFAULT_PORTFOLIO_VALUE, util.DEFAULT_CURRENCY_SYMBOL).
 
         Data Parameters:
             Sample input data for the "portfolio_data_source" & "benchmark_data_source" parameters

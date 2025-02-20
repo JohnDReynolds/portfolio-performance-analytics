@@ -1,5 +1,5 @@
 # portfolio-performance-analytics
-portfolio-performance-analytics (ppa) is published under an “All Rights Reserved” policy. See the LICENSE file for more information.
+portfolio-performance-analytics (ppa) is a python-based application that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics.
 
 [License](LICENSE)
 

@@ -108,7 +108,10 @@ class RiskStatistics:
         annual_minimum_acceptable_return: float = util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN,
         annual_risk_free_rate: float = util.DEFAULT_ANNUAL_RISK_FREE_RATE,
         confidence_level: float = util.DEFAULT_CONFIDENCE_LEVEL,
-        portfolio_value: float = util.DEFAULT_PORTFOLIO_VALUE,
+        portfolio_value: tuple[float, str] = (
+            util.DEFAULT_PORTFOLIO_VALUE,
+            util.DEFAULT_CURRENCY_SYMBOL,
+        ),
     ):
         """
         The constructor.  Calculates the ex-post risk statistics enumerated in the "Statistic"
@@ -131,8 +134,9 @@ class RiskStatistics:
                 Defaults to util.DEFAULT_ANNUAL_RISK_FREE_RATE.
             confidence_level (float, optional): The confidence level for calculating the
                 value-at-risk (VAR).  Defaults to util.DEFAULT_CONFIDENCE_LEVEL.
-            portfolio_value (float, optional): The portfolio value (stated in a currency) for
-                calculating the value-at-risk (VAR).  Defaults to util.DEFAULT_PORTFOLIO_VALUE.
+            portfolio_value (tuple[float, str], optional): A tuple of the portfolio value and it's
+                associated currency that will be used when calculating the value-at-risk (VaR).
+                Defaults to (util.DEFAULT_PORTFOLIO_VALUE, util.DEFAULT_CURRENCY_SYMBOL).
 
         Raises:
             errs.PpaError: Error if frequency is invalid.
@@ -142,6 +146,9 @@ class RiskStatistics:
         assert (
             self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE
         ), f"{errs.ERROR_402_INVALID_FREQUENCY}{self._frequency}"
+
+        # Set the currency symbol used when presenting the VaR.
+        self._currency_symbol = portfolio_value[1]
 
         # Set the dates, names and returns depending on the input parameters.
         self._performances: tuple[Performance, Performance] = tuple()
@@ -190,15 +197,16 @@ class RiskStatistics:
             annual_minimum_acceptable_return,
             annual_risk_free_rate,
             confidence_level,
-            portfolio_value,
+            portfolio_value[0],
         )
 
         # Create self._df from the statistic_values dictionary.
         self._df = pl.DataFrame(statistic_values)
 
-        # Rename the non-annualized column names so the frequency is pre-pended.
+        # Rename the non-annualized column names so the frequency is prepended, and
+        # the currency symbol is prepended for the portfolio_value.
         self._df.columns = [
-            self._frequency_column_name(col, portfolio_value) for col in self._df.columns
+            self._frequency_column_name(col, portfolio_value[0]) for col in self._df.columns
         ]
 
         # Create the final DataFrame.
@@ -488,17 +496,20 @@ class RiskStatistics:
 
     def _frequency_column_name(self, column_name: str, portfolio_value: float) -> str:
         """
-        Create a new column name by pre-pending the frequency for non-annualized column names.
-
+        Create a new column name by prepending the frequency for non-annualized column names
+        and prepending the currency symbol for the portfolio_value.
         Args:
             column_names (list[str]): The column name without frequency.
             portfolio_value (float): The portfolio value (stated in a currency).
 
         Returns:
-            list[str]: The column name pre-pended with frequency for non-annualized columns.
+            list[str]: The column name prepended with frequency for non-annualized columns.
         """
         if column_name == Statistic.VALUE_AT_RISK.value:
-            return f"{self._frequency.value} {column_name} for ${portfolio_value:,.0f}"
+            return (
+                f"{self._frequency.value} {column_name} for "
+                f"{self._currency_symbol}{portfolio_value:,.0f}"
+            )
         if not column_name.startswith("Annualized"):
             return f"{self._frequency.value} {column_name}"
         return column_name
@@ -609,7 +620,12 @@ class RiskStatistics:
             # Format the statistics to 4 decimals (bps)
             .fmt_number(columns=column_names, decimals=4)  # type: ignore
             # Format the VaR to 0 decimals since it represents a currency amount.
-            .fmt_number(columns=column_names, pattern="${x}", decimals=0, rows=9)  # type: ignore
+            .fmt_number(
+                columns=column_names,  # type: ignore
+                pattern=f"{self._currency_symbol}{{x}}",  # the actual str {x}
+                decimals=0,
+                rows=9,
+            )
             .opt_row_striping()
         )
 
