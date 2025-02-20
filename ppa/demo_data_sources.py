@@ -1,11 +1,4 @@
 """
-Copyright 2025 John D. Reynolds, All Rights Reserved.
-
-This software and associated documentation files (the “Software”) are provided for reference or
-archival purposes only. No license is granted to any person to copy, modify, publish, distribute,
-sublicense, or sell copies of the Software, or to use it for any commercial or non-commercial
-purpose, without the express prior written permission of John D. Reynolds.
-
 This module contains custom functions for the Classification, Mapping, and Performance data
 sources.  It has been designed for the test data.  The functions in this module deliver the path
 name of csv files containing the data.  Users can alternatively create their own custom data source

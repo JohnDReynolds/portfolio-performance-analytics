@@ -1,11 +1,4 @@
 """
-Copyright 2025 John D. Reynolds, All Rights Reserved.
-
-This software and associated documentation files (the “Software”) are provided for reference or
-archival purposes only. No license is granted to any person to copy, modify, publish, distribute,
-sublicense, or sell copies of the Software, or to use it for any commercial or non-commercial
-purpose, without the express prior written permission of John D. Reynolds.
-
 The Analytics class reads and validates portfolio and benchmark Performance data, and then
 consolidates them into common time periods based on the provided dates and frequency.
 
