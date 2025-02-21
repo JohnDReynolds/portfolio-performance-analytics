@@ -47,7 +47,7 @@ def cumulative_lines(
     y_axis_label: str,
 ) -> bytes:
     """
-    Formats the CUMULATIVE charts.
+    Formats the CUMULATIVE* charts.
 
     Args:
         df (pl.DataFrame): The View.CUMULATIVE_ATTRIBUTION DataFrame.
@@ -123,7 +123,7 @@ def heatmap(
     title_lines: tuple[str, str],
 ) -> bytes:
     """
-    Formats the HEATMAP charts.
+    Formats the HEATMAP* charts.
 
     Args:
         df (pl.DataFrame): The View.SUBPERIOD_SUMMARY DataFrame.
@@ -139,9 +139,7 @@ def heatmap(
     )
 
     # Word-wrap the classification labels
-    df = df.with_columns(
-        pl.Series("classification_label", _word_wrap(df[cols.CLASSIFICATION_NAME]))
-    )
+    df = df.with_columns(pl.Series("classification_label", _word_wrap(df)))
 
     # Set the figure width and height
     fig_width = len(set(df["date_label"])) * 0.7
@@ -211,7 +209,7 @@ def overall_attribution(
     df = df.sort(cols.TOTAL_EFFECT_SMOOTHED, descending=True)
 
     # Set the labels, data series names and data series values.
-    labels = _word_wrap(df[cols.CLASSIFICATION_NAME])
+    labels = _word_wrap(df)
     series_names = [cols.short_column_name(col) for col in cols.ATTRIBUTION_COLUMNS_SMOOTHED]
     series_values = [df[col] for col in cols.ATTRIBUTION_COLUMNS_SMOOTHED]
 
@@ -232,7 +230,7 @@ def overall_attribution(
         1, 3, figsize=_figsize((_DEFAULT_FIGSIZE[0], fig_height)), sharey=True
     )
 
-    # Ensure unique y positions in case the labels are not unique.
+    # Get y positions for set_yticks below.
     y_positions = range(len(labels))
 
     for ax, series_values, title in zip(axes, series_values, series_names):
@@ -242,8 +240,8 @@ def overall_attribution(
         ax.barh(labels, series_values, height=bar_height, color=colors)
 
         # Set the y-axis.
-        ax.set_yticks(y_positions)  # Must be done because labels might not be unique
         ax.invert_yaxis()
+        ax.set_yticks(y_positions)
         ax.set_yticklabels(labels)
 
         # Set the x-axis ticks min/max, and format them to 2 decimals.
@@ -295,7 +293,7 @@ def overall_contribution(
     ]
 
     # Get the labels
-    labels = _word_wrap(df[cols.CLASSIFICATION_NAME])
+    labels = _word_wrap(df)
 
     # Get the vertival chart measurements.
     bar_height, bottom_margin, delta, fig_height = _vertical_chart_measurements(len(labels))
@@ -472,14 +470,41 @@ def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, flo
     return bar_height, bottom_margin, delta, fig_height
 
 
-def _word_wrap(phrases: pl.Series) -> list[str]:
+def _word_wrap(df: pl.DataFrame) -> list[str]:
     """
-    Word-wrap each phrase at a maximum_length.
+    Word-wrap each name at a maximum_length.
 
     Args:
-        phrases (pl.Series): A series of phrases, each phrase containing multiple words.
+        df (pl.DatFrame): The dataframe containing the names.
 
     Returns:
-        list[str]: The word-wrapped list of phrases.
+        list[str]: The word-wrapped list of unique names.
     """
-    return [textwrap.fill(phrase, width=_MAXIMUM_LABEL_LENGTH) for phrase in phrases]
+    # Get the columns.
+    ending_dates = df[cols.ENDING_DATE] if cols.ENDING_DATE in df else pl.Series()
+    identifiers = df[cols.CLASSIFICATION_IDENTIFIER]
+    names = df[cols.CLASSIFICATION_NAME]
+
+    # Get all duplicate names.
+    if 0 < len(ending_dates):
+        # If you have ending_dates, then there will be multiple sets of the same classification
+        # names, one set for each date.  So only look for duplicates in the first ending_dates.
+        names_to_check = df.filter(df[cols.ENDING_DATE] == ending_dates[0])[
+            cols.CLASSIFICATION_NAME
+        ]
+    else:
+        # There are no ending_dates, so there will only be one set of names.
+        names_to_check = names
+    duplicate_names = names_to_check.filter(names_to_check.is_duplicated())
+
+    # Make sure that you are retuning back a unique list.  This is necessary for the charts
+    # because the axis labels need to be unique.  Also, visually for the user, if there are
+    # non-unique axis labels, what are they to make of that?  So prepend the identifier for
+    # the duplicates, and then wordwrap at _MAXIMUM_LABEL_LENGTH.
+    return [
+        textwrap.fill(
+            (f"{identifiers[idx]}: {name}" if name in duplicate_names else name),
+            width=_MAXIMUM_LABEL_LENGTH,
+        )
+        for idx, name in enumerate(names)
+    ]
