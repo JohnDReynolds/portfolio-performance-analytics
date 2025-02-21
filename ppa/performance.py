@@ -75,11 +75,11 @@ class Performance:
         # the Analytics class (e.g. if daily is consolidated into monthly)
         self.subperiods_have_been_consolidated = False
 
-        # Set the error message suffix.
-        self.message_in_file_path = (
+        # Set the error message for context.
+        self.error_message_context = (
             f"in the file {data_source}"
             if isinstance(data_source, str)
-            else f"in the input dataframe {name}"
+            else f"in the dataframe {name}"
         )
 
         # Validate the dates.
@@ -96,7 +96,7 @@ class Performance:
         # Assert that there is at least 1 row.
         assert (
             0 < self.df.shape[0]
-        ), f"{errs.ERROR_103_NO_PERFORMANCE_ROWS}{self.message_in_file_path}"
+        ), f"{errs.ERROR_103_NO_PERFORMANCE_ROWS}{self.error_message_context}"
 
         # Remove extraneous columns, clean and validate columns.
         self._clean_and_validate_columns()
@@ -138,7 +138,7 @@ class Performance:
         # Assert that the weights sum to 1.0.
         assert (
             self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0
-        ).all(), f"{errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1}{self.message_in_file_path}"
+        ).all(), f"{errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1}{self.error_message_context}"
 
         # self._df_overall is one row for the entire overall period.
         self._df_overall = pl.DataFrame()
@@ -278,7 +278,7 @@ class Performance:
                 except pl.exceptions.InvalidOperationError as e:
                     raise pl.exceptions.InvalidOperationError(
                         f"{errs.ERROR_110_INVALID_PERFORMANCE_DATA_FORMAT}"
-                        f"{self.message_in_file_path}: "
+                        f"{self.error_message_context}: "
                         f"Cannot convert the column '{col_name}' to a {dtype}, {str(e)[:1000]}"
                     ) from e
 
@@ -291,7 +291,7 @@ class Performance:
                 .collect()
                 .item()
             )
-        ), f"{errs.ERROR_104_MISSING_VALUES}{self.message_in_file_path}"
+        ), f"{errs.ERROR_104_MISSING_VALUES}{self.error_message_context}"
 
     def _clean_and_validate_columns(self) -> None:
         """Clean and validate the columns."""
@@ -302,14 +302,14 @@ class Performance:
         # Assert that there is at least one return.
         assert (
             len(return_col_names) != 0
-        ), f"{errs.ERROR_109_NO_RETURNS_OR_WEIGHTS}{self.message_in_file_path}"
+        ), f"{errs.ERROR_109_NO_RETURNS_OR_WEIGHTS}{self.error_message_context}"
 
         # Assert that columns.ret == columns.wgt.  Note that polars does not allow for
         # duplicate col_names.
         identifiers = [col[:-4] for col in return_col_names]
         assert identifiers == [col[:-4] for col in weight_col_names], (
             f"{errs.ERROR_107_RETURN_COLUMNS_NOT_EQUAL_TO_WEIGHT_COLUMNS}"
-            f"{self.message_in_file_path}"
+            f"{self.error_message_context}"
         )
 
         # Select only the column names that are needed.  This will drop any un-needed columns.
@@ -331,7 +331,7 @@ class Performance:
         )
         assert (
             self.df.shape[0] == qty_uniques
-        ), f"{errs.ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE}{self.message_in_file_path}"
+        ), f"{errs.ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE}{self.error_message_context}"
 
         # Typically, beginning_date[i] == ending_date[i - 1].  This is non-inclusive of
         # beginning_date, but inclusive of ending_date.  The following block will allow for
@@ -357,7 +357,7 @@ class Performance:
         )
         assert date_sequences[cols.BEGINNING_DATE].sum() == 0, (
             f"{errs.ERROR_105_BEGINNING_DATES_GREATER_THAN_ENDING_DATES}"
-            f"{self.message_in_file_path}"
+            f"{self.error_message_context}"
         )
 
         # Assert that there are no discontinuous time periods (date gaps).
@@ -368,7 +368,7 @@ class Performance:
         )
         assert (
             discontinuous_time_periods[cols.BEGINNING_DATE].sum() == 0
-        ), f"{errs.ERROR_106_DISCONTINUOS_TIME_PERIODS}{self.message_in_file_path}"
+        ), f"{errs.ERROR_106_DISCONTINUOS_TIME_PERIODS}{self.error_message_context}"
 
     def col_names(self, suffix: str) -> list[str]:
         """

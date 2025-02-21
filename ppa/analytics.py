@@ -274,7 +274,8 @@ class Analytics:
             # self._subperiod_dates.
             assert len(self._subperiod_dates) <= performance.df.shape[0], (
                 f"{errs.ERROR_999_UNEXPECTED}"
-                f"{self._message_suffix(performance.message_in_file_path)}"
+                f"{performance.error_message_context} from {util.date_str(self._beginning_date())}"
+                f" to {util.date_str(self._ending_date())}"
             )
 
             # If performance.df has more rows than self._subperiod_dates, then that means that
@@ -597,20 +598,4 @@ class Analytics:
         # Return the new mapped Performance.
         return Performance(
             mapped_lf.collect(), name=performance.name, classification_name=to_classification_name
-        )
-
-    def _message_suffix(self, base_message: str) -> str:
-        """
-        Gets the error message suffix.
-
-        Args:
-            base_message (str): The base message.
-
-        Returns:
-            str: The error message suffix.
-        """
-        # Return the error message suffix.
-        return (
-            f"{base_message} from {util.date_str(self._beginning_date())} to"
-            f"{util.date_str(self._ending_date())}"
         )
