@@ -81,42 +81,12 @@ class View(Enum):
     SUBPERIOD_SUMMARY = "Sub-Period Summary"
 
 
-# The column names associated with each View.
-_VIEW_COLUMN_NAMES = {
-    # View.OVERALL_ATTRIBUTION
-    View.OVERALL_ATTRIBUTION: cols.CLASSIFICATION_COLUMNS
-    + cols.PORTFOLIO_COLUMNS_SMOOTHED
-    + cols.BENCHMARK_COLUMNS_SMOOTHED
-    + cols.ACTIVE_COLUMNS_SMOOTHED
-    + cols.ATTRIBUTION_COLUMNS_SMOOTHED,
-    # View.SUBPERIOD_ATTRIBUTION
-    View.SUBPERIOD_ATTRIBUTION: cols.DATE_COLUMNS
-    + cols.CLASSIFICATION_COLUMNS
-    + cols.PORTFOLIO_COLUMNS_SIMPLE
-    + cols.BENCHMARK_COLUMNS_SIMPLE
-    + cols.ACTIVE_COLUMNS_SIMPLE
-    + cols.ATTRIBUTION_COLUMNS_SIMPLE,
-    # View.CUMULATIVE_ATTRIBUTION
-    View.CUMULATIVE_ATTRIBUTION: cols.DATE_COLUMNS
-    + cols.RETURN_COLUMNS
-    + cols.CUMULATIVE_RETURN_COLUMNS
-    + cols.CONTRIBUTION_COLUMNS_SMOOTHED
-    + cols.CUMULATIVE_CONTRIBUTION_COLUMNS
-    + cols.ATTRIBUTION_COLUMNS_SMOOTHED
-    + cols.CUMULATIVE_ATTRIBUTION_COLUMNS,
-    # View.SUBPERIOD_SUMMARY
-    View.SUBPERIOD_SUMMARY: cols.DATE_COLUMNS
-    + cols.RETURN_COLUMNS
-    + cols.CONTRIBUTION_COLUMNS_SIMPLE
-    + cols.ATTRIBUTION_COLUMNS_SIMPLE,
-}
-
-# Various pairs of simple columns that should be equal to each other.
-_SIMPLE_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL = (
-    (cols.PORTFOLIO_RETURN, cols.PORTFOLIO_CONTRIB_SIMPLE),
-    (cols.BENCHMARK_RETURN, cols.BENCHMARK_CONTRIB_SIMPLE),
-    (cols.ACTIVE_RETURN, cols.ACTIVE_CONTRIB_SIMPLE),
-    (cols.ACTIVE_RETURN, cols.TOTAL_EFFECT_SIMPLE),
+# Column names that should be equivalent between all Attribution instances for a given Analytics.
+_EQUIVALENT_COLUMN_NAMES = (
+    cols.BEGINNING_DATE,
+    cols.ENDING_DATE,
+    cols.QUANTITY_OF_DAYS,
+    cols.TOTAL_RETURN,
 )
 
 # Various pairs of columns that should be equal to each other for the total row.
@@ -141,6 +111,28 @@ _OVERALL_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL = (
     (cols.ACTIVE_RETURN, cols.TOTAL_EFFECT_SMOOTHED),
     (cols.ACTIVE_RETURN, cols.CUMULATIVE_TOTAL_EFFECT),
 )
+
+# Various pairs of simple columns that should be equal to each other.
+_SIMPLE_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL = (
+    (cols.PORTFOLIO_RETURN, cols.PORTFOLIO_CONTRIB_SIMPLE),
+    (cols.BENCHMARK_RETURN, cols.BENCHMARK_CONTRIB_SIMPLE),
+    (cols.ACTIVE_RETURN, cols.ACTIVE_CONTRIB_SIMPLE),
+    (cols.ACTIVE_RETURN, cols.TOTAL_EFFECT_SIMPLE),
+)
+
+# The column names associated with each View.
+_VIEW_COLUMN_NAMES = {
+    # View.CUMULATIVE_ATTRIBUTION
+    View.CUMULATIVE_ATTRIBUTION: cols.DATE_COLUMNS + cols.VIEW_CUMULATIVE_ATTRIBUTION_COLUMNS,
+    # View.OVERALL_ATTRIBUTION
+    View.OVERALL_ATTRIBUTION: cols.CLASSIFICATION_COLUMNS + cols.VIEW_OVERALL_ATTRIBUTION_COLUMNS,
+    # View.SUBPERIOD_ATTRIBUTION
+    View.SUBPERIOD_ATTRIBUTION: cols.DATE_COLUMNS
+    + cols.CLASSIFICATION_COLUMNS
+    + cols.VIEW_SUBPERIOD_ATTRIBUTION_COLUMNS,
+    # View.SUBPERIOD_SUMMARY
+    View.SUBPERIOD_SUMMARY: cols.DATE_COLUMNS + cols.VIEW_SUBPERIOD_SUMMARY_COLUMNS,
+}
 
 
 class Attribution:
@@ -270,14 +262,8 @@ class Attribution:
     @staticmethod
     def audit_attributions(attributions: list["Attribution"]) -> None:
         """Audit the list of Attributions."""
-        # Initialize base_equivalent_columns.
-        base_equivalent_columns = [pl.DataFrame(), pl.DataFrame()]  # 0 = portfolio, 1 = benchmark
-        equivalent_column_names = (
-            cols.BEGINNING_DATE,
-            cols.ENDING_DATE,
-            cols.QUANTITY_OF_DAYS,
-            cols.TOTAL_RETURN,
-        )
+        # Initialize base_equivalent_columns to empty (for lint).
+        base_equivalent_columns = (pl.DataFrame(), pl.DataFrame())  # 0 = portfolio, 1 = benchmark
 
         # Loop through each attribution and validate it.
         for idxa, attribution in enumerate(attributions):
@@ -286,8 +272,8 @@ class Attribution:
 
             # Get the equivalent columns.
             equivalent_columns = [
-                attribution.performances[0].df[equivalent_column_names],
-                attribution.performances[1].df[equivalent_column_names],
+                attribution.performances[0].df[_EQUIVALENT_COLUMN_NAMES],
+                attribution.performances[1].df[_EQUIVALENT_COLUMN_NAMES],
             ]
 
             # Round the TOTAL_RETURN so it can be "equivalently" compared.
@@ -346,18 +332,9 @@ class Attribution:
         # Assert that weight * return == contribution
         for idx, _ in enumerate(self.performances):
             if not self.performances[idx].subperiods_have_been_consolidated:
-                if idx == 0:
-                    needed_columns = (
-                        cols.PORTFOLIO_WEIGHT,
-                        cols.PORTFOLIO_RETURN,
-                        cols.PORTFOLIO_CONTRIB_SIMPLE,
-                    )
-                else:  # idx == 1
-                    needed_columns = (
-                        cols.BENCHMARK_WEIGHT,
-                        cols.BENCHMARK_RETURN,
-                        cols.BENCHMARK_CONTRIB_SIMPLE,
-                    )
+                needed_columns = (
+                    cols.PORTFOLIO_COLUMNS_SIMPLE if idx == 0 else cols.BENCHMARK_COLUMNS_SIMPLE
+                )
                 if all(col in df.columns for col in needed_columns):
                     contributions = df[needed_columns[0]] * df[needed_columns[1]]
                     assert (
@@ -635,6 +612,14 @@ class Attribution:
                     right_on=cols.CLASSIFICATION_IDENTIFIER,
                     how="left",
                 )
+                # The CLASSIFICATION_NAME will be missing if the CLASSIFICATION_IDENTIFER is not
+                # in self._classification.df.  So put the CLASSIFICATION_IDENTIFER in the
+                # CLASSIFICATION_NAME.
+                result = result.with_columns(
+                    pl.col(cols.CLASSIFICATION_NAME).fill_null(
+                        pl.col(cols.CLASSIFICATION_IDENTIFIER)
+                    )
+                )
             else:
                 # Then join all of the other columns.
                 result = result.join(
@@ -642,50 +627,39 @@ class Attribution:
                     on=[cols.BEGINNING_DATE, cols.ENDING_DATE, cols.CLASSIFICATION_IDENTIFIER],
                 )
 
-        # Create "active" columns, which are mathematical expressions of existing columns.
-        result = (
-            # Active columns and attribution column.
+        # Create "active" columns and "total" columns, which are mathematical expressions of
+        # existing columns.
+        expressions: list[pl.Expr] = [
+            # ACTIVE_RETURN
+            (pl.col(cols.PORTFOLIO_RETURN) - pl.col(cols.BENCHMARK_RETURN)).alias(
+                cols.ACTIVE_RETURN
+            ),
+            # ACTIVE_WEIGHT
+            (pl.col(cols.PORTFOLIO_WEIGHT) - pl.col(cols.BENCHMARK_WEIGHT)).alias(
+                cols.ACTIVE_WEIGHT
+            ),
+            # ACTIVE_CONTRIB_SIMPLE
+            (pl.col(cols.PORTFOLIO_CONTRIB_SIMPLE) - pl.col(cols.BENCHMARK_CONTRIB_SIMPLE)).alias(
+                cols.ACTIVE_CONTRIB_SIMPLE
+            ),
+            # ACTIVE_CONTRIB_SMOOTHED
             (
-                result.with_columns(
-                    (pl.col(cols.PORTFOLIO_RETURN) - pl.col(cols.BENCHMARK_RETURN)).alias(
-                        cols.ACTIVE_RETURN
-                    )
-                )
-                .with_columns(
-                    (pl.col(cols.PORTFOLIO_WEIGHT) - pl.col(cols.BENCHMARK_WEIGHT)).alias(
-                        cols.ACTIVE_WEIGHT
-                    )
-                )
-                .with_columns(
-                    (
-                        pl.col(cols.PORTFOLIO_CONTRIB_SIMPLE)
-                        - pl.col(cols.BENCHMARK_CONTRIB_SIMPLE)
-                    ).alias(cols.ACTIVE_CONTRIB_SIMPLE)
-                )
-                .with_columns(
-                    (
-                        pl.col(cols.PORTFOLIO_CONTRIB_SMOOTHED)
-                        - pl.col(cols.BENCHMARK_CONTRIB_SMOOTHED)
-                    ).alias(cols.ACTIVE_CONTRIB_SMOOTHED)
-                )
-                .with_columns(
-                    (
-                        pl.col(cols.ALLOCATION_EFFECT_SMOOTHED)
-                        + pl.col(cols.SELECTION_EFFECT_SMOOTHED)
-                    ).alias(cols.TOTAL_EFFECT_SMOOTHED)
-                )
-                .with_columns(
-                    (
-                        pl.col(cols.ALLOCATION_EFFECT_SIMPLE)
-                        + pl.col(cols.SELECTION_EFFECT_SIMPLE)
-                    ).alias(cols.TOTAL_EFFECT_SIMPLE)
-                )
-            )
-            # Sort the rows.
-            .sort(cols.BEGINNING_DATE, cols.CLASSIFICATION_IDENTIFIER)
+                pl.col(cols.PORTFOLIO_CONTRIB_SMOOTHED) - pl.col(cols.BENCHMARK_CONTRIB_SMOOTHED)
+            ).alias(cols.ACTIVE_CONTRIB_SMOOTHED),
+            # TOTAL_EFFECT_SMOOTHED
+            (
+                pl.col(cols.ALLOCATION_EFFECT_SMOOTHED) + pl.col(cols.SELECTION_EFFECT_SMOOTHED)
+            ).alias(cols.TOTAL_EFFECT_SMOOTHED),
+            # TOTAL_EFFECT_SIMPLE
+            (pl.col(cols.ALLOCATION_EFFECT_SIMPLE) + pl.col(cols.SELECTION_EFFECT_SIMPLE)).alias(
+                cols.TOTAL_EFFECT_SIMPLE
+            ),
+        ]
+        result = result.with_columns(expressions).sort(
+            cols.BEGINNING_DATE, cols.CLASSIFICATION_IDENTIFIER
         )
 
-        # Return the resulting DataFrame.
+        # Return the resulting LazyFrame.
         return result
 
     def _ending_date(self) -> dt.date:
@@ -952,25 +926,13 @@ class Attribution:
                 match chart:
                     case Chart.CUMULATIVE_ATTRIBUTION:
                         y_axis_label = "Effect"
-                        column_names = (
-                            cols.CUMULATIVE_ALLOCATION_EFFECT,
-                            cols.CUMULATIVE_SELECTION_EFFECT,
-                            cols.CUMULATIVE_TOTAL_EFFECT,
-                        )
+                        column_names = cols.CUMULATIVE_ATTRIBUTION_COLUMNS
                     case Chart.CUMULATIVE_CONTRIBUTION:
                         y_axis_label = "Contribution"
-                        column_names = (
-                            cols.CUMULATIVE_PORTFOLIO_CONTRIB,
-                            cols.CUMULATIVE_BENCHMARK_CONTRIB,
-                            cols.CUMULATIVE_ACTIVE_CONTRIB,
-                        )
+                        column_names = cols.CUMULATIVE_CONTRIBUTION_COLUMNS
                     case Chart.CUMULATIVE_RETURN:
                         y_axis_label = "Return"
-                        column_names = (
-                            cols.CUMULATIVE_PORTFOLIO_RETURN,
-                            cols.CUMULATIVE_BENCHMARK_RETURN,
-                            cols.CUMULATIVE_ACTIVE_RETURN,
-                        )
+                        column_names = cols.CUMULATIVE_RETURN_COLUMNS
                 # Get the chart png
                 png = format_chart.cumulative_lines(df, column_names, title_lines, y_axis_label)
 
@@ -1005,18 +967,10 @@ class Attribution:
                 match chart:
                     case Chart.SUBPERIOD_ATTRIBUTION:
                         y_axis_label = "Effect"
-                        column_names = (
-                            cols.ALLOCATION_EFFECT_SIMPLE,
-                            cols.SELECTION_EFFECT_SIMPLE,
-                            cols.TOTAL_EFFECT_SIMPLE,
-                        )
+                        column_names = cols.ATTRIBUTION_COLUMNS_SIMPLE
                     case Chart.SUBPERIOD_RETURN:
                         y_axis_label = "Return"
-                        column_names = (
-                            cols.PORTFOLIO_RETURN,
-                            cols.BENCHMARK_RETURN,
-                            cols.ACTIVE_RETURN,
-                        )
+                        column_names = cols.RETURN_COLUMNS
                 # Get the chart png
                 png = format_chart.vertical_bars(df, column_names, title_lines, y_axis_label)
 

@@ -50,12 +50,7 @@ def cumulative_attribution(table: gt.GT) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.RETURN_COLUMNS
-            + cols.CUMULATIVE_RETURN_COLUMNS
-            + cols.CONTRIBUTION_COLUMNS_SMOOTHED
-            + cols.CUMULATIVE_CONTRIBUTION_COLUMNS
-            + cols.ATTRIBUTION_COLUMNS_SMOOTHED
-            + cols.CUMULATIVE_ATTRIBUTION_COLUMNS,  # type: ignore
+            columns=cols.VIEW_CUMULATIVE_ATTRIBUTION_COLUMNS,  # type: ignore
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
@@ -128,10 +123,7 @@ def overall_attribution(table: gt.GT, classification_name: str) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.PORTFOLIO_COLUMNS_SMOOTHED
-            + cols.BENCHMARK_COLUMNS_SMOOTHED
-            + cols.ACTIVE_COLUMNS_SMOOTHED
-            + cols.ATTRIBUTION_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.VIEW_OVERALL_ATTRIBUTION_COLUMNS,  # type: ignore
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
@@ -193,10 +185,7 @@ def subperiod_attribution(table: gt.GT, classification_name: str) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.PORTFOLIO_COLUMNS_SIMPLE
-            + cols.BENCHMARK_COLUMNS_SIMPLE
-            + cols.ACTIVE_COLUMNS_SIMPLE
-            + cols.ATTRIBUTION_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.VIEW_SUBPERIOD_ATTRIBUTION_COLUMNS,  # type: ignore
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
@@ -260,9 +249,7 @@ def subperiod_summary(table: gt.GT) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.RETURN_COLUMNS
-            + cols.CONTRIBUTION_COLUMNS_SIMPLE
-            + cols.ATTRIBUTION_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.VIEW_SUBPERIOD_SUMMARY_COLUMNS,  # type: ignore
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(

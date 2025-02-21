@@ -321,7 +321,7 @@ class Test(unittest.TestCase):
         Test the col_names function to ensure it transforms suffixes properly.
         """
         from_columns = ["Port_ret", "Bench_ret"]
-        transformed = cols.col_names(from_columns, "_wgt")
+        transformed = list(cols.col_names(from_columns, "_wgt"))
         self.assertEqual(transformed, ["Port_wgt", "Bench_wgt"])
 
     def test_date_str(self) -> None:
@@ -400,8 +400,8 @@ class Test(unittest.TestCase):
 
     ############################## Test Various Data Formats ##############################
     def test_classification_data_and_mapping_data(self):
-        """Test passing both classification_data and mapping_data.."""
-        # Get the expected html
+        """Test passing different formats of both classification_data and mapping_data.."""
+        # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("Big 2"),
@@ -412,7 +412,8 @@ class Test(unittest.TestCase):
             View.OVERALL_ATTRIBUTION
         )
 
-        # Get the html using mapping_data and classification_data
+        # Get the same html, except instead of using test_util.get_attribution(), which reads a csv
+        # file, specify mapping_data and classification_data as python dictionairies.
         html = test_util.get_attribution(
             analytics,
             "Gics Sub-Industry",
@@ -423,12 +424,12 @@ class Test(unittest.TestCase):
             },
         ).to_html(View.OVERALL_ATTRIBUTION)
 
-        # Assert that the results are equal to the expected results.
+        # Assert that the new results are equal to the expected results.
         assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
     def test_classification_data_formats(self):
         """Test the various formats of classification_data."""
-        # Get the expected html
+        # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("Big 2"),
@@ -441,18 +442,21 @@ class Test(unittest.TestCase):
 
         # Test 4 different methods of specifying classification data.
         for i in range(4):
-            # Set the classification_data
             if i == 0:
+                # hard-coded csv file
                 classification_data = util.resolve_file_path(
                     _CLASSIFICATION_DIRECTORIES, "Security.csv"
                 )
             elif i == 1:
+                # dictionary
                 classification_data = {"AAPL": "Apple Inc.", "MSFT": "Microsoft"}
             else:
                 classification_dict = {"c1": ["AAPL", "MSFT"], "c2": ["Apple Inc.", "Microsoft"]}
                 if i == 2:
+                    # pandas dataframe
                     classification_data = pd.DataFrame(classification_dict)
                 else:  # i == 3
+                    # polars dataframe
                     classification_data = pl.DataFrame(classification_dict)
 
             # Clear the cache
@@ -466,7 +470,7 @@ class Test(unittest.TestCase):
 
     def test_mapping_data_formats(self):
         """Test the various formats of mapping_data."""
-        # Get the expected html
+        # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("Big 2"),
@@ -479,7 +483,6 @@ class Test(unittest.TestCase):
 
         # Test 4 different methods of specifying mapping data.
         for i in range(4):
-            # Get the mapping data.
             if i == 0:
                 # hard-coded csv file
                 mapping_data = util.resolve_file_path(
@@ -489,14 +492,15 @@ class Test(unittest.TestCase):
                 # dictionary
                 mapping_data = {"AAPL": "45202030", "MSFT": "45103020"}
             else:
-                # dataframe
                 map_dict: dict[str, list[str]] = {
                     "c1": ["AAPL", "MSFT"],
                     "c2": ["45202030", "45103020"],
                 }
                 if i == 2:
+                    # pandas dataframe
                     mapping_data = pd.DataFrame(map_dict)
                 else:  # i == 3
+                    # polars dataframe
                     mapping_data = pl.DataFrame(map_dict)
 
             # Clear the cache
@@ -510,7 +514,7 @@ class Test(unittest.TestCase):
 
     def test_performance_data_formats(self):
         """Test the various formats of performance data."""
-        # Get the expected html
+        # Get the expected html using test_util.get_attribution()
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("Big 2"),
@@ -543,11 +547,8 @@ class Test(unittest.TestCase):
 
     ############################## Test Charts ##############################
     def test_charts(self):
-        """Test the various charts."""
-        for portfolio_benchmark in (
-            ("Big 2", "Magnificent 7"),
-            # ("Mega-Cap Portfolio", "Large-Cap Portfolio"),
-        ):
+        """Test just to make sure that all of the charts run and do not fail."""
+        for portfolio_benchmark in (("Big 2", "Magnificent 7"),):
             analytics = Analytics(
                 test_util.performance_data_path(portfolio_benchmark[0]),
                 test_util.performance_data_path(portfolio_benchmark[1]),
@@ -570,7 +571,7 @@ class Test(unittest.TestCase):
             test_util.performance_data_path("abcde_portfolio2"),
         )
 
-        # Portfolio contribs
+        # Portfolio contributions
         contribs = test_util.get_attribution(analytics).to_polars(View.SUBPERIOD_ATTRIBUTION)[
             cols.PORTFOLIO_CONTRIB_SIMPLE
         ]
@@ -580,7 +581,7 @@ class Test(unittest.TestCase):
         assert util.are_near(contribs.item(3), 0.029019065603398495)
         assert util.are_near(contribs.item(4), 0.07704845163844518)
 
-        # Benchmark contribs
+        # Benchmark contributions
         contribs = test_util.get_attribution(analytics).to_polars(View.SUBPERIOD_ATTRIBUTION)[
             cols.BENCHMARK_CONTRIB_SIMPLE
         ]
@@ -594,7 +595,7 @@ class Test(unittest.TestCase):
             test_util.performance_data_path("abcde_benchmark1"),
         )
 
-        # Get the asstribution
+        # Get the attribution
         attribution = test_util.get_attribution(analytics)
 
         # Assert SUBPERIOD_SUMMARY
@@ -621,17 +622,13 @@ class Test(unittest.TestCase):
     def test_attribution_content(self):
         """Test multiple attribution views and formats."""
         # Get the portfolio data as a Polars dataframe.
-        portfolio_path = test_util.performance_data_path("Mega-Cap Portfolio")
-        portfolio_df = pl.scan_csv(
-            source=portfolio_path, try_parse_dates=True  # type: ignore
-        ).collect()
+        portfolio_path = str(test_util.performance_data_path("Mega-Cap Portfolio"))
+        portfolio_df = pl.scan_csv(source=portfolio_path, try_parse_dates=True).collect()
 
         # Get the benchmark data as a Pandas dataframe.
-        benchmark_path = test_util.performance_data_path("Large-Cap Portfolio")
+        benchmark_path = str(test_util.performance_data_path("Large-Cap Portfolio"))
         benchmark_df = (
-            pl.scan_csv(source=benchmark_path, try_parse_dates=True)  # type: ignore
-            .collect()
-            .to_pandas()
+            pl.scan_csv(source=benchmark_path, try_parse_dates=True).collect().to_pandas()
         )
 
         # Get the analytics
@@ -647,9 +644,9 @@ class Test(unittest.TestCase):
 
         # Assert each view.
         for view in View:
-            # Assert each classification.
+            # Assert each view/classification.
             for classification_name in ("Security", "Gics Sector"):
-                print("Asserting Content", view, classification_name)
+                print("Asserting View Content", view, classification_name)
                 # Get the attribution
                 attribution = test_util.get_attribution(analytics, classification_name)
 
@@ -680,7 +677,6 @@ class Test(unittest.TestCase):
                 expected_results = test_util.read_html_table(expected_file_path)
                 # if test_results != expected_results:
                 #     pause_it = 9
-                # else:
                 assert test_results == expected_results
                 os.remove(test_file_path)
 
@@ -690,6 +686,8 @@ class Test(unittest.TestCase):
 
     def test_audit(self):
         """Test auditing a broad range of performance, classifications, frequencies and views."""
+
+        # Declare the performance files for the portfolio/benchmark.
         file_names = (
             "aapl_daily",
             "Big 2",
@@ -697,9 +695,14 @@ class Test(unittest.TestCase):
             "mag7_daily",
             "Magnificent 7",
         )
+
+        # Iterate through different combinations of portfolio/benchmark/frequency trios.
         for file_name1 in file_names:
+            # Portfolio
             for file_name2 in file_names:
+                # Benchmark
                 for frequency in Frequency:
+                    # Frequency
                     print("Auditing", file_name1, file_name2, frequency)
                     analytics = Analytics(
                         test_util.performance_data_path(file_name1),
@@ -708,25 +711,37 @@ class Test(unittest.TestCase):
                         benchmark_classification_name="Security",
                         frequency=frequency,
                     )
+
+                    # Create a first attribution instance so analytisc.audit() below will have two
+                    # attributions to audit side-by-side for common column equivalency.
                     _ = test_util.get_attribution(analytics, "Gics Sector")
+
+                    # Test the Views
                     if frequency in (
                         Frequency.AS_OFTEN_AS_POSSIBLE,
                         Frequency.MONTHLY,
                     ):
+                        # Test Gics Industry Group views
                         attribution = test_util.get_attribution(analytics, "Gics Industry Group")
                         for view in View:
                             attribution._audit_view(view)
                     else:
+                        # Test Security views
                         attribution = test_util.get_attribution(analytics, "Security")
                         for view in View:
                             attribution._audit_view(view)
+                        # Test Risk Statistics
                         risk_statistics = analytics.get_riskstatistics()
                         risk_statistics._audit()
                         risk_statistics.to_table()
+
+                    # Audit the analytics
                     analytics.audit()
 
     def test_calculations(self):
         """Test basic calculations."""
+
+        # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path("Mega-Cap Portfolio"),
             test_util.performance_data_path("Large-Cap Portfolio"),
@@ -735,22 +750,24 @@ class Test(unittest.TestCase):
             beginning_date=dt.date(2023, 10, 31),
             frequency=Frequency.MONTHLY,
         )
+
+        # Get the attributions
         gics = test_util.get_attribution(analytics, "Gics Sector")
         security = test_util.get_attribution(analytics, "Security")
 
-        # View.OVERALL_ATTRIBUTION
+        # Assert View.OVERALL_ATTRIBUTION
         content = gics.to_polars(View.OVERALL_ATTRIBUTION)
         assert util.are_near(content[cols.TOTAL_EFFECT_SMOOTHED][0], 0.0047794523621773125)
         content = security.to_polars(View.OVERALL_ATTRIBUTION)
         assert util.are_near(content[cols.ALLOCATION_EFFECT_SMOOTHED][0], -0.017280820318116667)
 
-        # View.SUBPERIOD_ATTRIBUTION
+        # Assert View.SUBPERIOD_ATTRIBUTION
         content = gics.to_polars(View.SUBPERIOD_ATTRIBUTION)
         assert util.are_near(content[cols.ACTIVE_RETURN][12], 0.007395457599899)
         content = security.to_polars(View.SUBPERIOD_ATTRIBUTION)
         assert util.are_near(content[cols.BENCHMARK_CONTRIB_SIMPLE][11], 0.0002353459131385708)
 
-        # View.SUBPERIOD_SUMMARY
+        # Assert View.SUBPERIOD_SUMMARY
         content = gics.to_polars(View.SUBPERIOD_SUMMARY)
         assert util.are_near(content[cols.TOTAL_EFFECT_SIMPLE][3], 0.129471631945489)
         content = security.to_polars(View.SUBPERIOD_SUMMARY)
@@ -774,6 +791,8 @@ class Test(unittest.TestCase):
             frequency=Frequency.QUARTERLY,
             annual_minimum_acceptable_return=-0.16,
         )
+
+        # Get the risk statistics.
         riskstatistics = analytics.get_riskstatistics()
 
         # Assert the expected results in the riskstatistics.csv file
@@ -799,7 +818,6 @@ class Test(unittest.TestCase):
         expected_results2: list[str] = test_util.read_html_table(expected_file_path)
         # if test_results2 != expected_results2:
         #     pause_it = 9
-        # else:
         assert test_results2 == expected_results2
         os.remove(test_file_path)
 
@@ -818,6 +836,7 @@ class Test(unittest.TestCase):
 
     def test_daily_to_monthly(self):
         """Test consolidating daily to monthly."""
+        # Get the analytics.
         analytics = Analytics(
             test_util.performance_data_path("big2_daily"),
             test_util.performance_data_path("Big 2"),
@@ -825,8 +844,10 @@ class Test(unittest.TestCase):
             frequency=Frequency.MONTHLY,
         )
 
-        # SUBPERIOD_ATTRIBUTION
+        # Get the attribution
         attribution = test_util.get_attribution(analytics)
+
+        # Assert SUBPERIOD_ATTRIBUTION
         df = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
         assert df[cols.BEGINNING_DATE].item(0) == dt.date(2020, 12, 31)
         assert df[cols.ENDING_DATE].item(4) == dt.date(2021, 3, 31)
@@ -840,15 +861,18 @@ class Test(unittest.TestCase):
 
     def test_daily_to_quarterly(self):
         """Test consolidating daily to quarterly."""
+        # Get the analytics.
         analytics = Analytics(
             test_util.performance_data_path("big2_daily"),
             test_util.performance_data_path("Big 2"),
             beginning_date=dt.date(2020, 12, 31),
             frequency=Frequency.QUARTERLY,
         )
+
+        # Get the attribution.
         attribution = test_util.get_attribution(analytics)
 
-        # SUBPERIOD_SUMMARY
+        # Assert SUBPERIOD_SUMMARY
         df = attribution.to_polars(View.SUBPERIOD_SUMMARY)
         assert df[cols.BEGINNING_DATE].item(0) == dt.date(2020, 12, 31)
         assert df[cols.ENDING_DATE].item(4) == dt.date(2022, 3, 31)
@@ -862,6 +886,7 @@ class Test(unittest.TestCase):
 
     def test_map_mixed_frequency(self):
         """Test mapping and consolidating mixed frequencies."""
+        # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path("Magnificent 7"),
             test_util.performance_data_path("gics_sector_daily"),
@@ -869,7 +894,7 @@ class Test(unittest.TestCase):
             benchmark_classification_name="Gics Sector",
         )
 
-        # Gics Sector
+        # Assert Gics Sector attribution classification identifiers.
         classifications = test_util.get_attribution(analytics, "Gics Sector").to_polars(
             View.OVERALL_ATTRIBUTION
         )[cols.CLASSIFICATION_IDENTIFIER]
@@ -1017,6 +1042,5 @@ def _riskstatistics_exception(
 
 
 #################################
-# 21 seconds
 if __name__ == "__main__":
     unittest.main()

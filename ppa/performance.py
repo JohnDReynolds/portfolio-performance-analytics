@@ -190,7 +190,7 @@ class Performance:
         benchmark.audit()
 
         # Assert that the portfolio and benchmark have the same dates and days.
-        dates_days = [cols.BEGINNING_DATE, cols.ENDING_DATE, cols.QUANTITY_OF_DAYS]
+        dates_days = (cols.BEGINNING_DATE, cols.ENDING_DATE, cols.QUANTITY_OF_DAYS)
         assert portfolio.df[dates_days].equals(
             benchmark.df[dates_days]
         ), f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Portfolio and Benchmark dates are not equal"

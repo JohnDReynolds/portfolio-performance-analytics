@@ -42,7 +42,7 @@ _TOP_MARGIN = 0.99
 
 def cumulative_lines(
     df: pl.DataFrame,
-    column_names: tuple[str, str, str],
+    column_names: list[str],
     title_lines: tuple[str, str],
     y_axis_label: str,
 ) -> bytes:
@@ -51,7 +51,7 @@ def cumulative_lines(
 
     Args:
         df (pl.DataFrame): The View.CUMULATIVE_ATTRIBUTION DataFrame.
-        column_names (tuple[str, str, str]): A tuple of the 3 cumulative column names to chart.
+        column_names (list[str]): A list of the 3 cumulative column names to chart.
         title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
         y_axis_label (str): The label for the y-axis.
 
@@ -290,13 +290,9 @@ def overall_contribution(
     # Get the series values in 3 groups of 2:
     #   0 = Weight, 1 = Return, 2 = Contribution
     #     0 = Portfolio, 1 = Benchmark
-    series_values: list[tuple[pl.Series, pl.Series]] = []
-    for column_names in (
-        (cols.PORTFOLIO_WEIGHT, cols.BENCHMARK_WEIGHT),
-        (cols.PORTFOLIO_RETURN, cols.BENCHMARK_RETURN),
-        (cols.PORTFOLIO_CONTRIB_SMOOTHED, cols.BENCHMARK_CONTRIB_SMOOTHED),
-    ):
-        series_values.append((df[column_names[0]], df[column_names[1]]))
+    series_values = [
+        ((df[col[0]], df[col[1]])) for col in cols.PORTFOLIO_BENCHMARK_CONTRIBUTION_COLUMN_PAIRS
+    ]
 
     # Get the labels
     labels = _word_wrap(df[cols.CLASSIFICATION_NAME])
@@ -373,7 +369,7 @@ def _to_png(figure: Figure) -> bytes:
 
 def vertical_bars(
     df: pl.DataFrame,
-    column_names: tuple[str, str, str],
+    column_names: list[str],
     title_lines: tuple[str, str],
     y_axis_label: str,
 ) -> bytes:
@@ -382,7 +378,7 @@ def vertical_bars(
 
     Args:
         df (pl.DataFrame): The View.SUBPERIOD_SUMMARY DataFrame.
-        column_names (tuple[str, str, str]): A tuple of the 3 cumulative column names to chart.
+        column_names (list[str]): A list of the 3 cumulative column names to chart.
         title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
         y_axis_label (str): The label for the y-axis.
 
@@ -433,11 +429,10 @@ def vertical_bars(
     fig.tight_layout(rect=(0, bottom_margin, 1, 1))
 
     # Create a legend for the portfolio and benchmark.
-    patches: list[mpatches.Patch] = []
-    for idx, column_name in enumerate(column_names):
-        patches.append(
-            mpatches.Patch(color=_COLORS[idx], label=cols.short_column_name(column_name))
-        )
+    patches = [
+        mpatches.Patch(color=_COLORS[idx], label=cols.short_column_name(column_name))
+        for idx, column_name in enumerate(column_names)
+    ]
     fig.legend(handles=patches, loc="lower center", ncol=len(patches), fontsize=12)
 
     # Return the png.

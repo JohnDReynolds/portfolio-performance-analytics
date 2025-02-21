@@ -151,15 +151,14 @@ class RiskStatistics:
         self._currency_symbol = portfolio_value[1]
 
         # Set the dates, names and returns depending on the input parameters.
-        self._performances: tuple[Performance, Performance] = tuple()
         if isinstance(returns[0], Performance) and isinstance(returns[1], Performance):
-            self._performances = returns  # type: ignore
             self._beginning_date = returns[0].df[cols.BEGINNING_DATE][0]
             self._ending_date = returns[0].df[cols.ENDING_DATE][-1]
             self._portfolio_name = returns[0].name
             self._benchmark_name = returns[1].name
             self._portfolio_returns = returns[0].df[cols.TOTAL_RETURN].to_numpy()
             self._benchmark_returns = returns[1].df[cols.TOTAL_RETURN].to_numpy()
+            self._performances_to_audit: tuple[Performance, Performance] = returns  # type: ignore
         elif isinstance(returns[0], np.ndarray) and isinstance(returns[1], np.ndarray):
             self._beginning_date = dt.date.min
             self._ending_date = dt.date.max
@@ -167,6 +166,7 @@ class RiskStatistics:
             self._benchmark_name = "Benchmark"
             self._portfolio_returns = returns[0]
             self._benchmark_returns = returns[1]
+            self._performances_to_audit: tuple[Performance, Performance] = tuple()  # nothing
         else:
             # Should never reach here.
             raise errs.PpaError(
@@ -243,7 +243,9 @@ class RiskStatistics:
     def _audit(self) -> None:
         """Audit the RiskStatistics instance (self)."""
         # Audit the portfolio/benchmark pair of performances.
-        Performance.audit_performances(self._performances, self._beginning_date, self._ending_date)
+        Performance.audit_performances(
+            self._performances_to_audit, self._beginning_date, self._ending_date
+        )
 
     @staticmethod
     def _beta(
