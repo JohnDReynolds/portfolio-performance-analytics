@@ -39,7 +39,7 @@ def classification_data_source(
 
 
 def mapping_data_sources(
-    analytics: Analytics, classification_name: str = util.EMPTY
+    analytics: Analytics, to_classification_name: str = util.EMPTY
 ) -> tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]:
     """
     This is a custom function for the Mapping data sources.  It has been designed for the
@@ -47,28 +47,29 @@ def mapping_data_sources(
 
     Args:
         analytics (Analytics): The Analytics instance.
-        classification_name (str, optional): The Classification name. Defaults to util.EMPTY.
+        to_classification_name (str, optional): The Classification name to map to.
+            Defaults to util.EMPTY.
 
     Returns:
         tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]: A tuple of 2 mapping
         data sources (0 = Portfolio Data Source, 1 = Benchmark Data Source)
     """
     # Return (util.EMPTY, util.EMPTY) if the classification_name is empty.
-    if util.is_empty(classification_name):
+    if util.is_empty(to_classification_name):
         return (util.EMPTY, util.EMPTY)
 
     # Build the tuple of mapping data sources containing the csv file paths.
     mapping_list: list[str] = [
         (
             util.EMPTY
-            if perf.classification_name == classification_name
+            if from_classification_name == to_classification_name
             else str(
                 _DEMO_DATA_DIRECTORY.joinpath(
-                    f"mappings/{perf.classification_name}--to--{classification_name}.csv"
+                    f"mappings/{from_classification_name}--to--{to_classification_name}.csv"
                 )
             )
         )
-        for perf in analytics.performances
+        for from_classification_name in analytics.classification_names()
     ]
 
     # Return the tuple of mapping data sources containing the csv file paths.

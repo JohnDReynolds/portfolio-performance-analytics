@@ -15,7 +15,7 @@ The public methods to retrieve the resulting output are:
     8. write_csv(view)
 """
 
-## Overrides for pylint and pylance
+## Overrides for pylint
 # pylint: disable=too-many-lines
 
 
@@ -179,7 +179,7 @@ class Attribution:
         # Set internal instance variables from the constructor parameters.
         self._classification = Classification(classification_name, classification_data_source)
         self._frequency = frequency
-        self.performances = performances
+        self._performances = performances
 
         # Make sure that the portfolio and benchmark performances have the same columns.
         self._equalize_columns()
@@ -227,10 +227,10 @@ class Attribution:
 
         # Override the returns since they should be linked, not summed.
         if cols.ACTIVE_RETURN in df.columns:
-            total_row[0, cols.PORTFOLIO_RETURN] = self.performances[0].overall_return()
-            total_row[0, cols.BENCHMARK_RETURN] = self.performances[1].overall_return()
+            total_row[0, cols.PORTFOLIO_RETURN] = self._performances[0].overall_return()
+            total_row[0, cols.BENCHMARK_RETURN] = self._performances[1].overall_return()
             total_row[0, cols.ACTIVE_RETURN] = (
-                self.performances[0].overall_return() - self.performances[1].overall_return()
+                self._performances[0].overall_return() - self._performances[1].overall_return()
             )
 
         # The cumulative column totals are the values in the last row.
@@ -245,7 +245,7 @@ class Attribution:
         """Audit the Attribution (self)."""
         # Audit the portfolio/benchmark pair of performance objects.
         Performance.audit_performances(
-            self.performances,
+            self._performances,
             self._beginning_date(),
             self._ending_date(),
             self._classification.name,
@@ -271,10 +271,12 @@ class Attribution:
             attribution.audit()
 
             # Get the equivalent columns.
+            # pylint: disable=protected-access
             equivalent_columns = [
-                attribution.performances[0].df[_EQUIVALENT_COLUMN_NAMES],
-                attribution.performances[1].df[_EQUIVALENT_COLUMN_NAMES],
+                attribution._performances[0].df[_EQUIVALENT_COLUMN_NAMES],
+                attribution._performances[1].df[_EQUIVALENT_COLUMN_NAMES],
             ]
+            # pylint: enable=protected-access
 
             # Round the TOTAL_RETURN so it can be "equivalently" compared.
             for idxe, _ in enumerate(equivalent_columns):
@@ -330,8 +332,8 @@ class Attribution:
         df = self._fetch_dataframe(view)
 
         # Assert that weight * return == contribution
-        for idx, _ in enumerate(self.performances):
-            if not self.performances[idx].subperiods_have_been_consolidated:
+        for idx, _ in enumerate(self._performances):
+            if not self._performances[idx].subperiods_have_been_consolidated:
                 needed_columns = (
                     cols.PORTFOLIO_COLUMNS_SIMPLE if idx == 0 else cols.BENCHMARK_COLUMNS_SIMPLE
                 )
@@ -364,7 +366,7 @@ class Attribution:
         Returns:
             dt.date: The overall beginning date.
         """
-        return self.performances[0].df[cols.BEGINNING_DATE][0]
+        return self._performances[0].df[cols.BEGINNING_DATE][0]
 
     def _calculate_attribution(self) -> pl.LazyFrame:
         """
@@ -375,7 +377,7 @@ class Attribution:
             effects for the portfolio vs benchmark.  This will be self.df.
         """
         # Set the portfolio and benchmark.
-        portfolio, benchmark = self.performances
+        portfolio, benchmark = self._performances
 
         # Get pre-computed values.
         portfolio_consolidated_returns = portfolio.consolidated_returns()
@@ -478,7 +480,7 @@ class Attribution:
             pl.DataFrame: df_overall, which is one row for the entire overall period.
         """
         # Set the portfolio and benchmark.
-        portfolio, benchmark = self.performances
+        portfolio, benchmark = self._performances
 
         # Get pre-computed values.
         portfolio_overall_return = portfolio.overall_return()
@@ -527,7 +529,7 @@ class Attribution:
             pl.LazyFrame: The appropriate detail LazyFrame.
         """
         # Set the appropriate dataframes based on the view.
-        portfolio, benchmark = self.performances
+        portfolio, benchmark = self._performances
         match view:
             case View.SUBPERIOD_ATTRIBUTION:
                 attribution_df, portfolio_df, benchmark_df = (
@@ -669,7 +671,7 @@ class Attribution:
         Returns:
             dt.date: The overall ending date.
         """
-        return self.performances[0].df[cols.ENDING_DATE][-1]
+        return self._performances[0].df[cols.ENDING_DATE][-1]
 
     def _equalize_columns(self) -> None:
         """
@@ -682,7 +684,7 @@ class Attribution:
             3. Note that the portfolio and benchmark will have the exact same col_names after this.
         """
         # Set the portfolio and benchmark
-        portfolio, benchmark = self.performances
+        portfolio, benchmark = self._performances
 
         # Make sure that the portfolio and benchmark have the same return_columns,
         # weight_columns and contrib_columns.
@@ -723,11 +725,10 @@ class Attribution:
         # Select only the needed columns.
         lf = lf.select(_VIEW_COLUMN_NAMES[view])
 
+        # Determine if the view has classification columns.
+        have_classification_columns = cols.CLASSIFICATION_IDENTIFIER in lf.collect_schema().keys()
+
         # For cosmetic purposes, convert the classification identifier (symbol) to upper-case.
-        have_classification_columns = view in (
-            View.OVERALL_ATTRIBUTION,
-            View.SUBPERIOD_ATTRIBUTION,
-        )
         if have_classification_columns:
             lf = lf.with_columns(pl.col(cols.CLASSIFICATION_IDENTIFIER).str.to_uppercase())
 
@@ -876,12 +877,12 @@ class Attribution:
 
         # Line 1: Portfolio Name (vs Benchmark Name)
         line1 = (
-            self.performances[0].name
+            self._performances[0].name
             if (
                 chart_or_view
                 in (Chart.HEATMAP_PORTFOLIO_CONTRIBUTION, Chart.HEATMAP_PORTFOLIO_RETURN)
             )
-            else f"{self.performances[0].name} vs {self.performances[1].name}"
+            else f"{self._performances[0].name} vs {self._performances[1].name}"
         )
 
         # Get the classification description if it is relevant.
@@ -987,7 +988,7 @@ class Attribution:
                         png = format_chart.overall_attribution(df, title_lines)
                     case Chart.OVERALL_CONTRIBUTION:
                         png = format_chart.overall_contribution(
-                            df, title_lines, self.performances[0].name, self.performances[1].name
+                            df, title_lines, self._performances[0].name, self._performances[1].name
                         )
 
         # Close plt and return the chart png.

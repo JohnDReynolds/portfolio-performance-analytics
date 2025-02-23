@@ -72,7 +72,7 @@ def html_table_lines(html_string: str) -> list[str]:
 
 
 def mapping_data_paths(
-    analytics: Analytics, classification_name: str
+    analytics: Analytics, to_classification_name: str
 ) -> tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]:
     """
     This is a custom function for the Mapping data sources.  It has been designed for the
@@ -80,26 +80,28 @@ def mapping_data_paths(
 
     Args:
         analytics (Analytics): The Analytics instance.
-        classification_name (str): The classification name.
+        to_classification_name (str): The classification name to map to.
 
     Returns:
         tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]: A tuple of 2 mapping
         data sources (0 = Portfolio Data Source, 1 = Benchmark Data Source)
     """
-    if util.is_empty(classification_name):
+    if util.is_empty(to_classification_name):
         return (util.EMPTY, util.EMPTY)
 
+    # Build the tuple of mapping data sources containing the csv file paths.
     mapping_list: list[str] = [
         (
             util.EMPTY
-            if perf.classification_name == classification_name
+            if from_classification_name == to_classification_name
             else util.resolve_file_path(
                 _MAPPING_DIRECTORIES,
-                f"{perf.classification_name}--to--{classification_name}.csv",
+                f"{from_classification_name}--to--{to_classification_name}.csv",
             )
         )
-        for perf in analytics.performances
+        for from_classification_name in analytics.classification_names()
     ]
+
     return (mapping_list[0], mapping_list[1])
 
 

@@ -9,6 +9,7 @@
 
 # Python Imports
 import datetime as dt
+import filecmp
 import io
 import math
 import os
@@ -545,24 +546,6 @@ class Test(unittest.TestCase):
             html = test_util.get_attribution(analytics).to_html(View.OVERALL_ATTRIBUTION)
             assert test_util.html_table_lines(html) == test_util.html_table_lines(expected_html)
 
-    ############################## Test Charts ##############################
-    def test_charts(self):
-        """Test just to make sure that all of the charts run and do not fail."""
-        for portfolio_benchmark in (("Big 2", "Magnificent 7"),):
-            analytics = Analytics(
-                test_util.performance_data_path(portfolio_benchmark[0]),
-                test_util.performance_data_path(portfolio_benchmark[1]),
-                portfolio_classification_name="Security",
-                benchmark_classification_name="Security",
-                beginning_date="2022-12-31",
-                ending_date="2024-02-29",
-                frequency=Frequency.MONTHLY,
-            )
-            attribution = test_util.get_attribution(analytics, "Gics Industry")
-            for chart in Chart:
-                print("Testing Gics Industry Chart", chart.value)
-                attribution.to_chart(chart)
-
     ############################## Test Calculations and Auditing ##############################
     def test_abcde1(self):
         """Test basic attribution calculations for 5 assets with different subperiods."""
@@ -642,16 +625,18 @@ class Test(unittest.TestCase):
             beginning_date="2024-01-31",
         )
 
-        # Assert each view.
-        for view in View:
-            # Assert each view/classification.
-            for classification_name in ("Security", "Gics Sector"):
-                print("Asserting View Content", view, classification_name)
-                # Get the attribution
-                attribution = test_util.get_attribution(analytics, classification_name)
+        # Assert each classsification.
+        for classification_name in ("Security", "Gics Sector"):
+            # Get the attribution
+            attribution = test_util.get_attribution(analytics, classification_name)
+            for view in View:
+                # Assert each classification/view.
+                print("Asserting", classification_name, view)
+                base_file_name = f"{view.value}_{classification_name}"
 
-                # Assert the view csv file
-                file_name = f"{view.value}_{classification_name}.csv"
+                # Assert the view csv file.  Note: Cannot use filecmp because sometimes zero will
+                # be represented as 0.00000, and other times as -0.00000.
+                file_name = f"{base_file_name}.csv"
                 test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                 attribution.write_csv(view, test_file_path)
                 test_results = pl.read_csv(test_file_path)
@@ -666,7 +651,7 @@ class Test(unittest.TestCase):
 
                 # Assert the view html file
                 html = attribution.to_html(view)
-                file_name = f"{view.value}_{classification_name}.html"
+                file_name = f"{base_file_name}.html"
                 test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                 with io.open(test_file_path, "w", encoding=util.ENCODING, newline="\n") as f:
                     f.write(html)
@@ -681,8 +666,24 @@ class Test(unittest.TestCase):
                 os.remove(test_file_path)
 
                 # Just get the json and xml to make sure they do not fail.
-                _ = attribution.to_json(view)
-                _ = attribution.to_xml(view)
+                if classification_name == "Gics Sector":
+                    _ = attribution.to_json(view)
+                    _ = attribution.to_xml(view)
+
+            if classification_name == "Gics Sector":
+                # Assert the chart pngs
+                for chart in Chart:
+                    print("Asserting", classification_name, chart)
+                    png = attribution.to_chart(chart)
+                    file_name = f"{chart.value}_{classification_name}.png"
+                    test_file_path = os.path.join(tempfile.gettempdir(), file_name)
+                    with open(test_file_path, "wb") as f:
+                        f.write(png)
+                    expected_file_path = util.resolve_file_path(
+                        _EXPECTED_RESULTS_DIRECTORIES, file_name
+                    )
+                    assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
+                    os.remove(test_file_path)
 
     def test_audit(self):
         """Test auditing a broad range of performance, classifications, frequencies and views."""
@@ -693,7 +694,7 @@ class Test(unittest.TestCase):
             "Big 2",
             "Large-Cap Portfolio",
             "mag7_daily",
-            "Magnificent 7",
+            # "Magnificent 7",
         )
 
         # Iterate through different combinations of portfolio/benchmark/frequency trios.

@@ -2,7 +2,7 @@
 The Analytics class reads and validates portfolio and benchmark Performance data, and then
 consolidates them into common time periods based on the provided dates and frequency.
 
-The public methods to retrieve the resulting analytical calculations are:
+The public methods to retrieve the analytical calculations are:
     1. get_attribution()
     2. get_riskstatistics()
 """
@@ -32,7 +32,7 @@ class Analytics:
     The Analytics class reads and validates portfolio and benchmark Performance data, and then
     consolidates them into common time periods based on the provided dates and frequency.
 
-    The public methods to retrieve the resulting analytical calculations are:
+    The public methods to retrieve the analytical calculations are:
         1. get_attribution()
         2. get_riskstatistics()
     """
@@ -141,7 +141,7 @@ class Analytics:
         self._riskstatistics = None
 
         # Get a tuple of the 2 Performance classes.  portfolio == 0, benchmark == 1.
-        self.performances = (
+        self._performances = (
             # Portfolio
             Performance(
                 portfolio_data_source,
@@ -168,7 +168,7 @@ class Analytics:
 
         # Now that the dates have been firmly established, remove the extraneous rows (dates) from
         # the Performances.
-        for perf in self.performances:
+        for perf in self._performances:
             perf.df = (
                 perf.df.lazy()
                 .filter(
@@ -190,7 +190,7 @@ class Analytics:
         # were originally read in the constructor.  Depending on their classifications, they may
         # be differenct than the performances in the attributions.
         Performance.audit_performances(
-            self.performances, self._beginning_date(), self._ending_date()
+            self._performances, self._beginning_date(), self._ending_date()
         )
 
         # Audit the attributions and their associated performances.
@@ -230,8 +230,8 @@ class Analytics:
             return [date for date in dates if date_matches_frequency(date, self._frequency)]
 
         # Cache the performance DataFrames.
-        df0 = self.performances[0].df
-        df1 = self.performances[1].df
+        df0 = self._performances[0].df
+        df1 = self._performances[1].df
 
         # Compute sorted common beginning and ending dates.
         common_beginning_dates = _common_dates(df0[cols.BEGINNING_DATE], df1[cols.BEGINNING_DATE])
@@ -261,6 +261,18 @@ class Analytics:
         # Return the common beginning and ending dates that define the subperiods.
         return subperiod_dates
 
+    def classification_names(self) -> tuple[str, str]:
+        """
+        Get a tuple of the classification names:  0=Portfolio, 1=Benchmark
+
+        Returns:
+            tuple[str, str]: A tuple of the classification names:  0=Portfolio, 1=Benchmark
+        """
+        return (
+            self._performances[0].classification_name,
+            self._performances[1].classification_name,
+        )
+
     def _consolidate_all_subperiods(self) -> None:
         """
         Consolidate multiple subperiods (e.g. daily) into single periods (e.g. monthly) based on
@@ -268,7 +280,7 @@ class Analytics:
         self._performances.
         """
         # Iterate through the portfolio and benchmark Performances.
-        for performance in self.performances:
+        for performance in self._performances:
             # Assert that performance.df has at least the same quantity of rows as
             # self._subperiod_dates.
             assert len(self._subperiod_dates) <= performance.df.shape[0], (
@@ -434,8 +446,8 @@ class Analytics:
         assert not (
             util.is_empty(classification_name)
             and (
-                (not util.is_empty(self.performances[0].classification_name))
-                or (not util.is_empty(self.performances[1].classification_name))
+                (not util.is_empty(self._performances[0].classification_name))
+                or (not util.is_empty(self._performances[1].classification_name))
             )
         ), errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME
 
@@ -455,7 +467,7 @@ class Analytics:
                 if perf.classification_name == classification_name
                 else self._map_performance(perf, classification_name, mapping_data_sources[idx])
             )
-            for idx, perf in enumerate(self.performances)
+            for idx, perf in enumerate(self._performances)
         ]
 
         # Now that both attribution performances are of the same common Classification,
@@ -480,7 +492,7 @@ class Analytics:
         # Calculate the risk statistics if they are not already cached.
         if self._riskstatistics is None:
             self._riskstatistics = RiskStatistics(
-                self.performances,
+                self._performances,
                 self._frequency,
                 self._annual_minimum_acceptable_return,
                 self._annual_risk_free_rate,

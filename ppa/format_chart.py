@@ -2,7 +2,7 @@
 This module contains static methods for formatting the charts enumerated in Attribution.Chart.
 """
 
-## Override for pylint and pylance.  All of the plt methods are "type partially unknown".
+## Override for pylance.  All of the plt and ax methods are "type partially unknown".
 # pyright: reportUnknownMemberType=none
 
 # Python Imports

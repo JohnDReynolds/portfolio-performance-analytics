@@ -535,8 +535,8 @@ class RiskStatistics:
         Returns:
             float: Value at Risk (VaR).
         """
-        # Calculate the z-score for the given confidence level. typecast for pylint
-        z_score = float(norm.ppf(1 - confidence_level))  # type: ignore
+        # Calculate the z-score for the given confidence level.
+        z_score = norm.ppf(1 - confidence_level)  # type: ignore
 
         # Calculate the VaR
         var = portfolio_value * (mean - (z_score * stddev))
@@ -544,8 +544,8 @@ class RiskStatistics:
         # Even though a VaR represents a potential loss, it is typically reported as a positive
         # number.  Some models present it as a negative number to emphasize the potential loss
         # (e.g., VaR = -$1 million means a potential $1 million loss).  The sign convention depends
-        # on how the institution or analyst defines it.
-        return var  # positive number
+        # on how the institution or analyst defines it.  We will return it as a positive number.
+        return float(var)  # typecast for pylint
 
     def to_html(self) -> str:
         """
