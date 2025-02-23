@@ -682,8 +682,13 @@ class Test(unittest.TestCase):
                     expected_file_path = util.resolve_file_path(
                         _EXPECTED_RESULTS_DIRECTORIES, file_name
                     )
-                    # Not working in macos.  TODO: Need to investigate.
-                    # assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
+                    # The generated png files are different under macos vs windows.  Visually, they
+                    # look identical, but the ones generated under macos are smaller.  The expected
+                    # results were generated under windows, so only assert for windows ("nt").
+                    # See git issue #20: matplotlib generating different binary png files in macos
+                    # vs windows.
+                    if os.name == "nt":
+                        assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
                     os.remove(test_file_path)
 
     def test_audit(self):
