@@ -887,7 +887,11 @@ class Attribution:
         # Get the classification description if it is relevant.
         classification_description = (
             f" by {self._classification.name}"
-            if (is_view or "Attribution" in chart_or_view.value)
+            if (
+                is_view
+                or "Attribution" in chart_or_view.value
+                or "Contribution" in chart_or_view.value
+            )
             else ""
         )
 

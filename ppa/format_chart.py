@@ -24,12 +24,13 @@ import ppa.columns as cols
 import ppa.utilities as util
 
 # Reasonable chart sizing constraints, just so they don't get too tiny or huge.
-_DEFAULT_FIGSIZE = (16, 7)  # width, height
-_MAXIMUM_FIGURE_HEIGHT = 3 * _DEFAULT_FIGSIZE[1]  # in inches
-_MAXIMUM_FIGURE_WIDTH = 3 * _DEFAULT_FIGSIZE[0]  # in inches
+_DEFAULT_FIGSIZE = (14, 6)  # (width, height) in inches. # 16, 7
+_MAXIMUM_FIGURE_HEIGHT = 10 * _DEFAULT_FIGSIZE[1]  # in inches
+_MAXIMUM_FIGURE_WIDTH = 10 * _DEFAULT_FIGSIZE[0]  # in inches
 _MAXIMUM_LABEL_LENGTH = 45  # characters
-_MINIMUM_FIGURE_HEIGHT = 0.9 * _DEFAULT_FIGSIZE[1]  # in inches
-_MINIMUM_FIGURE_WIDTH = 0.9 * _DEFAULT_FIGSIZE[0]  # in inches
+_MINIMUM_FIGURE_HEIGHT = 0.8 * _DEFAULT_FIGSIZE[1]  # in inches
+_MINIMUM_FIGURE_WIDTH = 0.8 * _DEFAULT_FIGSIZE[0]  # in inches
+_XTICK_ROTATION = 45  # Rotate the x-axis labels(dates) by 45 degrees for better readability
 
 # Chart colors
 # 0 = portfolio, 1 = benchmark, 2 = active
@@ -62,7 +63,8 @@ def cumulative_lines(
     fig = plt.figure(figsize=_figsize(_DEFAULT_FIGSIZE))
 
     # Add axes at position (6% from left, 13% from bottom, 92% wide, 79% tall)
-    ax = fig.add_axes((0.06, 0.13, 0.92, 0.79))
+    # ax = fig.add_axes((0.06, 0.13, 0.92, 0.79))
+    ax = fig.add_axes((0.06, 0.15, 0.92, 0.75))
 
     # Set the title lines
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
@@ -92,7 +94,7 @@ def cumulative_lines(
     ax.set_xticks(use_dates)
 
     # Rotate x-axis labels for better readability
-    ax.set_xticklabels(use_dates, rotation=45, ha="right")
+    ax.set_xticklabels(use_dates, rotation=_XTICK_ROTATION, ha="right")
 
     # Show the legend.
     ax.legend()
@@ -143,7 +145,7 @@ def heatmap(
 
     # Set the figure width and height
     fig_width = len(set(df["date_label"])) * 0.7
-    fig_height = len(set(df["classification_label"])) * 0.6
+    fig_height = len(set(df["classification_label"])) * 0.4
 
     # Create the figure
     fig = plt.figure(figsize=_figsize((fig_width, fig_height)))
@@ -166,6 +168,9 @@ def heatmap(
         values=column_name,
     )
 
+    # Sort by row sum in descending order so you get all the green at the top.
+    heatmap_data = heatmap_data.loc[heatmap_data.sum(axis=1).sort_values(ascending=False).index]
+
     # Create the cmap: 0 = green, 120 = red, 100=saturation, 50=lightness
     cmap = sns.diverging_palette(0, 120, s=100, l=50, as_cmap=True)
 
@@ -178,14 +183,19 @@ def heatmap(
     ax.set_xlabel("")
     ax.set_ylabel("")
 
+    # Set the yticklabels to always be horizontal with rotation=0
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+
     # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45, ha="right")
+    plt.xticks(rotation=_XTICK_ROTATION, ha="right")
 
     # tight_layout() is a "best pratice" that does some automatic spacing between subplots
     # rect=[left, bottom, right, top], where (0, 0, 1, 1) means the entire figure.
     # The bottom_margin will allow room for the rotated dates at the bottom.
-    bottom_margin = 0.02
-    fig.tight_layout(rect=(0, bottom_margin, 1, _TOP_MARGIN))
+    # The top_margin will allow room for the suptitle lines.
+    bottom_margin = 0.005
+    top_margin = 1 - (0.0005 * fig_height)
+    fig.tight_layout(rect=(0, bottom_margin, 1, top_margin))
 
     # Return the png.
     return _to_png(fig)
@@ -219,7 +229,7 @@ def overall_attribution(
     overall_max = math.ceil(combined_series.max() * 100) / 100  # type: ignore
 
     # Get the vertical chart measurements.
-    bar_height, _, _, fig_height = _vertical_chart_measurements(len(labels))
+    bar_height, _, fig_height = _vertical_chart_measurements(len(labels))
 
     # _vertical_chart_measurements gives a bar_height for double bars, so make the bar_height
     # larger since this chart only has single bars.
@@ -240,9 +250,16 @@ def overall_attribution(
         ax.barh(labels, series_values, height=bar_height, color=colors)
 
         # Set the y-axis.
-        ax.invert_yaxis()
         ax.set_yticks(y_positions)
         ax.set_yticklabels(labels)
+
+        # Set y-limits to decrease the vertical space between the top boundary and the first bar,
+        # and also decrease the vertical space between the last bar and the bottom boundary.  The
+        # value of 0.5 seems to work best for varying numbers of classification items.
+        ax.set_ylim(-0.5, len(labels) - 0.5)
+
+        # Invert the y-axis so the first group will be at the top.
+        ax.invert_yaxis()
 
         # Set the x-axis ticks min/max, and format them to 2 decimals.
         ax.set_xticks(np.linspace(overall_min, overall_max, num=7))  # type: ignore
@@ -255,7 +272,11 @@ def overall_attribution(
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
 
     # Automatically adjust the spacing between subplots.
-    fig.tight_layout(rect=(0, 0, 1, _TOP_MARGIN))
+    # The bottom_margin will allow for a little extra vertical space fot the x-axis labels.
+    # The top_margin will allow room for the suptitle lines.
+    bottom_margin = 0.01
+    top_margin = 1 - (0.0007 * fig_height)
+    fig.tight_layout(rect=(0, bottom_margin, 1, top_margin))
 
     # Return the png.
     return _to_png(fig)
@@ -296,7 +317,7 @@ def overall_contribution(
     labels = _word_wrap(df)
 
     # Get the vertival chart measurements.
-    bar_height, bottom_margin, delta, fig_height = _vertical_chart_measurements(len(labels))
+    bar_height, delta, fig_height = _vertical_chart_measurements(len(labels))
 
     # Create the overall figure with 3 subplots and a shared y axis.
     fig, axes = plt.subplots(
@@ -315,10 +336,15 @@ def overall_contribution(
         ax.set_yticks(np.arange(len(labels)))
         ax.set_yticklabels(labels)
 
+        # Set y-limits to decrease the vertical space between the top boundary and the first bar,
+        # and also decrease the vertical space between the last bar and the bottom boundary.  The
+        # value of 0.5 seems to work best for varying numbers of classification items.
+        ax.set_ylim(-0.5, len(labels) - 0.5)
+
         # Invert the y-axis so the first group will be at the top.
         ax.invert_yaxis()
 
-        # Set x-axis ticks to 2 decimals.
+        # # Set x-axis ticks to 2 decimals.
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
 
         # Add vertical grid line at x == 0
@@ -333,8 +359,11 @@ def overall_contribution(
 
     # tight_layout() is a "best pratice" that does some automatic spacing between subplots
     # rect=[left, bottom, right, top], where (0, 0, 1, 1) means the entire figure.
-    # The bottom_margin will allow room for the legend at the bottom.
-    fig.tight_layout(rect=(0, bottom_margin, 1, _TOP_MARGIN))
+    # The bottom_margin will allow room for the legend.
+    # The top_margin will allow room for the suptitle lines.
+    bottom_margin = 0.07 * _MINIMUM_FIGURE_HEIGHT / fig_height
+    top_margin = 1 - (0.0007 * fig_height)
+    fig.tight_layout(rect=(0, bottom_margin, 1, top_margin))
 
     # Create a legend for the portfolio and benchmark.
     portfolio_patch = mpatches.Patch(color="green", label=portfolio_name)
@@ -413,12 +442,17 @@ def vertical_bars(
     # Set x-axis labels and formatting.
     # ha="right" will align the rotated dates so they are positioned at the x-axis tick.
     ax.set_xticks(indices)
-    ax.set_xticklabels(dates, rotation=45, ha="right")
+    ax.set_xticklabels(dates, rotation=_XTICK_ROTATION, ha="right")
 
     # Set y-axis labels to 2 decimals, and add a horizontal grid line at y == 0
     ax.set_ylabel(y_axis_label)
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
     ax.axhline(0, color="gray", linestyle="--", linewidth=1)
+
+    # Set x-limits to decrease the horizontal space between the left boundary and the first bar,
+    # and also decrease the horizontal space between the last bar and the right boundary.  The
+    # value of 0.5 seems to work best for varying numbers of classification items.
+    ax.set_xlim(-0.5, len(dates) - 0.5)
 
     # tight_layout() is a "best pratice" that does some automatic spacing between subplots
     # rect=[left, bottom, right, top], where (0, 0, 1, 1) means the entire figure.
@@ -437,7 +471,7 @@ def vertical_bars(
     return _to_png(fig)
 
 
-def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, float, float]:
+def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, float]:
     """
     Get the vertical chart measurements.
 
@@ -445,7 +479,7 @@ def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, flo
         qty_of_y_ticks (int): The quantity of y-axis ticks.
 
     Returns:
-        tuple[float, float, float]: (bar_height, bottom_margin, delta, fig_height)
+        tuple[float, float, float]: (bar_height, delta, fig_height)
     """
     # Set the overall figure height (in inches) based on qty_of_y_ticks.
     # The height_factor of 0.4 seems to work the best.  If you decrease it, then the labels
@@ -456,9 +490,6 @@ def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, flo
         _MINIMUM_FIGURE_HEIGHT, min(qty_of_y_ticks * height_factor, _MAXIMUM_FIGURE_HEIGHT)
     )
 
-    # The bottom_margin will allow for a legend.
-    bottom_margin = 0.07 * _MINIMUM_FIGURE_HEIGHT / fig_height
-
     # Use a grouped bar approach.  Let the “group index” be on the y-axis.  For each group i,
     # draw two bars:
     #   Portfolio bar at y = i - delta
@@ -467,7 +498,7 @@ def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, flo
     bar_height = 0.3
     delta = (bar_height / 2) + 0.01  # vertical offset of each bar from the group center
 
-    return bar_height, bottom_margin, delta, fig_height
+    return bar_height, delta, fig_height
 
 
 def _word_wrap(df: pl.DataFrame) -> list[str]:

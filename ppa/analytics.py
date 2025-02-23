@@ -120,7 +120,8 @@ class Analytics:
                 2023-12-31,      2024-01-31, -0.0422272121, 0.0572811503,      0.4,      0.6
                 2024-01-31,      2024-02-29, -0.019793881,  0.0403944092,      0.7,      0.3
         """
-        # Default empty parameters
+        # Default the benchmark to the portfolio.  This will allow for "portfolio-only" analysis
+        # if they do not have a benchmark.
         if util.is_empty(benchmark_data_source):
             benchmark_data_source = portfolio_data_source
 
@@ -140,8 +141,6 @@ class Analytics:
         self._riskstatistics = None
 
         # Get a tuple of the 2 Performance classes.  portfolio == 0, benchmark == 1.
-        # Note that do_calculate_df_overall=False.  It is calculated below in
-        # self._consolidate_all_subperiods() after the date periods have been firmly established.
         self.performances = (
             # Portfolio
             Performance(
@@ -187,14 +186,14 @@ class Analytics:
 
     def audit(self) -> None:
         """Audit the Analytics (self)."""
-        # Audit the portfolio/benchmark pair of Performances.  These are the performances that
+        # Audit the portfolio/benchmark pair of performances.  These are the performances that
         # were originally read in the constructor.  Depending on their classifications, they may
         # be differenct than the performances in the attributions.
         Performance.audit_performances(
             self.performances, self._beginning_date(), self._ending_date()
         )
 
-        # Audit the Attributions.
+        # Audit the attributions and their associated performances.
         Attribution.audit_attributions(list(self._attributions.values()))
 
     def _beginning_date(self) -> dt.date:
