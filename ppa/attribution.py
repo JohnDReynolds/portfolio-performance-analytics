@@ -22,6 +22,7 @@ The public methods to retrieve the resulting output are:
 # Python Imports
 from enum import Enum
 import datetime as dt
+from typing import cast
 
 # Third-Party Imports
 import great_tables as gt
@@ -263,7 +264,7 @@ class Attribution:
     def audit_attributions(attributions: list["Attribution"]) -> None:
         """Audit the list of Attributions."""
         # Initialize base_equivalent_columns to empty (for lint).
-        base_equivalent_columns = (pl.DataFrame(), pl.DataFrame())  # 0 = portfolio, 1 = benchmark
+        base_equivalent_columns: list[pl.DataFrame] = []  # 0 = portfolio, 1 = benchmark
 
         # Loop through each attribution and validate it.
         for idxa, attribution in enumerate(attributions):
@@ -366,7 +367,7 @@ class Attribution:
         Returns:
             dt.date: The overall beginning date.
         """
-        return self._performances[0].df[cols.BEGINNING_DATE][0]
+        return cast(dt.date, self._performances[0].df[cols.BEGINNING_DATE].item(0))
 
     def _calculate_attribution(self) -> pl.LazyFrame:
         """
@@ -671,7 +672,7 @@ class Attribution:
         Returns:
             dt.date: The overall ending date.
         """
-        return self._performances[0].df[cols.ENDING_DATE][-1]
+        return cast(dt.date, self._performances[0].df[cols.ENDING_DATE].item(-1))  # cast for mypy
 
     def _equalize_columns(self) -> None:
         """
@@ -689,7 +690,9 @@ class Attribution:
         # Make sure that the portfolio and benchmark have the same return_columns,
         # weight_columns and contrib_columns.
         for target, source in ((portfolio, benchmark), (benchmark, portfolio)):
-            missing_return_col_names = set(source.col_names(RET)) - set(target.col_names(RET))
+            missing_return_col_names: list[str] | set[str] = set(source.col_names(RET)) - set(
+                target.col_names(RET)
+            )
             if 0 < len(missing_return_col_names):
                 # Set the missing_col_names.
                 missing_return_col_names = list(missing_return_col_names)

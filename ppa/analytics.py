@@ -138,7 +138,7 @@ class Analytics:
 
         # Initialize the internal data structures.
         self._attributions: dict[str, Attribution] = {}  # key = classification_name
-        self._riskstatistics = None
+        self._riskstatistics: RiskStatistics | None = None
 
         # Get a tuple of the 2 Performance classes.  portfolio == 0, benchmark == 1.
         self._performances = (
@@ -225,7 +225,7 @@ class Analytics:
             # return sorted(set(dates1) & set(dates2))
             return dates1.filter(dates1.is_in(dates2)).sort()
 
-        def _filter_dates_on_frequency(dates: pl.Series) -> list[dt.date]:
+        def _filter_dates_on_frequency(dates: pl.Series | list[dt.date]) -> list[dt.date]:
             """Filter the dates based on self._frequency."""
             return [date for date in dates if date_matches_frequency(date, self._frequency)]
 
@@ -234,8 +234,12 @@ class Analytics:
         df1 = self._performances[1].df
 
         # Compute sorted common beginning and ending dates.
-        common_beginning_dates = _common_dates(df0[cols.BEGINNING_DATE], df1[cols.BEGINNING_DATE])
-        common_ending_dates = _common_dates(df0[cols.ENDING_DATE], df1[cols.ENDING_DATE])
+        common_beginning_dates: pl.Series | list[dt.date] = _common_dates(
+            df0[cols.BEGINNING_DATE], df1[cols.BEGINNING_DATE]
+        )
+        common_ending_dates: pl.Series | list[dt.date] = _common_dates(
+            df0[cols.ENDING_DATE], df1[cols.ENDING_DATE]
+        )
 
         # Filter the dates based on frequency.
         if self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE:
@@ -324,7 +328,7 @@ class Analytics:
 
         # Create a LazyFrame that contains all of the performance.df columns as well as the
         # subperiod_id and dates.
-        joined = performance.df.lazy().join_asof(
+        joined_lf = performance.df.lazy().join_asof(
             df_subperiods,
             left_on=cols.BEGINNING_DATE,
             right_on="beg_date",
@@ -333,20 +337,20 @@ class Analytics:
         )
 
         # Create a LazyFrame with the subperiod_id and the subperiod_return.
-        subperiod_returns = joined.group_by("subperiod_id").agg(
+        subperiod_returns = joined_lf.group_by("subperiod_id").agg(
             [pl.col(cols.TOTAL_RETURN).add(1).cum_prod().last().sub(1).alias("subperiod_return")]
         )
 
         # Join the subperiod_returns.  Since LazyFrame columns cannot have arithmetic performed on
         # themselves, you must collect() here.
-        joined = joined.join(subperiod_returns, on="subperiod_id").collect()
+        joined_df = joined_lf.join(subperiod_returns, on="subperiod_id").collect()
 
         # Append the day-weighting coefficients and the linking coefficients.
-        joined = joined.lazy().with_columns(
+        joined_lf = joined_df.lazy().with_columns(
             # Append the day-weighting coefficient column.
             (
-                joined[cols.QUANTITY_OF_DAYS]
-                / (joined["end_date"] - joined["beg_date"]).dt.total_days()
+                joined_df[cols.QUANTITY_OF_DAYS]
+                / (joined_df["end_date"] - joined_df["beg_date"]).dt.total_days()
             ).alias("weight_coefficient"),
             # Append the linking coefficient column.
             pl.struct(["subperiod_return", cols.TOTAL_RETURN])
@@ -362,7 +366,7 @@ class Analytics:
         # Get the final consolidated subperiods by linking the returns, summing the day-weighted
         # weights, and summing the contributions after applying the linking coefficients.
         consolidated_subperiods_lf = (
-            joined.group_by("subperiod_id")
+            joined_lf.group_by("subperiod_id")
             .agg(
                 [
                     # Some of these expressions produce lists of either single values or identical

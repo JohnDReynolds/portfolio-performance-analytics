@@ -37,6 +37,7 @@ class Mapping:
                 MSFT, 45103020
                 ...
         """
+        mappings: dict[str, str]
         if isinstance(data_source, dict):
             # A dictionary: key = from_item, value = to_item
             mappings = data_source

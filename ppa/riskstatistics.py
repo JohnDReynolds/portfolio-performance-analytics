@@ -15,6 +15,7 @@ The public methods to retrieve the resulting statistics are:
 import datetime as dt
 from enum import Enum
 import math
+from typing import cast
 
 # Third-Party Imports
 import great_tables as gt
@@ -166,7 +167,7 @@ class RiskStatistics:
             self._benchmark_name = "Benchmark"
             self._portfolio_returns = returns[0]
             self._benchmark_returns = returns[1]
-            self._performances_to_audit: tuple[Performance, Performance] = tuple()  # nothing
+            self._performances_to_audit: tuple[Performance, Performance] = tuple()  # type: ignore
         else:
             # Should never reach here.
             raise errs.PpaError(
@@ -264,7 +265,7 @@ class RiskStatistics:
         covariance_matrix = np.cov(portfolio_returns, benchmark_returns)
         covariance = covariance_matrix[0, 1]
         benchmark_variance = np.var(benchmark_returns)
-        return covariance / benchmark_variance
+        return cast(float, covariance / benchmark_variance)  # cast for mypy
 
     def _calculate_all_statistics(
         self,
@@ -317,8 +318,8 @@ class RiskStatistics:
         # Calculate the statistics.
         for idx, rets in enumerate((self._portfolio_returns, self._benchmark_returns)):
             # Calculate the basic statistics.
-            mean = float(np.mean(rets))  # typecast for pylint
-            stddev = float(np.std(rets))  # typecast for pylint
+            mean = cast(float, np.mean(rets))
+            stddev = cast(float, np.std(rets))
 
             # Calculate the downside_deviation that is used for DOWNSIDE_DEVIATION and
             # DOWNSIDE_DEVIATION_ANNUALIZED.  Note that downside_returns will include
@@ -494,7 +495,9 @@ class RiskStatistics:
         Returns:
             float: The de-annualized return corresponding with the frequency.
         """
-        return ((1 + annual_return) ** (1 / qty_periods_per_year)) - 1
+        return cast(
+            float, ((1 + annual_return) ** (1 / qty_periods_per_year)) - 1
+        )  # cast for mypy
 
     def _frequency_column_name(self, column_name: str, portfolio_value: float) -> str:
         """
@@ -545,7 +548,7 @@ class RiskStatistics:
         # number.  Some models present it as a negative number to emphasize the potential loss
         # (e.g., VaR = -$1 million means a potential $1 million loss).  The sign convention depends
         # on how the institution or analyst defines it.  We will return it as a positive number.
-        return float(var)  # typecast for pylint
+        return cast(float, var)
 
     def to_html(self) -> str:
         """

@@ -38,6 +38,7 @@ class Classification:
         self.name = name
 
         # Set the classification items dictionary.
+        items: dict[str, str]
         if isinstance(data_source, dict):
             items = data_source
         elif isinstance(data_source, (pd.DataFrame, pl.DataFrame)):
@@ -52,7 +53,7 @@ class Classification:
                 )
             )
         else:  # isinstance(data_source, str):
-            items: dict[str, str] = (
+            items = (
                 {util.EMPTY: util.EMPTY}
                 if util.is_empty(self.name)
                 else util.load_dictionary_from_csv(data_source)

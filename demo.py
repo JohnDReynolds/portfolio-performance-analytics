@@ -1,4 +1,4 @@
-""" Sample demonstration script. """
+"""Sample demonstration script."""
 
 # Project Imports
 from ppa.analytics import Analytics
@@ -53,7 +53,7 @@ def _performance_data_source(performance_name: str) -> util.TypePerformanceDataS
     return demo_data.performance_data_source(performance_name)
 
 
-def run_demo(tables_or_charts: str):
+def run_demo(tables_or_charts: str) -> None:
     """
     Display demo versions of tables or charts in a webbrowser.
 

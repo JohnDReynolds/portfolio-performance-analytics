@@ -4,6 +4,7 @@ The Performance class contains asset/category weights and returns in a polars Da
 
 # Python Imports
 import datetime as dt
+from typing import cast
 
 # Third-Party Imports
 import pandas as pd
@@ -535,7 +536,7 @@ class Performance:
         Returns:
             float: The total return for the entire overall time period in self.df.
         """
-        return self.df_overall().item(0, cols.TOTAL_RETURN)
+        return cast(float, self.df_overall().item(0, cols.TOTAL_RETURN))  # cast for mypy
 
     def _reset_column_names(self) -> None:
         """

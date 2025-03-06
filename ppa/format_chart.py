@@ -17,7 +17,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
-import seaborn as sns
+import seaborn as sns  # type: ignore
 
 # Project Imports
 import ppa.columns as cols
@@ -243,11 +243,11 @@ def overall_attribution(
     # Get y positions for set_yticks below.
     y_positions = range(len(labels))
 
-    for ax, series_values, title in zip(axes, series_values, series_names):
+    for ax, series_value, title in zip(axes, series_values, series_names):
         # Create the subplot.
         ax.set_title(title)
-        colors = ["green" if val >= 0 else "red" for val in series_values]
-        ax.barh(labels, series_values, height=bar_height, color=colors)
+        colors = ["green" if val >= 0 else "red" for val in series_value]
+        ax.barh(labels, series_value, height=bar_height, color=colors)
 
         # Set the y-axis.
         ax.set_yticks(y_positions)
@@ -430,13 +430,12 @@ def vertical_bars(
 
     # Plot the bars
     for idx, column_name in enumerate(column_names):
-        location = indices
         if idx == 0:
             location = indices - bar_width
-        elif idx == 1:
-            location = indices
         elif idx == 2:
             location = indices + bar_width
+        else:  # idx == 1:
+            location = indices + 0.0  # + 0.0 just for mypy
         ax.bar(location, df[column_name], width=bar_width, color=_COLORS[idx])
 
     # Set x-axis labels and formatting.

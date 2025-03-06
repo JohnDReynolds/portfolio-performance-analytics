@@ -1,11 +1,11 @@
-""" Tests """
+"""Tests"""
 
 ## Overrides for pylint and pylance
-# pyright: reportPrivateUsage=false
 # pylint: disable=protected-access
 # pylint: disable=too-many-lines
 # pylint: disable=wrong-import-order
 # pylint: disable=wrong-import-position
+# pyright: reportPrivateUsage=false
 
 # Python Imports
 import datetime as dt
@@ -36,7 +36,7 @@ import ppa.utilities as util
 # Add the tests directory to the Python path (PYTHONPATH) so that it can find test_util_sources.py.
 # Note that this is also done in .pylintrc and in .vscode/settings.json.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "tests")))
-import test_utilities as test_util
+import test_utilities as test_util  # type: ignore
 
 # Directory Constants
 _DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/")
@@ -53,7 +53,7 @@ class Test(unittest.TestCase):
     """The Test Class containing all tests."""
 
     ############################## Performance Exceptions ##############################
-    def test_102(self):
+    def test_102(self) -> None:
         """Test error 102."""
         self.assertTrue(
             _performance_exception(
@@ -61,7 +61,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_103(self):
+    def test_103(self) -> None:
         """Test error 103."""
         self.assertTrue(
             _performance_exception(
@@ -72,7 +72,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_104(self):
+    def test_104(self) -> None:
         """Test error 104."""
         self.assertTrue(
             _attribution_exception(
@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_105(self):
+    def test_105(self) -> None:
         """Test error 105."""
         self.assertTrue(
             _performance_exception(
@@ -91,13 +91,13 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_106(self):
+    def test_106(self) -> None:
         """Test error 106."""
         self.assertTrue(
             _performance_exception(self, "error_106.csv", errs.ERROR_106_DISCONTINUOS_TIME_PERIODS)
         )
 
-    def test_107(self):
+    def test_107(self) -> None:
         """Test error 107."""
         self.assertTrue(
             _performance_exception(
@@ -105,7 +105,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_108(self):
+    def test_108(self) -> None:
         """Test error 108."""
         self.assertTrue(
             _attribution_exception(
@@ -113,13 +113,13 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_109(self):
+    def test_109(self) -> None:
         """Test error 109."""
         self.assertTrue(
             _performance_exception(self, "error_109.csv", errs.ERROR_109_NO_RETURNS_OR_WEIGHTS)
         )
 
-    def test_110(self):
+    def test_110(self) -> None:
         """Test error 110: Bad floating point number."""
         self.assertTrue(
             _performance_exception(
@@ -129,7 +129,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_111(self):
+    def test_111(self) -> None:
         """Test error 111."""
         self.assertTrue(
             _performance_exception(
@@ -142,7 +142,7 @@ class Test(unittest.TestCase):
         )
 
     ############################## Attribution Exceptions ##############################
-    def test_202(self):
+    def test_202(self) -> None:
         """Test error 202."""
         self.assertTrue(
             _attribution_exception(
@@ -153,7 +153,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_203(self):
+    def test_203(self) -> None:
         """Test error 203."""
         self.assertTrue(
             _attribution_exception(
@@ -164,7 +164,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_204(self):
+    def test_204(self) -> None:
         """Test error 204."""
         self.assertTrue(
             _attribution_exception(
@@ -177,7 +177,7 @@ class Test(unittest.TestCase):
         )
 
     ############################## Analytics Exceptions ##############################
-    def test_252(self):
+    def test_252(self) -> None:
         """Test error 252: The classification name must be specified."""
         self.assertTrue(
             _attribution_exception(
@@ -191,7 +191,7 @@ class Test(unittest.TestCase):
         )
 
     ############################## Classification Exceptions ##############################
-    def test_302(self):
+    def test_302(self) -> None:
         """Test error 302: The classification dataframe must contain 2 columns."""
         self.assertTrue(
             _attribution_exception(
@@ -207,7 +207,7 @@ class Test(unittest.TestCase):
         )
 
     ############################## Mapping Exceptions ##############################
-    def test_353(self):
+    def test_353(self) -> None:
         """Test error 353: The mapping dataframe must contain 2 columns."""
         self.assertTrue(
             _attribution_exception(
@@ -223,7 +223,7 @@ class Test(unittest.TestCase):
         )
 
     ############################## Ex-Post Risk Exceptions ##############################
-    def test_402(self):
+    def test_402(self) -> None:
         """Test error 402."""
         self.assertTrue(
             _riskstatistics_exception(
@@ -234,7 +234,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_403(self):
+    def test_403(self) -> None:
         """Test error 403."""
         self.assertTrue(
             _riskstatistics_exception(
@@ -245,7 +245,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_404(self):
+    def test_404(self) -> None:
         """Test error 404."""
         self.assertTrue(
             _riskstatistics_exception(
@@ -256,7 +256,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_405(self):
+    def test_405(self) -> None:
         """Test error 405."""
         self.assertTrue(
             _riskstatistics_exception(
@@ -268,7 +268,7 @@ class Test(unittest.TestCase):
         )
 
     ############################## General Exceptions ##############################
-    def test_802(self):
+    def test_802(self) -> None:
         """Test error 802."""
         self.assertTrue(
             _attribution_exception(
@@ -279,7 +279,7 @@ class Test(unittest.TestCase):
             )
         )
 
-    def test_803(self):
+    def test_803(self) -> None:
         """Test error 803."""
         self.assertTrue(
             _performance_exception(
@@ -400,7 +400,7 @@ class Test(unittest.TestCase):
         self.assertFalse(util.near_zero(0.001, util.Tolerance.LOW))
 
     ############################## Test Various Data Formats ##############################
-    def test_classification_data_and_mapping_data(self):
+    def test_classification_data_and_mapping_data(self) -> None:
         """Test passing different formats of both classification_data and mapping_data.."""
         # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
@@ -428,7 +428,7 @@ class Test(unittest.TestCase):
         # Assert that the new results are equal to the expected results.
         assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
-    def test_classification_data_formats(self):
+    def test_classification_data_formats(self) -> None:
         """Test the various formats of classification_data."""
         # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
@@ -442,6 +442,7 @@ class Test(unittest.TestCase):
         )
 
         # Test 4 different methods of specifying classification data.
+        classification_data: util.TypeClassificationDataSource
         for i in range(4):
             if i == 0:
                 # hard-coded csv file
@@ -469,7 +470,7 @@ class Test(unittest.TestCase):
             ).to_html(View.OVERALL_ATTRIBUTION)
             assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
-    def test_mapping_data_formats(self):
+    def test_mapping_data_formats(self) -> None:
         """Test the various formats of mapping_data."""
         # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
@@ -483,6 +484,7 @@ class Test(unittest.TestCase):
         )
 
         # Test 4 different methods of specifying mapping data.
+        mapping_data: util.TypeMappingDataSource
         for i in range(4):
             if i == 0:
                 # hard-coded csv file
@@ -513,7 +515,7 @@ class Test(unittest.TestCase):
             ).to_html(View.OVERALL_ATTRIBUTION)
             assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
-    def test_performance_data_formats(self):
+    def test_performance_data_formats(self) -> None:
         """Test the various formats of performance data."""
         # Get the expected html using test_util.get_attribution()
         analytics = Analytics(
@@ -547,7 +549,7 @@ class Test(unittest.TestCase):
             assert test_util.html_table_lines(html) == test_util.html_table_lines(expected_html)
 
     ############################## Test Calculations and Auditing ##############################
-    def test_abcde1(self):
+    def test_abcde1(self) -> None:
         """Test basic attribution calculations for 5 assets with different subperiods."""
         analytics = Analytics(
             test_util.performance_data_path("abcde_portfolio1"),
@@ -570,7 +572,7 @@ class Test(unittest.TestCase):
         ]
         assert util.are_near(contribs.item(3), 0.001314124548289089)
 
-    def test_abcde2(self):
+    def test_abcde2(self) -> None:
         """Test basic attribution calculations for 5 assets with identical sub-eriods."""
         # Get the analytics
         analytics = Analytics(
@@ -602,7 +604,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.PORTFOLIO_CONTRIB_SMOOTHED].item(4), 0.01900264215424944)
         assert util.are_near(df[cols.BENCHMARK_CONTRIB_SMOOTHED].item(4), 0.019577639459518823)
 
-    def test_attribution_content(self):
+    def test_attribution_content(self) -> None:
         """Test multiple attribution views and formats."""
         # Get the portfolio data as a Polars dataframe.
         portfolio_path = str(test_util.performance_data_path("Mega-Cap Portfolio"))
@@ -691,7 +693,7 @@ class Test(unittest.TestCase):
                         assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
                     os.remove(test_file_path)
 
-    def test_audit(self):
+    def test_audit(self) -> None:
         """Test auditing a broad range of performance, classifications, frequencies and views."""
 
         # Declare the performance files for the portfolio/benchmark.
@@ -745,7 +747,7 @@ class Test(unittest.TestCase):
                     # Audit the analytics
                     analytics.audit()
 
-    def test_calculations(self):
+    def test_calculations(self) -> None:
         """Test basic calculations."""
 
         # Get the analytics
@@ -785,7 +787,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.TOTAL_EFFECT_SMOOTHED][3], 0.1585372255258416)
         assert util.are_near(df[cols.ACTIVE_CONTRIB_SMOOTHED][3], 0.1463257464885667)
 
-    def test_riskstatistics_content(self):
+    def test_riskstatistics_content(self) -> None:
         """Test risk statistics csv and html."""
         # Get the analytics.
         analytics = Analytics(
@@ -833,7 +835,7 @@ class Test(unittest.TestCase):
         _ = riskstatistics.to_xml()
 
     ############################## Test Frequencies and Dates ##############################
-    def test_crazy_frequency(self):
+    def test_crazy_frequency(self) -> None:
         """Test the consolidation of odd mis-matched frequencies."""
         analytics = Analytics(
             test_util.performance_data_path("case_mixed_frequency"),
@@ -841,7 +843,7 @@ class Test(unittest.TestCase):
         )
         assert len(test_util.get_attribution(analytics).to_pandas(View.SUBPERIOD_SUMMARY)) == 3
 
-    def test_daily_to_monthly(self):
+    def test_daily_to_monthly(self) -> None:
         """Test consolidating daily to monthly."""
         # Get the analytics.
         analytics = Analytics(
@@ -866,7 +868,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.TOTAL_EFFECT_SMOOTHED].item(3), 0.002038295249203867)
         assert util.are_near(df[cols.SELECTION_EFFECT_SMOOTHED].item(14), 0.0015709213702753996)
 
-    def test_daily_to_quarterly(self):
+    def test_daily_to_quarterly(self) -> None:
         """Test consolidating daily to quarterly."""
         # Get the analytics.
         analytics = Analytics(
@@ -891,7 +893,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.TOTAL_EFFECT_SMOOTHED].item(3), -0.002740959239265768)
         assert util.are_near(df[cols.PORTFOLIO_RETURN].item(8), 0.2401702546346276)
 
-    def test_map_mixed_frequency(self):
+    def test_map_mixed_frequency(self) -> None:
         """Test mapping and consolidating mixed frequencies."""
         # Get the analytics
         analytics = Analytics(
@@ -915,7 +917,7 @@ class Test(unittest.TestCase):
             View.SUBPERIOD_SUMMARY
         ).shape == (141, 11)
 
-    def test_mixed_frequency(self):
+    def test_mixed_frequency(self) -> None:
         """Test mixed frequencies."""
         analytics = Analytics(
             test_util.performance_data_path("case_mixed_frequency"),
@@ -923,7 +925,7 @@ class Test(unittest.TestCase):
         )
         assert len(test_util.get_attribution(analytics).to_polars(View.SUBPERIOD_SUMMARY)) == 3
 
-    def test_monthly_to_yearly(self):
+    def test_monthly_to_yearly(self) -> None:
         """Test consolidating monthly to yearly."""
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
@@ -937,7 +939,7 @@ class Test(unittest.TestCase):
         assert df[cols.BEGINNING_DATE].item(0) == dt.date(2020, 12, 31)
         assert df[cols.ENDING_DATE].item(2) == dt.date(2023, 12, 31)
 
-    def test_specify_dates(self):
+    def test_specify_dates(self) -> None:
         """Test date filtering."""
         perf = Performance(
             test_util.performance_data_path("case_adjust_beginning_dates"),
@@ -949,7 +951,7 @@ class Test(unittest.TestCase):
         ].item(1) == dt.date(2023, 2, 28)
 
     ############################## Miscellaneous Tests ##############################
-    def test_no_classification_name(self):
+    def test_no_classification_name(self) -> None:
         """Test not specifying any classification name."""
         analytics = Analytics(
             test_util.performance_data_path("abcde_portfolio1"),
@@ -957,7 +959,7 @@ class Test(unittest.TestCase):
         )
         test_util.get_attribution(analytics).to_html(View.OVERALL_ATTRIBUTION)
 
-    def test_non_annualizability(self):
+    def test_non_annualizability(self) -> None:
         """Test nan for non-annualizability less than 1 year."""
         expostrisk = RiskStatistics(
             (np.array([1, 2, 3]), np.array([4, 5, 6])), Frequency.QUARTERLY
@@ -966,7 +968,7 @@ class Test(unittest.TestCase):
         assert math.isnan(df["Portfolio"].item(2))
         assert math.isnan(df["Benchmark"].item(2))
 
-    def test_short_positions(self):
+    def test_short_positions(self) -> None:
         """Test short positiions."""
         analytics = Analytics(
             test_util.performance_data_path("case_short"), test_util.performance_data_path("Big 2")
@@ -986,7 +988,7 @@ def _attribution_exception(
     classification_data_source: util.TypeClassificationDataSource = util.EMPTY,
     mapping_data_source: util.TypeMappingDataSource = util.EMPTY,
     view: View | None = None,
-):
+) -> bool:
     """Test Attribution exception."""
     with test.assertRaises(Exception) as context:
         # Get the analytics
@@ -1022,7 +1024,7 @@ def _performance_exception(
     error_message: str,
     beginning_date: str | dt.date = dt.date.min,
     ending_date: str | dt.date = dt.date.max,
-):
+) -> bool:
     """Test Performance exception."""
     with test.assertRaises(Exception) as context:
         Performance(
@@ -1040,7 +1042,7 @@ def _riskstatistics_exception(
     returns: tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
     frequency: Frequency,
     minimum_acceptable_return: float = 0,
-):
+) -> bool:
     """Test RiskStatistics exception."""
     with test.assertRaises(Exception) as context:
         RiskStatistics(returns, frequency, minimum_acceptable_return)
