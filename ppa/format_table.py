@@ -8,6 +8,7 @@ import great_tables as gt
 
 # Project Imports
 import ppa.columns as cols
+import ppa.utilities as util
 
 # Constants
 _DISPLAY_DECIMALS = 4
@@ -109,13 +110,18 @@ def cumulative_attribution(table: gt.GT) -> gt.GT:
     return table
 
 
-def overall_attribution(table: gt.GT, classification_name: str) -> gt.GT:
+def _display_classification_label(classification_label: str) -> str:
+    """Return the classification_label for displaying."""
+    return "" if util.is_empty(classification_label) else classification_label
+
+
+def overall_attribution(table: gt.GT, classification_label: str) -> gt.GT:
     """
     Formats a "great_table" version of View.OVERALL_ATTRIBUTION.
 
     Args:
         table (gt.GT): The generic template table.
-        classification_name (str): The Classification name.
+        classification_label (str): The classification label.
 
     Returns:
         table (gt.GT): The formatted "great_table" version of View.OVERALL_ATTRIBUTION
@@ -127,7 +133,7 @@ def overall_attribution(table: gt.GT, classification_name: str) -> gt.GT:
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
-            label=classification_name,
+            label=_display_classification_label(classification_label),
             columns=cols.CLASSIFICATION_COLUMNS,  # type: ignore
         )
         .tab_spanner(
@@ -171,13 +177,13 @@ def overall_attribution(table: gt.GT, classification_name: str) -> gt.GT:
     return table
 
 
-def subperiod_attribution(table: gt.GT, classification_name: str) -> gt.GT:
+def subperiod_attribution(table: gt.GT, classification_label: str) -> gt.GT:
     """
     Formats a "great_table" version of View.SUBPERIOD_ATTRIBUTION.
 
     Args:
         table (gt.GT): The generic template table.
-        classification_name (str): The Classification name.
+        classification_label (str): The classification label.
 
     Returns:
         table (gt.GT): The formatted "great_table" version of View.SUBPERIOD_ATTRIBUTION
@@ -189,7 +195,7 @@ def subperiod_attribution(table: gt.GT, classification_name: str) -> gt.GT:
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
-            label=classification_name,
+            label=_display_classification_label(classification_label),
             columns=cols.CLASSIFICATION_COLUMNS,  # type: ignore
         )
         .tab_spanner(

@@ -411,6 +411,7 @@ class Analytics:
             util.EMPTY,
             util.EMPTY,
         ),
+        classification_label: str = util.EMPTY,
     ) -> Attribution:
         """
         Get the Attribution instance associated with the classification_name.
@@ -430,6 +431,9 @@ class Analytics:
                 2. A dictionary containing the Mapping data.
                 3. A pandas or polars DataFrame containing the Mapping data.
                 Defaults to (util.EMPTY, util.EMPTY)
+            classification_label (str, optional): The classification label that will be displayed
+                in the tables and charts if the classification_name is empty.  This will happen
+                when the performance.classification_items are used.  Defaults to util.EMPTY.
 
         Data Parameters:
             Sample data for the "classification_data_source" param of a "Security" Classification:
@@ -444,6 +448,17 @@ class Analytics:
         Returns:
             Attribution: The Attribution instance associated with the classification_name.
         """
+        # If the classification_name is empty, and the portflio and benchmark have common
+        # non-empty classification_names, then set the classificcation_name to that common
+        # classification_name.
+        if (
+            util.is_empty(classification_name)
+            and not util.is_empty(self._performances[0].classification_name)
+            and self._performances[0].classification_name
+            == self._performances[1].classification_name
+        ):
+            classification_name = self._performances[0].classification_name
+
         # If the classification_name is unknown, and either the portfolio or benchmark have known
         # classificiation names, then mandate that the classification_name is specified.  Note
         # that this wll still allow for all 3 of the classifications to be unknown.
@@ -458,11 +473,6 @@ class Analytics:
         # Return the attribution if it already exists in the cache.
         if classification_name in self._attributions:
             return self._attributions[classification_name]
-
-        # Clean the parameters.
-        if util.is_empty(classification_name):
-            classification_data_source = util.EMPTY
-            mapping_data_sources = (util.EMPTY, util.EMPTY)
 
         # Get the performances for the common classification_name.
         attribution_performances = [
@@ -481,6 +491,7 @@ class Analytics:
             classification_name,
             classification_data_source,
             self._frequency,
+            classification_label,
         )
 
         # Return the Attribution coresponding to classification_name.

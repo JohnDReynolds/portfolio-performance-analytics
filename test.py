@@ -186,7 +186,7 @@ class Test(unittest.TestCase):
                 "abcde_portfolio1",
                 errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME,
                 portfolio_classification_name="Security",
-                benchmark_classification_name="Security",
+                benchmark_classification_name="Gics Secctor",
             )
         )
 
@@ -518,22 +518,26 @@ class Test(unittest.TestCase):
     def test_performance_data_formats(self) -> None:
         """Test the various formats of performance data."""
         # Get the expected html using test_util.get_attribution()
-        analytics = Analytics(
+        expected_analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("Big 2"),
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
             beginning_date=dt.date(2023, 12, 31),
             ending_date="2024-02-29",
         )
-        expected_html = test_util.get_attribution(analytics).to_html(View.OVERALL_ATTRIBUTION)
+        expected_html = test_util.get_attribution(expected_analytics, "Security").to_html(
+            View.OVERALL_ATTRIBUTION
+        )
 
         # Create a dictionary of performance data that can be turned into a DataFrame.
         performance_dict: dict[str, list[dt.date | float]] = {
             cols.BEGINNING_DATE: [dt.date(2023, 12, 31), dt.date(2024, 1, 31)],
             cols.ENDING_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
-            "aapl.wgt": [0.5, 0.5],
-            "msft.wgt": [0.5, 0.5],
-            "aapl.ret": [-0.0422272121, -0.019793881],
-            "msft.ret": [0.0572811503, 0.0403944092],
+            "AAPL.wgt": [0.5, 0.5],
+            "MSFT.wgt": [0.5, 0.5],
+            "AAPL.ret": [-0.0422272121, -0.019793881],
+            "MSFT.ret": [0.0572811503, 0.0403944092],
         }
 
         for pdl in (pd, pl):
@@ -543,10 +547,26 @@ class Test(unittest.TestCase):
                 pdl.DataFrame(performance_dict),
                 portfolio_name="Big 2",
                 benchmark_name="Big 2",
+                portfolio_classification_name="Security",
+                benchmark_classification_name="Security",
             )
             # Assert the results.
-            html = test_util.get_attribution(analytics).to_html(View.OVERALL_ATTRIBUTION)
+            html = test_util.get_attribution(analytics, "Security").to_html(
+                View.OVERALL_ATTRIBUTION
+            )
             assert test_util.html_table_lines(html) == test_util.html_table_lines(expected_html)
+
+        # Now get the security names from the performance file.
+        analytics = Analytics(
+            test_util.performance_data_path("Big 2"),
+            test_util.performance_data_path("Big 2"),
+            beginning_date=dt.date(2023, 12, 31),
+            ending_date="2024-02-29",
+        )
+        html = analytics.get_attribution(classification_label="Security").to_html(
+            View.OVERALL_ATTRIBUTION
+        )
+        assert test_util.html_table_lines(html) == test_util.html_table_lines(expected_html)
 
     ############################## Test Calculations and Auditing ##############################
     def test_abcde1(self) -> None:

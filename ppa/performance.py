@@ -92,7 +92,9 @@ class Performance:
         self.name, self.df = Performance._load_data(name, data_source, beginning_date, ending_date)
 
         # Convert self.df to "wide" format with multiple identifier.ret and identifier.wgt columns.
-        self.df = self._convert_to_wide_format()
+        # If cols.IDENTIFIER and cols.NAME are in self.df, then create self.classification_items,
+        # which might be used later in the Attribution constructor when creating the Classification
+        self.df, self.classification_items = self._convert_to_wide_format()
 
         # Assert that there is at least 1 row.
         assert (
@@ -426,19 +428,39 @@ class Performance:
             .rename(lambda column_name: f"{column_name[:-4]}.ret")
         )
 
-    def _convert_to_wide_format(self) -> pl.DataFrame:
+    def _convert_to_wide_format(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
-        Convert self.df to the "wide" format that has multiple identifier.ret and identifier.wgt
-        columns using a single pivot operation.
+        Convert self.df to the "wide" format with multiple identifier.ret and identifier.wgt
+        columns.  If cols.IDENTIFIER and cols.NAME are in self.df, then create
+        self.classification_items, which might be used later in the Attribution constructor when
+        creating the Classification.
 
         Returns:
-            pl.DataFrame: The "wide" self.df.
+            tuple[pl.DataFrame, pl.DataFrame]: The wide self.df and self.classification_items.
         """
         # Return self.df if it is empty or already in the wide format.
         if self.df.shape[0] == 0 or not all(
             col in self.df.columns for col in (cols.IDENTIFIER, cols.RETURN, cols.WEIGHT)
         ):
-            return self.df
+            return self.df, pl.DataFrame()
+
+        # All identifiers need to be strings for classifications, mappings, performances, etc.
+        if not isinstance(self.df.schema[cols.IDENTIFIER], pl.String):
+            self.df = self.df.with_columns(self.df[cols.IDENTIFIER].cast(pl.Utf8))
+
+        # Create self._classification_items if there is a cols.NAME column.
+        # This might be used later if they do not specify a Classification data source.
+        classification_items = (
+            self.df.unique(subset=[cols.IDENTIFIER], keep="last")
+            if cols.NAME in self.df.columns
+            else pl.DataFrame()
+        )
+        if not classification_items.is_empty():
+            classification_items = classification_items.select([cols.IDENTIFIER, cols.NAME])
+            classification_items.columns = [
+                cols.CLASSIFICATION_IDENTIFIER,
+                cols.CLASSIFICATION_NAME,
+            ]
 
         # Perform a pivot: use the date columns as the index, and pivot on the identifier.
         # The 'values' are both WEIGHT and RETURN; we use an aggregate function of "first" since
@@ -466,7 +488,7 @@ class Performance:
                 # Leave the date column names unchanged.
                 new_columns[col] = col
 
-        return pivoted.rename(new_columns)
+        return pivoted.rename(new_columns), classification_items
 
     def df_overall(self) -> pl.DataFrame:
         """Get the DataFrame representing the overall total period."""
@@ -516,9 +538,6 @@ class Performance:
         else:  # isinstance(data_source, pl.DataFrame):
             # Is already a polars DataFrame
             lf = data_source.lazy()
-
-        # Change all column names to lower case for case-sensitive key matching.
-        lf = lf.rename({col: col.lower() for col in lf.collect_schema().names()})
 
         # Filter on the dates.
         if beginning_date != dt.date.min:

@@ -84,8 +84,9 @@ def run_demo(tables_or_charts: str) -> None:
             html = attribution_by_sector.to_html(view)
             util.open_in_browser(html)
 
-        # Get the Attribution instance by Security
-        attribution_by_security = _get_attribution(analytics, "Security")
+        # Get the Attribution instance by Security.  Since no classification name is specified,
+        # the security names will be taken from the performance files.
+        attribution_by_security = analytics.get_attribution()
 
         # Get an html string of the overall attribution results by Security.
         html = attribution_by_security.to_html(View.OVERALL_ATTRIBUTION)

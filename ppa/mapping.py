@@ -56,4 +56,22 @@ class Mapping:
             mappings = util.load_dictionary_from_csv(data_source)
 
         # Put the needed mappings in self.mappings and return.
-        self.mappings = util.needed_mappings(mappings, from_items_to_map)
+        self.mappings = Mapping._needed_mappings(mappings, from_items_to_map)
+
+    @staticmethod
+    def _needed_mappings(mappings: dict[str, str], from_items_to_map: list[str]) -> dict[str, str]:
+        """
+        Get only the needed mappings (located in from_items_to_map) from the broader mappings.
+
+        Args:
+            mappings (dict[str, str]): The broader mappings.
+            from_items_to_map (list[str]): A list of the needed mappings (keys).
+
+        Returns:
+            dict[str, str]: The needed mappings.
+        """
+        # Return just the needed mappings as defined by from_items_to_map
+        return {
+            from_item: (from_item if from_item not in mappings else mappings[from_item])
+            for from_item in from_items_to_map
+        }

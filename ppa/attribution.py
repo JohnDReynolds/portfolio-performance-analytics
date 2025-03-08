@@ -156,6 +156,7 @@ class Attribution:
         classification_name: str,
         classification_data_source: util.TypeClassificationDataSource,
         frequency: Frequency,
+        classification_label: str = util.EMPTY,
     ):
         """
         Summary:
@@ -170,6 +171,8 @@ class Attribution:
                 2. A dictionary containing the Classification data.
                 3. A pandas or polars DataFrame containing the Classification data.
             frequency (Frequency): The Frequency.
+            classification_label (str, optional): The classification label that will be displayed
+                in the tables and charts.  Defaults to util.EMPTY.
 
         Data Parameters:
             Sample input for the "classification_data" parameter of a "Security" Classification:
@@ -178,9 +181,16 @@ class Attribution:
                 ...
         """
         # Set internal instance variables from the constructor parameters.
-        self._classification = Classification(classification_name, classification_data_source)
+        self._classification = Classification(
+            classification_name, classification_data_source, performances
+        )
         self._frequency = frequency
         self._performances = performances
+        self._classification_label = (
+            self._classification.name
+            if util.is_empty(classification_label)
+            else classification_label
+        )
 
         # Make sure that the portfolio and benchmark performances have the same columns.
         self._equalize_columns()
@@ -731,10 +741,6 @@ class Attribution:
         # Determine if the view has classification columns.
         have_classification_columns = cols.CLASSIFICATION_IDENTIFIER in lf.collect_schema().keys()
 
-        # For cosmetic purposes, convert the classification identifier (symbol) to upper-case.
-        if have_classification_columns:
-            lf = lf.with_columns(pl.col(cols.CLASSIFICATION_IDENTIFIER).str.to_uppercase())
-
         # Must collect() before adding the total_row
         df = lf.collect()
 
@@ -890,11 +896,14 @@ class Attribution:
 
         # Get the classification description if it is relevant.
         classification_description = (
-            f" by {self._classification.name}"
+            f" by {self._classification_label}"
             if (
-                is_view
-                or "Attribution" in chart_or_view.value
-                or "Contribution" in chart_or_view.value
+                (
+                    is_view
+                    or "Attribution" in chart_or_view.value
+                    or "Contribution" in chart_or_view.value
+                )
+                and (not util.is_empty(self._classification_label))
             )
             else ""
         )
@@ -1079,9 +1088,9 @@ class Attribution:
             case View.CUMULATIVE_ATTRIBUTION:
                 table = format_table.cumulative_attribution(table)
             case View.OVERALL_ATTRIBUTION:
-                table = format_table.overall_attribution(table, self._classification.name)
+                table = format_table.overall_attribution(table, self._classification_label)
             case View.SUBPERIOD_ATTRIBUTION:
-                table = format_table.subperiod_attribution(table, self._classification.name)
+                table = format_table.subperiod_attribution(table, self._classification_label)
             case View.SUBPERIOD_SUMMARY:
                 table = format_table.subperiod_summary(table)
 

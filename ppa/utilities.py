@@ -272,27 +272,6 @@ def near_zero(f: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:
     return are_near(f, 0, tolerance)
 
 
-def needed_mappings(mappings: dict[str, str], from_items_to_map: list[str]) -> dict[str, str]:
-    """
-    Get only the needed mappings (located in from_items_to_map) from the broader mappings.
-
-    Args:
-        mappings (dict[str, str]): The broader mappings.
-        from_items_to_map (list[str]): A list of the needed mappings (keys).
-
-    Returns:
-        dict[str, str]: The needed mappings.
-    """
-    # Convert the mapping keys to lower case for better matching.
-    mappings = {key.lower(): value for key, value in mappings.items()}
-
-    # Return just the needed mappings as defined by from_items_to_map
-    return {
-        from_item: (from_item if from_item not in mappings else mappings[from_item])
-        for from_item in from_items_to_map
-    }
-
-
 def open_in_browser(html_or_png: str | bytes) -> None:
     """
     Open the html string or png binary in a web browser.
