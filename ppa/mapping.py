@@ -40,19 +40,29 @@ class Mapping:
         mappings: dict[str, str]
         if isinstance(data_source, dict):
             # A dictionary: key = from_item, value = to_item
-            mappings = data_source
-        elif isinstance(data_source, (pd.DataFrame, pl.DataFrame)):
-            # If mapping_data is a DataFrame, then use the first column as the from-key and the
-            # second column as the to-value.
+            mappings = {str(k): str(v) for k, v in data_source.items()}
+        elif isinstance(data_source, pd.DataFrame):
+            # Use the first column as the from-key and the second column as the to-value.
             assert 2 <= len(data_source.columns), errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS
             mappings = dict(
                 zip(
-                    data_source[data_source.columns[0]],  # type: ignore
-                    data_source[data_source.columns[1]],  # type: ignore
+                    data_source.iloc[:, 0].astype(str),  # type: ignore
+                    data_source.iloc[:, 1].astype(str),  # type: ignore
+                )
+            )
+        elif isinstance(data_source, pl.DataFrame):
+            # Use the first column as the from-key and the second column as the to-value.
+            assert 2 <= len(data_source.columns), errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS
+            mappings = dict(
+                zip(
+                    data_source[data_source.columns[0]].cast(pl.Utf8),
+                    data_source[data_source.columns[1]].cast(pl.Utf8),
                 )
             )
         else:  # isinstance(data_source, str):
             # A csv file path that will be loaded into the mappings dictionary.
+            # Note that the key values do not need to be converted into strings.  They are
+            # guaranteed to be strings since they are loaded with csv.reader.
             mappings = util.load_dictionary_from_csv(data_source)
 
         # Put the needed mappings in self.mappings and return.
