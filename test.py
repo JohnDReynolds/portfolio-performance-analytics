@@ -275,7 +275,7 @@ class Test(unittest.TestCase):
                 self,
                 "_does_not_exist_",
                 "aapl_daily.csv",
-                errs.ERROR_802_FILE_DOES_NOT_EXIST,
+                errs.ERROR_802_FILE_PATH_DOES_NOT_EXIST,
             )
         )
 
@@ -286,6 +286,11 @@ class Test(unittest.TestCase):
                 self, "aapl_daily.csv", errs.ERROR_803_CANNOT_CONVERT_TO_A_DATE, "2020-aa-bb"
             )
         )
+
+    def test_804(self) -> None:
+        """Test error 804."""
+        assert util.file_path_error(util.EMPTY) == errs.ERROR_804_MISSING_DATA_SOURCE
+        print(errs.ERROR_804_MISSING_DATA_SOURCE)
 
     ############################## Test cases for utilities.py ##############################
     def test_are_near(self) -> None:
@@ -354,20 +359,6 @@ class Test(unittest.TestCase):
             os.remove(temp_name)
 
         self.assertFalse(util.file_path_exists("not_a_real_file.xyz"))
-
-    def test_load_dictionary_from_csv(self) -> None:
-        """
-        Test the load_dictionary_from_csv function by creating a temporary CSV file.
-        """
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as tmp_file:
-            tmp_file.write("key1,value1\nkey2,value2\nkey3,value3")
-            temp_name = tmp_file.name
-
-        try:
-            dct = util.load_dictionary_from_csv(temp_name)
-            self.assertEqual(dct, {"key1": "value1", "key2": "value2", "key3": "value3"})
-        finally:
-            os.remove(temp_name)
 
     def test_logarithmic_linking_coefficient_series(self) -> None:
         """
@@ -446,7 +437,7 @@ class Test(unittest.TestCase):
         for i in range(4):
             if i == 0:
                 # hard-coded csv file
-                classification_data = util.resolve_file_path(
+                classification_data = test_util.resolve_file_path(
                     _CLASSIFICATION_DIRECTORIES, "Security.csv"
                 )
             elif i == 1:
@@ -488,7 +479,7 @@ class Test(unittest.TestCase):
         for i in range(4):
             if i == 0:
                 # hard-coded csv file
-                mapping_data = util.resolve_file_path(
+                mapping_data = test_util.resolve_file_path(
                     _MAPPING_DIRECTORIES, "Security--to--Gics Sub-Industry.csv"
                 )
             elif i == 1:
@@ -662,7 +653,7 @@ class Test(unittest.TestCase):
                 test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                 attribution.write_csv(view, test_file_path)
                 test_results = pl.read_csv(test_file_path)
-                expected_file_path = util.resolve_file_path(
+                expected_file_path = test_util.resolve_file_path(
                     _EXPECTED_RESULTS_DIRECTORIES, file_name
                 )
                 expected_results = pl.read_csv(expected_file_path)
@@ -678,7 +669,7 @@ class Test(unittest.TestCase):
                 with io.open(test_file_path, "w", encoding=util.ENCODING, newline="\n") as f:
                     f.write(html)
                 test_results = test_util.read_html_table(test_file_path)
-                expected_file_path = util.resolve_file_path(
+                expected_file_path = test_util.resolve_file_path(
                     _EXPECTED_RESULTS_DIRECTORIES, file_name
                 )
                 expected_results = test_util.read_html_table(expected_file_path)
@@ -701,7 +692,7 @@ class Test(unittest.TestCase):
                     test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                     with open(test_file_path, "wb") as f:
                         f.write(png)
-                    expected_file_path = util.resolve_file_path(
+                    expected_file_path = test_util.resolve_file_path(
                         _EXPECTED_RESULTS_DIRECTORIES, file_name
                     )
                     # The generated png files are different under macos vs windows.  Visually, they
@@ -829,7 +820,7 @@ class Test(unittest.TestCase):
         test_file_path = os.path.join(tempfile.gettempdir(), file_name)
         riskstatistics.write_csv(test_file_path)
         test_results: pl.DataFrame = pl.read_csv(test_file_path)
-        expected_file_path = util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
+        expected_file_path = test_util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
         expected_results: pl.DataFrame = pl.read_csv(expected_file_path)
         # if not test_results.equals(expected_results):
         #     pause_it = 9
@@ -843,7 +834,7 @@ class Test(unittest.TestCase):
         with io.open(test_file_path, "w", encoding=util.ENCODING, newline="\n") as f:
             f.write(html)
         test_results2: list[str] = test_util.read_html_table(test_file_path)
-        expected_file_path = util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
+        expected_file_path = test_util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
         expected_results2: list[str] = test_util.read_html_table(expected_file_path)
         # if test_results2 != expected_results2:
         #     pause_it = 9

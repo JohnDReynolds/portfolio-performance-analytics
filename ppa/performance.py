@@ -262,9 +262,10 @@ class Performance:
         exception.
         """
         # Get a dictionary of the column dtypes.
-        column_dtypes: dict[type[pl.Date] | type[pl.Float64], list[str]] = {
+        column_dtypes: dict[type[pl.Date] | type[pl.Float64] | type[pl.String], list[str]] = {
             pl.Date: cols.DATE_COLUMNS,
             pl.Float64: self.col_names(RET) + self.col_names(WGT),
+            pl.String: cols.PERFORMANCE_CLASSIFICATION_COLUMNS,
         }
 
         # Cache the schema into a local dictionary.  Otherwise polars rebuilds it every time you
@@ -274,7 +275,9 @@ class Performance:
         # Iterate through the column dtypes.
         for dtype, col_names in column_dtypes.items():
             # Loop through columns with incorrect dtypes and try to cast them to the correct dtype.
-            for col_name in [col for col in col_names if schema[col] != dtype]:
+            for col_name in [
+                col for col in col_names if (col in self.df.columns and schema[col] != dtype)
+            ]:
                 # Cast the column to the appropriate dtype
                 try:
                     self.df = self.df.with_columns(pl.col(col_name).cast(dtype))
@@ -444,10 +447,6 @@ class Performance:
         ):
             return self.df, pl.DataFrame()
 
-        # All identifiers need to be strings for classifications, mappings, performances, etc.
-        if not isinstance(self.df.schema[cols.IDENTIFIER], pl.String):
-            self.df = self.df.with_columns(self.df[cols.IDENTIFIER].cast(pl.Utf8))
-
         # Create self._classification_items if there is a cols.NAME column.
         # This might be used later if they do not specify a Classification data source.
         classification_items = (
@@ -456,11 +455,10 @@ class Performance:
             else pl.DataFrame()
         )
         if not classification_items.is_empty():
-            classification_items = classification_items.select([cols.IDENTIFIER, cols.NAME])
-            classification_items.columns = [
-                cols.CLASSIFICATION_IDENTIFIER,
-                cols.CLASSIFICATION_NAME,
-            ]
+            classification_items = classification_items.select(
+                cols.PERFORMANCE_CLASSIFICATION_COLUMNS
+            )
+            classification_items.columns = cols.CLASSIFICATION_COLUMNS
 
         # Perform a pivot: use the date columns as the index, and pivot on the identifier.
         # The 'values' are both WEIGHT and RETURN; we use an aggregate function of "first" since
@@ -524,9 +522,7 @@ class Performance:
         # Load the data
         if isinstance(data_source, str):
             # Assert that the data file path exists.
-            assert util.file_path_exists(
-                data_source
-            ), f"{errs.ERROR_802_FILE_DOES_NOT_EXIST}{data_source}"
+            assert util.file_path_exists(data_source), util.file_path_error(data_source)
             # Default the name to the file name
             if util.is_empty(name):
                 name = util.file_basename_without_extension(data_source)

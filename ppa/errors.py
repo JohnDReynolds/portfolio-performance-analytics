@@ -50,8 +50,9 @@ ERROR_404_PORTFOLIO_BENCHMARK_RETURNS_QTY_NOT_EQUAL = (
 ERROR_405_NAN_VALUES = "Error 405: The portfolio returns or benchmark returns have NaN values."
 
 # General Error Messages
-ERROR_802_FILE_DOES_NOT_EXIST = "Error 802: File does not exist: "
+ERROR_802_FILE_PATH_DOES_NOT_EXIST = "Error 802: File path does not exist: "
 ERROR_803_CANNOT_CONVERT_TO_A_DATE = "Error 803: Cannot convert to a date.  "
+ERROR_804_MISSING_DATA_SOURCE = "Error 804: Missing data source."
 
 # Unexpected Logic Error Message
 ERROR_999_UNEXPECTED = "Error 999: Unexpected Logic error: "

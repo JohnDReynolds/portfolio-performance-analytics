@@ -26,7 +26,6 @@ from typing import cast
 
 # Third-Party Imports
 import great_tables as gt
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -1003,8 +1002,7 @@ class Attribution:
                             df, title_lines, self._performances[0].name, self._performances[1].name
                         )
 
-        # Close plt and return the chart png.
-        plt.close()
+        # Return the chart png
         return png
 
     def to_html(self, view: View) -> str:

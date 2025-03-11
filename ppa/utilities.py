@@ -3,7 +3,6 @@ This module contains utility functions and system-wide constants.
 """
 
 # Python Imports
-import csv
 import datetime as dt
 from enum import Enum
 import math
@@ -154,6 +153,13 @@ def file_basename_without_extension(file_path: str) -> str:
     return os.path.basename(file_path).split(".")[0]
 
 
+def file_path_error(file_path: str) -> str:
+    """Return the appropriate error message."""
+    if is_empty(file_path):
+        return errs.ERROR_804_MISSING_DATA_SOURCE
+    return f"{errs.ERROR_802_FILE_PATH_DOES_NOT_EXIST}{file_path}"
+
+
 def file_path_exists(file_path: str) -> bool:
     """Determine if the file_path exists."""
     if is_empty(file_path):
@@ -166,24 +172,66 @@ def is_empty(data_source: TypeAllDataSources) -> bool:
     return isinstance(data_source, str) and (data_source == EMPTY or (not data_source.strip()))
 
 
-def load_dictionary_from_csv(file_path: str) -> dict[str, str]:
+def load_datasource(
+    data_source: TypeAllDataSources,
+    column_names: list[str],
+    needed_items: list[str],
+    error_message: str,
+) -> pl.DataFrame:
     """
-    Loads a 2-columns csv file into a dictionary.  The first column should be the dictionary
-    keys, and the second column should be the dictionary values.
+    Load a 2-column data_source into a Polars DataFrame.
 
     Args:
-        file_path (str): The file path of the csv file to load.
+        data_source (TypeAllDataSources): The data source.
+        column_names list[str]: The 2 column names.
+        needed_items: list[str]: The needed items corresponding to column_names[0].
+        error_message (str): The error message in the case where there are not 2 columns.
 
     Returns:
-        dict[str, str]: The resulting dictionary.
+        pl.DataFrame: The data_source as a Polars DataFrame.
     """
-    # Assert that the file exists
-    assert os.path.exists(file_path), f"{errs.ERROR_802_FILE_DOES_NOT_EXIST}{file_path}"
+    # Get the 2-column dataframe.
+    if isinstance(data_source, str):
+        # Assert that the data file path exists.
+        assert file_path_exists(data_source), file_path_error(data_source)
+        # Load the data_source in lazy-mode.  infer_schema=False will force both columns to be the
+        # default strings (Utf8).  Then filter on needed_items.
+        lf = pl.scan_csv(data_source, has_header=False, infer_schema=False)
+        column0_name = list(lf.collect_schema().keys())[0]
+        df = lf.filter(pl.col(column0_name).is_in(needed_items)).collect()
+    elif isinstance(data_source, dict):
+        df = pl.DataFrame(
+            {
+                column_names[0]: data_source.keys(),
+                column_names[1]: data_source.values(),
+            }
+        )
+    elif isinstance(data_source, pd.DataFrame):
+        df = pl.from_pandas(data_source)
+    else:  # isinstance(data_source, pl.DataFrame):
+        df = data_source
 
-    # Read the file_path into the dictionary.
-    with open(file_path, "r", encoding=ENCODING) as file:
-        reader = csv.reader(file)
-        return {row[0]: row[1] for row in reader if 2 <= len(row)}
+    # Assert that you have 2 columns.
+    assert 2 == len(df.columns), error_message
+
+    # Give the columns consistent names.
+    df.columns = column_names
+
+    # Remove duplicates.
+    df = df.unique(subset=[df.columns[0]], keep="last")
+
+    # Cast to strings and filter on needed_items.  Note that this was done above in pl.scan_scv
+    # if isinstance(data_source, str).
+    if not isinstance(data_source, str):
+        # All identifiers need to be strings for classifications, mappings, performances, etc.
+        for column_name in df.columns:
+            if not isinstance(df.schema[column_name], pl.String):
+                df = df.with_columns(df[column_name].cast(pl.String))
+        # Filter on only the needed_items.
+        df = df.filter(pl.col(df.columns[0]).is_in(needed_items))
+
+    # Return the dataframe.
+    return df
 
 
 def logarithmic_linking_coefficients(overall_return: float, returns: pl.Series) -> pl.Series:
@@ -311,26 +359,3 @@ def open_in_browser(html_or_png: str | bytes) -> None:
                     print(f"Could not open the file {url}.  {e}")
                     raise  # Re-raise the exception
                 time.sleep(0.2)
-
-
-def resolve_file_path(directories: list[str], file_name: str, suffix: str = EMPTY) -> str:
-    """
-    Determines the file path where file_name is located.
-
-    Args:
-        directories (list[str]): A list of potential directories where file_name is located.
-        file_name (str): The file name.
-        suffix (str): The desired suffix.
-
-    Returns:
-        str: The resolved file path.
-    """
-    # Append ".csv".
-    if (not is_empty(suffix)) and (not file_name.endswith(suffix)):
-        file_name = f"{file_name}{suffix}"
-
-    for directory in directories:
-        file_path = os.path.join(directory, file_name)
-        if os.path.exists(file_path):
-            return file_path
-    assert False, f"{errs.ERROR_802_FILE_DOES_NOT_EXIST}{file_name}"

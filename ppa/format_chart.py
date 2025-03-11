@@ -391,7 +391,9 @@ def _to_png(figure: Figure) -> bytes:
     """
     buf = io.BytesIO()
     figure.savefig(buf, format="png")
-    return buf.getvalue()
+    png = buf.getvalue()
+    plt.close()
+    return png
 
 
 def vertical_bars(

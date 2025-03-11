@@ -521,7 +521,7 @@ class Analytics:
     def _map_columns(
         self,
         performance: Performance,
-        to_column_name_mapping: defaultdict[str, list[str]],
+        to_froms: defaultdict[str, list[str]],
         suffix: str,
     ) -> pl.LazyFrame:
         """
@@ -529,8 +529,8 @@ class Analytics:
 
         Args:
             performance (Performance): The Performance to be mapped (summed).
-            to_column_name_mapping: defaultdict[str, list[str]],: A mapping from the
-                Performance Classification to the desired to_classification.
+            to_froms: defaultdict[str, list[str]]: A reverse mapping from `to_column_name` to a
+                list of `from_column_names`.
             suffix (str): The suffix for the column names that will be mapped
                 (e.g., '.con' or '.wgt').
 
@@ -542,7 +542,7 @@ class Analytics:
             pl.sum_horizontal([pl.col(f"{col}{suffix}") for col in from_columns]).alias(
                 f"{to_value}{suffix}"
             )
-            for to_value, from_columns in to_column_name_mapping.items()
+            for to_value, from_columns in to_froms.items()
         ]
 
         # Perform the horizontal summations of the expressions.  Note that typically there will
@@ -558,8 +558,12 @@ class Analytics:
                 performance_lf.select(aggregated_columns[i : i + batch_size])
             )
 
-        # Concatenate and return the horizontally_summed_dfs.
-        return pl.concat(horizontally_summed_lfs, how="horizontal")
+        # Concatenate and return the horizontally_summed_lfs.
+        return (
+            horizontally_summed_lfs[0]
+            if len(horizontally_summed_lfs) == 1
+            else pl.concat(horizontally_summed_lfs, how="horizontal")
+        )
 
     def _map_performance(
         self,
@@ -585,23 +589,18 @@ class Analytics:
         Returns:
             Performance: The new mapped Performance.
         """
-        # Get the mappings from performance.classification_name to to_classification_name.
-        mapping = Mapping(
+        # Create a reverse mapping from `to_column_name` to a list of `from_column_names`.
+        to_froms = Mapping(
             performance.identifiers,
             mapping_data_source,
-        ).mappings
-
-        # Create a reverse mapping from `to_value` to the list of `from_column_names`.
-        to_column_name_mapping: defaultdict[str, list[str]] = defaultdict(list)
-        for from_value, to_value in mapping.items():
-            to_column_name_mapping[to_value].append(from_value)
+        ).to_froms
 
         # Get DataFrames of the resulting mapped columns with the new mapped identifiers as the new
         # column names.  For instance if the roll-up is from security to Gics Sub-Industry, then
         # the columns ['aapl.con', 'hpq.con'] will be horizontally summed into a single new column
         # named '45202030'.
-        mapped_contribs_lf = self._map_columns(performance, to_column_name_mapping, CON)
-        mapped_weights_lf = self._map_columns(performance, to_column_name_mapping, WGT)
+        mapped_contribs_lf = self._map_columns(performance, to_froms, CON)
+        mapped_weights_lf = self._map_columns(performance, to_froms, WGT)
 
         # Get the mapped_df.  Note that LazyFrames cannot be divided by one-another, so collect().
         mapped_contribs = mapped_contribs_lf.collect()

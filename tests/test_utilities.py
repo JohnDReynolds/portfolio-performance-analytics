@@ -8,6 +8,10 @@ could alternatively create their own custom data source functions that query dat
 deliver pandas dataframes, polars dataframes, or python dictionairies.
 """
 
+# Python imports
+import os
+
+# Project imports
 from ppa.analytics import Analytics
 from ppa.attribution import Attribution
 import ppa.utilities as util
@@ -33,7 +37,7 @@ def classification_data_path(classification_name: str) -> util.TypeClassificatio
     """
     if util.is_empty(classification_name):
         return classification_name
-    return util.resolve_file_path(_CLASSIFICATION_DIRECTORIES, classification_name, ".csv")
+    return resolve_file_path(_CLASSIFICATION_DIRECTORIES, classification_name, ".csv")
 
 
 def get_attribution(
@@ -94,7 +98,7 @@ def mapping_data_paths(
         (
             util.EMPTY
             if from_classification_name == to_classification_name
-            else util.resolve_file_path(
+            else resolve_file_path(
                 _MAPPING_DIRECTORIES,
                 f"{from_classification_name}--to--{to_classification_name}.csv",
             )
@@ -117,7 +121,7 @@ def performance_data_path(performance_name: str) -> util.TypePerformanceDataSour
         TypePerformanceDataSource: The path name of the performance file corresponding to
         performance_name.
     """
-    return util.resolve_file_path(_PERFORMANCE_DIRECTORIES, performance_name, ".csv")
+    return resolve_file_path(_PERFORMANCE_DIRECTORIES, performance_name, ".csv")
 
 
 def read_html_table(file_path: str) -> list[str]:
@@ -131,3 +135,29 @@ def read_html_table(file_path: str) -> list[str]:
             if on_table:
                 lines.append(line)
     return lines
+
+
+def resolve_file_path(directories: list[str], file_name: str, suffix: str = util.EMPTY) -> str:
+    """
+    Determines the file path where file_name is located.
+
+    Args:
+        directories (list[str]): A list of potential directories where file_name is located.
+        file_name (str): The file name.
+        suffix (str): The desired suffix.
+
+    Returns:
+        str: The resolved file path.
+    """
+    # Append ".csv".
+    if (not util.is_empty(suffix)) and (not file_name.endswith(suffix)):
+        file_name = f"{file_name}{suffix}"
+
+    # Find the file_path
+    for directory in directories:
+        file_path = os.path.join(directory, file_name)
+        if os.path.exists(file_path):
+            return file_path
+
+    # Throw exeption if file_path was not found
+    assert False, util.file_path_error(file_name)

@@ -2,11 +2,11 @@
 The Mapping class supports mapping from one Classification to another.
 """
 
-# Third-party imports
-import pandas as pd
-import polars as pl
+# Python imports
+from collections import defaultdict
 
 # Project Imports
+import ppa.columns as cols
 import ppa.errors as errs
 import ppa.utilities as util
 
@@ -37,51 +37,29 @@ class Mapping:
                 MSFT, 45103020
                 ...
         """
-        mappings: dict[str, str]
-        if isinstance(data_source, dict):
-            # A dictionary: key = from_item, value = to_item
-            mappings = {str(k): str(v) for k, v in data_source.items()}
-        elif isinstance(data_source, pd.DataFrame):
-            # Use the first column as the from-key and the second column as the to-value.
-            assert 2 <= len(data_source.columns), errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS
-            mappings = dict(
-                zip(
-                    data_source.iloc[:, 0].astype(str),  # type: ignore
-                    data_source.iloc[:, 1].astype(str),  # type: ignore
-                )
+        # Load the data source into dataframe with 2 columns: 0=from, 1=to
+        from_tos = util.load_datasource(
+            data_source,
+            column_names=cols.FROM_TO_COLUMNS,
+            needed_items=from_items_to_map,
+            error_message=errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS,
+        )
+
+        # Turn the from_tos dataframe into a dictionary.
+        mappings = dict(
+            zip(
+                from_tos[from_tos.columns[0]],
+                from_tos[from_tos.columns[1]],
             )
-        elif isinstance(data_source, pl.DataFrame):
-            # Use the first column as the from-key and the second column as the to-value.
-            assert 2 <= len(data_source.columns), errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS
-            mappings = dict(
-                zip(
-                    data_source[data_source.columns[0]].cast(pl.Utf8),
-                    data_source[data_source.columns[1]].cast(pl.Utf8),
-                )
-            )
-        else:  # isinstance(data_source, str):
-            # A csv file path that will be loaded into the mappings dictionary.
-            # Note that the key values do not need to be converted into strings.  They are
-            # guaranteed to be strings since they are loaded with csv.reader.
-            mappings = util.load_dictionary_from_csv(data_source)
+        )
 
-        # Put the needed mappings in self.mappings and return.
-        self.mappings = Mapping._needed_mappings(mappings, from_items_to_map)
-
-    @staticmethod
-    def _needed_mappings(mappings: dict[str, str], from_items_to_map: list[str]) -> dict[str, str]:
-        """
-        Get only the needed mappings (located in from_items_to_map) from the broader mappings.
-
-        Args:
-            mappings (dict[str, str]): The broader mappings.
-            from_items_to_map (list[str]): A list of the needed mappings (keys).
-
-        Returns:
-            dict[str, str]: The needed mappings.
-        """
-        # Return just the needed mappings as defined by from_items_to_map
-        return {
+        # If from_item is not in mappings, then add it pointing to itself.
+        mappings = {
             from_item: (from_item if from_item not in mappings else mappings[from_item])
             for from_item in from_items_to_map
         }
+
+        # Create a reverse mapping from `to_column_name` to a list of `from_column_names`.
+        self.to_froms: defaultdict[str, list[str]] = defaultdict(list)
+        for from_value, to_value in mappings.items():
+            self.to_froms[to_value].append(from_value)

@@ -3,7 +3,6 @@ The Classification class contains a DataFrame of it's associated items.
 """
 
 # Third-Party Imports
-import pandas as pd
 import polars as pl
 
 # Project Imports
@@ -46,38 +45,22 @@ class Classification:
                 MSFT, Microsft
                 ...
         """
-        # Set the class members.
-        self.name = name
-
         # Get the 2-column dataframe [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
-        if isinstance(data_source, str):
-            if util.is_empty(data_source):
-                self.name, self.df = Classification._load_from_performances(performances)
-            else:
-                self.df = pl.read_csv(
-                    data_source,
-                    has_header=False,
-                    infer_schema=False,  # Will force both columns to be the default strings (Utf8)
-                )
-        elif isinstance(data_source, dict):
-            self.df = pl.DataFrame(
-                {
-                    cols.CLASSIFICATION_IDENTIFIER: data_source.keys(),
-                    cols.CLASSIFICATION_NAME: data_source.values(),
-                }
+        if util.is_empty(data_source):
+            # Use the performances.classification_items.
+            self.name, self.df = Classification._load_from_performances(performances)
+        else:
+            # Use the data_source.
+            self.name = name
+            needed_items = list(
+                set(performances[0].identifiers) | set(performances[1].identifiers)  # type: ignore
+            )  # unique list of the union of portfolio and benchmark
+            self.df = util.load_datasource(
+                data_source,
+                column_names=cols.CLASSIFICATION_COLUMNS,
+                needed_items=needed_items,
+                error_message=errs.ERROR_302_CLASSIFICATION_MUST_CONTAIN_2_COLUMNS,
             )
-        elif isinstance(data_source, pd.DataFrame):
-            self.df = pl.from_pandas(data_source)
-        else:  # isinstance(data_source, pl.DataFrame):
-            self.df = data_source
-
-        # Assert that you have 2 columns, and then make sure that they have the correct names.
-        assert 2 == len(self.df.columns), errs.ERROR_302_CLASSIFICATION_MUST_CONTAIN_2_COLUMNS
-        self.df.columns = [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
-
-        # All identifiers need to be strings for classifications, mappings, performances, etc.
-        if not isinstance(self.df.schema[cols.CLASSIFICATION_IDENTIFIER], pl.String):
-            self.df = self.df.with_columns(self.df[cols.CLASSIFICATION_IDENTIFIER].cast(pl.Utf8))
 
     @staticmethod
     def _load_from_performances(
@@ -115,11 +98,10 @@ class Classification:
         if not dfs:
             return util.EMPTY, _EMPTY_DF
 
-        # Concatenate the dataframes and remove duplicates, keeping the last occurrence.
-        classification_items = pl.concat(dfs, how="vertical").unique(
-            subset=[cols.CLASSIFICATION_IDENTIFIER], keep="last"
-        )
+        # Concatenate the portfolio and benchmark classification itemms, and remove duplicates.
+        df = pl.concat(dfs, how="vertical")
+        df = df.unique(subset=[df.columns[0]], keep="last")
 
         # Return the classification_name that is common to both the portfolio and the benchmark.
         # Return the dataframe with the classification_items.
-        return performances[0].classification_name, classification_items
+        return performances[0].classification_name, df
