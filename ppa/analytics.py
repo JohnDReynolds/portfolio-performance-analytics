@@ -440,9 +440,9 @@ class Analytics:
                 AAPL, Apple Inc.
                 MSFT, Microsft
                 ...
-            Sample data for the "mapping_data_source" param for "Security" to "Gics Sub-Industry":
-                AAPL, 45202030
-                MSFT, 45103020
+            Sample data for the "mapping_data_source" param for "Security" to "Economic Sector":
+                AAPL, IT
+                GOOG, CS
                 ...
 
         Returns:
@@ -573,7 +573,7 @@ class Analytics:
     ) -> Performance:
         """
         Map from the Performance Classification to the to_classification.  For instance, from
-        Security to Gics Sub-Industry.
+        Security to Economic Sector.
 
         Args:
             performance (Performance): The existing Performance that will be mapped.
@@ -581,9 +581,9 @@ class Analytics:
             mapping_data_source (TypeMappingDataSource): The Mapping data source.
 
         Data Parameters:
-            Sample input for the "mapping_data" parameter for "Security" to "Gics Sub-Industry":
-                AAPL, 45202030
-                MSFT, 45103020
+            Sample input for the "mapping_data" parameter for "Security" to "Economic Sector":
+                AAPL, IT
+                GOOG, CO
                 ...
 
         Returns:
@@ -596,9 +596,9 @@ class Analytics:
         ).to_froms
 
         # Get DataFrames of the resulting mapped columns with the new mapped identifiers as the new
-        # column names.  For instance if the roll-up is from security to Gics Sub-Industry, then
-        # the columns ['aapl.con', 'hpq.con'] will be horizontally summed into a single new column
-        # named '45202030'.
+        # column names.  For instance if the roll-up is from security to Economic Sector, then the
+        # columns ['aapl.con', 'hpq.con'] will be horizontally summed into a single new column
+        # named 'IT'.
         mapped_contribs_lf = self._map_columns(performance, to_froms, CON)
         mapped_weights_lf = self._map_columns(performance, to_froms, WGT)
 

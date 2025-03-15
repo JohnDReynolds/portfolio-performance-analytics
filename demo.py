@@ -75,7 +75,7 @@ def run_demo(tables_or_charts: str) -> None:
     )
 
     # Get the Attribution instance by Sector.
-    attribution_by_sector = _get_attribution(analytics, "Gics Sector")
+    attribution_by_sector = _get_attribution(analytics, "Economic Sector")
 
     # Display the ouput in a webbrowser.
     if display_tables:

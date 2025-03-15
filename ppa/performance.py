@@ -39,7 +39,7 @@ class Performance:
                 2. A pandas or polars DataFrame containing the performance data.
             name (str, optional): The descriptive name.  Defaults to util.EMPTY.
             classification_name (str, optional): The classification name corresponding to the
-                data (e.g. "Gics Sector")  Defaults to util.EMPTY.
+                data (e.g. "Economic Sector")  Defaults to util.EMPTY.
             beginning_date (str | dt.date, optional): Beginning date as a python date or a date
                 string in the format yyyy-mm-dd.  Defaults to dt.date.min.
             ending_date (str | dt.date, optional): Ending date as a python date or a date string in

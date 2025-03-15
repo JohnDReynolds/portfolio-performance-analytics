@@ -32,9 +32,9 @@ class Mapping:
                 3. A pandas or polars DataFrame containing the Mapping data.
 
         Data Parameters:
-            Sample input for the "data_source" parameter for "Security" to "Gics Sub-Industry":
-                AAPL, 45202030
-                MSFT, 45103020
+            Sample input for the "data_source" parameter for "Security" to "Economic Sector":
+                AAPL, IT
+                GOOG, CO
                 ...
         """
         # Load the data source into dataframe with 2 columns: 0=from, 1=to

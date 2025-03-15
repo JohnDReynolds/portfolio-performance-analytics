@@ -6,6 +6,7 @@ This module contains static methods for formatting the charts enumerated in Attr
 # pyright: reportUnknownMemberType=none
 
 # Python Imports
+import gc
 import io
 import math
 import textwrap
@@ -379,20 +380,27 @@ def overall_contribution(
     return _to_png(fig)
 
 
-def _to_png(figure: Figure) -> bytes:
+def _to_png(fig: Figure) -> bytes:
     """
     Convert figure to png bytes.
 
     Args:
-        figure (Figure): The figure to convert.
+        fig (Figure): The figure to convert.
 
     Returns:
         bytes: The resulting png bytes.
     """
     buf = io.BytesIO()
-    figure.savefig(buf, format="png")
+    fig.savefig(buf, format="png")
     png = buf.getvalue()
-    plt.close()
+    plt.close(fig)
+
+    # gc.collect() seems to be necessary with large datasets and when generating multiple figures
+    # in a loop.  ChatGPT says: "In a loop generating many figures, calling plt.close(fig) may not
+    # immediately free memory."
+    gc.collect()
+
+    # Return the png
     return png
 
 

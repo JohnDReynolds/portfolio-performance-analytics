@@ -186,7 +186,7 @@ class Test(unittest.TestCase):
                 "abcde_portfolio1",
                 errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME,
                 portfolio_classification_name="Security",
-                benchmark_classification_name="Gics Secctor",
+                benchmark_classification_name="Economic Sector",
             )
         )
 
@@ -217,7 +217,7 @@ class Test(unittest.TestCase):
                 errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS,
                 portfolio_classification_name="Security",
                 benchmark_classification_name="Security",
-                classification_name="Gics Sector",
+                classification_name="Economic Sector",
                 mapping_data_source=pd.DataFrame({"col1": ["a", "b", "c"]}),
             )
         )
@@ -400,7 +400,7 @@ class Test(unittest.TestCase):
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
         )
-        expected_html = test_util.get_attribution(analytics, "Gics Sub-Industry").to_html(
+        expected_html = test_util.get_attribution(analytics, "Economic Sector").to_html(
             View.OVERALL_ATTRIBUTION
         )
 
@@ -408,11 +408,10 @@ class Test(unittest.TestCase):
         # file, specify mapping_data and classification_data as python dictionairies.
         html = test_util.get_attribution(
             analytics,
-            "Gics Sub-Industry",
-            mapping_data_source={"AAPL": "45202030", "MSFT": "45103020"},
+            "Economic Sector",
+            mapping_data_source={"AAPL": "IT", "MSFT": "IT"},
             classification_data_source={
-                "45103020": "Systems Software",
-                "45202030": "Technology Hardware, Storage & Peripherals",
+                "IT": "Information Technology",
             },
         ).to_html(View.OVERALL_ATTRIBUTION)
 
@@ -470,7 +469,7 @@ class Test(unittest.TestCase):
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
         )
-        expected_html = test_util.get_attribution(analytics, "Gics Sub-Industry").to_html(
+        expected_html = test_util.get_attribution(analytics, "Economic Sector").to_html(
             View.OVERALL_ATTRIBUTION
         )
 
@@ -480,15 +479,15 @@ class Test(unittest.TestCase):
             if i == 0:
                 # hard-coded csv file
                 mapping_data = test_util.resolve_file_path(
-                    _MAPPING_DIRECTORIES, "Security--to--Gics Sub-Industry.csv"
+                    _MAPPING_DIRECTORIES, "Security--to--Economic Sector.csv"
                 )
             elif i == 1:
                 # dictionary
-                mapping_data = {"AAPL": "45202030", "MSFT": "45103020"}
+                mapping_data = {"AAPL": "IT", "MSFT": "IT"}
             else:
                 map_dict: dict[str, list[str]] = {
                     "c1": ["AAPL", "MSFT"],
-                    "c2": ["45202030", "45103020"],
+                    "c2": ["IT", "IT"],
                 }
                 if i == 2:
                     # pandas dataframe
@@ -502,7 +501,7 @@ class Test(unittest.TestCase):
 
             # Assert the resulting attribution
             html = test_util.get_attribution(
-                analytics, "Gics Sub-Industry", mapping_data_source=mapping_data
+                analytics, "Economic Sector", mapping_data_source=mapping_data
             ).to_html(View.OVERALL_ATTRIBUTION)
             assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
@@ -639,7 +638,7 @@ class Test(unittest.TestCase):
         )
 
         # Assert each classsification.
-        for classification_name in ("Security", "Gics Sector"):
+        for classification_name in ("Security", "Economic Sector"):
             # Get the attribution
             attribution = test_util.get_attribution(analytics, classification_name)
             for view in View:
@@ -659,6 +658,7 @@ class Test(unittest.TestCase):
                 expected_results = pl.read_csv(expected_file_path)
                 # if not test_results.equals(expected_results):
                 #     pause_it = 9
+                #     continue
                 assert test_results.equals(expected_results)
                 os.remove(test_file_path)
 
@@ -675,15 +675,16 @@ class Test(unittest.TestCase):
                 expected_results = test_util.read_html_table(expected_file_path)
                 # if test_results != expected_results:
                 #     pause_it = 9
+                #     continue
                 assert test_results == expected_results
                 os.remove(test_file_path)
 
                 # Just get the json and xml to make sure they do not fail.
-                if classification_name == "Gics Sector":
+                if classification_name == "Economic Sector":
                     _ = attribution.to_json(view)
                     _ = attribution.to_xml(view)
 
-            if classification_name == "Gics Sector":
+            if classification_name == "Economic Sector":
                 # Assert the chart pngs
                 for chart in Chart:
                     print("Asserting", classification_name, chart)
@@ -701,6 +702,9 @@ class Test(unittest.TestCase):
                     # See git issue #20: matplotlib generating different binary png files in macos
                     # vs windows.
                     if os.name == "nt":
+                        # if not filecmp.cmp(test_file_path, expected_file_path, shallow=False):
+                        #     pause_it = 9
+                        #     continue
                         assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
                     os.remove(test_file_path)
 
@@ -732,24 +736,23 @@ class Test(unittest.TestCase):
                         frequency=frequency,
                     )
 
-                    # Create a first attribution instance so analytisc.audit() below will have two
+                    # Create a first attribution instance so analytics.audit() below will have two
                     # attributions to audit side-by-side for common column equivalency.
-                    _ = test_util.get_attribution(analytics, "Gics Sector")
+                    security = test_util.get_attribution(analytics, "Security")
+                    economic_sector = test_util.get_attribution(analytics, "Economic Sector")
 
                     # Test the Views
                     if frequency in (
                         Frequency.AS_OFTEN_AS_POSSIBLE,
                         Frequency.MONTHLY,
                     ):
-                        # Test Gics Industry Group views
-                        attribution = test_util.get_attribution(analytics, "Gics Industry Group")
+                        # Test Economic Sector views
                         for view in View:
-                            attribution._audit_view(view)
+                            economic_sector._audit_view(view)
                     else:
                         # Test Security views
-                        attribution = test_util.get_attribution(analytics, "Security")
                         for view in View:
-                            attribution._audit_view(view)
+                            security._audit_view(view)
                         # Test Risk Statistics
                         risk_statistics = analytics.get_riskstatistics()
                         risk_statistics._audit()
@@ -772,29 +775,29 @@ class Test(unittest.TestCase):
         )
 
         # Get the attributions
-        gics = test_util.get_attribution(analytics, "Gics Sector")
+        econ = test_util.get_attribution(analytics, "Economic Sector")
         security = test_util.get_attribution(analytics, "Security")
 
         # Assert View.OVERALL_ATTRIBUTION
-        content = gics.to_polars(View.OVERALL_ATTRIBUTION)
-        assert util.are_near(content[cols.TOTAL_EFFECT_SMOOTHED][0], 0.0047794523621773125)
+        content = econ.to_polars(View.OVERALL_ATTRIBUTION)
+        assert util.are_near(content[cols.TOTAL_EFFECT_SMOOTHED][3], 0.0047794523621773125)
         content = security.to_polars(View.OVERALL_ATTRIBUTION)
         assert util.are_near(content[cols.ALLOCATION_EFFECT_SMOOTHED][0], -0.017280820318116667)
 
         # Assert View.SUBPERIOD_ATTRIBUTION
-        content = gics.to_polars(View.SUBPERIOD_ATTRIBUTION)
-        assert util.are_near(content[cols.ACTIVE_RETURN][12], 0.007395457599899)
+        content = econ.to_polars(View.SUBPERIOD_ATTRIBUTION)
+        assert util.are_near(content[cols.ACTIVE_RETURN][12], 0.03931589249102954)
         content = security.to_polars(View.SUBPERIOD_ATTRIBUTION)
         assert util.are_near(content[cols.BENCHMARK_CONTRIB_SIMPLE][11], 0.0002353459131385708)
 
         # Assert View.SUBPERIOD_SUMMARY
-        content = gics.to_polars(View.SUBPERIOD_SUMMARY)
+        content = econ.to_polars(View.SUBPERIOD_SUMMARY)
         assert util.are_near(content[cols.TOTAL_EFFECT_SIMPLE][3], 0.129471631945489)
         content = security.to_polars(View.SUBPERIOD_SUMMARY)
         assert util.are_near(content[cols.ACTIVE_CONTRIB_SIMPLE][3], 0.1294716319583555)
 
         # Backwards compatibile test.
-        df = gics._df
+        df = econ._df
         assert util.are_near(df[cols.TOTAL_EFFECT_SMOOTHED][3], 0.1585372255258416)
         assert util.are_near(df[cols.ACTIVE_CONTRIB_SMOOTHED][3], 0.1463257464885667)
 
@@ -909,22 +912,22 @@ class Test(unittest.TestCase):
         # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path("Magnificent 7"),
-            test_util.performance_data_path("gics_sector_daily"),
+            test_util.performance_data_path("economic_sector_daily"),
             portfolio_classification_name="Security",
-            benchmark_classification_name="Gics Sector",
+            benchmark_classification_name="Economic Sector",
         )
 
-        # Assert Gics Sector attribution classification identifiers.
-        classifications = test_util.get_attribution(analytics, "Gics Sector").to_polars(
+        # Assert Economic Sector attribution classification identifiers.
+        classifications = test_util.get_attribution(analytics, "Economic Sector").to_polars(
             View.OVERALL_ATTRIBUTION
         )[cols.CLASSIFICATION_IDENTIFIER]
-        assert classifications.item(0) == "10"
-        assert classifications.item(1) == "15"
-        assert classifications.item(2) == "25"
-        assert classifications.item(3) == "35"
-        assert classifications.item(4) == "45"
-        assert classifications.item(5) == "50"
-        assert test_util.get_attribution(analytics, "Gics Sector").to_polars(
+        assert classifications.item(0) == "CD"
+        assert classifications.item(1) == "CO"
+        assert classifications.item(2) == "EN"
+        assert classifications.item(3) == "HC"
+        assert classifications.item(4) == "IT"
+        assert classifications.item(5) == "MA"
+        assert test_util.get_attribution(analytics, "Economic Sector").to_polars(
             View.SUBPERIOD_SUMMARY
         ).shape == (141, 11)
 
