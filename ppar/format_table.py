@@ -7,8 +7,8 @@ Attribution.View.
 import great_tables as gt
 
 # Project Imports
-import ppa.columns as cols
-import ppa.utilities as util
+import ppar.columns as cols
+import ppar.utilities as util
 
 # Constants
 _DISPLAY_DECIMALS = 4

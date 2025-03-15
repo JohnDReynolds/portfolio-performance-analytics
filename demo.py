@@ -1,11 +1,11 @@
 """Sample demonstration script."""
 
 # Project Imports
-from ppa.analytics import Analytics
-from ppa.attribution import Attribution, Chart, View
-import ppa.demo_data_sources as demo_data
-from ppa.frequency import Frequency
-import ppa.utilities as util
+from ppar.analytics import Analytics
+from ppar.attribution import Attribution, Chart, View
+import ppar.demo_data_sources as demo_data
+from ppar.frequency import Frequency
+import ppar.utilities as util
 
 
 def _get_attribution(analytics: Analytics, classification_name: str = util.EMPTY) -> Attribution:

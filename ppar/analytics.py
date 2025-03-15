@@ -16,15 +16,15 @@ import datetime as dt
 import polars as pl
 
 # Project Imports
-from ppa.attribution import Attribution
-import ppa.columns as cols
-from ppa.columns import CON, RET, WGT
-import ppa.errors as errs
-from ppa.frequency import Frequency, date_matches_frequency
-from ppa.mapping import Mapping
-from ppa.performance import Performance
-from ppa.riskstatistics import RiskStatistics
-import ppa.utilities as util
+from ppar.attribution import Attribution
+import ppar.columns as cols
+from ppar.columns import CON, RET, WGT
+import ppar.errors as errs
+from ppar.frequency import Frequency, date_matches_frequency
+from ppar.mapping import Mapping
+from ppar.performance import Performance
+from ppar.riskstatistics import RiskStatistics
+import ppar.utilities as util
 
 
 class Analytics:

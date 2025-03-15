@@ -31,15 +31,15 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-from ppa.classification import Classification
-import ppa.columns as cols
-from ppa.columns import AEL, AES, BCL, BCS, CON, PCL, PCS, RET, SEL, SES, WGT
-import ppa.errors as errs
-import ppa.format_chart as format_chart
-import ppa.format_table as format_table
-from ppa.frequency import Frequency
-from ppa.performance import Performance
-import ppa.utilities as util
+from ppar.classification import Classification
+import ppar.columns as cols
+from ppar.columns import AEL, AES, BCL, BCS, CON, PCL, PCS, RET, SEL, SES, WGT
+import ppar.errors as errs
+import ppar.format_chart as format_chart
+import ppar.format_table as format_table
+from ppar.frequency import Frequency
+from ppar.performance import Performance
+import ppar.utilities as util
 
 # Constants
 _DEFAULT_OUTPUT_PRECISION = 8

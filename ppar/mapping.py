@@ -6,9 +6,9 @@ The Mapping class supports mapping from one Classification to another.
 from collections import defaultdict
 
 # Project Imports
-import ppa.columns as cols
-import ppa.errors as errs
-import ppa.utilities as util
+import ppar.columns as cols
+import ppar.errors as errs
+import ppar.utilities as util
 
 
 class Mapping:

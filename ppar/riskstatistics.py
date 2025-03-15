@@ -26,11 +26,11 @@ import polars as pl
 from scipy.stats import norm  # type: ignore
 
 # Project Imports
-import ppa.columns as cols
-import ppa.errors as errs
-from ppa.frequency import Frequency, periods_per_year
-from ppa.performance import Performance
-import ppa.utilities as util
+import ppar.columns as cols
+import ppar.errors as errs
+from ppar.frequency import Frequency, periods_per_year
+from ppar.performance import Performance
+import ppar.utilities as util
 
 # Constants
 _DEFAULT_OUTPUT_PRECISION = 8

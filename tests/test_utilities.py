@@ -12,9 +12,9 @@ deliver pandas dataframes, polars dataframes, or python dictionairies.
 import os
 
 # Project imports
-from ppa.analytics import Analytics
-from ppa.attribution import Attribution
-import ppa.utilities as util
+from ppar.analytics import Analytics
+from ppar.attribution import Attribution
+import ppar.utilities as util
 
 
 # Directories containing the test data.

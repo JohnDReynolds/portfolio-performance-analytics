@@ -10,11 +10,11 @@ dictionairies.
 from importlib.resources import files
 
 # Project Imports
-from ppa.analytics import Analytics
-import ppa.utilities as util
+from ppar.analytics import Analytics
+import ppar.utilities as util
 
 # Directory containing the demo data.
-_DEMO_DATA_DIRECTORY = files("ppa.demo_data")
+_DEMO_DATA_DIRECTORY = files("ppar.demo_data")
 
 
 def classification_data_source(

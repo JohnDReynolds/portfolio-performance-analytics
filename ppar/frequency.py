@@ -8,7 +8,7 @@ import datetime as dt
 from enum import Enum
 
 # Project imports
-import ppa.errors as errs
+import ppar.errors as errs
 
 
 class Frequency(Enum):

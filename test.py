@@ -24,14 +24,14 @@ import pandas as pd
 import polars as pl
 
 # # Project Imports
-from ppa.analytics import Analytics
-from ppa.attribution import Chart, View
-import ppa.columns as cols
-import ppa.errors as errs
-from ppa.frequency import Frequency
-from ppa.riskstatistics import RiskStatistics
-from ppa.performance import Performance
-import ppa.utilities as util
+from ppar.analytics import Analytics
+from ppar.attribution import Chart, View
+import ppar.columns as cols
+import ppar.errors as errs
+from ppar.frequency import Frequency
+from ppar.riskstatistics import RiskStatistics
+from ppar.performance import Performance
+import ppar.utilities as util
 
 # Add the tests directory to the Python path (PYTHONPATH) so that it can find test_util_sources.py.
 # Note that this is also done in .pylintrc and in .vscode/settings.json.

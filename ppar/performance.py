@@ -11,10 +11,10 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-import ppa.columns as cols
-from ppa.columns import CON, RET, WGT
-import ppa.errors as errs
-import ppa.utilities as util
+import ppar.columns as cols
+from ppar.columns import CON, RET, WGT
+import ppar.errors as errs
+import ppar.utilities as util
 
 
 class Performance:

@@ -6,10 +6,10 @@ The Classification class contains a DataFrame of it's associated items.
 import polars as pl
 
 # Project Imports
-import ppa.columns as cols
-import ppa.errors as errs
-from ppa.performance import Performance
-import ppa.utilities as util
+import ppar.columns as cols
+import ppar.errors as errs
+from ppar.performance import Performance
+import ppar.utilities as util
 
 _EMPTY_DF = pl.DataFrame(
     {cols.CLASSIFICATION_IDENTIFIER: (util.EMPTY,), cols.CLASSIFICATION_NAME: (util.EMPTY,)}

@@ -1,5 +1,5 @@
 # portfolio-performance-analytics
-portfolio-performance-analytics (ppa) is a python-based application that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics.
+portfolio-performance-analytics (ppar) is a python-based application that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics.
 
 [License](LICENSE)
 
@@ -16,7 +16,7 @@ portfolio-performance-analytics (ppa) is a python-based application that produce
 
 ## Description
 
-portfolio-performance-analytics (ppa) is a python package that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
+portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
 
 The inputs required to produce the analytics fall into three categories:
 1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*. They will typically be beginning-of-period weights and period returns. (Required)
@@ -29,7 +29,7 @@ The input data may be provided directly as either:
 3. Python dictionaries (for Classifications and Mappings).
 4. csv files.
 
-For sample input data sources, please refer to the python script demo.py and the ppa/demo_data directory.  Once the input data has been provided, then the analytics may be requested using different calculation parameters, time-periods, and frequencies:
+For sample input data sources, please refer to the python script demo.py and the ppar/demo_data directory.  Once the input data has been provided, then the analytics may be requested using different calculation parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
 2. Monthly
 3. Quarterly
@@ -73,14 +73,16 @@ The below sample outputs portray a large-cap alpha strategy that has achieved a 
 <img src="images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
 <br><br><br>
 <img src="images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
+<br><br><br>
 
 - **Ex-Post Risk Statistics**:
 <img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
+<br>
 
 ---
 
 ## Installation
-pip install ppa
+pip install ppar
 
 ---
 
@@ -109,4 +111,4 @@ Future enhancements may include:
 ---
 
 ## Technical
-Being built on top of Polars dataframes, ppa is able to efficiently process large datasets through parallel processing, vectorization, lazy evaluation, and using Apache Arrow as its underlying data format.
+Being built on top of Polars dataframes, ppar is able to efficiently process large datasets through parallel processing, vectorization, lazy evaluation, and using Apache Arrow as its underlying data format.

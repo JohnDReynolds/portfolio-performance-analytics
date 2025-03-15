@@ -21,8 +21,8 @@ import polars as pl
 import seaborn as sns  # type: ignore
 
 # Project Imports
-import ppa.columns as cols
-import ppa.utilities as util
+import ppar.columns as cols
+import ppar.utilities as util
 
 # Reasonable chart sizing constraints, just so they don't get too tiny or huge.
 _DEFAULT_FIGSIZE = (14, 6)  # (width, height) in inches. # 16, 7

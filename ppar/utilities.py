@@ -17,7 +17,7 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-import ppa.errors as errs
+import ppar.errors as errs
 
 # Types for type-checking.
 TypeAllDataSources = str | dict[str, str] | pd.DataFrame | pl.DataFrame
