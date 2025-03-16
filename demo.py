@@ -2,80 +2,78 @@
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import Attribution, Chart, View
+from ppar.attribution import Chart, View
 import ppar.demo_data_sources as demo_data
 from ppar.frequency import Frequency
 import ppar.utilities as util
 
 
-def _get_attribution(analytics: Analytics, classification_name: str = util.EMPTY) -> Attribution:
-    """
-    This is a "helper" function that retrieves an Attribution instance.  It can be customized to
-    point to different data sources specific to an installation.  This particular function uses
-    test classification data and test mapping data.  Alternatively, it could use dictionairies or
-    DataFrames populated from another data source.
-
-    Args:
-        analytics (Analytics): The Analytics instance.
-        classification_name (str, optional): The Classification name. Defaults to util.EMPTY.
-
-    Returns:
-        Attribution: The Attribution instance.
-    """
-    # Get the classification data source.
-    classification_data_source = demo_data.classification_data_source(classification_name)
-
-    # Get the mapping data sources.
-    mapping_data_sources = demo_data.mapping_data_sources(analytics, classification_name)
-
-    # Return the corresponding attribution instance.
-    return analytics.get_attribution(
-        classification_name,
-        classification_data_source,
-        mapping_data_sources,
-    )
-
-
-def _performance_data_source(performance_name: str) -> util.TypePerformanceDataSource:
-    """
-    This is a "helper" function that returns the performance data source for the given performance
-    name.  It can be customized to point to different data sources specific to an installation.
-    This particular function points to the file path of a csv file containing the performance data.
-    Alternatively, it could return a pandas DataFrame or a polars DataFrame populated from another
-    data source.
-
-    Args:
-        performance_name (str): The performance name.
-
-    Returns:
-        TypePerformanceDataSource: The performance data source.
-    """
-    return demo_data.performance_data_source(performance_name)
-
-
-def run_demo(tables_or_charts: str) -> None:
+def run_demo(periodicity: str, tables_or_charts: str) -> None:
     """
     Display demo versions of tables or charts in a webbrowser.
 
     Args:
+        periodicity (str): 'm'onthly, 'q'uarterly, or 'y'early
         tables_or_charts (str): If 'c' or 'C', then display charts.  Otherwise display tables.
     """
+    # Determine the frequency.
+    if len(periodicity) < 1 or periodicity[0] not in ("q", "Q", "y", "Y"):
+        frequency = Frequency.MONTHLY
+    elif periodicity[0] in ("q", "Q"):
+        frequency = Frequency.QUARTERLY
+    else:
+        frequency = Frequency.YEARLY
+
     # Determine whether to display tables or charts.
     display_tables = len(tables_or_charts) < 1 or (tables_or_charts[0] not in ("c", "C"))
 
-    # Get an Analytics instance using performance data from a custom data source (csv files).
-    analytics = Analytics(
-        portfolio_data_source=_performance_data_source("Large-Cap Alpha Portfolio"),
-        benchmark_data_source=_performance_data_source("Large-Cap Benchmark"),
-        portfolio_classification_name="Security",
-        benchmark_classification_name="Security",
-        beginning_date="2022-12-31",
-        ending_date="2024-02-29",
-        frequency=Frequency.MONTHLY,
-    )
+    # Set the portfolio and benchmark data sources.
+    portfolio_data_source = demo_data.performance_data_source("Large-Cap Alpha Portfolio.csv")
+    benchmark_data_source = demo_data.performance_data_source("Large-Cap Benchmark.csv")
 
-    # Get the Attribution instance by Sector.
-    attribution_by_sector = _get_attribution(analytics, "Economic Sector")
+    # Set the classificcation names of the portfolio and benchmark data sources.
+    portfolio_classification_name = "Security"
+    benchmark_classification_name = "Security"
+
+    # Get the Analytics instance.
+    if frequency == Frequency.MONTHLY:
+        # Filter on dates.
+        analytics = Analytics(
+            portfolio_data_source,
+            benchmark_data_source,
+            portfolio_classification_name=portfolio_classification_name,
+            benchmark_classification_name=benchmark_classification_name,
+            beginning_date="2022-12-31",
+            ending_date="2024-02-29",
+            frequency=frequency,
+        )
+    else:
+        # Do not filter on dates.
+        analytics = Analytics(
+            portfolio_data_source,
+            benchmark_data_source,
+            portfolio_classification_name=portfolio_classification_name,
+            benchmark_classification_name=benchmark_classification_name,
+            frequency=frequency,
+        )
+
+    # Set the classification_name for the Attribution.
+    classification_name = "Economic Sector"
+
+    # Get the classification data source for the Attribution.
+    classification_data_source = demo_data.classification_data_source(classification_name)
+
+    # Get a tuple of the mapping data sources (portfolio=0, benchmark=1).  They will provide
+    # mappings from the classifications in the performance files (e.g. "Security") to the
+    # Attribution classification (e.g. "Economic Sector").
+    mapping_data_sources = demo_data.mapping_data_sources(analytics, classification_name)
+
+    # Get the Attribution instance.
+    attribution_by_sector = analytics.get_attribution(
+        classification_name,
+        classification_data_source,
+        mapping_data_sources,
+    )
 
     # Display the ouput in a webbrowser.
     if display_tables:
@@ -85,7 +83,8 @@ def run_demo(tables_or_charts: str) -> None:
             util.open_in_browser(html)
 
         # Get the Attribution instance by Security.  Since no classification name is specified,
-        # the security names will be taken from the performance files.
+        # no Classification or Mapping is necessary.  The security names will be taken from the
+        # performance files.
         attribution_by_security = analytics.get_attribution()
 
         # Get an html string of the overall attribution results by Security.
@@ -127,5 +126,6 @@ def run_demo(tables_or_charts: str) -> None:
 
 ########## Run the demo.
 if __name__ == "__main__":
+    reporting_periodicity = input("Monthly (m), Quarterly (q), or Yearly (y): ")
     display_tables_or_charts = input("Would you like to see tables (t) or charts (c): ")
-    run_demo(display_tables_or_charts)
+    run_demo(reporting_periodicity, display_tables_or_charts)

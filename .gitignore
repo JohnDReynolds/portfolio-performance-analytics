@@ -1,17 +1,12 @@
 # My Stuff
 *.bat
-_chart_test_script.py
+_*.py
 delete_me.csv
-_github.py
 junk*/
-junk*.py
-lots_of_stocks.csv
-_main.py
 my_misc_stuff/
 profile*.txt
 .pylintrc
 pyproject.toml
-stubfiles/
 
 
 # Byte-compiled / optimized / DLL files

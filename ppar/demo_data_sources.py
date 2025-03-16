@@ -89,4 +89,4 @@ def performance_data_source(performance_name: str) -> util.TypePerformanceDataSo
         performance_name.
     """
     # Return the path name of the performance file corresponding to performance_name.
-    return str(_DEMO_DATA_DIRECTORY.joinpath(f"performance/{performance_name}.csv"))
+    return str(_DEMO_DATA_DIRECTORY.joinpath(f"performance/{performance_name}"))

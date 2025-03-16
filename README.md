@@ -1,5 +1,5 @@
 # portfolio-performance-analytics
-portfolio-performance-analytics (ppar) is a python-based application that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics.
+portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics.
 
 [License](LICENSE)
 
@@ -108,6 +108,7 @@ Being built on top of Polars dataframes, ppar is able to efficiently process lar
 Future enhancements may include:
 1. Break out the interaction (cross-product) effect.  It is currently included in the selection effect.
 2. Break out the currency effect.
-3. Additional multi-period smoothing algorithms (e.g. Menchero).
-4. The independent treatment of the long and short sides of each sector.
+3. Break out the long and short sides of each sector.
+4. Add additional multi-period smoothing algorithms (e.g. Menchero).
 5. Support time-series of risk-free rates (as opposed to a single annual rate).
+6. Calculate additional risk statistics.
