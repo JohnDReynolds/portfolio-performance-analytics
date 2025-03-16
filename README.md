@@ -7,10 +7,11 @@ portfolio-performance-analytics (ppar) is a python-based application that produc
 
 - [Description](#description)
 - [Features](#features)
-- [Usage](#usage)
 - [Implementation](#implementation)
-- [Enhancements](#enhancements)
+- [Installation](#installation)
+- [Usage](#usage)
 - [Technical](#technical)
+- [Enhancements](#enhancements)
 
 ---
 
@@ -81,6 +82,13 @@ The below sample outputs portray a large-cap alpha strategy that has achieved a 
 
 ---
 
+## Implementation
+Typically, a user will develop their own "data source" functions that provide the data in one of the above formats.  The python script "demo.py" has sample data source functions.
+
+Users can also develop their own "presentation layer" using the various output formats as the inputs to their presentation layer.
+
+---
+
 ## Installation
 pip install ppar
 
@@ -91,12 +99,8 @@ python demo.py
 
 ---
 
-## Implementation
-Typically, a user will develop their own "data source" functions that provide the data in one of the above formats.  The python script "demo.py" has sample data source functions.
-
-Users can also develop their own "presentation layer" using the various output formats as the inputs to their presentation layer.
-
-This application can also be made available as a PyPi python package.
+## Technical
+Being built on top of Polars dataframes, ppar is able to efficiently process large datasets through parallel processing, vectorization, lazy evaluation, and using Apache Arrow as its underlying data format.
 
 ---
 
@@ -107,8 +111,3 @@ Future enhancements may include:
 3. Additional multi-period smoothing algorithms (e.g. Menchero).
 4. The independent treatment of the long and short sides of each sector.
 5. Support time-series of risk-free rates (as opposed to a single annual rate).
-
----
-
-## Technical
-Being built on top of Polars dataframes, ppar is able to efficiently process large datasets through parallel processing, vectorization, lazy evaluation, and using Apache Arrow as its underlying data format.
