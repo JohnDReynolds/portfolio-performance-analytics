@@ -104,6 +104,11 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     #     GOOG, CO
     #     XOM,  EN
     #     ...
+    # The data source can be in any of the following formats:
+    #     1. The path of a csv file containing the Mapping data.
+    #     2. A python dictionary containing the Mapping data.
+    #     3. A pandas DataFrame containing the Mapping data.
+    #     4. A polars DataFrame containing the Mapping data.
     mapping_data_sources = demo_data.mapping_data_sources(analytics, classification_name)
 
     # Get the Attribution instance.
