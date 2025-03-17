@@ -166,7 +166,7 @@ class Attribution:
             classification_name (str): The classification_name for which the contribution and
                 attribution effects will be calculated.
             classification_data_source (TypeClassificationDataSource): One of the following:
-                1. A csv file path containing the Classification data.
+                1. The path of a csv file containing the Classification data.
                 2. A dictionary containing the Classification data.
                 3. A pandas or polars DataFrame containing the Classification data.
             frequency (Frequency): The Frequency.
@@ -174,10 +174,14 @@ class Attribution:
                 in the tables and charts.  Defaults to util.EMPTY.
 
         Data Parameters:
-            Sample input for the "classification_data" parameter of a "Security" Classification:
-                AAPL, Apple Inc.
-                MSFT, Microsft
+            Here is sample input data for the "classification_data_source" parameter of an
+            "Economic Sector" classification.  The unique identifier is in the first column, and
+            the name is in the second column.  There are no column headers.
+                CO, Communication Services
+                EN, Energy
+                IT, Information Technology
                 ...
+
         """
         # Set internal instance variables from the constructor parameters.
         self._classification = Classification(

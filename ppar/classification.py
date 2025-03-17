@@ -33,16 +33,20 @@ class Classification:
         Args:
             name (str): The Classification name.
             data_source (TypeClassificationDataSource): One of the following:
-                1. A csv file path containing the Classification data.
-                2. A dictionary containing the Classification data.
-                3. A pandas or polars DataFrame containing the Classification data.
+                1. The path of a csv file containing the Classification data.
+                2. A python dictionary containing the Classification data.
+                3. A pandas DataFrame containing the Classification data.
+                4. A polars DataFrame containing the Classification data.
             performances (tuple[Performance, Performance] | None, optional): The portfolio
                 Performance and the benchmark Performance. Defaults to None.
 
         Data Parameters:
-            Sample input for the "data_source" parameter of a "Security" Classification would be:
-                AAPL, Apple Inc.
-                MSFT, Microsft
+            Here is sample input data for the "data_source" parameter of an "Economic Sector"
+            classification.  The unique identifier is in the first column, and the name is in the
+            second column.  There are no column headers.
+                CO, Communication Services
+                EN, Energy
+                IT, Information Technology
                 ...
         """
         # Get the 2-column dataframe [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]

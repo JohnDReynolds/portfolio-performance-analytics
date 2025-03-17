@@ -27,7 +27,27 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     # Determine whether to display tables or charts.
     display_tables = len(tables_or_charts) < 1 or (tables_or_charts[0] not in ("c", "C"))
 
-    # Set the portfolio and benchmark data sources.
+    # The portfolio and benchmark data sources can be in either of the 2 below layouts.  The
+    # weights for each time period must sum to 1.0.  The equation SumOf(weight * return) ==
+    # TotalReturn must be satisfied for each time period.  The column names must conform to the
+    # ones in the below layouts.  The ordering of the columns or rows does not matter.  The
+    # "name" column is optional.
+    #     1. Narrow Layout:
+    #         beginning_date, ending_date, identifier,        return, weight, name
+    #         2023-12-31,      2024-01-31,       AAPL, -0.0422272121,    0.4, Apple Inc.
+    #         2023-12-31,      2024-01-31,       MSFT,  0.0572811503,    0.6, Microsoft
+    #         2024-01-31,      2024-02-29,       AAPL, -0.019793881,     0.7, Apple Inc.
+    #         2024-01-31,      2024-02-29,       MSFT,  0.0403944092,    0.3, Microsoft
+    #         ...
+    #     2. Wide Layout:
+    #         beginning_date, ending_date,      AAPL.ret,     MSFT.ret, AAPL.wgt, MSFT.wgt
+    #         2023-12-31,      2024-01-31, -0.0422272121, 0.0572811503,      0.4,      0.6
+    #         2024-01-31,      2024-02-29, -0.019793881,  0.0403944092,      0.7,      0.3
+    #         ...
+    # The data sources can be in any of the following formats:
+    #     1. The path of a csv file containing the performance data.
+    #     2. A pandas DataFrame containing the performance data.
+    #     3. A polars DataFrame containing the performance data.
     portfolio_data_source = demo_data.performance_data_source("Large-Cap Alpha Portfolio.csv")
     benchmark_data_source = demo_data.performance_data_source("Large-Cap Benchmark.csv")
 
@@ -60,12 +80,30 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     # Set the classification_name for the Attribution.
     classification_name = "Economic Sector"
 
-    # Get the classification data source for the Attribution.
+    # Get the classifiation data source.  Here is sample input data for the classification data
+    # source of an "Economic Sector" classification.  The unique identifier is in the first column,
+    # and the name is in the second column.  There are no column headers.
+    #     CO, Communication Services
+    #     EN, Energy
+    #     IT, Information Technology
+    #     ...
+    # The data source can be in any of the following formats:
+    #     1. The path of a csv file containing the Classification data.
+    #     2. A python dictionary containing the Classification data.
+    #     3. A pandas DataFrame containing the Classification data.
+    #     4. A polars DataFrame containing the Classification data.
     classification_data_source = demo_data.classification_data_source(classification_name)
 
     # Get a tuple of the mapping data sources (portfolio=0, benchmark=1).  They will provide
     # mappings from the classifications in the performance files (e.g. "Security") to the
-    # Attribution classification (e.g. "Economic Sector").
+    # Attribution classification (e.g. "Economic Sector").  Here is sample input data for mapping
+    # the "Security" classification to the "Economic Sector" classification.  The unique identifier
+    # of the "from" classification is in the first column, and the unique identifier of the "to"
+    # classification is in the second column.  There are no column headers.
+    #     AAPL, IT
+    #     GOOG, CO
+    #     XOM,  EN
+    #     ...
     mapping_data_sources = demo_data.mapping_data_sources(analytics, classification_name)
 
     # Get the Attribution instance.

@@ -1,5 +1,5 @@
 # portfolio-performance-analytics
-portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics.
+portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period performance attribution, contribution, and benchmark-relative ex-post risk statistics.
 
 [License](LICENSE)
 
@@ -12,12 +12,13 @@ portfolio-performance-analytics (ppar) is a python package that produces holding
 - [Usage](#usage)
 - [Technical](#technical)
 - [Enhancements](#enhancements)
+- [Support](#support)
 
 ---
 
 ## Description
 
-portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
+portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period performance attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
 
 The inputs required to produce the analytics fall into three categories:
 1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*. They will typically be beginning-of-period weights and period returns. (Required)
@@ -108,7 +109,12 @@ Being built on top of Polars dataframes, ppar is able to efficiently process lar
 Future enhancements may include:
 1. Break out the interaction (cross-product) effect.  It is currently included in the selection effect.
 2. Break out the currency effect.
-3. Break out the long and short sides of each sector.
+3. Break out the long and short sides.
 4. Add additional multi-period smoothing algorithms (e.g. Menchero).
 5. Support time-series of risk-free rates (as opposed to a single annual rate).
 6. Calculate additional risk statistics.
+
+---
+
+## Support
+If you find this project helpful, consider sponsoring it at https://github.com/sponsors/JohnDReynolds to help keep it going!

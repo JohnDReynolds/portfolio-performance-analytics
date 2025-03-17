@@ -27,14 +27,19 @@ class Mapping:
         Args:
             from_items_to_map (list[str]): A list of the from items to map.
             data_source (TypeMappingDataSource): One of the following:
-                1. A csv file path containing the Mapping data.
-                2. A dictionary containing the Mapping data.
-                3. A pandas or polars DataFrame containing the Mapping data.
+                1. The path of a csv file containing the Mapping data.
+                2. A python dictionary containing the Mapping data.
+                3. A pandas DataFrame containing the Mapping data.
+                4. A polars DataFrame containing the Mapping data.
 
         Data Parameters:
-            Sample input for the "data_source" parameter for "Security" to "Economic Sector":
+            Here is sample input data for the "data_source" parameter for mapping the "Security"
+            classification to the "Economic Sector" classification.  The unique identifier of the
+            "from" classification is in the first column, and the unique identifier of the "to"
+            classification is in the second column.  There are no column headers.
                 AAPL, IT
                 GOOG, CO
+                XOM,  EN
                 ...
         """
         # Load the data source into dataframe with 2 columns: 0=from, 1=to

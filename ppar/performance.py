@@ -35,8 +35,9 @@ class Performance:
 
         Args:
             data_source (TypePerformanceDataSource): One of the following:
-                1. A csv file path containing the performance data.
-                2. A pandas or polars DataFrame containing the performance data.
+                1. The path of a csv file containing the performance data.
+                2. A pandas DataFrame containing the performance data.
+                3. A polars DataFrame containing the performance data.
             name (str, optional): The descriptive name.  Defaults to util.EMPTY.
             classification_name (str, optional): The classification name corresponding to the
                 data (e.g. "Economic Sector")  Defaults to util.EMPTY.
@@ -49,19 +50,19 @@ class Performance:
                 time. For instance, in the Attribution constructor.  Defaults to True.
 
         Data Parameters:
-            Sample input data for the "portfolio_data_source" & "benchmark_data_source" parameters
-            can be in either of the 2 below formats.  The weights for each time period must
+            Input data for the "portfolio_data_source" & "benchmark_data_source" parameters
+            can be in either of the 2 below layouts.  The weights for each time period must
             sum to 1.0.  The equation SumOf(weight * return) == TotalReturn must be satisfied for
-            each period.  The column names must conform to the below formats.  The ordering of the
-            columns or rows does not matter.
-            1. Narrow Format:
-                beginning_date, ending_date, identifier,        return, weight
-                2023-12-31,      2024-01-31,       aapl, -0.0422272121,    0.4
-                2023-12-31,      2024-01-31,       msft,  0.0572811503,    0.6
-                2024-01-31,      2024-02-29,       aapl, -0.019793881,     0.7
-                2024-01-31,      2024-02-29,       msft,  0.0403944092,    0.3
-            2. Wide Format:
-                beginning_date, ending_date,      aapl.ret,     msft.ret, aapl.wgt, msft.wgt
+            each time period.  The column names must conform to the ones in the below layouts.
+            The ordering of the columns or rows does not matter.  The "name" column is optional.
+            1. Narrow Layout:
+                beginning_date, ending_date, identifier,        return, weight, name
+                2023-12-31,      2024-01-31,       AAPL, -0.0422272121,    0.4, Apple Inc.
+                2023-12-31,      2024-01-31,       MSFT,  0.0572811503,    0.6, Microsoft
+                2024-01-31,      2024-02-29,       AAPL, -0.019793881,     0.7, Apple Inc.
+                2024-01-31,      2024-02-29,       MSFT,  0.0403944092,    0.3, Microsoft
+            2. Wide Layout:
+                beginning_date, ending_date,      AAPL.ret,     MSFT.ret, AAPL.wgt, MSFT.wgt
                 2023-12-31,      2024-01-31, -0.0422272121, 0.0572811503,      0.4,      0.6
                 2024-01-31,      2024-02-29, -0.019793881,  0.0403944092,      0.7,      0.3
         """

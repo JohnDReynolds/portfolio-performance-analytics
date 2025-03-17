@@ -6,7 +6,6 @@ This module contains static methods for formatting the charts enumerated in Attr
 # pyright: reportUnknownMemberType=none
 
 # Python Imports
-import gc
 import io
 import math
 import textwrap
@@ -397,8 +396,10 @@ def _to_png(fig: Figure) -> bytes:
 
     # gc.collect() seems to be necessary with large datasets and when generating multiple figures
     # in a loop.  ChatGPT says: "In a loop generating many figures, calling plt.close(fig) may not
-    # immediately free memory."
-    gc.collect()
+    # immediately free memory."  Seems to be sporadic.  Cannot replicate the problem, so leave it
+    # commented for now - JDR 2025-03-26.
+    # import gc
+    # gc.collect()
 
     # Return the png
     return png
