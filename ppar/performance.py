@@ -53,8 +53,9 @@ class Performance:
             Input data for the "portfolio_data_source" & "benchmark_data_source" parameters
             can be in either of the 2 below layouts.  The weights for each time period must
             sum to 1.0.  The equation SumOf(weight * return) == TotalReturn must be satisfied for
-            each time period.  The column names must conform to the ones in the below layouts.
-            The ordering of the columns or rows does not matter.  The "name" column is optional.
+            each time period.  The time periods can be of any duration.  The column names must
+            conform to the ones in the below layouts.  The ordering of the columns or rows does not
+            matter.  The "name" column is optional.
             1. Narrow Layout:
                 beginning_date, ending_date, identifier,        return, weight, name
                 2023-12-31,      2024-01-31,       AAPL, -0.0422272121,    0.4, Apple Inc.
