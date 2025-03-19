@@ -4,6 +4,7 @@ The Mapping class supports mapping from one Classification to another.
 
 # Python imports
 from collections import defaultdict
+from typing import Sequence
 
 # Project Imports
 import ppar.columns as cols
@@ -18,14 +19,14 @@ class Mapping:
 
     def __init__(
         self,
-        from_items_to_map: list[str],
+        from_items_to_map: Sequence[str],
         data_source: util.TypeMappingDataSource,
     ):
         """
         The constructor for creating a mapping from one classification to another.
 
         Args:
-            from_items_to_map (list[str]): A list of the from items to map.
+            from_items_to_map (Sequence[str]): A list of the from items to map.
             data_source (TypeMappingDataSource): One of the following:
                 1. The path of a csv file containing the Mapping data.
                 2. A python dictionary containing the Mapping data.

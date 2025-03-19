@@ -10,6 +10,7 @@ deliver pandas dataframes, polars dataframes, or python dictionairies.
 
 # Python imports
 import os
+from typing import Iterable
 
 # Project imports
 from ppar.analytics import Analytics
@@ -137,12 +138,12 @@ def read_html_table(file_path: str) -> list[str]:
     return lines
 
 
-def resolve_file_path(directories: list[str], file_name: str, suffix: str = util.EMPTY) -> str:
+def resolve_file_path(directories: Iterable[str], file_name: str, suffix: str = util.EMPTY) -> str:
     """
     Determines the file path where file_name is located.
 
     Args:
-        directories (list[str]): A list of potential directories where file_name is located.
+        directories (Iterable[str]): A list of potential directories where file_name is located.
         file_name (str): The file name.
         suffix (str): The desired suffix.
 

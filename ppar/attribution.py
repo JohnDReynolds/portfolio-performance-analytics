@@ -22,7 +22,7 @@ The public methods to retrieve the resulting output are:
 # Python Imports
 from enum import Enum
 import datetime as dt
-from typing import cast
+from typing import cast, Iterable, Sequence
 
 # Third-Party Imports
 import great_tables as gt
@@ -202,17 +202,12 @@ class Attribution:
         self._df = self._calculate_attribution().collect()
         self._df_overall = self._calculate_df_overall()
 
-        # Initialize the cached dataframes for each View.
-        self._dataframes_for_views: dict[View, pl.DataFrame] = {}
-
-    def _add_total_row(self, df: pl.DataFrame, have_classification_columns: bool) -> pl.DataFrame:
+    def _add_total_row(self, df: pl.DataFrame) -> pl.DataFrame:
         """
         Add a total row to the bottom of df.
 
         Args:
             df (pl.DataFrame): The dataframe.
-            have_classification_columns (bool): Indicates if the dataframe has classification
-              columns.
 
         Returns:
             pl.DataFrame: The dataframe with a total row added to the bottom.
@@ -221,7 +216,7 @@ class Attribution:
         total_row = df.sum()
 
         # The classification identifier will have 'None', so make it blank.
-        if have_classification_columns:
+        if cols.CLASSIFICATION_IDENTIFIER in df.columns:
             total_row[0, cols.CLASSIFICATION_IDENTIFIER] = None
             total_row[0, cols.CLASSIFICATION_NAME] = "Total"
 
@@ -274,8 +269,13 @@ class Attribution:
         Attribution._audit_columns(self._df, self._df_overall)
 
     @staticmethod
-    def audit_attributions(attributions: list["Attribution"]) -> None:
-        """Audit the list of Attributions."""
+    def audit_attributions(attributions: Iterable["Attribution"]) -> None:
+        """
+        Audit the Iterable of Attribution instances.
+
+        Args:
+            attributions (Iterable[Attribution]): The Attribution instances to audit.
+        """
         # Initialize base_equivalent_columns to empty (for lint).
         base_equivalent_columns: list[pl.DataFrame] = []  # 0 = portfolio, 1 = benchmark
 
@@ -717,20 +717,26 @@ class Attribution:
                 # Add the missing_col_names to the dataframe.
                 target.reset_df(target.df.hstack(source.df[missing_col_names] * 0))
 
-    def _fetch_dataframe(self, view: View) -> pl.DataFrame:
+    def _fetch_dataframe(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> pl.DataFrame:
         """
         Fetch the DataFrame associated with the view.
 
         Args:
             view (View): The view.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             pl.DataFrame: The DataFrame associated with the view.
         """
-        # Check the cache
-        if view in self._dataframes_for_views:
-            return self._dataframes_for_views[view]
-
         # Get the base dataframe associated with the view.
         match view:
             case View.CUMULATIVE_ATTRIBUTION | View.SUBPERIOD_SUMMARY:
@@ -741,19 +747,20 @@ class Attribution:
         # Select only the needed columns.
         lf = lf.select(_VIEW_COLUMN_NAMES[view])
 
-        # Determine if the view has classification columns.
-        have_classification_columns = cols.CLASSIFICATION_IDENTIFIER in lf.collect_schema().keys()
+        # Sort the dataframe.  View.CUMULATIVE_ATTRIBUTION is not sortable, because it has
+        # "cumulative" columns that are implicitly chronological.
+        if not util.is_empty(columns_to_sort) and view != View.CUMULATIVE_ATTRIBUTION:
+            lf = lf.sort(by=columns_to_sort, descending=sort_descendings)
 
         # Must collect() before adding the total_row
         df = lf.collect()
 
         # Add the total_row
         if view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
-            df = self._add_total_row(df, have_classification_columns)
+            df = self._add_total_row(df)
 
-        # Return the dataframe with the total_row.
-        self._dataframes_for_views[view] = df
-        return self._dataframes_for_views[view]
+        # Return the dataframe.
+        return df
 
     def _sum_columns_and_rows(
         self,
@@ -920,12 +927,22 @@ class Attribution:
         # Return the title and subtitle.
         return (line1, line2)
 
-    def to_chart(self, chart: Chart) -> bytes:
+    def to_chart(
+        self,
+        chart: Chart,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> bytes:
         """
         Returns an in-memory png of the chart corresponding to the chart type.
 
         Args:
             chart (Chart): The chart type.
+            columns_to_sort (str | Sequence[str], optional): A column name or an Iterable of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             bytes: An in-memory png of the chart corresponding to the chart type.
@@ -940,7 +957,8 @@ class Attribution:
                 | Chart.CUMULATIVE_CONTRIBUTION
                 | Chart.CUMULATIVE_RETURN
             ):
-                # Set the DataFrame and remove the last "Total" row.
+                # Set the DataFrame and remove the last "Total" row.  Note that sorting is not
+                # valid for these line charts.
                 df = self.to_polars(View.CUMULATIVE_ATTRIBUTION)[:-1]
                 # Set the labels and column names.
                 match chart:
@@ -963,7 +981,7 @@ class Attribution:
                 | Chart.HEATMAP_PORTFOLIO_CONTRIBUTION
                 | Chart.HEATMAP_PORTFOLIO_RETURN
             ):
-                # Set the DataFrame.
+                # Set the DataFrame.  Note that sorting is done below in format_chart.heatmap().
                 df = self.to_polars(View.SUBPERIOD_ATTRIBUTION)
                 # Set the labels and column names.
                 match chart:
@@ -977,11 +995,13 @@ class Attribution:
                         column_name = cols.PORTFOLIO_CONTRIB_SIMPLE
                     case Chart.HEATMAP_PORTFOLIO_RETURN:
                         column_name = cols.PORTFOLIO_RETURN
-                # Get the chart png
-                png = format_chart.heatmap(df, column_name, title_lines)
+                # Get the sorted chart png.
+                png = format_chart.heatmap(
+                    df, column_name, title_lines, columns_to_sort, sort_descendings
+                )
 
             case Chart.SUBPERIOD_ATTRIBUTION | Chart.SUBPERIOD_RETURN:
-                # Set the DataFrame.
+                # Set the DataFrame.  Note that sorting is not valid for these bar charts.
                 df = self.to_polars(View.SUBPERIOD_SUMMARY)
                 # Set the labels and column names.
                 match chart:
@@ -994,83 +1014,150 @@ class Attribution:
                 # Get the chart png
                 png = format_chart.vertical_bars(df, column_names, title_lines, y_axis_label)
 
-            case _:  # Chart.OVERALL_ATTRIBUTION | Chart.OVERALL_CONTRIBUTION:
+            case Chart.OVERALL_ATTRIBUTION:
+                # Set the default sorting.
+                if util.is_empty(columns_to_sort):
+                    columns_to_sort = cols.TOTAL_EFFECT_SMOOTHED
+                    sort_descendings = True
                 # Set the DataFrame and remove the last "Total" row.
-                df = self.to_polars(View.OVERALL_ATTRIBUTION)[:-1]
+                df = self.to_polars(View.OVERALL_ATTRIBUTION, columns_to_sort, sort_descendings)[
+                    :-1
+                ]
                 # Get the chart png
-                match chart:
-                    case Chart.OVERALL_ATTRIBUTION:
-                        png = format_chart.overall_attribution(df, title_lines)
-                    case Chart.OVERALL_CONTRIBUTION:
-                        png = format_chart.overall_contribution(
-                            df, title_lines, self._performances[0].name, self._performances[1].name
-                        )
+                png = format_chart.overall_attribution(df, title_lines)
+
+            case _:  # Chart.OVERALL_CONTRIBUTION:
+                # Set the default sorting.
+                if util.is_empty(columns_to_sort):
+                    columns_to_sort = cols.PORTFOLIO_CONTRIB_SMOOTHED
+                    sort_descendings = True
+                # Set the DataFrame and remove the last "Total" row.
+                df = self.to_polars(View.OVERALL_ATTRIBUTION, columns_to_sort, sort_descendings)[
+                    :-1
+                ]
+                # Get the chart png
+                png = format_chart.overall_contribution(
+                    df, title_lines, self._performances[0].name, self._performances[1].name
+                )
 
         # Return the chart png
         return png
 
-    def to_html(self, view: View) -> str:
+    def to_html(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> str:
         """
         Returns the view as an html string.
 
         Args:
             view (View): The desired View.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             str: The view as an html string.
         """
-        return self.to_table(view).as_raw_html(make_page=True)
+        return self.to_table(view, columns_to_sort, sort_descendings).as_raw_html(make_page=True)
 
-    def to_json(self, view: View, float_precision: int = _DEFAULT_OUTPUT_PRECISION) -> str:
+    def to_json(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+        float_precision: int = _DEFAULT_OUTPUT_PRECISION,
+    ) -> str:
         """
         Returns the view as a json string.
 
         Args:
             view (View): The desired View.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
             float_precision (int, optional): The quantity of decimal places.
                 Defaults to _DEFAULT_OUTPUT_PRECISION.
 
         Returns:
             str: The view as a json string.
         """
-        return self.to_pandas(view).to_json(double_precision=float_precision)  # type: ignore
+        return self.to_pandas(view, columns_to_sort, sort_descendings).to_json(  # type: ignore
+            double_precision=float_precision
+        )
 
-    def to_pandas(self, view: View) -> pd.DataFrame:
+    def to_pandas(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> pd.DataFrame:
         """
         Returns the view as a pandas DataFrame.
 
         Args:
             view (View): The desired View.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             str: The view as a pandas DataFrame.
         """
-        return self._fetch_dataframe(view).to_pandas()
+        return self._fetch_dataframe(view, columns_to_sort, sort_descendings).to_pandas()
 
-    def to_polars(self, view: View) -> pl.DataFrame:
+    def to_polars(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> pl.DataFrame:
         """
         Returns the view as a polars DataFrame.
 
         Args:
             view (View): The desired View.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             str: The view as a polars DataFrame.
         """
-        return self._fetch_dataframe(view)
+        return self._fetch_dataframe(view, columns_to_sort, sort_descendings)
 
-    def to_table(self, view: View) -> gt.GT:
+    def to_table(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> gt.GT:
         """
         Returns a "great_table" of the view.
 
         Args:
             view (View): The desired View.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             gt.GT: A "great_table" of the view.
         """
         # Set the df
-        df = self._fetch_dataframe(view)
+        df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
 
         # If there are more than a few hundred lines in an html file, then Attribution.to_html()
         # can be VERY slow.  This can occur when requesting html for a View that has one line for
@@ -1099,22 +1186,34 @@ class Attribution:
         # Return the table.
         return table
 
-    def to_xml(self, view: View) -> str:
+    def to_xml(
+        self,
+        view: View,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
+    ) -> str:
         """
         Returns the view as an xml string.
 
         Args:
             view (View): The desired View.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
 
         Returns:
             str: The view as an xml string.
         """
-        return self.to_pandas(view).to_xml()
+        return self.to_pandas(view, columns_to_sort, sort_descendings).to_xml()
 
     def write_csv(
         self,
         view: View,
         file_path: str,
+        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        sort_descendings: bool | Sequence[bool] = False,
         float_precision: int = _DEFAULT_OUTPUT_PRECISION,
     ) -> None:
         """
@@ -1123,7 +1222,14 @@ class Attribution:
         Args:
             view (View): The desired View.
             file_path (str): The file path of the csv file to be written to.
+            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
+                column names to sort by.  Defaults to util.EMPTY.
+            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+                booleans to indicate if the corresponding column name should be sorted in
+                descending order.  Defaults to False.
             float_precision (int, optional): The quantity of decimal places.
                 Defaults to _DEFAULT_OUTPUT_PRECISION.
         """
-        self._fetch_dataframe(view).write_csv(file_path, float_precision=float_precision)
+        self._fetch_dataframe(view, columns_to_sort, sort_descendings).write_csv(
+            file_path, float_precision=float_precision
+        )

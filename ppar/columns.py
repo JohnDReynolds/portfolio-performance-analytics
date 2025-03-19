@@ -2,6 +2,9 @@
 This module contains column names, column groupings and column functions.
 """
 
+# Python Imports
+from typing import Iterable
+
 # All Column Names
 ACTIVE_CONTRIB_SMOOTHED = "Active_Contribution_Smoothed"
 ACTIVE_CONTRIB_SIMPLE = "Active_Contribution_Simple"
@@ -142,12 +145,13 @@ SES = ".ses"  # Selection Effect simple
 WGT = ".wgt"  # Weight
 
 
-def col_names(from_col_names: list[str], to_col_name_suffix: str) -> list[str]:
+def col_names(from_col_names: Iterable[str], to_col_name_suffix: str) -> list[str]:
     """
-    Gets the column names corresponding to to_col_name_suffix.
+    Translate the column names in from_col_names corresponding to to_col_name_suffix.
 
     Args:
-        from_col_names (list[str]): A list of the column names to translate (with their suffixes).
+        from_col_names (Iterable[str]): An iterable of the column names to translate (with their
+            suffixes).
         to_col_name_suffix (str): The new suffix.
 
     Returns:

@@ -646,11 +646,18 @@ class Test(unittest.TestCase):
                 print("Asserting", classification_name, view)
                 base_file_name = f"{view.value}_{classification_name}"
 
+                # Set the sort parameters.
+                columns_to_sort = util.EMPTY
+                sort_descendings = False
+                if view == View.SUBPERIOD_ATTRIBUTION:
+                    columns_to_sort = (cols.BEGINNING_DATE, cols.PORTFOLIO_WEIGHT)
+                    sort_descendings = (True, False)
+
                 # Assert the view csv file.  Note: Cannot use filecmp because sometimes zero will
                 # be represented as 0.00000, and other times as -0.00000.
                 file_name = f"{base_file_name}.csv"
                 test_file_path = os.path.join(tempfile.gettempdir(), file_name)
-                attribution.write_csv(view, test_file_path)
+                attribution.write_csv(view, test_file_path, columns_to_sort, sort_descendings)
                 test_results = pl.read_csv(test_file_path)
                 expected_file_path = test_util.resolve_file_path(
                     _EXPECTED_RESULTS_DIRECTORIES, file_name
@@ -663,7 +670,7 @@ class Test(unittest.TestCase):
                 os.remove(test_file_path)
 
                 # Assert the view html file
-                html = attribution.to_html(view)
+                html = attribution.to_html(view, columns_to_sort, sort_descendings)
                 file_name = f"{base_file_name}.html"
                 test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                 with io.open(test_file_path, "w", encoding=util.ENCODING, newline="\n") as f:
@@ -688,7 +695,14 @@ class Test(unittest.TestCase):
                 # Assert the chart pngs
                 for chart in Chart:
                     print("Asserting", classification_name, chart)
-                    png = attribution.to_chart(chart)
+                    # Set the sort parameters.
+                    columns_to_sort = util.EMPTY
+                    sort_descendings = False
+                    if chart == Chart.OVERALL_ATTRIBUTION:
+                        columns_to_sort = [cols.CLASSIFICATION_NAME]
+                        sort_descendings = True
+                    # Get the png
+                    png = attribution.to_chart(chart, columns_to_sort, sort_descendings)
                     file_name = f"{chart.value}_{classification_name}.png"
                     test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                     with open(test_file_path, "wb") as f:

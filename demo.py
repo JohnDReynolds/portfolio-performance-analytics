@@ -77,10 +77,20 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
             frequency=frequency,
         )
 
-    # Set the classification_name for the Attribution.
+    if display_tables:
+        # Get the Attribution instance by Security.
+        attribution_by_security = analytics.get_attribution()
+
+        # Get an html string of the overall attribution results by Security.
+        html = attribution_by_security.to_html(View.OVERALL_ATTRIBUTION)
+
+        # Display the html string in a browser.
+        util.open_in_browser(html)
+
+    # Set the classification_name for another Attribution.
     classification_name = "Economic Sector"
 
-    # Get the classifiation data source.  Here is sample input data for the classification data
+    # Get the classification data source.  Here is sample input data for the classification data
     # source of an "Economic Sector" classification.  The unique identifier is in the first column,
     # and the name is in the second column.  There are no column headers.
     #     CO, Communication Services
@@ -111,7 +121,7 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     #     4. A polars DataFrame containing the Mapping data.
     mapping_data_sources = demo_data.mapping_data_sources(analytics, classification_name)
 
-    # Get the Attribution instance.
+    # Get the Attribution by economic sector.
     attribution_by_sector = analytics.get_attribution(
         classification_name,
         classification_data_source,
@@ -124,17 +134,6 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
         for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
             html = attribution_by_sector.to_html(view)
             util.open_in_browser(html)
-
-        # Get the Attribution instance by Security.  Since no classification name is specified,
-        # no Classification or Mapping is necessary.  The security names will be taken from the
-        # performance files.
-        attribution_by_security = analytics.get_attribution()
-
-        # Get an html string of the overall attribution results by Security.
-        html = attribution_by_security.to_html(View.OVERALL_ATTRIBUTION)
-
-        # Display the html string in a browser.
-        util.open_in_browser(html)
     else:
         # Display some of the attribution charts in a browser.
         for chart in (
@@ -164,7 +163,7 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     _ = attribution_by_sector.to_polars(view)  # A polars DataFrame
     _ = attribution_by_sector.to_table(view)  # A "great_table"
     _ = attribution_by_sector.to_xml(view)  # Am xml string
-    attribution_by_sector.write_csv(view, "delete_me.csv")  # Write a csv file
+    attribution_by_sector.write_csv(view, file_path="delete_me.csv")  # Write a csv file
 
 
 ########## Run the demo.

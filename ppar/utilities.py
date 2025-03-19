@@ -9,6 +9,7 @@ import math
 import os
 import tempfile
 import time
+from typing import Any, Sequence
 import webbrowser
 
 # Third-Party Imports
@@ -167,15 +168,15 @@ def file_path_exists(file_path: str) -> bool:
     return os.path.exists(file_path) and os.path.isfile(file_path)
 
 
-def is_empty(data_source: TypeAllDataSources) -> bool:
-    """Determine if the data_source is unknown."""
-    return isinstance(data_source, str) and (data_source == EMPTY or (not data_source.strip()))
+def is_empty(thing: Any) -> bool:
+    """Determine if the thing is unknown."""
+    return isinstance(thing, str) and (thing == EMPTY or (not thing.strip()))
 
 
 def load_datasource(
     data_source: TypeAllDataSources,
-    column_names: list[str],
-    needed_items: list[str],
+    column_names: Sequence[str],
+    needed_items: Sequence[str],
     error_message: str,
 ) -> pl.DataFrame:
     """
@@ -183,8 +184,8 @@ def load_datasource(
 
     Args:
         data_source (TypeAllDataSources): The data source.
-        column_names list[str]: The 2 column names.
-        needed_items: list[str]: The needed items corresponding to column_names[0].
+        column_names Sequence[str]: The 2 column names.
+        needed_items: Sequence[str]: The needed items corresponding to column_names[0].
         error_message (str): The error message in the case where there are not 2 columns.
 
     Returns:
@@ -221,7 +222,6 @@ def load_datasource(
     df = df.unique(subset=[df.columns[0]], keep="last")
 
     # Cast to strings and filter on needed_items.  Note that this was done above in pl.scan_scv
-    # if isinstance(data_source, str).
     if not isinstance(data_source, str):
         # All identifiers need to be strings for classifications, mappings, performances, etc.
         for column_name in df.columns:

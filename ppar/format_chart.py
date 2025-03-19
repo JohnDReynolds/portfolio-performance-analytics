@@ -9,6 +9,7 @@ This module contains static methods for formatting the charts enumerated in Attr
 import io
 import math
 import textwrap
+from typing import Iterable, Sequence
 
 # Third-Party Imports
 from matplotlib import ticker
@@ -37,13 +38,10 @@ _XTICK_ROTATION = 45  # Rotate the x-axis labels(dates) by 45 degrees for better
 # 0 = allocation effect, 1 = selection effect, 2 = total effect
 _COLORS = ("green", "blue", "orange")
 
-# The _TOP_MARGIN will allow room for the suptitle at the top.
-_TOP_MARGIN = 0.99
-
 
 def cumulative_lines(
     df: pl.DataFrame,
-    column_names: list[str],
+    column_names: Iterable[str],
     title_lines: tuple[str, str],
     y_axis_label: str,
 ) -> bytes:
@@ -52,7 +50,7 @@ def cumulative_lines(
 
     Args:
         df (pl.DataFrame): The View.CUMULATIVE_ATTRIBUTION DataFrame.
-        column_names (list[str]): A list of the 3 cumulative column names to chart.
+        column_names (Iterable[str]): An Iterable  of the 3 cumulative column names to chart.
         title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
         y_axis_label (str): The label for the y-axis.
 
@@ -123,6 +121,8 @@ def heatmap(
     df: pl.DataFrame,
     column_name: str,
     title_lines: tuple[str, str],
+    columns_to_sort: str | Sequence[str] = util.EMPTY,
+    sort_descendings: bool | Sequence[bool] = False,
 ) -> bytes:
     """
     Formats the HEATMAP* charts.
@@ -131,10 +131,20 @@ def heatmap(
         df (pl.DataFrame): The View.SUBPERIOD_SUMMARY DataFrame.
         column_name (str): The column name.
         title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
+        columns_to_sort (str | Sequence[str], optional): A column name or an Iterable of the
+            column names to sort by.  Defaults to util.EMPTY.
+        sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
+            booleans to indicate if the corresponding column name should be sorted in
+            descending order.  Defaults to False.
 
     Returns:
         bytes: An in-memory png of the matplotlib chart.
     """
+    # If it is a "portfolio-only" heatmap, then get rid of the cells where the portfolio weight is
+    # zero.  They are there because the benchmark weight is not 0.0.
+    if column_name in (cols.PORTFOLIO_CONTRIB_SIMPLE, cols.PORTFOLIO_RETURN):
+        df = df.filter(pl.col(cols.PORTFOLIO_WEIGHT) != 0)
+
     # Convert the date column to a string label with the format "yyyy-mm-dd"
     df = df.with_columns(
         pl.col(cols.ENDING_DATE).dt.strftime(util.DATE_FORMAT_STRING).alias("date_label")
@@ -142,6 +152,28 @@ def heatmap(
 
     # Word-wrap the classification labels
     df = df.with_columns(pl.Series("classification_label", _word_wrap(df)))
+
+    # Select just the needed columns.
+    df = df[["date_label", "classification_label", column_name]]
+
+    # Sorting can only be done on one column name, so if they have passed sequences, then just use
+    # the first one.
+    column_name_to_sort = (
+        columns_to_sort if isinstance(columns_to_sort, str) else columns_to_sort[0]
+    )
+    sort_descending = (
+        sort_descendings if isinstance(sort_descendings, bool) else sort_descendings[0]
+    )
+
+    # The default sort should be on column_name descending.
+    if util.is_empty(column_name_to_sort):
+        column_name_to_sort = column_name
+        sort_descending = True
+
+    # The only 2 columns that the heatmap can be sorted on are: cols.Classification_Name and
+    # column_name.  Sort on cols.CLASSIFICATION_NAME here, and on column_name below.
+    if column_name_to_sort != column_name:
+        df = df.sort("classification_label", descending=False)
 
     # Set the figure width and height
     fig_width = len(set(df["date_label"])) * 0.7
@@ -153,14 +185,6 @@ def heatmap(
     # Set the overall figure title.
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
 
-    # If it is a "portfolio-only" heatmap, then get rid of the cells where the portfolio weight is
-    # zero.  They are there because the benchmark weight is not 0.0.
-    if column_name in (cols.PORTFOLIO_CONTRIB_SIMPLE, cols.PORTFOLIO_RETURN):
-        df = df.filter(pl.col(cols.PORTFOLIO_WEIGHT) != 0)
-
-    # Select just the needed columns.
-    df = df[["date_label", "classification_label", column_name]]
-
     # Pivot the data for the heatmap.  Cannot get it to work for polars, so convert to pandas.
     heatmap_data = df.to_pandas().pivot(
         index="classification_label",
@@ -169,7 +193,10 @@ def heatmap(
     )
 
     # Sort by row sum in descending order so you get all the green at the top.
-    heatmap_data = heatmap_data.loc[heatmap_data.sum(axis=1).sort_values(ascending=False).index]
+    if column_name_to_sort == column_name:
+        heatmap_data = heatmap_data.loc[
+            heatmap_data.sum(axis=1).sort_values(ascending=not sort_descending).index
+        ]
 
     # Create the cmap: 0 = green, 120 = red, 100=saturation, 50=lightness
     cmap = sns.diverging_palette(0, 120, s=100, l=50, as_cmap=True)
@@ -215,9 +242,6 @@ def overall_attribution(
     Returns:
         bytes: An in-memory png of the matplotlib chart.
     """
-    # Sort the dataframe by TOTAL_EFFECT_SMOOTHED, descending.
-    df = df.sort(cols.TOTAL_EFFECT_SMOOTHED, descending=True)
-
     # Set the labels, data series names and data series values.
     labels = _word_wrap(df)
     series_names = [cols.short_column_name(col) for col in cols.ATTRIBUTION_COLUMNS_SMOOTHED]
@@ -292,7 +316,7 @@ def overall_contribution(
     Formats the chart: OVERALL_CONTRIBUTION
 
     Args:
-        df (pl.DataFrame): The View.OVERALL_ATTRIBUTION DataFrame.
+        df (pl.DataFrame): The View.OVERALL_CONTRIBUTION DataFrame.
         title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
         portfolio_name (str): The portfolio name.
         benchmark_name (str): The benchmark name.
@@ -300,9 +324,6 @@ def overall_contribution(
     Returns:
         bytes: An in-memory png of the matplotlib chart.
     """
-    # Sort the dataframe by PORTFOLIO_CONTRIB_SMOOTHED, descending.
-    df = df.sort(cols.PORTFOLIO_CONTRIB_SMOOTHED, descending=True)
-
     # Get the series names.
     series_names = ("Weight", "Return", "Contribution")
 
@@ -407,7 +428,7 @@ def _to_png(fig: Figure) -> bytes:
 
 def vertical_bars(
     df: pl.DataFrame,
-    column_names: list[str],
+    column_names: Sequence[str],
     title_lines: tuple[str, str],
     y_axis_label: str,
 ) -> bytes:
@@ -416,7 +437,7 @@ def vertical_bars(
 
     Args:
         df (pl.DataFrame): The View.SUBPERIOD_SUMMARY DataFrame.
-        column_names (list[str]): A list of the 3 cumulative column names to chart.
+        column_names (Sequence[str]): A Sequence of the 3 cumulative column names to chart.
         title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
         y_axis_label (str): The label for the y-axis.
 
