@@ -650,8 +650,12 @@ class Test(unittest.TestCase):
                 columns_to_sort = util.EMPTY
                 sort_descendings = False
                 if view == View.SUBPERIOD_ATTRIBUTION:
-                    columns_to_sort = (cols.BEGINNING_DATE, cols.PORTFOLIO_WEIGHT)
-                    sort_descendings = (True, False)
+                    columns_to_sort = (
+                        cols.BEGINNING_DATE,
+                        cols.PORTFOLIO_WEIGHT,
+                        cols.CLASSIFICATION_IDENTIFIER,
+                    )
+                    sort_descendings = (True, False, False)
 
                 # Assert the view csv file.  Note: Cannot use filecmp because sometimes zero will
                 # be represented as 0.00000, and other times as -0.00000.
