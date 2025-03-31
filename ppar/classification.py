@@ -24,7 +24,7 @@ class Classification:
     def __init__(
         self,
         name: str,
-        data_source: util.TypeClassificationDataSource,
+        data_source: util.ClassificationDataSource,
         performances: tuple[Performance, Performance] | None = None,
     ):
         """

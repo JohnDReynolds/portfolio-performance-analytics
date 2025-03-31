@@ -25,7 +25,7 @@ _MAPPING_DIRECTORIES = [f"{dir}mappings" for dir in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [f"{dir}performance" for dir in _DATA_DIRECTORIES]
 
 
-def classification_data_path(classification_name: str) -> util.TypeClassificationDataSource:
+def classification_data_path(classification_name: str) -> util.ClassificationDataSource:
     """
     This is a custom function for the Classification data source.  It has been designed for the
     test data.  Users are free to create their own function(s) to deliver the data.
@@ -44,8 +44,8 @@ def classification_data_path(classification_name: str) -> util.TypeClassificatio
 def get_attribution(
     analytics: Analytics,
     classification_name: str = util.EMPTY,
-    classification_data_source: util.TypeClassificationDataSource = util.EMPTY,
-    mapping_data_source: util.TypeMappingDataSource = util.EMPTY,
+    classification_data_source: util.ClassificationDataSource = util.EMPTY,
+    mapping_data_source: util.MappingDataSource = util.EMPTY,
 ) -> Attribution:
     """Infer file path from the classification_name and then return the attribution."""
     if util.is_empty(classification_data_source):
@@ -78,7 +78,7 @@ def html_table_lines(html_string: str) -> list[str]:
 
 def mapping_data_paths(
     analytics: Analytics, to_classification_name: str
-) -> tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]:
+) -> tuple[util.MappingDataSource, util.MappingDataSource]:
     """
     This is a custom function for the Mapping data sources.  It has been designed for the
     test data.  Users are free to create their own function(s) to deliver the data.
@@ -110,7 +110,7 @@ def mapping_data_paths(
     return (mapping_list[0], mapping_list[1])
 
 
-def performance_data_path(performance_name: str) -> util.TypePerformanceDataSource:
+def performance_data_path(performance_name: str) -> util.PerformanceDataSource:
     """
     This is a custom function for the Performance data source.  It has been designed for the
     test data.  Users are free to create their own function(s) to deliver the data.

@@ -1,4 +1,4 @@
-great_tables>=0.14.0
+great_tables>=0.17.0
 lxml>=5.1.0
 matplotlib>=3.8.2
 numpy>=1.26.4

@@ -623,10 +623,10 @@ class RiskStatistics:
             .tab_header(title=title, subtitle=subtitle)
             .tab_stub(rowname_col="column", groupname_col="Category")
             # Format the statistics to 4 decimals (bps)
-            .fmt_number(columns=column_names, decimals=4)  # type: ignore
+            .fmt_number(columns=column_names, decimals=4)
             # Format the VaR to 0 decimals since it represents a currency amount.
             .fmt_number(
-                columns=column_names,  # type: ignore
+                columns=column_names,
                 pattern=f"{self._currency_symbol}{{x}}",  # the actual str {x}
                 decimals=0,
                 rows=9,

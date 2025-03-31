@@ -51,32 +51,32 @@ def cumulative_attribution(table: gt.GT) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.VIEW_CUMULATIVE_ATTRIBUTION_COLUMNS,  # type: ignore
+            columns=cols.VIEW_CUMULATIVE_ATTRIBUTION_COLUMNS,
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
             label="Returns",
-            columns=cols.RETURN_COLUMNS,  # type: ignore
+            columns=cols.RETURN_COLUMNS,
         )
         .tab_spanner(
             label="Cumulative Returns",
-            columns=cols.CUMULATIVE_RETURN_COLUMNS,  # type: ignore
+            columns=cols.CUMULATIVE_RETURN_COLUMNS,
         )
         .tab_spanner(
             label="Contributions",
-            columns=cols.CONTRIBUTION_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.CONTRIBUTION_COLUMNS_SMOOTHED,
         )
         .tab_spanner(
             label="Cumulative Contributions",
-            columns=cols.CUMULATIVE_CONTRIBUTION_COLUMNS,  # type: ignore
+            columns=cols.CUMULATIVE_CONTRIBUTION_COLUMNS,
         )
         .tab_spanner(
             label="Attribution Effects",
-            columns=cols.ATTRIBUTION_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.ATTRIBUTION_COLUMNS_SMOOTHED,
         )
         .tab_spanner(
             label="Cumulative Attribution Effects",
-            columns=cols.CUMULATIVE_ATTRIBUTION_COLUMNS,  # type: ignore
+            columns=cols.CUMULATIVE_ATTRIBUTION_COLUMNS,
         )
         # Change the column labels now that the spanners are in place.
         .cols_label(
@@ -129,28 +129,28 @@ def overall_attribution(table: gt.GT, classification_label: str) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.VIEW_OVERALL_ATTRIBUTION_COLUMNS,  # type: ignore
+            columns=cols.VIEW_OVERALL_ATTRIBUTION_COLUMNS,
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
             label=_display_classification_label(classification_label),
-            columns=cols.CLASSIFICATION_COLUMNS,  # type: ignore
+            columns=cols.CLASSIFICATION_COLUMNS,
         )
         .tab_spanner(
             label="Portfolio",
-            columns=cols.PORTFOLIO_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.PORTFOLIO_COLUMNS_SMOOTHED,
         )
         .tab_spanner(
             label="Benchmark",
-            columns=cols.BENCHMARK_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.BENCHMARK_COLUMNS_SMOOTHED,
         )
         .tab_spanner(
             label="Active",
-            columns=cols.ACTIVE_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.ACTIVE_COLUMNS_SMOOTHED,
         )
         .tab_spanner(
             label="Attribution",
-            columns=cols.ATTRIBUTION_COLUMNS_SMOOTHED,  # type: ignore
+            columns=cols.ATTRIBUTION_COLUMNS_SMOOTHED,
         )
         # Change the column labels now that the spanners are in place.
         .cols_label(
@@ -191,28 +191,28 @@ def subperiod_attribution(table: gt.GT, classification_label: str) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.VIEW_SUBPERIOD_ATTRIBUTION_COLUMNS,  # type: ignore
+            columns=cols.VIEW_SUBPERIOD_ATTRIBUTION_COLUMNS,
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
             label=_display_classification_label(classification_label),
-            columns=cols.CLASSIFICATION_COLUMNS,  # type: ignore
+            columns=cols.CLASSIFICATION_COLUMNS,
         )
         .tab_spanner(
             label="Portfolio",
-            columns=cols.PORTFOLIO_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.PORTFOLIO_COLUMNS_SIMPLE,
         )
         .tab_spanner(
             label="Benchmark",
-            columns=cols.BENCHMARK_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.BENCHMARK_COLUMNS_SIMPLE,
         )
         .tab_spanner(
             label="Active",
-            columns=cols.ACTIVE_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.ACTIVE_COLUMNS_SIMPLE,
         )
         .tab_spanner(
             label="Attribution",
-            columns=cols.ATTRIBUTION_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.ATTRIBUTION_COLUMNS_SIMPLE,
         )
         # Change the column labels now that the spanners are in place.
         .cols_label(
@@ -255,20 +255,20 @@ def subperiod_summary(table: gt.GT) -> gt.GT:
     # Format the table.
     table = (
         table.fmt_number(
-            columns=cols.VIEW_SUBPERIOD_SUMMARY_COLUMNS,  # type: ignore
+            columns=cols.VIEW_SUBPERIOD_SUMMARY_COLUMNS,
             decimals=_DISPLAY_DECIMALS,
         )
         .tab_spanner(
             label="Returns",
-            columns=cols.RETURN_COLUMNS,  # type: ignore
+            columns=cols.RETURN_COLUMNS,
         )
         .tab_spanner(
             label="Contributions",
-            columns=cols.CONTRIBUTION_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.CONTRIBUTION_COLUMNS_SIMPLE,
         )
         .tab_spanner(
             label="Attribution Effects",
-            columns=cols.ATTRIBUTION_COLUMNS_SIMPLE,  # type: ignore
+            columns=cols.ATTRIBUTION_COLUMNS_SIMPLE,
         )
         # Change the column labels now that the spanners are in place.
         .cols_label(

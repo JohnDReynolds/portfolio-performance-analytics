@@ -9,7 +9,7 @@ import math
 import os
 import tempfile
 import time
-from typing import Any, Sequence
+from typing import Any, Sequence, TypeAlias
 import webbrowser
 
 # Third-Party Imports
@@ -21,10 +21,10 @@ import polars as pl
 import ppar.errors as errs
 
 # Types for type-checking.
-TypeAllDataSources = str | dict[str, str] | pd.DataFrame | pl.DataFrame
-TypeClassificationDataSource = TypeAllDataSources
-TypeMappingDataSource = TypeAllDataSources
-TypePerformanceDataSource = str | pd.DataFrame | pl.DataFrame
+AllDataSources: TypeAlias = str | dict[str, str] | pd.DataFrame | pl.DataFrame
+ClassificationDataSource: TypeAlias = AllDataSources
+MappingDataSource: TypeAlias = AllDataSources
+PerformanceDataSource: TypeAlias = str | pd.DataFrame | pl.DataFrame
 
 # Miscellaneous Common Constants
 DATE_FORMAT_STRING = "%Y-%m-%d"  # yyyy-mm-dd
@@ -174,8 +174,8 @@ def is_empty(thing: Any) -> bool:
 
 
 def load_datasource(
-    data_source: TypeAllDataSources,
-    column_names: Sequence[str],
+    data_source: AllDataSources,
+    column_names: list[str],
     needed_items: Sequence[str],
     error_message: str,
 ) -> pl.DataFrame:

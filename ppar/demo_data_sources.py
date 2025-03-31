@@ -19,7 +19,7 @@ _DEMO_DATA_DIRECTORY = files("ppar.demo_data")
 
 def classification_data_source(
     classification_name: str = util.EMPTY,
-) -> util.TypeClassificationDataSource:
+) -> util.ClassificationDataSource:
     """
     This is a custom function for the Classification data source.  It has been designed for the
     test data.  Users can create their own function(s) to deliver the data.
@@ -40,7 +40,7 @@ def classification_data_source(
 
 def mapping_data_sources(
     analytics: Analytics, to_classification_name: str = util.EMPTY
-) -> tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]:
+) -> tuple[util.MappingDataSource, util.MappingDataSource]:
     """
     This is a custom function for the Mapping data sources.  It has been designed for the
     test data.  Users can create their own function(s) to deliver the data.
@@ -76,7 +76,7 @@ def mapping_data_sources(
     return (mapping_list[0], mapping_list[1])
 
 
-def performance_data_source(performance_name: str) -> util.TypePerformanceDataSource:
+def performance_data_source(performance_name: str) -> util.PerformanceDataSource:
     """
     This is a custom function for the Performance data source.  It has been designed for the
     test data.  Users can create their own function(s) to deliver the data.

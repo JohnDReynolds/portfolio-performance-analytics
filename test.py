@@ -432,7 +432,7 @@ class Test(unittest.TestCase):
         )
 
         # Test 4 different methods of specifying classification data.
-        classification_data: util.TypeClassificationDataSource
+        classification_data: util.ClassificationDataSource
         for i in range(4):
             if i == 0:
                 # hard-coded csv file
@@ -474,7 +474,7 @@ class Test(unittest.TestCase):
         )
 
         # Test 4 different methods of specifying mapping data.
-        mapping_data: util.TypeMappingDataSource
+        mapping_data: util.MappingDataSource
         for i in range(4):
             if i == 0:
                 # hard-coded csv file
@@ -647,15 +647,15 @@ class Test(unittest.TestCase):
                 base_file_name = f"{view.value}_{classification_name}"
 
                 # Set the sort parameters.
-                columns_to_sort = util.EMPTY
-                sort_descendings = False
+                columns_to_sort: str | list[str] = util.EMPTY
+                sort_descendings: bool | list[bool] = False
                 if view == View.SUBPERIOD_ATTRIBUTION:
-                    columns_to_sort = (
+                    columns_to_sort = [
                         cols.BEGINNING_DATE,
                         cols.PORTFOLIO_WEIGHT,
                         cols.CLASSIFICATION_IDENTIFIER,
-                    )
-                    sort_descendings = (True, False, False)
+                    ]
+                    sort_descendings = [True, False, False]
 
                 # Assert the view csv file.  Note: Cannot use filecmp because sometimes zero will
                 # be represented as 0.00000, and other times as -0.00000.
@@ -1017,8 +1017,8 @@ def _attribution_exception(
     portfolio_classification_name: str = util.EMPTY,
     benchmark_classification_name: str = util.EMPTY,
     classification_name: str = util.EMPTY,
-    classification_data_source: util.TypeClassificationDataSource = util.EMPTY,
-    mapping_data_source: util.TypeMappingDataSource = util.EMPTY,
+    classification_data_source: util.ClassificationDataSource = util.EMPTY,
+    mapping_data_source: util.MappingDataSource = util.EMPTY,
     view: View | None = None,
 ) -> bool:
     """Test Attribution exception."""

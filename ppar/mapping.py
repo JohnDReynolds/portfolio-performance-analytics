@@ -20,7 +20,7 @@ class Mapping:
     def __init__(
         self,
         from_items_to_map: Sequence[str],
-        data_source: util.TypeMappingDataSource,
+        data_source: util.MappingDataSource,
     ):
         """
         The constructor for creating a mapping from one classification to another.

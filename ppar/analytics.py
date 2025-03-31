@@ -40,8 +40,8 @@ class Analytics:
     def __init__(
         self,
         # Portfolio and Benchmark parameters
-        portfolio_data_source: util.TypePerformanceDataSource,
-        benchmark_data_source: util.TypePerformanceDataSource = util.EMPTY,
+        portfolio_data_source: util.PerformanceDataSource,
+        benchmark_data_source: util.PerformanceDataSource = util.EMPTY,
         portfolio_name: str = util.EMPTY,
         benchmark_name: str = util.EMPTY,
         portfolio_classification_name: str = util.EMPTY,
@@ -409,8 +409,8 @@ class Analytics:
     def get_attribution(
         self,
         classification_name: str = util.EMPTY,
-        classification_data_source: util.TypeClassificationDataSource = util.EMPTY,
-        mapping_data_sources: tuple[util.TypeMappingDataSource, util.TypeMappingDataSource] = (
+        classification_data_source: util.ClassificationDataSource = util.EMPTY,
+        mapping_data_sources: tuple[util.MappingDataSource, util.MappingDataSource] = (
             util.EMPTY,
             util.EMPTY,
         ),
@@ -572,7 +572,7 @@ class Analytics:
         self,
         performance: Performance,
         to_classification_name: str,
-        mapping_data_source: util.TypeMappingDataSource,
+        mapping_data_source: util.MappingDataSource,
     ) -> Performance:
         """
         Map from the Performance Classification to the to_classification.  For instance, from

@@ -153,7 +153,7 @@ class Attribution:
         self,
         performances: tuple[Performance, Performance],
         classification_name: str,
-        classification_data_source: util.TypeClassificationDataSource,
+        classification_data_source: util.ClassificationDataSource,
         frequency: Frequency,
         classification_label: str = util.EMPTY,
     ):

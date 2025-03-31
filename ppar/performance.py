@@ -24,7 +24,7 @@ class Performance:
 
     def __init__(
         self,
-        data_source: util.TypePerformanceDataSource,
+        data_source: util.PerformanceDataSource,
         name: str = util.EMPTY,
         classification_name: str = util.EMPTY,
         beginning_date: str | dt.date = dt.date.min,
@@ -505,7 +505,7 @@ class Performance:
     @staticmethod
     def _load_data(
         name: str,
-        data_source: util.TypePerformanceDataSource,
+        data_source: util.PerformanceDataSource,
         beginning_date: dt.date,
         ending_date: dt.date,
     ) -> tuple[str, pl.DataFrame]:
