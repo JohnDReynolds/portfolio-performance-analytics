@@ -6,7 +6,6 @@ junk*/
 my_misc_stuff/
 profile*.txt
 .pylintrc
-pyproject.toml
 
 
 # Byte-compiled / optimized / DLL files

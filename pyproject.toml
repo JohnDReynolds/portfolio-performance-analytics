@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ppar"
+version = "0.1.2"
+description = "A python-based application that produces multi-period attribution, contribution, and benchmark-relative ex-post risk statistics."
+authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["portfolio", "performance", "analytics", "attribution", "brinson", "fachler", "risk", "statistics"]
+requires-python = ">=3.12.1"
+dependencies = [
+    "great_tables>=0.17.0",
+    "lxml>=5.1.0",
+    "matplotlib>=3.8.2",
+    "numpy>=1.26.4",
+    "pandas>=2.2.2",
+    "polars>=1.16.0",
+    "pyarrow>=15.0.1",
+    "scipy>=1.12.0",
+    "seaborn>=0.13.2",
+]
+
+[tool.setuptools]
+packages = ["ppar"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+#ppar = ["py.typed", "demo_data/**/*"] # Include all demo_data sub-directories
+ppar = ["py.typed", "demo_data/classifications/*.csv", "demo_data/mappings/*.csv", "demo_data/performance/*.csv"]
+
+[project.urls]
+Repository = "https://github.com/JohnDReynolds/portfolio-performance-analytics"
