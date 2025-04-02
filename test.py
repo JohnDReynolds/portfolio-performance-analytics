@@ -711,19 +711,17 @@ class Test(unittest.TestCase):
                     test_file_path = os.path.join(tempfile.gettempdir(), file_name)
                     with open(test_file_path, "wb") as f:
                         f.write(png)
-                    expected_file_path = test_util.resolve_file_path(
-                        _EXPECTED_RESULTS_DIRECTORIES, file_name
-                    )
                     # The generated png files are different under macos vs windows.  Visually, they
-                    # look identical, but the ones generated under macos are smaller.  The expected
-                    # results were generated under windows, so only assert for windows ("nt").
-                    # See git issue #20: matplotlib generating different binary png files in macos
-                    # vs windows.
-                    if os.name == "nt":
-                        # if not filecmp.cmp(test_file_path, expected_file_path, shallow=False):
-                        #     pause_it = 9
-                        #     continue
-                        assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
+                    # look identical, but the ones generated under macos are smaller.  See git
+                    # issue #20: matplotlib generating different binary png files in macos vs
+                    # windows.
+                    expected_file_path = test_util.resolve_file_path(
+                        _EXPECTED_RESULTS_DIRECTORIES, f"{file_name[:-4]}.{os.name}.png"
+                    )
+                    # if not filecmp.cmp(test_file_path, expected_file_path, shallow=False):
+                    #     pause_it = 9
+                    #     continue
+                    assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
                     os.remove(test_file_path)
 
     def test_audit(self) -> None:
