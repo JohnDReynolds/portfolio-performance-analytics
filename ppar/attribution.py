@@ -1089,7 +1089,7 @@ class Attribution:
             str: The view as a json string.
         """
         return self.to_pandas(view, columns_to_sort, sort_descendings).to_json(  # type: ignore
-            double_precision=float_precision
+            double_precision=float_precision, date_format="iso"
         )
 
     def to_pandas(
