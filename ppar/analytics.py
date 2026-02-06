@@ -226,7 +226,7 @@ class Analytics:
             """Return the sorted dates common between dates1 and dates2."""
             # Note that using set intersection is MUCH slower.
             # return sorted(set(dates1) & set(dates2))
-            return dates1.filter(dates1.is_in(dates2)).sort()
+            return dates1.filter(dates1.is_in(dates2.to_list())).sort()
 
         def _filter_dates_on_frequency(dates: pl.Series | list[dt.date]) -> list[dt.date]:
             """Filter the dates based on self._frequency."""
