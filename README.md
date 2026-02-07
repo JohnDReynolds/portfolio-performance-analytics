@@ -28,31 +28,31 @@ portfolio-performance-analytics is a python package (https://pypi.org/project/pp
 The below sample outputs portray a large-cap alpha strategy that has achieved a high active return of 1737 bps over the benchmark.  In the total lines of the Economic Sector Attribution reports, you can see that this active return can be broken down into 359 bps in sector allocation and 1378 bps in selecting securities.  From the Risk Statistics report, you can see that this has been accomplished with a lower downside probabilty than the benchmark (29% vs 36%), and a higher annualized sharpe ratio than the benchmark (2.02 vs 1.27).  The largest contributor to active performance was in the Information Technology Sector.  Although the portfolio was slightly under-allocated in the Information Technology sector (by -0.05%), it did an excellent job of selecting securities for a total active contribution of 431 bps in the sector.
 
 - **Attribution & Contribution**:
-<img src="images/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
 <br><br><br>
-<img src="images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
 <br><br><br>
-<img src="images/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
 <br><br><br>
-<img src="images/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
 <br><br><br>
-<img src="images/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
 <br><br><br>
 
 - **Ex-Post Risk Statistics**:
-<img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
+<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/refs/heads/main/images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
 <br>
 
 ---
