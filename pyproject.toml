@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ppar"
-version = "0.1.2"
+version = "0.1.4"
 description = "A python-based application that produces multi-period attribution, contribution, and benchmark-relative ex-post risk statistics."
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
 readme = "README.md"
