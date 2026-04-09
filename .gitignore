@@ -1,5 +1,6 @@
 # My Stuff
 *.bat
+_*.csv
 _*.py
 delete_me.csv
 junk*/
