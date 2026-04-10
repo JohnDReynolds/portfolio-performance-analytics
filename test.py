@@ -25,6 +25,7 @@ import polars as pl
 
 # # Project Imports
 from ppar.analytics import Analytics
+from ppar.axysdata import AxysData
 from ppar.attribution import Chart, View
 import ppar.columns as cols
 import ppar.errors as errs
@@ -270,6 +271,51 @@ class Test(unittest.TestCase):
                 errs.ERROR_405_NAN_VALUES,
                 (np.array([1.0, 2.0]), np.array([1.0, np.nan])),
                 Frequency.MONTHLY,
+            )
+        )
+
+    ############################## Axys Exceptions ##############################
+    def test_502_portperf(self) -> None:
+        """Test error 502 for portperf."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERROR_502_MISSING_REQUIRED_COLUMNS,
+                "error_502_portperf.csv",
+                "imex_secperf.csv",
+            )
+        )
+
+    def test_502_secperf(self) -> None:
+        """Test error 502 for secperf."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERROR_502_MISSING_REQUIRED_COLUMNS,
+                "imex_portperf.csv",
+                "error_502_secperf.csv",
+            )
+        )
+
+    def test_503_a(self) -> None:
+        """Test error 503 for PORT_FAIL_HIGH."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERROR_503_COULD_NOT_DERIVE_WEIGHTS,
+                "error_503_a_portperf.csv",
+                "error_503_a_secperf.csv",
+            )
+        )
+
+    def test_503_b(self) -> None:
+        """Test error 503 for PORT_FAIL_EQUAL."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERROR_503_COULD_NOT_DERIVE_WEIGHTS,
+                "error_503_b_portperf.csv",
+                "error_503_b_secperf.csv",
             )
         )
 
@@ -1009,6 +1055,30 @@ class Test(unittest.TestCase):
 
 
 ######################### Module-Wide Functions ########################
+def _axys_exception(
+    test: Test,
+    error_message: str,
+    portperf_file_name: str,
+    secperf_file_name: str,
+    portfolio_code: str | None = None,
+    from_date: dt.date | None = None,
+    thru_date: dt.date | None = None,
+) -> bool:
+    """Test RiskStatistics exception."""
+    with test.assertRaises(errs.PpaError) as context:
+        AxysData(
+            test_util.axys_data_path(portperf_file_name),
+            test_util.axys_data_path(secperf_file_name),
+            portfolio_code,
+            from_date,
+            thru_date,
+        )
+        # RiskStatistics(returns, frequency, minimum_acceptable_return)
+    print()
+    print(str(context.exception))
+    return str(context.exception).startswith(error_message)
+
+
 def _attribution_exception(
     test: Test,
     file_name1: str,

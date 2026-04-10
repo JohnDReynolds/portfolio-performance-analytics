@@ -156,9 +156,7 @@ class Performance:
         """Audit the Performance (self)."""
         # Assert that the weights sum to 1.0
         if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
-            raise errs.PpaError(
-                f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): Weights do not sum to 1.0."
-            )
+            errs.raise_unexpected("Perf.audit(): Weights do not sum to 1.0.")
 
         # If not perf.subperiods_have_been_consolidated, then validate that weight * return
         # == contrib.  Note that this cannot be direcly checked in the Performance constructor
@@ -168,15 +166,11 @@ class Performance:
                 lambda column_name: f"{column_name[:-4]}.con"
             )
             if not contribs.equals(self.df[self.col_names(CON)]):
-                raise errs.PpaError(
-                    f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): weight * return != contrib."
-                )
+                errs.raise_unexpected("Perf.audit(): weight * return != contrib.")
             if not (
                 self.df[cols.TOTAL_RETURN].round(11) == contribs.sum_horizontal().round(11)
             ).all():
-                raise errs.PpaError(
-                    f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): contribs != total return."
-                )
+                errs.raise_unexpected("Perf.audit(): contribs != total return.")
 
     @staticmethod
     def audit_performances(
@@ -206,24 +200,19 @@ class Performance:
         # Assert that the portfolio and benchmark have the same dates and days.
         dates_days = (cols.BEGINNING_DATE, cols.ENDING_DATE, cols.QUANTITY_OF_DAYS)
         if not portfolio.df[dates_days].equals(benchmark.df[dates_days]):
-            raise errs.PpaError(
-                f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): "
-                "Portfolio and Benchmark dates are not equal."
-            )
+            errs.raise_unexpected("audit_perfs(): Portfolio and Benchmark dates are not equal.")
 
         # Assert that the portfolio/benchmark dates are equal to the expected dates.
         if not (
             portfolio.df[cols.BEGINNING_DATE][0] == expected_beginning_date
             and portfolio.df[cols.ENDING_DATE][-1] == expected_ending_date
         ):
-            raise errs.PpaError(f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Date logic error.")
+            errs.raise_unexpected("audit_perfs(): Date logic error.")
 
         # Assert that the portfolio and benchmark both have the same common_classification_name.
         if not util.is_empty(common_classification_name):
             if portfolio.classification_name != benchmark.classification_name:
-                raise errs.PpaError(
-                    f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Common classification name error."
-                )
+                errs.raise_unexpected("audit_perfs(): Common classification name error.")
 
     def _calculate_df_overall(self) -> pl.DataFrame:
         """
@@ -353,9 +342,7 @@ class Performance:
 
         # Assert that there are no duplicate ending_dates.
         if self.df.shape[0] != qty_uniques:
-            raise errs.PpaError(
-                f"{errs.ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE}{self.error_message_context}"
-            )
+            raise errs.PpaError(self.error_message_context, 102)
 
         # Typically, beginning_date[i] == ending_date[i - 1].  This is non-inclusive of
         # beginning_date, but inclusive of ending_date.  The following block will allow for

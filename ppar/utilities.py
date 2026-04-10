@@ -113,7 +113,7 @@ def convert_to_date(date: str | dt.date | dt.datetime) -> dt.date:
         date: A python date.
 
     Raises:
-        ValueError: If the input string is not in the correct format.
+        errs.ERROR_803_CANNOT_CONVERT_TO_A_DATE: If the input string is not in the correct format.
     """
     # Return the date if it is already in the proper format.
     if isinstance(date, dt.datetime):

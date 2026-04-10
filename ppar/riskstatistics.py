@@ -169,9 +169,7 @@ class RiskStatistics:
             self._performances_to_audit: tuple[Performance, Performance] = tuple()  # type: ignore
         else:
             # Should never reach here.
-            raise errs.PpaError(
-                f"{errs.ERROR_999_UNEXPECTED}Unknown returns type in RiskStatistics constructor."
-            )
+            errs.raise_unexpected("Unknown returns type in RiskStatistics constructor.")
 
         # Now that self._portfolio_returns has been established, set self._quantity_of_returns.
         self._quantity_of_returns = len(self._portfolio_returns)

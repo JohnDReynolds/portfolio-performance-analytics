@@ -21,9 +21,23 @@ import ppar.utilities as util
 
 # Directories containing the test data.
 _DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/")
+_AXYS_DIRECTORIES = [f"{dir}axys" for dir in _DATA_DIRECTORIES]
 _CLASSIFICATION_DIRECTORIES = [f"{dir}classifications" for dir in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [f"{dir}mappings" for dir in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [f"{dir}performance" for dir in _DATA_DIRECTORIES]
+
+
+def axys_data_path(file_name: str) -> str:
+    """
+    This is a custom function for resolving the axys file_path (portperf or secperf).
+
+    Args:
+        file_name (str): The portperf or secperf file name.
+
+    Returns:
+        The path name of the axys file corresponding to file_name.
+    """
+    return resolve_file_path(_AXYS_DIRECTORIES, file_name, ".csv")
 
 
 def classification_data_path(classification_name: str) -> util.ClassificationDataSource:

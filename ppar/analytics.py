@@ -20,6 +20,7 @@ from ppar.attribution import Attribution
 import ppar.columns as cols
 from ppar.columns import CON, RET, WGT
 import ppar.errors as errs
+from ppar.errors import PpaError
 from ppar.frequency import Frequency, date_matches_frequency
 from ppar.mapping import Mapping
 from ppar.performance import Performance
@@ -292,10 +293,11 @@ class Analytics:
             # Assert that performance.df has at least the same quantity of rows as
             # self._subperiod_dates.
             if performance.df.shape[0] < len(self._subperiod_dates):
-                raise errs.PpaError(
-                    f"{errs.ERROR_999_UNEXPECTED}"
-                    f"{performance.error_message_context} from {util.date_str(self._beginning_date())}"
-                    f" to {util.date_str(self._ending_date())}"
+                raise PpaError(
+                    f"{performance.error_message_context} from "
+                    f"{util.date_str(self._beginning_date())} "
+                    f"to {util.date_str(self._ending_date())}",
+                    999,
                 )
 
             # If performance.df has more rows than self._subperiod_dates, then that means that

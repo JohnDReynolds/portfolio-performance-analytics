@@ -80,5 +80,5 @@ def periods_per_year(frequency: Frequency) -> int:
         case Frequency.YEARLY:
             return 1
         case _:  # Frequncy.AS_OFTEN_AS_POSSIBLE
-            # SHould never reach here since this method should not be called with that frequency
+            # Should never reach here since this method should not be called with that frequency
             raise errs.PpaError(f"{errs.ERROR_999_UNEXPECTED}Unhandled Frequency {frequency}")

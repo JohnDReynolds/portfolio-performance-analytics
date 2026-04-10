@@ -2,6 +2,26 @@
 This module contains numbered errors and the PpaError Class
 """
 
+ERRORS = {
+    # Performance Class Error Messages
+    102: "Error 102: Ending dates are not unique ",
+    103: "Error 103: No performance rows found ",
+    104: "Error 104: There are missing values ",
+    105: "Error 105: Beginning dates not less than ending dates ",
+    106: "Error 106: There are discontinuous time periods ",
+    107: "Error 107: The return columns (.ret) are not equal to the weight columns (.wgt) ",
+    108: "Error 108: The weights do not sum to 1.0 ",
+    109: "Error 109: There are no return columns (.ret) or weight columns (.wgt) ",
+    110: "Error 110: Invalid Performance data format ",
+    111: "Error 111: Beginning Date cannot be after Ending Date: ",
+    # Attribution Class Error Messages
+    202: "Error 202: There are no common reportable dates found ",
+    203: "Error 203: A return less than zero is undefined.  ",
+    204: "Error 204: Too many rows to produce 'great_table' html: ",
+    # Unexpected Logic Error Message
+    999: "Error 999: Unexpected Logic error: ",
+}
+
 # Performance Class Error Messages
 ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE = "Error 102: Ending dates are not unique "
 ERROR_103_NO_PERFORMANCE_ROWS = "Error 103: No performance rows found "
@@ -49,6 +69,10 @@ ERROR_404_PORTFOLIO_BENCHMARK_RETURNS_QTY_NOT_EQUAL = (
 )
 ERROR_405_NAN_VALUES = "Error 405: The portfolio returns or benchmark returns have NaN values."
 
+# Axys Errors
+ERROR_502_MISSING_REQUIRED_COLUMNS = "Error 502: Missing required column(s): "
+ERROR_503_COULD_NOT_DERIVE_WEIGHTS = "Error 503: Could not derive weights for secperf: "
+
 # General Error Messages
 ERROR_802_FILE_PATH_DOES_NOT_EXIST = "Error 802: File path does not exist: "
 ERROR_803_CANNOT_CONVERT_TO_A_DATE = "Error 803: Cannot convert to a date.  "
@@ -59,10 +83,39 @@ ERROR_999_UNEXPECTED = "Error 999: Unexpected Logic error: "
 
 
 class PpaError(Exception):
-    """The custom Portfolio Analytics error class."""
+    """Custom Portfolio Analytics error class.
 
-    def __init__(self, value: str):
-        super().__init__(value)
+    Attributes:
+        message: Human-readable error message.
+        code: Optional integer error code for programmatic handling.
+    """
+
+    def __init__(self, message: str, code: int | None = None) -> None:  # TODO: Not None
+        """Initialize the error.
+
+        Args:
+            message: Description of the error.
+            code: Optional integer error code.
+        """
+        if code is not None:
+            message = f"{ERRORS[code]}{message}"
+        super().__init__(message)
+
+        # # Store attributes explicitly for downstream use
+        # self.message: str = message
+        # self.code: Optional[int] = code
+
+
+# class PpaError(Exception):
+#     """The custom Portfolio Analytics error class."""
+
+#     def __init__(self, value: str):
+#         super().__init__(value)
+
+
+def raise_unexpected(message: str) -> None:
+    """Helper function to raise an unexpected error."""
+    raise PpaError(f"{ERROR_999_UNEXPECTED}{message}")
 
 
 ####################################################################### OBSOLETE
