@@ -59,15 +59,23 @@ ERROR_999_UNEXPECTED = "Error 999: Unexpected Logic error: "
 
 
 class PpaError(Exception):
-    """
-    The custom "Portfolio Analytics" error class.
-
-    Args:
-        Exception (_type_): exception
-    """
+    """The custom Portfolio Analytics error class."""
 
     def __init__(self, value: str):
-        self.value = value
+        super().__init__(value)
 
-    def __str__(self) -> str:
-        return repr(self.value)
+
+####################################################################### OBSOLETE
+# class PpaError(Exception):
+#     """
+#     The custom "Portfolio Analytics" error class.
+
+#     Args:
+#         Exception (_type_): exception
+#     """
+
+#     def __init__(self, value: str):
+#         self.value = value
+
+#     def __str__(self) -> str:
+#         return repr(self.value)

@@ -467,6 +467,8 @@ def _scan_csv_selected_columns(
         ValueError: If one or more requested columns are missing, or if no valid
             columns remain.
     """
+    # TODO: PpaError if path does not exist.  And any other errors that can be anticipated here.
+
     # Read only the header first so we can fail fast on schema drift.
     header_df: pl.DataFrame = pl.read_csv(path, n_rows=0)
     available_columns: set[str] = set(header_df.columns)

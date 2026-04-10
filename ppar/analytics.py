@@ -263,7 +263,8 @@ class Analytics:
                 idx += 1
 
         # Assert that there is at least one subperiod.
-        assert 0 < len(subperiod_dates), f"{errs.ERROR_202_NO_REPORTABLE_DATES}{message_suffix}"
+        if len(subperiod_dates) == 0:
+            raise errs.PpaError(f"{errs.ERROR_202_NO_REPORTABLE_DATES}{message_suffix}")
 
         # Return the common beginning and ending dates that define the subperiods.
         return subperiod_dates
@@ -290,11 +291,12 @@ class Analytics:
         for performance in self._performances:
             # Assert that performance.df has at least the same quantity of rows as
             # self._subperiod_dates.
-            assert len(self._subperiod_dates) <= performance.df.shape[0], (
-                f"{errs.ERROR_999_UNEXPECTED}"
-                f"{performance.error_message_context} from {util.date_str(self._beginning_date())}"
-                f" to {util.date_str(self._ending_date())}"
-            )
+            if performance.df.shape[0] < len(self._subperiod_dates):
+                raise errs.PpaError(
+                    f"{errs.ERROR_999_UNEXPECTED}"
+                    f"{performance.error_message_context} from {util.date_str(self._beginning_date())}"
+                    f" to {util.date_str(self._ending_date())}"
+                )
 
             # If performance.df has more rows than self._subperiod_dates, then that means that
             # performance.df has subperiod rows that need to be consolidated into the
@@ -465,13 +467,11 @@ class Analytics:
         # If the classification_name is unknown, and either the portfolio or benchmark have known
         # classificiation names, then mandate that the classification_name is specified.  Note
         # that this wll still allow for all 3 of the classifications to be unknown.
-        assert not (
-            util.is_empty(classification_name)
-            and (
-                (not util.is_empty(self._performances[0].classification_name))
-                or (not util.is_empty(self._performances[1].classification_name))
-            )
-        ), errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME
+        if util.is_empty(classification_name) and (
+            (not util.is_empty(self._performances[0].classification_name))
+            or (not util.is_empty(self._performances[1].classification_name))
+        ):
+            raise errs.PpaError(errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME)
 
         # Return the attribution if it already exists in the cache.
         if classification_name in self._attributions:

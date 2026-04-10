@@ -261,9 +261,10 @@ class Attribution:
         )
 
         # Assert that df and df_overall have the same columns.
-        assert (
-            self._df.columns == self._df_overall.columns
-        ), f"{errs.ERROR_999_UNEXPECTED}Attr._audit(): df columns != df_overall columns."
+        if set(self._df.columns) != set(self._df_overall.columns):
+            raise errs.PpaError(
+                f"{errs.ERROR_999_UNEXPECTED}Attr.audit(): df columns != df_overall columns."
+            )
 
         # Audit all columns.
         Attribution._audit_columns(self._df, self._df_overall)
@@ -321,24 +322,30 @@ class Attribution:
         if do_assert_simple_column_pairs:
             for col1, col2 in _SIMPLE_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL:
                 if col1 in df.columns and col2 in df.columns:
-                    assert (
-                        df[col1].round(7).equals(df[col2].round(7))
-                    ), f"{errs.ERROR_999_UNEXPECTED}_audit_columns() df: {col1} <> {col2}."
+                    if not df[col1].round(7).equals(df[col2].round(7)):
+                        raise errs.PpaError(
+                            f"{errs.ERROR_999_UNEXPECTED}_audit_columns() df: {col1} <> {col2}."
+                        )
 
         # Audit df_overall.
         if not df_overall.is_empty():
             # Assert that certain column pairs in df_overall should be equal.
             for col1, col2 in _OVERALL_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL:
                 if col1 in df_overall.columns and col2 in df_overall.columns:
-                    assert (
-                        df_overall[col1].round(7).equals(df_overall[col2].round(7))
-                    ), f"{errs.ERROR_999_UNEXPECTED}_audit_columns() df_overall: {col1} <> {col2}."
+                    if not df_overall[col1].round(7).equals(df_overall[col2].round(7)):
+                        raise errs.PpaError(
+                            f"{errs.ERROR_999_UNEXPECTED}_audit_columns() df_overall: "
+                            f"{col1} <> {col2}."
+                        )
 
             # Assert that the vertical sum of the smoothed columns of df is equal to df_overall.
             for col_name in cols.ALL_SMOOTHED_COLUMNS:
-                assert util.are_near(
+                if not util.are_near(
                     df[col_name].sum(), df_overall[col_name].item(0), util.Tolerance.MEDIUM
-                ), f"{errs.ERROR_999_UNEXPECTED}_audit_cols: {col_name} does not foot when summed."
+                ):
+                    raise errs.PpaError(
+                        f"{errs.ERROR_999_UNEXPECTED}_audit_columns: {col_name} does not foot when summed."
+                    )
 
     def _audit_view(self, view: View) -> None:
         """Audit the view."""
@@ -353,11 +360,11 @@ class Attribution:
                 )
                 if all(col in df.columns for col in needed_columns):
                     contributions = df[needed_columns[0]] * df[needed_columns[1]]
-                    assert (
-                        df[needed_columns[2]].round(11) == contributions.round(11)
-                    ).all(), (
-                        f"{errs.ERROR_999_UNEXPECTED}audit_view(): weight * return != contribution"
-                    )
+                    if not (df[needed_columns[2]].round(11) == contributions.round(11)).all():
+                        raise errs.PpaError(
+                            f"{errs.ERROR_999_UNEXPECTED}audit_view(): "
+                            "weight * return != contribution"
+                        )
 
         # Audit all columns.
         match view:
@@ -1165,7 +1172,10 @@ class Attribution:
         # days of 100 securities for View.SUBPERIOD_ATTRIBUTION.  The underlying problem is that
         # Attribution.to_html() calls "great_tables" GT.as_raw_html(), which is inherently slow.
         # It is designed for small tables.  So there is not much that can be done for this problem.
-        assert len(df) < 500, f"{errs.ERROR_204_TOO_MANY_HTML_ROWS}{view.value}, Rows = {len(df)}"
+        if 500 < len(df):
+            raise errs.PpaError(
+                f"{errs.ERROR_204_TOO_MANY_HTML_ROWS}{view.value}, Rows = {len(df)}"
+            )
 
         # Create a great_table.  It slows down DRAMATICALLY if you do not convert the df to pandas!
         table = gt.GT(df.to_pandas())

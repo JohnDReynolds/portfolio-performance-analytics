@@ -86,9 +86,11 @@ class Performance:
         )
 
         # Validate the dates.
-        assert (
-            beginning_date <= ending_date
-        ), f"{errs.ERROR_111_INVALID_DATES}{ending_date} < {beginning_date}"
+        if beginning_date > ending_date:
+            raise errs.PpaError(
+                f"{errs.ERROR_111_INVALID_DATES}{self.error_message_context}: "
+                f"Beginning date {beginning_date} is after ending date {ending_date}."
+            )
 
         # Load the data.
         self.name, self.df = Performance._load_data(name, data_source, beginning_date, ending_date)
@@ -99,9 +101,10 @@ class Performance:
         self.df, self.classification_items = self._convert_to_wide_format()
 
         # Assert that there is at least 1 row.
-        assert (
-            0 < self.df.shape[0]
-        ), f"{errs.ERROR_103_NO_PERFORMANCE_ROWS}{self.error_message_context}"
+        if self.df.shape[0] == 0:
+            raise errs.PpaError(
+                f"{errs.ERROR_103_NO_PERFORMANCE_ROWS}{self.error_message_context}"
+            )
 
         # Remove extraneous columns, clean and validate columns.
         self._clean_and_validate_columns()
@@ -141,9 +144,10 @@ class Performance:
         )
 
         # Assert that the weights sum to 1.0.
-        assert (
-            self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0
-        ).all(), f"{errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1}{self.error_message_context}"
+        if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
+            raise errs.PpaError(
+                f"{errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1}{self.error_message_context}"
+            )
 
         # self._df_overall is one row for the entire overall period.
         self._df_overall = pl.DataFrame()
@@ -151,23 +155,28 @@ class Performance:
     def audit(self) -> None:
         """Audit the Performance (self)."""
         # Assert that the weights sum to 1.0
-        assert (
-            self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0
-        ).all(), f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): Weights do not sum to 1.0."
+        if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
+            raise errs.PpaError(
+                f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): Weights do not sum to 1.0."
+            )
 
-        # If not perf.subperiods_have_been_consolidated, then assert that weight * return
+        # If not perf.subperiods_have_been_consolidated, then validate that weight * return
         # == contrib.  Note that this cannot be direcly checked in the Performance constructor
         # because the subperiods are not consolidated until the Analytics class.
         if not self.subperiods_have_been_consolidated:
             contribs = (self.df[self.col_names(RET)] * self.df[self.col_names(WGT)]).rename(
                 lambda column_name: f"{column_name[:-4]}.con"
             )
-            assert contribs.equals(
-                self.df[self.col_names(CON)]
-            ), f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): weight * return != contrib."
-            assert (
+            if not contribs.equals(self.df[self.col_names(CON)]):
+                raise errs.PpaError(
+                    f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): weight * return != contrib."
+                )
+            if not (
                 self.df[cols.TOTAL_RETURN].round(11) == contribs.sum_horizontal().round(11)
-            ).all(), f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): contribs != total return."
+            ).all():
+                raise errs.PpaError(
+                    f"{errs.ERROR_999_UNEXPECTED}Perf.audit(): contribs != total return."
+                )
 
     @staticmethod
     def audit_performances(
@@ -196,21 +205,25 @@ class Performance:
 
         # Assert that the portfolio and benchmark have the same dates and days.
         dates_days = (cols.BEGINNING_DATE, cols.ENDING_DATE, cols.QUANTITY_OF_DAYS)
-        assert portfolio.df[dates_days].equals(
-            benchmark.df[dates_days]
-        ), f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Portfolio and Benchmark dates are not equal"
+        if not portfolio.df[dates_days].equals(benchmark.df[dates_days]):
+            raise errs.PpaError(
+                f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): "
+                "Portfolio and Benchmark dates are not equal."
+            )
 
         # Assert that the portfolio/benchmark dates are equal to the expected dates.
-        assert (
+        if not (
             portfolio.df[cols.BEGINNING_DATE][0] == expected_beginning_date
             and portfolio.df[cols.ENDING_DATE][-1] == expected_ending_date
-        ), f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Date logic error."
+        ):
+            raise errs.PpaError(f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Date logic error.")
 
         # Assert that the portfolio and benchmark both have the same common_classification_name.
         if not util.is_empty(common_classification_name):
-            assert (
-                portfolio.classification_name == benchmark.classification_name
-            ), f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Common classification name error."
+            if portfolio.classification_name != benchmark.classification_name:
+                raise errs.PpaError(
+                    f"{errs.ERROR_999_UNEXPECTED}audit_perfs(): Common classification name error."
+                )
 
     def _calculate_df_overall(self) -> pl.DataFrame:
         """
@@ -284,22 +297,20 @@ class Performance:
                 try:
                     self.df = self.df.with_columns(pl.col(col_name).cast(dtype))
                 except pl.exceptions.InvalidOperationError as e:
-                    raise pl.exceptions.InvalidOperationError(
+                    raise errs.PpaError(
                         f"{errs.ERROR_110_INVALID_PERFORMANCE_DATA_FORMAT}"
                         f"{self.error_message_context}: "
                         f"Cannot convert the column '{col_name}' to a {dtype}, {str(e)[:1000]}"
                     ) from e
 
         # Assert that there are not any missing (None) or NaN values.
-        assert not (
-            self.df.lazy().select(pl.any_horizontal(pl.all().is_null().any())).collect().item()
-            or (
-                self.df.lazy()
-                .select(pl.any_horizontal(pl.col(column_dtypes[pl.Float64]).is_nan().any()))
-                .collect()
-                .item()
-            )
-        ), f"{errs.ERROR_104_MISSING_VALUES}{self.error_message_context}"
+        if self.df.lazy().select(pl.any_horizontal(pl.all().is_null().any())).collect().item() or (
+            self.df.lazy()
+            .select(pl.any_horizontal(pl.col(column_dtypes[pl.Float64]).is_nan().any()))
+            .collect()
+            .item()
+        ):
+            raise errs.PpaError(f"{errs.ERROR_104_MISSING_VALUES}{self.error_message_context}")
 
     def _clean_and_validate_columns(self) -> None:
         """Clean and validate the columns."""
@@ -308,17 +319,19 @@ class Performance:
         weight_col_names = self._col_names_from_schema(WGT)
 
         # Assert that there is at least one return.
-        assert (
-            len(return_col_names) != 0
-        ), f"{errs.ERROR_109_NO_RETURNS_OR_WEIGHTS}{self.error_message_context}"
+        if len(return_col_names) == 0:
+            raise errs.PpaError(
+                f"{errs.ERROR_109_NO_RETURNS_OR_WEIGHTS}{self.error_message_context}"
+            )
 
         # Assert that columns.ret == columns.wgt.  Note that polars does not allow for
         # duplicate col_names.
         identifiers = [col[:-4] for col in return_col_names]
-        assert identifiers == [col[:-4] for col in weight_col_names], (
-            f"{errs.ERROR_107_RETURN_COLUMNS_NOT_EQUAL_TO_WEIGHT_COLUMNS}"
-            f"{self.error_message_context}"
-        )
+        if identifiers != [col[:-4] for col in weight_col_names]:
+            raise errs.PpaError(
+                f"{errs.ERROR_107_RETURN_COLUMNS_NOT_EQUAL_TO_WEIGHT_COLUMNS}"
+                f"{self.error_message_context}"
+            )
 
         # Select only the column names that are needed.  This will drop any un-needed columns.
         self.df = self.df.select(cols.DATE_COLUMNS + return_col_names + weight_col_names)
@@ -337,9 +350,12 @@ class Performance:
             .collect()[cols.ENDING_DATE]
             .item(0)
         )
-        assert (
-            self.df.shape[0] == qty_uniques
-        ), f"{errs.ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE}{self.error_message_context}"
+
+        # Assert that there are no duplicate ending_dates.
+        if self.df.shape[0] != qty_uniques:
+            raise errs.PpaError(
+                f"{errs.ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE}{self.error_message_context}"
+            )
 
         # Typically, beginning_date[i] == ending_date[i - 1].  This is non-inclusive of
         # beginning_date, but inclusive of ending_date.  The following block will allow for
@@ -363,10 +379,11 @@ class Performance:
             .select(self.df[cols.BEGINNING_DATE] >= self.df[cols.ENDING_DATE])
             .collect()
         )
-        assert date_sequences[cols.BEGINNING_DATE].sum() == 0, (
-            f"{errs.ERROR_105_BEGINNING_DATES_GREATER_THAN_ENDING_DATES}"
-            f"{self.error_message_context}"
-        )
+        if date_sequences[cols.BEGINNING_DATE].sum() != 0:
+            raise errs.PpaError(
+                f"{errs.ERROR_105_BEGINNING_DATES_GREATER_THAN_ENDING_DATES}"
+                f"{self.error_message_context}"
+            )
 
         # Assert that there are no discontinuous time periods (date gaps).
         discontinuous_time_periods = (
@@ -374,9 +391,10 @@ class Performance:
             .select(self.df[cols.BEGINNING_DATE][1:] != self.df[cols.ENDING_DATE][:-1])
             .collect()
         )
-        assert (
-            discontinuous_time_periods[cols.BEGINNING_DATE].sum() == 0
-        ), f"{errs.ERROR_106_DISCONTINUOS_TIME_PERIODS}{self.error_message_context}"
+        if discontinuous_time_periods[cols.BEGINNING_DATE].sum() != 0:
+            raise errs.PpaError(
+                f"{errs.ERROR_106_DISCONTINUOS_TIME_PERIODS}{self.error_message_context}"
+            )
 
     def col_names(self, suffix: str) -> list[str]:
         """
@@ -524,7 +542,8 @@ class Performance:
         # Load the data
         if isinstance(data_source, str):
             # Assert that the data file path exists.
-            assert util.file_path_exists(data_source), util.file_path_error(data_source)
+            if not util.file_path_exists(data_source):
+                raise errs.PpaError(util.file_path_error(data_source))
             # Default the name to the file name
             if util.is_empty(name):
                 name = util.file_basename_without_extension(data_source)

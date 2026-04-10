@@ -144,9 +144,8 @@ class RiskStatistics:
         """
         # Set and validate the frequency.
         self._frequency = frequency
-        assert (
-            self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE
-        ), f"{errs.ERROR_402_INVALID_FREQUENCY}{self._frequency}"
+        if self._frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
+            raise errs.PpaError(f"{errs.ERROR_402_INVALID_FREQUENCY}{self._frequency}")
 
         # Set the currency symbol used when presenting the VaR.
         self._currency_symbol = portfolio_value[1]
@@ -178,20 +177,21 @@ class RiskStatistics:
         self._quantity_of_returns = len(self._portfolio_returns)
 
         # Validate that the portfolio and benchmark have the same quantity of returns.
-        assert self._quantity_of_returns == len(self._benchmark_returns), (
-            f"{errs.ERROR_404_PORTFOLIO_BENCHMARK_RETURNS_QTY_NOT_EQUAL}"
-            f"{self._quantity_of_returns} <> {len(self._benchmark_returns)}"
-        )
+        if self._quantity_of_returns != len(self._benchmark_returns):
+            raise errs.PpaError(
+                f"{errs.ERROR_404_PORTFOLIO_BENCHMARK_RETURNS_QTY_NOT_EQUAL}"
+                f"{self._quantity_of_returns} <> {len(self._benchmark_returns)}"
+            )
 
         # Validate that there are enough returns.
-        assert (
-            _MINIMUM_QUANTITY_OF_RETURNS <= self._quantity_of_returns
-        ), f"{errs.ERROR_403_INSUFFICIENT_QUANTITY_OF_RETURNS}{self._quantity_of_returns}"
+        if self._quantity_of_returns < _MINIMUM_QUANTITY_OF_RETURNS:
+            raise errs.PpaError(
+                f"{errs.ERROR_403_INSUFFICIENT_QUANTITY_OF_RETURNS}{self._quantity_of_returns}"
+            )
 
         # Validate that there are not any NaN values.
-        assert not np.any(np.isnan(self._portfolio_returns)) and not np.any(
-            np.isnan(self._benchmark_returns)
-        ), f"{errs.ERROR_405_NAN_VALUES}"
+        if np.any(np.isnan(self._portfolio_returns)) or np.any(np.isnan(self._benchmark_returns)):
+            raise errs.PpaError(f"{errs.ERROR_405_NAN_VALUES}")
 
         # Get all statistic values.
         statistic_values = self._calculate_all_statistics(
@@ -623,7 +623,7 @@ class RiskStatistics:
             .tab_header(title=title, subtitle=subtitle)
             .tab_stub(rowname_col="column", groupname_col="Category")
             # Format the statistics to 4 decimals (bps)
-            .fmt_number(columns=column_names, decimals=4)
+            .fmt_number(columns=column_names, decimals=4)  # pyright: ignore
             # Format the VaR to 0 decimals since it represents a currency amount.
             .fmt_number(
                 columns=column_names,

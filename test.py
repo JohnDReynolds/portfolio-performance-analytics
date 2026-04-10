@@ -312,11 +312,11 @@ class Test(unittest.TestCase):
         Test the carino_linking_coefficient function where the returns are invalid
         (i.e., <= -1.0), expecting an AssertionError.
         """
-        with self.assertRaises(AssertionError) as cm:
+        with self.assertRaises(errs.PpaError) as cm:
             _ = util.carino_linking_coefficient(-1.0, 0.03)
         self.assertIn(errs.ERROR_203_UNDEFINED_RETURN, str(cm.exception))
 
-        with self.assertRaises(AssertionError) as cm:
+        with self.assertRaises(errs.PpaError) as cm:
             _ = util.carino_linking_coefficient(0.05, -1.0)
         self.assertIn(errs.ERROR_203_UNDEFINED_RETURN, str(cm.exception))
 
@@ -1022,7 +1022,7 @@ def _attribution_exception(
     view: View | None = None,
 ) -> bool:
     """Test Attribution exception."""
-    with test.assertRaises(Exception) as context:
+    with test.assertRaises((Exception, errs.PpaError)) as context:  # TODO: Remove Exception
         # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path(file_name1),
@@ -1058,7 +1058,7 @@ def _performance_exception(
     ending_date: str | dt.date = dt.date.max,
 ) -> bool:
     """Test Performance exception."""
-    with test.assertRaises(Exception) as context:
+    with test.assertRaises(errs.PpaError) as context:
         Performance(
             test_util.performance_data_path(file_name),
             beginning_date=beginning_date,
@@ -1076,7 +1076,7 @@ def _riskstatistics_exception(
     minimum_acceptable_return: float = 0,
 ) -> bool:
     """Test RiskStatistics exception."""
-    with test.assertRaises(Exception) as context:
+    with test.assertRaises((Exception, errs.PpaError)) as context:  # TODO: Remove Exception
         RiskStatistics(returns, frequency, minimum_acceptable_return)
     print(str(context.exception))
     return str(context.exception).startswith(error_message)

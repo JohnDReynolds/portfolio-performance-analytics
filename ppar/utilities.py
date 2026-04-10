@@ -78,12 +78,14 @@ def carino_linking_coefficient(portfolio_return: float, benchmark_return: float)
         float: The Carino linking coefficient.
     """
     # Check for invalid returns.  The Log of a number <= 0 is undefined.
-    assert (
-        _UNDEFINED_RETURN < portfolio_return
-    ), f"{errs.ERROR_203_UNDEFINED_RETURN}The portfolio has a return of {portfolio_return:.6f}"
-    assert (
-        _UNDEFINED_RETURN < benchmark_return
-    ), f"{errs.ERROR_203_UNDEFINED_RETURN}The benchmark has a return of {benchmark_return:.6f}"
+    if portfolio_return <= _UNDEFINED_RETURN:
+        raise errs.PpaError(
+            f"{errs.ERROR_203_UNDEFINED_RETURN}The portfolio has a return of {portfolio_return:.6f}"
+        )
+    if benchmark_return <= _UNDEFINED_RETURN:
+        raise errs.PpaError(
+            f"{errs.ERROR_203_UNDEFINED_RETURN}The benchmark has a return of {benchmark_return:.6f}"
+        )
 
     # Get the difference between the portfolio_return and the benchmark_return
     return_difference = portfolio_return - benchmark_return
@@ -123,7 +125,7 @@ def convert_to_date(date: str | dt.date | dt.datetime) -> dt.date:
     try:
         return dt.datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError as e:
-        raise ValueError(
+        raise errs.PpaError(
             f"{errs.ERROR_803_CANNOT_CONVERT_TO_A_DATE}'{date}', must be in the format yyyy-mm-dd"
         ) from e
 
@@ -194,7 +196,8 @@ def load_datasource(
     # Get the 2-column dataframe.
     if isinstance(data_source, str):
         # Assert that the data file path exists.
-        assert file_path_exists(data_source), file_path_error(data_source)
+        if not file_path_exists(data_source):
+            raise errs.PpaError(file_path_error(data_source))
         # Load the data_source in lazy-mode.  infer_schema=False will force both columns to be the
         # default strings (Utf8).  Then filter on needed_items.
         lf = pl.scan_csv(data_source, has_header=False, infer_schema=False)
@@ -245,10 +248,11 @@ def logarithmic_linking_coefficients(overall_return: float, returns: pl.Series) 
     Returns:
         pl.Series: The linking coefficients for each subperiod.
     """
-    # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So assert that
-    # the return is greater than -1.0.  Note that this logic exactly mimics the logic in
+    # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So valiadte
+    # that the return is greater than -1.0.  Note that this logic exactly mimics the logic in
     # logarithmic_smoothing_coefficients(), only it is done for a single value.
-    assert _UNDEFINED_RETURN < overall_return, f"{errs.ERROR_203_UNDEFINED_RETURN}{overall_return}"
+    if overall_return <= _UNDEFINED_RETURN:
+        raise errs.PpaError(f"{errs.ERROR_203_UNDEFINED_RETURN}{overall_return}")
     denominator = np.log(1.0 + overall_return) / overall_return if overall_return != 0.0 else 1.0
 
     # Return the logarithmic_linking_coefficients
@@ -284,9 +288,10 @@ def logarithmic_smoothing_coefficients(returns: pl.Series) -> pl.Series:
     Returns:
         pl.Series: The logarithmic smoothing coefficients for each subperiod.
     """
-    # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So assert
+    # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So validate
     # that the returns are greater than -1.0.
-    assert (returns > -1.0).all(), errs.ERROR_203_UNDEFINED_RETURN
+    if not (returns > _UNDEFINED_RETURN).all():
+        raise errs.PpaError(errs.ERROR_203_UNDEFINED_RETURN)
 
     ## Method 1: This method works great, but is a little slower than Method 2 below.
     # If the return is 0.0, then dividing by 0.0 will give nan.
