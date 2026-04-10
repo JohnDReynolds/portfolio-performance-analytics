@@ -344,7 +344,8 @@ class Attribution:
                     df[col_name].sum(), df_overall[col_name].item(0), util.Tolerance.MEDIUM
                 ):
                     raise errs.PpaError(
-                        f"{errs.ERROR_999_UNEXPECTED}_audit_columns: {col_name} does not foot when summed."
+                        f"{errs.ERROR_999_UNEXPECTED}_audit_columns: {col_name} does not foot "
+                        f"when summed."
                     )
 
     def _audit_view(self, view: View) -> None:

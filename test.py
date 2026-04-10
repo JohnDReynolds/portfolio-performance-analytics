@@ -1022,7 +1022,7 @@ def _attribution_exception(
     view: View | None = None,
 ) -> bool:
     """Test Attribution exception."""
-    with test.assertRaises((Exception, errs.PpaError)) as context:  # TODO: Remove Exception
+    with test.assertRaises(errs.PpaError) as context:
         # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path(file_name1),
@@ -1076,7 +1076,7 @@ def _riskstatistics_exception(
     minimum_acceptable_return: float = 0,
 ) -> bool:
     """Test RiskStatistics exception."""
-    with test.assertRaises((Exception, errs.PpaError)) as context:  # TODO: Remove Exception
+    with test.assertRaises(errs.PpaError) as context:
         RiskStatistics(returns, frequency, minimum_acceptable_return)
     print(str(context.exception))
     return str(context.exception).startswith(error_message)

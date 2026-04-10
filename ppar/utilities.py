@@ -216,7 +216,8 @@ def load_datasource(
         df = data_source
 
     # Assert that you have 2 columns.
-    assert 2 == len(df.columns), error_message
+    if len(df.columns) != 2:
+        raise errs.PpaError(error_message)
 
     # Give the columns consistent names.
     df.columns = column_names
