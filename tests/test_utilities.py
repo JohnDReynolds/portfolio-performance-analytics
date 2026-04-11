@@ -15,7 +15,7 @@ from typing import Iterable
 # Project imports
 from ppar.analytics import Analytics
 from ppar.attribution import Attribution
-import ppar.errors as errs
+from ppar.errors import PpaError
 import ppar.utilities as util
 
 
@@ -176,4 +176,4 @@ def resolve_file_path(directories: Iterable[str], file_name: str, suffix: str = 
             return file_path
 
     # Throw exeption if file_path was not found
-    raise errs.PpaError(util.file_path_error(file_name))
+    raise PpaError(util.file_path_error(file_name), None)

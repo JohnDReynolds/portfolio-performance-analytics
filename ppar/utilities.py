@@ -19,6 +19,7 @@ import polars as pl
 
 # Project Imports
 import ppar.errors as errs
+from ppar.errors import PpaError
 
 # Types for type-checking.
 AllDataSources: TypeAlias = str | dict[str, str] | pd.DataFrame | pl.DataFrame
@@ -79,13 +80,9 @@ def carino_linking_coefficient(portfolio_return: float, benchmark_return: float)
     """
     # Check for invalid returns.  The Log of a number <= 0 is undefined.
     if portfolio_return <= _UNDEFINED_RETURN:
-        raise errs.PpaError(
-            f"{errs.ERROR_203_UNDEFINED_RETURN}The portfolio has a return of {portfolio_return:.6f}"
-        )
+        raise PpaError(f"The portfolio has a return of {portfolio_return:.6f}", 203)
     if benchmark_return <= _UNDEFINED_RETURN:
-        raise errs.PpaError(
-            f"{errs.ERROR_203_UNDEFINED_RETURN}The benchmark has a return of {benchmark_return:.6f}"
-        )
+        raise PpaError(f"The benchmark has a return of {benchmark_return:.6f}", 203)
 
     # Get the difference between the portfolio_return and the benchmark_return
     return_difference = portfolio_return - benchmark_return
@@ -125,9 +122,7 @@ def convert_to_date(date: str | dt.date | dt.datetime) -> dt.date:
     try:
         return dt.datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError as e:
-        raise errs.PpaError(
-            f"{errs.ERROR_803_CANNOT_CONVERT_TO_A_DATE}'{date}', must be in the format yyyy-mm-dd"
-        ) from e
+        raise PpaError(f"{date!r} must be in the format yyyy-mm-dd", 803) from e
 
 
 def date_str(date: dt.date) -> str:
@@ -158,9 +153,7 @@ def file_basename_without_extension(file_path: str) -> str:
 
 def file_path_error(file_path: str) -> str:
     """Return the appropriate error message."""
-    if is_empty(file_path):
-        return errs.ERROR_804_MISSING_DATA_SOURCE
-    return f"{errs.ERROR_802_FILE_PATH_DOES_NOT_EXIST}{file_path}"
+    return errs.ERRORS[804] if is_empty(file_path) else f"{errs.ERRORS[802]}{file_path}"
 
 
 def file_path_exists(file_path: str) -> bool:
@@ -197,7 +190,7 @@ def load_datasource(
     if isinstance(data_source, str):
         # Assert that the data file path exists.
         if not file_path_exists(data_source):
-            raise errs.PpaError(file_path_error(data_source))
+            raise PpaError(file_path_error(data_source), None)
         # Load the data_source in lazy-mode.  infer_schema=False will force both columns to be the
         # default strings (Utf8).  Then filter on needed_items.
         lf = pl.scan_csv(data_source, has_header=False, infer_schema=False)
@@ -217,7 +210,7 @@ def load_datasource(
 
     # Assert that you have 2 columns.
     if len(df.columns) != 2:
-        raise errs.PpaError(error_message)
+        raise PpaError(error_message, None)
 
     # Give the columns consistent names.
     df.columns = column_names
@@ -253,7 +246,7 @@ def logarithmic_linking_coefficients(overall_return: float, returns: pl.Series) 
     # that the return is greater than -1.0.  Note that this logic exactly mimics the logic in
     # logarithmic_smoothing_coefficients(), only it is done for a single value.
     if overall_return <= _UNDEFINED_RETURN:
-        raise errs.PpaError(f"{errs.ERROR_203_UNDEFINED_RETURN}{overall_return}")
+        raise PpaError(f"{overall_return}", 203)
     denominator = np.log(1.0 + overall_return) / overall_return if overall_return != 0.0 else 1.0
 
     # Return the logarithmic_linking_coefficients
@@ -292,7 +285,7 @@ def logarithmic_smoothing_coefficients(returns: pl.Series) -> pl.Series:
     # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So validate
     # that the returns are greater than -1.0.
     if not (returns > _UNDEFINED_RETURN).all():
-        raise errs.PpaError(errs.ERROR_203_UNDEFINED_RETURN)
+        raise PpaError("", 203)
 
     ## Method 1: This method works great, but is a little slower than Method 2 below.
     # If the return is 0.0, then dividing by 0.0 will give nan.

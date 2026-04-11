@@ -11,7 +11,7 @@ from typing import Final, Sequence
 import polars as pl
 
 # Project imports
-import ppar.errors as errs
+from ppar.errors import PpaError
 import ppar.utilities as util
 
 
@@ -176,7 +176,7 @@ class AxysData:
                 invalid.
         """
         if secperf_df.height == 0:
-            raise errs.PpaError(self._error_message("secperf_df must contain at least one row."))
+            raise PpaError(self._error_message("secperf_df must contain at least one row."), 999)
 
         working_df = (
             secperf_df.select(list(_SECPERF_WEIGHT_RETURN_COLUMNS))
@@ -336,11 +336,11 @@ class AxysData:
             self.portperf.group_by(["FROM_DATE", "THRU_DATE"]).len().filter(pl.col("len") > 1)
         )
         if dup_periods.height > 0:
-            raise errs.PpaError(
+            raise PpaError(
                 self._error_message(
-                    f"{errs.ERROR_999_UNEXPECTED}Duplicate portperf periods: "
-                    f"{dup_periods.head(10).to_dicts()}"
-                )
+                    f"Duplicate portperf periods: " f"{dup_periods.head(10).to_dicts()}"
+                ),
+                999,
             )
 
         # --- Pre-group secperf ONCE (big win) ---
@@ -361,21 +361,18 @@ class AxysData:
             secperf_period = secperf_lookup.get(key)
 
             if secperf_period is None or secperf_period.height == 0:
-                raise errs.PpaError(
-                    self._error_message(
-                        f"{errs.ERROR_999_UNEXPECTED}No secperf rows for period {key}"
-                    )
-                )
+                raise PpaError(self._error_message(f"No secperf rows for period {key}"), 999)
 
             derived = self._derive_reconciled_weights(secperf_period, port_return)
 
             # If the derived weights do not give sumof(wgt * ret) =~ portperf.ret, then fail.
             if not self._is_reconciled(derived, tolerance=0.00001):
-                raise errs.PpaError(
+                raise PpaError(
                     self._error_message(
-                        f"{errs.ERROR_503_COULD_NOT_DERIVE_WEIGHTS}Period {key}  |  "
+                        f"Period {key}  |  "
                         f"Failed with {derived['RECON_METHOD'][0]} and {derived['RECON_NOTES'][0]}"
-                    )
+                    ),
+                    503,
                 )
 
             derived_frames.append(derived)
@@ -387,11 +384,12 @@ class AxysData:
 
         # --- Final defensive check ---
         if secperf_derived.height != self.secperf.height:
-            raise errs.PpaError(
+            raise PpaError(
                 self._error_message(
-                    f"{errs.ERROR_999_UNEXPECTED}Row count mismatch: "
+                    "Row count mismatch: "
                     f"derived={secperf_derived.height}, input={self.secperf.height}"
-                )
+                ),
+                999,
             )
 
         return secperf_derived
@@ -445,7 +443,7 @@ class AxysData:
         """
         # --- Validate inputs (fail fast, defensive) ---
         if result_df.height == 0:
-            raise errs.PpaError(self._error_message("result_df must contain at least one row."))
+            raise PpaError(self._error_message("result_df must contain at least one row."), 999)
 
         # --- Compute left-hand side: sum(weight * return) ---
         # Use Polars vectorized multiplication and sum for numerical stability and speed.
@@ -478,7 +476,7 @@ class AxysData:
         """
         # Assert that the data file path exists.
         if not util.file_path_exists(path):
-            raise errs.PpaError(self._error_message(util.file_path_error(path)))
+            raise PpaError(self._error_message(util.file_path_error(path)), None)
 
         # Read only the header first so we can fail fast on schema drift.
         header_df: pl.DataFrame = pl.read_csv(path, n_rows=0)
@@ -490,11 +488,12 @@ class AxysData:
             if column_name not in available_columns
         ]
         if missing_columns:
-            raise errs.PpaError(
+            raise PpaError(
                 self._error_message(
-                    f"{errs.ERROR_502_MISSING_REQUIRED_COLUMNS}Missing {missing_columns} "
-                    f"in {path!r}.  |  Columns available are: {sorted(available_columns)}"
-                )
+                    f"Missing {missing_columns} in {path!r}.  |  "
+                    f"Columns available are: {sorted(available_columns)}"
+                ),
+                502,
             )
 
         # Build a lazy scan. We project only the required columns first, then cast the
@@ -816,11 +815,12 @@ class AxysData:
         )
         if duplicate_periods.height > 0:
             sample_rows: list[dict[str, object]] = duplicate_periods.head(10).to_dicts()
-            raise errs.PpaError(
+            raise PpaError(
                 self._error_message(
-                    f"{errs.ERROR_999_UNEXPECTED}portperf period validation failed. "
+                    f"portperf period validation failed. "
                     f"Duplicate periods found. Sample duplicates: {sample_rows}"
-                )
+                ),
+                999,
             )
 
         continuity_check_df: pl.DataFrame = (
@@ -850,13 +850,15 @@ class AxysData:
 
         if continuity_check_df.height > 0:
             sample_rows: list[dict[str, object]] = continuity_check_df.head(10).to_dicts()
-            errs.raise_unexpected(
-                "portperf continuity validation failed.  The periods are not continuous; at least "
-                f"one gap or overlap exists.  Sample discontinuities: {sample_rows}"
+            raise PpaError(
+                self._error_message(
+                    "portperf continuity validation failed.  The periods are not continuous; at "
+                    f"least one gap or overlap exists.  Sample discontinuities: {sample_rows}"
+                ),
+                999,
             )
 
-    @staticmethod
-    def _validate_portperf_row_date_order(portperf_df: pl.DataFrame) -> None:
+    def _validate_portperf_row_date_order(self, portperf_df: pl.DataFrame) -> None:
         """Validate that each portperf row has FROM_DATE <= THRU_DATE."""
         invalid_rows: pl.DataFrame = portperf_df.filter(
             pl.col("FROM_DATE") > pl.col("THRU_DATE")
@@ -864,13 +866,16 @@ class AxysData:
 
         if invalid_rows.height > 0:
             sample_rows: list[dict[str, object]] = invalid_rows.head(10).to_dicts()
-            errs.raise_unexpected(
-                "portperf date-order validation failed.  Found rows where FROM_DATE > THRU_DATE. "
-                f"Sample invalid rows: {sample_rows}"
+            raise PpaError(
+                self._error_message(
+                    "portperf date-order validation failed.  Found rows where FROM_DATE > "
+                    f"THRU_DATE. Sample invalid rows: {sample_rows}"
+                ),
+                999,
             )
 
-    @staticmethod
     def _validate_secperf_periods_match_portperf(
+        self,
         portperf_df: pl.DataFrame,
         secperf_df: pl.DataFrame,
     ) -> None:
@@ -902,15 +907,17 @@ class AxysData:
         if missing_in_secperf.height > 0 or extra_in_secperf.height > 0:
             missing_sample: list[dict[str, object]] = missing_in_secperf.head(10).to_dicts()
             extra_sample: list[dict[str, object]] = extra_in_secperf.head(10).to_dicts()
-            errs.raise_unexpected(
-                "secperf/portperf period validation failed. "
-                "secperf must have exactly the same distinct periods as portperf. "
-                f"Missing periods in secperf: {missing_sample}. "
-                f"Extra periods in secperf: {extra_sample}"
+            raise PpaError(
+                self._error_message(
+                    "secperf/portperf period validation failed. "
+                    "secperf must have exactly the same distinct periods as portperf. "
+                    f"Missing periods in secperf: {missing_sample}. "
+                    f"Extra periods in secperf: {extra_sample}"
+                ),
+                999,
             )
 
-    @staticmethod
-    def _validate_secperf_uniqueness(secperf_df: pl.DataFrame) -> None:
+    def _validate_secperf_uniqueness(self, secperf_df: pl.DataFrame) -> None:
         """Validate secperf uniqueness at portfolio/period/security grain."""
         duplicate_rows: pl.DataFrame = (
             secperf_df.group_by(["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE", "SECURITY_ID"])
@@ -921,10 +928,13 @@ class AxysData:
 
         if duplicate_rows.height > 0:
             sample_rows: list[dict[str, object]] = duplicate_rows.head(10).to_dicts()
-            errs.raise_unexpected(
-                "secperf uniqueness validation failed. "
-                "PORTFOLIO_CODE, FROM_DATE, THRU_DATE, and SECURITY_ID do not uniquely "
-                f"identify each row. Sample duplicates: {sample_rows}"
+            raise PpaError(
+                self._error_message(
+                    "secperf uniqueness validation failed. "
+                    "PORTFOLIO_CODE, FROM_DATE, THRU_DATE, and SECURITY_ID do not uniquely "
+                    f"identify each row. Sample duplicates: {sample_rows}"
+                ),
+                999,
             )
 
     @staticmethod

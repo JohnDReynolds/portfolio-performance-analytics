@@ -302,7 +302,12 @@ class Attribution:
                 base_equivalent_columns = equivalent_columns
             else:
                 for idxe, equiv in enumerate(equivalent_columns):
-                    assert equiv.equals(base_equivalent_columns[idxe])
+                    if not equiv.equals(base_equivalent_columns[idxe]):
+                        raise PpaError(
+                            f"Attribution.audit_attributions(): Attribution {idxa} equivalent "
+                            "columns do not match base equivalent columns.",
+                            999,
+                        )
 
     @staticmethod
     def _audit_columns(
@@ -532,7 +537,7 @@ class Attribution:
             view (View): The detailed View.
 
         Raises:
-            errs.PpaError: Unhandled View
+            PpaError: Unhandled View
 
         Returns:
             pl.LazyFrame: The appropriate detail LazyFrame.

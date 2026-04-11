@@ -62,11 +62,7 @@ class Test(unittest.TestCase):
     ############################## Performance Exceptions ##############################
     def test_102(self) -> None:
         """Test error 102."""
-        self.assertTrue(
-            _performance_exception(
-                self, "error_102.csv", errs.ERROR_102_ENDING_DATES_ARE_NOT_UNIQUE
-            )
-        )
+        self.assertTrue(_performance_exception(self, "error_102.csv", errs.ERRORS[102]))
 
     def test_103(self) -> None:
         """Test error 103."""
@@ -74,7 +70,7 @@ class Test(unittest.TestCase):
             _performance_exception(
                 self,
                 "Magnificent 7.csv",
-                errs.ERROR_103_NO_PERFORMANCE_ROWS,
+                errs.ERRORS[103],
                 ending_date=dt.date(1900, 1, 31),
             )
         )
@@ -82,59 +78,34 @@ class Test(unittest.TestCase):
     def test_104(self) -> None:
         """Test error 104."""
         self.assertTrue(
-            _attribution_exception(
-                self,
-                "error_104.csv",
-                "aapl_daily.csv",
-                errs.ERROR_104_MISSING_VALUES,
-            )
+            _attribution_exception(self, "error_104.csv", "aapl_daily.csv", errs.ERRORS[104])
         )
 
     def test_105(self) -> None:
         """Test error 105."""
-        self.assertTrue(
-            _performance_exception(
-                self, "error_105.csv", errs.ERROR_105_BEGINNING_DATES_GREATER_THAN_ENDING_DATES
-            )
-        )
+        self.assertTrue(_performance_exception(self, "error_105.csv", errs.ERRORS[105]))
 
     def test_106(self) -> None:
         """Test error 106."""
-        self.assertTrue(
-            _performance_exception(self, "error_106.csv", errs.ERROR_106_DISCONTINUOS_TIME_PERIODS)
-        )
+        self.assertTrue(_performance_exception(self, "error_106.csv", errs.ERRORS[106]))
 
     def test_107(self) -> None:
         """Test error 107."""
-        self.assertTrue(
-            _performance_exception(
-                self, "error_107.csv", errs.ERROR_107_RETURN_COLUMNS_NOT_EQUAL_TO_WEIGHT_COLUMNS
-            )
-        )
+        self.assertTrue(_performance_exception(self, "error_107.csv", errs.ERRORS[107]))
 
     def test_108(self) -> None:
         """Test error 108."""
         self.assertTrue(
-            _attribution_exception(
-                self, "error_108.csv", "aapl_daily.csv", errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1
-            )
+            _attribution_exception(self, "error_108.csv", "aapl_daily.csv", errs.ERRORS[108])
         )
 
     def test_109(self) -> None:
         """Test error 109."""
-        self.assertTrue(
-            _performance_exception(self, "error_109.csv", errs.ERROR_109_NO_RETURNS_OR_WEIGHTS)
-        )
+        self.assertTrue(_performance_exception(self, "error_109.csv", errs.ERRORS[109]))
 
     def test_110(self) -> None:
         """Test error 110: Bad floating point number."""
-        self.assertTrue(
-            _performance_exception(
-                self,
-                "error_110.csv",
-                errs.ERROR_110_INVALID_PERFORMANCE_DATA_FORMAT,
-            )
-        )
+        self.assertTrue(_performance_exception(self, "error_110.csv", errs.ERRORS[110]))
 
     def test_111(self) -> None:
         """Test error 111."""
@@ -142,7 +113,7 @@ class Test(unittest.TestCase):
             _performance_exception(
                 self,
                 "aapl_daily.csv",
-                errs.ERROR_111_INVALID_DATES,
+                errs.ERRORS[111],
                 beginning_date=dt.date(1901, 1, 31),
                 ending_date=dt.date(1901, 1, 30),
             )
@@ -153,22 +124,14 @@ class Test(unittest.TestCase):
         """Test error 202."""
         self.assertTrue(
             _attribution_exception(
-                self,
-                "abcde_portfolio1.csv",
-                "Magnificent 7.csv",
-                errs.ERROR_202_NO_REPORTABLE_DATES,
+                self, "abcde_portfolio1.csv", "Magnificent 7.csv", errs.ERRORS[202]
             )
         )
 
     def test_203(self) -> None:
         """Test error 203."""
         self.assertTrue(
-            _attribution_exception(
-                self,
-                "error_203.csv",
-                "error_203.csv",
-                errs.ERROR_203_UNDEFINED_RETURN,
-            )
+            _attribution_exception(self, "error_203.csv", "error_203.csv", errs.ERRORS[203])
         )
 
     def test_204(self) -> None:
@@ -178,7 +141,7 @@ class Test(unittest.TestCase):
                 self,
                 "Magnificent 7",
                 "Large-Cap Portfolio",
-                errs.ERROR_204_TOO_MANY_HTML_ROWS,
+                errs.ERRORS[204],
                 view=View.SUBPERIOD_ATTRIBUTION,
             )
         )
@@ -191,7 +154,7 @@ class Test(unittest.TestCase):
                 self,
                 "abcde_portfolio1",
                 "abcde_portfolio1",
-                errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME,
+                errs.ERRORS[252],
                 portfolio_classification_name="Security",
                 benchmark_classification_name="Economic Sector",
             )
@@ -205,7 +168,7 @@ class Test(unittest.TestCase):
                 self,
                 "abcde_portfolio1",
                 "abcde_portfolio1",
-                errs.ERROR_302_CLASSIFICATION_MUST_CONTAIN_2_COLUMNS,
+                errs.ERRORS[302],
                 portfolio_classification_name="Security",
                 benchmark_classification_name="Security",
                 classification_name="Security",
@@ -221,7 +184,7 @@ class Test(unittest.TestCase):
                 self,
                 "abcde_portfolio1",
                 "abcde_portfolio1",
-                errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS,
+                errs.ERRORS[353],
                 portfolio_classification_name="Security",
                 benchmark_classification_name="Security",
                 classification_name="Economic Sector",
@@ -235,7 +198,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _riskstatistics_exception(
                 self,
-                errs.ERROR_402_INVALID_FREQUENCY,
+                errs.ERRORS[402],
                 (np.array([np.nan, np.nan]), np.array([np.nan, np.nan])),
                 Frequency.AS_OFTEN_AS_POSSIBLE,
             )
@@ -246,7 +209,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _riskstatistics_exception(
                 self,
-                errs.ERROR_403_INSUFFICIENT_QUANTITY_OF_RETURNS,
+                errs.ERRORS[403],
                 (np.array([np.nan]), np.array([np.nan])),
                 Frequency.MONTHLY,
             )
@@ -257,7 +220,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _riskstatistics_exception(
                 self,
-                errs.ERROR_404_PORTFOLIO_BENCHMARK_RETURNS_QTY_NOT_EQUAL,
+                errs.ERRORS[404],
                 (np.array([np.nan, np.nan]), np.array([np.nan, np.nan, np.nan])),
                 Frequency.MONTHLY,
             )
@@ -268,7 +231,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _riskstatistics_exception(
                 self,
-                errs.ERROR_405_NAN_VALUES,
+                errs.ERRORS[405],
                 (np.array([1.0, 2.0]), np.array([1.0, np.nan])),
                 Frequency.MONTHLY,
             )
@@ -280,7 +243,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _axys_exception(
                 self,
-                errs.ERROR_502_MISSING_REQUIRED_COLUMNS,
+                errs.ERRORS[502],
                 "error_502_portperf.csv",
                 "imex_secperf.csv",
             )
@@ -291,7 +254,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _axys_exception(
                 self,
-                errs.ERROR_502_MISSING_REQUIRED_COLUMNS,
+                errs.ERRORS[502],
                 "imex_portperf.csv",
                 "error_502_secperf.csv",
             )
@@ -302,7 +265,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _axys_exception(
                 self,
-                errs.ERROR_503_COULD_NOT_DERIVE_WEIGHTS,
+                errs.ERRORS[503],
                 "error_503_a_portperf.csv",
                 "error_503_a_secperf.csv",
             )
@@ -313,7 +276,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             _axys_exception(
                 self,
-                errs.ERROR_503_COULD_NOT_DERIVE_WEIGHTS,
+                errs.ERRORS[503],
                 "error_503_b_portperf.csv",
                 "error_503_b_secperf.csv",
             )
@@ -323,26 +286,19 @@ class Test(unittest.TestCase):
     def test_802(self) -> None:
         """Test error 802."""
         self.assertTrue(
-            _attribution_exception(
-                self,
-                "_does_not_exist_",
-                "aapl_daily.csv",
-                errs.ERROR_802_FILE_PATH_DOES_NOT_EXIST,
-            )
+            _attribution_exception(self, "_does_not_exist_", "aapl_daily.csv", errs.ERRORS[802])
         )
 
     def test_803(self) -> None:
         """Test error 803."""
         self.assertTrue(
-            _performance_exception(
-                self, "aapl_daily.csv", errs.ERROR_803_CANNOT_CONVERT_TO_A_DATE, "2020-aa-bb"
-            )
+            _performance_exception(self, "aapl_daily.csv", errs.ERRORS[803], "2020-aa-bb")
         )
 
     def test_804(self) -> None:
         """Test error 804."""
-        assert util.file_path_error(util.EMPTY) == errs.ERROR_804_MISSING_DATA_SOURCE
-        print(errs.ERROR_804_MISSING_DATA_SOURCE)
+        assert util.file_path_error(util.EMPTY) == errs.ERRORS[804]
+        print(errs.ERRORS[804])
 
     ############################## Test cases for utilities.py ##############################
     def test_are_near(self) -> None:
@@ -360,11 +316,11 @@ class Test(unittest.TestCase):
         """
         with self.assertRaises(errs.PpaError) as cm:
             _ = util.carino_linking_coefficient(-1.0, 0.03)
-        self.assertIn(errs.ERROR_203_UNDEFINED_RETURN, str(cm.exception))
+        self.assertIn(errs.ERRORS[203], str(cm.exception))
 
         with self.assertRaises(errs.PpaError) as cm:
             _ = util.carino_linking_coefficient(0.05, -1.0)
-        self.assertIn(errs.ERROR_203_UNDEFINED_RETURN, str(cm.exception))
+        self.assertIn(errs.ERRORS[203], str(cm.exception))
 
     def test_carino_linking_coefficient_valid(self) -> None:
         """

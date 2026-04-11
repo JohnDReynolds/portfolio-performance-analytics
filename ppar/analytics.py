@@ -19,7 +19,6 @@ import polars as pl
 from ppar.attribution import Attribution
 import ppar.columns as cols
 from ppar.columns import CON, RET, WGT
-import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.frequency import Frequency, date_matches_frequency
 from ppar.mapping import Mapping
@@ -265,7 +264,7 @@ class Analytics:
 
         # Assert that there is at least one subperiod.
         if len(subperiod_dates) == 0:
-            raise errs.PpaError(f"{errs.ERROR_202_NO_REPORTABLE_DATES}{message_suffix}")
+            raise PpaError(message_suffix, 202)
 
         # Return the common beginning and ending dates that define the subperiods.
         return subperiod_dates
@@ -473,7 +472,7 @@ class Analytics:
             (not util.is_empty(self._performances[0].classification_name))
             or (not util.is_empty(self._performances[1].classification_name))
         ):
-            raise errs.PpaError(errs.ERROR_252_MUST_SPECIFY_CLASSIFICATION_NAME)
+            raise PpaError("", 252)
 
         # Return the attribution if it already exists in the cache.
         if classification_name in self._attributions:

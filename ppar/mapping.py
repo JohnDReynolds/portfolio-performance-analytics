@@ -48,7 +48,7 @@ class Mapping:
             data_source,
             column_names=cols.FROM_TO_COLUMNS,
             needed_items=from_items_to_map,
-            error_message=errs.ERROR_353_MAPPING_MUST_CONTAIN_2_COLUMNS,
+            error_message=errs.ERRORS[353],
         )
 
         # Turn the from_tos dataframe into a dictionary.

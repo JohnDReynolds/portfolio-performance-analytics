@@ -27,7 +27,7 @@ from scipy.stats import norm  # type: ignore
 
 # Project Imports
 import ppar.columns as cols
-import ppar.errors as errs
+from ppar.errors import PpaError
 from ppar.frequency import Frequency, periods_per_year
 from ppar.performance import Performance
 import ppar.utilities as util
@@ -140,12 +140,12 @@ class RiskStatistics:
                 Defaults to (util.DEFAULT_PORTFOLIO_VALUE, util.DEFAULT_CURRENCY_SYMBOL).
 
         Raises:
-            errs.PpaError: Error if frequency is invalid.
+            PpaError: Error if frequency is invalid.
         """
         # Set and validate the frequency.
         self._frequency = frequency
         if self._frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
-            raise errs.PpaError(f"{errs.ERROR_402_INVALID_FREQUENCY}{self._frequency}")
+            raise PpaError(f"{self._frequency}", 402)
 
         # Set the currency symbol used when presenting the VaR.
         self._currency_symbol = portfolio_value[1]
@@ -169,27 +169,22 @@ class RiskStatistics:
             self._performances_to_audit: tuple[Performance, Performance] = tuple()  # type: ignore
         else:
             # Should never reach here.
-            errs.raise_unexpected("Unknown returns type in RiskStatistics constructor.")
+            raise PpaError("Unknown returns type in RiskStatistics constructor.", 999)
 
         # Now that self._portfolio_returns has been established, set self._quantity_of_returns.
         self._quantity_of_returns = len(self._portfolio_returns)
 
         # Validate that the portfolio and benchmark have the same quantity of returns.
         if self._quantity_of_returns != len(self._benchmark_returns):
-            raise errs.PpaError(
-                f"{errs.ERROR_404_PORTFOLIO_BENCHMARK_RETURNS_QTY_NOT_EQUAL}"
-                f"{self._quantity_of_returns} <> {len(self._benchmark_returns)}"
-            )
+            raise PpaError(f"{self._quantity_of_returns} <> {len(self._benchmark_returns)}", 404)
 
         # Validate that there are enough returns.
         if self._quantity_of_returns < _MINIMUM_QUANTITY_OF_RETURNS:
-            raise errs.PpaError(
-                f"{errs.ERROR_403_INSUFFICIENT_QUANTITY_OF_RETURNS}{self._quantity_of_returns}"
-            )
+            raise PpaError(f"{self._quantity_of_returns}", 403)
 
         # Validate that there are not any NaN values.
         if np.any(np.isnan(self._portfolio_returns)) or np.any(np.isnan(self._benchmark_returns)):
-            raise errs.PpaError(f"{errs.ERROR_405_NAN_VALUES}")
+            raise PpaError("", 405)
 
         # Get all statistic values.
         statistic_values = self._calculate_all_statistics(

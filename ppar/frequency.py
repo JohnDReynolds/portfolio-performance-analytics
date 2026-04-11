@@ -8,7 +8,7 @@ import datetime as dt
 from enum import Enum
 
 # Project imports
-import ppar.errors as errs
+from ppar.errors import PpaError
 
 
 class Frequency(Enum):
@@ -81,4 +81,4 @@ def periods_per_year(frequency: Frequency) -> int:
             return 1
         case _:  # Frequncy.AS_OFTEN_AS_POSSIBLE
             # Should never reach here since this method should not be called with that frequency
-            raise errs.PpaError(f"{errs.ERROR_999_UNEXPECTED}Unhandled Frequency {frequency}")
+            raise PpaError(f"Unhandled Frequency {frequency}", 999)

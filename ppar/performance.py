@@ -13,7 +13,7 @@ import polars as pl
 # Project Imports
 import ppar.columns as cols
 from ppar.columns import CON, RET, WGT
-import ppar.errors as errs
+from ppar.errors import PpaError
 import ppar.utilities as util
 
 
@@ -87,9 +87,10 @@ class Performance:
 
         # Validate the dates.
         if beginning_date > ending_date:
-            raise errs.PpaError(
-                f"{errs.ERROR_111_INVALID_DATES}{self.error_message_context}: "
-                f"Beginning date {beginning_date} is after ending date {ending_date}."
+            raise PpaError(
+                f"{self.error_message_context}: "
+                f"Beginning date {beginning_date} is after ending date {ending_date}.",
+                111,
             )
 
         # Load the data.
@@ -102,9 +103,7 @@ class Performance:
 
         # Assert that there is at least 1 row.
         if self.df.shape[0] == 0:
-            raise errs.PpaError(
-                f"{errs.ERROR_103_NO_PERFORMANCE_ROWS}{self.error_message_context}"
-            )
+            raise PpaError(self.error_message_context, 103)
 
         # Remove extraneous columns, clean and validate columns.
         self._clean_and_validate_columns()
@@ -145,9 +144,7 @@ class Performance:
 
         # Assert that the weights sum to 1.0.
         if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
-            raise errs.PpaError(
-                f"{errs.ERROR_108_WEIGHTS_DO_NOT_SUM_TO_1}{self.error_message_context}"
-            )
+            raise PpaError(self.error_message_context, 108)
 
         # self._df_overall is one row for the entire overall period.
         self._df_overall = pl.DataFrame()
@@ -156,7 +153,7 @@ class Performance:
         """Audit the Performance (self)."""
         # Assert that the weights sum to 1.0
         if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
-            errs.raise_unexpected("Perf.audit(): Weights do not sum to 1.0.")
+            raise PpaError("Perf.audit(): Weights do not sum to 1.0.", 999)
 
         # If not perf.subperiods_have_been_consolidated, then validate that weight * return
         # == contrib.  Note that this cannot be direcly checked in the Performance constructor
@@ -166,11 +163,11 @@ class Performance:
                 lambda column_name: f"{column_name[:-4]}.con"
             )
             if not contribs.equals(self.df[self.col_names(CON)]):
-                errs.raise_unexpected("Perf.audit(): weight * return != contrib.")
+                raise PpaError("Perf.audit(): weight * return != contrib.", 999)
             if not (
                 self.df[cols.TOTAL_RETURN].round(11) == contribs.sum_horizontal().round(11)
             ).all():
-                errs.raise_unexpected("Perf.audit(): contribs != total return.")
+                raise PpaError("Perf.audit(): Sum of contributions != total return.", 999)
 
     @staticmethod
     def audit_performances(
@@ -200,19 +197,19 @@ class Performance:
         # Assert that the portfolio and benchmark have the same dates and days.
         dates_days = (cols.BEGINNING_DATE, cols.ENDING_DATE, cols.QUANTITY_OF_DAYS)
         if not portfolio.df[dates_days].equals(benchmark.df[dates_days]):
-            errs.raise_unexpected("audit_perfs(): Portfolio and Benchmark dates are not equal.")
+            raise PpaError("audit_perfs(): Portfolio and Benchmark dates are not equal.", 999)
 
         # Assert that the portfolio/benchmark dates are equal to the expected dates.
         if not (
             portfolio.df[cols.BEGINNING_DATE][0] == expected_beginning_date
             and portfolio.df[cols.ENDING_DATE][-1] == expected_ending_date
         ):
-            errs.raise_unexpected("audit_perfs(): Date logic error.")
+            raise PpaError("audit_perfs(): Date logic error.", 999)
 
         # Assert that the portfolio and benchmark both have the same common_classification_name.
         if not util.is_empty(common_classification_name):
             if portfolio.classification_name != benchmark.classification_name:
-                errs.raise_unexpected("audit_perfs(): Common classification name error.")
+                raise PpaError("audit_perfs(): Common classification name error.", 999)
 
     def _calculate_df_overall(self) -> pl.DataFrame:
         """
@@ -286,10 +283,10 @@ class Performance:
                 try:
                     self.df = self.df.with_columns(pl.col(col_name).cast(dtype))
                 except pl.exceptions.InvalidOperationError as e:
-                    raise errs.PpaError(
-                        f"{errs.ERROR_110_INVALID_PERFORMANCE_DATA_FORMAT}"
+                    raise PpaError(
                         f"{self.error_message_context}: "
-                        f"Cannot convert the column '{col_name}' to a {dtype}, {str(e)[:1000]}"
+                        f"Cannot convert the column '{col_name}' to a {dtype}, {str(e)[:1000]}",
+                        110,
                     ) from e
 
         # Assert that there are not any missing (None) or NaN values.
@@ -299,7 +296,7 @@ class Performance:
             .collect()
             .item()
         ):
-            raise errs.PpaError(f"{errs.ERROR_104_MISSING_VALUES}{self.error_message_context}")
+            raise PpaError(self.error_message_context, 104)
 
     def _clean_and_validate_columns(self) -> None:
         """Clean and validate the columns."""
@@ -309,18 +306,13 @@ class Performance:
 
         # Assert that there is at least one return.
         if len(return_col_names) == 0:
-            raise errs.PpaError(
-                f"{errs.ERROR_109_NO_RETURNS_OR_WEIGHTS}{self.error_message_context}"
-            )
+            raise PpaError(self.error_message_context, 109)
 
         # Assert that columns.ret == columns.wgt.  Note that polars does not allow for
         # duplicate col_names.
         identifiers = [col[:-4] for col in return_col_names]
         if identifiers != [col[:-4] for col in weight_col_names]:
-            raise errs.PpaError(
-                f"{errs.ERROR_107_RETURN_COLUMNS_NOT_EQUAL_TO_WEIGHT_COLUMNS}"
-                f"{self.error_message_context}"
-            )
+            raise PpaError(self.error_message_context, 107)
 
         # Select only the column names that are needed.  This will drop any un-needed columns.
         self.df = self.df.select(cols.DATE_COLUMNS + return_col_names + weight_col_names)
@@ -342,7 +334,7 @@ class Performance:
 
         # Assert that there are no duplicate ending_dates.
         if self.df.shape[0] != qty_uniques:
-            raise errs.PpaError(self.error_message_context, 102)
+            raise PpaError(self.error_message_context, 102)
 
         # Typically, beginning_date[i] == ending_date[i - 1].  This is non-inclusive of
         # beginning_date, but inclusive of ending_date.  The following block will allow for
@@ -367,10 +359,7 @@ class Performance:
             .collect()
         )
         if date_sequences[cols.BEGINNING_DATE].sum() != 0:
-            raise errs.PpaError(
-                f"{errs.ERROR_105_BEGINNING_DATES_GREATER_THAN_ENDING_DATES}"
-                f"{self.error_message_context}"
-            )
+            raise PpaError(self.error_message_context, 105)
 
         # Assert that there are no discontinuous time periods (date gaps).
         discontinuous_time_periods = (
@@ -379,9 +368,7 @@ class Performance:
             .collect()
         )
         if discontinuous_time_periods[cols.BEGINNING_DATE].sum() != 0:
-            raise errs.PpaError(
-                f"{errs.ERROR_106_DISCONTINUOS_TIME_PERIODS}{self.error_message_context}"
-            )
+            raise PpaError(self.error_message_context, 106)
 
     def col_names(self, suffix: str) -> list[str]:
         """
@@ -530,7 +517,7 @@ class Performance:
         if isinstance(data_source, str):
             # Assert that the data file path exists.
             if not util.file_path_exists(data_source):
-                raise errs.PpaError(util.file_path_error(data_source))
+                raise PpaError(util.file_path_error(data_source), None)
             # Default the name to the file name
             if util.is_empty(name):
                 name = util.file_basename_without_extension(data_source)

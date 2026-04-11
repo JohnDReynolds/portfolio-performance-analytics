@@ -63,7 +63,7 @@ class Classification:
                 data_source,
                 column_names=cols.CLASSIFICATION_COLUMNS,
                 needed_items=needed_items,
-                error_message=errs.ERROR_302_CLASSIFICATION_MUST_CONTAIN_2_COLUMNS,
+                error_message=errs.ERRORS[302],
             )
 
     @staticmethod
