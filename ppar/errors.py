@@ -49,7 +49,7 @@ class PpaError(Exception):
         code: Optional integer error code for programmatic handling.
     """
 
-    def __init__(self, message: str, code: int | None) -> None:  # TODO: Not None
+    def __init__(self, message: str, code: int | None) -> None:
         """Initialize the error.
 
         Args:
