@@ -127,6 +127,8 @@ class Analytics:
         # if they do not have a benchmark.
         if util.is_empty(benchmark_data_source):
             benchmark_data_source = portfolio_data_source
+            benchmark_name = portfolio_name
+            benchmark_classification_name = portfolio_classification_name
 
         # Convert the dates to dt.date types.
         beginning_date = util.convert_to_date(beginning_date)

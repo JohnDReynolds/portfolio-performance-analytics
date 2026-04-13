@@ -1025,9 +1025,9 @@ def _axys_exception(
         AxysData(
             test_util.axys_data_path(portperf_file_name),
             test_util.axys_data_path(secperf_file_name),
-            portfolio_code,
-            from_date,
-            thru_date,
+            portfolio_code=portfolio_code,
+            from_date=from_date,
+            thru_date=thru_date,
         )
         # RiskStatistics(returns, frequency, minimum_acceptable_return)
     print()

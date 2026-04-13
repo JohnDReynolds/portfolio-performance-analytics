@@ -1,0 +1,37 @@
+{
+    "classifications": {
+        "security": {
+            "file_name": "imex_secperf.csv",
+            "Classification_Identifier": "SECURITY_ID",
+            "Classification_Name": "SECURITY_NAME"
+        },
+        "sector": {
+            "file_name": "imex_classification_lookup.csv",
+            "filters:": {
+                "CLASSIFICATION_TYPE": "SECTOR"
+            },
+            "Classification_Identifier": "CODE",
+            "Classification_Name": "DESCRIPTION"
+        }
+    },
+    "processing_rules": {
+        "prefix_portfolio_code": " - "
+    },
+    "portperf_columns": {
+        "FROM_DATE": "beginning_date",
+        "THRU_DATE": "ending_date",
+        "PORTFOLIO_CODE": "portfolio_code",
+        "PORTFOLIO_NAME": "portfolio_name",
+        "PORT_RETURN": "Portfolio_Return"
+    },
+    "secperf_columns": {
+        "BEGIN_MV": "begin_mv",
+        "BEGIN_WEIGHT": "begin_weight",
+        "CONTRIBUTION_W_X_R": "contribution_w_x_r",
+        "FROM_DATE": "beginning_date",
+        "PORTFOLIO_CODE": "portfolio_code",
+        "SEC_RETURN": "return",
+        "SECURITY_ID": "identifier",
+        "THRU_DATE": "ending_date"
+    }
+}
