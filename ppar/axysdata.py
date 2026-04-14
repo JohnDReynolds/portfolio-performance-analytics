@@ -5,7 +5,8 @@ from __future__ import annotations
 # Python imports
 import datetime as dt
 import math
-from typing import Final, Sequence
+import os
+from typing import Any, Final
 
 # Third-party imports
 import polars as pl
@@ -21,46 +22,48 @@ _OVERALL_PERIODS_TOLERANCE = 0.0001  # 1 basis point
 _PERIOD_TOLERANCE: Final[float] = 0.000001  # 1/100 of a basis point
 _RETURN_EPSILON: Final[float] = 1e-12
 
-_ANALYTICS_REQUIRED_COLUMNS: Final[tuple[str, ...]] = (
+_ANALYTICS_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.BEGINNING_DATE,
     cols.ENDING_DATE,
-    cols.RETURN,
     cols.IDENTIFIER,
+    cols.RETURN,
     cols.WEIGHT,
+}
+_PERIOD_UNIQUE_KEY_COLUMNS: Final[tuple[str, ...]] = (
+    cols.PORTFOLIO_CODE,
+    cols.BEGINNING_DATE,
+    cols.ENDING_DATE,
 )
-
-_PORTPERF_REQUIRED_COLUMNS: Final[tuple[str, ...]] = (
+_PORTPERF_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.BEGINNING_DATE,
     cols.ENDING_DATE,
     cols.PORTFOLIO_CODE,
     cols.PORTFOLIO_NAME,
     cols.PORTFOLIO_RETURN,
-)
-
-_SECPERF_REQUIRED_COLUMNS: Final[tuple[str, ...]] = (
+}
+_SECPERF_REQUIRED_COLUMNS: Final[set[str]] = {
+    cols.BEGINNING_DATE,
     cols.BEGIN_MV,
     cols.BEGIN_WEIGHT,
     cols.CONTRIBUTION_W_X_R,
-    cols.BEGINNING_DATE,
+    cols.ENDING_DATE,
+    cols.IDENTIFIER,
     cols.PORTFOLIO_CODE,
     cols.RETURN,
-    cols.IDENTIFIER,
+}
+_SECPERF_UNIQUE_KEY_COLUMNS: Final[tuple[str, ...]] = (
+    cols.PORTFOLIO_CODE,
+    cols.BEGINNING_DATE,
     cols.ENDING_DATE,
+    cols.IDENTIFIER,
 )
-
-_SECPERF_WEIGHT_RETURN_COLUMNS: Final[tuple[str, ...]] = (
-    cols.CONTRIBUTION_W_X_R,
+_SECPERF_WEIGHT_RETURN_COLUMNS: Final[set[str]] = {
     cols.BEGIN_MV,
     cols.BEGIN_WEIGHT,
-    cols.RETURN,
+    cols.CONTRIBUTION_W_X_R,
     cols.IDENTIFIER,
-)
-
-_PERIOD_KEY_COLUMNS: Final[tuple[str, ...]] = (
-    cols.PORTFOLIO_CODE,
-    cols.BEGINNING_DATE,
-    cols.ENDING_DATE,
-)
+    cols.RETURN,
+}
 
 UnreconciledPeriodType = tuple[tuple[str, dt.date, dt.date], float, float]
 
@@ -95,12 +98,13 @@ class AxysData:
 
     def __init__(
         self,
+        axysdata_json_path: str,
         portperf_path: str,
         secperf_path: str,
-        axysdata_json_path: str | None = None,
         portfolio_code: str | None = None,
         from_date: dt.date | None = None,
         thru_date: dt.date | None = None,
+        classification_name: str | None = None,
     ) -> None:
         """Initialize AxysData and load/validate all requested data.
 
@@ -117,39 +121,33 @@ class AxysData:
         Raises:
             PpaError: If any validation fails or if file/schema validation fails.
         """
-        # Get the axysdata specifications from the json if provided.
-        axysdata_json: dict[str, dict[str, str]] | None = (
-            util.read_dict_from_json_file(axysdata_json_path)
-            if axysdata_json_path is not None
-            else {}
-        )
+        # Get the axysdata specifications from the json.
+        # axysdata_json: dict[str, Any] = util.read_json_file(axysdata_json_path)
 
         # Set the class members.
+        self.axysdata_json: dict[str, Any] = util.read_json_file(axysdata_json_path)
+        self.classification_name = classification_name
+        self.directory = os.path.dirname(axysdata_json_path)
         self.from_date: dt.date | None = from_date
-        # self.portperf_columns: dict[str, str] = axysdata_json.get("portperf_columns", {})
         self.portperf_path: str = portperf_path
         self.portfolio_code: str | None = portfolio_code
-        self.processing_rules = axysdata_json.get("processing_rules", {})
-        # self.secperf_columns = axysdata_json.get("secperf_columns", {})
+        self.processing_rules = self.axysdata_json.get("settings", {})
         self.secperf_path: str = secperf_path
         self.thru_date: dt.date | None = thru_date
 
-        # Load portperf and secperf data.
-        self.portperf: pl.DataFrame = self._scan_csv_selected_columns(
-            self.portperf_path,
-            _PORTPERF_REQUIRED_COLUMNS,
-            axysdata_json.get("portperf_columns", {}),
+        # Get classification_data_source.
+        self.classification_data_source = self._get_classification_data_source()
+
+        # Get portperf and secperf data.
+        self.portperf: pl.DataFrame = self._get_performance(
+            self.portperf_path, _PORTPERF_REQUIRED_COLUMNS, "portperf_columns"
         )
-        self.secperf: pl.DataFrame = self._scan_csv_selected_columns(
-            self.secperf_path,
-            _SECPERF_REQUIRED_COLUMNS,
-            axysdata_json.get("secperf_columns", {}),
+        self.secperf: pl.DataFrame = self._get_performance(
+            self.secperf_path, _SECPERF_REQUIRED_COLUMNS, "secperf_columns"
         )
 
         # Validate
         self._validate_secperf_uniqueness(self.secperf)
-        # self._validate_portperf_row_date_order(self.portperf)
-        # self._validate_portperf_continuous_periods(self.portperf)
         self._validate_secperf_periods_match_portperf(self.portperf, self.secperf)
 
         # Derive the secperf weights.
@@ -232,7 +230,7 @@ class AxysData:
         if secperf_df.height == 0:
             raise PpaError(self._error_message("secperf_df must contain at least one row."), 999)
 
-        working_df = secperf_df.select(list(_SECPERF_WEIGHT_RETURN_COLUMNS)).with_columns(
+        working_df = secperf_df.select(_SECPERF_WEIGHT_RETURN_COLUMNS).with_columns(
             pl.col(cols.RETURN).cast(pl.Float64, strict=False).fill_null(0.0),
             pl.col(cols.CONTRIBUTION_W_X_R).cast(pl.Float64, strict=False).fill_null(0.0),
             pl.col(cols.BEGIN_WEIGHT).cast(pl.Float64, strict=False).fill_null(float("nan")),
@@ -345,7 +343,7 @@ class AxysData:
                 missing secperf rows for a portperf period, or incomplete weight assignment.
         """
         dup_periods = (
-            self.portperf.group_by(list(_PERIOD_KEY_COLUMNS)).len().filter(pl.col("len") > 1)
+            self.portperf.group_by(_PERIOD_UNIQUE_KEY_COLUMNS).len().filter(pl.col("len") > 1)
         )
         if dup_periods.height > 0:
             raise PpaError(
@@ -357,8 +355,7 @@ class AxysData:
 
         secperf_with_row_idx = self.secperf.with_row_index(name="_ROW_IDX")
         secperf_lookup = secperf_with_row_idx.partition_by(
-            list(_PERIOD_KEY_COLUMNS),
-            as_dict=True,
+            _PERIOD_UNIQUE_KEY_COLUMNS, as_dict=True
         )
 
         adjusted_weight_values: list[float] = [float("nan")] * self.secperf.height
@@ -420,11 +417,32 @@ class AxysData:
         """Return a finite float or a default fallback value."""
         return value if math.isfinite(value) else default
 
-    def _scan_csv_selected_columns(
+    def _get_classification_data_source(self) -> pl.DataFrame:
+        """xxx"""
+        # TODO: Test case for error 504
+        classification_data_source = pl.DataFrame()
+        if self.classification_name:
+            classifications: dict[str, dict[str, str]] = self.axysdata_json.get(
+                "classifications", {}
+            )
+            if self.classification_name in classifications:
+                classification_dict: dict[str, str] = classifications[self.classification_name]
+                if {"file_path", "Classification_Identifier", "Classification_Name"}.issubset(
+                    classification_dict
+                ):
+                    # Make sure that file_path exists.
+                    file_path: str = classification_dict["file_path"]
+                    if not util.has_directory(file_path):
+                        file_path = os.path.join(self.directory, file_path)
+                    if not util.file_path_exists(file_path):
+                        raise PpaError(self._error_message(util.file_path_error(file_path)), None)
+        return classification_data_source
+
+    def _get_performance(
         self,
         file_path: str,
-        requested_columns: Sequence[str],
-        column_name_mappings: dict[str, str],
+        requested_columns: set[str],
+        column_name_mappings_name: str,
     ) -> pl.DataFrame:
         """Read a CSV lazily, project only requested columns, and apply instance filters.
 
@@ -439,27 +457,35 @@ class AxysData:
             PpaError: If one or more requested columns are missing.
         """
         # Make sure that file_path exists.
+        if not util.has_directory(file_path):
+            file_path = os.path.join(self.directory, file_path)
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
-        # Default column_name_mappings to map requested_columns to requested_columns.
-        if not column_name_mappings:
-            column_name_mappings = {col: col for col in requested_columns}
+        # Make sure that you have all of the requested columns.
+        missing_columns: set[str] = set()
+        column_name_mappings = self.axysdata_json.get(column_name_mappings_name, {})
+        available_columns = set(column_name_mappings)
+        if len(column_name_mappings) == len(requested_columns):
+            missing_columns = requested_columns - available_columns
+            if not missing_columns:
+                # Reverse keys/values in column_name_mappings
+                column_name_mappings = {v: k for k, v in column_name_mappings.items()}
+                # Get the mapped column names.
+                header_df: pl.DataFrame = pl.read_csv(file_path, n_rows=0)
+                available_columns = {
+                    column_name_mappings[col]
+                    for col in column_name_mappings
+                    if col in header_df.columns
+                }
+                # Make sure that all of the requested_columns exist.
+                missing_columns = requested_columns - available_columns
 
-        # Get the mapped column names.
-        header_df: pl.DataFrame = pl.read_csv(file_path, n_rows=0)
-        available_columns: set[str] = {
-            column_name_mappings.get(col, col) for col in header_df.columns
-        }
-
-        # Make sure that all of the requested_columns exist.
-        missing_columns: list[str] = [
-            col for col in requested_columns if col not in available_columns
-        ]
+        # Raise an error if you do not have all of the requested columns.
         if missing_columns:
             raise PpaError(
                 self._error_message(
-                    f"Missing {missing_columns} in {file_path!r}.  |  "
+                    f"Missing {sorted(missing_columns)} in {file_path!r}.  |  "
                     f"Columns available are: {sorted(available_columns)}"
                 ),
                 502,
@@ -736,29 +762,28 @@ class AxysData:
         secperf_df: pl.DataFrame,
     ) -> None:
         """Validate that secperf has exactly the same distinct periods as portperf."""
-        portperf_periods: pl.DataFrame = (
-            portperf_df.select(list(_PERIOD_KEY_COLUMNS)).unique().sort(list(_PERIOD_KEY_COLUMNS))
-        )
-
-        secperf_periods: pl.DataFrame = (
-            secperf_df.select(list(_PERIOD_KEY_COLUMNS)).unique().sort(list(_PERIOD_KEY_COLUMNS))
-        )
+        portperf_periods: pl.DataFrame = portperf_df.select(_PERIOD_UNIQUE_KEY_COLUMNS).unique()
+        secperf_periods: pl.DataFrame = secperf_df.select(_PERIOD_UNIQUE_KEY_COLUMNS).unique()
 
         missing_in_secperf: pl.DataFrame = portperf_periods.join(
             secperf_periods,
-            on=list(_PERIOD_KEY_COLUMNS),
+            on=_PERIOD_UNIQUE_KEY_COLUMNS,
             how="anti",
-        ).sort(list(_PERIOD_KEY_COLUMNS))
+        )
 
         extra_in_secperf: pl.DataFrame = secperf_periods.join(
             portperf_periods,
-            on=list(_PERIOD_KEY_COLUMNS),
+            on=_PERIOD_UNIQUE_KEY_COLUMNS,
             how="anti",
-        ).sort(list(_PERIOD_KEY_COLUMNS))
+        )
 
         if missing_in_secperf.height > 0 or extra_in_secperf.height > 0:
-            missing_sample: list[dict[str, object]] = missing_in_secperf.head(10).to_dicts()
-            extra_sample: list[dict[str, object]] = extra_in_secperf.head(10).to_dicts()
+            missing_sample: list[dict[str, object]] = (
+                missing_in_secperf.sort(_PERIOD_UNIQUE_KEY_COLUMNS).head(10).to_dicts()
+            )
+            extra_sample: list[dict[str, object]] = (
+                extra_in_secperf.sort(_PERIOD_UNIQUE_KEY_COLUMNS).head(10).to_dicts()
+            )
             raise PpaError(
                 self._error_message(
                     "secperf/portperf period validation failed. "
@@ -772,28 +797,13 @@ class AxysData:
     def _validate_secperf_uniqueness(self, secperf_df: pl.DataFrame) -> None:
         """Validate secperf uniqueness at portfolio/period/security grain."""
         duplicate_rows: pl.DataFrame = (
-            secperf_df.group_by(
-                [
-                    cols.PORTFOLIO_CODE,
-                    cols.BEGINNING_DATE,
-                    cols.ENDING_DATE,
-                    cols.IDENTIFIER,
-                ]
-            )
-            .len()
-            .filter(pl.col("len") > 1)
-            .sort(
-                [
-                    cols.PORTFOLIO_CODE,
-                    cols.BEGINNING_DATE,
-                    cols.ENDING_DATE,
-                    cols.IDENTIFIER,
-                ]
-            )
+            secperf_df.group_by(_SECPERF_UNIQUE_KEY_COLUMNS).len().filter(pl.col("len") > 1)
         )
 
         if duplicate_rows.height > 0:
-            sample_rows: list[dict[str, object]] = duplicate_rows.head(10).to_dicts()
+            sample_rows: list[dict[str, object]] = (
+                duplicate_rows.sort(_SECPERF_UNIQUE_KEY_COLUMNS).head(10).to_dicts()
+            )
             raise PpaError(
                 self._error_message(
                     f"secperf uniqueness validation failed. {cols.PORTFOLIO_CODE}, "
@@ -848,3 +858,75 @@ class AxysData:
             return None
 
         return [weight / total_weight for weight in cleaned_weights]
+
+
+###################################################################### OBSOLETE
+
+# def _validate_secperf_periods_match_portperf(
+#     self,
+#     portperf_df: pl.DataFrame,
+#     secperf_df: pl.DataFrame,
+# ) -> None:
+#     """Validate that secperf has exactly the same distinct periods as portperf."""
+#     portperf_periods: pl.DataFrame = (
+#         portperf_df.select(_PERIOD_KEY_COLUMNS).unique().sort(_PERIOD_KEY_COLUMNS)
+#     )
+
+#     secperf_periods: pl.DataFrame = (
+#         secperf_df.select(_PERIOD_KEY_COLUMNS).unique().sort(_PERIOD_KEY_COLUMNS)
+#     )
+
+#     missing_in_secperf: pl.DataFrame = portperf_periods.join(
+#         secperf_periods, on=_PERIOD_KEY_COLUMNS, how="anti"
+#     ).sort(_PERIOD_KEY_COLUMNS)
+
+#     extra_in_secperf: pl.DataFrame = secperf_periods.join(
+#         portperf_periods, on=_PERIOD_KEY_COLUMNS, how="anti"
+#     ).sort(_PERIOD_KEY_COLUMNS)
+
+#     if missing_in_secperf.height > 0 or extra_in_secperf.height > 0:
+#         missing_sample: list[dict[str, object]] = missing_in_secperf.head(10).to_dicts()
+#         extra_sample: list[dict[str, object]] = extra_in_secperf.head(10).to_dicts()
+#         raise PpaError(
+#             self._error_message(
+#                 "secperf/portperf period validation failed. "
+#                 "secperf must have exactly the same distinct periods as portperf. "
+#                 f"Missing periods in secperf: {missing_sample}. "
+#                 f"Extra periods in secperf: {extra_sample}"
+#             ),
+#             999,
+#         )
+
+# def _validate_secperf_uniqueness(self, secperf_df: pl.DataFrame) -> None:
+#     """Validate secperf uniqueness at portfolio/period/security grain."""
+#     duplicate_rows: pl.DataFrame = (
+#         secperf_df.group_by(
+#             [
+#                 cols.PORTFOLIO_CODE,
+#                 cols.BEGINNING_DATE,
+#                 cols.ENDING_DATE,
+#                 cols.IDENTIFIER,
+#             ]
+#         )
+#         .len()
+#         .filter(pl.col("len") > 1)
+#         .sort(
+#             [
+#                 cols.PORTFOLIO_CODE,
+#                 cols.BEGINNING_DATE,
+#                 cols.ENDING_DATE,
+#                 cols.IDENTIFIER,
+#             ]
+#         )
+#     )
+
+#     if duplicate_rows.height > 0:
+#         sample_rows: list[dict[str, object]] = duplicate_rows.head(10).to_dicts()
+#         raise PpaError(
+#             self._error_message(
+#                 f"secperf uniqueness validation failed. {cols.PORTFOLIO_CODE}, "
+#                 f"{cols.BEGINNING_DATE}, {cols.ENDING_DATE}, {cols.IDENTIFIER} do not "
+#                 f"uniquely identify each row. Sample duplicates: {sample_rows}"
+#             ),
+#             999,
+#         )

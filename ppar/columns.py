@@ -173,7 +173,7 @@ def short_column_name(full_column_name: str) -> str:
         column_name (str): The full column name.
 
     Returns:
-        str: The short column name.
+        str: The shorter column name.
     """
     return (
         full_column_name.replace("Cumulative", "")

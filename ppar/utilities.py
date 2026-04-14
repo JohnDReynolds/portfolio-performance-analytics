@@ -8,6 +8,7 @@ from enum import Enum
 import json
 import math
 import os
+from pathlib import Path
 import tempfile
 import time
 from typing import Any, Sequence, TypeAlias
@@ -53,22 +54,22 @@ class Tolerance(Enum):
     HIGH = 0.0000000000005
 
 
-def junk_apply_column_mapping(
-    lf: pl.LazyFrame,
-    mapping: dict[str, str],
-) -> pl.LazyFrame | set[str]:
-    """Rename columns in a LazyFrame using a mapping.
+# def junk_apply_column_mapping(
+#     lf: pl.LazyFrame,
+#     mapping: dict[str, str],
+# ) -> pl.LazyFrame | set[str]:
+#     """Rename columns in a LazyFrame using a mapping.
 
-    Args:
-        lf: Input LazyFrame.
-        mapping: {old_name: new_name}
+#     Args:
+#         lf: Input LazyFrame.
+#         mapping: {old_name: new_name}
 
-    Returns:
-        LazyFrame with renamed columns or missing columns if mapping contains missing columns.
-    """
-    existing_cols = set(lf.columns)
-    missing = set(mapping.keys()) - existing_cols
-    return missing if missing else lf.rename(mapping)
+#     Returns:
+#         LazyFrame with renamed columns or missing columns if mapping contains missing columns.
+#     """
+#     existing_cols = set(lf.columns)
+#     missing = set(mapping.keys()) - existing_cols
+#     return missing if missing else lf.rename(mapping)
 
 
 def are_near(f1: float, f2: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:
@@ -180,6 +181,11 @@ def file_path_exists(file_path: str) -> bool:
     if is_empty(file_path):
         return False
     return os.path.exists(file_path) and os.path.isfile(file_path)
+
+
+def has_directory(path_str: str) -> bool:
+    """Return True if path_str has a directory."""
+    return Path(path_str).parent != Path(".")
 
 
 def is_empty(thing: Any) -> bool:
@@ -379,7 +385,7 @@ def open_in_browser(html_or_png: str | bytes) -> None:
                 time.sleep(0.2)
 
 
-def read_dict_from_json_file(file_path: str) -> dict[str, Any]:
+def read_json_file(file_path: str) -> dict[str, Any]:
     """Read a JSON file into a Python dictionary.
 
     Args:
@@ -395,6 +401,4 @@ def read_dict_from_json_file(file_path: str) -> dict[str, Any]:
         raise PpaError(file_path_error(file_path), None)
 
     with open(file_path, "r", encoding=ENCODING) as f:
-        data: dict[str, Any] = json.load(f)
-
-    return data
+        return json.load(f)

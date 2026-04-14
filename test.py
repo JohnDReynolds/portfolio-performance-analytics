@@ -246,6 +246,7 @@ class Test(unittest.TestCase):
                 errs.ERRORS[502],
                 "error_502_portperf.csv",
                 "imex_secperf.csv",
+                "axysdata.json",
             )
         )
 
@@ -257,6 +258,7 @@ class Test(unittest.TestCase):
                 errs.ERRORS[502],
                 "imex_portperf.csv",
                 "error_502_secperf.csv",
+                "axysdata.json",
             )
         )
 
@@ -268,6 +270,7 @@ class Test(unittest.TestCase):
                 errs.ERRORS[503],
                 "error_503_a_portperf.csv",
                 "error_503_a_secperf.csv",
+                "axysdata.json",
             )
         )
 
@@ -279,6 +282,7 @@ class Test(unittest.TestCase):
                 errs.ERRORS[503],
                 "error_503_b_portperf.csv",
                 "error_503_b_secperf.csv",
+                "axysdata.json",
             )
         )
 
@@ -1016,6 +1020,7 @@ def _axys_exception(
     error_message: str,
     portperf_file_name: str,
     secperf_file_name: str,
+    axysdata_json_path: str,
     portfolio_code: str | None = None,
     from_date: dt.date | None = None,
     thru_date: dt.date | None = None,
@@ -1023,6 +1028,7 @@ def _axys_exception(
     """Test RiskStatistics exception."""
     with test.assertRaises(errs.PpaError) as context:
         AxysData(
+            test_util.axys_data_path(axysdata_json_path, ".json"),
             test_util.axys_data_path(portperf_file_name),
             test_util.axys_data_path(secperf_file_name),
             portfolio_code=portfolio_code,

@@ -32,6 +32,7 @@ ERRORS = {
     # Axys Errors
     502: "Error 502: Missing required column(s): ",
     503: "Error 503: Could not derive weights for secperf: ",
+    504: "Error 504: Could not get classification: ",
     # General Error Messages
     802: "Error 802: File path does not exist: ",
     803: "Error 803: Cannot convert to a date. ",

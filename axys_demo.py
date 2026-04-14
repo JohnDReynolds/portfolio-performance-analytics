@@ -11,18 +11,39 @@ from ppar.axysdata import AxysData
 from ppar.errors import PpaError
 import ppar.utilities as util
 
+
+# self.assertTrue(
+#     _axys_exception(
+#         self,
+#         errs.ERRORS[503],
+#         "error_503_a_portperf.csv",
+#         "error_503_a_secperf.csv",
+#     )
+# )
+
+# q = AxysData(
+#     "tests/data/axys/error_503_a_portperf.csv",
+#     "tests/data/axys/error_503_a_secperf.csv",
+#     axysdata_json_path="tests/data/axys/axysdata.json",
+#     # test_util.axys_data_path(secperf_file_name),
+#     # portfolio_code=portfolio_code,
+#     # from_date=from_date,
+#     # thru_date=thru_date,
+# )
+
+
 time_start = time.perf_counter()
 
 for portfolio_code in ["PORT_FAIL_EQUAL", "PORT_FAIL_HIGH", "PORT_LARGE", "PORT_SMALL"]:
     try:
         axys_data = AxysData(
-            # "tests/data/axys/error_502_portperf.csv",``
+            "tests/data/axys/axysdata.json",
             "tests/data/axys/imex_portperf.csv",
             "tests/data/axys/imex_secperf.csv",
-            axysdata_json_path="tests/data/axys/axysdata.json",
             portfolio_code=portfolio_code,
             from_date=dt.date(2024, 1, 1),
             thru_date=dt.date(2024, 12, 31),
+            classification_name="Security",
         )
     except PpaError as e:
         print(portfolio_code, e)
@@ -45,58 +66,3 @@ for portfolio_code in ["PORT_FAIL_EQUAL", "PORT_FAIL_HIGH", "PORT_LARGE", "PORT_
     print(portfolio_code, axys_data.unreconciled_periods)
 
 print("Time:", time.perf_counter() - time_start)
-
-
-###################################################################### OBSOLETE
-# import json
-# _PORTPERF_REQUIRED_COLUMNS: Final[tuple[str, ...]] = (
-#     "FROM_DATE",
-#     "PORT_RETURN",
-#     "PORTFOLIO_CODE",
-#     "PORTFOLIO_NAME",
-#     "THRU_DATE",
-# )
-
-# _SECPERF_REQUIRED_COLUMNS: Final[tuple[str, ...]] = (
-#     "BEGIN_MV",
-#     "BEGIN_WEIGHT",
-#     "CONTRIBUTION_W_X_R",
-#     "FROM_DATE",
-#     "PORTFOLIO_CODE",
-#     "SEC_RETURN",
-#     "SECURITY_ID",
-#     "THRU_DATE",
-# )
-
-# dp = {
-#     "FROM_DATE": "beginning_date",
-#     "THRU_DATE": "ending_date",
-#     "PORTFOLIO_CODE": "portfolio_code",
-#     "PORTFOLIO_NAME": "portffolio_name",
-#     "PORT_RETURN": "portfolio_return",
-# }
-# ds = {
-#     "BEGIN_MV": "begin_mv",
-#     "BEGIN_WEIGHT": "begin_weight",
-#     "CONTRIBUTION_W_X_R": "contribution_w_x_r",
-#     "FROM_DATE": "beginning_date",
-#     "PORTFOLIO_CODE": "portfolio_code",
-#     "SEC_RETURN": "return",
-#     "SECURITY_ID": "identifier",
-#     "THRU_DATE": "ending_date",
-# }
-# dn = {
-#     "prefix_portfolio_code": " - ",
-# }
-# ddd = {
-#     "processing_rules": dn,
-#     "portperf_columns": dp,
-#     "secperf_columns": ds,
-# }
-# with open("tests/data/axys/axysdata.json", "w", encoding="utf-8") as f:
-#     json.dump(
-#         ddd,
-#         f,
-#         indent=4,  # readable formatting
-#         # sort_keys=True,    # deterministic output
-#     )

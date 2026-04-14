@@ -1,37 +1,36 @@
 {
     "classifications": {
-        "security": {
-            "file_name": "imex_secperf.csv",
+        "Security": {
+            "file_path": "imex_security_master.csv",
             "Classification_Identifier": "SECURITY_ID",
             "Classification_Name": "SECURITY_NAME"
         },
-        "sector": {
-            "file_name": "imex_classification_lookup.csv",
-            "filters:": {
-                "CLASSIFICATION_TYPE": "SECTOR"
-            },
+        "Sector": {
+            "file_path": "imex_classification_lookup.csv",
+            "filter_column_name": "CLASSIFICATION_TYPE",
+            "filter_column_value": "SECTOR",
             "Classification_Identifier": "CODE",
             "Classification_Name": "DESCRIPTION"
         }
     },
-    "processing_rules": {
-        "prefix_portfolio_code": " - "
-    },
     "portperf_columns": {
-        "FROM_DATE": "beginning_date",
-        "THRU_DATE": "ending_date",
-        "PORTFOLIO_CODE": "portfolio_code",
-        "PORTFOLIO_NAME": "portfolio_name",
-        "PORT_RETURN": "Portfolio_Return"
+        "beginning_date": "FROM_DATE",
+        "ending_date": "THRU_DATE",
+        "portfolio_code": "PORTFOLIO_CODE",
+        "portfolio_name": "PORTFOLIO_NAME",
+        "Portfolio_Return": "PORT_RETURN"
     },
     "secperf_columns": {
-        "BEGIN_MV": "begin_mv",
-        "BEGIN_WEIGHT": "begin_weight",
-        "CONTRIBUTION_W_X_R": "contribution_w_x_r",
-        "FROM_DATE": "beginning_date",
-        "PORTFOLIO_CODE": "portfolio_code",
-        "SEC_RETURN": "return",
-        "SECURITY_ID": "identifier",
-        "THRU_DATE": "ending_date"
+        "begin_mv": "BEGIN_MV",
+        "begin_weight": "BEGIN_WEIGHT",
+        "contribution_w_x_r": "CONTRIBUTION_W_X_R",
+        "beginning_date": "FROM_DATE",
+        "portfolio_code": "PORTFOLIO_CODE",
+        "return": "SEC_RETURN",
+        "identifier": "SECURITY_ID",
+        "ending_date": "THRU_DATE"
+    },
+    "settings": {
+        "prefix_portfolio_code": " - "
     }
 }
