@@ -31,19 +31,19 @@ import ppar.utilities as util
 #     # thru_date=thru_date,
 # )
 
-
+_CLASSIFICATION_SECURITY = "Security"
 time_start = time.perf_counter()
 
 for portfolio_code in ["PORT_FAIL_EQUAL", "PORT_FAIL_HIGH", "PORT_LARGE", "PORT_SMALL"]:
     try:
         axys_data = AxysData(
             "tests/data/axys/axysdata.json",
-            "tests/data/axys/imex_portperf.csv",
-            "tests/data/axys/imex_secperf.csv",
+            "imex_portperf.csv",
+            "imex_secperf.csv",
             portfolio_code=portfolio_code,
             from_date=dt.date(2024, 1, 1),
             thru_date=dt.date(2024, 12, 31),
-            classification_name="Security",
+            classification_name=_CLASSIFICATION_SECURITY,
         )
     except PpaError as e:
         print(portfolio_code, e)
@@ -52,10 +52,17 @@ for portfolio_code in ["PORT_FAIL_EQUAL", "PORT_FAIL_HIGH", "PORT_LARGE", "PORT_
     #     print(portfolio_code, e)
     #     continue
 
-    analytics = Analytics(axys_data.secperf, portfolio_name=axys_data.portfolio_name)
+    analytics = Analytics(
+        axys_data.secperf,
+        portfolio_name=axys_data.portfolio_name,
+        portfolio_classification_name=_CLASSIFICATION_SECURITY,
+    )
 
     # Get the Attribution instance by Security.
-    attribution = analytics.get_attribution()
+    attribution = analytics.get_attribution(
+        classification_name=_CLASSIFICATION_SECURITY,
+        classification_data_source=axys_data.classification_data_source,
+    )
 
     # Get an html string of the overall attribution results by Security.
     html = attribution.to_html(View.OVERALL_ATTRIBUTION)

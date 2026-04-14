@@ -135,9 +135,6 @@ class AxysData:
         self.secperf_path: str = secperf_path
         self.thru_date: dt.date | None = thru_date
 
-        # Get classification_data_source.
-        self.classification_data_source = self._get_classification_data_source()
-
         # Get portperf and secperf data.
         self.portperf: pl.DataFrame = self._get_performance(
             self.portperf_path, _PORTPERF_REQUIRED_COLUMNS, "portperf_columns"
@@ -145,6 +142,9 @@ class AxysData:
         self.secperf: pl.DataFrame = self._get_performance(
             self.secperf_path, _SECPERF_REQUIRED_COLUMNS, "secperf_columns"
         )
+
+        # Get classification_data_source.
+        self.classification_data_source = self._get_classification_data_source()
 
         # Validate
         self._validate_secperf_uniqueness(self.secperf)
@@ -419,24 +419,71 @@ class AxysData:
 
     def _get_classification_data_source(self) -> pl.DataFrame:
         """xxx"""
-        # TODO: Test case for error 504
-        classification_data_source = pl.DataFrame()
-        if self.classification_name:
-            classifications: dict[str, dict[str, str]] = self.axysdata_json.get(
-                "classifications", {}
+        # TODO: Test all test cases for error 504
+        if not self.classification_name:
+            return pl.DataFrame()
+
+        classifications: dict[str, dict[str, str]] = self.axysdata_json.get("classifications", {})
+        if self.classification_name not in classifications:
+            raise PpaError(
+                self._error_message(f"Unknown classification {self.classification_name!r}"),
+                504,
             )
-            if self.classification_name in classifications:
-                classification_dict: dict[str, str] = classifications[self.classification_name]
-                if {"file_path", "Classification_Identifier", "Classification_Name"}.issubset(
-                    classification_dict
-                ):
-                    # Make sure that file_path exists.
-                    file_path: str = classification_dict["file_path"]
-                    if not util.has_directory(file_path):
-                        file_path = os.path.join(self.directory, file_path)
-                    if not util.file_path_exists(file_path):
-                        raise PpaError(self._error_message(util.file_path_error(file_path)), None)
-        return classification_data_source
+
+        classification: dict[str, str] = classifications[self.classification_name]
+        if not {"file_path", "Classification_Identifier", "Classification_Name"}.issubset(
+            classification
+        ):
+            raise PpaError(
+                self._error_message(
+                    f"Missing information for classification {self.classification_name!r}"
+                ),
+                504,
+            )
+
+        # Make sure that file_path exists.
+        file_path: str = classification["file_path"]
+        if not util.has_directory(file_path):
+            file_path = os.path.join(self.directory, file_path)
+        if not util.file_path_exists(file_path):
+            raise PpaError(self._error_message(util.file_path_error(file_path)), None)
+
+        # Get the column name mappings.
+        column_name_mappings = {
+            classification["Classification_Identifier"]: "Classification_Identifier",
+            classification["Classification_Name"]: "Classification_Name",
+        }
+
+        # Get the lazy_frame
+        lf: pl.LazyFrame = (
+            pl.scan_csv(file_path)
+            .rename(column_name_mappings)
+            .select(("Classification_Identifier", "Classification_Name"))
+        )
+
+        # Optionally filter on security ID so you do not load the entire security master.
+        filter_on_security_id = classification.get("filter_on_security_id")
+        if filter_on_security_id:
+            unique_ids = tuple(set(self.secperf[cols.IDENTIFIER]))
+            lf = lf.filter(pl.col("Classification_Identifier").is_in(unique_ids))
+
+        # Optional filter
+        if {"filter_column_name", "filter_column_value"}.issubset(classification):
+            filter_column_name = classification["filter_column_name"]
+            if filter_column_name not in lf.columns:
+                raise PpaError(
+                    self._error_message(
+                        f"Invalid column name {filter_column_name!r} "
+                        f"for classification {self.classification_name!r}"
+                    ),
+                    504,
+                )
+            lf = lf.filter(
+                pl.col(classification["filter_column_name"])
+                == classification["filter_column_value"]
+            )
+
+        return lf.collect()
 
     def _get_performance(
         self,
@@ -495,7 +542,7 @@ class AxysData:
         lazy_frame: pl.LazyFrame = (
             pl.scan_csv(file_path)
             .rename(column_name_mappings)
-            .select(list(requested_columns))
+            .select(requested_columns)
             .with_columns(
                 pl.col(cols.BEGINNING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
                 pl.col(cols.ENDING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),

@@ -3,7 +3,8 @@
         "Security": {
             "file_path": "imex_security_master.csv",
             "Classification_Identifier": "SECURITY_ID",
-            "Classification_Name": "SECURITY_NAME"
+            "Classification_Name": "SECURITY_NAME",
+            "filter_on_security_id": true
         },
         "Sector": {
             "file_path": "imex_classification_lookup.csv",
