@@ -153,7 +153,9 @@ class Performance:
         """Audit the Performance (self)."""
         # Assert that the weights sum to 1.0
         if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
-            raise PpaError("Perf.audit(): Weights do not sum to 1.0.", 999)
+            raise PpaError(
+                f"{self.error_message_context}: Perf.audit() weights do not sum to 1.0.", 999
+            )
 
         # If not perf.subperiods_have_been_consolidated, then validate that weight * return
         # == contrib.  Note that this cannot be direcly checked in the Performance constructor
@@ -163,11 +165,16 @@ class Performance:
                 lambda column_name: f"{column_name[:-4]}.con"
             )
             if not contribs.equals(self.df[self.col_names(CON)]):
-                raise PpaError("Perf.audit(): weight * return != contrib.", 999)
+                raise PpaError(
+                    f"{self.error_message_context}: Perf.audit() weight * return != contrib.", 999
+                )
             if not (
                 self.df[cols.TOTAL_RETURN].round(11) == contribs.sum_horizontal().round(11)
             ).all():
-                raise PpaError("Perf.audit(): Sum of contributions != total return.", 999)
+                raise PpaError(
+                    f"{self.error_message_context}: Perf.audit() sum of contribs != total return.",
+                    999,
+                )
 
     @staticmethod
     def audit_performances(
@@ -432,6 +439,13 @@ class Performance:
         self.classification_items, which might be used later in the Attribution constructor when
         creating the Classification.
 
+        Note:
+            You tried supporting multiple rows for the same identifier, but it got really ugly.
+            So you decided to fail if there are multiple rows for the same identifier.
+            1. What if the weights sum to 0.0, but the returns are different, so there is some
+               contribution.
+            2. What if the cols.CLASSIFICATION_NAME is different for multiple rows of the same
+               identifier?
         Returns:
             tuple[pl.DataFrame, pl.DataFrame]: The wide self.df and self.classification_items.
         """
@@ -440,6 +454,16 @@ class Performance:
             col in self.df.columns for col in (cols.IDENTIFIER, cols.RETURN, cols.WEIGHT)
         ):
             return self.df, pl.DataFrame()
+
+        # Fail fast if there are multiple rows per (date, identifier).
+        duplicate_rows = (
+            self.df.group_by([*cols.DATE_COLUMNS, cols.IDENTIFIER]).len().filter(pl.col("len") > 1)
+        )
+        if duplicate_rows.height > 0:
+            sample_rows: list[dict[str, object]] = (
+                duplicate_rows.sort([*cols.DATE_COLUMNS, cols.IDENTIFIER]).head(10).to_dicts()
+            )
+            raise PpaError(f"{self.error_message_context}: {sample_rows}", 112)
 
         # Create self._classification_items if there is a cols.NAME column.
         # This might be used later if they do not specify a Classification data source.

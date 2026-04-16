@@ -413,7 +413,7 @@ class Analytics:
 
     def get_attribution(
         self,
-        classification_name: str = util.EMPTY,
+        classification_name: str | None = None,
         classification_data_source: util.ClassificationDataSource = util.EMPTY,
         mapping_data_sources: tuple[util.MappingDataSource, util.MappingDataSource] = (
             util.EMPTY,
@@ -456,6 +456,10 @@ class Analytics:
         Returns:
             Attribution: The Attribution instance associated with the classification_name.
         """
+        # Backwards compatibilty for util.is_empty.
+        if classification_name is None:
+            classification_name = util.EMPTY
+
         # If the classification_name is empty, and the portflio and benchmark have common
         # non-empty classification_names, then set the classificcation_name to that common
         # classification_name.

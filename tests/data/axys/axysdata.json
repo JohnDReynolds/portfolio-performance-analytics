@@ -1,17 +1,45 @@
 {
     "classifications": {
+        "BadFilterColumnName": {
+            "file_path": "imex_classification_lookup.csv",
+            "identifier_column": "CODE",
+            "name_column": "DESCRIPTION",
+            "filter_column": "CLASSIFICATION_TYPE_XXX",
+            "filter_value": "SECTOR"
+        },
+        "MissingFilePath": {
+            "identifier_column": "CODE",
+            "name_column": "DESCRIPTION"
+        },
+        "Sector1": {
+            "file_path": "imex_classification_lookup.csv",
+            "identifier_column": "CODE",
+            "name_column": "DESCRIPTION",
+            "filter_column": "CLASSIFICATION_TYPE",
+            "filter_value": "SECTOR"
+        },
+        "Sector2": {
+            "file_path": "imex_security_master.csv",
+            "identifier_column": "SECTOR_CODE",
+            "name_column": "SECTOR_DESC",
+            "security_filter_column": "SECURITY_ID"
+        },
         "Security": {
             "file_path": "imex_security_master.csv",
-            "Classification_Identifier": "SECURITY_ID",
-            "Classification_Name": "SECURITY_NAME",
-            "filter_on_security_id": true
+            "identifier_column": "SECURITY_ID",
+            "name_column": "SECURITY_NAME",
+            "security_filter_column": true
+        }
+    },
+    "mappings": {
+        "SecurityToSector": {
+            "file_path": "imex_security_master.csv",
+            "identifier_column": "SECURITY_ID",
+            "name_column": "SECTOR_CODE",
+            "security_filter_column": true
         },
-        "Sector": {
-            "file_path": "imex_classification_lookup.csv",
-            "filter_column_name": "CLASSIFICATION_TYPE",
-            "filter_column_value": "SECTOR",
-            "Classification_Identifier": "CODE",
-            "Classification_Name": "DESCRIPTION"
+        "BadUnknownField": {
+            "unknown_field_xxx": "imex_security_master.csv"
         }
     },
     "portperf_columns": {

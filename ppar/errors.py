@@ -14,6 +14,7 @@ ERRORS = {
     109: "Error 109: There are no return columns (.ret) or weight columns (.wgt) ",
     110: "Error 110: Invalid Performance data format ",
     111: "Error 111: Beginning Date cannot be after Ending Date: ",
+    112: "Error 112: Duplicate rows for the same period and identifier ",
     # Attribution Class Error Messages
     202: "Error 202: There are no common reportable dates found ",
     203: "Error 203: A return less than zero is undefined. ",
@@ -32,7 +33,8 @@ ERRORS = {
     # Axys Errors
     502: "Error 502: Missing required column(s): ",
     503: "Error 503: Could not derive weights for secperf: ",
-    504: "Error 504: Could not get classification: ",
+    504: "Error 504: Could not get classification/mapping: ",
+    505: "Error 505: Portperf and secperf have no common periods.",
     # General Error Messages
     802: "Error 802: File path does not exist: ",
     803: "Error 803: Cannot convert to a date. ",

@@ -171,7 +171,9 @@ def overall_attribution(table: gt.GT, classification_label: str) -> gt.GT:
         )
         # Standard style theme
         .opt_stylize(style=1)
-        .cols_align(align="left", columns=["Classification_Identifier", "Classification_Name"])
+        .cols_align(
+            align="left", columns=[cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
+        )
     )
 
     # Return the table.
@@ -234,7 +236,9 @@ def subperiod_attribution(table: gt.GT, classification_label: str) -> gt.GT:
         )
         # Standard style theme
         .opt_stylize(style=1)
-        .cols_align(align="left", columns=["Classification_Identifier", "Classification_Name"])
+        .cols_align(
+            align="left", columns=[cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
+        )
     )
 
     # Align the dates.

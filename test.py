@@ -119,6 +119,10 @@ class Test(unittest.TestCase):
             )
         )
 
+    def test_112(self) -> None:
+        """Test error 112: Duplicate identifiers."""
+        self.assertTrue(_performance_exception(self, "error_112.csv", errs.ERRORS[112]))
+
     ############################## Attribution Exceptions ##############################
     def test_202(self) -> None:
         """Test error 202."""
@@ -244,9 +248,9 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[502],
+                "axysdata.json",
                 "error_502_portperf.csv",
                 "imex_secperf.csv",
-                "axysdata.json",
             )
         )
 
@@ -256,9 +260,9 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[502],
+                "axysdata.json",
                 "imex_portperf.csv",
                 "error_502_secperf.csv",
-                "axysdata.json",
             )
         )
 
@@ -268,9 +272,10 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[503],
+                "axysdata.json",
                 "error_503_a_portperf.csv",
                 "error_503_a_secperf.csv",
-                "axysdata.json",
+                portfolio_code="PORT_FAIL_HIGH",
             )
         )
 
@@ -280,9 +285,74 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[503],
+                "axysdata.json",
                 "error_503_b_portperf.csv",
                 "error_503_b_secperf.csv",
+                portfolio_code="PORT_FAIL_EQUAL",
+            )
+        )
+
+    def test_504_a(self) -> None:
+        """Test error 504 for unknown classification."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERRORS[504],
                 "axysdata.json",
+                "imex_portperf.csv",
+                "imex_secperf.csv",
+                classification_name="unknown",
+            )
+        )
+
+    def test_504_b(self) -> None:
+        """Test error 504 for missing file_path specification."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERRORS[504],
+                "axysdata.json",
+                "imex_portperf.csv",
+                "imex_secperf.csv",
+                classification_name="MissingFilePath",
+            )
+        )
+
+    def test_504_c(self) -> None:
+        """Test error 504 for bad filter_column_name."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERRORS[504],
+                "axysdata.json",
+                "imex_portperf.csv",
+                "imex_secperf.csv",
+                classification_name="BadFilterColumnName",
+            )
+        )
+
+    def test_504_d(self) -> None:
+        """Test error 504 for unknown field name."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERRORS[504],
+                "axysdata.json",
+                "imex_portperf.csv",
+                "imex_secperf.csv",
+                mapping_name="BadUnknownField",
+            )
+        )
+
+    def test_505(self) -> None:
+        """Test error 505."""
+        self.assertTrue(
+            _axys_exception(
+                self,
+                errs.ERRORS[505],
+                "axysdata.json",
+                "error_505_portperf.csv",
+                "error_505_secperf.csv",
             )
         )
 
@@ -1018,12 +1088,14 @@ class Test(unittest.TestCase):
 def _axys_exception(
     test: Test,
     error_message: str,
+    axysdata_json_path: str,
     portperf_file_name: str,
     secperf_file_name: str,
-    axysdata_json_path: str,
-    portfolio_code: str | None = None,
+    portfolio_code: str = "PORT_SMALL",
     from_date: dt.date | None = None,
     thru_date: dt.date | None = None,
+    classification_name: str | None = None,
+    mapping_name: str | None = None,
 ) -> bool:
     """Test RiskStatistics exception."""
     with test.assertRaises(errs.PpaError) as context:
@@ -1034,6 +1106,8 @@ def _axys_exception(
             portfolio_code=portfolio_code,
             from_date=from_date,
             thru_date=thru_date,
+            classification_name=classification_name,
+            mapping_name=mapping_name,
         )
         # RiskStatistics(returns, frequency, minimum_acceptable_return)
     print()
