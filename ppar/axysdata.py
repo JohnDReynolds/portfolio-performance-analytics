@@ -37,14 +37,19 @@ _CLASSIFICATION_MAPPING_FIELDS_ALLOWED: Final[set[str]] = {
     "file_path",
     "identifier_column",
     "name_column",
+    "is_security_master",
     "filter_column",
     "filter_value",
-    "security_filter_column",
 }
 _CLASSIFICATION_MAPPING_FIELDS_REQUIRED: Final[set[str]] = {
     "file_path",
     "identifier_column",
     "name_column",
+}
+_CLASSIFICATION_MAPPING_COLUMN_NAMES: Final[set[str]] = {
+    "identifier_column",
+    "name_column",
+    "filter_column",
 }
 _PERIOD_UNIQUE_KEY_COLUMNS: Final[tuple[str, ...]] = (
     cols.PORTFOLIO_CODE,
@@ -60,20 +65,22 @@ _PORTPERF_REQUIRED_COLUMNS: Final[set[str]] = {
 }
 _SECPERF_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.BEGINNING_DATE,
-    cols.BEGIN_MV,
-    cols.BEGIN_WEIGHT,
-    cols.CONTRIBUTION_W_X_R,
+    # cols.BEGINNING_MARKET_VALUE,
+    # cols.BEGINNING_WEIGHT,
+    cols.CONTRIBUTION,
     cols.ENDING_DATE,
     cols.IDENTIFIER,
     cols.PORTFOLIO_CODE,
     cols.RETURN,
+    cols.WEIGHT,
 }
 _SECPERF_WEIGHT_RETURN_COLUMNS: Final[set[str]] = {
-    cols.BEGIN_MV,
-    cols.BEGIN_WEIGHT,
-    cols.CONTRIBUTION_W_X_R,
+    # cols.BEGINNING_MARKET_VALUE,
+    # cols.BEGINNING_WEIGHT,
+    cols.CONTRIBUTION,
     cols.IDENTIFIER,
     cols.RETURN,
+    cols.WEIGHT,
 }
 
 UnreconciledPeriodType = tuple[tuple[str, dt.date, dt.date], float, float]
@@ -105,8 +112,16 @@ class AxysData:
               target_return, achieved_return)
 
     Note:
-        We purposely do not check for duplicate securities in the same period.  This is checked
-        downstream with a PpaError 112.  Checking here would be redundant and confusing.
+        Secperf is treated as row-grain input. Reconciliation operates on each input row exactly
+        as provided and does not require cols.IDENTIFIER to be unique within a period. Multiple
+        rows with the same identifier in the same period are valid inputs for this class and are
+        processed independently.
+
+        This class does not enforce or validate identifier-level uniqueness. Any validation of
+        duplicate identifiers is handled by downstream components (for example, PpaError 112),
+        where identifier-level rules are applied if required. This separation is intentional to
+        keep this class focused on row-level reconciliation logic and to avoid duplicating
+        validation responsibilities.
 
     """
 
@@ -121,7 +136,7 @@ class AxysData:
         classification_name: str | None = None,
         mapping_name: str | None = None,
     ) -> None:
-        """Initialize AxysData and load/validate all requested data.
+        """Initialize AxysData and load/validate all required data.
 
         Args:
             portperf_path: Path to portperf CSV.
@@ -219,6 +234,14 @@ class AxysData:
     ) -> tuple[list[float], float]:
         """Derive single-period security weights with fallbacks.
 
+        The cols.WEIGHT values that Axys sends are often not usable as-is. Their values may be null,
+        non-finite, negative, or not aligned with the contribution and return. In Axys, it is
+        sometimes a beginning weight or beginning market value, which is not what you want for
+        contribution.  This method derives reconciled weights that are aligned with the contribution
+        and return, are nonnegative, and sum to 1.0.  The original cols.WEIGHT is used as a starting
+        fallback when it is nonnegative and numerically finite, even if it is not perfectly aligned
+        with contribution and return.
+
         This implementation is intentionally lean:
             - It returns only the normalized adjusted weights and the achieved return.
             - The caller writes cols.WEIGHT into self.secperf.
@@ -226,9 +249,8 @@ class AxysData:
 
         Fallback order for the anchor weight on each row:
             1. contribution / return, when numerically safe and nonnegative
-            2. cols.BEGIN_WEIGHT, when nonnegative
-            3. cols.BEGIN_MV-based normalized weight, when nonnegative
-            4. equal weight fallback
+            2. cols.WEIGHT, when nonnegative
+            3. equal weight fallback
 
         The preferred reconciliation method is a multiplicative linear tilt:
 
@@ -244,8 +266,7 @@ class AxysData:
 
         Args:
             secperf_df: Single-period secperf DataFrame with required columns:
-                cols.IDENTIFIER, cols.RETURN, cols.CONTRIBUTION_W_X_R, cols.BEGIN_WEIGHT,
-                cols.BEGIN_MV.
+                cols.CONTRIBUTION, cols.IDENTIFIER, cols.RETURN, cols.WEIGHT
             portfolio_return: Single-period portfolio return from portperf.
 
         Returns:
@@ -260,71 +281,46 @@ class AxysData:
         if secperf_df.is_empty():
             raise PpaError(self._error_message("secperf_df must contain at least one row."), 999)
 
-        working_df = secperf_df.select(_SECPERF_WEIGHT_RETURN_COLUMNS).with_columns(
-            pl.col(cols.RETURN).cast(pl.Float64, strict=False).fill_null(0.0),
-            pl.col(cols.CONTRIBUTION_W_X_R).cast(pl.Float64, strict=False).fill_null(0.0),
-            pl.col(cols.BEGIN_WEIGHT).cast(pl.Float64, strict=False).fill_null(float("nan")),
-            pl.col(cols.BEGIN_MV).cast(pl.Float64, strict=False).fill_null(float("nan")),
+        # Get the contributions, returns, and weights.  We convert to lists so the remaining logic
+        # stays in plain Python.
+        contributions = (
+            secperf_df[cols.CONTRIBUTION].cast(pl.Float64, strict=False).fill_null(0.0).to_list()
+        )
+        returns = secperf_df[cols.RETURN].cast(pl.Float64, strict=False).fill_null(0.0).to_list()
+        weights = (
+            secperf_df[cols.WEIGHT]
+            .cast(pl.Float64, strict=False)
+            .fill_null(float("nan"))
+            .to_list()
         )
 
-        returns = [float(value) for value in working_df[cols.RETURN].to_list()]
-        contributions = [float(value) for value in working_df[cols.CONTRIBUTION_W_X_R].to_list()]
-        begin_weights = [float(value) for value in working_df[cols.BEGIN_WEIGHT].to_list()]
-        begin_market_values = [float(value) for value in working_df[cols.BEGIN_MV].to_list()]
-
-        returns = [AxysData._finite_or_default(value, default=0.0) for value in returns]
-        contributions = [
-            AxysData._finite_or_default(value, default=0.0) for value in contributions
-        ]
-        begin_weights = [
-            AxysData._finite_or_default(value, default=float("nan")) for value in begin_weights
-        ]
-        begin_market_values = [
-            AxysData._finite_or_default(value, default=float("nan"))
-            for value in begin_market_values
-        ]
+        # Defensive processing to ensure the lists contain only floats, with nulls filled as
+        # specified.  This is to ensure that the subsequent math operations do not encounter
+        # unexpected values.
+        contributions = [AxysData._finite_or_default(value, 0.0) for value in contributions]
+        returns = [AxysData._finite_or_default(value, 0.0) for value in returns]
+        weights = [AxysData._finite_or_default(value, float("nan")) for value in weights]
 
         derived_weight_raw: list[float | None] = []
         for contribution, sec_return in zip(contributions, returns):
             if abs(sec_return) <= _RETURN_EPSILON:
                 derived_weight_raw.append(None)
                 continue
-
             implied_weight = contribution / sec_return
-            if math.isfinite(implied_weight) and implied_weight >= 0.0:
-                derived_weight_raw.append(implied_weight)
-            else:
-                derived_weight_raw.append(None)
-
-        cleaned_begin_mvs = [
-            begin_mv if math.isfinite(begin_mv) and begin_mv >= 0.0 else 0.0
-            for begin_mv in begin_market_values
-        ]
-        total_begin_mv = sum(cleaned_begin_mvs)
-        if total_begin_mv > 0.0:
-            mv_weights: list[float | None] = [
-                begin_mv / total_begin_mv for begin_mv in cleaned_begin_mvs
-            ]
-        else:
-            mv_weights = [None] * len(cleaned_begin_mvs)
+            derived_weight_raw.append(implied_weight if implied_weight >= 0.0 else None)
 
         anchor_weights: list[float] = []
 
-        for implied_weight, begin_weight, mv_weight in zip(
+        for implied_weight, weight in zip(
             derived_weight_raw,
-            begin_weights,
-            mv_weights,
+            weights,
         ):
             if implied_weight is not None:
                 anchor_weights.append(implied_weight)
                 continue
 
-            if math.isfinite(begin_weight) and begin_weight >= 0.0:
-                anchor_weights.append(begin_weight)
-                continue
-
-            if mv_weight is not None and math.isfinite(mv_weight) and mv_weight >= 0.0:
-                anchor_weights.append(mv_weight)
+            if weight >= 0.0:
+                anchor_weights.append(weight)
                 continue
 
             anchor_weights.append(1.0)
@@ -336,16 +332,10 @@ class AxysData:
 
         anchor_weights = [max(0.0, weight) / anchor_total for weight in anchor_weights]
 
-        # JDR removed on 04/16/26.  Unclear why this was here.
-        # min_return = min(returns)
-        # max_return = max(returns)
-        # effective_target = min(max(portfolio_return, min_return), max_return)
-        effective_target = portfolio_return
-
         adjusted_weights = AxysData._solve_adjusted_weights(
             anchor_weights=anchor_weights,
             returns=returns,
-            target_return=effective_target,
+            target_return=portfolio_return,
         )
 
         adjusted_total = sum(adjusted_weights)
@@ -361,9 +351,10 @@ class AxysData:
     def _derive_secperf_for_all_periods(self) -> set[UnreconciledPeriodType]:
         """Derive reconciled self.secperf weights for all periods.
 
-        This method mutates self.secperf by adding a new cols.WEIGHT column while
-        preserving original row alignment. It uses a single preallocated Python list for
-        the final adjusted weights rather than building one DataFrame per period.
+        This method mutates self.secperf by writing a new cols.WEIGHT column while preserving the
+        original row alignment and original row grain. It does not group, collapse, or validate
+        secperf rows for identifier uniqueness within a period.  It uses a single preallocated
+        Python list for the final adjusted weights rather than building one DataFrame per period.
 
         Returns:
             Set of tuples:
@@ -415,8 +406,9 @@ class AxysData:
                 target_return,
             )
 
-            row_indices = secperf_period["_ROW_IDX"].to_list()
-            for row_idx, adjusted_weight in zip(row_indices, adjusted_weights):
+            for row_idx, adjusted_weight in zip(
+                secperf_period["_ROW_IDX"].to_list(), adjusted_weights
+            ):
                 adjusted_weight_values[int(row_idx)] = adjusted_weight
 
             difference = abs(achieved_return - target_return)
@@ -476,8 +468,8 @@ class AxysData:
         )
 
         if common_periods.is_empty():
-            # The 505 error message includes a long description, so that is why we pass an empty
-            # string to self._error_message().
+            # The 505 error message is already fully descriptive, so we pass an empty string here.
+            # _error_message() will still append standard context fields.
             raise PpaError(self._error_message(""), 505)
 
         filtered_portperf_df = self.portperf.join(
@@ -495,7 +487,7 @@ class AxysData:
         return filtered_portperf_df, filtered_secperf_df
 
     @staticmethod
-    def _finite_or_default(value: float, *, default: float) -> float:
+    def _finite_or_default(value: float, default: float) -> float:
         """Return a finite float or a default fallback value."""
         return value if math.isfinite(value) else default
 
@@ -506,16 +498,16 @@ class AxysData:
         if not ds_name:
             return pl.DataFrame()
 
-        # Get the available data sources from the Axys json specifications file.
-        data_sources: dict[str, dict[str, str]] = self.axysdata_json.get(f"{ds_type}s", {})
+        # Get the available data source specifications from the Axys json specifications file.
+        data_sources: dict[str, dict[str, Any]] = self.axysdata_json.get(f"{ds_type}s", {})
         if ds_name not in data_sources:
             raise PpaError(
                 self._error_message(f"Unknown {ds_type} {ds_name!r}"),
                 504,
             )
 
-        # Get the data source from the Axys json specifications file.
-        data_source: dict[str, str] = data_sources[ds_name]
+        # Get the data source specification from the Axys json specifications file.
+        data_source: dict[str, Any] = data_sources[ds_name]
         data_source_fields = set(data_source)  # keys
 
         # Make sure there are no unknown fields.
@@ -541,59 +533,69 @@ class AxysData:
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
+        # Get the lazy_frame
+        lf: pl.LazyFrame = pl.scan_csv(file_path)
+
+        # Make sure that all column names are actually in the lazy frame.
+        specified_column_names = {
+            data_source[k] for k in _CLASSIFICATION_MAPPING_COLUMN_NAMES if k in data_source
+        }
+        nonexistent_column_names = specified_column_names - set(lf.collect_schema().names())
+        if nonexistent_column_names:
+            raise PpaError(
+                self._error_message(
+                    f"Nonexistent column names for {ds_type} {ds_name!r}: "
+                    f"{nonexistent_column_names}"
+                ),
+                504,
+            )
+
+        # Optionally filter on security ID so you do not load the entire security master.
+        is_security_master = data_source.get("is_security_master", False)
+        if not isinstance(is_security_master, bool):
+            raise PpaError(
+                self._error_message(
+                    f"Invalid is_security_master value for {ds_type} {ds_name!r}: "
+                    f"{is_security_master!r} must be a boolean."
+                ),
+                504,
+            )
+        if is_security_master:
+            # Convert to a plain Python list for is_in()
+            unique_ids = self.secperf[cols.IDENTIFIER].unique().to_list()
+            lf = lf.filter(pl.col(data_source["identifier_column"]).is_in(unique_ids))
+
+        # Additional optional filter.
+        if {"filter_column", "filter_value"}.issubset(data_source):
+            lf = lf.filter(pl.col(data_source["filter_column"]) == data_source["filter_value"])
+
         # Set the column name mappings.
         column_name_mappings = {
             data_source["identifier_column"]: "identifier_column",
             data_source["name_column"]: "name_column",
         }
 
-        # Get the lazy_frame
-        lf: pl.LazyFrame = pl.scan_csv(file_path).rename(column_name_mappings)
-        lf_column_names = lf.collect_schema().names()
-
-        # Optionally filter on security ID so you do not load the entire security master. Note that
-        # filter_column_name might be the bool True, or it might be renamed to "identifier_column".
-        filter_column_name = data_source.get("security_filter_column")
-        if filter_column_name:
-            if filter_column_name not in lf_column_names:
-                filter_column_name = "identifier_column"
-            unique_ids = tuple(set(self.secperf[cols.IDENTIFIER]))
-            lf = lf.filter(pl.col(filter_column_name).is_in(unique_ids))
-
-        # Optional filter.  Note that filter_column_name cannot be a renamed column.  The user
-        # passes in the original column name.  This should not be an issue because only 2 columns
-        # are renamed: ("identifier_column", "name_column").  They will never be filtered.  In any
-        # case, an error is raised.
-        if {"filter_column", "filter_value"}.issubset(data_source):
-            filter_column_name = data_source["filter_column"]
-            if filter_column_name not in lf_column_names:
-                raise PpaError(
-                    self._error_message(
-                        f"Invalid column name {filter_column_name!r} for {ds_type} {ds_name!r}"
-                    ),
-                    504,
-                )
-            lf = lf.filter(pl.col(data_source["filter_column"]) == data_source["filter_value"])
-
-        return lf.collect().select(("identifier_column", "name_column"))
+        return (
+            lf.collect().rename(column_name_mappings).select(("identifier_column", "name_column"))
+        )
 
     def _get_performance(
         self,
         file_path: str,
-        requested_columns: set[str],
+        required_columns: set[str],
         column_name_mappings_name: str,
     ) -> pl.DataFrame:
-        """Read a CSV lazily, project only requested columns, and apply instance filters.
+        """Read a CSV lazily, project only required columns, and apply instance filters.
 
         Args:
             file_path: CSV file path.
-            requested_columns: Exact column names to read.
+            required_columns: Exact column names to read.
 
         Returns:
-            A collected Polars DataFrame containing only the requested columns.
+            A collected Polars DataFrame containing only the required columns.
 
         Raises:
-            PpaError: If one or more requested columns are missing.
+            PpaError: If one or more required columns are missing.
         """
         # Make sure that file_path exists.
         if not util.has_directory(file_path):
@@ -601,12 +603,17 @@ class AxysData:
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
-        # Make sure that you have all of the requested columns.
+        # Only one of cols.BEGINNING_MARKET_VALUE, cols.BEGINNING_WEIGHT is actually needed.
+        # To keep the code simple, default one if just the other exists.
+        # if {cols.BEGINNING_MARKET_VALUE, cols.BEGINNING_WEIGHT}.issubset(required_columns):
+        #     print("TZODO")
+
+        # Make sure that you have all of the required columns.
         missing_columns: set[str] = set()
         column_name_mappings = self.axysdata_json.get(column_name_mappings_name, {})
         available_columns = set(column_name_mappings)
-        # if len(column_name_mappings) == len(requested_columns):
-        missing_columns = requested_columns - available_columns
+        # if len(column_name_mappings) == len(required_columns):
+        missing_columns = required_columns - available_columns
         if not missing_columns:
             # Reverse keys/values in column_name_mappings
             column_name_mappings = {v: k for k, v in column_name_mappings.items()}
@@ -617,10 +624,10 @@ class AxysData:
                 for col in column_name_mappings
                 if col in header_df.columns
             }
-            # Make sure that all of the requested_columns exist.
-            missing_columns = requested_columns - available_columns
+            # Make sure that all of the required_columns exist.
+            missing_columns = required_columns - available_columns
 
-        # Raise an error if you do not have all of the requested columns.
+        # Raise an error if you do not have all of the required columns.
         if missing_columns:
             raise PpaError(
                 self._error_message(
@@ -630,12 +637,12 @@ class AxysData:
                 502,
             )
 
-        # Load the mapped requested_columns.
+        # Load the mapped required_columns.
         lazy_frame: pl.LazyFrame = (
             pl.scan_csv(file_path)
             .rename(column_name_mappings)
             .filter(pl.col(cols.PORTFOLIO_CODE) == self.portfolio_code)
-            .select(requested_columns)
+            .select(required_columns)
             .with_columns(
                 pl.col(cols.BEGINNING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
                 pl.col(cols.ENDING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
@@ -827,10 +834,10 @@ class AxysData:
     ) -> list[float] | None:
         """Construct an exact long-only solution using one or two securities.
 
-        This is intentionally a last-resort fallback. It is exact whenever the target lies
-        within the feasible range of security returns, but it can move far away from the
-        anchor weights. To keep it less arbitrary, it chooses the bracketing pair with the
-        largest combined anchor weight.
+        This is intentionally a last-resort fallback. It is exact whenever the target lies within
+        the min/max range of available security returns.  But it can move far away from the anchor
+        weights. To keep it less arbitrary, it chooses the bracketing pair with the largest
+        combined anchor weight.
 
         Args:
             anchor_weights: Nonnegative anchor weights summing to 1.

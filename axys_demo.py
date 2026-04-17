@@ -14,27 +14,27 @@ import ppar.utilities as util
 _CLASSIFICATION_SECURITY = "Security"
 time_start = time.perf_counter()
 
-axys_data = AxysData(
-    "tests/data/axys/axysdata.json",
-    "imex_portperf.csv",
-    "imex_secperf.csv",
-    classification_name="Sector2",  # "Security",  # "Sector1", "Sector2"
-    mapping_name="SecurityToSector",
-    portfolio_code="PORT_SMALL",
-    # from_date=from_date,
-    # thru_date=thru_date,
-)
-analytics = Analytics(
-    portfolio_data_source=axys_data.secperf,  # .portfolio_data_source,
-    portfolio_name=axys_data.portfolio_name,
-)
-attribution = analytics.get_attribution(
-    classification_name=axys_data.classification_name,
-    classification_data_source=axys_data.classification_data_source,
-    mapping_data_sources=(axys_data.mapping_data_source, axys_data.mapping_data_source),
-)
-html = attribution.to_html(View.OVERALL_ATTRIBUTION)
-util.open_in_browser(html)
+# axys_data = AxysData(
+#     "tests/data/axys/axysdata.json",
+#     "imex_portperf.csv",
+#     "imex_secperf.csv",
+#     classification_name="Sector1",  # "Security", "Sector1", "Sector2"
+#     mapping_name="SecurityToSector",
+#     portfolio_code="PORT_SMALL",
+#     # from_date=from_date,
+#     # thru_date=thru_date,
+# )
+# analytics = Analytics(
+#     portfolio_data_source=axys_data.secperf,  # .portfolio_data_source,
+#     portfolio_name=axys_data.portfolio_name,
+# )
+# attribution = analytics.get_attribution(
+#     classification_name=axys_data.classification_name,
+#     classification_data_source=axys_data.classification_data_source,
+#     mapping_data_sources=(axys_data.mapping_data_source, axys_data.mapping_data_source),
+# )
+# html = attribution.to_html(View.OVERALL_ATTRIBUTION)
+# util.open_in_browser(html)
 
 
 for portfolio_code in ["PORT_FAIL_EQUAL", "PORT_FAIL_HIGH", "PORT_LARGE", "PORT_SMALL"]:
