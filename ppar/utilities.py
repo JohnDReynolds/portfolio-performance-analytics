@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import tempfile
 import time
-from typing import Any, Sequence, TypeAlias
+from typing import Any, Iterable, Sequence, TypeAlias
 import webbrowser
 
 # Third-Party Imports
@@ -402,3 +402,14 @@ def read_json_file(file_path: str) -> dict[str, Any]:
 
     with open(file_path, "r", encoding=ENCODING) as f:
         return json.load(f)
+
+
+def to_tuple_or_none(value: Iterable[str] | str | None) -> tuple[str, ...] | None:
+    """Normalize input to a tuple of strings or None."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        if not value:
+            return None
+        return (value,)
+    return tuple(value)

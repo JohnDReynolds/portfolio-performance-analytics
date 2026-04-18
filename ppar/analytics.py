@@ -414,11 +414,8 @@ class Analytics:
     def get_attribution(
         self,
         classification_name: str | None = None,
-        classification_data_source: util.ClassificationDataSource = util.EMPTY,
-        mapping_data_sources: tuple[util.MappingDataSource, util.MappingDataSource] = (
-            util.EMPTY,
-            util.EMPTY,
-        ),
+        classification_data_source: util.ClassificationDataSource | None = None,
+        mapping_data_sources: tuple[util.MappingDataSource, util.MappingDataSource] | None = None,
         classification_label: str = util.EMPTY,
     ) -> Attribution:
         """
@@ -459,6 +456,10 @@ class Analytics:
         # Backwards compatibilty for util.is_empty.
         if classification_name is None:
             classification_name = util.EMPTY
+        if classification_data_source is None:
+            classification_data_source = util.EMPTY
+        if mapping_data_sources is None:
+            mapping_data_sources = (util.EMPTY, util.EMPTY)
 
         # If the classification_name is empty, and the portflio and benchmark have common
         # non-empty classification_names, then set the classificcation_name to that common

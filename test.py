@@ -1103,11 +1103,11 @@ def _axys_exception(
             test_util.axys_data_path(axysdata_json_path, ".json"),
             test_util.axys_data_path(portperf_file_name),
             test_util.axys_data_path(secperf_file_name),
-            portfolio_code=portfolio_code,
+            portfolio_codes=(portfolio_code,),
             from_date=from_date,
             thru_date=thru_date,
-            classification_name=classification_name,
-            mapping_name=mapping_name,
+            classification_names=classification_name,
+            mapping_names=mapping_name,
         )
         # RiskStatistics(returns, frequency, minimum_acceptable_return)
     print()

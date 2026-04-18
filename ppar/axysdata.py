@@ -1,15 +1,22 @@
 """
 Loads Axys performance data, optional classification and mapping sources, and performs
-reconciliation logic.
+reconciliation logic to ensure that sumof(weight * return) across secperf rows matches the portperf
+return for each period.
+
+Axys only stores performance in portperf and secperf.  It does not store sector-level performance.
+This class will always return security-level performance with optional mappings up to sector that
+Analytics will then roll up for sector-level attribution.
+
 """
 
 from __future__ import annotations
 
 # Python imports
+from dataclasses import dataclass
 import datetime as dt
 import math
 import os
-from typing import Any, Final, Literal
+from typing import Any, Final, Iterable, Literal
 
 # Third-party imports
 import polars as pl
@@ -65,8 +72,6 @@ _PORTPERF_REQUIRED_COLUMNS: Final[set[str]] = {
 }
 _SECPERF_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.BEGINNING_DATE,
-    # cols.BEGINNING_MARKET_VALUE,
-    # cols.BEGINNING_WEIGHT,
     cols.CONTRIBUTION,
     cols.ENDING_DATE,
     cols.IDENTIFIER,
@@ -74,42 +79,40 @@ _SECPERF_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.RETURN,
     cols.WEIGHT,
 }
-_SECPERF_WEIGHT_RETURN_COLUMNS: Final[set[str]] = {
-    # cols.BEGINNING_MARKET_VALUE,
-    # cols.BEGINNING_WEIGHT,
-    cols.CONTRIBUTION,
-    cols.IDENTIFIER,
-    cols.RETURN,
-    cols.WEIGHT,
-}
 
 UnreconciledPeriodType = tuple[tuple[str, dt.date, dt.date], float, float]
+
+
+@dataclass(frozen=True)
+class Portfolio:
+    """Contains performance data for a portfolio."""
+
+    portfolio_code: str
+    portfolio_name: str
+    secperf: pl.DataFrame
 
 
 class AxysData:
     """Load, validate, and derive Axys-style portperf/secperf data.
 
-      1. Loads portperf and secperf using lazy CSV scans.
-      2. Applies optional filters on from_date, and thru_date.
-      3. Takes the intersection of portperf and secperf periods.
-      4. Derives reconciled secperf weights for all periods and writes them into
-         self.secperf as cols.WEIGHT.
-      5. Captures unreconciled periods in self.unreconciled_periods.
-      6. Projects only the required columns.
+    1. Loads portperf and secperf using lazy CSV scans.
+    2. Applies optional filters on from_date and thru_date.
+    3. Takes the intersection of portperf and secperf periods.
+    4. Derives reconciled secperf weights for all periods.
+    5. Projects only the required columns.
+    6. Optionally creates classification and mapping data sources.
 
     Attributes:
+        classification_data_sources: Dict of classification data sources keyed on
+            classification_names.
+        directory: The directory of the json specifications file.
+        from_date: Optional lower date bound.
+        mapping_data_sources: Dict of mapping data sources keyed on mapping_names.
+        portfolios: Dict of Portfolio objects keyed on portfolio_code.
         portperf_path: Path to the portperf CSV.
         secperf_path: Path to the secperf CSV.
-        portfolio_code: Portfolio filter.
-        from_date: Optional lower date bound.
+        specifications: Contents of the json specifications file.
         thru_date: Optional upper date bound.
-        portperf: Loaded and validated portperf data.
-        secperf: Loaded and validated secperf data, with cols.WEIGHT added after
-          derivation.
-        unreconciled_periods: Set of tuples containing the following for periods that do not
-          reconcile within tolerance:
-            ((cols.PORTFOLIO_CODE, cols.BEGINNING_DATE, cols.ENDING_DATE),
-              target_return, achieved_return)
 
     Note:
         Secperf is treated as row-grain input. Reconciliation operates on each input row exactly
@@ -122,110 +125,152 @@ class AxysData:
         where identifier-level rules are applied if required. This separation is intentional to
         keep this class focused on row-level reconciliation logic and to avoid duplicating
         validation responsibilities.
-
     """
 
     def __init__(
         self,
-        axysdata_json_path: str,
+        json_specifications_path: str,
         portperf_path: str,
         secperf_path: str,
-        portfolio_code: str,
         from_date: dt.date | None = None,
         thru_date: dt.date | None = None,
-        classification_name: str | None = None,
-        mapping_name: str | None = None,
+        portfolio_codes: Iterable[str] | str | None = None,
+        classification_names: Iterable[str] | str | None = None,
+        mapping_names: Iterable[str] | str | None = None,
     ) -> None:
         """Initialize AxysData and load/validate all required data.
 
         Args:
+            json_specifications_path: Contains column name mappings and processing rules.
             portperf_path: Path to portperf CSV.
             secperf_path: Path to secperf CSV.
-            axysdata_json_path: Contains column name mappings and processing rules.
-            portfolio_code: Portfolio filter.
-            from_date: Optional lower date bound. Keeps rows where
-                from_date <= cols.BEGINNING_DATE.
-            thru_date: Optional upper date bound. Keeps rows where
-                cols.ENDING_DATE <= thru_date.
-            classification_name: The classification_name used for self.classification_data_source
-            mapping_name: The mapping_name used for self.mapping_data_source
+            from_date: Lower date bound. Keeps rows where from_date <= cols.BEGINNING_DATE.
+            thru_date: Upper date bound. Keeps rows where cols.ENDING_DATE <= thru_date.
+            portfolio_codes: Optional portfolio codes used to populate self.portfolios.
+                Accepts a string, any iterable of strings, or None. The value is normalized
+                internally to a tuple of strings. If None or empty after normalization, all
+                unique portfolio codes found in portperf are used.
+            classification_names: Optional classification names. Accepts a string, any
+                iterable of strings, or None. The value is normalized internally to a tuple
+                of strings.
+            mapping_names: Optional mapping names. Accepts a string, any iterable of
+                strings, or None. The value is normalized internally to a tuple of strings.
 
         Raises:
             PpaError: If any validation fails or if file/schema validation fails.
         """
-        # Get the axysdata specifications from the json.
-        # axysdata_json: dict[str, Any] = util.read_json_file(axysdata_json_path)
-
-        # Set the class members.
-        self.axysdata_json: dict[str, Any] = util.read_json_file(axysdata_json_path)
-        self.classification_name = classification_name
-        self.directory = os.path.dirname(axysdata_json_path)
+        # Set the basic class members.
+        self.directory = os.path.dirname(json_specifications_path)
         self.from_date: dt.date | None = from_date
+        self.portfolios: dict[str, Portfolio] = {}
         self.portperf_path: str = portperf_path
-        self.portfolio_code: str = portfolio_code
-        self.processing_rules = self.axysdata_json.get("settings", {})
         self.secperf_path: str = secperf_path
+        self.specifications: dict[str, Any] = util.read_json_file(json_specifications_path)
         self.thru_date: dt.date | None = thru_date
 
-        # Get portperf data.
-        self.portperf: pl.DataFrame = self._get_performance(
-            self.portperf_path, _PORTPERF_REQUIRED_COLUMNS, "portperf_columns"
+        # Normalize the iterables down to tuples of strings for easier processing.
+        portfolio_codes = util.to_tuple_or_none(portfolio_codes)
+        classification_names = util.to_tuple_or_none(classification_names)
+        mapping_names = util.to_tuple_or_none(mapping_names)
+
+        # Get the optional prefix_portfolio_code from the specifications. This can be used to
+        # create a more descriptive portfolio_name.
+        prefix_portfolio_code = self.specifications.get("settings", {}).get(
+            "prefix_portfolio_code"
         )
 
-        # Get secperf data.
-        self.secperf: pl.DataFrame = self._get_performance(
-            self.secperf_path, _SECPERF_REQUIRED_COLUMNS, "secperf_columns"
-        )
+        # If not portfolio_codes, then get a unique list of all portfolios in the entire file.
+        if not portfolio_codes:
+            portperf: pl.DataFrame = self._get_performance(self.portperf_path, "portperf_columns")
+            portfolio_codes = portperf[cols.PORTFOLIO_CODE].unique().sort().to_list()
+            del portperf
 
-        # Get classification_data_source.
-        self.classification_data_source = self._get_classification_or_mapping_data_source(
-            "classification", self.classification_name
-        )
+        for portfolio_code in portfolio_codes:
+            self.portfolio_code: str = portfolio_code
 
-        # Get mapping_data_source.
-        self.mapping_data_source = self._get_classification_or_mapping_data_source(
-            "mapping", mapping_name
-        )
-
-        # Filter portperf and secperf to common periods.  If there are discontinuos periods, then
-        # it will later get a 106 error.
-        self.portperf, self.secperf = self._filter_to_common_periods()
-
-        # Derive the secperf weights.
-        self.unreconciled_periods: set[UnreconciledPeriodType] = (
-            self._derive_secperf_for_all_periods()
-        )
-
-        # In theory, unreconciled periods should be rare and have minimal return differences.
-        # We are intentionally lenient here.  It is very well possible that there may be multiple
-        # plus and minus differences that net out to 0, but that is OK because each single period
-        # is also checked for _FATAL_PERIOD_TOLERANCE.
-        difference = abs(
-            sum(t for _, t, _ in self.unreconciled_periods)
-            - sum(a for _, _, a in self.unreconciled_periods)
-        )
-        if _FATAL_PERIOD_TOLERANCE < difference:
-            raise PpaError(
-                self._error_message(
-                    f"Returns difference across unreconciled periods is {difference}"
-                ),
-                503,
+            # Get portperf data.
+            self.portperf: pl.DataFrame = self._get_performance(
+                self.portperf_path, "portperf_columns"
             )
 
-        # Set self.portfolio_name based on self.processing_rules
-        self.portfolio_name = self.portperf[cols.PORTFOLIO_NAME][0]
-        prefix_portfolio_code = self.processing_rules.get("prefix_portfolio_code")
-        if prefix_portfolio_code:
-            self.portfolio_name = (
-                f"{self.portperf[cols.PORTFOLIO_CODE][0]}{prefix_portfolio_code}"
-                f"{self.portfolio_name}"
+            # It is very well possible that this portfolio does not have any rows after filtering
+            # by dates, and that is OK.  Just skip it silently.
+            if self.portperf.is_empty():
+                continue
+
+            # Set self.portfolio_name based on prefix_portfolio_code
+            self.portfolio_name = self.portperf[cols.PORTFOLIO_NAME][0]
+            if prefix_portfolio_code:
+                self.portfolio_name = (
+                    f"{self.portperf[cols.PORTFOLIO_CODE][0]}{prefix_portfolio_code}"
+                    f"{self.portfolio_name}"
+                )
+
+            # Get secperf data.
+            self.secperf: pl.DataFrame = self._get_performance(
+                self.secperf_path, "secperf_columns"
             )
 
-        # Only include the columns you need for Analytics.
-        self.secperf = self.secperf.select(_ANALYTICS_REQUIRED_COLUMNS)
+            # Filter portperf and secperf to common periods.  If there are discontinuous periods,
+            # then it will later get a 106 error downstream in Analytics.
+            self.portperf, self.secperf = self._filter_to_common_periods()
 
-        # You do not need portperf anymore.  So free up memory.
-        del self.portperf
+            # Derive the secperf weights.
+            unreconciled_periods: set[UnreconciledPeriodType] = (
+                self._derive_secperf_for_all_periods()
+            )
+
+            # In theory, unreconciled periods should be rare and have minimal return differences.
+            # We are intentionally lenient here.  It is very well possible that there may be
+            # multiple plus and minus differences that net out to 0, but that is OK because each
+            # single period is also checked for _FATAL_PERIOD_TOLERANCE.
+            difference = abs(
+                sum(t for _, t, _ in unreconciled_periods)
+                - sum(a for _, _, a in unreconciled_periods)
+            )
+            if _FATAL_PERIOD_TOLERANCE < difference:
+                raise PpaError(
+                    self._error_message(
+                        f"Returns difference across unreconciled periods is {difference}"
+                    ),
+                    503,
+                )
+
+            # Only include the columns you need for Analytics.
+            self.secperf = self.secperf.select(_ANALYTICS_REQUIRED_COLUMNS)
+
+            self.portfolios[self.portfolio_code] = Portfolio(
+                self.portfolio_code, self.portfolio_name, self.secperf
+            )
+
+        # Get classification and mapping data_sources.
+        if self.portfolios:
+            unique_security_ids = (
+                pl.concat([p.secperf[cols.IDENTIFIER] for p in self.portfolios.values()])
+                .unique()
+                .to_list()
+            )
+            for ds_type in ("classification", "mapping"):
+                data_sources: dict[str, pl.DataFrame] = {}
+                ds_names = classification_names if ds_type == "classification" else mapping_names
+                if ds_names:
+                    for ds_name in ds_names:
+                        data_sources[ds_name] = self._get_classification_or_mapping_data_source(
+                            ds_type, ds_name, unique_security_ids
+                        )
+                if ds_type == "classification":
+                    self.classification_data_sources = data_sources
+                else:
+                    self.mapping_data_sources = data_sources
+        else:
+            self.classification_data_sources = {}
+            self.mapping_data_sources = {}
+
+        # You do not need these anymore since they are only used during the constructor.  Deleting
+        # to avoid confusion.
+        for attr in ("portfolio_code", "portfolio_name", "portperf", "secperf"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def _derive_reconciled_weights(
         self,
@@ -362,8 +407,10 @@ class AxysData:
                   target_return, achieved_return)
 
         Raises:
-            PpaError: On structural validation failures such as duplicate periods,
-                missing secperf rows for a portperf period, or incomplete weight assignment.
+            PpaError: On structural or reconciliation failures, such as duplicate
+                portperf periods, missing secperf rows for a retained period,
+                fatal per-period return mismatch, or incomplete final weight
+                assignment.
         """
         dup_periods = (
             self.portperf.group_by(_PERIOD_UNIQUE_KEY_COLUMNS).len().filter(pl.col("len") > 1)
@@ -435,13 +482,15 @@ class AxysData:
         return unreconciled_periods
 
     def _error_message(self, specific_message: str) -> str:
-        """Helper to raise a PpaError with consistent formatting."""
-        return (
-            f"{specific_message}  |  Context: "
-            f"portperf_path={self.portperf_path}, secperf_path={self.secperf_path}, "
-            f"portfolio_code={self.portfolio_code}, "
-            f"from_date={self.from_date}, thru_date={self.thru_date}"
+        """Return a consistently formatted error message with context."""
+        context = (
+            f"Context: portperf_path={self.portperf_path}, "
+            f"secperf_path={self.secperf_path}, "
+            f"portfolio_code={getattr(self, 'portfolio_code', None)}, "
+            f"from_date={self.from_date}, "
+            f"thru_date={self.thru_date}"
         )
+        return f"{specific_message}  |  {context}" if specific_message else context
 
     def _filter_to_common_periods(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         """Keep only periods that exist in both portperf and secperf.
@@ -468,8 +517,8 @@ class AxysData:
         )
 
         if common_periods.is_empty():
-            # The 505 error message is already fully descriptive, so we pass an empty string here.
-            # _error_message() will still append standard context fields.
+            # Intentionally pass no specific message text here. PpaError 505 provides the
+            # descriptive error text elsewhere; _error_message("") adds only contextual details.
             raise PpaError(self._error_message(""), 505)
 
         filtered_portperf_df = self.portperf.join(
@@ -487,19 +536,24 @@ class AxysData:
         return filtered_portperf_df, filtered_secperf_df
 
     @staticmethod
-    def _finite_or_default(value: float, default: float) -> float:
+    def _finite_or_default(value: float | None, default: float) -> float:
         """Return a finite float or a default fallback value."""
+        if value is None:
+            return default
         return value if math.isfinite(value) else default
 
     def _get_classification_or_mapping_data_source(
-        self, ds_type: Literal["classification", "mapping"], ds_name: str | None
+        self,
+        ds_type: Literal["classification", "mapping"],
+        ds_name: str | None,
+        unique_security_ids: list[str],
     ) -> pl.DataFrame:
         """Get the classification or mapping data source."""
         if not ds_name:
             return pl.DataFrame()
 
         # Get the available data source specifications from the Axys json specifications file.
-        data_sources: dict[str, dict[str, Any]] = self.axysdata_json.get(f"{ds_type}s", {})
+        data_sources: dict[str, dict[str, Any]] = self.specifications.get(f"{ds_type}s", {})
         if ds_name not in data_sources:
             raise PpaError(
                 self._error_message(f"Unknown {ds_type} {ds_name!r}"),
@@ -562,40 +616,64 @@ class AxysData:
             )
         if is_security_master:
             # Convert to a plain Python list for is_in()
-            unique_ids = self.secperf[cols.IDENTIFIER].unique().to_list()
-            lf = lf.filter(pl.col(data_source["identifier_column"]).is_in(unique_ids))
+            lf = lf.filter(pl.col(data_source["identifier_column"]).is_in(unique_security_ids))
 
         # Additional optional filter.
         if {"filter_column", "filter_value"}.issubset(data_source):
             lf = lf.filter(pl.col(data_source["filter_column"]) == data_source["filter_value"])
 
-        # Set the column name mappings.
-        column_name_mappings = {
+        # Rename source columns to the standardized output column names used by this method.
+        rename_mappings = {
             data_source["identifier_column"]: "identifier_column",
             data_source["name_column"]: "name_column",
         }
 
         return (
-            lf.collect().rename(column_name_mappings).select(("identifier_column", "name_column"))
+            lf.collect()
+            .rename(rename_mappings)
+            .select(("identifier_column", "name_column"))
+            .unique(subset=["identifier_column"], keep="any")
         )
 
     def _get_performance(
         self,
         file_path: str,
-        required_columns: set[str],
-        column_name_mappings_name: str,
+        column_name_mappings_name: Literal["portperf_columns", "secperf_columns"],
     ) -> pl.DataFrame:
-        """Read a CSV lazily, project only required columns, and apply instance filters.
+        """Load a performance CSV and return a DataFrame using internal column names.
+
+        This method reads a CSV file, validates that required columns are defined in the
+        JSON specifications and present in the file, and returns a DataFrame with columns
+        renamed to the internal names used by this codebase.
+
+        JSON Mapping:
+            The JSON mapping (e.g., "portperf_columns", "secperf_columns") must map
+            internal column names to CSV column names:
+
+                {internal_name: csv_header_name}
+
+            The mapping is reversed internally so that CSV columns are renamed to
+            internal column names.
+
+        Processing:
+            - Resolve file path (absolute or relative to specifications directory)
+            - Validate required columns exist in the JSON mapping
+            - Validate mapped CSV columns exist in the file
+            - Load CSV via Polars lazy scan
+            - Rename columns to internal names
+            - Select required columns
+            - Parse date columns
+            - Apply optional filters (portfolio_code, from_date, thru_date)
 
         Args:
-            file_path: CSV file path.
-            required_columns: Exact column names to read.
+            file_path: Path to the CSV file.
+            column_name_mappings_name: JSON mapping section name.
 
         Returns:
-            A collected Polars DataFrame containing only the required columns.
+            Polars DataFrame with required columns using internal names.
 
         Raises:
-            PpaError: If one or more required columns are missing.
+            PpaError: On missing file or missing required columns.
         """
         # Make sure that file_path exists.
         if not util.has_directory(file_path):
@@ -603,28 +681,37 @@ class AxysData:
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
-        # Only one of cols.BEGINNING_MARKET_VALUE, cols.BEGINNING_WEIGHT is actually needed.
-        # To keep the code simple, default one if just the other exists.
-        # if {cols.BEGINNING_MARKET_VALUE, cols.BEGINNING_WEIGHT}.issubset(required_columns):
-        #     print("TZODO")
+        # Determine the required columns.
+        required_columns = (
+            _PORTPERF_REQUIRED_COLUMNS
+            if column_name_mappings_name == "portperf_columns"
+            else _SECPERF_REQUIRED_COLUMNS
+        )
 
-        # Make sure that you have all of the required columns.
-        missing_columns: set[str] = set()
-        column_name_mappings = self.axysdata_json.get(column_name_mappings_name, {})
-        available_columns = set(column_name_mappings)
-        # if len(column_name_mappings) == len(required_columns):
-        missing_columns = required_columns - available_columns
+        # Read the JSON mapping in its declared direction:
+        #     internal_name -> csv_header_name
+        json_column_mappings: dict[str, str] = self.specifications.get(
+            column_name_mappings_name, {}
+        )
+        available_columns = set(json_column_mappings)
+
+        # First validate that all required internal columns are present in the JSON mapping.
+        missing_columns: set[str] = required_columns - available_columns
+
+        # Reverse the mapping for Polars rename():
+        #     csv_header_name -> internal_name
+        csv_to_internal_mappings: dict[str, str] = {}
+
         if not missing_columns:
-            # Reverse keys/values in column_name_mappings
-            column_name_mappings = {v: k for k, v in column_name_mappings.items()}
-            # Get the mapped column names.
+            csv_to_internal_mappings = {v: k for k, v in json_column_mappings.items()}
+
+            # Validate that the mapped CSV columns actually exist in the input file header.
             header_df: pl.DataFrame = pl.read_csv(file_path, n_rows=0)
             available_columns = {
-                column_name_mappings[col]
-                for col in column_name_mappings
+                csv_to_internal_mappings[col]
+                for col in csv_to_internal_mappings
                 if col in header_df.columns
             }
-            # Make sure that all of the required_columns exist.
             missing_columns = required_columns - available_columns
 
         # Raise an error if you do not have all of the required columns.
@@ -637,17 +724,20 @@ class AxysData:
                 502,
             )
 
-        # Load the mapped required_columns.
+        # Load the mapped required columns.
         lazy_frame: pl.LazyFrame = (
             pl.scan_csv(file_path)
-            .rename(column_name_mappings)
-            .filter(pl.col(cols.PORTFOLIO_CODE) == self.portfolio_code)
+            .rename(csv_to_internal_mappings)
             .select(required_columns)
             .with_columns(
                 pl.col(cols.BEGINNING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
                 pl.col(cols.ENDING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             )
         )
+
+        # Filter on portfolio_code, from_date, and thru_date if specified.
+        if hasattr(self, "portfolio_code"):
+            lazy_frame = lazy_frame.filter(pl.col(cols.PORTFOLIO_CODE) == self.portfolio_code)
 
         if self.from_date is not None:
             lazy_frame = lazy_frame.filter(pl.lit(self.from_date) <= pl.col(cols.BEGINNING_DATE))
