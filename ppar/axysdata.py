@@ -20,6 +20,7 @@ from typing import Any, Final, Iterable, Literal
 
 # Third-party imports
 import polars as pl
+import yaml
 
 # Project imports
 import ppar.columns as cols
@@ -112,6 +113,7 @@ class AxysData:
         portperf_path: Path to the portperf CSV.
         secperf_path: Path to the secperf CSV.
         specifications: Contents of the json specifications file.
+        specifications_path: Path to the json specifications file.
         thru_date: Optional upper date bound.
 
     Note:
@@ -129,9 +131,9 @@ class AxysData:
 
     def __init__(
         self,
-        json_specifications_path: str,
-        portperf_path: str,
-        secperf_path: str,
+        specifications_path: str,
+        portperf_path: str | None = None,
+        secperf_path: str | None = None,
         from_date: dt.date | None = None,
         thru_date: dt.date | None = None,
         portfolio_codes: Iterable[str] | str | None = None,
@@ -141,7 +143,7 @@ class AxysData:
         """Initialize AxysData and load/validate all required data.
 
         Args:
-            json_specifications_path: Contains column name mappings and processing rules.
+            specifications_path: Contains column name mappings and processing rules.
             portperf_path: Path to portperf CSV.
             secperf_path: Path to secperf CSV.
             from_date: Lower date bound. Keeps rows where from_date <= cols.BEGINNING_DATE.
@@ -160,18 +162,46 @@ class AxysData:
             PpaError: If any validation fails or if file/schema validation fails.
         """
         # Set the basic class members.
-        self.directory = os.path.dirname(json_specifications_path)
+        # self.directory = os.path.dirname(specifications_path)
         self.from_date: dt.date | None = from_date
         self.portfolios: dict[str, Portfolio] = {}
-        self.portperf_path: str = portperf_path
-        self.secperf_path: str = secperf_path
-        self.specifications: dict[str, Any] = util.read_json_file(json_specifications_path)
+        self.specifications_path = specifications_path
         self.thru_date: dt.date | None = thru_date
 
-        # Normalize the iterables down to tuples of strings for easier processing.
-        portfolio_codes = util.to_tuple_or_none(portfolio_codes)
-        classification_names = util.to_tuple_or_none(classification_names)
-        mapping_names = util.to_tuple_or_none(mapping_names)
+        # Lod the specifications file.
+        # self.specifications: dict[str, Any] = util.read_json_file(self.specifications_path)
+        with open(self.specifications_path, "r", encoding="utf-8") as f:
+            try:
+                loaded_yaml: Any = yaml.safe_load(f)
+            except Exception as e:
+                raise PpaError(self._error_message(f"Invalid YAML: {e}"), 504) from e
+        if not isinstance(loaded_yaml, dict):
+            raise PpaError(self._error_message("YAML must be a dictionary"), 504)
+        self.specifications: dict[str, Any] = loaded_yaml
+        del loaded_yaml
+
+        # Determine self.portperf_path and self.secperf_path from specifications if not provided
+        # as arguments.  Tried doing this in a loop, but it got too complicated.
+        if not portperf_path:
+            portperf_path = self.specifications.get("portperf_path")
+            if not portperf_path:
+                raise PpaError(
+                    self._error_message(
+                        "portperf_path not in specifications file and not provided as an argument."
+                    ),
+                    504,
+                )
+        if not secperf_path:
+            secperf_path = self.specifications.get("secperf_path")
+            if not secperf_path:
+                raise PpaError(
+                    self._error_message(
+                        "secperf_path not in specifications file and not provided as an argument."
+                    ),
+                    504,
+                )
+        self.portperf_path: str = portperf_path
+        self.secperf_path: str = secperf_path
 
         # Get the optional prefix_portfolio_code from the specifications. This can be used to
         # create a more descriptive portfolio_name.
@@ -180,6 +210,7 @@ class AxysData:
         )
 
         # If not portfolio_codes, then get a unique list of all portfolios in the entire file.
+        portfolio_codes = util.to_tuple_or_none(portfolio_codes)
         if not portfolio_codes:
             portperf: pl.DataFrame = self._get_performance(self.portperf_path, "portperf_columns")
             portfolio_codes = portperf[cols.PORTFOLIO_CODE].unique().sort().to_list()
@@ -243,13 +274,32 @@ class AxysData:
                 self.portfolio_code, self.portfolio_name, self.secperf
             )
 
+        # You do not need these anymore since they are only used during the constructor.  Deleting
+        # to avoid confusion.
+        for attr in ("portfolio_code", "portfolio_name", "portperf", "secperf"):
+            if hasattr(self, attr):
+                delattr(self, attr)
+
         # Get classification and mapping data_sources.
         if self.portfolios:
+            # If not classification_names, then get a set of all classifications in specifications.
+            classification_names = util.to_tuple_or_none(classification_names)
+            if not classification_names:
+                classification_names = self.specifications["classifications"].keys()
+
+            # If not mapping_names, then get a set of all mappings in specifications.
+            mapping_names = util.to_tuple_or_none(mapping_names)
+            if not mapping_names:
+                mapping_names = self.specifications["mappings"].keys()
+
+            # Get all security IDs across all portfolios.
             unique_security_ids = (
                 pl.concat([p.secperf[cols.IDENTIFIER] for p in self.portfolios.values()])
                 .unique()
                 .to_list()
             )
+
+            # Create the classification and mapping data sources.
             for ds_type in ("classification", "mapping"):
                 data_sources: dict[str, pl.DataFrame] = {}
                 ds_names = classification_names if ds_type == "classification" else mapping_names
@@ -266,11 +316,19 @@ class AxysData:
             self.classification_data_sources = {}
             self.mapping_data_sources = {}
 
-        # You do not need these anymore since they are only used during the constructor.  Deleting
-        # to avoid confusion.
-        for attr in ("portfolio_code", "portfolio_name", "portperf", "secperf"):
-            if hasattr(self, attr):
-                delattr(self, attr)
+        # Mandate that there is a classification with is_security_master == True.
+        have_security_master = False
+        for classification_name in self.classification_data_sources:
+            if self.specifications["classifications"][classification_name].get(
+                "is_security_master", False
+            ):
+                have_security_master = True
+                break
+        if not have_security_master:
+            raise PpaError(
+                self._error_message("Must have a classification with is_security_master == true"),
+                504,
+            )
 
     def _derive_reconciled_weights(
         self,
@@ -484,8 +542,10 @@ class AxysData:
     def _error_message(self, specific_message: str) -> str:
         """Return a consistently formatted error message with context."""
         context = (
-            f"Context: portperf_path={self.portperf_path}, "
-            f"secperf_path={self.secperf_path}, "
+            f"Context: "
+            f"specifications_path={self.specifications_path}, "
+            f"portperf_path={getattr(self, 'portperf_path', None)}, "
+            f"secperf_path={getattr(self, 'secperf_path', None)}, "
             f"portfolio_code={getattr(self, 'portfolio_code', None)}, "
             f"from_date={self.from_date}, "
             f"thru_date={self.thru_date}"
@@ -583,7 +643,7 @@ class AxysData:
         # Make sure that file_path exists.
         file_path: str = data_source["file_path"]
         if not util.has_directory(file_path):
-            file_path = os.path.join(self.directory, file_path)
+            file_path = os.path.join(os.path.dirname(self.specifications_path), file_path)
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
@@ -677,7 +737,7 @@ class AxysData:
         """
         # Make sure that file_path exists.
         if not util.has_directory(file_path):
-            file_path = os.path.join(self.directory, file_path)
+            file_path = os.path.join(os.path.dirname(self.specifications_path), file_path)
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 

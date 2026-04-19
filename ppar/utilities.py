@@ -5,7 +5,6 @@ This module contains utility functions and system-wide constants.
 # Python Imports
 import datetime as dt
 from enum import Enum
-import json
 import math
 import os
 from pathlib import Path
@@ -52,24 +51,6 @@ class Tolerance(Enum):
     LOW = 0.00000005
     MEDIUM = 0.0000000005
     HIGH = 0.0000000000005
-
-
-# def junk_apply_column_mapping(
-#     lf: pl.LazyFrame,
-#     mapping: dict[str, str],
-# ) -> pl.LazyFrame | set[str]:
-#     """Rename columns in a LazyFrame using a mapping.
-
-#     Args:
-#         lf: Input LazyFrame.
-#         mapping: {old_name: new_name}
-
-#     Returns:
-#         LazyFrame with renamed columns or missing columns if mapping contains missing columns.
-#     """
-#     existing_cols = set(lf.columns)
-#     missing = set(mapping.keys()) - existing_cols
-#     return missing if missing else lf.rename(mapping)
 
 
 def are_near(f1: float, f2: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:
@@ -385,25 +366,6 @@ def open_in_browser(html_or_png: str | bytes) -> None:
                 time.sleep(0.2)
 
 
-def read_json_file(file_path: str) -> dict[str, Any]:
-    """Read a JSON file into a Python dictionary.
-
-    Args:
-        file_path: Path to the JSON file.
-
-    Returns:
-        Parsed dictionary.
-
-    Raises:
-        PpaError: If file does not exist.
-    """
-    if not file_path_exists(file_path):
-        raise PpaError(file_path_error(file_path), None)
-
-    with open(file_path, "r", encoding=ENCODING) as f:
-        return json.load(f)
-
-
 def to_tuple_or_none(value: Iterable[str] | str | None) -> tuple[str, ...] | None:
     """Normalize input to a tuple of strings or None."""
     if value is None:
@@ -413,3 +375,43 @@ def to_tuple_or_none(value: Iterable[str] | str | None) -> tuple[str, ...] | Non
             return None
         return (value,)
     return tuple(value)
+
+
+################################################ OBSOLETE
+
+# def junk_apply_column_mapping(
+#     lf: pl.LazyFrame,
+#     mapping: dict[str, str],
+# ) -> pl.LazyFrame | set[str]:
+#     """Rename columns in a LazyFrame using a mapping.
+
+#     Args:
+#         lf: Input LazyFrame.
+#         mapping: {old_name: new_name}
+
+#     Returns:
+#         LazyFrame with renamed columns or missing columns if mapping contains missing columns.
+#     """
+#     existing_cols = set(lf.columns)
+#     missing = set(mapping.keys()) - existing_cols
+#     return missing if missing else lf.rename(mapping)
+
+
+# import json
+# def read_json_file(file_path: str) -> dict[str, Any]:
+#     """Read a JSON file into a Python dictionary.
+
+#     Args:
+#         file_path: Path to the JSON file.
+
+#     Returns:
+#         Parsed dictionary.
+
+#     Raises:
+#         PpaError: If file does not exist.
+#     """
+#     if not file_path_exists(file_path):
+#         raise PpaError(file_path_error(file_path), None)
+
+#     with open(file_path, "r", encoding=ENCODING) as f:
+#         return json.load(f)

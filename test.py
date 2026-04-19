@@ -248,7 +248,7 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[502],
-                "axysdata.json",
+                # "axysdata.yaml",
                 "error_502_portperf.csv",
                 "imex_secperf.csv",
             )
@@ -260,7 +260,7 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[502],
-                "axysdata.json",
+                # "axysdata.yaml",
                 "imex_portperf.csv",
                 "error_502_secperf.csv",
             )
@@ -272,7 +272,7 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[503],
-                "axysdata.json",
+                # "axysdata.yaml",
                 "error_503_a_portperf.csv",
                 "error_503_a_secperf.csv",
                 portfolio_code="PORT_FAIL_HIGH",
@@ -285,7 +285,7 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[503],
-                "axysdata.json",
+                # "axysdata.yaml",
                 "error_503_b_portperf.csv",
                 "error_503_b_secperf.csv",
                 portfolio_code="PORT_FAIL_EQUAL",
@@ -298,9 +298,9 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[504],
-                "axysdata.json",
-                "imex_portperf.csv",
-                "imex_secperf.csv",
+                # "axysdata.yaml",
+                # "imex_portperf.csv",
+                # "imex_secperf.csv",
                 classification_name="unknown",
             )
         )
@@ -311,9 +311,9 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[504],
-                "axysdata.json",
-                "imex_portperf.csv",
-                "imex_secperf.csv",
+                # "axysdata.yaml",
+                # "imex_portperf.csv",
+                # "imex_secperf.csv",
                 classification_name="MissingFilePath",
             )
         )
@@ -324,9 +324,9 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[504],
-                "axysdata.json",
-                "imex_portperf.csv",
-                "imex_secperf.csv",
+                # "axysdata.yaml",
+                # "imex_portperf.csv",
+                # "imex_secperf.csv",
                 classification_name="BadFilterColumnName",
             )
         )
@@ -337,9 +337,9 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[504],
-                "axysdata.json",
-                "imex_portperf.csv",
-                "imex_secperf.csv",
+                # "axysdata.yaml",
+                # "imex_portperf.csv",
+                # "imex_secperf.csv",
                 mapping_name="BadUnknownField",
             )
         )
@@ -350,7 +350,7 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[505],
-                "axysdata.json",
+                # "axysdata.yaml",
                 "error_505_portperf.csv",
                 "error_505_secperf.csv",
             )
@@ -1088,10 +1088,10 @@ class Test(unittest.TestCase):
 def _axys_exception(
     test: Test,
     error_message: str,
-    axysdata_json_path: str,
-    portperf_file_name: str,
-    secperf_file_name: str,
+    portperf_file_name: str = "imex_portperf.csv",
+    secperf_file_name: str = "imex_secperf.csv",
     portfolio_code: str = "PORT_SMALL",
+    axysdata_yaml_path: str = "axysdata.yaml",
     from_date: dt.date | None = None,
     thru_date: dt.date | None = None,
     classification_name: str | None = None,
@@ -1100,7 +1100,7 @@ def _axys_exception(
     """Test RiskStatistics exception."""
     with test.assertRaises(errs.PpaError) as context:
         AxysData(
-            test_util.axys_data_path(axysdata_json_path, ".json"),
+            test_util.axys_data_path(axysdata_yaml_path, ".yaml"),
             test_util.axys_data_path(portperf_file_name),
             test_util.axys_data_path(secperf_file_name),
             portfolio_codes=(portfolio_code,),

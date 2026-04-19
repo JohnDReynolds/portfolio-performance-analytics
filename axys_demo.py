@@ -19,9 +19,9 @@ _SECPERF_CLASSIFICATION_NAME = "Security"  # Always "Security"
 time_start = time.perf_counter()
 
 axys_data = AxysData(
-    "tests/data/axys/axysdata.json",
-    "imex_portperf.csv",
-    "imex_secperf.csv",
+    "tests/data/axys/axysdata.yaml",  # json",
+    # "imex_portperf.csv",
+    # "imex_secperf.csv",
     from_date=dt.date(2024, 1, 1),
     thru_date=dt.date(2025, 12, 31),
     portfolio_codes=_PORTFOLIO_CODES,

@@ -1,5 +1,32 @@
 {
+    "settings": {
+        "prefix_portfolio_code": " - "
+    },
+    "portperf_path": "imex_portperf.csv",
+    "portperf_columns": {
+        "beginning_date": "FROM_DATE",
+        "ending_date": "THRU_DATE",
+        "portfolio_code": "PORTFOLIO_CODE",
+        "portfolio_name": "PORTFOLIO_NAME",
+        "Portfolio_Return": "PORT_RETURN"
+    },
+    "secperf_path": "imex_secperf.csv",
+    "secperf_columns": {
+        "beginning_date": "FROM_DATE",
+        "contribution": "CONTRIBUTION_W_X_R",
+        "ending_date": "THRU_DATE",
+        "identifier": "SECURITY_ID",
+        "portfolio_code": "PORTFOLIO_CODE",
+        "return": "SEC_RETURN",
+        "weight": "BEGIN_WEIGHT"
+    },
     "classifications": {
+        "Security": {
+            "file_path": "imex_security_master.csv",
+            "identifier_column": "SECURITY_ID",
+            "name_column": "SECURITY_NAME",
+            "is_security_master": true
+        },
         "BadFilterColumnName": {
             "file_path": "imex_classification_lookup.csv",
             "identifier_column": "CODE",
@@ -22,12 +49,6 @@
             "file_path": "imex_security_master.csv",
             "identifier_column": "SECTOR_CODE",
             "name_column": "SECTOR_DESC"
-        },
-        "Security": {
-            "file_path": "imex_security_master.csv",
-            "identifier_column": "SECURITY_ID",
-            "name_column": "SECURITY_NAME",
-            "is_security_master": true
         }
     },
     "mappings": {
@@ -40,24 +61,5 @@
         "BadUnknownField": {
             "unknown_field_xxx": "imex_security_master.csv"
         }
-    },
-    "portperf_columns": {
-        "beginning_date": "FROM_DATE",
-        "ending_date": "THRU_DATE",
-        "portfolio_code": "PORTFOLIO_CODE",
-        "portfolio_name": "PORTFOLIO_NAME",
-        "Portfolio_Return": "PORT_RETURN"
-    },
-    "secperf_columns": {
-        "beginning_date": "FROM_DATE",
-        "contribution": "CONTRIBUTION_W_X_R",
-        "ending_date": "THRU_DATE",
-        "identifier": "SECURITY_ID",
-        "portfolio_code": "PORTFOLIO_CODE",
-        "return": "SEC_RETURN",
-        "weight": "BEGIN_WEIGHT"
-    },
-    "settings": {
-        "prefix_portfolio_code": " - "
     }
 }

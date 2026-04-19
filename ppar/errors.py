@@ -33,7 +33,7 @@ ERRORS = {
     # Axys Errors
     502: "Error 502: Missing required column(s): ",
     503: "Error 503: Could not derive weights for secperf: ",
-    504: "Error 504: Could not get classification/mapping: ",
+    504: "Error 504: Bad specifications file: ",
     505: "Error 505: Portperf and secperf have no common periods.",
     # General Error Messages
     802: "Error 802: File path does not exist: ",

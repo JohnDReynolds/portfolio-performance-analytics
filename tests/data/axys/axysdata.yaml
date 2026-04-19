@@ -1,0 +1,111 @@
+# =========================
+# Axys Specification File
+# =========================
+# Purpose:
+# Defines input files, column mappings, classifications, and mappings
+# for Axys IMEX data processing.
+#
+# General Rules:
+# - All column names must match CSV headers exactly.
+# - File paths can be relative to this file.
+# - Unknown fields are NOT allowed (strict validation).
+# - Missing required fields will raise errors.
+
+
+# =========================
+# Settings
+# =========================
+settings:
+  # Optional text inserted between portfolio_code and portfolio_name.
+  prefix_portfolio_code: " - "
+
+
+# =========================
+# Portfolio Performance
+# =========================
+# Path to the portfolio-level performance extract.
+portperf_path: imex_portperf.csv
+
+# Internal field name -> CSV column name
+portperf_columns:
+  beginning_date: FROM_DATE
+  ending_date: THRU_DATE
+  portfolio_code: PORTFOLIO_CODE
+  portfolio_name: PORTFOLIO_NAME
+  Portfolio_Return: PORT_RETURN
+
+
+# =========================
+# Security Performance
+# =========================
+# Path to the security-level performance extract.
+secperf_path: imex_secperf.csv
+
+# Internal field name -> CSV column name
+secperf_columns:
+  beginning_date: FROM_DATE
+  contribution: CONTRIBUTION_W_X_R
+  ending_date: THRU_DATE
+  identifier: SECURITY_ID
+  portfolio_code: PORTFOLIO_CODE
+  return: SEC_RETURN
+  weight: BEGIN_WEIGHT
+
+# =========================
+# Classifications
+# =========================
+# Each entry defines a classification system.
+# Examples:
+# - Security master (full dataset)
+# - Sector lookup table
+classifications:
+  # Valid security master classification.
+  Security:
+    file_path: imex_security_master.csv
+    identifier_column: SECURITY_ID
+    name_column: SECURITY_NAME
+    is_security_master: true
+
+  # Intentionally bad test case: bad filter column name.
+  BadFilterColumnName:
+    file_path: imex_classification_lookup.csv
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    filter_column: CLASSIFICATION_TYPE_XXX
+    filter_value: SECTOR
+
+  # Intentionally bad test case: missing file_path.
+  MissingFilePath:
+    identifier_column: CODE
+    name_column: DESCRIPTION
+
+  # Valid lookup-table-based sector classification.
+  Sector1:
+    file_path: imex_classification_lookup.csv
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    filter_column: CLASSIFICATION_TYPE
+    filter_value: SECTOR
+
+  # Valid security-master-based sector classification.
+  Sector2:
+    file_path: imex_security_master.csv
+    identifier_column: SECTOR_CODE
+    name_column: SECTOR_DESC
+
+# =========================
+# Mappings
+# =========================
+# Defines relationships between entities (e.g., Security → Sector)
+mappings:
+  # Valid mapping from security to sector.
+  SecurityToSector:
+    file_path: imex_security_master.csv
+    identifier_column: SECURITY_ID
+    name_column: SECTOR_CODE
+    is_security_master: true
+
+  # Intentionally bad test case: unknown field.
+  BadUnknownField:
+    unknown_field_xxx: imex_security_master.csv
+
