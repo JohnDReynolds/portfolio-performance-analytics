@@ -168,9 +168,9 @@ class AxysData:
         self.specifications_path = specifications_path
         self.thru_date: dt.date | None = thru_date
 
-        # Lod the specifications file.
+        # Load the specifications file.
         # self.specifications: dict[str, Any] = util.read_json_file(self.specifications_path)
-        with open(self.specifications_path, "r", encoding="utf-8") as f:
+        with open(self.specifications_path, "r", encoding=util.ENCODING) as f:
             try:
                 loaded_yaml: Any = yaml.safe_load(f)
             except Exception as e:
@@ -274,12 +274,6 @@ class AxysData:
                 self.portfolio_code, self.portfolio_name, self.secperf
             )
 
-        # You do not need these anymore since they are only used during the constructor.  Deleting
-        # to avoid confusion.
-        for attr in ("portfolio_code", "portfolio_name", "portperf", "secperf"):
-            if hasattr(self, attr):
-                delattr(self, attr)
-
         # Get classification and mapping data_sources.
         if self.portfolios:
             # If not classification_names, then get a set of all classifications in specifications.
@@ -329,6 +323,12 @@ class AxysData:
                 self._error_message("Must have a classification with is_security_master == true"),
                 504,
             )
+
+        # You do not need these anymore since they are only used during the constructor.  Deleting
+        # to avoid confusion.
+        for attr in ("portfolio_code", "portfolio_name", "portperf", "secperf"):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def _derive_reconciled_weights(
         self,

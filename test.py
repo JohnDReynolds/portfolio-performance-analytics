@@ -3,7 +3,6 @@
 ## Overrides for pylint and pylance
 # pylint: disable=protected-access
 # pylint: disable=too-many-lines
-# pylint: disable=wrong-import-order
 # pylint: disable=wrong-import-position
 # pyright: reportPrivateUsage=false
 
@@ -23,6 +22,11 @@ import numpy.typing as npt
 import pandas as pd
 import polars as pl
 
+# Add the tests directory to the Python path (PYTHONPATH) so that it can find test_util_sources.py.
+# Note that this is also done in .pylintrc and in .vscode/settings.json.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "tests")))
+import test_utilities as test_util  # type: ignore
+
 # # Project Imports
 from ppar.analytics import Analytics
 from ppar.axysdata import AxysData
@@ -33,11 +37,6 @@ from ppar.frequency import Frequency
 from ppar.riskstatistics import RiskStatistics
 from ppar.performance import Performance
 import ppar.utilities as util
-
-# Add the tests directory to the Python path (PYTHONPATH) so that it can find test_util_sources.py.
-# Note that this is also done in .pylintrc and in .vscode/settings.json.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "tests")))
-import test_utilities as test_util  # type: ignore
 
 # Directory Constants
 _DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/")
@@ -245,25 +244,13 @@ class Test(unittest.TestCase):
     def test_502_portperf(self) -> None:
         """Test error 502 for portperf."""
         self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[502],
-                # "axysdata.yaml",
-                "error_502_portperf.csv",
-                "imex_secperf.csv",
-            )
+            _axys_exception(self, errs.ERRORS[502], "error_502_portperf.csv", "imex_secperf.csv")
         )
 
     def test_502_secperf(self) -> None:
         """Test error 502 for secperf."""
         self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[502],
-                # "axysdata.yaml",
-                "imex_portperf.csv",
-                "error_502_secperf.csv",
-            )
+            _axys_exception(self, errs.ERRORS[502], "imex_portperf.csv", "error_502_secperf.csv")
         )
 
     def test_503_a(self) -> None:
@@ -272,7 +259,6 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[503],
-                # "axysdata.yaml",
                 "error_503_a_portperf.csv",
                 "error_503_a_secperf.csv",
                 portfolio_code="PORT_FAIL_HIGH",
@@ -285,7 +271,6 @@ class Test(unittest.TestCase):
             _axys_exception(
                 self,
                 errs.ERRORS[503],
-                # "axysdata.yaml",
                 "error_503_b_portperf.csv",
                 "error_503_b_secperf.csv",
                 portfolio_code="PORT_FAIL_EQUAL",
@@ -294,65 +279,29 @@ class Test(unittest.TestCase):
 
     def test_504_a(self) -> None:
         """Test error 504 for unknown classification."""
-        self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[504],
-                # "axysdata.yaml",
-                # "imex_portperf.csv",
-                # "imex_secperf.csv",
-                classification_name="unknown",
-            )
-        )
+        self.assertTrue(_axys_exception(self, errs.ERRORS[504], classification_name="unknown"))
 
     def test_504_b(self) -> None:
         """Test error 504 for missing file_path specification."""
         self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[504],
-                # "axysdata.yaml",
-                # "imex_portperf.csv",
-                # "imex_secperf.csv",
-                classification_name="MissingFilePath",
-            )
+            _axys_exception(self, errs.ERRORS[504], classification_name="MissingFilePath")
         )
 
     def test_504_c(self) -> None:
         """Test error 504 for bad filter_column_name."""
         self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[504],
-                # "axysdata.yaml",
-                # "imex_portperf.csv",
-                # "imex_secperf.csv",
-                classification_name="BadFilterColumnName",
-            )
+            _axys_exception(self, errs.ERRORS[504], classification_name="BadFilterColumnName")
         )
 
     def test_504_d(self) -> None:
         """Test error 504 for unknown field name."""
-        self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[504],
-                # "axysdata.yaml",
-                # "imex_portperf.csv",
-                # "imex_secperf.csv",
-                mapping_name="BadUnknownField",
-            )
-        )
+        self.assertTrue(_axys_exception(self, errs.ERRORS[504], mapping_name="BadUnknownField"))
 
     def test_505(self) -> None:
         """Test error 505."""
         self.assertTrue(
             _axys_exception(
-                self,
-                errs.ERRORS[505],
-                # "axysdata.yaml",
-                "error_505_portperf.csv",
-                "error_505_secperf.csv",
+                self, errs.ERRORS[505], "error_505_portperf.csv", "error_505_secperf.csv"
             )
         )
 
