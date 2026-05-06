@@ -1,5 +1,9 @@
 """
-The Mapping class supports mapping from one Classification to another.
+Provide mapping support between two classification schemes.
+
+This module contains the ``Mapping`` class, which loads a two-column mapping
+data source and creates a reverse lookup from each destination classification
+item to the source classification items that map to it.
 """
 
 # Python imports
@@ -13,8 +17,16 @@ import ppar.utilities as util
 
 
 class Mapping:
-    """
-    Mapping class.  Supports mapping from one Classification to another.
+    """Map source classification items to destination classification items.
+
+    A ``Mapping`` instance is typically used to roll up lower-level
+    classification items, such as securities, into higher-level classification
+    items, such as economic sectors.
+
+    Attributes:
+        to_froms: Reverse mapping whose keys are destination classification
+            identifiers and whose values are lists of source classification
+            identifiers that map to each destination identifier.
     """
 
     def __init__(
@@ -22,26 +34,35 @@ class Mapping:
         from_items_to_map: Sequence[str],
         data_source: util.MappingDataSource,
     ):
-        """
-        The constructor for creating a mapping from one classification to another.
+        """Create a mapping from one classification to another.
+
+        The mapping data source must contain two columns: the first column is
+        the source classification identifier and the second column is the
+        destination classification identifier. Source items that are not present
+        in the mapping data source are mapped to themselves.
 
         Args:
-            from_items_to_map (Sequence[str]): A list of the from items to map.
-            data_source (TypeMappingDataSource): One of the following:
-                1. The path of a csv file containing the Mapping data.
-                2. A python dictionary containing the Mapping data.
-                3. A pandas DataFrame containing the Mapping data.
-                4. A polars DataFrame containing the Mapping data.
+            from_items_to_map: Source classification identifiers that must be
+                mapped.
+            data_source: Mapping data source. This can be a CSV file path, a
+                dictionary, a pandas DataFrame, or a Polars DataFrame.
 
         Data Parameters:
-            Here is sample input data for the "data_source" parameter for mapping the "Security"
-            classification to the "Economic Sector" classification.  The unique identifier of the
-            "from" classification is in the first column, and the unique identifier of the "to"
-            classification is in the second column.  There are no column headers.
+            Sample input data for mapping a ``Security`` classification to an
+            ``Economic Sector`` classification::
+
                 AAPL, IT
                 GOOG, CO
                 XOM,  EN
-                ...
+
+            The source classification identifier is in the first column and the
+            destination classification identifier is in the second column. CSV
+            input is expected to have no column headers.
+
+        Raises:
+            PpaError: Raised by ``util.load_datasource()`` if ``data_source``
+                does not exist when provided as a file path, or if the loaded
+                mapping data does not contain exactly two columns.
         """
         # Load the data source into dataframe with 2 columns: 0=from, 1=to
         from_tos = util.load_datasource(

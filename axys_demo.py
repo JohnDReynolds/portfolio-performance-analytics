@@ -1,4 +1,4 @@
-"""xxx"""
+"""As of May 2026, this is a work-in-progress.  It has not been published in the PyPi package."""
 
 # Python imports
 import datetime as dt
@@ -9,7 +9,6 @@ from ppar.analytics import Analytics
 from ppar.attribution import View
 from ppar.axysdata import AxysData
 import ppar.utilities as util
-
 
 _CLASSIFICATION_NAME = "Sector2"  # "Security", "Sector1", "Sector2"
 _MAPPING_NAME = "SecurityToSector" if _CLASSIFICATION_NAME.startswith("Sector") else None

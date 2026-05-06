@@ -1,4 +1,7 @@
 """
+As of May 2026, this is a work-in-progress.  It has not been published in the PyPi package.
+See ../axys_demo.py for an example of how to use this class.
+
 Loads Axys performance data, optional classification and mapping sources, and performs
 reconciliation logic to ensure that sumof(weight * return) across secperf rows matches the portperf
 return for each period.
@@ -8,6 +11,9 @@ This class will always return security-level performance with optional mappings 
 Analytics will then roll up for sector-level attribution.
 
 """
+
+# Overrides for pylint
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 

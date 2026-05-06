@@ -1,5 +1,6 @@
 """
-This module contains the Frequency Enum and its associated methods.
+This module contains the ``Frequency`` enumeration and helper functions for
+working with reporting frequencies and calendar-aligned period boundaries.
 """
 
 # Pyton imports
@@ -12,11 +13,17 @@ from ppar.errors import PpaError
 
 
 class Frequency(Enum):
-    """
-    An enumeration of the time-period frequencies.
+    """Enumeration of supported reporting frequencies.
 
-    Args:
-        Enum (_type_): enum
+    The enumeration values are used throughout the analytics pipeline to
+    determine how performance data should be grouped and consolidated.
+
+    Attributes:
+        AS_OFTEN_AS_POSSIBLE: Use the native frequency of the supplied data
+            without additional consolidation.
+        MONTHLY: Consolidate data to calendar month-end periods.
+        QUARTERLY: Consolidate data to calendar quarter-end periods.
+        YEARLY: Consolidate data to calendar year-end periods.
     """
 
     AS_OFTEN_AS_POSSIBLE = "Periodic"  # As often as possible based on the frequency of the data.
@@ -26,15 +33,15 @@ class Frequency(Enum):
 
 
 def date_matches_frequency(date: dt.date, frequency: Frequency) -> bool:
-    """
-    Determines if the date matches the frequency.
+    """Determine whether a date aligns with a reporting frequency.
 
     Args:
-        date (dt.date): The date.
-        frequency (Frequency): The frequency.
+        date: The date to evaluate.
+        frequency: The reporting frequency to test against.
 
     Returns:
-        bool: True if the date matches the frequency, otherwise False.
+        ``True`` if the date aligns with the specified reporting frequency;
+        otherwise, ``False``.
     """
     match frequency:
         case Frequency.AS_OFTEN_AS_POSSIBLE:
@@ -48,14 +55,14 @@ def date_matches_frequency(date: dt.date, frequency: Frequency) -> bool:
 
 
 def _is_calendar_month_end(date: dt.date) -> bool:
-    """
-    Determines if the date parameter is a calendar month-end date.
+    """Determine whether a date is a calendar month-end date.
 
     Args:
-        date (dt.date): The date.
+        date: The date to evaluate.
 
     Returns:
-        bool: True if the date is a calendar month-end date.  Otherwise False.
+        ``True`` if the date is the final calendar day of the month;
+        otherwise, ``False``.
     """
     if date.day < 28:
         return False
@@ -63,14 +70,18 @@ def _is_calendar_month_end(date: dt.date) -> bool:
 
 
 def periods_per_year(frequency: Frequency) -> int:
-    """
-    Calculates the periods per year.
+    """Return the number of reporting periods in a calendar year.
 
     Args:
-        frequency (Frequency): The freuency.
+        frequency: The reporting frequency.
 
     Returns:
-        int: The periods per year.
+        The number of periods per calendar year for the specified frequency.
+
+    Raises:
+        PpaError: If ``frequency`` is
+            ``Frequency.AS_OFTEN_AS_POSSIBLE`` because a fixed annual period
+            count cannot be determined for that frequency.
     """
     match frequency:
         case Frequency.MONTHLY:

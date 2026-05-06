@@ -1,6 +1,12 @@
-"""Tests"""
+"""Unit tests for the ppar package.
 
-## Overrides for pylint and pylance
+This module contains regression and validation tests for performance loading,
+analytics, attribution, classification, mapping, risk statistics, Axys IMEX
+integration, utility functions, supported data formats, date/frequency
+handling, output formatting, and expected exception behavior.
+"""
+
+# Overrides for pylint and pylance
 # pylint: disable=protected-access
 # pylint: disable=too-many-lines
 # pylint: disable=wrong-import-position
@@ -56,7 +62,12 @@ _ASSERT_PNG = False
 
 
 class Test(unittest.TestCase):
-    """The Test Class containing all tests."""
+    """Test suite for ppar package behavior.
+
+    The tests cover expected exception paths, supported input data formats,
+    attribution and risk-statistics calculations, chart/table output paths,
+    auditing logic, and date/frequency consolidation behavior.
+    """
 
     ############################## Performance Exceptions ##############################
     def test_102(self) -> None:
@@ -325,18 +336,12 @@ class Test(unittest.TestCase):
 
     ############################## Test cases for utilities.py ##############################
     def test_are_near(self) -> None:
-        """
-        Test whether the are_near function correctly determines if two floats
-        are within a given tolerance of each other.
-        """
+        """Test float nearness comparisons at different tolerances."""
         self.assertTrue(util.are_near(1.0000000000001, 1.0, util.Tolerance.HIGH))
         self.assertFalse(util.are_near(1.0001, 1.0, util.Tolerance.LOW))
 
     def test_carino_linking_coefficient_assertion(self) -> None:
-        """
-        Test the carino_linking_coefficient function where the returns are invalid
-        (i.e., <= -1.0), expecting an AssertionError.
-        """
+        """Test invalid Carino inputs raise ``PpaError`` for returns <= -1.0."""
         with self.assertRaises(errs.PpaError) as cm:
             _ = util.carino_linking_coefficient(-1.0, 0.03)
         self.assertIn(errs.ERRORS[203], str(cm.exception))
@@ -346,42 +351,29 @@ class Test(unittest.TestCase):
         self.assertIn(errs.ERRORS[203], str(cm.exception))
 
     def test_carino_linking_coefficient_valid(self) -> None:
-        """
-        Test the carino_linking_coefficient function with valid portfolio and
-        benchmark returns. Should return a float value without raising an assertion.
-        """
+        """Test valid Carino inputs return a floating-point coefficient."""
         result = util.carino_linking_coefficient(0.05, 0.03)
         self.assertIsInstance(result, float, "Carino linking coefficient should be a float.")
 
     def test_col_names(self) -> None:
-        """
-        Test the col_names function to ensure it transforms suffixes properly.
-        """
+        """Test suffix conversion for generated column names."""
         from_columns = ["Port_ret", "Bench_ret"]
         transformed = list(cols.col_names(from_columns, "_wgt"))
         self.assertEqual(transformed, ["Port_wgt", "Bench_wgt"])
 
     def test_date_str(self) -> None:
-        """
-        Test date_str to ensure it formats the date as YYYY-MM-DD.
-        """
+        """Test date formatting as ``yyyy-mm-dd``."""
         test_date = dt.date(2023, 1, 5)
         self.assertEqual(util.date_str(test_date), "2023-01-05")
 
     def test_file_basename_without_extension(self) -> None:
-        """
-        Test file_basename_without_extension to ensure it returns only the file name
-        without the directory or extension.
-        """
+        """Test extracting a file basename without directory or extension."""
         path = "/some/path/to/myfile.csv"
         base_name = util.file_basename_without_extension(path)
         self.assertEqual(base_name, "myfile")
 
     def test_file_path_exists(self) -> None:
-        """
-        Test the _file_path_exists function with both an existing and non-existing file.
-        (This demonstrates testing a private-like function if you import it.)
-        """
+        """Test file-existence detection for existing and missing paths."""
         with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
             temp_name = tmp_file.name
         try:
@@ -392,10 +384,7 @@ class Test(unittest.TestCase):
         self.assertFalse(util.file_path_exists("not_a_real_file.xyz"))
 
     def test_logarithmic_linking_coefficient_series(self) -> None:
-        """
-        Test the logarithmic_linking_coefficient_series function using polars Series
-        for overall_returns and subperiod returns.
-        """
+        """Test logarithmic linking coefficients for paired Polars Series."""
         overall_returns_series = pl.Series([0.02, 0.03, 0.05])
         returns_series = pl.Series([0.01, 0.02, 0.025])
         result_series = util.logarithmic_linking_coefficient_series(
@@ -405,9 +394,7 @@ class Test(unittest.TestCase):
         self.assertEqual(result_series.len(), 3)
 
     def test_logarithmic_linking_coefficients(self) -> None:
-        """
-        Test the logarithmic_linking_coefficients function using polars Series.
-        """
+        """Test logarithmic linking coefficients for an overall return and subperiod returns."""
         returns_series = pl.Series([0.01, 0.02, 0.03])
         overall_return = 0.06
         result_series = util.logarithmic_linking_coefficients(overall_return, returns_series)
@@ -415,15 +402,13 @@ class Test(unittest.TestCase):
         self.assertEqual(result_series.len(), 3, "There should be 3 linking coefficients.")
 
     def test_near_zero(self) -> None:
-        """
-        Test near_zero function to ensure it detects values near 0 based on a tolerance.
-        """
+        """Test near-zero detection at different tolerances."""
         self.assertTrue(util.near_zero(0.0000000000001, util.Tolerance.HIGH))
         self.assertFalse(util.near_zero(0.001, util.Tolerance.LOW))
 
     ############################## Test Various Data Formats ##############################
     def test_classification_data_and_mapping_data(self) -> None:
-        """Test passing different formats of both classification_data and mapping_data.."""
+        """Test dictionary-based classification and mapping data sources."""
         # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
@@ -450,7 +435,7 @@ class Test(unittest.TestCase):
         assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
     def test_classification_data_formats(self) -> None:
-        """Test the various formats of classification_data."""
+        """Test supported classification data-source formats."""
         # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
@@ -492,7 +477,7 @@ class Test(unittest.TestCase):
             assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
     def test_mapping_data_formats(self) -> None:
-        """Test the various formats of mapping_data."""
+        """Test supported mapping data-source formats."""
         # Get the expected html using test_util.get_attribution().
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
@@ -537,7 +522,7 @@ class Test(unittest.TestCase):
             assert test_util.html_table_lines(expected_html) == test_util.html_table_lines(html)
 
     def test_performance_data_formats(self) -> None:
-        """Test the various formats of performance data."""
+        """Test supported performance data-source formats and embedded names."""
         # Get the expected html using test_util.get_attribution()
         expected_analytics = Analytics(
             test_util.performance_data_path("Big 2"),
@@ -591,7 +576,7 @@ class Test(unittest.TestCase):
 
     ############################## Test Calculations and Auditing ##############################
     def test_abcde1(self) -> None:
-        """Test basic attribution calculations for 5 assets with different subperiods."""
+        """Test basic attribution calculations for five assets with different subperiods."""
         analytics = Analytics(
             test_util.performance_data_path("abcde_portfolio1"),
             test_util.performance_data_path("abcde_portfolio2"),
@@ -614,7 +599,7 @@ class Test(unittest.TestCase):
         assert util.are_near(contribs.item(3), 0.001314124548289089)
 
     def test_abcde2(self) -> None:
-        """Test basic attribution calculations for 5 assets with identical sub-eriods."""
+        """Test basic attribution calculations for five assets with identical subperiods."""
         # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path("abcde_portfolio1"),
@@ -646,7 +631,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.BENCHMARK_CONTRIB_SMOOTHED].item(4), 0.019577639459518823)
 
     def test_attribution_content(self) -> None:
-        """Test multiple attribution views and formats."""
+        """Test attribution views, CSV output, HTML output, JSON/XML paths, and charts."""
         # Get the portfolio data as a Polars dataframe.
         portfolio_path = str(test_util.performance_data_path("Mega-Cap Portfolio"))
         portfolio_df = pl.scan_csv(source=portfolio_path, try_parse_dates=True).collect()
@@ -752,7 +737,7 @@ class Test(unittest.TestCase):
                     os.remove(test_file_path)
 
     def test_audit(self) -> None:
-        """Test auditing a broad range of performance, classifications, frequencies and views."""
+        """Test auditing across performance files, classifications, frequencies, and views."""
 
         # Declare the performance files for the portfolio/benchmark.
         file_names = (
@@ -805,7 +790,7 @@ class Test(unittest.TestCase):
                     analytics.audit()
 
     def test_calculations(self) -> None:
-        """Test basic calculations."""
+        """Test selected attribution calculation values across views and classifications."""
 
         # Get the analytics
         analytics = Analytics(
@@ -845,7 +830,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.ACTIVE_CONTRIB_SMOOTHED][3], 0.1463257464885667)
 
     def test_riskstatistics_content(self) -> None:
-        """Test risk statistics csv and html."""
+        """Test risk-statistics CSV, HTML, JSON, and XML output paths."""
         # Get the analytics.
         analytics = Analytics(
             test_util.performance_data_path("Mega-Cap Portfolio"),
@@ -893,7 +878,7 @@ class Test(unittest.TestCase):
 
     ############################## Test Frequencies and Dates ##############################
     def test_crazy_frequency(self) -> None:
-        """Test the consolidation of odd mis-matched frequencies."""
+        """Test consolidation when portfolio and benchmark frequencies are irregular."""
         analytics = Analytics(
             test_util.performance_data_path("case_mixed_frequency"),
             test_util.performance_data_path("case_crazy_frequency"),
@@ -901,7 +886,7 @@ class Test(unittest.TestCase):
         assert len(test_util.get_attribution(analytics).to_pandas(View.SUBPERIOD_SUMMARY)) == 3
 
     def test_daily_to_monthly(self) -> None:
-        """Test consolidating daily to monthly."""
+        """Test daily-to-monthly performance consolidation."""
         # Get the analytics.
         analytics = Analytics(
             test_util.performance_data_path("big2_daily"),
@@ -926,7 +911,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.SELECTION_EFFECT_SMOOTHED].item(14), 0.0015709213702753996)
 
     def test_daily_to_quarterly(self) -> None:
-        """Test consolidating daily to quarterly."""
+        """Test daily-to-quarterly performance consolidation."""
         # Get the analytics.
         analytics = Analytics(
             test_util.performance_data_path("big2_daily"),
@@ -951,7 +936,7 @@ class Test(unittest.TestCase):
         assert util.are_near(df[cols.PORTFOLIO_RETURN].item(8), 0.2401702546346276)
 
     def test_map_mixed_frequency(self) -> None:
-        """Test mapping and consolidating mixed frequencies."""
+        """Test mapping and attribution when source performances have mixed frequencies."""
         # Get the analytics
         analytics = Analytics(
             test_util.performance_data_path("Magnificent 7"),
@@ -975,7 +960,7 @@ class Test(unittest.TestCase):
         ).shape == (141, 11)
 
     def test_mixed_frequency(self) -> None:
-        """Test mixed frequencies."""
+        """Test attribution with mixed-frequency portfolio and benchmark inputs."""
         analytics = Analytics(
             test_util.performance_data_path("case_mixed_frequency"),
             test_util.performance_data_path("case_monthly_frequency"),
@@ -983,7 +968,7 @@ class Test(unittest.TestCase):
         assert len(test_util.get_attribution(analytics).to_polars(View.SUBPERIOD_SUMMARY)) == 3
 
     def test_monthly_to_yearly(self) -> None:
-        """Test consolidating monthly to yearly."""
+        """Test monthly-to-yearly performance consolidation."""
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("big2_daily"),
@@ -997,7 +982,7 @@ class Test(unittest.TestCase):
         assert df[cols.ENDING_DATE].item(2) == dt.date(2023, 12, 31)
 
     def test_specify_dates(self) -> None:
-        """Test date filtering."""
+        """Test filtering performance data by explicit beginning and ending dates."""
         perf = Performance(
             test_util.performance_data_path("case_adjust_beginning_dates"),
             beginning_date="2023-01-31",
@@ -1009,7 +994,7 @@ class Test(unittest.TestCase):
 
     ############################## Miscellaneous Tests ##############################
     def test_no_classification_name(self) -> None:
-        """Test not specifying any classification name."""
+        """Test attribution when no classification name is specified."""
         analytics = Analytics(
             test_util.performance_data_path("abcde_portfolio1"),
             test_util.performance_data_path("abcde_portfolio1"),
@@ -1017,7 +1002,7 @@ class Test(unittest.TestCase):
         test_util.get_attribution(analytics).to_html(View.OVERALL_ATTRIBUTION)
 
     def test_non_annualizability(self) -> None:
-        """Test nan for non-annualizability less than 1 year."""
+        """Test annualized statistics are NaN when fewer than one year of returns exists."""
         expostrisk = RiskStatistics(
             (np.array([1, 2, 3]), np.array([4, 5, 6])), Frequency.QUARTERLY
         )
@@ -1026,7 +1011,7 @@ class Test(unittest.TestCase):
         assert math.isnan(df["Benchmark"].item(2))
 
     def test_short_positions(self) -> None:
-        """Test short positiions."""
+        """Test attribution processing with short positions."""
         analytics = Analytics(
             test_util.performance_data_path("case_short"), test_util.performance_data_path("Big 2")
         )
@@ -1046,7 +1031,24 @@ def _axys_exception(
     classification_name: str | None = None,
     mapping_name: str | None = None,
 ) -> bool:
-    """Test RiskStatistics exception."""
+    """Return whether an ``AxysData`` construction raises an expected error.
+
+    Args:
+        test: Active ``unittest.TestCase`` instance.
+        error_message: Expected beginning of the raised error message.
+        portperf_file_name: Portperf test file name.
+        secperf_file_name: Secperf test file name.
+        portfolio_code: Portfolio code passed to ``AxysData``.
+        axysdata_yaml_path: YAML configuration file name.
+        from_date: Optional starting date filter.
+        thru_date: Optional ending date filter.
+        classification_name: Optional classification name to request.
+        mapping_name: Optional mapping name to request.
+
+    Returns:
+        ``True`` if the raised ``PpaError`` message starts with
+        ``error_message``; otherwise, ``False``.
+    """
     with test.assertRaises(errs.PpaError) as context:
         AxysData(
             test_util.axys_data_path(axysdata_yaml_path, ".yaml"),
@@ -1076,7 +1078,24 @@ def _attribution_exception(
     mapping_data_source: util.MappingDataSource = util.EMPTY,
     view: View | None = None,
 ) -> bool:
-    """Test Attribution exception."""
+    """Return whether attribution processing raises an expected error.
+
+    Args:
+        test: Active ``unittest.TestCase`` instance.
+        file_name1: Portfolio performance test file name.
+        file_name2: Benchmark performance test file name.
+        error_message: Expected beginning of the raised error message.
+        portfolio_classification_name: Portfolio classification name.
+        benchmark_classification_name: Benchmark classification name.
+        classification_name: Attribution classification name to request.
+        classification_data_source: Optional classification data source.
+        mapping_data_source: Optional mapping data source.
+        view: Optional view to render after creating the attribution.
+
+    Returns:
+        ``True`` if the raised ``PpaError`` message starts with
+        ``error_message``; otherwise, ``False``.
+    """
     with test.assertRaises(errs.PpaError) as context:
         # Get the analytics
         analytics = Analytics(
@@ -1112,7 +1131,19 @@ def _performance_exception(
     beginning_date: str | dt.date = dt.date.min,
     ending_date: str | dt.date = dt.date.max,
 ) -> bool:
-    """Test Performance exception."""
+    """Return whether ``Performance`` construction raises an expected error.
+
+    Args:
+        test: Active ``unittest.TestCase`` instance.
+        file_name: Performance test file name.
+        error_message: Expected beginning of the raised error message.
+        beginning_date: Optional beginning date filter.
+        ending_date: Optional ending date filter.
+
+    Returns:
+        ``True`` if the raised ``PpaError`` message starts with
+        ``error_message``; otherwise, ``False``.
+    """
     with test.assertRaises(errs.PpaError) as context:
         Performance(
             test_util.performance_data_path(file_name),
@@ -1130,7 +1161,20 @@ def _riskstatistics_exception(
     frequency: Frequency,
     minimum_acceptable_return: float = 0,
 ) -> bool:
-    """Test RiskStatistics exception."""
+    """Return whether ``RiskStatistics`` construction raises an expected error.
+
+    Args:
+        test: Active ``unittest.TestCase`` instance.
+        error_message: Expected beginning of the raised error message.
+        returns: Tuple of portfolio and benchmark return arrays.
+        frequency: Return frequency.
+        minimum_acceptable_return: Minimum acceptable return passed to
+            ``RiskStatistics``.
+
+    Returns:
+        ``True`` if the raised ``PpaError`` message starts with
+        ``error_message``; otherwise, ``False``.
+    """
     with test.assertRaises(errs.PpaError) as context:
         RiskStatistics(returns, frequency, minimum_acceptable_return)
     print(str(context.exception))

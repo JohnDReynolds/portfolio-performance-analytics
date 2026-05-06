@@ -1,5 +1,10 @@
-"""
-This module contains column names, column groupings and column functions.
+"""Define shared column names, column groups, and column-name helpers.
+
+This module centralizes the string constants used throughout the package for
+performance, attribution, contribution, classification, and output-view column
+names. It also defines reusable column groupings and suffix constants used to
+translate between related performance columns, such as return, weight, and
+contribution columns.
 """
 
 # Python Imports
@@ -149,29 +154,38 @@ WGT = ".wgt"  # Weight
 
 
 def col_names(from_col_names: Iterable[str], to_col_name_suffix: str) -> list[str]:
-    """
-    Translate the column names in from_col_names corresponding to to_col_name_suffix.
+    """Return related column names with a replacement suffix.
+
+    Each input column name is expected to use one of the package's four-character
+    performance suffixes, such as ``.ret``, ``.wgt``, or ``.con``. The function
+    removes the final four characters from each input name and appends
+    ``to_col_name_suffix``.
 
     Args:
-        from_col_names (Iterable[str]): An iterable of the column names to translate (with their
-            suffixes).
-        to_col_name_suffix (str): The new suffix.
+        from_col_names (Iterable[str]): Column names whose final four characters
+            should be replaced.
+        to_col_name_suffix (str): Replacement suffix to append to each base
+            column name.
 
     Returns:
-        list[str]: The column names corresponding to to_col_name_suffix.
+        list[str]: Column names with ``to_col_name_suffix`` appended to each
+        input column's base name.
     """
     return [f"{from_name[:-4]}{to_col_name_suffix}" for from_name in from_col_names]
 
 
 def short_column_name(full_column_name: str) -> str:
-    """
-    Remove extraneous technical words from column_name to yield a shorter friendly "engish" name.
+    """Return a shorter display label for a technical column name.
+
+    Removes selected technical words and converts underscores to spaces. This is
+    intended for user-facing labels in tables and charts, not for programmatic
+    column lookups.
 
     Args:
-        column_name (str): The full column name.
+        full_column_name (str): Technical column name to shorten.
 
     Returns:
-        str: The shorter column name.
+        str: Shortened, space-separated display label.
     """
     return (
         full_column_name.replace("Cumulative", "")

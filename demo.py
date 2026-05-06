@@ -1,4 +1,9 @@
-"""Sample demonstration script."""
+"""Demonstrate ppar analytics, attribution, chart, and output features.
+
+This script builds a sample ``Analytics`` instance from bundled demonstration
+data, displays selected attribution tables or charts in a web browser, displays
+risk statistics, and exercises the main output-format methods.
+"""
 
 # Project Imports
 from ppar.analytics import Analytics
@@ -9,12 +14,27 @@ import ppar.utilities as util
 
 
 def run_demo(periodicity: str, tables_or_charts: str) -> None:
-    """
-    Display demo versions of tables or charts in a webbrowser.
+    """Run the bundled ppar demonstration.
+
+    The demo loads sample portfolio and benchmark performance data, optionally
+    filters the monthly demo date range, creates attribution results by security
+    and economic sector, and opens either formatted tables or charts in the
+    default web browser. When tables are displayed, ex-post risk statistics are
+    also displayed.
 
     Args:
-        periodicity (str): 'm'onthly, 'q'uarterly, or 'y'early
-        tables_or_charts (str): If 'c' or 'C', then display charts.  Otherwise display tables.
+        periodicity: Reporting periodicity selector. Values beginning with
+            ``"q"`` or ``"Q"`` use quarterly reporting, values beginning with
+            ``"y"`` or ``"Y"`` use yearly reporting, and all other values use
+            monthly reporting.
+        tables_or_charts: Output selector. Values beginning with ``"c"`` or
+            ``"C"`` display charts; all other values display tables.
+
+    Raises:
+        PpaError: Propagated from ppar analytics, attribution, performance,
+            classification, mapping, or risk-statistics validation if the demo
+            data or requested calculations are invalid.
+        OSError: Propagated if writing the demonstration CSV output fails.
     """
     # Determine the frequency.
     if len(periodicity) < 1 or periodicity[0] not in ("q", "Q", "y", "Y"):

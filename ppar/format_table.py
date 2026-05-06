@@ -1,7 +1,14 @@
 """
-This module contains static methods for formatting "great_tables" for the views enumerated in
-Attribution.View.
+Format :mod:`great_tables` tables for attribution views.
+
+This module centralizes presentation formatting for the Great Tables output
+produced by ``Attribution`` view methods. The functions accept an existing
+``gt.GT`` table and apply numeric formatting, spanners, labels, alignment,
+and standard styling for the corresponding attribution view.
 """
+
+# Override for pylance.  All of the fmt_ and tab_ methods are "type partially unknown".
+# pyright: reportUnknownMemberType=none
 
 # Third-Party Imports
 import great_tables as gt
@@ -28,7 +35,14 @@ _label_weight = gt.html("Weight")
 
 
 def _align_dates(table: gt.GT) -> gt.GT:
-    """Center-Align the dates."""
+    """Apply centered labels to beginning and ending date columns.
+
+    Args:
+        table (gt.GT): The table whose date column labels should be centered.
+
+    Returns:
+        gt.GT: The table with centered date column labels applied.
+    """
     return table.cols_label(
         beginning_date=gt.html('<p align="center">Beginning</p>'),
         ending_date=gt.html('<p align="center">Ending</p>'),
@@ -36,14 +50,19 @@ def _align_dates(table: gt.GT) -> gt.GT:
 
 
 def cumulative_attribution(table: gt.GT) -> gt.GT:
-    """
-    Formats a "great_table" version of View.CUMULATIVE_ATTRIBUTION.
+    """Format a cumulative attribution view table.
+
+    Applies numeric formatting, column spanners, display labels, standard styling,
+    and centered date labels for a table representing
+    ``View.CUMULATIVE_ATTRIBUTION``.
 
     Args:
-        table (gt.GT): The generic template table.
+        table (gt.GT): The unformatted template table containing cumulative
+            attribution view columns.
 
     Returns:
-        table (gt.GT): The formatted "great_table" version of View.CUMULATIVE_ATTRIBUTION.
+        gt.GT: The formatted Great Tables object for the cumulative attribution
+        view.
     """
     # This table is wide, so apply a narrow font style.
     table = table.tab_options(table_font_names="Arial Narrow")
@@ -111,20 +130,34 @@ def cumulative_attribution(table: gt.GT) -> gt.GT:
 
 
 def _display_classification_label(classification_label: str) -> str:
-    """Return the classification_label for displaying."""
+    """Return the display label for a classification spanner.
+
+    Args:
+        classification_label (str): The requested classification label. Empty or
+            blank values are treated as unavailable.
+
+    Returns:
+        str: An empty string when ``classification_label`` is empty; otherwise,
+        the original classification label.
+    """
     return "" if util.is_empty(classification_label) else classification_label
 
 
 def overall_attribution(table: gt.GT, classification_label: str) -> gt.GT:
-    """
-    Formats a "great_table" version of View.OVERALL_ATTRIBUTION.
+    """Format an overall attribution view table.
+
+    Applies numeric formatting, classification/portfolio/benchmark/active/
+    attribution spanners, display labels, standard styling, and left alignment for
+    classification columns for a table representing ``View.OVERALL_ATTRIBUTION``.
 
     Args:
-        table (gt.GT): The generic template table.
-        classification_label (str): The classification label.
+        table (gt.GT): The unformatted template table containing overall
+            attribution view columns.
+        classification_label (str): The label to display above the classification
+            identifier and name columns. Empty values suppress the spanner label.
 
     Returns:
-        table (gt.GT): The formatted "great_table" version of View.OVERALL_ATTRIBUTION
+        gt.GT: The formatted Great Tables object for the overall attribution view.
     """
     # Format the table.
     table = (
@@ -181,15 +214,22 @@ def overall_attribution(table: gt.GT, classification_label: str) -> gt.GT:
 
 
 def subperiod_attribution(table: gt.GT, classification_label: str) -> gt.GT:
-    """
-    Formats a "great_table" version of View.SUBPERIOD_ATTRIBUTION.
+    """Format a subperiod attribution view table.
+
+    Applies numeric formatting, classification/portfolio/benchmark/active/
+    attribution spanners, display labels, standard styling, left alignment for
+    classification columns, and centered date labels for a table representing
+    ``View.SUBPERIOD_ATTRIBUTION``.
 
     Args:
-        table (gt.GT): The generic template table.
-        classification_label (str): The classification label.
+        table (gt.GT): The unformatted template table containing subperiod
+            attribution view columns.
+        classification_label (str): The label to display above the classification
+            identifier and name columns. Empty values suppress the spanner label.
 
     Returns:
-        table (gt.GT): The formatted "great_table" version of View.SUBPERIOD_ATTRIBUTION
+        gt.GT: The formatted Great Tables object for the subperiod attribution
+        view.
     """
     # Format the table.
     table = (
@@ -249,14 +289,18 @@ def subperiod_attribution(table: gt.GT, classification_label: str) -> gt.GT:
 
 
 def subperiod_summary(table: gt.GT) -> gt.GT:
-    """
-    Formats a "great_table" version of View.SUBPERIOD_SUMMARY.
+    """Format a subperiod summary view table.
+
+    Applies numeric formatting, return/contribution/attribution spanners, display
+    labels, standard styling, and centered date labels for a table representing
+    ``View.SUBPERIOD_SUMMARY``.
 
     Args:
-        table (gt.GT): The generic template table.
+        table (gt.GT): The unformatted template table containing subperiod summary
+            view columns.
 
     Returns:
-        table (gt.GT): The formatted "great_table" version of View.SUBPERIOD_SUMMARY
+        gt.GT: The formatted Great Tables object for the subperiod summary view.
     """
     # Format the table.
     table = (

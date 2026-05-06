@@ -1,8 +1,11 @@
-"""
-This module contains static methods for formatting the charts enumerated in Attribution.Chart.
+"""Format attribution chart data as PNG images.
+
+This module contains helper functions used by :class:`ppar.attribution.Attribution`
+to render cumulative line charts, heatmaps, horizontal bar charts, and vertical bar
+charts from Polars DataFrames. Each public formatter returns PNG image bytes.
 """
 
-## Override for pylance.  All of the plt and ax methods are "type partially unknown".
+# Overrides for pylance.  All of the plt and ax methods are "type partially unknown".
 # pyright: reportUnknownMemberType=none
 
 # Python Imports
@@ -45,17 +48,19 @@ def cumulative_lines(
     title_lines: tuple[str, str],
     y_axis_label: str,
 ) -> bytes:
-    """
-    Formats the CUMULATIVE* charts.
+    """Return a cumulative line chart as PNG bytes.
 
     Args:
-        df (pl.DataFrame): The View.CUMULATIVE_ATTRIBUTION DataFrame.
-        column_names (Iterable[str]): An Iterable  of the 3 cumulative column names to chart.
-        title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
-        y_axis_label (str): The label for the y-axis.
+        df (pl.DataFrame): Cumulative attribution view data containing
+            ``cols.ENDING_DATE`` and the requested cumulative value columns.
+        column_names (Iterable[str]): Names of the cumulative columns to plot. The
+            colors are assigned by column order.
+        title_lines (tuple[str, str]): Main title and subtitle to display above the
+            chart.
+        y_axis_label (str): Label to display on the y-axis.
 
     Returns:
-        bytes: An in-memory png of the matplotlib chart.
+        bytes: PNG image bytes for the rendered Matplotlib chart.
     """
     # Create figure
     fig = plt.figure(figsize=_figsize(_DEFAULT_FIGSIZE))
@@ -102,14 +107,14 @@ def cumulative_lines(
 
 
 def _figsize(figsize: tuple[float, float]) -> tuple[float, float]:
-    """
-    Constrain the figsize by minimum and maximum sizes.
+    """Constrain a requested figure size to the supported chart bounds.
 
     Args:
-        figsize (tuple[float, float]): The desired figsize (width, height).
+        figsize (tuple[float, float]): Requested ``(width, height)`` in inches.
 
     Returns:
-        tuple[float, float]: The constrained figsize.
+        tuple[float, float]: Figure size clipped to the configured minimum and
+        maximum width and height.
     """
     return (
         max(min(figsize[0], _MAXIMUM_FIGURE_WIDTH), _MINIMUM_FIGURE_WIDTH),
@@ -124,21 +129,27 @@ def heatmap(
     columns_to_sort: str | Sequence[str] = util.EMPTY,
     sort_descendings: bool | Sequence[bool] = False,
 ) -> bytes:
-    """
-    Formats the HEATMAP* charts.
+    """Return a heatmap chart as PNG bytes.
 
     Args:
-        df (pl.DataFrame): The View.SUBPERIOD_SUMMARY DataFrame.
-        column_name (str): The column name.
-        title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
-        columns_to_sort (str | Sequence[str], optional): A column name or an Iterable of the
-            column names to sort by.  Defaults to util.EMPTY.
-        sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-            booleans to indicate if the corresponding column name should be sorted in
-            descending order.  Defaults to False.
+        df (pl.DataFrame): Subperiod attribution data containing ending dates,
+            classification identifiers, classification names, portfolio weights,
+            and the requested value column.
+        column_name (str): Name of the metric column to display in the heatmap
+            cells.
+        title_lines (tuple[str, str]): Main title and subtitle to display above the
+            chart.
+        columns_to_sort (str | Sequence[str], optional): Column name, or sequence
+            of column names, used to choose the heatmap row ordering. Only the
+            first value is used when a sequence is supplied. Defaults to
+            ``util.EMPTY``.
+        sort_descendings (bool | Sequence[bool], optional): Sort direction, or
+            sequence of sort directions, corresponding to ``columns_to_sort``. Only
+            the first value is used when a sequence is supplied. Defaults to
+            ``False``.
 
     Returns:
-        bytes: An in-memory png of the matplotlib chart.
+        bytes: PNG image bytes for the rendered heatmap.
     """
     # If it is a "portfolio-only" heatmap, then get rid of the cells where the portfolio weight is
     # zero.  They are there because the benchmark weight is not 0.0.
@@ -232,15 +243,16 @@ def overall_attribution(
     df: pl.DataFrame,
     title_lines: tuple[str, str],
 ) -> bytes:
-    """
-    Formats the chart: OVERALL_ATTRIBUTION
+    """Return an overall attribution chart as PNG bytes.
 
     Args:
-        df (pl.DataFrame): The View.OVERALL_ATTRIBUTION DataFrame.
-        title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
+        df (pl.DataFrame): Overall attribution view data containing classification
+            names and smoothed attribution effect columns.
+        title_lines (tuple[str, str]): Main title and subtitle to display above the
+            chart.
 
     Returns:
-        bytes: An in-memory png of the matplotlib chart.
+        bytes: PNG image bytes for the rendered overall attribution chart.
     """
     # Set the labels, data series names and data series values.
     labels = _word_wrap(df)
@@ -312,17 +324,19 @@ def overall_contribution(
     portfolio_name: str,
     benchmark_name: str,
 ) -> bytes:
-    """
-    Formats the chart: OVERALL_CONTRIBUTION
+    """Return an overall contribution comparison chart as PNG bytes.
 
     Args:
-        df (pl.DataFrame): The View.OVERALL_CONTRIBUTION DataFrame.
-        title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
-        portfolio_name (str): The portfolio name.
-        benchmark_name (str): The benchmark name.
+        df (pl.DataFrame): Overall attribution view data containing classification
+            names and portfolio/benchmark weight, return, and contribution
+            columns.
+        title_lines (tuple[str, str]): Main title and subtitle to display above the
+            chart.
+        portfolio_name (str): Portfolio label to use in the chart legend.
+        benchmark_name (str): Benchmark label to use in the chart legend.
 
     Returns:
-        bytes: An in-memory png of the matplotlib chart.
+        bytes: PNG image bytes for the rendered overall contribution chart.
     """
     # Get the series names.
     series_names = ("Weight", "Return", "Contribution")
@@ -401,14 +415,13 @@ def overall_contribution(
 
 
 def _to_png(fig: Figure) -> bytes:
-    """
-    Convert figure to png bytes.
+    """Serialize a Matplotlib figure to PNG bytes and close the figure.
 
     Args:
-        fig (Figure): The figure to convert.
+        fig (Figure): Matplotlib figure to serialize.
 
     Returns:
-        bytes: The resulting png bytes.
+        bytes: PNG image bytes for ``fig``.
     """
     buf = io.BytesIO()
     fig.savefig(buf, format="png")
@@ -432,17 +445,19 @@ def vertical_bars(
     title_lines: tuple[str, str],
     y_axis_label: str,
 ) -> bytes:
-    """
-    Formats the charts with vertical bars.
+    """Return a vertical grouped bar chart as PNG bytes.
 
     Args:
-        df (pl.DataFrame): The View.SUBPERIOD_SUMMARY DataFrame.
-        column_names (Sequence[str]): A Sequence of the 3 cumulative column names to chart.
-        title_lines (tuple[str, str]): A tuple of the title and subtitle lines.
-        y_axis_label (str): The label for the y-axis.
+        df (pl.DataFrame): Subperiod summary data containing ``cols.ENDING_DATE``
+            and the requested metric columns.
+        column_names (Sequence[str]): Metric columns to plot as grouped vertical
+            bars. The colors are assigned by column order.
+        title_lines (tuple[str, str]): Main title and subtitle to display above the
+            chart.
+        y_axis_label (str): Label to display on the y-axis.
 
     Returns:
-        bytes: An in-memory png of the matplotlib chart.
+        bytes: PNG image bytes for the rendered vertical bar chart.
     """
     # Set the dates
     dates = df[cols.ENDING_DATE]
@@ -503,14 +518,15 @@ def vertical_bars(
 
 
 def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, float]:
-    """
-    Get the vertical chart measurements.
+    """Return sizing values for horizontal bar charts.
 
     Args:
-        qty_of_y_ticks (int): The quantity of y-axis ticks.
+        qty_of_y_ticks (int): Number of y-axis groups or labels that the chart must
+            display.
 
     Returns:
-        tuple[float, float, float]: (bar_height, delta, fig_height)
+        tuple[float, float, float]: Bar height, vertical offset from each group
+        center, and figure height in inches.
     """
     # Set the overall figure height (in inches) based on qty_of_y_ticks.
     # The height_factor of 0.4 seems to work the best.  If you decrease it, then the labels
@@ -533,14 +549,19 @@ def _vertical_chart_measurements(qty_of_y_ticks: int) -> tuple[float, float, flo
 
 
 def _word_wrap(df: pl.DataFrame) -> list[str]:
-    """
-    Word-wrap each name at a maximum_length.
+    """Return word-wrapped classification labels for chart axes.
+
+    Duplicate classification names are prefixed with their classification identifiers
+    so chart labels remain unique. Labels are wrapped to the configured maximum
+    label length.
 
     Args:
-        df (pl.DatFrame): The dataframe containing the names.
+        df (pl.DataFrame): DataFrame containing ``cols.CLASSIFICATION_IDENTIFIER``
+            and ``cols.CLASSIFICATION_NAME``. If ``cols.ENDING_DATE`` is present,
+            duplicate detection is based on the first ending-date group.
 
     Returns:
-        list[str]: The word-wrapped list of unique names.
+        list[str]: Word-wrapped classification labels in DataFrame row order.
     """
     # Get the columns.
     ending_dates = df[cols.ENDING_DATE] if cols.ENDING_DATE in df else pl.Series()

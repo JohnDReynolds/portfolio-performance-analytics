@@ -1,14 +1,9 @@
-"""
-The RiskStatistics class calculates the ex-post risk statistics enumerated in the "Statistic" enum.
+"""Calculate and format ex-post portfolio risk statistics.
 
-The public methods to retrieve the resulting statistics are:
-    1. to_html()
-    2. to_json()
-    3. to_pandas()
-    4. to_polars()
-    5. to_table()
-    6. to_xml()
-    7. write_csv()
+This module contains the ``Statistic`` enumeration and the ``RiskStatistics``
+class. ``RiskStatistics`` calculates absolute risk, downside risk,
+benchmark-relative risk, risk-adjusted performance, and regression statistics
+for a portfolio and benchmark return series.
 """
 
 # Python Imports
@@ -37,7 +32,10 @@ _DEFAULT_OUTPUT_PRECISION = 8
 
 
 class Statistic(Enum):
-    """An enumeration of the different types of statistics.  Arranged in view order."""
+    """Enumeration of supported ex-post risk statistics.
+
+    The values are arranged in the order used by the formatted output views.
+    """
 
     # Absolute Risk
     RETURN_RANGE = "Return Range"
@@ -87,16 +85,20 @@ _MINIMUM_QUANTITY_OF_RETURNS = 2
 
 
 class RiskStatistics:
-    """
-    The RiskStatistics class calculates the ex-post risk statistics enumerated in the
-    "Statistic" enum.
+    """Calculate ex-post risk statistics for portfolio and benchmark returns.
 
-    The public methods to retrieve the resulting statistics are:
-        1. to_html()
-        2. to_pandas()
-        3. to_polars()
-        4. to_table()
-        5. write_csv()
+    The class accepts either two ``Performance`` instances or two NumPy arrays
+    of periodic returns. It calculates the statistics enumerated by
+    ``Statistic`` and stores the formatted results in a Polars DataFrame.
+
+    Public output methods:
+        1. ``to_html()``
+        2. ``to_json()``
+        3. ``to_pandas()``
+        4. ``to_polars()``
+        5. ``to_table()``
+        6. ``to_xml()``
+        7. ``write_csv()``
     """
 
     def __init__(
@@ -114,33 +116,30 @@ class RiskStatistics:
             util.DEFAULT_CURRENCY_SYMBOL,
         ),
     ):
-        """
-        The constructor.  Calculates the ex-post risk statistics enumerated in the "Statistic"
-        enum.  Stores them in the dictionary self._df.
+        """Initialize and calculate risk statistics.
 
         Args:
-            returns (tuple[Performance, Performance]  |
-                tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]):
-                Two Performances or numpy arrays of periodic returns.  0 = Portfolio, 1 = Benchmark
-            frequency (Frequency): The frequency of both the portfolio returns and the
-                benchmark returns.  Either:
-                1. Frequency.MONTHLY
-                2. Frequency.QUARTERLY
-                3. Frequency.YEARLY
-            annual_minimum_acceptable_return (float, optional): The minimum acceptable return used
-                for calculating "downside" satistics.
-                Defaults to util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN.
-            annual_risk_free_rate (float, optional): The annual risk-free rate used for
-                calculating statistics that involve a risk-free rates.
-                Defaults to util.DEFAULT_ANNUAL_RISK_FREE_RATE.
-            confidence_level (float, optional): The confidence level for calculating the
-                value-at-risk (VAR).  Defaults to util.DEFAULT_CONFIDENCE_LEVEL.
-            portfolio_value (tuple[float, str], optional): A tuple of the portfolio value and it's
-                associated currency that will be used when calculating the value-at-risk (VaR).
-                Defaults to (util.DEFAULT_PORTFOLIO_VALUE, util.DEFAULT_CURRENCY_SYMBOL).
+            returns: Either a tuple of two ``Performance`` instances or a
+                tuple of two NumPy arrays of periodic returns. Index ``0`` is
+                the portfolio and index ``1`` is the benchmark.
+            frequency: Frequency of the portfolio and benchmark returns.
+                Supported values are ``Frequency.MONTHLY``,
+                ``Frequency.QUARTERLY``, and ``Frequency.YEARLY``.
+            annual_minimum_acceptable_return: Annual minimum acceptable return
+                used for downside-risk calculations.
+            annual_risk_free_rate: Annual risk-free rate used for
+                risk-adjusted performance statistics.
+            confidence_level: Confidence level used for value-at-risk
+                calculations.
+            portfolio_value: Tuple containing the portfolio value and currency
+                symbol used when calculating and displaying value at risk.
 
         Raises:
-            PpaError: Error if frequency is invalid.
+            PpaError: If ``frequency`` is
+                ``Frequency.AS_OFTEN_AS_POSSIBLE``, ``returns`` is not a
+                supported tuple type, the portfolio and benchmark return
+                series have different lengths, there are fewer than two
+                returns, or either return series contains NaN values.
         """
         # Set and validate the frequency.
         self._frequency = frequency
@@ -217,15 +216,16 @@ class RiskStatistics:
         )
 
     def _annualize_return(self, mean_frequency_return: float, qty_periods_per_year: int) -> float:
-        """
-        Annualizes the mean_frequency_return (e.g. mean monthly return).
+        """Annualize a mean periodic return.
 
         Args:
-            mean_frequency_return (float): The mean frequency_return (e.g. monthly).
-            qty_periods_per_year: The quantity of periods per year based on the frequency (e.g. 12)
+            mean_frequency_return: Mean return for the input frequency.
+            qty_periods_per_year: Number of periods per year for the input
+                frequency.
 
         Returns:
-            float: The annualized return.
+            Annualized return, or ``np.nan`` when the return series contains
+            fewer than one year's worth of observations.
         """
         # Cannot annualize if you do not have at least a years worth of returns, so return np.nan.
         return (
@@ -235,7 +235,12 @@ class RiskStatistics:
         )
 
     def _audit(self) -> None:
-        """Audit the RiskStatistics instance (self)."""
+        """Audit the source performance pair.
+
+        Raises:
+            PpaError: Raised by ``Performance.audit_performances()`` if the
+                source portfolio and benchmark performances fail validation.
+        """
         # Audit the portfolio/benchmark pair of performances.
         Performance.audit_performances(
             self._performances_to_audit, self._beginning_date, self._ending_date
@@ -245,15 +250,14 @@ class RiskStatistics:
     def _beta(
         portfolio_returns: npt.NDArray[np.float64], benchmark_returns: npt.NDArray[np.float64]
     ) -> float:
-        """
-        Calculates the beta between the portfolio and the benchmark.
+        """Calculate beta between portfolio and benchmark returns.
 
         Args:
-            portfolio_returns (npt.NDArray[np.float64]): The portfolio returns.
-            benchmark_returns (npt.NDArray[np.float64]): The benchmark returns.
+            portfolio_returns: Portfolio periodic returns.
+            benchmark_returns: Benchmark periodic returns.
 
         Returns:
-            float: The beta between the portfolio and the benchmark.
+            Portfolio beta relative to the benchmark.
         """
         covariance_matrix = np.cov(portfolio_returns, benchmark_returns)
         covariance = covariance_matrix[0, 1]
@@ -267,19 +271,25 @@ class RiskStatistics:
         confidence_level: float,
         portfolio_value: float,
     ) -> dict[str, list[np.float64]]:
-        """
-        Calculates all statistic values.
+        """Calculate all statistic values for portfolio and benchmark.
 
         Args:
-            annual_minimum_acceptable_return (float): The minimum acceptable return used for
-                calculating "downside" satistics.
-            annual_risk_free_rate (float): The annual risk-free rate used for calculating
-                statistics that involve a risk-free rates.
-            confidence_level (float): The confidence level for calculating the value-at-risk (VAR).
-            portfolio_value (float): The portfolio value (stated in a currency) for calculating the
-                value-at-risk (VAR).
+            annual_minimum_acceptable_return: Annual minimum acceptable return
+                used for downside-risk calculations.
+            annual_risk_free_rate: Annual risk-free rate used for
+                risk-adjusted performance statistics.
+            confidence_level: Confidence level used for value-at-risk
+                calculations.
+            portfolio_value: Portfolio currency value used for value-at-risk
+                calculations.
+
         Returns:
-            dict[str, list[np.float64]]: A list of all statistic values.
+            Dictionary keyed by statistic display name. Each value contains
+            the portfolio statistic followed by the benchmark statistic.
+
+        Raises:
+            PpaError: Raised by ``periods_per_year()`` if the stored frequency
+                is unsupported for annualization.
         """
         # Set the annualization coefficient.  It is not kosher to annualize numbers that are for
         # less than a year, so in that case, use NaN.
@@ -446,15 +456,16 @@ class RiskStatistics:
     def _calculate_risk_free_ratios(
         returns: npt.NDArray[np.float64], frequency_rfr: float
     ) -> tuple[float, float, float]:
-        """
-        Calculate the statistics that are adjusted by the risk-free rate.
+        """Calculate risk-free-rate-adjusted performance ratios.
 
         Args:
-            returns (npt.NDArray[np.float64]): The array of returns.
-            frequency_rfr (float): The risk-free rate corresponding to the returns frequency.
+            returns: Periodic return series.
+            frequency_rfr: Risk-free rate converted to the same periodic
+                frequency as ``returns``.
 
         Returns:
-            tuple[float, float, float]: excess_returns_mean, sharpe_ratio, sortino_ratio
+            Tuple containing mean excess return, Sharpe ratio, and Sortino
+            ratio.
         """
         # Calculate the excess returns for the Sortino Ratio and Sharpe Ratio.
         # Note that excess_returns_downside will only include excess_returns < 0.
@@ -478,30 +489,32 @@ class RiskStatistics:
 
     @staticmethod
     def _deannualize_return(annual_return: float, qty_periods_per_year: int) -> float:
-        """
-        De-annualizes the annual_return to correspond with the frequency.
+        """Convert an annual return to a periodic return.
 
         Args:
-            annual_return (float): The annual return.
-            qty_periods_per_year: The quantity of periods per year.
+            annual_return: Annual return to convert.
+            qty_periods_per_year: Number of periods per year.
 
         Returns:
-            float: The de-annualized return corresponding with the frequency.
+            Periodic return corresponding to ``qty_periods_per_year``.
         """
         return cast(
             float, ((1 + annual_return) ** (1 / qty_periods_per_year)) - 1
         )  # cast for mypy
 
     def _frequency_column_name(self, column_name: str, portfolio_value: float) -> str:
-        """
-        Create a new column name by prepending the frequency for non-annualized column names
-        and prepending the currency symbol for the portfolio_value.
+        """Build a display column name for a statistic.
+
+        Non-annualized statistics are prefixed with the reporting frequency.
+        Value-at-risk is also labeled with the portfolio currency value.
+
         Args:
-            column_names (list[str]): The column name without frequency.
-            portfolio_value (float): The portfolio value (stated in a currency).
+            column_name: Base statistic column name.
+            portfolio_value: Portfolio currency value used for value-at-risk
+                labeling.
 
         Returns:
-            list[str]: The column name prepended with frequency for non-annualized columns.
+            Display column name.
         """
         if column_name == Statistic.VALUE_AT_RISK.value:
             return (
@@ -519,17 +532,16 @@ class RiskStatistics:
         confidence_level: float,
         portfolio_value: float,
     ) -> float:
-        """
-        Calculate Parametric Value at Risk (VaR).
+        """Calculate parametric value at risk.
 
         Args:
-            mean (float): Mean return of the portfolio (stated in frequency).
-            stddev (float): Standard deviation of the portfolio returns (stated in frequency).
-            confidence_level (float): Confidence level (e.g., 0.95 for 95% confidence).
-            portfolio_value (float): Total currency value of the portfolio.
+            mean: Mean periodic return.
+            stddev: Standard deviation of periodic returns.
+            confidence_level: Confidence level, such as ``0.95`` for 95%.
+            portfolio_value: Portfolio currency value.
 
         Returns:
-            float: Value at Risk (VaR).
+            Parametric value at risk as a positive currency amount.
         """
         # Calculate the z-score for the given confidence level.
         z_score = norm.ppf(1 - confidence_level)  # type: ignore
@@ -544,63 +556,47 @@ class RiskStatistics:
         return cast(float, var)
 
     def to_html(self) -> str:
-        """
-        Returns the view in an html format.
-
-        Args:
-            view (View): The desired View.
+        """Return the statistics table as an HTML page string.
 
         Returns:
-            str: The view in an html format.
+            HTML string containing the formatted risk-statistics table.
         """
         return self.to_table().as_raw_html(make_page=True)
 
     def to_json(self, float_precision: int = _DEFAULT_OUTPUT_PRECISION) -> str:
-        """
-        Returns the view as a json string.
+        """Return the statistics as a JSON string.
 
         Args:
-            float_precision (int, optional): The quantity of decimal places.
-                Defaults to _DEFAULT_OUTPUT_PRECISION.
+            float_precision: Number of decimal places to include for floating
+                point values.
 
         Returns:
-            str: The view as a json string.
+            JSON representation of the risk-statistics DataFrame.
         """
         return self.to_pandas().to_json(double_precision=float_precision)  # type: ignore
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Returns the view as a pandas DataFrame.
-
-        Args:
-            view (View): The desired View.
+        """Return the statistics as a pandas DataFrame.
 
         Returns:
-            str: The view as a pandas DataFrame.
+            pandas DataFrame containing the calculated risk statistics.
         """
         return self._df.to_pandas()
 
     def to_polars(self) -> pl.DataFrame:
-        """
-        Returns the view as a polars DataFrame.
-
-        Args:
-            view (View): The desired View.
+        """Return the statistics as a Polars DataFrame.
 
         Returns:
-            str: The view as a polars DataFrame.
+            Polars DataFrame containing the calculated risk statistics.
         """
         return self._df
 
     def to_table(self) -> gt.GT:
-        """
-        Returns a "great_table" of the view.
-
-        Args:
-            view (View): The desired View.
+        """Return the statistics as a formatted Great Tables table.
 
         Returns:
-            gt.GT: A "great_table" of the view.
+            ``great_tables.GT`` object containing the formatted
+            risk-statistics table.
         """
         # Set the title and subtitle.
         title = f"{self._portfolio_name} vs {self._benchmark_name}"
@@ -628,22 +624,19 @@ class RiskStatistics:
         )
 
     def to_xml(self) -> str:
-        """
-        Returns the view as an xml string.
+        """Return the statistics as an XML string.
 
         Returns:
-            str: The view as an xml string.
+            XML representation of the risk-statistics DataFrame.
         """
         return self.to_pandas().to_xml()
 
     def write_csv(self, file_path: str, float_precision: int = _DEFAULT_OUTPUT_PRECISION) -> None:
-        """
-        Writes a csv file of the view.
+        """Write the statistics to a CSV file.
 
         Args:
-            view (View): The desired View.
-            file_path (str): The file path of the csv file to be written to.
-            float_precision (int, optional): The quantity of decimal places.
-                Defaults to util._DEFAULT_OUTPUT_PRECISION.
+            file_path: Output CSV file path.
+            float_precision: Number of decimal places to write for floating
+                point values.
         """
         self._df.write_csv(file_path, float_precision=float_precision)

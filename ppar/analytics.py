@@ -1,10 +1,10 @@
 """
-The Analytics class reads and validates portfolio and benchmark Performance data, and then
-consolidates them into common time periods based on the provided dates and frequency.
+Analytics orchestration for portfolio and benchmark performance data.
 
-The public methods to retrieve the analytical calculations are:
-    1. get_attribution()
-    2. get_riskstatistics()
+This module provides the Analytics class, which reads portfolio and benchmark
+Performance data, aligns both data sets to common subperiods, optionally
+consolidates those subperiods to the requested frequency, and exposes cached
+Attribution and RiskStatistics objects.
 """
 
 # Python Imports
@@ -29,12 +29,11 @@ import ppar.utilities as util
 
 class Analytics:
     """
-    The Analytics class reads and validates portfolio and benchmark Performance data, and then
-    consolidates them into common time periods based on the provided dates and frequency.
+    Coordinate attribution and risk-statistics calculations.
 
-    The public methods to retrieve the analytical calculations are:
-        1. get_attribution()
-        2. get_riskstatistics()
+    Analytics validates and aligns portfolio and benchmark Performance data, then
+    consolidates that data to the requested reporting frequency. It acts as the
+    public entry point for attribution and risk-statistics calculations.
     """
 
     def __init__(
@@ -60,68 +59,61 @@ class Analytics:
         ),
     ):
         """
-        The constructor.  Reads and validates portfolio and benchmark Performance data, and
-        cnsolidates them into common time periods based on the provided dates and frequency.
+        Initialize an Analytics instance.
+
+        Reads portfolio and benchmark performance data, converts the requested date
+        bounds to ``datetime.date`` values, aligns the two performance data sets to
+        common subperiods, and consolidates subperiods according to ``frequency``.
+        When no benchmark data source is supplied, the portfolio data source is reused
+        as the benchmark data source so portfolio-only analytics can be calculated.
 
         Args:
-            portfolio_data_source (TypePerformanceDataSource): One of the following:
-                1. The path of a csv file containing the portfolio performance data.
-                2. A pandas DataFrame containing the portfolio performance data.
-                3. A polars DataFrame containing the portfolio performance data.
-            benchmark_data_source (TypePerformanceDataSource, optional): One of the following:
-                1. The path of a csv file containing the benchmark performance data.
-                2. A pandas DataFrame containing the benchmark performance data.
-                3. A polars DataFrame containing the benchmark performance data.
-                Defaults to portfolio_data_source.
-            portfolio_name (str, optional): The portfolio name used in view titles.
-            benchmark_name (str, optional): The benchmark name used in view titles.
-            portfolio_classification_name (str, optional): The classification name that corresponds
-                to the portfolio_data. Defaults to util.EMPTY.
-            benchmark_classification_name (str, optional): The classification name that corresponds
-                to the benchmark_data. Defaults to util.EMPTY.
-            beginning_date (str | dt.date, optional): Beginning date as a python date or a date
-                string in the format yyyy-mm-dd.  Defaults to dt.date.min.
-            ending_date (str | dt.date, optional): Ending date as a python date or a date string in
-                the format yyyy-mm-dd.  Defaults to dt.date.max.
-            frequency (Frequency, optional): The periodic frequency for which to
-                produce Attribution instances.  Can be either:
-                1. Frequency.AS_OFTEN_AS_POSSIBLE, meaning "as often as the provided data allows".
-                   If daily dates, weights and returns are provided, then daily analytics will be
-                   created.  If monthly dates, weights and returns are provided, then monthly
-                   analytics will be created, etc.
-                2. Frequency.MONTHLY
-                3. Frequency.QUARTERLY
-                4. Frequency.YEARLY
-                Defaults to Frequency.AS_OFTEN_AS_POSSIBLE.
-            annual_minimum_acceptable_return (float, optional): The minimum acceptable return used
-                for calculating "downside" satistics.
-                Defaults to util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN.
-            annual_risk_free_rate (float, optional): The annual risk-free rate used for
-                calculating statistics that involve a risk-free rates.
-                Defaults to util.DEFAULT_ANNUAL_RISK_FREE_RATE.
-            confidence_level (float, optional): The confidence level for calculating the
-                value-at-risk (VAR).  Defaults to util.DEFAULT_CONFIDENCE_LEVEL.
-            portfolio_value (tuple[float, str], optional): A tuple of the portfolio value and it's
-                associated currency that will be used when calculating the value-at-risk (VaR).
-                Defaults to (util.DEFAULT_PORTFOLIO_VALUE, util.DEFAULT_CURRENCY_SYMBOL).
+            portfolio_data_source: Portfolio performance data source. This can be a
+                CSV file path, a pandas DataFrame, or a Polars DataFrame.
+            benchmark_data_source: Benchmark performance data source. This can be a
+                CSV file path, a pandas DataFrame, or a Polars DataFrame. Defaults to
+                ``util.EMPTY``, which causes the portfolio data source to be reused.
+            portfolio_name: Portfolio display name used in output titles.
+            benchmark_name: Benchmark display name used in output titles.
+            portfolio_classification_name: Classification name associated with the
+                portfolio performance data.
+            benchmark_classification_name: Classification name associated with the
+                benchmark performance data.
+            beginning_date: Earliest allowed beginning date, either as a
+                ``datetime.date`` or a string in ``yyyy-mm-dd`` format.
+            ending_date: Latest allowed ending date, either as a ``datetime.date`` or
+                a string in ``yyyy-mm-dd`` format.
+            frequency: Reporting frequency used to consolidate subperiods.
+            annual_minimum_acceptable_return: Annual minimum acceptable return used in
+                downside-risk calculations.
+            annual_risk_free_rate: Annual risk-free rate used in risk statistics that
+                require a risk-free return.
+            confidence_level: Confidence level used when calculating value at risk.
+            portfolio_value: Tuple containing the portfolio value and its currency
+                symbol for value-at-risk calculations.
 
         Data Parameters:
-            Input data for the "portfolio_data_source" & "benchmark_data_source" parameters
-            can be in either of the 2 below layouts.  The weights for each time period must
-            sum to 1.0.  The equation SumOf(weight * return) == TotalReturn must be satisfied for
-            each time period.  The time periods can be of any duration.  The column names must
-            conform to the ones in the below layouts.  The ordering of the columns or rows does not
-            matter.  The "name" column is optional.
-            1. Narrow Layout:
-                beginning_date, ending_date, identifier,        return, weight, name
-                2023-12-31,      2024-01-31,       AAPL, -0.0422272121,    0.4, Apple Inc.
-                2023-12-31,      2024-01-31,       MSFT,  0.0572811503,    0.6, Microsoft
-                2024-01-31,      2024-02-29,       AAPL, -0.019793881,     0.7, Apple Inc.
-                2024-01-31,      2024-02-29,       MSFT,  0.0403944092,    0.3, Microsoft
-            2. Wide Layout:
-                beginning_date, ending_date,      AAPL.ret,     MSFT.ret, AAPL.wgt, MSFT.wgt
-                2023-12-31,      2024-01-31, -0.0422272121, 0.0572811503,      0.4,      0.6
-                2024-01-31,      2024-02-29, -0.019793881,  0.0403944092,      0.7,      0.3
+            ``portfolio_data_source`` and ``benchmark_data_source`` can use either the
+            narrow or wide layouts below. For each time period, weights must sum to
+            1.0 and ``sum(weight * return)`` must equal the total return. Column order
+            and row order do not matter. The ``name`` column is optional.
+
+            Narrow layout::
+
+                beginning_date, ending_date, identifier, return, weight, name
+                2023-12-31, 2024-01-31, AAPL, -0.0422272121, 0.4, Apple Inc.
+                2023-12-31, 2024-01-31, MSFT,  0.0572811503, 0.6, Microsoft
+
+            Wide layout::
+
+                beginning_date, ending_date, AAPL.ret, MSFT.ret, AAPL.wgt, MSFT.wgt
+                2023-12-31, 2024-01-31, -0.0422272121, 0.0572811503, 0.4, 0.6
+
+        Raises:
+            PpaError: If either date cannot be converted, the portfolio and benchmark
+                do not share any valid subperiods, there are too few performance rows
+                for the calculated subperiods, or a nested Performance validation
+                raises ``PpaError``.
         """
         # Default the benchmark to the portfolio.  This will allow for "portfolio-only" analysis
         # if they do not have a benchmark.
@@ -190,7 +182,15 @@ class Analytics:
         self._consolidate_all_subperiods()
 
     def audit(self) -> None:
-        """Audit the Analytics (self)."""
+        """
+        Audit the Analytics instance.
+
+        Audits the original portfolio and benchmark Performance objects, then audits
+        any Attribution objects that have already been created and cached.
+
+        Raises:
+            PpaError: If any underlying Performance or Attribution audit fails.
+        """
         # Audit the portfolio/benchmark pair of performances.  These are the performances that
         # were originally read in the constructor.  Depending on their classifications, they may
         # be differenct than the performances in the attributions.
@@ -203,35 +203,59 @@ class Analytics:
 
     def _beginning_date(self) -> dt.date:
         """
-        Get the overall beginning date.
+        Return the overall beginning date.
 
         Returns:
-            dt.date: The overall beginning date.
+            The first beginning date in the aligned subperiod date range.
         """
         return self._subperiod_dates[0][0]
 
     def _calculate_subperiod_dates(self, message_suffix: str) -> list[tuple[dt.date, dt.date]]:
         """
-        Calculate the beginning_dates and ending_dates for all subperiods that are common between
-        the 2 self._performances.  This will define the subperiods for which the Attribution and
-        RiskStatistics will be calculated.
+        Calculate common subperiod dates for portfolio and benchmark data.
+
+        Finds beginning and ending dates that exist in both Performance objects,
+        optionally filters those dates to match ``self._frequency``, and pairs each
+        beginning date with the next strictly later ending date.
 
         Args:
-            message_suffix (str): Error message suffix.
+            message_suffix: Suffix to include in the ``PpaError`` message when no
+                valid subperiods are found.
 
         Returns:
-            list[tuple[dt.date, dt.date]]: A list of the common beginning dates and ending dates
-            for each subperiod.
+            A list of ``(beginning_date, ending_date)`` tuples for the aligned
+            subperiods.
+
+        Raises:
+            PpaError: If no common subperiods can be calculated.
         """
 
         def _common_dates(dates1: pl.Series, dates2: pl.Series) -> pl.Series:
-            """Return the sorted dates common between dates1 and dates2."""
+            """
+            Return sorted dates that are present in both input series.
+
+            Args:
+                dates1: First date series.
+                dates2: Second date series.
+
+            Returns:
+                Sorted Polars Series containing dates common to both inputs.
+            """
             # Note that using set intersection is MUCH slower.
             # return sorted(set(dates1) & set(dates2))
             return dates1.filter(dates1.is_in(dates2.to_list())).sort()
 
         def _filter_dates_on_frequency(dates: pl.Series | list[dt.date]) -> list[dt.date]:
-            """Filter the dates based on self._frequency."""
+            """
+            Return dates that match the Analytics reporting frequency.
+
+            Args:
+                dates: Dates to filter.
+
+            Returns:
+                List of dates that satisfy ``date_matches_frequency`` for
+                ``self._frequency``.
+            """
             return [date for date in dates if date_matches_frequency(date, self._frequency)]
 
         # Cache the performance DataFrames.
@@ -273,10 +297,11 @@ class Analytics:
 
     def classification_names(self) -> tuple[str, str]:
         """
-        Get a tuple of the classification names:  0=Portfolio, 1=Benchmark
+        Return the portfolio and benchmark classification names.
 
         Returns:
-            tuple[str, str]: A tuple of the classification names:  0=Portfolio, 1=Benchmark
+            A two-item tuple where item 0 is the portfolio classification name and
+            item 1 is the benchmark classification name.
         """
         return (
             self._performances[0].classification_name,
@@ -285,9 +310,15 @@ class Analytics:
 
     def _consolidate_all_subperiods(self) -> None:
         """
-        Consolidate multiple subperiods (e.g. daily) into single periods (e.g. monthly) based on
-        self._frequency.  This is done for both the portfolio and benchmark Performances in
-        self._performances.
+        Consolidate portfolio and benchmark data to the aligned subperiods.
+
+        For each Performance object, verifies that enough rows exist for the aligned
+        subperiods. If the Performance contains more rows than the aligned subperiod
+        list, consolidates the extra rows to the requested frequency.
+
+        Raises:
+            PpaError: If a Performance has fewer rows than the calculated subperiod
+                date list.
         """
         # Iterate through the portfolio and benchmark Performances.
         for performance in self._performances:
@@ -313,14 +344,18 @@ class Analytics:
 
     def _consolidate_subperiods(self, performance: Performance) -> pl.LazyFrame:
         """
-        Consolidate performance.df into one row for each subperiod in self._subperiod_dates.
-        For instance, consolidate daily to monthly, or monthly to quarterly.
+        Consolidate a Performance object into the aligned subperiods.
+
+        Combines multiple source rows, such as daily rows, into the subperiods stored
+        in ``self._subperiod_dates``. Returns are geometrically linked, weights are
+        summed using day-weighting coefficients, and contributions are summed after
+        applying logarithmic linking coefficients.
 
         Args:
-            performance (Performance): The Performance instance.
+            performance: Performance instance to consolidate.
 
         Returns:
-            LazyFrame: _type_: The consolidated Performance LazyFrame.
+            LazyFrame containing one consolidated row for each aligned subperiod.
         """
         # Create a DataFrame, one row per subperiod.
         df_subperiods = (
@@ -404,10 +439,10 @@ class Analytics:
 
     def _ending_date(self) -> dt.date:
         """
-        Summary:
-            Get the overall ending date.
+        Return the overall ending date.
+
         Returns:
-            dt.date: The overall ending date.
+            The last ending date in the aligned subperiod date range.
         """
         return self._subperiod_dates[-1][-1]
 
@@ -419,39 +454,44 @@ class Analytics:
         classification_label: str = util.EMPTY,
     ) -> Attribution:
         """
-        Get the Attribution instance associated with the classification_name.
+        Return an Attribution instance for the requested classification.
+
+        Returns a cached Attribution object when available. Otherwise, maps portfolio
+        and/or benchmark Performance objects to the requested classification when
+        needed, creates the Attribution object, stores it in the cache, and returns it.
 
         Args:
-            classification_name (str, optional): The classification name for the desired
-                Attribution instance.  Defaults to util.EMPTY.
-            classification_data_source (TypeClassificationDataSource): One of the following:
-                1. A csv file path containing the Classification data.
-                2. A dictionary containing the Classification data.
-                3. A pandas or polars DataFrame containing the Classification data.
-                Defaults to util.EMPTY.
-            mapping_data_sources (TypeMappingDataSource, TypeMappingDataSource): A tuple of 2
-                mapping data sources: 0 = portfolio, 1 = benchmark.  Each mapping data source can
-                be one of the following:
-                1. A csv file path containing the Mapping data.
-                2. A dictionary containing the Mapping data.
-                3. A pandas or polars DataFrame containing the Mapping data.
-                Defaults to (util.EMPTY, util.EMPTY)
-            classification_label (str, optional): The classification label that will be displayed
-                in the tables and charts if the classification_name is empty.  This will happen
-                when the performance.classification_items are used.  Defaults to util.EMPTY.
+            classification_name: Classification name for the requested Attribution.
+                If omitted and both Performance objects share a common non-empty
+                classification name, that common name is used.
+            classification_data_source: Optional classification data source. This can
+                be a CSV file path, dictionary, pandas DataFrame, or Polars DataFrame.
+            mapping_data_sources: Two-item tuple of mapping data sources where item 0
+                maps the portfolio and item 1 maps the benchmark. Each source can be a
+                CSV file path, dictionary, pandas DataFrame, or Polars DataFrame.
+            classification_label: Display label used in tables and charts when the
+                classification name is empty and the Performance classification items
+                are used directly.
 
         Data Parameters:
-            Sample data for the "classification_data_source" param of a "Security" Classification:
+            Example ``classification_data_source`` for a Security classification::
+
                 AAPL, Apple Inc.
-                MSFT, Microsft
-                ...
-            Sample data for the "mapping_data_source" param for "Security" to "Economic Sector":
+                MSFT, Microsoft
+
+            Example ``mapping_data_sources`` data for Security to Economic Sector::
+
                 AAPL, IT
                 GOOG, CS
-                ...
 
         Returns:
-            Attribution: The Attribution instance associated with the classification_name.
+            Attribution instance associated with ``classification_name``.
+
+        Raises:
+            PpaError: If ``classification_name`` is required because at least one
+                Performance has a known classification name but no target
+                classification name is supplied, or if a nested Mapping, Performance,
+                or Attribution operation raises ``PpaError``.
         """
         # Backwards compatibilty for util.is_empty.
         if classification_name is None:
@@ -510,10 +550,13 @@ class Analytics:
 
     def get_riskstatistics(self) -> RiskStatistics:
         """
-        Calculates the risk statistics and puts them into the cache self._riskstatistics.
+        Return risk statistics for the aligned Performance objects.
+
+        Creates and caches a RiskStatistics instance on first use, then returns the
+        cached instance on subsequent calls.
 
         Returns:
-            pl.DataFrame: A DataFrame of the risk statistics.
+            RiskStatistics instance for the portfolio and benchmark Performance data.
         """
         # Calculate the risk statistics if they are not already cached.
         if self._riskstatistics is None:
@@ -536,17 +579,20 @@ class Analytics:
         suffix: str,
     ) -> pl.LazyFrame:
         """
-        Map (sum) columns using the mapping.
+        Aggregate Performance columns according to a reverse mapping.
+
+        Horizontally sums contribution or weight columns from source classification
+        items into target classification items. Large mappings are processed in
+        batches to reduce Polars memory pressure.
 
         Args:
-            performance (Performance): The Performance to be mapped (summed).
-            to_froms: defaultdict[str, list[str]]: A reverse mapping from `to_column_name` to a
-                list of `from_column_names`.
-            suffix (str): The suffix for the column names that will be mapped
-                (e.g., '.con' or '.wgt').
+            performance: Performance object containing columns to aggregate.
+            to_froms: Reverse mapping from each target classification item to the
+                source classification items that should be summed into it.
+            suffix: Column suffix to aggregate, such as ``CON`` or ``WGT``.
 
         Returns:
-            pl.LazyFrame: The resulting mapped columns.
+            LazyFrame containing the aggregated mapped columns.
         """
         # Create aggregated columns using Polars expressions
         aggregated_columns = [
@@ -583,22 +629,31 @@ class Analytics:
         mapping_data_source: util.MappingDataSource,
     ) -> Performance:
         """
-        Map from the Performance Classification to the to_classification.  For instance, from
-        Security to Economic Sector.
+        Map a Performance object to a different classification.
+
+        Uses the supplied mapping data to roll up contribution and weight columns from
+        ``performance.classification_name`` to ``to_classification_name``. Mapped
+        returns are calculated as mapped contributions divided by mapped weights, with
+        missing or undefined mapped returns filled with 0.0.
 
         Args:
-            performance (Performance): The existing Performance that will be mapped.
-            to_classification_name (str): The classification name that will be mapped to.
-            mapping_data_source (TypeMappingDataSource): The Mapping data source.
+            performance: Existing Performance object to map.
+            to_classification_name: Target classification name.
+            mapping_data_source: Mapping data source used to map source identifiers to
+                target classification items.
 
         Data Parameters:
-            Sample input for the "mapping_data" parameter for "Security" to "Economic Sector":
+            Example mapping data for Security to Economic Sector::
+
                 AAPL, IT
                 GOOG, CO
-                ...
 
         Returns:
-            Performance: The new mapped Performance.
+            New Performance object using ``to_classification_name``.
+
+        Raises:
+            PpaError: If the Mapping or resulting Performance cannot be created or
+                validated.
         """
         # Create a reverse mapping from `to_column_name` to a list of `from_column_names`.
         to_froms = Mapping(

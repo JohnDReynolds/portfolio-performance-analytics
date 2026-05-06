@@ -1,21 +1,15 @@
 """
-The Attribution class contains the portfolio Performance, the benchmark Performance, the
-Classification, and the reulting contribution and attribution effects.
+Compute and expose Brinson-Fachler attribution results.
 
-An Attribution instance can be created using the method Analytics.get_attribution().
+This module defines the :class:`Attribution` class, chart/view enumerations, and
+helpers used to calculate portfolio-versus-benchmark contribution, allocation,
+selection, total attribution effects, and formatted output.
 
-The public methods to retrieve the resulting output are:
-    1. to_chart(chart)
-    2. to_html(view)
-    3. to_json(view)
-    4. to_pandas(view)
-    5. to_polars(view)
-    6. to_table(view)
-    7. to_xml(view)
-    8. write_csv(view)
+Attribution instances are normally created by
+:meth:`ppar.analytics.Analytics.get_attribution`.
 """
 
-## Overrides for pylint
+# Overrides for pylint
 # pylint: disable=too-many-lines
 
 
@@ -46,11 +40,9 @@ _DEFAULT_OUTPUT_PRECISION = 8
 
 
 class Chart(Enum):
-    """
-    Summary:
-        An enumeration of the different types of attribution charts.
-    Args:
-        Enum (_type_): enum
+    """Attribution chart types supported by :meth:`Attribution.to_chart`.
+
+    Each enum value is the display label used in chart titles.
     """
 
     CUMULATIVE_ATTRIBUTION = "Cumulative Attribution Effects"
@@ -68,11 +60,9 @@ class Chart(Enum):
 
 
 class View(Enum):
-    """
-    Summary:
-        An enumeration of the different types of attribution views.
-    Args:
-        Enum (_type_): enum
+    """Tabular attribution views supported by the output methods.
+
+    Each enum value is the display label used in table titles and serialized output.
     """
 
     CUMULATIVE_ATTRIBUTION = "Cumulative Attribution"
@@ -136,17 +126,12 @@ _VIEW_COLUMN_NAMES = {
 
 
 class Attribution:
-    """
-    The Attribution class contains the portfolio Performance, the benchmark Performance, the
-    Classification, and the reulting contribution and attribution effects.
+    """Calculate, store, audit, and format attribution results.
 
-    The public methods to retrieve the resulting output are:
-        1. to_chart(chart)
-        2. to_html(view)
-        3. to_pandas(view)
-        4. to_polars(view)
-        5. to_table(view)
-        6. write_csv(view)
+    An ``Attribution`` instance contains portfolio and benchmark ``Performance``
+    objects, a ``Classification``, and the resulting contribution and attribution
+    effects. It provides public methods for retrieving those results as charts,
+    HTML, JSON, pandas DataFrames, Polars DataFrames, Great Tables, XML, and CSV.
     """
 
     def __init__(
@@ -157,31 +142,23 @@ class Attribution:
         frequency: Frequency,
         classification_label: str = util.EMPTY,
     ):
-        """
-        Summary:
-            The constructor.  Calculates the contribution and attribution effects.
+        """Initialize an attribution calculation.
 
         Args:
-            performances (tuple[Performance, Performance]): portfolio=0, benchmark=1
-            classification_name (str): The classification_name for which the contribution and
-                attribution effects will be calculated.
-            classification_data_source (TypeClassificationDataSource): One of the following:
-                1. The path of a csv file containing the Classification data.
-                2. A dictionary containing the Classification data.
-                3. A pandas or polars DataFrame containing the Classification data.
-            frequency (Frequency): The Frequency.
-            classification_label (str, optional): The classification label that will be displayed
-                in the tables and charts.  Defaults to util.EMPTY.
+            performances: A two-item tuple containing the portfolio ``Performance`` at
+                index 0 and the benchmark ``Performance`` at index 1.
+            classification_name: Classification name for which contribution and
+                attribution effects are calculated.
+            classification_data_source: Classification source. May be a CSV file path,
+                dictionary, pandas DataFrame, or Polars DataFrame. The first column is
+                the classification identifier and the second column is the display name.
+            frequency: Frequency associated with the attribution periods.
+            classification_label: Optional label displayed in tables and charts. If
+                empty, the classification name is used.
 
-        Data Parameters:
-            Here is sample input data for the "classification_data_source" parameter of an
-            "Economic Sector" classification.  The unique identifier is in the first column, and
-            the name is in the second column.  There are no column headers.
-                CO, Communication Services
-                EN, Energy
-                IT, Information Technology
-                ...
-
+        Raises:
+            PpaError: If classification setup, performance alignment, linking, or
+                attribution calculation fails validation.
         """
         # Set internal instance variables from the constructor parameters.
         self._classification = Classification(
@@ -203,14 +180,14 @@ class Attribution:
         self._df_overall = self._calculate_df_overall()
 
     def _add_total_row(self, df: pl.DataFrame) -> pl.DataFrame:
-        """
-        Add a total row to the bottom of df.
+        """Return a DataFrame with a total row appended.
 
         Args:
-            df (pl.DataFrame): The dataframe.
+            df: DataFrame to summarize.
 
         Returns:
-            pl.DataFrame: The dataframe with a total row added to the bottom.
+            DataFrame with one additional bottom row containing totals or linked return
+            values, depending on the available columns.
         """
         # Start the total_row as a sum of df.
         total_row = df.sum()
@@ -251,7 +228,13 @@ class Attribution:
         return df.vstack(total_row)
 
     def audit(self) -> None:
-        """Audit the Attribution (self)."""
+        """Audit this attribution instance for internal consistency.
+
+        Raises:
+            PpaError: If the underlying performances are invalid, detailed and overall
+                DataFrames have different columns, or attribution columns fail footing
+                checks.
+        """
         # Audit the portfolio/benchmark pair of performance objects.
         Performance.audit_performances(
             self._performances,
@@ -269,11 +252,14 @@ class Attribution:
 
     @staticmethod
     def audit_attributions(attributions: Iterable["Attribution"]) -> None:
-        """
-        Audit the Iterable of Attribution instances.
+        """Audit multiple attribution instances for consistency.
 
         Args:
-            attributions (Iterable[Attribution]): The Attribution instances to audit.
+            attributions: Attribution instances to audit.
+
+        Raises:
+            PpaError: If any attribution fails its own audit or if the equivalent
+                portfolio/benchmark columns differ across attribution instances.
         """
         # Initialize base_equivalent_columns to empty (for lint).
         base_equivalent_columns: list[pl.DataFrame] = []  # 0 = portfolio, 1 = benchmark
@@ -313,13 +299,18 @@ class Attribution:
     def _audit_columns(
         df: pl.DataFrame, df_overall: pl.DataFrame, do_assert_simple_column_pairs: bool = True
     ) -> None:
-        """
-        Audit the columns in the dataframes.
+        """Audit calculated attribution columns.
 
         Args:
-            df (pl.DataFrame): The detailed dataframe.
-            df_overall (pl.DataFrame): The overall (total row) dataframe.
-            do_assert_simple_columns (bool): Assert _SIMPLE_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL.
+            df: Detailed attribution DataFrame.
+            df_overall: Overall attribution DataFrame containing the total row. May be
+                empty for views that do not include an overall row.
+            do_assert_simple_column_pairs: Whether to assert equality for simple column
+                pairs such as active return and simple total effect.
+
+        Raises:
+            PpaError: If expected column pairs are not equal or smoothed columns do not
+                sum to their overall values.
         """
         # Assert that certain simple column pairs in df should be equal.
         if do_assert_simple_column_pairs:
@@ -344,7 +335,15 @@ class Attribution:
                     raise PpaError(f"_audit_columns: {col_name} does not foot when summed.", 999)
 
     def _audit_view(self, view: View) -> None:
-        """Audit the view."""
+        """Audit a rendered attribution view.
+
+        Args:
+            view: View to audit.
+
+        Raises:
+            PpaError: If contribution does not equal weight multiplied by return, or if
+                column-level audit checks fail.
+        """
         # Get the DataFrame for the view.
         df = self._fetch_dataframe(view)
 
@@ -374,21 +373,24 @@ class Attribution:
         Attribution._audit_columns(df, df_overall, do_assert_simple_column_pairs)
 
     def _beginning_date(self) -> dt.date:
-        """
-        Get the overall beginning date.
+        """Return the first beginning date in the attribution period.
 
         Returns:
-            dt.date: The overall beginning date.
+            Overall beginning date.
         """
         return cast(dt.date, self._performances[0].df[cols.BEGINNING_DATE].item(0))
 
     def _calculate_attribution(self) -> pl.LazyFrame:
-        """
-        Calculates the contributions and Attribution effects for the portfolio vs benchmark.
+        """Calculate subperiod contribution and attribution effects.
 
         Returns:
-            pl.LazyFrame: Multiple rows (one for each subperiod) with contributions and Attribution
-            effects for the portfolio vs benchmark.  This will be self.df.
+            LazyFrame containing one row per subperiod with portfolio contribution,
+            benchmark contribution, Brinson-Fachler allocation and selection effects,
+            smoothed effects, active return, and cumulative columns.
+
+        Raises:
+            PpaError: If Carino linking coefficient calculation encounters an invalid
+                portfolio or benchmark return.
         """
         # Set the portfolio and benchmark.
         portfolio, benchmark = self._performances
@@ -487,11 +489,10 @@ class Attribution:
         return lf
 
     def _calculate_df_overall(self) -> pl.DataFrame:
-        """
-        Calculate df_overall, which is one total row for the entire overall period.
+        """Calculate the overall attribution row.
 
         Returns:
-            pl.DataFrame: df_overall, which is one row for the entire overall period.
+            DataFrame containing one row for the full attribution period.
         """
         # Set the portfolio and benchmark.
         portfolio, benchmark = self._performances
@@ -530,17 +531,18 @@ class Attribution:
         return df_overall
 
     def _construct_df_for_detail_views(self, view: View) -> pl.LazyFrame:
-        """
-        Constructs the DataFrame for the detailed Views.
+        """Construct the DataFrame used by detailed attribution views.
 
         Args:
-            view (View): The detailed View.
-
-        Raises:
-            PpaError: Unhandled View
+            view: Detailed view to construct. Supported values are
+                ``View.SUBPERIOD_ATTRIBUTION`` and ``View.OVERALL_ATTRIBUTION``.
 
         Returns:
-            pl.LazyFrame: The appropriate detail LazyFrame.
+            LazyFrame containing dates, classification identifiers, classification
+            names, weights, returns, contributions, and attribution effects.
+
+        Raises:
+            PpaError: If ``view`` is not a supported detailed attribution view.
         """
         # Set the appropriate dataframes based on the view.
         portfolio, benchmark = self._performances
@@ -676,23 +678,19 @@ class Attribution:
         return result
 
     def _ending_date(self) -> dt.date:
-        """
-        Get the overall ending date.
+        """Return the last ending date in the attribution period.
 
         Returns:
-            dt.date: The overall ending date.
+            Overall ending date.
         """
         return cast(dt.date, self._performances[0].df[cols.ENDING_DATE].item(-1))  # cast for mypy
 
     def _equalize_columns(self) -> None:
-        """
-        Make sure that the portfolio and benchmark have the same return_columns, weight_columns
-        and contrib_columns.  This is necessary so we can do polars matrix math.
-            1. If the portfolio is missing an item that is in the benchmark, then the portfolio
-            will get the benchmark item with all zero weights, returns and contribs.  And
-            vice-versa.
-            2. Since all columns are added with zeroes, this has no actual effect.
-            3. Note that the portfolio and benchmark will have the exact same col_names after this.
+        """Equalize portfolio and benchmark return, weight, and contribution columns.
+
+        Missing identifiers are added to the opposite performance with zero-valued
+        return, weight, and contribution columns so that portfolio and benchmark matrix
+        operations use matching column sets.
         """
         # Set the portfolio and benchmark
         portfolio, benchmark = self._performances
@@ -720,19 +718,21 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> pl.DataFrame:
-        """
-        Fetch the DataFrame associated with the view.
+        """Fetch the DataFrame for a view.
 
         Args:
-            view (View): The view.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            view: View to fetch.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by. Sorting is ignored for cumulative attribution.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            pl.DataFrame: The DataFrame associated with the view.
+            DataFrame for the requested view, optionally sorted and with a total row
+            added for views that require one.
+
+        Raises:
+            PpaError: If constructing a detailed view fails validation.
         """
         # Get the base dataframe associated with the view.
         match view:
@@ -764,19 +764,16 @@ class Attribution:
         lf: pl.LazyFrame,
         performance: Performance,
     ) -> pl.LazyFrame:
-        """
-        Horizontally append columns that are the horizontal summations of the contributions and
-        attribution effects.  Also create vertical cumulative sums.
+        """Add horizontal totals and cumulative columns to an attribution LazyFrame.
 
         Args:
-            lf (pl.LazyFrame): The LazyFrame.
-            performance (Performance): Either the portfolio or benchmark Performance instance.
-                Since both the portfolio and benchmark have the same column names, either one will
-                suffice.
+            lf: LazyFrame containing the base attribution columns.
+            performance: Portfolio or benchmark Performance instance used to provide
+                the common column names.
 
         Returns:
-            pl.LazyFrame: The new lf with the new horizontal summation columns and cumulative
-            columns added.
+            LazyFrame with simple and smoothed contribution totals, allocation totals,
+            selection totals, total effects, active columns, and cumulative columns.
         """
         # Horizontally sum the contributions, allocation effects and selection effects.
         # parameters = (col_names, alias)
@@ -882,11 +879,13 @@ class Attribution:
         return lf
 
     def _title_lines(self, chart_or_view: Chart | View) -> tuple[str, str]:
-        """
-        Return the title lines for a View or a Chart.
+        """Return title and subtitle text for a chart or view.
 
         Args:
-            chart_or_view (Chart | View): The type of Chart or View.
+            chart_or_view: Chart or View whose display value is used in the subtitle.
+
+        Returns:
+            Two-item tuple containing the title and subtitle.
         """
         # Determine if chart_or_view is a Chart or a View
         is_view = isinstance(chart_or_view, View)
@@ -930,19 +929,21 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> bytes:
-        """
-        Returns an in-memory png of the chart corresponding to the chart type.
+        """Return a PNG chart for the requested attribution chart type.
 
         Args:
-            chart (Chart): The chart type.
-            columns_to_sort (str | Sequence[str], optional): A column name or an Iterable of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            chart: Chart type to render.
+            columns_to_sort: Optional column name or sequence of column names used for
+                sortable charts.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            bytes: An in-memory png of the chart corresponding to the chart type.
+            In-memory PNG bytes for the requested chart.
+
+        Raises:
+            PpaError: If the underlying view construction or table retrieval fails
+                validation.
         """
         # Get the title_lines.
         title_lines = self._title_lines(chart)
@@ -1046,19 +1047,21 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> str:
-        """
-        Returns the view as an html string.
+        """Return a view as an HTML document string.
 
         Args:
-            view (View): The desired View.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            view: View to render.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            str: The view as an html string.
+            HTML string containing the rendered table.
+
+        Raises:
+            PpaError: If the requested table is too large for HTML rendering or view
+                construction fails validation.
         """
         return self.to_table(view, columns_to_sort, sort_descendings).as_raw_html(make_page=True)
 
@@ -1069,21 +1072,22 @@ class Attribution:
         sort_descendings: bool | Sequence[bool] = False,
         float_precision: int = _DEFAULT_OUTPUT_PRECISION,
     ) -> str:
-        """
-        Returns the view as a json string.
+        """Return a view as a JSON string.
 
         Args:
-            view (View): The desired View.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
-            float_precision (int, optional): The quantity of decimal places.
-                Defaults to _DEFAULT_OUTPUT_PRECISION.
+            view: View to serialize.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
+            float_precision: Number of decimal places to include for floating-point
+                values.
 
         Returns:
-            str: The view as a json string.
+            JSON string for the requested view.
+
+        Raises:
+            PpaError: If view construction fails validation.
         """
         return self.to_pandas(view, columns_to_sort, sort_descendings).to_json(  # type: ignore
             double_precision=float_precision, date_format="iso"
@@ -1095,19 +1099,20 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> pd.DataFrame:
-        """
-        Returns the view as a pandas DataFrame.
+        """Return a view as a pandas DataFrame.
 
         Args:
-            view (View): The desired View.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            view: View to return.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            str: The view as a pandas DataFrame.
+            pandas DataFrame for the requested view.
+
+        Raises:
+            PpaError: If view construction fails validation.
         """
         return self._fetch_dataframe(view, columns_to_sort, sort_descendings).to_pandas()
 
@@ -1117,19 +1122,20 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> pl.DataFrame:
-        """
-        Returns the view as a polars DataFrame.
+        """Return a view as a Polars DataFrame.
 
         Args:
-            view (View): The desired View.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            view: View to return.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            str: The view as a polars DataFrame.
+            Polars DataFrame for the requested view.
+
+        Raises:
+            PpaError: If view construction fails validation.
         """
         return self._fetch_dataframe(view, columns_to_sort, sort_descendings)
 
@@ -1139,19 +1145,21 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> gt.GT:
-        """
-        Returns a "great_table" of the view.
+        """Return a Great Tables object for a view.
 
         Args:
-            view (View): The desired View.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            view: View to render.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            gt.GT: A "great_table" of the view.
+            Great Tables object for the requested view.
+
+        Raises:
+            PpaError: If the requested view has more than 500 rows or view construction
+                fails validation.
         """
         # Set the df
         df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
@@ -1190,19 +1198,20 @@ class Attribution:
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> str:
-        """
-        Returns the view as an xml string.
+        """Return a view as an XML string.
 
         Args:
-            view (View): The desired View.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
+            view: View to serialize.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
 
         Returns:
-            str: The view as an xml string.
+            XML string for the requested view.
+
+        Raises:
+            PpaError: If view construction fails validation.
         """
         return self.to_pandas(view, columns_to_sort, sort_descendings).to_xml()
 
@@ -1214,19 +1223,20 @@ class Attribution:
         sort_descendings: bool | Sequence[bool] = False,
         float_precision: int = _DEFAULT_OUTPUT_PRECISION,
     ) -> None:
-        """
-        Writes a csv file of the view.
+        """Write a view to a CSV file.
 
         Args:
-            view (View): The desired View.
-            file_path (str): The file path of the csv file to be written to.
-            columns_to_sort (str | Sequence[str], optional): A column name or a Sequence of the
-                column names to sort by.  Defaults to util.EMPTY.
-            sort_descendings (bool | Sequence[bool], optional): A boolean or a Sequence of
-                booleans to indicate if the corresponding column name should be sorted in
-                descending order.  Defaults to False.
-            float_precision (int, optional): The quantity of decimal places.
-                Defaults to _DEFAULT_OUTPUT_PRECISION.
+            view: View to write.
+            file_path: Path of the CSV file to write.
+            columns_to_sort: Optional column name or sequence of column names to sort
+                by.
+            sort_descendings: Boolean or sequence of booleans indicating whether the
+                corresponding sort columns should be sorted descending.
+            float_precision: Number of decimal places to write for floating-point
+                values.
+
+        Raises:
+            PpaError: If view construction fails validation.
         """
         self._fetch_dataframe(view, columns_to_sort, sort_descendings).write_csv(
             file_path, float_precision=float_precision

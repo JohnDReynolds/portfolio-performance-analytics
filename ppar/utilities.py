@@ -1,6 +1,4 @@
-"""
-This module contains utility functions and system-wide constants.
-"""
+"""Utility functions, type aliases, and constants used across the package."""
 
 # Python Imports
 import datetime as dt
@@ -41,11 +39,12 @@ EMPTY = "_empty_"
 
 
 class Tolerance(Enum):
-    """
-    An enumeration of tolerances.
+    """Floating-point comparison tolerances.
 
-    Args:
-        Enum (_type_): enum
+    Attributes:
+        LOW: The loosest comparison tolerance.
+        MEDIUM: A moderate comparison tolerance.
+        HIGH: The strictest comparison tolerance.
     """
 
     LOW = 0.00000005
@@ -54,30 +53,33 @@ class Tolerance(Enum):
 
 
 def are_near(f1: float, f2: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:
-    """
-    Determine if f1 is close to f2.
+    """Return whether two floats are within the specified tolerance.
 
     Args:
-        f1 (float): The first number.
-        f2 (float): The second number.
-        tolerance (float): The "nearness" tolerance. Defaults to TOLERANCE_HIGH.
+        f1: The first value to compare.
+        f2: The second value to compare.
+        tolerance: The comparison tolerance to apply.
 
     Returns:
-        bool: True if f1 is within tolerance of f2, otherwise False.
+        True if the absolute difference between ``f1`` and ``f2`` is less than
+        ``tolerance``; otherwise, False.
     """
     return abs(f1 - f2) < tolerance.value
 
 
 def carino_linking_coefficient(portfolio_return: float, benchmark_return: float) -> float:
-    """
-    Calculates the Carino linking coefficient used for linking over multiple subperiods.
+    """Calculate the Carino linking coefficient for two returns.
 
     Args:
-        portfolio_return (float): The portfolio return.
-        benchmark_return (float): The benchmark return.
+        portfolio_return: The portfolio return expressed as a decimal.
+        benchmark_return: The benchmark return expressed as a decimal.
 
     Returns:
-        float: The Carino linking coefficient.
+        The Carino linking coefficient.
+
+    Raises:
+        PpaError: If either return is less than or equal to -100%, because the
+            logarithmic calculation would be undefined.
     """
     # Check for invalid returns.  The Log of a number <= 0 is undefined.
     if portfolio_return <= _UNDEFINED_RETURN:
@@ -100,18 +102,17 @@ def carino_linking_coefficient(portfolio_return: float, benchmark_return: float)
 
 
 def convert_to_date(date: str | dt.date | dt.datetime) -> dt.date:
-    """
-    Converts a date string in the format yyyy-mm-dd to a python date.
+    """Convert a supported date value to a ``datetime.date``.
 
     Args:
-        date_string (str | dt.date | dt.datetime): The date string in yyyy-mm-dd format or a native
-        python date or datetime.
+        date: A ``datetime.date``, ``datetime.datetime``, or string in
+            ``yyyy-mm-dd`` format.
 
     Returns:
-        date: A python date.
+        The value converted to a ``datetime.date``.
 
     Raises:
-        errs.ERROR_803_CANNOT_CONVERT_TO_A_DATE: If the input string is not in the correct format.
+        PpaError: If a string value cannot be parsed as ``yyyy-mm-dd``.
     """
     # Return the date if it is already in the proper format.
     if isinstance(date, dt.datetime):
@@ -127,50 +128,80 @@ def convert_to_date(date: str | dt.date | dt.datetime) -> dt.date:
 
 
 def date_str(date: dt.date) -> str:
-    """
-    Returns a string representation of the date.
+    """Format a date using the package date format.
 
     Args:
-        date (dt.date): The date.
+        date: The date to format.
 
     Returns:
-        str: A string representation of the date.
+        The date formatted as ``yyyy-mm-dd``.
     """
     return date.strftime(DATE_FORMAT_STRING)
 
 
 def file_basename_without_extension(file_path: str) -> str:
-    """
-    Gets the simple file name without the directory or extension.
+    """Return a file name without its directory or extension.
 
     Args:
-        file_path (str): The full file path.
+        file_path: The file path to evaluate.
 
     Returns:
-        str: The simple file name without the directory or extension.
+        The base file name before the first period in the file name.
     """
     return os.path.basename(file_path).split(".")[0]
 
 
 def file_path_error(file_path: str) -> str:
-    """Return the appropriate error message."""
+    """Return the appropriate file path error message.
+
+    Args:
+        file_path: The file path that failed validation.
+
+    Returns:
+        The empty-path error message if ``file_path`` is empty; otherwise, the
+        missing-file error message with ``file_path`` appended.
+    """
     return errs.ERRORS[804] if is_empty(file_path) else f"{errs.ERRORS[802]}{file_path}"
 
 
 def file_path_exists(file_path: str) -> bool:
-    """Determine if the file_path exists."""
+    """Return whether a non-empty file path exists and points to a file.
+
+    Args:
+        file_path: The file path to test.
+
+    Returns:
+        True if ``file_path`` is non-empty, exists, and is a file; otherwise,
+        False.
+    """
     if is_empty(file_path):
         return False
     return os.path.exists(file_path) and os.path.isfile(file_path)
 
 
 def has_directory(path_str: str) -> bool:
-    """Return True if path_str has a directory."""
+    """Return whether a path includes an explicit directory component.
+
+    Args:
+        path_str: The path string to test.
+
+    Returns:
+        True if ``path_str`` has a parent directory other than the current
+        directory; otherwise, False.
+    """
     return Path(path_str).parent != Path(".")
 
 
 def is_empty(thing: Any) -> bool:
-    """Determine if the thing is unknown."""
+    """Return whether a value is the package's empty string marker.
+
+    Args:
+        thing: The value to test.
+
+    Returns:
+        True if ``thing`` is a string equal to ``EMPTY`` or contains only
+        whitespace; otherwise, False.
+    """
     return isinstance(thing, str) and (thing == EMPTY or (not thing.strip()))
 
 
@@ -180,17 +211,26 @@ def load_datasource(
     needed_items: Sequence[str],
     error_message: str,
 ) -> pl.DataFrame:
-    """
-    Load a 2-column data_source into a Polars DataFrame.
+    """Load a two-column data source into a normalized Polars DataFrame.
 
     Args:
-        data_source (TypeAllDataSources): The data source.
-        column_names Sequence[str]: The 2 column names.
-        needed_items: Sequence[str]: The needed items corresponding to column_names[0].
-        error_message (str): The error message in the case where there are not 2 columns.
+        data_source: The source data. Supported inputs are a CSV file path, a
+            dictionary, a pandas DataFrame, or a Polars DataFrame.
+        column_names: The two output column names to assign to the DataFrame.
+        needed_items: The allowed values for the first output column. Rows with
+            other first-column values are filtered out.
+        error_message: The error message to use if the loaded source does not
+            contain exactly two columns.
 
     Returns:
-        pl.DataFrame: The data_source as a Polars DataFrame.
+        A two-column Polars DataFrame with normalized column names, duplicate
+        first-column values removed, values cast to strings for non-file inputs,
+        and rows filtered to ``needed_items``.
+
+    Raises:
+        PpaError: If ``data_source`` is a file path that does not point to an
+            existing file, or if the loaded source does not contain exactly two
+            columns.
     """
     # Get the 2-column dataframe.
     if isinstance(data_source, str):
@@ -238,15 +278,20 @@ def load_datasource(
 
 
 def logarithmic_linking_coefficients(overall_return: float, returns: pl.Series) -> pl.Series:
-    """
-    Calculates the linking coefficients for each subperiod when linking over the entire period.
+    """Calculate logarithmic linking coefficients for subperiod returns.
 
     Args:
-        overall_return (float): The return for the overall entire period.
-        returns (pl.Series): The return for each subperiod.
+        overall_return: The total return for the full period, expressed as a
+            decimal.
+        returns: The subperiod returns, expressed as decimals.
 
     Returns:
-        pl.Series: The linking coefficients for each subperiod.
+        A Polars Series containing the linking coefficient for each subperiod
+        return.
+
+    Raises:
+        PpaError: If ``overall_return`` is less than or equal to -100%, or if
+            any value in ``returns`` is less than or equal to -100%.
     """
     # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So valiadte
     # that the return is greater than -1.0.  Note that this logic exactly mimics the logic in
@@ -262,16 +307,19 @@ def logarithmic_linking_coefficients(overall_return: float, returns: pl.Series) 
 def logarithmic_linking_coefficient_series(
     overall_returns: pl.Series, returns: pl.Series
 ) -> pl.Series:
-    """
-    Calculates the linking coefficients for each subperiod when linking over the overall entire
-    period.
+    """Calculate linking coefficients from series-level overall returns.
 
     Args:
-        overall_returns (pl.Series): The return for the overall entire period.
-        returns (pl.Series): The return for each subperiod.
+        overall_returns: The full-period returns to use as denominators,
+            expressed as decimals.
+        returns: The subperiod returns to link, expressed as decimals.
 
     Returns:
-        pl.Series: The linking coefficients for each subperiod.
+        A Polars Series containing the linking coefficient for each return.
+
+    Raises:
+        PpaError: If any value in ``overall_returns`` or ``returns`` is less
+            than or equal to -100%.
     """
     return logarithmic_smoothing_coefficients(returns) / logarithmic_smoothing_coefficients(
         overall_returns
@@ -279,14 +327,17 @@ def logarithmic_linking_coefficient_series(
 
 
 def logarithmic_smoothing_coefficients(returns: pl.Series) -> pl.Series:
-    """
-    Calculates the logarithmic smoothing coefficients for each subperiod.
+    """Calculate logarithmic smoothing coefficients for returns.
 
     Args:
-        returns (pl.Series): The return for each subperiod.
+        returns: The returns to smooth, expressed as decimals.
 
     Returns:
-        pl.Series: The logarithmic smoothing coefficients for each subperiod.
+        A Polars Series containing the logarithmic smoothing coefficient for
+        each return.
+
+    Raises:
+        PpaError: If any return is less than or equal to -100%.
     """
     # A return < -1.0 is undefined.  And the log of a negative number is undefined.  So validate
     # that the returns are greater than -1.0.
@@ -312,25 +363,27 @@ def logarithmic_smoothing_coefficients(returns: pl.Series) -> pl.Series:
 
 
 def near_zero(f: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:
-    """
-    Determines if f is close to 0.0 within the specified tolerance.
+    """Return whether a float is near zero within the specified tolerance.
 
     Args:
-        f (float): The float to test.
-        tolerance (float, optional): The tolerance.  Defaults to TOLERANCE_HIGH.
+        f: The value to compare with zero.
+        tolerance: The comparison tolerance to apply.
 
     Returns:
-        bool: True if f is within tolerance, otherwise False.
+        True if ``f`` is within ``tolerance`` of zero; otherwise, False.
     """
     return are_near(f, 0, tolerance)
 
 
 def open_in_browser(html_or_png: str | bytes) -> None:
-    """
-    Open the html string or png binary in a web browser.
+    """Write HTML or PNG content to a temp file and open it in a browser.
 
     Args:
-        html (str): The html string or png binary.
+        html_or_png: HTML content as a string, or PNG content as bytes.
+
+    Raises:
+        Exception: Re-raises the final exception from ``webbrowser.open`` after
+            all retry attempts fail.
     """
     # Determine if the file is html or png
     suffix = ".html" if isinstance(html_or_png, str) else ".png"
@@ -367,7 +420,16 @@ def open_in_browser(html_or_png: str | bytes) -> None:
 
 
 def to_tuple_or_none(value: Iterable[str] | str | None) -> tuple[str, ...] | None:
-    """Normalize input to a tuple of strings or None."""
+    """Normalize a string iterable, single string, or None to a tuple or None.
+
+    Args:
+        value: The value to normalize.
+
+    Returns:
+        None if ``value`` is None or an empty string; a one-item tuple if
+        ``value`` is a non-empty string; otherwise, ``value`` converted to a
+        tuple.
+    """
     if value is None:
         return None
     if isinstance(value, str):
@@ -375,43 +437,3 @@ def to_tuple_or_none(value: Iterable[str] | str | None) -> tuple[str, ...] | Non
             return None
         return (value,)
     return tuple(value)
-
-
-################################################ OBSOLETE
-
-# def junk_apply_column_mapping(
-#     lf: pl.LazyFrame,
-#     mapping: dict[str, str],
-# ) -> pl.LazyFrame | set[str]:
-#     """Rename columns in a LazyFrame using a mapping.
-
-#     Args:
-#         lf: Input LazyFrame.
-#         mapping: {old_name: new_name}
-
-#     Returns:
-#         LazyFrame with renamed columns or missing columns if mapping contains missing columns.
-#     """
-#     existing_cols = set(lf.columns)
-#     missing = set(mapping.keys()) - existing_cols
-#     return missing if missing else lf.rename(mapping)
-
-
-# import json
-# def read_json_file(file_path: str) -> dict[str, Any]:
-#     """Read a JSON file into a Python dictionary.
-
-#     Args:
-#         file_path: Path to the JSON file.
-
-#     Returns:
-#         Parsed dictionary.
-
-#     Raises:
-#         PpaError: If file does not exist.
-#     """
-#     if not file_path_exists(file_path):
-#         raise PpaError(file_path_error(file_path), None)
-
-#     with open(file_path, "r", encoding=ENCODING) as f:
-#         return json.load(f)

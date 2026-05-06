@@ -1,5 +1,8 @@
-"""
-The Classification class contains a DataFrame of it's associated items.
+"""Classification metadata used by attribution and reporting.
+
+This module defines the ``Classification`` class, which stores the identifiers
+and display names associated with a classification such as security, sector,
+country, or another user-defined grouping.
 """
 
 # Third-Party Imports
@@ -17,8 +20,18 @@ _EMPTY_DF = pl.DataFrame(
 
 
 class Classification:
-    """
-    The Classification class contains a DataFrame of it's associated items.
+    """Store classification identifiers and names in a Polars DataFrame.
+
+    A ``Classification`` instance contains a two-column DataFrame with
+    classification identifiers and their corresponding display names. The data
+    can come directly from a classification data source, or it can be inferred
+    from the classification items already present on matching portfolio and
+    benchmark ``Performance`` instances.
+
+    Attributes:
+        name: Classification name associated with the identifiers.
+        df: Polars DataFrame containing ``classification_identifier`` and
+            ``classification_name`` columns.
     """
 
     def __init__(
@@ -27,27 +40,35 @@ class Classification:
         data_source: util.ClassificationDataSource,
         performances: tuple[Performance, Performance] | None = None,
     ):
-        """
-        Constructs a DataFrame of the Classification and items corresponding to the name parameter
+        """Initialize a classification from a data source or performances.
 
         Args:
-            name (str): The Classification name.
-            data_source (TypeClassificationDataSource): One of the following:
-                1. The path of a csv file containing the Classification data.
-                2. A python dictionary containing the Classification data.
-                3. A pandas DataFrame containing the Classification data.
-                4. A polars DataFrame containing the Classification data.
-            performances (tuple[Performance, Performance] | None, optional): The portfolio
-                Performance and the benchmark Performance. Defaults to None.
+            name: Classification name to use when ``data_source`` is supplied.
+            data_source: Classification data source. This can be a CSV file
+                path, dictionary, pandas DataFrame, or Polars DataFrame. The
+                data must contain exactly two columns: classification identifier
+                and classification display name. If this value is empty, the
+                classification is inferred from ``performances``.
+            performances: Optional tuple containing the portfolio Performance at
+                index 0 and the benchmark Performance at index 1. Required when
+                ``data_source`` is supplied because the data source is filtered
+                to identifiers used by those performances. Also used as the
+                fallback source when ``data_source`` is empty.
 
         Data Parameters:
-            Here is sample input data for the "data_source" parameter of an "Economic Sector"
-            classification.  The unique identifier is in the first column, and the name is in the
-            second column.  There are no column headers.
+            Example classification data for an Economic Sector classification,
+            with no column headers::
+
                 CO, Communication Services
                 EN, Energy
                 IT, Information Technology
-                ...
+
+        Raises:
+            PpaError: Propagated from ``util.load_datasource`` if
+                ``data_source`` is a missing file path or does not contain
+                exactly two columns.
+            TypeError: If ``data_source`` is supplied and ``performances`` is
+                ``None``.
         """
         # Get the 2-column dataframe [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
         if util.is_empty(data_source):
@@ -70,14 +91,25 @@ class Classification:
     def _load_from_performances(
         performances: tuple[Performance, Performance] | None,
     ) -> tuple[str, pl.DataFrame]:
-        """
-        Use the performances.classification_items to construt the Classification dataframe.
+        """Build classification metadata from portfolio and benchmark data.
+
+        Uses the ``classification_items`` DataFrames already stored on the
+        supplied portfolio and benchmark ``Performance`` instances. If both
+        performances share the same classification name, their classification
+        items are combined and duplicate identifiers are removed, keeping the
+        portfolio item when both performances contain the same identifier.
 
         Args:
-            performances (tuple[Performance, Performance] | None): portfolio = 0, benchmark = 1
+            performances: Tuple containing the portfolio Performance at index 0
+                and the benchmark Performance at index 1. If omitted, or if the
+                two performances do not have the same classification name, an
+                empty classification is returned.
 
         Returns:
-            tuple[str, pl.DataFrame]: The classification self.name and classification self.df.
+            Tuple containing the resolved classification name and a two-column
+            Polars DataFrame of classification identifiers and names. Returns
+            ``util.EMPTY`` and an empty placeholder DataFrame when no matching
+            classification data is available.
         """
         # Return empty if there are no performances or the portfolio and benchmark are not of the
         # same classifiation_name.

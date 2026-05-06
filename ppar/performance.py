@@ -1,5 +1,9 @@
-"""
-The Performance class contains asset/category weights and returns in a polars DataFrame.
+"""Represent and validate periodic performance data.
+
+This module contains the ``Performance`` class, which loads portfolio,
+benchmark, or classification-level performance data into a Polars DataFrame,
+normalizes supported input layouts, validates dates and columns, and derives
+contributions, total returns, overall returns, and linking coefficients.
 """
 
 # Python Imports
@@ -18,8 +22,26 @@ import ppar.utilities as util
 
 
 class Performance:
-    """
-    The Performance class contains asset/category weights and returns in a polars DataFrame.
+    """Hold asset or classification weights and returns for one performance stream.
+
+    A ``Performance`` instance represents one portfolio, benchmark, or mapped
+    classification-level performance stream. Input data can be supplied in
+    narrow or wide layout and is normalized to a wide Polars DataFrame with
+    one row per period and paired ``.ret`` and ``.wgt`` columns for each
+    identifier.
+
+    Attributes:
+        classification_name: Name of the classification represented by the
+            performance data.
+        classification_items: Optional classification identifier/name pairs
+            extracted from narrow input data when a ``name`` column is present.
+        df: Wide Polars DataFrame containing dates, returns, weights,
+            contributions, quantity of days, and total return.
+        error_message_context: Context string included in validation errors.
+        identifiers: Identifier names derived from the wide return columns.
+        name: Descriptive name for the performance stream.
+        subperiods_have_been_consolidated: Indicates whether lower-frequency
+            periods have been consolidated into larger reporting periods.
     """
 
     def __init__(
@@ -30,42 +52,50 @@ class Performance:
         beginning_date: str | dt.date = dt.date.min,
         ending_date: str | dt.date = dt.date.max,
     ):
-        """
-        The constructor.
+        """Initialize a ``Performance`` instance.
 
         Args:
-            data_source (TypePerformanceDataSource): One of the following:
-                1. The path of a csv file containing the performance data.
-                2. A pandas DataFrame containing the performance data.
-                3. A polars DataFrame containing the performance data.
-            name (str, optional): The descriptive name.  Defaults to util.EMPTY.
-            classification_name (str, optional): The classification name corresponding to the
-                data (e.g. "Economic Sector")  Defaults to util.EMPTY.
-            beginning_date (str | dt.date, optional): Beginning date as a python date or a date
-                string in the format yyyy-mm-dd.  Defaults to dt.date.min.
-            ending_date (str | dt.date, optional): Ending date as a python date or a date string in
-                the format yyyy-mm-dd.  Defaults to dt.date.max.
-            do_calculate_df_overall (bool, optional): Calculate the summary DataFrame
-                self.df_overall. This can be set to False if it will be calculated at a later
-                time. For instance, in the Attribution constructor.  Defaults to True.
+            data_source: Performance data source. This can be a CSV file path,
+                a pandas DataFrame, or a Polars DataFrame.
+            name: Descriptive name for the performance stream. If omitted for
+                a CSV input, the file basename is used.
+            classification_name: Name of the classification represented by the
+                input data, such as ``"Security"`` or ``"Economic Sector"``.
+            beginning_date: Earliest beginning date to keep, either as a
+                ``datetime.date`` or a ``yyyy-mm-dd`` string. Defaults to
+                ``datetime.date.min``.
+            ending_date: Latest ending date to keep, either as a
+                ``datetime.date`` or a ``yyyy-mm-dd`` string. Defaults to
+                ``datetime.date.max``.
 
         Data Parameters:
-            Input data for the "portfolio_data_source" & "benchmark_data_source" parameters
-            can be in either of the 2 below layouts.  The weights for each time period must
-            sum to 1.0.  The equation SumOf(weight * return) == TotalReturn must be satisfied for
-            each time period.  The time periods can be of any duration.  The column names must
-            conform to the ones in the below layouts.  The ordering of the columns or rows does not
-            matter.  The "name" column is optional.
-            1. Narrow Layout:
-                beginning_date, ending_date, identifier,        return, weight, name
-                2023-12-31,      2024-01-31,       AAPL, -0.0422272121,    0.4, Apple Inc.
-                2023-12-31,      2024-01-31,       MSFT,  0.0572811503,    0.6, Microsoft
-                2024-01-31,      2024-02-29,       AAPL, -0.019793881,     0.7, Apple Inc.
-                2024-01-31,      2024-02-29,       MSFT,  0.0403944092,    0.3, Microsoft
-            2. Wide Layout:
-                beginning_date, ending_date,      AAPL.ret,     MSFT.ret, AAPL.wgt, MSFT.wgt
-                2023-12-31,      2024-01-31, -0.0422272121, 0.0572811503,      0.4,      0.6
-                2024-01-31,      2024-02-29, -0.019793881,  0.0403944092,      0.7,      0.3
+            Input data can be supplied in either narrow or wide layout. In both
+            layouts, weights for each time period must sum to ``1.0`` and the
+            sum of ``weight * return`` across identifiers must equal the total
+            return for the period.
+
+            Narrow layout columns::
+
+                beginning_date, ending_date, identifier, return, weight, name
+                2023-12-31, 2024-01-31, AAPL, -0.0422272121, 0.4, Apple Inc.
+                2023-12-31, 2024-01-31, MSFT,  0.0572811503, 0.6, Microsoft
+
+            Wide layout columns::
+
+                beginning_date, ending_date, AAPL.ret, MSFT.ret, AAPL.wgt, MSFT.wgt
+                2023-12-31, 2024-01-31, -0.0422272121, 0.0572811503, 0.4, 0.6
+
+            The ``name`` column is optional in narrow input. Column order does
+            not matter.
+
+        Raises:
+            PpaError: If dates cannot be converted, the beginning date is after
+                the ending date, the input data source cannot be loaded, no
+                rows remain after filtering, required return/weight columns are
+                missing or inconsistent, values cannot be cast to required
+                types, data contains null or NaN values, dates are duplicated,
+                invalid, or discontinuous, narrow data has duplicate
+                date/identifier rows, or period weights do not sum to ``1.0``.
         """
         # Convert the dates to dt.date types.
         beginning_date = util.convert_to_date(beginning_date)
@@ -150,7 +180,14 @@ class Performance:
         self._df_overall = pl.DataFrame()
 
     def audit(self) -> None:
-        """Audit the Performance (self)."""
+        """Validate internal consistency of this performance stream.
+
+        Raises:
+            PpaError: If weights do not sum to ``1.0``, if contribution does
+                not equal ``weight * return`` for unconsolidated data, or if
+                total return does not equal the horizontal sum of
+                contributions.
+        """
         # Assert that the weights sum to 1.0
         if not (self.df[self.col_names(WGT)].sum_horizontal().round(8) == 1.0).all():
             raise PpaError(
@@ -183,15 +220,24 @@ class Performance:
         expected_ending_date: dt.date,
         common_classification_name: str = util.EMPTY,
     ) -> None:
-        """
-        Audit the portfolio/benchmark pair of performances.
+        """Validate a portfolio/benchmark performance pair.
 
         Args:
-            performances (tuple[Performance, Performance]): The portfolio & benchmark Performances.
-            expected_beginning_date (dt.date): The expected beginning date.
-            expected_ending_date (dt.date): The expected ending date.
-            common_classification_name (str, optional): The classification name that should be
-                shared by both the portfolio and the benchmark.  Defaults to util.EMPTY.
+            performances: Tuple containing the portfolio ``Performance`` at
+                index ``0`` and the benchmark ``Performance`` at index ``1``.
+            expected_beginning_date: Expected first beginning date for both
+                performance streams.
+            expected_ending_date: Expected final ending date for both
+                performance streams.
+            common_classification_name: Optional classification name that both
+                performance streams are expected to share.
+
+        Raises:
+            PpaError: If either performance fails its own audit, the
+                portfolio and benchmark dates or day counts differ, the actual
+                date range does not match the expected date range, or a common
+                classification name is required but the two performances do
+                not share one.
         """
         # Set the portfolio and benchmark
         portfolio = performances[0]
@@ -219,13 +265,12 @@ class Performance:
                 raise PpaError("audit_perfs(): Common classification name error.", 999)
 
     def _calculate_df_overall(self) -> pl.DataFrame:
-        """
-        Calculate df_overall, which is one total row for the entire overall period.  It is either
-        called from the constructor or from the Attribution class after the dates have been
-        firmly established.
+        """Calculate one overall row for the full performance period.
 
         Returns:
-            pl.DataFrame: df_overall, which is one row for the entire overall period.
+            A Polars DataFrame containing one row for the full date range,
+            including linked returns, summed contributions, day-weighted
+            weights, and the overall beginning and ending dates.
         """
         # Pre-calculate values
         all_return_col_names = self.col_names(RET) + [cols.TOTAL_RETURN]
@@ -264,10 +309,16 @@ class Performance:
         return lf_overall.collect()
 
     def _cast_and_validate_columns(self) -> None:
-        """
-        Cast the columns to their correct data types.  They might come in as strings or ints.  If
-        any columns have null values or any pl.Float64 columns have NaN values, then raise an
-        exception.
+        """Cast columns to required dtypes and validate missing values.
+
+        Date columns are cast to ``pl.Date``, return and weight columns are
+        cast to ``pl.Float64``, and optional classification columns are cast to
+        ``pl.String``.
+
+        Raises:
+            PpaError: If a column cannot be cast to its required dtype, or if
+                the DataFrame contains null values or NaN values in float
+                columns.
         """
         # Get a dictionary of the column dtypes.
         column_dtypes: dict[type[pl.Date] | type[pl.Float64] | type[pl.String], list[str]] = {
@@ -306,7 +357,12 @@ class Performance:
             raise PpaError(self.error_message_context, 104)
 
     def _clean_and_validate_columns(self) -> None:
-        """Clean and validate the columns."""
+        """Keep required columns and validate return/weight column pairs.
+
+        Raises:
+            PpaError: If no return columns are present, or if return and
+                weight columns do not contain matching identifiers.
+        """
         # Create lists of different types of col_names.
         return_col_names = self._col_names_from_schema(RET)
         weight_col_names = self._col_names_from_schema(WGT)
@@ -325,8 +381,15 @@ class Performance:
         self.df = self.df.select(cols.DATE_COLUMNS + return_col_names + weight_col_names)
 
     def _clean_and_validate_dates(self) -> None:
-        """
-        Clean and validate all of the beginning dates and ending dates for every row.
+        """Sort, normalize, and validate period dates.
+
+        Inclusive beginning dates are converted to the package's standard
+        non-inclusive beginning-date convention when the entire series appears
+        to use inclusive beginning dates.
+
+        Raises:
+            PpaError: If ending dates are duplicated, any beginning date is not
+                before its ending date, or the time periods are discontinuous.
         """
         # Sort rows by ending_date.
         self.df = self.df.sort(cols.ENDING_DATE)
@@ -378,40 +441,40 @@ class Performance:
             raise PpaError(self.error_message_context, 106)
 
     def col_names(self, suffix: str) -> list[str]:
-        """
-        Return a list of identifier column names with the suffix appended.
+        """Return cached identifier column names for a suffix.
 
         Args:
-            suffix (str): The suffix (e.g. ".ret", ".sel", etc)
+            suffix: Column suffix to append to each identifier, such as
+                ``".ret"``, ``".wgt"``, or ``".con"``.
 
         Returns:
-            list[str]: A list of identifier column names with the suffix appended.
+            Identifier column names with ``suffix`` appended.
         """
         if suffix not in self._column_names:
             self._column_names[suffix] = [f"{id}{suffix}" for id in self.identifiers]
         return self._column_names[suffix]
 
     def _col_names_from_schema(self, column_name_suffix: str) -> list[str]:
-        """
-        Gets a list of the column names that have column_name_suffix.
+        """Return sorted DataFrame column names ending with a suffix.
 
         Args:
-            col_name_suffix (str): The column name suffix for which to get the column names.
+            column_name_suffix: Column suffix to search for.
 
         Returns:
-            list[str]: A sorted list of the column names that have column_name_suffix.
+            Sorted column names from ``self.df`` that end with
+            ``column_name_suffix``.
         """
         return sorted([name for name in self.df.columns if name.endswith(column_name_suffix)])
 
     def consolidated_returns(self) -> pl.DataFrame:
-        """
-        Calculates the implied consolidated returns.  They are only used for calculating the
-        multi-period attribution effects.  This only needs to be done if
-        self.subperiods_have_been_consolidated, because after consolidation, weight * return !=
-        contrib.  So the implied consolidated_return = contrib / weight.
+        """Return raw or implied returns used in attribution calculations.
+
+        For unconsolidated data, the raw return columns are returned. For
+        consolidated data, returns are implied from ``contribution / weight``
+        where weight is nonzero; otherwise, the stored return is used.
 
         Returns:
-            pl.DataFrame: A DataFrame containing the consolidated returns.
+            A Polars DataFrame containing return columns for each identifier.
         """
         # If not self.subperiods_have_been_consolidated, then weight * return = contrib.  So the raw
         # returns can be returned.
@@ -433,21 +496,21 @@ class Performance:
         )
 
     def _convert_to_wide_format(self) -> tuple[pl.DataFrame, pl.DataFrame]:
-        """
-        Convert self.df to the "wide" format with multiple identifier.ret and identifier.wgt
-        columns.  If cols.IDENTIFIER and cols.NAME are in self.df, then create
-        self.classification_items, which might be used later in the Attribution constructor when
-        creating the Classification.
+        """Convert narrow performance input to the package's wide layout.
 
-        Note:
-            You tried supporting multiple rows for the same identifier, but it got really ugly.
-            So you decided to fail if there are multiple rows for the same identifier.
-            1. What if the weights sum to 0.0, but the returns are different, so there is some
-               contribution.
-            2. What if the cols.CLASSIFICATION_NAME is different for multiple rows of the same
-               identifier?
+        If ``self.df`` is already wide, it is returned unchanged with an empty
+        classification-items DataFrame. For narrow input, the method pivots
+        ``identifier`` rows into paired ``identifier.ret`` and
+        ``identifier.wgt`` columns. If a ``name`` column is present, the method
+        also creates classification identifier/name pairs for later use.
+
         Returns:
-            tuple[pl.DataFrame, pl.DataFrame]: The wide self.df and self.classification_items.
+            A tuple containing the wide performance DataFrame and the optional
+            classification-items DataFrame.
+
+        Raises:
+            PpaError: If narrow input contains more than one row for the same
+                beginning date, ending date, and identifier.
         """
         # Return self.df if it is empty or already in the wide format.
         if self.df.shape[0] == 0 or not all(
@@ -507,13 +570,26 @@ class Performance:
         return pivoted.rename(new_columns), classification_items
 
     def df_overall(self) -> pl.DataFrame:
-        """Get the DataFrame representing the overall total period."""
+        """Return the cached overall-period DataFrame.
+
+        Returns:
+            A one-row Polars DataFrame for the full performance period.
+        """
         if self._df_overall.is_empty():
             self._df_overall = self._calculate_df_overall()
         return self._df_overall
 
     def linking_coefficients(self) -> pl.Series:
-        """Return the linking coefficients."""
+        """Return logarithmic linking coefficients for each subperiod.
+
+        Returns:
+            A Polars Series containing one linking coefficient per subperiod.
+
+        Raises:
+            PpaError: Raised by ``util.logarithmic_linking_coefficients()`` if
+                the overall return or any subperiod return is less than or
+                equal to ``-1.0``.
+        """
         return util.logarithmic_linking_coefficients(
             self.overall_return(), self.df[cols.TOTAL_RETURN]
         )
@@ -525,17 +601,22 @@ class Performance:
         beginning_date: dt.date,
         ending_date: dt.date,
     ) -> tuple[str, pl.DataFrame]:
-        """
-        Loads performance data into a polars DataFrame.
+        """Load performance data into a Polars DataFrame.
 
         Args:
-            name (str, optional): The name assoiated with the data.  Defaults to EMPTY.
-            data_source (TypePerformanceDataSource): The performance data source.
-            beginning_date (dt.date, optional): The beginning date to filter the data on.
-            ending_date (dt.date, optional): The ending date to filter the data on.
+            name: Descriptive name associated with the performance data.
+            data_source: Performance data source. This can be a CSV file path,
+                a pandas DataFrame, or a Polars DataFrame.
+            beginning_date: Earliest beginning date to keep.
+            ending_date: Latest ending date to keep.
 
         Returns:
-            tuple[str, pl.DataFrame]: The performance name and it's data (in a Dataframe).
+            A tuple containing the resolved performance name and loaded Polars
+            DataFrame.
+
+        Raises:
+            PpaError: If ``data_source`` is a file path that is empty, missing,
+                or not a file.
         """
         # Load the data
         if isinstance(data_source, str):
@@ -564,18 +645,15 @@ class Performance:
         return name, lf.collect()
 
     def overall_return(self) -> float:
-        """
-        Gets the total return for the entire overall time period in self.df.
+        """Return the linked total return for the full performance period.
 
         Returns:
-            float: The total return for the entire overall time period in self.df.
+            Total return for the full date range represented by ``self.df``.
         """
         return cast(float, self.df_overall().item(0, cols.TOTAL_RETURN))  # cast for mypy
 
     def _reset_column_names(self) -> None:
-        """
-        Reset the column name instance variables.
-        """
+        """Clear cached column-name groups and rebuild identifiers."""
         # Set self._column_names to empty so they will be forced to be recalculated.
         self._column_names = {}
 
@@ -583,13 +661,12 @@ class Performance:
         self.identifiers = [name[:-4] for name in self._col_names_from_schema(RET)]
 
     def reset_df(self, df: pl.DataFrame, do_reset_column_names: bool = True) -> None:
-        """
-        Reset the DataFrame self.df
+        """Replace the performance DataFrame and invalidate cached summaries.
 
         Args:
-            df (pl.DataFrame): The new dataframe.
-            reset_column_names (bool, optional): Reset the column names if they have changed.
-                Defaults to True.
+            df: Replacement performance DataFrame.
+            do_reset_column_names: Whether to rebuild cached column-name
+                groups and identifiers after replacing ``self.df``.
         """
         # Set self._df_overall to empty so it will be forced to be recalculated.
         self._df_overall = pl.DataFrame()
