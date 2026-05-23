@@ -1,11 +1,7 @@
 # My Stuff
-*.bat
-_*.csv
-_*.py
+_*
 delete_me.csv
 junk*/
-my_misc_stuff/
-profile*.txt
 .pylintrc
 
 

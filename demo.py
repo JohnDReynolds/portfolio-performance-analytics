@@ -183,7 +183,9 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     _ = attribution_by_sector.to_polars(view)  # A polars DataFrame
     _ = attribution_by_sector.to_table(view)  # A "great_table"
     _ = attribution_by_sector.to_xml(view)  # Am xml string
-    attribution_by_sector.write_csv(view, file_path="delete_me.csv")  # Write a csv file
+
+    # Write a csv file of the attribution results by sector
+    # attribution_by_sector.write_csv(view, file_path="demo_attribution_by_sector.csv")
 
 
 ########## Run the demo.

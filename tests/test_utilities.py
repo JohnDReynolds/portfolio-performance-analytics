@@ -18,10 +18,9 @@ from ppar.attribution import Attribution
 from ppar.errors import PpaError
 import ppar.utilities as util
 
-
 # Directories containing the test data.
 _DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/")
-_AXYS_DIRECTORIES = [f"{dir}axys" for dir in _DATA_DIRECTORIES]
+_AXYS_DIRECTORIES = [f"{dir}axys1" for dir in _DATA_DIRECTORIES]
 _CLASSIFICATION_DIRECTORIES = [f"{dir}classifications" for dir in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [f"{dir}mappings" for dir in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [f"{dir}performance" for dir in _DATA_DIRECTORIES]
