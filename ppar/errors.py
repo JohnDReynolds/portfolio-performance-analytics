@@ -1,5 +1,5 @@
 """
-This module contains numbered errors and the PpaError Class
+This module contains numbered errors and the PpaError class
 """
 
 ERRORS = {

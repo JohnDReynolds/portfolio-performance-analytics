@@ -1,5 +1,5 @@
 """
-Imports and publc exposure for the package.
+Imports and public exposure for the package.
 """
 
 # Explicitly import the specific members or modules.

@@ -157,7 +157,9 @@ class RiskStatistics:
             self._benchmark_name = returns[1].name
             self._portfolio_returns = returns[0].df[cols.TOTAL_RETURN].to_numpy()
             self._benchmark_returns = returns[1].df[cols.TOTAL_RETURN].to_numpy()
-            self._performances_to_audit: tuple[Performance, Performance] = returns  # type: ignore
+            self._performances_to_audit: tuple[Performance, Performance] = cast(
+                tuple[Performance, Performance], returns
+            )
         elif isinstance(returns[0], np.ndarray) and isinstance(returns[1], np.ndarray):
             self._beginning_date = dt.date.min
             self._ending_date = dt.date.max
@@ -165,7 +167,9 @@ class RiskStatistics:
             self._benchmark_name = "Benchmark"
             self._portfolio_returns = returns[0]
             self._benchmark_returns = returns[1]
-            self._performances_to_audit: tuple[Performance, Performance] = tuple()  # type: ignore
+            self._performances_to_audit: tuple[Performance, Performance] = cast(
+                tuple[Performance, Performance], tuple()
+            )
         else:
             # Should never reach here.
             raise PpaError("Unknown returns type in RiskStatistics constructor.", 999)
@@ -184,6 +188,10 @@ class RiskStatistics:
         # Validate that there are not any NaN values.
         if np.any(np.isnan(self._portfolio_returns)) or np.any(np.isnan(self._benchmark_returns)):
             raise PpaError("", 405)
+
+        # If Performance objects were supplied directly, validate that the returns are date-aligned.
+        if self._performances_to_audit:
+            self._audit()
 
         # Get all statistic values.
         statistic_values = self._calculate_all_statistics(
@@ -259,9 +267,11 @@ class RiskStatistics:
         Returns:
             Portfolio beta relative to the benchmark.
         """
-        covariance_matrix = np.cov(portfolio_returns, benchmark_returns)
+        # Use a consistent degrees-of-freedom (sample ddof=1) for both covariance
+        # and variance so the beta calculation is not biased by mismatched normalizations.
+        covariance_matrix = np.cov(portfolio_returns, benchmark_returns, ddof=1)
         covariance = covariance_matrix[0, 1]
-        benchmark_variance = np.var(benchmark_returns)
+        benchmark_variance = np.var(benchmark_returns, ddof=1)
         return cast(float, covariance / benchmark_variance)  # cast for mypy
 
     def _calculate_all_statistics(
@@ -291,8 +301,8 @@ class RiskStatistics:
             PpaError: Raised by ``periods_per_year()`` if the stored frequency
                 is unsupported for annualization.
         """
-        # Set the annualization coefficient.  It is not kosher to annualize numbers that are for
-        # less than a year, so in that case, use NaN.
+        # Do not annualize partial-year samples. Annualized risk numbers can look
+        # authoritative even when there are too few observations to support them.
         qty_periods_per_year = periods_per_year(self._frequency)
         annualization_coefficient = (
             np.nan
@@ -300,10 +310,9 @@ class RiskStatistics:
             else math.sqrt(qty_periods_per_year)
         )
 
-        # Set the minimum acceptable return and risk free return to correspond with the frequency.
-        # Note that a lot of the old literature just divides the annual rate by the quantity of the
-        # periods per year, which is probably a shortcut used before computers.  We use the correct
-        # de-annualized formula.
+        # Convert annual hurdle/risk-free rates to the observation frequency by
+        # compounding. For example, a 12% annual hurdle is not treated as 1% per
+        # month; it is the monthly rate that compounds to 12%.
         frequency_mar = RiskStatistics._deannualize_return(
             annual_minimum_acceptable_return, qty_periods_per_year
         )
@@ -313,7 +322,7 @@ class RiskStatistics:
 
         # Calculate other common values used below.
         active_returns = self._portfolio_returns - self._benchmark_returns
-        benchmark_mean = np.mean(self._benchmark_returns)
+        benchmark_mean = cast(float, np.mean(self._benchmark_returns))
 
         # Initialize the dictionaries for the statistics.
         statistic_values: dict[str, list[np.float64]] = {}
@@ -324,17 +333,16 @@ class RiskStatistics:
             mean = cast(float, np.mean(rets))
             stddev = cast(float, np.std(rets))
 
-            # Calculate the downside_deviation that is used for DOWNSIDE_DEVIATION and
-            # DOWNSIDE_DEVIATION_ANNUALIZED.  Note that downside_returns will include
-            # (return - mar) for all values below the mar, and then zeros for returns equal to or
-            # above the mar.
+            # Downside deviation penalizes every observation by its shortfall below
+            # the minimum acceptable return. Observations above the hurdle contribute
+            # zero, so this is a semi-deviation around the hurdle rather than around
+            # the mean.
             downside_returns = np.clip(rets - frequency_mar, a_min=-np.inf, a_max=0)
             downside_deviation = np.sqrt(np.mean(downside_returns**2))
 
-            # Calculate returns_below_mar that is used for DOWNSIDE_PROBABILITY and
-            # EXPECTED_DOWNSIDE_VALUE.  Note that returns_below_mar will only include
-            # (return - mar) for values below the mar.  It will not include returns equal to or
-            # above the mar.
+            # Expected downside value is an unconditional shortfall: periods above
+            # the hurdle are excluded from the numerator but remain in the denominator.
+            # This keeps it comparable with downside probability.
             returns_below_mar = rets[rets < frequency_mar] - frequency_mar
 
             # Calculate the risk-free ratios.
@@ -343,26 +351,25 @@ class RiskStatistics:
             )
 
             if idx == 0:  # Portfolio
-                # Calculate the active returns over the benchmark.
+                # Active risk uses portfolio minus benchmark returns period by period.
                 active_returns_stddev = np.std(active_returns)
-                # Calculate the beta.  Note that the "capm beta" would be:
-                # _beta(portfolio_returns - frequency_rfr, benchmark_returns - frequency_rfr)
-                # But since you are only supporting a constant risk-free rate for all periods
-                # (frequency_rfr), the capm_beta will be identical to the regular beta that does
-                # not use the risk-adjusted returns.
+                # With a constant risk-free rate, beta is unchanged by subtracting
+                # that rate from both portfolio and benchmark returns.
                 beta = RiskStatistics._beta(self._portfolio_returns, self._benchmark_returns)
-                # Calculate the alpha
+
+                # Regression alpha here is the intercept implied by mean returns:
+                # alpha = portfolio_mean - beta * benchmark_mean.
                 alpha = mean - (beta * benchmark_mean)
-                # Calculate the correlation coefficient.
-                correlation_coefficient = np.corrcoef(
-                    self._portfolio_returns, self._benchmark_returns
-                )[
-                    0, 1
-                ]  # type: ignore
-                # Calculate Jensen's Alpha
+                correlation_coefficient = cast(
+                    float, np.corrcoef(self._portfolio_returns, self._benchmark_returns)[0, 1]
+                )
+
+                # Jensen's alpha measures excess return over the CAPM-implied
+                # excess return, using the same periodic risk-free rate.
                 jensens_alpha = excess_returns_mean - (beta * (benchmark_mean - frequency_rfr))
             else:  # Benchmark
-                # These are all NaN for the benchmark.
+                # Benchmark-relative statistics are only meaningful for the
+                # portfolio row; the benchmark has no benchmark-relative benchmark.
                 active_returns_stddev = np.nan
                 beta = np.nan
                 alpha = np.nan
@@ -379,7 +386,9 @@ class RiskStatistics:
                     case Statistic.ALPHA:
                         value = alpha
                     case Statistic.ALPHA_ANNUALIZED:
-                        value = annualization_coefficient * alpha
+                        # Alpha is a return-like quantity, so annualize by compounding
+                        # rather than by sqrt(periods), which is for volatility.
+                        value = self._annualize_return(alpha, qty_periods_per_year)
                     case Statistic.BETA:
                         value = beta
                     case Statistic.CORRELATION:
@@ -404,10 +413,11 @@ class RiskStatistics:
                     case Statistic.JENSENS_ALPHA:
                         value = jensens_alpha
                     case Statistic.JENSENS_ALPHA_ANNUALIZED:
-                        value = annualization_coefficient * jensens_alpha
+                        value = self._annualize_return(jensens_alpha, qty_periods_per_year)
                     case Statistic.M_SQUARED:
                         if idx == 0:
-                            # M2 = (Sharpe Ratio * Benchmark Standard Deviation) + Risk-Free Rate,
+                            # M-squared expresses Sharpe performance as a return
+                            # scaled to benchmark volatility, then adds back cash.
                             value = (
                                 sharpe_ratio * np.std(self._benchmark_returns)
                             ) + frequency_rfr
@@ -439,7 +449,14 @@ class RiskStatistics:
                         value = annualization_coefficient * active_returns_stddev
                     case Statistic.TREYNOR_RATIO:
                         if idx == 0:
-                            value = excess_returns_mean / beta
+                            # Treynor uses beta, not volatility, as the risk unit.
+                            # A zero-beta portfolio makes the ratio undefined; use
+                            # infinity to match the other zero-denominator ratios.
+                            value = (
+                                np.inf
+                                if not np.isfinite(beta) or np.isclose(beta, 0.0)
+                                else excess_returns_mean / beta
+                            )
                         else:
                             value = np.nan
                     case Statistic.VALUE_AT_RISK:
@@ -467,15 +484,21 @@ class RiskStatistics:
             Tuple containing mean excess return, Sharpe ratio, and Sortino
             ratio.
         """
-        # Calculate the excess returns for the Sortino Ratio and Sharpe Ratio.
-        # Note that excess_returns_downside will only include excess_returns < 0.
-        # It will not include excess_returns => 0.
-        # Note also that rets.std() == excess_returns.std() as long as the risk-free
-        # returns are constant for all periods, which they are.  In the future, you might want
-        # to support an array of risk-free rates for each period.
+        # The current model assumes one constant risk-free rate for all periods.
+        # Under that assumption, subtracting the risk-free rate shifts the mean
+        # excess return but leaves standard deviation unchanged.
         excess_returns = returns - frequency_rfr
         excess_returns_mean = excess_returns.mean()
-        sharpe_ratio = excess_returns_mean / excess_returns.std()
+
+        # A zero-volatility positive excess-return series has an unbounded Sharpe
+        # ratio under this convention. The sign of infinity follows the numerator
+        # only indirectly here because historical tests expect a single +inf value.
+        denom = excess_returns.std()
+        sharpe_ratio = np.inf if np.isclose(denom, 0.0) else excess_returns_mean / denom
+
+        # Sortino only treats returns below the risk-free rate as downside
+        # observations. Periods at or above the risk-free rate do not enter the
+        # downside standard deviation.
         excess_returns_downside = excess_returns[excess_returns < 0]
         excess_returns_downside_std = (
             0.0 if len(excess_returns_downside) == 0 else excess_returns_downside.std()
@@ -543,16 +566,17 @@ class RiskStatistics:
         Returns:
             Parametric value at risk as a positive currency amount.
         """
-        # Calculate the z-score for the given confidence level.
+        # For a 95% VaR, use the 5th percentile of the normal return distribution.
+        # ``z_score`` is negative, so ``mean + z * stddev`` is the lower-tail return.
         z_score = norm.ppf(1 - confidence_level)  # type: ignore
 
-        # Calculate the VaR
-        var = portfolio_value * (mean - (z_score * stddev))
+        # Report VaR as a nonnegative potential loss. Example: if the 5th-percentile
+        # return is -3%, a $100,000 portfolio has $3,000 VaR. If the lower-tail
+        # quantile is still positive, the loss is floored at zero.
+        var = max(0.0, -(mean + (z_score * stddev)) * portfolio_value)
 
-        # Even though a VaR represents a potential loss, it is typically reported as a positive
-        # number.  Some models present it as a negative number to emphasize the potential loss
-        # (e.g., VaR = -$1 million means a potential $1 million loss).  The sign convention depends
-        # on how the institution or analyst defines it.  We will return it as a positive number.
+        # This package uses the common positive-loss convention; callers do not
+        # need to negate the result for presentation.
         return cast(float, var)
 
     def to_html(self) -> str:

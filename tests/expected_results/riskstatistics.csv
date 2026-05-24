@@ -8,7 +8,7 @@ Quarterly Downside Probability,0.60000000,0.40000000,0.20000000,Downside Risk
 Quarterly Expected Downside Value,-0.06963408,-0.01968272,-0.04995136,Downside Risk
 Quarterly Downside Deviation,0.11522015,0.04246905,0.07275110,Downside Risk
 Annualized Downside Deviation,0.23044030,0.08493810,0.14550220,Downside Risk
-"Quarterly Value At Risk for $100,000",43481.43024500,17751.62723675,25729.80300825,Downside Risk
+"Quarterly Value At Risk for $100,000",43528.35537925,16982.78124269,26545.57413655,Downside Risk
 Quarterly Correlation,0.46222424,NaN,NaN,Benchmark-Relative Risk
 Quarterly R-Squared,0.21365125,NaN,NaN,Benchmark-Relative Risk
 Quarterly Tracking Error,0.23513242,NaN,NaN,Benchmark-Relative Risk
@@ -19,9 +19,9 @@ Quarterly Sortino Ratio,-0.07667863,-0.08114880,0.00447016,Risk-Adjusted Perform
 Annualized Sortino Ratio,-0.15335727,-0.16229759,0.00894032,Risk-Adjusted Performance
 Quarterly Information Ratio,-0.01734706,NaN,NaN,Risk-Adjusted Performance
 Quarterly M_Squared,0.00436251,NaN,NaN,Risk-Adjusted Performance
-Quarterly Treynor Ratio,-0.00528673,NaN,NaN,Risk-Adjusted Performance
-Quarterly Beta,1.44734120,NaN,NaN,Regression
-Quarterly Alpha,-0.00579854,NaN,NaN,Regression
-Annualized Alpha,-0.01159708,NaN,NaN,Regression
-Quarterly Jensens Alpha,-0.00248058,NaN,NaN,Regression
-Annualized Jensens Alpha,-0.00496115,NaN,NaN,Regression
+Quarterly Treynor Ratio,-0.00660841,NaN,NaN,Risk-Adjusted Performance
+Quarterly Beta,1.15787296,NaN,NaN,Regression
+Quarterly Alpha,-0.00468576,NaN,NaN,Regression
+Annualized Alpha,-0.01861170,NaN,NaN,Regression
+Quarterly Jensens Alpha,-0.00351480,NaN,NaN,Regression
+Annualized Jensens Alpha,-0.01398525,NaN,NaN,Regression

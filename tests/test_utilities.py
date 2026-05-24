@@ -5,7 +5,7 @@ function(s) to deliver the data.
 
 The functions in this file deliver the path name of csv files containing the data.  Users
 could alternatively create their own custom data source functions that query databases and then
-deliver pandas dataframes, polars dataframes, or python dictionairies.
+deliver pandas dataframes, polars dataframes, or python dictionaries.
 """
 
 # Python imports
@@ -61,7 +61,21 @@ def get_attribution(
     classification_data_source: util.ClassificationDataSource = util.EMPTY,
     mapping_data_source: util.MappingDataSource = util.EMPTY,
 ) -> Attribution:
-    """Infer file path from the classification_name and then return the attribution."""
+    """Infer file path from the classification_name and then return the attribution.
+
+    Args:
+        analytics (Analytics): The Analytics instance.
+        classification_name (str): The classification name to use when resolving a
+            classification data source.
+        classification_data_source (util.ClassificationDataSource): Optional
+            classification data source to use instead of resolving from the
+            classification name.
+        mapping_data_source (util.MappingDataSource): Optional mapping data source
+            to use for both portfolio and benchmark if supplied.
+
+    Returns:
+        Attribution: The resulting attribution object.
+    """
     if util.is_empty(classification_data_source):
         classification_data_source = classification_data_path(classification_name)
 
@@ -78,7 +92,14 @@ def get_attribution(
 
 
 def html_table_lines(html_string: str) -> list[str]:
-    """Get just the table lines from the html string."""
+    """Get just the table lines from the html string.
+
+    Args:
+        html_string (str): The HTML string to scan for the first table.
+
+    Returns:
+        list[str]: The lines from the first HTML table found in the input.
+    """
     # html_lines = html_string.split("\n")
     lines: list[str] = []
     on_table = False
@@ -140,7 +161,14 @@ def performance_data_path(performance_name: str) -> util.PerformanceDataSource:
 
 
 def read_html_table(file_path: str) -> list[str]:
-    """Read an html table file without the header."""
+    """Read an HTML table file without the header.
+
+    Args:
+        file_path (str): Path to the HTML file containing the table.
+
+    Returns:
+        list[str]: The table lines from the file.
+    """
     lines: list[str] = []
     with open(file_path, "r", encoding=util.ENCODING) as file:
         on_table = False

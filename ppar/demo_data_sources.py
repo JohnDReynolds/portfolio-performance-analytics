@@ -3,7 +3,7 @@ This module contains custom functions for the Classification, Mapping, and Perfo
 sources.  It has been designed for the test data.  The functions in this module deliver the path
 name of csv files containing the data.  Users can alternatively create their own custom data source
 functions that query databases and then deliver pandas dataframes, polars dataframes, or python
-dictionairies.
+dictionaries.
 """
 
 # Python Imports

@@ -12,7 +12,7 @@ charts from Polars DataFrames. Each public formatter returns PNG image bytes.
 import io
 import math
 import textwrap
-from typing import Iterable, Sequence
+from typing import cast, Iterable, Sequence
 
 # Third-Party Imports
 from matplotlib import ticker
@@ -261,8 +261,8 @@ def overall_attribution(
 
     # Concatenate all series into a single Polars DataFrame column and find min/max.
     combined_series = pl.concat(series_values)
-    overall_min = math.floor(combined_series.min() * 100) / 100  # type: ignore
-    overall_max = math.ceil(combined_series.max() * 100) / 100  # type: ignore
+    overall_min = math.floor(cast(float, combined_series.min()) * 100) / 100
+    overall_max = math.ceil(cast(float, combined_series.max()) * 100) / 100
 
     # Get the vertical chart measurements.
     bar_height, _, fig_height = _vertical_chart_measurements(len(labels))

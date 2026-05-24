@@ -39,6 +39,7 @@ from ppar.axysdata import AxysData
 from ppar.attribution import Chart, View
 import ppar.columns as cols
 import ppar.errors as errs
+from ppar.errors import PpaError
 from ppar.frequency import Frequency
 from ppar.riskstatistics import RiskStatistics
 from ppar.performance import Performance
@@ -1009,6 +1010,39 @@ class Test(unittest.TestCase):
         df = expostrisk.to_polars()
         assert math.isnan(df["Portfolio"].item(2))
         assert math.isnan(df["Benchmark"].item(2))
+
+    def test_parametric_var_uses_lower_tail_loss(self) -> None:
+        """Test VaR reports the lower-tail return loss, not mean plus tail risk."""
+        assert math.isclose(
+            RiskStatistics._parametric_var(0.01, 0.02, 0.95, 100_000),
+            2289.7072539029457,
+        )
+
+    def test_riskstatistics_audits_performance_dates(self) -> None:
+        """Test direct Performance inputs must be date-aligned."""
+        portfolio = Performance(
+            pl.DataFrame(
+                {
+                    cols.BEGINNING_DATE: [dt.date(2023, 1, 31), dt.date(2023, 2, 28)],
+                    cols.ENDING_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
+                    "A.ret": [0.01, 0.02],
+                    "A.wgt": [1.0, 1.0],
+                }
+            )
+        )
+        benchmark = Performance(
+            pl.DataFrame(
+                {
+                    cols.BEGINNING_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
+                    cols.ENDING_DATE: [dt.date(2023, 3, 31), dt.date(2023, 4, 30)],
+                    "A.ret": [0.03, 0.04],
+                    "A.wgt": [1.0, 1.0],
+                }
+            )
+        )
+
+        with self.assertRaises(PpaError):
+            RiskStatistics((portfolio, benchmark), Frequency.MONTHLY)
 
     def test_short_positions(self) -> None:
         """Test attribution processing with short positions."""

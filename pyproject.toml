@@ -1,16 +1,35 @@
 [build-system]
+# Build backend and build-time requirements used to build the project.
+# - `requires`: list of build-time packages (PEP 517/518). Keep minimal and use
+#   lower bounds that are known to support this configuration.
+# - `build-backend`: setuptools entrypoint used by the build frontend (e.g., pip).
+# Build-time requirements for setuptools-based builds.
 requires = ["setuptools>=61.0"]
+# The build backend used by pip when building wheels/sdist.
 build-backend = "setuptools.build_meta"
 
 [project]
+# Project metadata (PEP 621).
+# - `name`, `version`, `description`: canonical package metadata used by PyPI.
+# - `authors`: contact info for package maintainers.
+# - `readme` and `license`: point to local files to include in source distributions.
+# - `keywords`: short search terms for discovery.
+# - `requires-python`: minimum Python version supported; use a conservative
+#   lower bound that reflects CI/test matrix.
+# - `dependencies`: runtime requirements expressed as minimum compatible versions.
 name = "ppar"
 version = "0.1.4"
 description = "A python-based application that produces multi-period attribution, contribution, and benchmark-relative ex-post risk statistics."
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
+# README file included in the distribution and displayed on PyPI.
 readme = "README.md"
+# Use a local license file for clarity and packaging.
 license = { file = "LICENSE" }
+# Helpful search keywords — concise, comma-separated.
 keywords = ["portfolio", "performance", "analytics", "attribution", "brinson", "fachler", "risk", "statistics"]
+# Minimal Python runtime required to run the package.
 requires-python = ">=3.12.1"
+# Runtime dependencies. These are lower-bound constraints, not exact pins.
 dependencies = [
     "great_tables>=0.17.0",
     "lxml>=5.1.0",
@@ -24,12 +43,20 @@ dependencies = [
 ]
 
 [tool.setuptools]
+# setuptools-specific configuration.
+# - `packages`: list package names included in the distribution.
+# - `include-package-data`: include files specified in package-data or MANIFEST.in.
 packages = ["ppar"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-#ppar = ["py.typed", "demo_data/**/*"] # Include all demo_data sub-directories
+# Explicit package-data patterns so demo CSVs and typing marker are included.
+# - Prefer explicit globs over recursive wildcard where possible for clarity.
+# The `py.typed` marker indicates PEP 561 typing support.
+# Include demo CSVs used by examples so installed package is usable offline.
 ppar = ["py.typed", "demo_data/classifications/*.csv", "demo_data/mappings/*.csv", "demo_data/performance/*.csv"]
 
 [project.urls]
+# Useful project URLs for documentation and source.
+# - `Repository`: canonical upstream repository URL.
 Repository = "https://github.com/JohnDReynolds/portfolio-performance-analytics"

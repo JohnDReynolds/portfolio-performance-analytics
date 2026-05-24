@@ -262,7 +262,10 @@ class Analytics:
         df0 = self._performances[0].df
         df1 = self._performances[1].df
 
-        # Compute sorted common beginning and ending dates.
+        # Compute sorted common beginning and ending dates separately. This ensures
+        # the aligned subperiods use only dates that are present in both the
+        # portfolio and benchmark streams, and that beginning dates are paired with
+        # valid later ending dates.
         common_beginning_dates: pl.Series | list[dt.date] = _common_dates(
             df0[cols.BEGINNING_DATE], df1[cols.BEGINNING_DATE]
         )
@@ -369,8 +372,9 @@ class Analytics:
             .lazy()
         )
 
-        # Create a LazyFrame that contains all of the performance.df columns as well as the
-        # subperiod_id and dates.
+        # Assign each source period to the reporting period that owns its beginning
+        # date. For example, daily rows beginning after 2024-01-31 and before
+        # 2024-02-29 are grouped into the February monthly report ending 2024-02-29.
         joined_lf = performance.df.lazy().join_asof(
             df_subperiods,
             left_on=cols.BEGINNING_DATE,
@@ -379,23 +383,26 @@ class Analytics:
             by=None,
         )
 
-        # Create a LazyFrame with the subperiod_id and the subperiod_return.
+        # A reporting-period total return must compound the lower-frequency rows.
+        # A +10% day followed by a -10% day is -1%, not 0%.
         subperiod_returns = joined_lf.group_by("subperiod_id").agg(
             [pl.col(cols.TOTAL_RETURN).add(1).cum_prod().last().sub(1).alias("subperiod_return")]
         )
 
-        # Join the subperiod_returns.  Since LazyFrame columns cannot have arithmetic performed on
-        # themselves, you must collect() here.
+        # The period return is needed beside each source row so each row can get
+        # its own contribution-linking coefficient inside the reporting period.
         joined_df = joined_lf.join(subperiod_returns, on="subperiod_id").collect()
 
-        # Append the day-weighting coefficients and the linking coefficients.
         joined_lf = joined_df.lazy().with_columns(
-            # Append the day-weighting coefficient column.
+            # Weights are interpreted as period exposures, so consolidation averages
+            # them by elapsed days instead of taking the first or last holding weight.
             (
                 joined_df[cols.QUANTITY_OF_DAYS]
                 / (joined_df["end_date"] - joined_df["beg_date"]).dt.total_days()
             ).alias("weight_coefficient"),
-            # Append the linking coefficient column.
+            # Contributions are linked so their sum over source rows equals the
+            # geometrically linked reporting-period return. This preserves the
+            # additive attribution story while returns themselves compound.
             pl.struct(["subperiod_return", cols.TOTAL_RETURN])
             .map_batches(
                 lambda x: util.logarithmic_linking_coefficient_series(
@@ -406,25 +413,19 @@ class Analytics:
             .alias("linking_coefficient"),
         )
 
-        # Get the final consolidated subperiods by linking the returns, summing the day-weighted
-        # weights, and summing the contributions after applying the linking coefficients.
+        # The consolidated row keeps one return/weight/contribution triplet per
+        # identifier. Returns are linked, weights are time-weighted, and contributions
+        # are log-linked so downstream attribution can still foot to total return.
         consolidated_subperiods_lf = (
             joined_lf.group_by("subperiod_id")
             .agg(
                 [
-                    # Some of these expressions produce lists of either single values or identical
-                    # values.  So take the first().
-                    # Dates and Days
                     pl.col("beg_date").first().alias(cols.BEGINNING_DATE),
                     pl.col("end_date").first().alias(cols.ENDING_DATE),
                     pl.col(cols.QUANTITY_OF_DAYS).sum(),
-                    # Total Return
                     pl.col(cols.TOTAL_RETURN).add(1).cum_prod().last().sub(1),
-                    # Returns
                     pl.col(performance.col_names(RET)).add(1).cum_prod().tail(1).sub(1).first(),
-                    # Weights
                     pl.col(performance.col_names(WGT)).mul(pl.col("weight_coefficient")).sum(),
-                    # Contributions
                     pl.col(performance.col_names(CON)).mul(pl.col("linking_coefficient")).sum(),
                 ]
             )

@@ -1,10 +1,10 @@
 """
-As of May 2026, this is a work-in-progress.  It has not been published in the PyPi package.
-See ../axys_demo.py for an example of how to use this class.
+As of May 2026, this is a work-in-progress.  It has not been published in the PyPI package.
+See ../axys_perf_demo.py for an example of how to use this class.
 
 Loads Axys performance data, optional classification and mapping sources, and performs
-reconciliation logic to ensure that sumof(weight * return) across secperf rows matches the portperf
-return for each period.
+reconciliation logic to ensure that sum of (weight * return) across secperf rows matches the
+portperf return for each period.
 
 Axys only stores performance in portperf and secperf.  It does not store sector-level performance.
 This class will always return security-level performance with optional mappings up to sector that
@@ -112,14 +112,13 @@ class AxysData:
     Attributes:
         classification_data_sources: Dict of classification data sources keyed on
             classification_names.
-        directory: The directory of the json specifications file.
         from_date: Optional lower date bound.
         mapping_data_sources: Dict of mapping data sources keyed on mapping_names.
         portfolios: Dict of Portfolio objects keyed on portfolio_code.
         portperf_path: Path to the portperf CSV.
         secperf_path: Path to the secperf CSV.
-        specifications: Contents of the json specifications file.
-        specifications_path: Path to the json specifications file.
+        specifications: Contents of the YAML specifications file.
+        specifications_path: Path to the YAML specifications file.
         thru_date: Optional upper date bound.
 
     Note:
@@ -390,8 +389,8 @@ class AxysData:
         if secperf_df.is_empty():
             raise PpaError(self._error_message("secperf_df must contain at least one row."), 999)
 
-        # Get the contributions, returns, and weights.  We convert to lists so the remaining logic
-        # stays in plain Python.
+        # Work in plain Python lists because the reconciliation is a small
+        # constrained optimization per period, not a columnar transformation.
         contributions = (
             secperf_df[cols.CONTRIBUTION].cast(pl.Float64, strict=False).fill_null(0.0).to_list()
         )
@@ -403,15 +402,19 @@ class AxysData:
             .to_list()
         )
 
-        # Defensive processing to ensure the lists contain only floats, with nulls filled as
-        # specified.  This is to ensure that the subsequent math operations do not encounter
-        # unexpected values.
+        # Treat missing/non-finite contributions and returns as zero. Missing weights
+        # remain unusable, so they can fall through to contribution-derived or equal
+        # weight anchors below.
         contributions = [AxysData._finite_or_default(value, 0.0) for value in contributions]
         returns = [AxysData._finite_or_default(value, 0.0) for value in returns]
         weights = [AxysData._finite_or_default(value, float("nan")) for value in weights]
 
         derived_weight_raw: list[float | None] = []
         for contribution, sec_return in zip(contributions, returns):
+            # If contribution = weight * return, then weight = contribution / return.
+            # Skip near-zero returns because a tiny denominator can imply a huge,
+            # meaningless weight. Negative implied weights are rejected because this
+            # reconciliation intentionally produces long-only weights.
             if abs(sec_return) <= _RETURN_EPSILON:
                 derived_weight_raw.append(None)
                 continue
@@ -424,6 +427,10 @@ class AxysData:
             derived_weight_raw,
             weights,
         ):
+            # Prefer a contribution-implied anchor when it is usable because it is
+            # already aligned with the return/contribution identity. Reported Axys
+            # weight is only a fallback; in some exports it is closer to beginning
+            # market exposure than to contribution weight.
             if implied_weight is not None:
                 anchor_weights.append(implied_weight)
                 continue
@@ -439,6 +446,8 @@ class AxysData:
             anchor_weights = [1.0] * len(anchor_weights)
             anchor_total = float(len(anchor_weights))
 
+        # Normalize anchors before tilting. The later solver changes the return
+        # achieved by the weights, not the invariant that weights sum to 1.
         anchor_weights = [max(0.0, weight) / anchor_total for weight in anchor_weights]
 
         adjusted_weights = AxysData._solve_adjusted_weights(
@@ -447,6 +456,9 @@ class AxysData:
             target_return=portfolio_return,
         )
 
+        # A solver fallback should never leak invalid weights downstream. If all
+        # reconciliation methods fail numerically, keep a valid equal-weight
+        # distribution and let the caller decide whether the return miss is fatal.
         adjusted_total = sum(adjusted_weights)
         if not math.isfinite(adjusted_total) or adjusted_total <= _NEAR_ZERO_WEIGHT:
             adjusted_weights = [1.0 / float(len(adjusted_weights))] * len(adjusted_weights)
@@ -492,6 +504,8 @@ class AxysData:
             _PERIOD_UNIQUE_KEY_COLUMNS, as_dict=True
         )
 
+        # Partition the secperf rows by unique period so each period can be reconciled
+        # independently while preserving the original row order via the row index.
         adjusted_weight_values: list[float] = [float("nan")] * self.secperf.height
         unreconciled_periods: set[UnreconciledPeriodType] = set()
 
@@ -546,7 +560,16 @@ class AxysData:
         return unreconciled_periods
 
     def _error_message(self, specific_message: str) -> str:
-        """Return a consistently formatted error message with context."""
+        """Return a consistently formatted error message with context.
+
+        Args:
+            specific_message: Optional error detail to prepend before the Axys
+                source context.
+
+        Returns:
+            Error message containing the specific detail, when supplied, plus
+            specifications, file path, portfolio, and date-filter context.
+        """
         context = (
             f"Context: "
             f"specifications_path={self.specifications_path}, "
@@ -603,7 +626,15 @@ class AxysData:
 
     @staticmethod
     def _finite_or_default(value: float | None, default: float) -> float:
-        """Return a finite float or a default fallback value."""
+        """Return a finite float or a default fallback value.
+
+        Args:
+            value: Value to test for ``None``, NaN, or infinity.
+            default: Value to return when ``value`` is not finite.
+
+        Returns:
+            ``value`` when it is finite; otherwise, ``default``.
+        """
         if value is None:
             return default
         return value if math.isfinite(value) else default
@@ -614,7 +645,23 @@ class AxysData:
         ds_name: str | None,
         unique_security_ids: list[str],
     ) -> pl.DataFrame:
-        """Get the classification or mapping data source."""
+        """Get a normalized classification or mapping data source.
+
+        Args:
+            ds_type: Data source group to read from the YAML specifications.
+            ds_name: Specific classification or mapping name to load. If empty,
+                an empty DataFrame is returned.
+            unique_security_ids: Security identifiers used to filter security-master
+                sources when ``is_security_master`` is true.
+
+        Returns:
+            Polars DataFrame with ``identifier_column`` and ``name_column`` columns.
+
+        Raises:
+            PpaError: If the requested source is unknown, has invalid fields,
+                references a missing file or column, or has an invalid
+                ``is_security_master`` value.
+        """
         if not ds_name:
             return pl.DataFrame()
 
@@ -709,11 +756,11 @@ class AxysData:
         """Load a performance CSV and return a DataFrame using internal column names.
 
         This method reads a CSV file, validates that required columns are defined in the
-        JSON specifications and present in the file, and returns a DataFrame with columns
+        YAML specifications and present in the file, and returns a DataFrame with columns
         renamed to the internal names used by this codebase.
 
-        JSON Mapping:
-            The JSON mapping (e.g., "portperf_columns", "secperf_columns") must map
+        YAML Mapping:
+            The YAML mapping (e.g., "portperf_columns", "secperf_columns") must map
             internal column names to CSV column names:
 
                 {internal_name: csv_header_name}
@@ -723,7 +770,7 @@ class AxysData:
 
         Processing:
             - Resolve file path (absolute or relative to specifications directory)
-            - Validate required columns exist in the JSON mapping
+            - Validate required columns exist in the YAML mapping
             - Validate mapped CSV columns exist in the file
             - Load CSV via Polars lazy scan
             - Rename columns to internal names
@@ -733,7 +780,7 @@ class AxysData:
 
         Args:
             file_path: Path to the CSV file.
-            column_name_mappings_name: JSON mapping section name.
+            column_name_mappings_name: YAML mapping section name.
 
         Returns:
             Polars DataFrame with required columns using internal names.
@@ -819,7 +866,12 @@ class AxysData:
         returns: list[float],
         target_return: float,
     ) -> list[float]:
-        """Solve for adjusted weights using fallback methods.
+        """Solve for adjusted weights using increasingly permissive fallbacks.
+
+        The goal is to keep weights close to the contribution/weight anchors while
+        matching the portfolio-level return reported by portperf. Later fallbacks
+        trade fidelity to the anchors for the stronger invariant that
+        ``sum(weight * return)`` equals the portfolio return.
 
         Args:
             anchor_weights: Nonnegative weights summing to 1.
@@ -871,7 +923,13 @@ class AxysData:
         target_return: float,
         max_iterations: int = 200,
     ) -> list[float] | None:
-        """Solve the same tilt family by bisection over a sampled lambda grid."""
+        """Solve the same tilt family by bisection over a sampled lambda grid.
+
+        The return produced by the tilt is monotonic only within usable lambda
+        regions where weights remain nonnegative and normalization is finite. The
+        sampled grid looks for a sign change in the return residual before using
+        bisection, which avoids assuming every lambda value is admissible.
+        """
         candidate_lambdas = [
             -1.0e12,
             -1.0e9,
@@ -964,7 +1022,14 @@ class AxysData:
         target_return: float,
         near_zero_weight: float,
     ) -> list[float] | None:
-        """Solve the linear tilt using the closed-form lambda when possible."""
+        """Solve the linear tilt using the closed-form lambda when possible.
+
+        The tilt scales each anchor weight by ``1 + lambda * return``. A positive
+        lambda moves weight toward higher-return securities; a negative lambda
+        moves weight toward lower-return securities. The closed form is preferred
+        because it preserves the anchor distribution with the smallest, smoothest
+        adjustment when the denominator is well-conditioned.
+        """
         anchor_return = AxysData._weighted_return(anchor_weights, returns)
         second_moment = sum(
             weight * sec_return * sec_return for weight, sec_return in zip(anchor_weights, returns)
@@ -991,9 +1056,9 @@ class AxysData:
         """Construct an exact long-only solution using one or two securities.
 
         This is intentionally a last-resort fallback. It is exact whenever the target lies within
-        the min/max range of available security returns.  But it can move far away from the anchor
-        weights. To keep it less arbitrary, it chooses the bracketing pair with the largest
-        combined anchor weight.
+        the min/max range of available security returns. But it can move far away from the anchor
+        weights because all weight is placed in one bracketing pair. To keep it less arbitrary, it
+        chooses the pair with the largest combined anchor weight.
 
         Args:
             anchor_weights: Nonnegative anchor weights summing to 1.
@@ -1058,7 +1123,15 @@ class AxysData:
 
     @staticmethod
     def _weighted_return(weights: list[float], returns: list[float]) -> float:
-        """Return the weighted average of the security returns."""
+        """Return the weighted average of the security returns.
+
+        Args:
+            weights: Security weights.
+            returns: Security returns aligned by position with ``weights``.
+
+        Returns:
+            Sum of ``weight * return`` across paired weights and returns.
+        """
         return sum(weight * sec_return for weight, sec_return in zip(weights, returns))
 
     @staticmethod
@@ -1069,6 +1142,10 @@ class AxysData:
         near_zero_weight: float,
     ) -> list[float] | None:
         """Compute adjusted weights for a specific lambda value.
+
+        ``lambda`` applies a return tilt to the anchor weights and then renormalizes
+        them. Infeasible values are rejected when they create negative long-only
+        weights or a near-zero normalization denominator.
 
         Args:
             anchor_weights: Nonnegative weights summing to 1.

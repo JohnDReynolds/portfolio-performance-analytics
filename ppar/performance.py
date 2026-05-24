@@ -272,35 +272,48 @@ class Performance:
             including linked returns, summed contributions, day-weighted
             weights, and the overall beginning and ending dates.
         """
-        # Pre-calculate values
+        # Overall returns are geometrically linked across subperiods, while overall
+        # weights represent average exposure through time. A one-month 90% weight
+        # and an eleven-month 10% weight should not average to 50%.
         all_return_col_names = self.col_names(RET) + [cols.TOTAL_RETURN]
         overall_beginning_date = self.df[cols.BEGINNING_DATE][0]
         overall_ending_date = self.df[cols.ENDING_DATE][-1]
-        weight_coefficients = (
-            self.df[cols.QUANTITY_OF_DAYS] / (overall_ending_date - overall_beginning_date).days
-        )
 
-        # Calculate the overall linked return, sum of contributions, and day-weighted weights.
+        # Weight each period by its share of elapsed calendar days. This assumes
+        # period weights describe exposure over the period, not only at an endpoint.
+        total_overall_days = (overall_ending_date - overall_beginning_date).days
+
+        # The zero-day branch is a defensive fallback for malformed in-memory data.
+        # Normal Performance validation requires beginning_date < ending_date.
+        if total_overall_days == 0:
+            weight_coefficients = pl.Series(
+                name=cols.QUANTITY_OF_DAYS, values=[1.0] * self.df.height
+            )
+        else:
+            weight_coefficients = self.df[cols.QUANTITY_OF_DAYS] / total_overall_days
+
+        # Returns compound through time, contributions add through time, and
+        # weights are day-weighted exposures for the full reporting window.
         lf_overall = (
             self.df.lazy()
             .select(all_return_col_names + self.col_names(WGT) + self.col_names(CON))
             .with_columns(
-                # Add 1 to the returns, and then take the cumulative product.
+                # Convert return series like +5%, -2% into wealth relatives
+                # (1.05 * 0.98) before subtracting 1 in the final selection.
                 [pl.col(col).add(1).cum_prod() for col in all_return_col_names]
                 +
-                # Calculate the day-weighted weights.
+                # Convert each period weight into its contribution to average exposure.
                 [(pl.col(col) * weight_coefficients) for col in self.col_names(WGT)]
             )
             .select(
                 [
-                    # Take the final (tail) linked return, and then subtract 1.
+                    # The final cumulative wealth relative is the linked overall return.
                     pl.col(all_return_col_names).tail(1).sub(1),
-                    # Sum the weights and contributions.
+                    # Day-weighted exposures and arithmetic contributions are additive.
                     pl.col(self.col_names(WGT)).sum(),
                     pl.col(self.col_names(CON)).sum(),
                 ]
             )
-            # Add the overall period dates.
             .with_columns(pl.lit(overall_beginning_date).alias(cols.BEGINNING_DATE))
             .with_columns(pl.lit(overall_ending_date).alias(cols.ENDING_DATE))
         )
@@ -476,12 +489,14 @@ class Performance:
         Returns:
             A Polars DataFrame containing return columns for each identifier.
         """
-        # If not self.subperiods_have_been_consolidated, then weight * return = contrib.  So the raw
-        # returns can be returned.
+        # If the data has not been consolidated, the raw return columns are still aligned
+        # with the contributions and can be returned directly.
         if not self.subperiods_have_been_consolidated:
             return self.df[self.col_names(RET)]
 
-        # Return the consolidated returns.
+        # For consolidated data, raw stored return columns may no longer reflect the
+        # contribution/weight relationship. Use implied returns from contribution / weight
+        # when possible to preserve consistency in attribution calculations.
         return (
             self.df.select(self.col_names(CON))
             .with_columns(

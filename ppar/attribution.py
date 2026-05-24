@@ -16,6 +16,7 @@ Attribution instances are normally created by
 # Python Imports
 from enum import Enum
 import datetime as dt
+import re
 from typing import cast, Iterable, Sequence
 
 # Third-Party Imports
@@ -395,21 +396,25 @@ class Attribution:
         # Set the portfolio and benchmark.
         portfolio, benchmark = self._performances
 
-        # Get pre-computed values.
+        # Pull the period-level inputs once so the Brinson-Fachler formulas below
+        # read as matrix arithmetic across all identifiers.
         portfolio_consolidated_returns = portfolio.consolidated_returns()
         benchmark_consolidated_returns = benchmark.consolidated_returns()
-        portfolio_linking_coefficients = portfolio.linking_coefficients()  # for contribution
-        benchmark_linking_coefficients = benchmark.linking_coefficients()  # for contribution
+        portfolio_linking_coefficients = portfolio.linking_coefficients()
+        benchmark_linking_coefficients = benchmark.linking_coefficients()
         portfolio_overall_return = portfolio.overall_return()
         benchmark_overall_return = benchmark.overall_return()
-        portfolio_total_returns = portfolio.df[cols.TOTAL_RETURN]  # pl.Series
-        benchmark_total_returns = benchmark.df[cols.TOTAL_RETURN]  # pl.Series
+        portfolio_total_returns = portfolio.df[cols.TOTAL_RETURN]
+        benchmark_total_returns = benchmark.df[cols.TOTAL_RETURN]
 
-        # Must pre-compute the weight dfs because you cannot do arithmetic on 2 LazyFrames.
+        # Portfolio and benchmark weights must be materialized on the same column
+        # grid before subtracting active weights identifier-by-identifier.
         portfolio_weights = portfolio.df.lazy().select(portfolio.col_names(WGT)).collect()
         benchmark_weights = benchmark.df.lazy().select(benchmark.col_names(WGT)).collect()
 
-        # Calculate the attribution linking_coefficients
+        # Carino coefficients translate period attribution effects into an overall
+        # arithmetic attribution story. The denominator normalizes the period factors
+        # so smoothed allocation + selection sums to the linked active return.
         inverse_denominator = 1.0 / util.carino_linking_coefficient(
             portfolio_overall_return, benchmark_overall_return
         )
@@ -437,14 +442,19 @@ class Attribution:
                     lambda column_name: f"{column_name[:-4]}{BCS}"
                 )
             )
-            # Simple Brinson-Fachler allocation effects for each subperiod.
+            # Brinson-Fachler allocation isolates active weight decisions:
+            # (portfolio weight - benchmark weight) times the benchmark sector
+            # return relative to the benchmark total return. Overweights in sectors
+            # that beat the benchmark total return help performance.
             .with_columns(
                 (
                     (benchmark_consolidated_returns - benchmark_total_returns)
                     * (portfolio_weights - benchmark_weights)
                 ).rename(lambda column_name: f"{column_name[:-4]}{AES}")
             )
-            # Simple Brinson-Fachler selection effects for each subperiod.
+            # Selection isolates security/segment return differences while holding
+            # the portfolio weight fixed. The active return decision is measured
+            # where the portfolio actually had exposure.
             .with_columns(
                 (
                     portfolio_weights
@@ -453,36 +463,33 @@ class Attribution:
             )
             .with_columns(
                 [
-                    # Smoothed (log-linked) portfolio contribution
+                    # Smoothed contribution columns foot to linked multi-period return.
                     *[
                         (pl.col(f"{id}{PCS}") * portfolio_linking_coefficients).alias(f"{id}{PCL}")
                         for id in portfolio.identifiers
                     ],
-                    # Smoothed (log-linked) benchmark contribution
                     *[
                         (pl.col(f"{id}{BCS}") * benchmark_linking_coefficients).alias(f"{id}{BCL}")
                         for id in benchmark.identifiers
                     ],
-                    # Smoothed (log-lLinked) Brinson-Fachler allocation effects for each subperiod.
+                    # Smoothed attribution effects use the portfolio-vs-benchmark
+                    # Carino factors, not the standalone portfolio/benchmark factors.
                     *[
                         (pl.col(f"{id}{AES}") * linking_coefficients).alias(f"{id}{AEL}")
                         for id in portfolio.identifiers
                     ],
-                    # Smoothed (log-lLinked) Brinson-Fachler selection effects for each subperiod.
                     *[
                         (pl.col(f"{id}{SES}") * linking_coefficients).alias(f"{id}{SEL}")
                         for id in portfolio.identifiers
                     ],
-                    # Portfolio Return
                     portfolio_total_returns.alias(cols.PORTFOLIO_RETURN),
-                    # Benchmark Return
                     benchmark_total_returns.alias(cols.BENCHMARK_RETURN),
                 ]
             )
         )
 
-        # Append columns that are the horizontal summations of the contributions and attribution
-        # effects.  And vertically sum the cumulative columns.
+        # Add roll-up columns such as total allocation, total selection, active
+        # contribution, and cumulative linked values used by tables and charts.
         lf = self._sum_columns_and_rows(lf, portfolio)
 
         # Return lazy version of self.df.
@@ -563,6 +570,9 @@ class Attribution:
                 raise PpaError(f"Unhandled View {view} in Attribution._construct_df_detail()", 999)
 
         # Do parameter-driven un-pivots to build the list of LazyFrame columns.
+        # This transforms wide identifier-level columns into vertical rows for each
+        # classification identifier, enabling the detailed attribution views to
+        # include one row per identifier per period.
         columns: list[pl.LazyFrame] = []
         for parms in (
             (
@@ -578,14 +588,14 @@ class Attribution:
             (
                 attribution_df,
                 (
-                    f"^*{PCS}$",
-                    f"^*{BCS}$",
-                    f"^*{PCL}$",
-                    f"^*{BCL}$",
-                    f"^*{AES}$",
-                    f"^*{SES}$",
-                    f"^*{AEL}$",
-                    f"^*{SEL}$",
+                    f".*{PCS}$",
+                    f".*{BCS}$",
+                    f".*{PCL}$",
+                    f".*{BCL}$",
+                    f".*{AES}$",
+                    f".*{SES}$",
+                    f".*{AEL}$",
+                    f".*{SEL}$",
                 ),
                 (
                     cols.PORTFOLIO_CONTRIB_SIMPLE,
@@ -599,12 +609,28 @@ class Attribution:
                 ),
             ),
         ):
+            # Determine the explicit column list to unpivot on. The third
+            # parameter set uses regex-like strings (e.g. ".*\.pcs$") to
+            # indicate "all columns ending with the suffix". Polars does not
+            # accept raw regex strings as column names, so expand any string
+            # patterns to the matching column names from the source frame.
             for idx, col_names in enumerate(parms[1]):
+                if isinstance(col_names, (list, tuple)):
+                    on_cols = col_names
+                else:
+                    # col_names is expected to be a regex-like string. Compile
+                    # it and filter the available columns from the source DataFrame.
+                    pattern = re.compile(col_names)
+                    available = parms[0].columns
+                    on_cols = [c for c in available if pattern.match(c)]
+                if not on_cols:
+                    # Nothing to unpivot for this pattern; skip.
+                    continue
                 columns.append(
                     parms[0]
                     .lazy()
                     .unpivot(
-                        on=col_names,
+                        on=on_cols,
                         index=[cols.BEGINNING_DATE, cols.ENDING_DATE],
                         value_name=parms[2][idx],
                     )

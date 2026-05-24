@@ -1,4 +1,4 @@
-"""As of May 2026, this is a work-in-progress.  It has not been published in the PyPi package."""
+"""As of May 2026, this is a work-in-progress.  It has not been published in the PyPI package."""
 
 # Python imports
 import datetime as dt
