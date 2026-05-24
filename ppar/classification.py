@@ -5,6 +5,9 @@ and display names associated with a classification such as security, sector,
 country, or another user-defined grouping.
 """
 
+# Python Imports
+from typing import Sequence
+
 # Third-Party Imports
 import polars as pl
 
@@ -37,8 +40,8 @@ class Classification:
     def __init__(
         self,
         name: str,
-        data_source: util.ClassificationDataSource,
-        performances: tuple[Performance, Performance] | None = None,
+        data_source: util.ClassificationDataSource | None,
+        performances: Sequence[Performance] | None = None,
     ):
         """Initialize a classification from a data source or performances.
 
@@ -49,7 +52,7 @@ class Classification:
                 data must contain exactly two columns: classification identifier
                 and classification display name. If this value is empty, the
                 classification is inferred from ``performances``.
-            performances: Optional tuple containing the portfolio Performance at
+            performances: Optional sequence containing the portfolio Performance at
                 index 0 and the benchmark Performance at index 1. Required when
                 ``data_source`` is supplied because the data source is filtered
                 to identifiers used by those performances. Also used as the
@@ -71,7 +74,7 @@ class Classification:
                 ``None``.
         """
         # Get the 2-column dataframe [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
-        if util.is_empty(data_source):
+        if data_source is None or util.is_empty_string(data_source):
             # Use the performances.classification_items.
             self.name, self.df = Classification._load_from_performances(performances)
         else:
@@ -89,7 +92,7 @@ class Classification:
 
     @staticmethod
     def _load_from_performances(
-        performances: tuple[Performance, Performance] | None,
+        performances: Sequence[Performance] | None,
     ) -> tuple[str, pl.DataFrame]:
         """Build classification metadata from portfolio and benchmark data.
 
@@ -100,7 +103,7 @@ class Classification:
         portfolio item when both performances contain the same identifier.
 
         Args:
-            performances: Tuple containing the portfolio Performance at index 0
+            performances: Sequence containing the portfolio Performance at index 0
                 and the benchmark Performance at index 1. If omitted, or if the
                 two performances do not have the same classification name, an
                 empty classification is returned.

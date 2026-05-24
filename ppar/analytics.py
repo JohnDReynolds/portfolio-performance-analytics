@@ -11,6 +11,7 @@ Attribution and RiskStatistics objects.
 import bisect
 from collections import defaultdict
 import datetime as dt
+from typing import Sequence
 
 # Third-Party Imports
 import polars as pl
@@ -40,11 +41,11 @@ class Analytics:
         self,
         # Portfolio and Benchmark parameters
         portfolio_data_source: util.PerformanceDataSource,
-        benchmark_data_source: util.PerformanceDataSource = util.EMPTY,
-        portfolio_name: str = util.EMPTY,
-        benchmark_name: str = util.EMPTY,
-        portfolio_classification_name: str = util.EMPTY,
-        benchmark_classification_name: str = util.EMPTY,
+        benchmark_data_source: util.PerformanceDataSource | None = None,
+        portfolio_name: str | None = None,
+        benchmark_name: str | None = None,
+        portfolio_classification_name: str | None = None,
+        benchmark_classification_name: str | None = None,
         # Date and frequency parameters
         beginning_date: str | dt.date = dt.date.min,
         ending_date: str | dt.date = dt.date.max,
@@ -72,7 +73,7 @@ class Analytics:
                 CSV file path, a pandas DataFrame, or a Polars DataFrame.
             benchmark_data_source: Benchmark performance data source. This can be a
                 CSV file path, a pandas DataFrame, or a Polars DataFrame. Defaults to
-                ``util.EMPTY``, which causes the portfolio data source to be reused.
+                ``None``, which causes the portfolio data source to be reused.
             portfolio_name: Portfolio display name used in output titles.
             benchmark_name: Benchmark display name used in output titles.
             portfolio_classification_name: Classification name associated with the
@@ -115,9 +116,18 @@ class Analytics:
                 for the calculated subperiods, or a nested Performance validation
                 raises ``PpaError``.
         """
+        portfolio_name = util.normalize_optional_string(portfolio_name)
+        benchmark_name = util.normalize_optional_string(benchmark_name)
+        portfolio_classification_name = util.normalize_optional_string(
+            portfolio_classification_name
+        )
+        benchmark_classification_name = util.normalize_optional_string(
+            benchmark_classification_name
+        )
+
         # Default the benchmark to the portfolio.  This will allow for "portfolio-only" analysis
         # if they do not have a benchmark.
-        if util.is_empty(benchmark_data_source):
+        if benchmark_data_source is None or util.is_empty_string(benchmark_data_source):
             benchmark_data_source = portfolio_data_source
             benchmark_name = portfolio_name
             benchmark_classification_name = portfolio_classification_name
@@ -451,8 +461,8 @@ class Analytics:
         self,
         classification_name: str | None = None,
         classification_data_source: util.ClassificationDataSource | None = None,
-        mapping_data_sources: tuple[util.MappingDataSource, util.MappingDataSource] | None = None,
-        classification_label: str = util.EMPTY,
+        mapping_data_sources: Sequence[util.MappingDataSource] | None = None,
+        classification_label: str | None = None,
     ) -> Attribution:
         """
         Return an Attribution instance for the requested classification.
@@ -467,7 +477,7 @@ class Analytics:
                 classification name, that common name is used.
             classification_data_source: Optional classification data source. This can
                 be a CSV file path, dictionary, pandas DataFrame, or Polars DataFrame.
-            mapping_data_sources: Two-item tuple of mapping data sources where item 0
+            mapping_data_sources: Two-item sequence of mapping data sources where item 0
                 maps the portfolio and item 1 maps the benchmark. Each source can be a
                 CSV file path, dictionary, pandas DataFrame, or Polars DataFrame.
             classification_label: Display label used in tables and charts when the
@@ -494,10 +504,9 @@ class Analytics:
                 classification name is supplied, or if a nested Mapping, Performance,
                 or Attribution operation raises ``PpaError``.
         """
-        # Backwards compatibilty for util.is_empty.
-        if classification_name is None:
-            classification_name = util.EMPTY
-        if classification_data_source is None:
+        classification_name = util.normalize_optional_string(classification_name)
+        classification_label = util.normalize_optional_string(classification_label)
+        if classification_data_source is None or util.is_empty_string(classification_data_source):
             classification_data_source = util.EMPTY
         if mapping_data_sources is None:
             mapping_data_sources = (util.EMPTY, util.EMPTY)

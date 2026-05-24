@@ -21,10 +21,11 @@ import ppar.errors as errs
 from ppar.errors import PpaError
 
 # Types for type-checking.
-AllDataSources: TypeAlias = str | dict[str, str] | pd.DataFrame | pl.DataFrame
+PathLike: TypeAlias = str | Path
+AllDataSources: TypeAlias = PathLike | dict[str, str] | pd.DataFrame | pl.DataFrame
 ClassificationDataSource: TypeAlias = AllDataSources
 MappingDataSource: TypeAlias = AllDataSources
-PerformanceDataSource: TypeAlias = str | pd.DataFrame | pl.DataFrame
+PerformanceDataSource: TypeAlias = PathLike | pd.DataFrame | pl.DataFrame
 
 # Miscellaneous Common Constants
 DATE_FORMAT_STRING = "%Y-%m-%d"  # yyyy-mm-dd
@@ -35,7 +36,7 @@ DEFAULT_CURRENCY_SYMBOL = "$"
 DEFAULT_PORTFOLIO_VALUE = 100_000  # $100,000
 ENCODING = "utf-8"
 _UNDEFINED_RETURN = -1.0
-EMPTY = "_empty_"
+EMPTY = "_empty_"  # Legacy sentinel. Prefer None in public APIs.
 
 
 class Tolerance(Enum):
@@ -139,7 +140,7 @@ def date_str(date: dt.date) -> str:
     return date.strftime(DATE_FORMAT_STRING)
 
 
-def file_basename_without_extension(file_path: str) -> str:
+def file_basename_without_extension(file_path: PathLike) -> str:
     """Return a file name without its directory or extension.
 
     Args:
@@ -148,10 +149,10 @@ def file_basename_without_extension(file_path: str) -> str:
     Returns:
         The base file name before the first period in the file name.
     """
-    return os.path.basename(file_path).split(".")[0]
+    return Path(file_path).name.split(".")[0]
 
 
-def file_path_error(file_path: str) -> str:
+def file_path_error(file_path: PathLike) -> str:
     """Return the appropriate file path error message.
 
     Args:
@@ -164,7 +165,7 @@ def file_path_error(file_path: str) -> str:
     return errs.ERRORS[804] if is_empty(file_path) else f"{errs.ERRORS[802]}{file_path}"
 
 
-def file_path_exists(file_path: str) -> bool:
+def file_path_exists(file_path: PathLike) -> bool:
     """Return whether a non-empty file path exists and points to a file.
 
     Args:
@@ -176,10 +177,10 @@ def file_path_exists(file_path: str) -> bool:
     """
     if is_empty(file_path):
         return False
-    return os.path.exists(file_path) and os.path.isfile(file_path)
+    return Path(file_path).is_file()
 
 
-def has_directory(path_str: str) -> bool:
+def has_directory(path_str: PathLike) -> bool:
     """Return whether a path includes an explicit directory component.
 
     Args:
@@ -192,8 +193,8 @@ def has_directory(path_str: str) -> bool:
     return Path(path_str).parent != Path(".")
 
 
-def is_empty(thing: Any) -> bool:
-    """Return whether a value is the package's empty string marker.
+def is_empty_string(thing: Any) -> bool:
+    """Return whether a value is an empty string or legacy empty marker.
 
     Args:
         thing: The value to test.
@@ -205,9 +206,51 @@ def is_empty(thing: Any) -> bool:
     return isinstance(thing, str) and (thing == EMPTY or (not thing.strip()))
 
 
+def is_empty(thing: Any) -> bool:
+    """Return whether a value is an empty string or legacy empty marker.
+
+    This compatibility alias preserves the historical helper name. Prefer
+    ``is_empty_string()`` in new code when the value being tested is string-like.
+
+    Args:
+        thing: The value to test.
+
+    Returns:
+        True if ``thing`` is a string equal to ``EMPTY`` or contains only
+        whitespace; otherwise, False.
+    """
+    return is_empty_string(thing)
+
+
+def is_missing(thing: Any) -> bool:
+    """Return whether a public optional argument was not supplied.
+
+    Args:
+        thing: The value to test.
+
+    Returns:
+        True for ``None`` or an empty string marker; otherwise, False.
+    """
+    return thing is None or is_empty_string(thing)
+
+
+def normalize_optional_string(value: str | None) -> str:
+    """Normalize optional public string arguments to the legacy empty marker.
+
+    Args:
+        value: Optional string value supplied by the caller.
+
+    Returns:
+        ``EMPTY`` for ``None`` or blank/legacy-empty strings; otherwise, ``value``.
+    """
+    if value is None or is_empty_string(value):
+        return EMPTY
+    return value
+
+
 def load_datasource(
     data_source: AllDataSources,
-    column_names: list[str],
+    column_names: Sequence[str],
     needed_items: Sequence[str],
     error_message: str,
 ) -> pl.DataFrame:
@@ -233,7 +276,8 @@ def load_datasource(
             columns.
     """
     # Get the 2-column dataframe.
-    if isinstance(data_source, str):
+    if isinstance(data_source, str | Path):
+        data_source = Path(data_source)
         # Assert that the data file path exists.
         if not file_path_exists(data_source):
             raise PpaError(file_path_error(data_source), None)

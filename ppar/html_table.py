@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import datetime as dt
 import html
 import math
-from typing import Literal, Sequence
+from typing import Literal, Sequence, SupportsFloat, SupportsIndex, cast
 
 # Third-Party Imports
 import polars as pl
@@ -14,8 +14,8 @@ import polars as pl
 import ppar.columns as cols
 import ppar.utilities as util
 
-ColumnFormat = Literal["text", "number", "currency", "date"]
-ColumnAlign = Literal["left", "center", "right"]
+_ColumnFormat = Literal["text", "number", "currency", "date"]
+_ColumnAlign = Literal["left", "center", "right"]
 
 _DEFAULT_TABLE_CLASS = "ppar_table"
 _MISSING_VALUE = "<NA>"
@@ -34,8 +34,8 @@ class ColumnSpec:
 
     name: str
     label: str | None = None
-    format: ColumnFormat = "text"
-    align: ColumnAlign = "right"
+    format: _ColumnFormat = "text"
+    align: _ColumnAlign = "right"
 
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ class HtmlTable:
     float_precision: int = 4
     currency_symbol: str = "$"
     row_format_column: str | None = None
-    row_formats: dict[object, ColumnFormat] | None = None
+    row_formats: dict[object, _ColumnFormat] | None = None
 
     def as_raw_html(self, make_page: bool = True) -> str:
         """Return the table as an HTML string.
@@ -222,7 +222,7 @@ class HtmlTable:
         lines.append("</tbody>")
         return "\n".join(lines)
 
-    def _column_format(self, row: dict[str, object], column: ColumnSpec) -> ColumnFormat:
+    def _column_format(self, row: dict[str, object], column: ColumnSpec) -> _ColumnFormat:
         """Return the effective format for a column in one row."""
         if self.row_format_column is None or self.row_formats is None:
             return column.format
@@ -245,8 +245,8 @@ class HtmlTable:
 def attribution_html(
     df: pl.DataFrame,
     view_name: str,
-    title_lines: tuple[str, str],
-    classification_label: str = util.EMPTY,
+    title_lines: Sequence[str],
+    classification_label: str | None = None,
 ) -> str:
     """Return attribution view data as a lightweight HTML document.
 
@@ -270,8 +270,8 @@ def attribution_html(
 def attribution_table(
     df: pl.DataFrame,
     view_name: str,
-    title_lines: tuple[str, str],
-    classification_label: str = util.EMPTY,
+    title_lines: Sequence[str],
+    classification_label: str | None = None,
 ) -> HtmlTable:
     """Return attribution view data as a lightweight HTML table object.
 
@@ -284,6 +284,7 @@ def attribution_table(
     Returns:
         HtmlTable object for the attribution view.
     """
+    classification_label = util.normalize_optional_string(classification_label)
     columns, spanners = _attribution_layout(view_name, classification_label)
     return HtmlTable(
         df=df,
@@ -332,7 +333,7 @@ def riskstatistics_table(
     Returns:
         HtmlTable object for the risk-statistics table.
     """
-    row_formats = {
+    row_formats: dict[object, _ColumnFormat] = {
         row["column"]: "currency" for row in df.to_dicts() if "Value At Risk" in row["column"]
     }
     return HtmlTable(
@@ -492,7 +493,7 @@ def _column_label(column_name: str, labels: dict[str, str] | None = None) -> str
     return labels.get(column_name, cols.short_column_name(column_name))
 
 
-def _align_class(align: ColumnAlign) -> str:
+def _align_class(align: _ColumnAlign) -> str:
     """Return the CSS alignment class for a column alignment."""
     return f"ppar_{align}"
 
@@ -513,7 +514,7 @@ def _format_text(value: object) -> str:
 
 def _format_value(
     value: object,
-    column_format: ColumnFormat,
+    column_format: _ColumnFormat,
     float_precision: int,
     currency_symbol: str,
 ) -> str:
@@ -523,12 +524,17 @@ def _format_value(
     if isinstance(value, float) and math.isnan(value):
         return _MISSING_VALUE
     if column_format == "number":
-        return _format_number(float(value), float_precision)
+        return _format_number(_as_float(value), float_precision)
     if column_format == "currency":
-        return f"{_escape(currency_symbol)}{_format_number(float(value), 0)}"
+        return f"{_escape(currency_symbol)}{_format_number(_as_float(value), 0)}"
     if column_format == "date" and isinstance(value, dt.date):
         return _escape(value.isoformat())
     return _escape(value)
+
+
+def _as_float(value: object) -> float:
+    """Return a numeric value as float for numeric table formatting."""
+    return float(cast(str | bytes | SupportsFloat | SupportsIndex, value))
 
 
 def _format_number(value: float, precision: int) -> str:

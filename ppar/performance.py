@@ -8,7 +8,8 @@ contributions, total returns, overall returns, and linking coefficients.
 
 # Python Imports
 import datetime as dt
-from typing import cast
+from pathlib import Path
+from typing import cast, Sequence
 
 # Third-Party Imports
 import pandas as pd
@@ -47,8 +48,8 @@ class Performance:
     def __init__(
         self,
         data_source: util.PerformanceDataSource,
-        name: str = util.EMPTY,
-        classification_name: str = util.EMPTY,
+        name: str | None = None,
+        classification_name: str | None = None,
         beginning_date: str | dt.date = dt.date.min,
         ending_date: str | dt.date = dt.date.max,
     ):
@@ -97,6 +98,9 @@ class Performance:
                 invalid, or discontinuous, narrow data has duplicate
                 date/identifier rows, or period weights do not sum to ``1.0``.
         """
+        name = util.normalize_optional_string(name)
+        classification_name = util.normalize_optional_string(classification_name)
+
         # Convert the dates to dt.date types.
         beginning_date = util.convert_to_date(beginning_date)
         ending_date = util.convert_to_date(ending_date)
@@ -111,7 +115,7 @@ class Performance:
         # Set the error message for context.
         self.error_message_context = (
             f"in the file {data_source}"
-            if isinstance(data_source, str)
+            if isinstance(data_source, str | Path)
             else f"in the dataframe {name}"
         )
 
@@ -215,15 +219,15 @@ class Performance:
 
     @staticmethod
     def audit_performances(
-        performances: tuple["Performance", "Performance"],
+        performances: Sequence["Performance"],
         expected_beginning_date: dt.date,
         expected_ending_date: dt.date,
-        common_classification_name: str = util.EMPTY,
+        common_classification_name: str | None = None,
     ) -> None:
         """Validate a portfolio/benchmark performance pair.
 
         Args:
-            performances: Tuple containing the portfolio ``Performance`` at
+            performances: Sequence containing the portfolio ``Performance`` at
                 index ``0`` and the benchmark ``Performance`` at index ``1``.
             expected_beginning_date: Expected first beginning date for both
                 performance streams.
@@ -239,6 +243,8 @@ class Performance:
                 classification name is required but the two performances do
                 not share one.
         """
+        common_classification_name = util.normalize_optional_string(common_classification_name)
+
         # Set the portfolio and benchmark
         portfolio = performances[0]
         benchmark = performances[1]
@@ -634,7 +640,8 @@ class Performance:
                 or not a file.
         """
         # Load the data
-        if isinstance(data_source, str):
+        if isinstance(data_source, str | Path):
+            data_source = Path(data_source)
             # Assert that the data file path exists.
             if not util.file_path_exists(data_source):
                 raise PpaError(util.file_path_error(data_source), None)

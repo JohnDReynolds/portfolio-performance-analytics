@@ -1,6 +1,6 @@
 """
 As of May 2026, this is a work-in-progress.  It has not been published in the PyPI package.
-See ../axys_perf_demo.py for an example of how to use this class.
+See ../scripts/axys_perf_demo.py for an example of how to use this class.
 
 Loads Axys performance data, optional classification and mapping sources, and performs
 reconciliation logic to ensure that sum of (weight * return) across secperf rows matches the
@@ -21,8 +21,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import datetime as dt
 import math
-import os
-from typing import Any, Final, Iterable, Literal
+from pathlib import Path
+from typing import Any, Final, Iterable, Literal, Sequence
 
 # Third-party imports
 import polars as pl
@@ -87,11 +87,11 @@ _SECPERF_REQUIRED_COLUMNS: Final[set[str]] = {
     cols.WEIGHT,
 }
 
-UnreconciledPeriodType = tuple[tuple[str, dt.date, dt.date], float, float]
+_UnreconciledPeriodType = tuple[tuple[str, dt.date, dt.date], float, float]
 
 
 @dataclass(frozen=True)
-class Portfolio:
+class _Portfolio:
     """Contains performance data for a portfolio."""
 
     portfolio_code: str
@@ -114,7 +114,7 @@ class AxysData:
             classification_names.
         from_date: Optional lower date bound.
         mapping_data_sources: Dict of mapping data sources keyed on mapping_names.
-        portfolios: Dict of Portfolio objects keyed on portfolio_code.
+        portfolios: Dict of internal portfolio objects keyed on portfolio_code.
         portperf_path: Path to the portperf CSV.
         secperf_path: Path to the secperf CSV.
         specifications: Contents of the YAML specifications file.
@@ -136,9 +136,9 @@ class AxysData:
 
     def __init__(
         self,
-        specifications_path: str,
-        portperf_path: str | None = None,
-        secperf_path: str | None = None,
+        specifications_path: util.PathLike,
+        portperf_path: util.PathLike | None = None,
+        secperf_path: util.PathLike | None = None,
         from_date: dt.date | None = None,
         thru_date: dt.date | None = None,
         portfolio_codes: Iterable[str] | str | None = None,
@@ -167,10 +167,9 @@ class AxysData:
             PpaError: If any validation fails or if file/schema validation fails.
         """
         # Set the basic class members.
-        # self.directory = os.path.dirname(specifications_path)
         self.from_date: dt.date | None = from_date
-        self.portfolios: dict[str, Portfolio] = {}
-        self.specifications_path = specifications_path
+        self.portfolios: dict[str, _Portfolio] = {}
+        self.specifications_path = Path(specifications_path)
         self.thru_date: dt.date | None = thru_date
 
         # Load the specifications file.
@@ -205,8 +204,8 @@ class AxysData:
                     ),
                     504,
                 )
-        self.portperf_path: str = portperf_path
-        self.secperf_path: str = secperf_path
+        self.portperf_path: Path = self._resolve_specs_relative_path(portperf_path)
+        self.secperf_path: Path = self._resolve_specs_relative_path(secperf_path)
 
         # Get the optional prefix_portfolio_code from the specifications. This can be used to
         # create a more descriptive portfolio_name.
@@ -252,7 +251,7 @@ class AxysData:
             self.portperf, self.secperf = self._filter_to_common_periods()
 
             # Derive the secperf weights.
-            unreconciled_periods: set[UnreconciledPeriodType] = (
+            unreconciled_periods: set[_UnreconciledPeriodType] = (
                 self._derive_secperf_for_all_periods()
             )
 
@@ -275,7 +274,7 @@ class AxysData:
             # Only include the columns you need for Analytics.
             self.secperf = self.secperf.select(_ANALYTICS_REQUIRED_COLUMNS)
 
-            self.portfolios[self.portfolio_code] = Portfolio(
+            self.portfolios[self.portfolio_code] = _Portfolio(
                 self.portfolio_code, self.portfolio_name, self.secperf
             )
 
@@ -469,7 +468,7 @@ class AxysData:
 
         return adjusted_weights, achieved_return
 
-    def _derive_secperf_for_all_periods(self) -> set[UnreconciledPeriodType]:
+    def _derive_secperf_for_all_periods(self) -> set[_UnreconciledPeriodType]:
         """Derive reconciled self.secperf weights for all periods.
 
         This method mutates self.secperf by writing a new cols.WEIGHT column while preserving the
@@ -507,7 +506,7 @@ class AxysData:
         # Partition the secperf rows by unique period so each period can be reconciled
         # independently while preserving the original row order via the row index.
         adjusted_weight_values: list[float] = [float("nan")] * self.secperf.height
-        unreconciled_periods: set[UnreconciledPeriodType] = set()
+        unreconciled_periods: set[_UnreconciledPeriodType] = set()
 
         for portfolio_code, from_date, thru_date, port_return in self.portperf.select(
             [
@@ -581,6 +580,11 @@ class AxysData:
         )
         return f"{specific_message}  |  {context}" if specific_message else context
 
+    def _resolve_specs_relative_path(self, file_path: util.PathLike) -> Path:
+        """Return an absolute or specifications-relative file path as a Path."""
+        path = Path(file_path)
+        return path if util.has_directory(path) else self.specifications_path.parent / path
+
     def _filter_to_common_periods(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         """Keep only periods that exist in both portperf and secperf.
 
@@ -643,7 +647,7 @@ class AxysData:
         self,
         ds_type: Literal["classification", "mapping"],
         ds_name: str | None,
-        unique_security_ids: list[str],
+        unique_security_ids: Sequence[str],
     ) -> pl.DataFrame:
         """Get a normalized classification or mapping data source.
 
@@ -694,9 +698,7 @@ class AxysData:
             )
 
         # Make sure that file_path exists.
-        file_path: str = data_source["file_path"]
-        if not util.has_directory(file_path):
-            file_path = os.path.join(os.path.dirname(self.specifications_path), file_path)
+        file_path = self._resolve_specs_relative_path(data_source["file_path"])
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
@@ -750,7 +752,7 @@ class AxysData:
 
     def _get_performance(
         self,
-        file_path: str,
+        file_path: util.PathLike,
         column_name_mappings_name: Literal["portperf_columns", "secperf_columns"],
     ) -> pl.DataFrame:
         """Load a performance CSV and return a DataFrame using internal column names.
@@ -789,8 +791,7 @@ class AxysData:
             PpaError: On missing file or missing required columns.
         """
         # Make sure that file_path exists.
-        if not util.has_directory(file_path):
-            file_path = os.path.join(os.path.dirname(self.specifications_path), file_path)
+        file_path = self._resolve_specs_relative_path(file_path)
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
@@ -831,7 +832,7 @@ class AxysData:
         if missing_columns:
             raise PpaError(
                 self._error_message(
-                    f"Missing {sorted(missing_columns)} in {file_path!r}.  |  "
+                    f"Missing {sorted(missing_columns)} in {str(file_path)!r}.  |  "
                     f"Columns available are: {sorted(available_columns)}"
                 ),
                 502,
@@ -862,8 +863,8 @@ class AxysData:
 
     @staticmethod
     def _solve_adjusted_weights(
-        anchor_weights: list[float],
-        returns: list[float],
+        anchor_weights: Sequence[float],
+        returns: Sequence[float],
         target_return: float,
     ) -> list[float]:
         """Solve for adjusted weights using increasingly permissive fallbacks.
@@ -883,7 +884,7 @@ class AxysData:
         """
         anchor_return = AxysData._weighted_return(anchor_weights, returns)
         if abs(anchor_return - target_return) <= _MATCH_TOLERANCE:
-            return anchor_weights
+            return list(anchor_weights)
 
         closed_form_weights = AxysData._solve_closed_form_tilt(
             anchor_weights=anchor_weights,
@@ -914,12 +915,12 @@ class AxysData:
         if two_security_weights is not None:
             return two_security_weights
 
-        return anchor_weights
+        return list(anchor_weights)
 
     @staticmethod
     def _solve_bisection_tilt(
-        anchor_weights: list[float],
-        returns: list[float],
+        anchor_weights: Sequence[float],
+        returns: Sequence[float],
         target_return: float,
         max_iterations: int = 200,
     ) -> list[float] | None:
@@ -1017,8 +1018,8 @@ class AxysData:
 
     @staticmethod
     def _solve_closed_form_tilt(
-        anchor_weights: list[float],
-        returns: list[float],
+        anchor_weights: Sequence[float],
+        returns: Sequence[float],
         target_return: float,
         near_zero_weight: float,
     ) -> list[float] | None:
@@ -1049,8 +1050,8 @@ class AxysData:
 
     @staticmethod
     def _solve_two_security_fallback(
-        anchor_weights: list[float],
-        returns: list[float],
+        anchor_weights: Sequence[float],
+        returns: Sequence[float],
         target_return: float,
     ) -> list[float] | None:
         """Construct an exact long-only solution using one or two securities.
@@ -1122,7 +1123,7 @@ class AxysData:
         return [weight / total_weight for weight in weights]
 
     @staticmethod
-    def _weighted_return(weights: list[float], returns: list[float]) -> float:
+    def _weighted_return(weights: Sequence[float], returns: Sequence[float]) -> float:
         """Return the weighted average of the security returns.
 
         Args:
@@ -1136,8 +1137,8 @@ class AxysData:
 
     @staticmethod
     def _weights_from_lambda(
-        anchor_weights: list[float],
-        returns: list[float],
+        anchor_weights: Sequence[float],
+        returns: Sequence[float],
         lambda_value: float,
         near_zero_weight: float,
     ) -> list[float] | None:

@@ -3,13 +3,13 @@ This module contains custom functions for the Classification, Mapping, and Perfo
 sources.  It has been designed for the test data.  Users are free to create their own
 function(s) to deliver the data.
 
-The functions in this file deliver the path name of csv files containing the data.  Users
+The functions in this file deliver the path of csv files containing the data.  Users
 could alternatively create their own custom data source functions that query databases and then
 deliver pandas dataframes, polars dataframes, or python dictionaries.
 """
 
 # Python imports
-import os
+from pathlib import Path
 from typing import Iterable
 
 # Project imports
@@ -19,14 +19,14 @@ from ppar.errors import PpaError
 import ppar.utilities as util
 
 # Directories containing the test data.
-_DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/")
-_AXYS_DIRECTORIES = [f"{dir}axys_perf" for dir in _DATA_DIRECTORIES]
-_CLASSIFICATION_DIRECTORIES = [f"{dir}classifications" for dir in _DATA_DIRECTORIES]
-_MAPPING_DIRECTORIES = [f"{dir}mappings" for dir in _DATA_DIRECTORIES]
-_PERFORMANCE_DIRECTORIES = [f"{dir}performance" for dir in _DATA_DIRECTORIES]
+_DATA_DIRECTORIES = (Path("tests/data"), Path("../tests/data"), Path("data"))
+_AXYS_DIRECTORIES = [directory / "axys_perf" for directory in _DATA_DIRECTORIES]
+_CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
+_MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
+_PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]
 
 
-def axys_data_path(file_name: str, suffix: str = ".csv") -> str:
+def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
     """
     This is a custom function for resolving the axys file_path (portperf or secperf or axysdata).
 
@@ -34,12 +34,12 @@ def axys_data_path(file_name: str, suffix: str = ".csv") -> str:
         file_name (str): The portperf or secperf file name.
 
     Returns:
-        The path name of the axys file corresponding to file_name.
+        Path: The path of the axys file corresponding to file_name.
     """
     return resolve_file_path(_AXYS_DIRECTORIES, file_name, suffix)
 
 
-def classification_data_path(classification_name: str) -> util.ClassificationDataSource:
+def classification_data_path(classification_name: str) -> util.PathLike:
     """
     This is a custom function for the Classification data source.  It has been designed for the
     test data.  Users are free to create their own function(s) to deliver the data.
@@ -48,7 +48,8 @@ def classification_data_path(classification_name: str) -> util.ClassificationDat
         classification_name (str): The classification name.
 
     Returns:
-        str: The path name of the classification file corresponding to classification_name.
+        Path | str: The classification file path, or util.EMPTY when no classification was
+        requested.
     """
     if util.is_empty(classification_name):
         return classification_name
@@ -57,9 +58,9 @@ def classification_data_path(classification_name: str) -> util.ClassificationDat
 
 def get_attribution(
     analytics: Analytics,
-    classification_name: str = util.EMPTY,
-    classification_data_source: util.ClassificationDataSource = util.EMPTY,
-    mapping_data_source: util.MappingDataSource = util.EMPTY,
+    classification_name: str | None = None,
+    classification_data_source: util.ClassificationDataSource | None = None,
+    mapping_data_source: util.MappingDataSource | None = None,
 ) -> Attribution:
     """Infer file path from the classification_name and then return the attribution.
 
@@ -76,10 +77,12 @@ def get_attribution(
     Returns:
         Attribution: The resulting attribution object.
     """
-    if util.is_empty(classification_data_source):
+    classification_name = util.normalize_optional_string(classification_name)
+
+    if classification_data_source is None or util.is_empty_string(classification_data_source):
         classification_data_source = classification_data_path(classification_name)
 
-    if util.is_empty(mapping_data_source):
+    if mapping_data_source is None or util.is_empty_string(mapping_data_source):
         mapping_data_sources = mapping_data_paths(analytics, classification_name)
     else:
         mapping_data_sources = (mapping_data_source, mapping_data_source)
@@ -123,14 +126,14 @@ def mapping_data_paths(
         to_classification_name (str): The classification name to map to.
 
     Returns:
-        tuple[util.TypeMappingDataSource, util.TypeMappingDataSource]: A tuple of 2 mapping
+        tuple[util.MappingDataSource, util.MappingDataSource]: A tuple of 2 mapping
         data sources (0 = Portfolio Data Source, 1 = Benchmark Data Source)
     """
     if util.is_empty(to_classification_name):
         return (util.EMPTY, util.EMPTY)
 
     # Build the tuple of mapping data sources containing the csv file paths.
-    mapping_list: list[str] = [
+    mapping_list: list[util.MappingDataSource] = [
         (
             util.EMPTY
             if from_classification_name == to_classification_name
@@ -145,7 +148,7 @@ def mapping_data_paths(
     return (mapping_list[0], mapping_list[1])
 
 
-def performance_data_path(performance_name: str) -> util.PerformanceDataSource:
+def performance_data_path(performance_name: str) -> Path:
     """
     This is a custom function for the Performance data source.  It has been designed for the
     test data.  Users are free to create their own function(s) to deliver the data.
@@ -154,23 +157,22 @@ def performance_data_path(performance_name: str) -> util.PerformanceDataSource:
         performance_name (str): The performance name.
 
     Returns:
-        TypePerformanceDataSource: The path name of the performance file corresponding to
-        performance_name.
+        Path: The path of the performance file corresponding to performance_name.
     """
     return resolve_file_path(_PERFORMANCE_DIRECTORIES, performance_name, ".csv")
 
 
-def read_html_table(file_path: str) -> list[str]:
+def read_html_table(file_path: util.PathLike) -> list[str]:
     """Read an HTML table file without the header.
 
     Args:
-        file_path (str): Path to the HTML file containing the table.
+        file_path: Path to the HTML file containing the table.
 
     Returns:
         list[str]: The table lines from the file.
     """
     lines: list[str] = []
-    with open(file_path, "r", encoding=util.ENCODING) as file:
+    with open(Path(file_path), "r", encoding=util.ENCODING) as file:
         on_table = False
         for line in file:
             if not on_table and line.startswith("<table "):
@@ -180,27 +182,29 @@ def read_html_table(file_path: str) -> list[str]:
     return lines
 
 
-def resolve_file_path(directories: Iterable[str], file_name: str, suffix: str = util.EMPTY) -> str:
+def resolve_file_path(
+    directories: Iterable[util.PathLike], file_name: str, suffix: str = util.EMPTY
+) -> Path:
     """
     Determines the file path where file_name is located.
 
     Args:
-        directories (Iterable[str]): A list of potential directories where file_name is located.
+        directories: Potential directories where file_name may be located.
         file_name (str): The file name.
         suffix (str): The desired suffix.
 
     Returns:
-        str: The resolved file path.
+        Path: The resolved file path.
     """
     # Append ".csv".
     if (not util.is_empty(suffix)) and (not file_name.endswith(suffix)):
         file_name = f"{file_name}{suffix}"
 
-    # Find the file_path
+    # Find the file_path.
     for directory in directories:
-        file_path = os.path.join(directory, file_name)
-        if os.path.exists(file_path):
+        file_path = Path(directory) / file_name
+        if file_path.exists():
             return file_path
 
-    # Throw exeption if file_path was not found
+    # Throw exception if file_path was not found.
     raise PpaError(util.file_path_error(file_name), None)

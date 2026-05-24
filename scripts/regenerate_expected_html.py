@@ -3,6 +3,9 @@
 Run this after intentional changes to the lightweight HTML renderer.
 """
 
+# Imports below the repository path bootstrap are intentional for direct execution.
+# pylint: disable=wrong-import-order,wrong-import-position
+
 # Python Imports
 import datetime as dt
 import io
@@ -12,18 +15,15 @@ import sys
 # Third-Party Imports
 import polars as pl
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "tests"))
 
 # Project Imports
 from ppar import Analytics, Frequency  # noqa: E402
 from ppar.attribution import View  # noqa: E402
 import ppar.columns as cols  # noqa: E402
 import ppar.utilities as util  # noqa: E402
-import test_utilities as test_util  # type: ignore  # noqa: E402
-
+from tests import test_utilities as test_util  # noqa: E402
 
 EXPECTED_RESULTS_DIR = REPO_ROOT / "tests" / "expected_results"
 
@@ -81,8 +81,8 @@ def _write_attribution_html() -> None:
 def _write_riskstatistics_html() -> None:
     """Regenerate the risk-statistics HTML expected-result file."""
     analytics = Analytics(
-        str(REPO_ROOT / "tests/data/performance/Mega-Cap Portfolio.csv"),
-        str(REPO_ROOT / "tests/data/performance/Large-Cap Portfolio.csv"),
+        REPO_ROOT / "tests/data/performance/Mega-Cap Portfolio.csv",
+        REPO_ROOT / "tests/data/performance/Large-Cap Portfolio.csv",
         portfolio_classification_name="Security",
         benchmark_classification_name="Security",
         beginning_date=dt.date(2021, 12, 31),

@@ -1,0 +1,15 @@
+include LICENSE
+include README.md
+include pyproject.toml
+
+recursive-include ppar *.py
+recursive-include ppar py.typed
+recursive-include ppar/demo_data *.csv
+
+prune images
+prune scripts
+prune tests
+
+global-exclude .DS_Store
+global-exclude *.py[cod]
+global-exclude __pycache__

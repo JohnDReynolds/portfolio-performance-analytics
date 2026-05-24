@@ -4,6 +4,9 @@ The script uses bundled demo data, headless Chrome, and Pillow cropping to
 refresh the table screenshots referenced by ``README.md``.
 """
 
+# Imports below the repository path bootstrap are intentional for direct execution.
+# pylint: disable=wrong-import-order,wrong-import-position
+
 # Python Imports
 import io
 from pathlib import Path
@@ -11,10 +14,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import Sequence
 
 # Third-Party Imports
 from PIL import Image, ImageChops
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -26,7 +29,6 @@ from ppar.attribution import View  # noqa: E402
 import ppar.demo_data_sources as demo_data  # noqa: E402
 from ppar.frequency import Frequency  # noqa: E402
 import ppar.utilities as util  # noqa: E402
-
 
 IMAGE_DIR = REPO_ROOT / "images"
 CHROME_CANDIDATES = (
@@ -93,7 +95,7 @@ def _render_png(
     chrome_path: str,
     html_path: Path,
     png_path: Path,
-    window_size: tuple[int, int],
+    window_size: Sequence[int],
 ) -> None:
     """Render one HTML file to PNG using headless Chrome."""
     command = [

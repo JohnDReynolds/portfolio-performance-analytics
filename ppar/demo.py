@@ -1,6 +1,6 @@
 """Demonstrate ppar analytics, attribution, chart, and output features.
 
-This script builds a sample ``Analytics`` instance from bundled demonstration
+This module builds a sample ``Analytics`` instance from bundled demonstration
 data, displays selected attribution tables or charts in a web browser, displays
 risk statistics, and exercises the main output-format methods.
 """
@@ -189,8 +189,12 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     # attribution_by_sector.write_csv(view, file_path="demo_attribution_by_sector.csv")
 
 
-########## Run the demo.
-if __name__ == "__main__":
+def main() -> None:
+    """Prompt for demo options and run the bundled ppar demonstration."""
     reporting_periodicity = input("Monthly (m), Quarterly (q), or Yearly (y): ")
     display_tables_or_charts = input("Would you like to see tables (t) or charts (c): ")
     run_demo(reporting_periodicity, display_tables_or_charts)
+
+
+if __name__ == "__main__":
+    main()

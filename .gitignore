@@ -1,5 +1,6 @@
 # My Stuff
 _*
+!tests/__init__.py
 delete_me.csv
 junk*/
 .pylintrc

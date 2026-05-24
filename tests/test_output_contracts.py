@@ -1,0 +1,167 @@
+"""Focused tests for machine-readable attribution and risk-statistics outputs."""
+
+# Python Imports
+import datetime as dt
+import io
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from xml.etree import ElementTree
+
+# Third-Party Imports
+import numpy as np
+import pandas as pd
+import polars as pl
+
+# Project Imports
+from ppar.analytics import Analytics
+from ppar.attribution import Attribution, View
+import ppar.columns as cols
+from ppar.frequency import Frequency
+from ppar.riskstatistics import RiskStatistics
+
+
+def _attribution() -> Attribution:
+    """Return a small classified attribution result for output tests."""
+    performance = pl.DataFrame(
+        {
+            cols.BEGINNING_DATE: [dt.date(2023, 12, 31), dt.date(2024, 1, 31)],
+            cols.ENDING_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
+            "A.ret": [0.10, 0.02],
+            "A.wgt": [0.60, 0.40],
+            "B.ret": [-0.05, 0.03],
+            "B.wgt": [0.40, 0.60],
+        }
+    )
+    return Analytics(
+        performance,
+        portfolio_classification_name="Security",
+    ).get_attribution(classification_data_source={"A": "Alpha", "B": "Beta"})
+
+
+def _risk_statistics() -> RiskStatistics:
+    """Return monthly statistics with stable values and a custom currency label."""
+    portfolio_returns = np.array(
+        [0.01, -0.02, 0.03, 0.01, -0.01, 0.02] * 2,
+        dtype=np.float64,
+    )
+    benchmark_returns = np.array(
+        [0.005, -0.01, 0.02, 0.015, -0.005, 0.01] * 2,
+        dtype=np.float64,
+    )
+    return RiskStatistics(
+        (portfolio_returns, benchmark_returns),
+        Frequency.MONTHLY,
+        portfolio_value=(250_000.0, "$"),
+    )
+
+
+class TestAttributionOutputs(unittest.TestCase):
+    """Verify attribution outputs retain the calculated tabular contract."""
+
+    def test_json_contains_all_overall_rows_and_columns(self) -> None:
+        """JSON output preserves the overall attribution view dimensions."""
+        attribution = _attribution()
+        expected = attribution.to_polars(View.OVERALL_ATTRIBUTION)
+
+        exported = json.loads(attribution.to_json(View.OVERALL_ATTRIBUTION))
+
+        self.assertEqual(set(exported), set(expected.columns))
+        self.assertEqual(len(exported[cols.CLASSIFICATION_NAME]), expected.height)
+        self.assertEqual(
+            exported[cols.CLASSIFICATION_NAME][str(expected.height - 1)],
+            "Total",
+        )
+
+    def test_xml_preserves_subperiod_dates_and_row_count(self) -> None:
+        """XML output includes one element per subperiod summary row."""
+        attribution = _attribution()
+        expected = attribution.to_polars(View.SUBPERIOD_SUMMARY)
+
+        root = ElementTree.fromstring(attribution.to_xml(View.SUBPERIOD_SUMMARY))
+        rows = root.findall("row")
+
+        self.assertEqual(len(rows), expected.height)
+        self.assertTrue(
+            rows[0]
+            .findtext(cols.BEGINNING_DATE, "")
+            .startswith(expected[cols.BEGINNING_DATE].item(0).isoformat())
+        )
+        self.assertTrue(
+            rows[-1]
+            .findtext(cols.ENDING_DATE, "")
+            .startswith(expected[cols.ENDING_DATE].item(-1).isoformat())
+        )
+
+    def test_csv_respects_sorting_for_detail_view(self) -> None:
+        """CSV output applies requested ordering to detail records."""
+        attribution = _attribution()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "attribution.csv"
+            attribution.write_csv(
+                View.SUBPERIOD_ATTRIBUTION,
+                output_path,
+                columns_to_sort=[cols.BEGINNING_DATE, cols.CLASSIFICATION_NAME],
+                sort_descendings=[False, True],
+            )
+            output = pl.read_csv(output_path, try_parse_dates=True)
+
+        names = output.filter(pl.col(cols.BEGINNING_DATE) == dt.date(2023, 12, 31))[
+            cols.CLASSIFICATION_NAME
+        ].to_list()
+        self.assertEqual(names, ["Beta", "Alpha"])
+
+
+class TestRiskStatisticsOutputs(unittest.TestCase):
+    """Verify risk-statistics structured outputs retain labels and values."""
+
+    def test_json_preserves_value_at_risk_label_and_value(self) -> None:
+        """JSON includes the currency-formatted value-at-risk statistic."""
+        risk_statistics = _risk_statistics()
+        expected = risk_statistics.to_polars()
+        value_at_risk_label = "Monthly Value At Risk for $250,000"
+
+        exported = pd.read_json(io.StringIO(risk_statistics.to_json()))
+        exported_row = exported.loc[exported["column"] == value_at_risk_label]
+        expected_value = expected.filter(pl.col("column") == value_at_risk_label)[
+            "Portfolio"
+        ].item()
+
+        self.assertEqual(len(exported_row), 1)
+        self.assertAlmostEqual(float(exported_row["Portfolio"].iloc[0]), expected_value, places=7)
+
+    def test_xml_preserves_statistic_categories(self) -> None:
+        """XML includes category values from the in-memory statistics table."""
+        risk_statistics = _risk_statistics()
+
+        root = ElementTree.fromstring(risk_statistics.to_xml())
+        categories = {row.findtext("Category") for row in root.findall("row")}
+
+        self.assertEqual(
+            categories,
+            {
+                "Absolute Risk",
+                "Downside Risk",
+                "Benchmark-Relative Risk",
+                "Risk-Adjusted Performance",
+                "Regression",
+            },
+        )
+
+    def test_csv_uses_requested_float_precision(self) -> None:
+        """CSV output rounds statistic numeric values to the requested precision."""
+        risk_statistics = _risk_statistics()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "riskstatistics.csv"
+            risk_statistics.write_csv(output_path, float_precision=3)
+            text = output_path.read_text(encoding="utf-8")
+
+        mean_row = next(line for line in text.splitlines() if "Monthly Mean Return" in line)
+        self.assertIn(",0.007,", mean_row)
+
+
+if __name__ == "__main__":
+    unittest.main()

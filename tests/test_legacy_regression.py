@@ -1,26 +1,24 @@
 """Unit tests for the ppar package.
 
 This module contains regression and validation tests for performance loading,
-analytics, attribution, classification, mapping, risk statistics, Axys IMEX
-integration, utility functions, supported data formats, date/frequency
+analytics, attribution, classification, mapping, risk statistics, utility
+functions, supported data formats, date/frequency
 handling, output formatting, and expected exception behavior.
 """
 
 # Overrides for pylint and pylance
 # pylint: disable=protected-access
 # pylint: disable=too-many-lines
-# pylint: disable=wrong-import-position
 # pyright: reportPrivateUsage=false
 
 # Python Imports
 import datetime as dt
-import filecmp
 import io
 import math
-import os
-import sys
+from pathlib import Path
 import tempfile
 import tomllib
+from typing import Sequence
 import unittest
 
 # Third-Party Imports
@@ -29,16 +27,14 @@ import numpy.typing as npt
 import pandas as pd
 import polars as pl
 
-# Add the tests directory to the Python path (PYTHONPATH) so that it can find test_util_sources.py.
-# Note that this is also done in .pylintrc and in .vscode/settings.json.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "tests")))
-import test_utilities as test_util  # type: ignore
+# Test Imports
+from tests import test_utilities as test_util
 
-# # Project Imports
+# Project Imports
 from ppar.analytics import Analytics
-from ppar.axysdata import AxysData
 from ppar.attribution import Chart, View
 import ppar.columns as cols
+import ppar.demo_data_sources as demo_data
 import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.frequency import Frequency
@@ -57,11 +53,114 @@ _EXPECTED_RESULTS_DIRECTORIES = [
 ]
 _MAPPING_DIRECTORIES = [f"{dir}mappings" for dir in _DATA_DIRECTORIES]
 
-# Testing switches.  PNG asserts are highly dependent on your versions of
-# matplotlib and possibly other libraries.  So you must be in a very controlled environment
-# not to get false negatives.
+# Testing switches.
 _ASSERT_HTML = True
-_ASSERT_PNG = False
+
+
+def _error_performance_data_source(error_code: int) -> pl.DataFrame:
+    """Return minimal in-memory input for a numbered performance error."""
+    if error_code == 102:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1980, 12, 14)] * 3,
+                cols.ENDING_DATE: [
+                    dt.date(1980, 12, 15),
+                    dt.date(1980, 12, 14),
+                    dt.date(1980, 12, 15),
+                ],
+                "aapl.ret": [-0.0521707668] * 3,
+                "aapl.wgt": [1.0] * 3,
+            }
+        )
+    if error_code == 104:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1980, 12, 14)],
+                cols.ENDING_DATE: [dt.date(1980, 12, 15)],
+                "aapl.ret": [None],
+                "aapl.wgt": [0.5],
+                "msft.ret": [float("nan")],
+                "msft.wgt": [0.5],
+            }
+        )
+    if error_code == 105:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1980, 12, 16), dt.date(1980, 12, 15)],
+                cols.ENDING_DATE: [dt.date(1980, 12, 15), dt.date(1980, 12, 16)],
+                "aapl.ret": [-0.0521707668] * 2,
+                "aapl.wgt": [1.0] * 2,
+            }
+        )
+    if error_code == 106:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1980, 12, 14), dt.date(1980, 12, 17)],
+                cols.ENDING_DATE: [dt.date(1980, 12, 15), dt.date(1980, 12, 18)],
+                "aapl.ret": [-0.0521707668] * 2,
+                "aapl.wgt": [1.0] * 2,
+            }
+        )
+    if error_code == 107:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1980, 12, 14)],
+                cols.ENDING_DATE: [dt.date(1980, 12, 15)],
+                "aapl.ret": [-0.0521707668],
+                "other.wgt": [1.0],
+            }
+        )
+    if error_code == 108:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1986, 3, 13)],
+                cols.ENDING_DATE: [dt.date(1986, 3, 14)],
+                "AAPL.ret": [0.0555517601],
+                "MSFT.ret": [0.035711789],
+                "AAPL.wgt": [0.5000001],
+                "MSFT.wgt": [0.5],
+            }
+        )
+    if error_code == 109:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1986, 3, 13)],
+                cols.ENDING_DATE: [dt.date(1986, 3, 14)],
+                "AAPL.retx": [0.0555517601],
+                "MSFT.retx": [0.035711789],
+                "AAPL.wgtx": [0.5000001],
+                "MSFT.wgtx": [0.5],
+            }
+        )
+    if error_code == 110:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1979, 12, 14)] * 2,
+                cols.ENDING_DATE: [dt.date(1979, 12, 15)] * 2,
+                "aapl.ret": ["-0.0521707668", "-0.0521707668xx"],
+                "aapl.wgt": [1.0, 1.0],
+            }
+        )
+    if error_code == 112:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(2006, 1, 31)] * 5,
+                cols.ENDING_DATE: [dt.date(2006, 2, 28)] * 5,
+                cols.IDENTIFIER: ["a", "b", "c", "b", "c"],
+                cols.WEIGHT: [0.2] * 5,
+                cols.RETURN: [0.0057196524, 0.0175468721, 0.0671592775, 0.01, 0.01],
+            }
+        )
+    if error_code == 203:
+        return pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(1979, 12, 14)],
+                cols.ENDING_DATE: [dt.date(1979, 12, 15)],
+                "aapl.ret": [-1.0521707668],
+                "aapl.wgt": [1.0],
+            }
+        )
+    raise ValueError(f"No inline performance source for error {error_code}.")
 
 
 class Test(unittest.TestCase):
@@ -75,7 +174,9 @@ class Test(unittest.TestCase):
     ############################## Performance Exceptions ##############################
     def test_102(self) -> None:
         """Test error 102."""
-        self.assertTrue(_performance_exception(self, "error_102.csv", errs.ERRORS[102]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(102), errs.ERRORS[102])
+        )
 
     def test_103(self) -> None:
         """Test error 103."""
@@ -91,34 +192,44 @@ class Test(unittest.TestCase):
     def test_104(self) -> None:
         """Test error 104."""
         self.assertTrue(
-            _attribution_exception(self, "error_104.csv", "aapl_daily.csv", errs.ERRORS[104])
+            _performance_exception(self, _error_performance_data_source(104), errs.ERRORS[104])
         )
 
     def test_105(self) -> None:
         """Test error 105."""
-        self.assertTrue(_performance_exception(self, "error_105.csv", errs.ERRORS[105]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(105), errs.ERRORS[105])
+        )
 
     def test_106(self) -> None:
         """Test error 106."""
-        self.assertTrue(_performance_exception(self, "error_106.csv", errs.ERRORS[106]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(106), errs.ERRORS[106])
+        )
 
     def test_107(self) -> None:
         """Test error 107."""
-        self.assertTrue(_performance_exception(self, "error_107.csv", errs.ERRORS[107]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(107), errs.ERRORS[107])
+        )
 
     def test_108(self) -> None:
         """Test error 108."""
         self.assertTrue(
-            _attribution_exception(self, "error_108.csv", "aapl_daily.csv", errs.ERRORS[108])
+            _performance_exception(self, _error_performance_data_source(108), errs.ERRORS[108])
         )
 
     def test_109(self) -> None:
         """Test error 109."""
-        self.assertTrue(_performance_exception(self, "error_109.csv", errs.ERRORS[109]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(109), errs.ERRORS[109])
+        )
 
     def test_110(self) -> None:
         """Test error 110: Bad floating point number."""
-        self.assertTrue(_performance_exception(self, "error_110.csv", errs.ERRORS[110]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(110), errs.ERRORS[110])
+        )
 
     def test_111(self) -> None:
         """Test error 111."""
@@ -134,7 +245,9 @@ class Test(unittest.TestCase):
 
     def test_112(self) -> None:
         """Test error 112: Duplicate identifiers."""
-        self.assertTrue(_performance_exception(self, "error_112.csv", errs.ERRORS[112]))
+        self.assertTrue(
+            _performance_exception(self, _error_performance_data_source(112), errs.ERRORS[112])
+        )
 
     ############################## Attribution Exceptions ##############################
     def test_202(self) -> None:
@@ -148,7 +261,12 @@ class Test(unittest.TestCase):
     def test_203(self) -> None:
         """Test error 203."""
         self.assertTrue(
-            _attribution_exception(self, "error_203.csv", "error_203.csv", errs.ERRORS[203])
+            _attribution_exception(
+                self,
+                _error_performance_data_source(203),
+                _error_performance_data_source(203),
+                errs.ERRORS[203],
+            )
         )
 
     def test_204(self) -> None:
@@ -254,71 +372,6 @@ class Test(unittest.TestCase):
             )
         )
 
-    ############################## Axys Exceptions ##############################
-    def test_502_portperf(self) -> None:
-        """Test error 502 for portperf."""
-        self.assertTrue(
-            _axys_exception(self, errs.ERRORS[502], "error_502_portperf.csv", "imex_secperf.csv")
-        )
-
-    def test_502_secperf(self) -> None:
-        """Test error 502 for secperf."""
-        self.assertTrue(
-            _axys_exception(self, errs.ERRORS[502], "imex_portperf.csv", "error_502_secperf.csv")
-        )
-
-    def test_503_a(self) -> None:
-        """Test error 503 for PORT_FAIL_HIGH."""
-        self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[503],
-                "error_503_a_portperf.csv",
-                "error_503_a_secperf.csv",
-                portfolio_code="PORT_FAIL_HIGH",
-            )
-        )
-
-    def test_503_b(self) -> None:
-        """Test error 503 for PORT_FAIL_EQUAL."""
-        self.assertTrue(
-            _axys_exception(
-                self,
-                errs.ERRORS[503],
-                "error_503_b_portperf.csv",
-                "error_503_b_secperf.csv",
-                portfolio_code="PORT_FAIL_EQUAL",
-            )
-        )
-
-    def test_504_a(self) -> None:
-        """Test error 504 for unknown classification."""
-        self.assertTrue(_axys_exception(self, errs.ERRORS[504], classification_name="unknown"))
-
-    def test_504_b(self) -> None:
-        """Test error 504 for missing file_path specification."""
-        self.assertTrue(
-            _axys_exception(self, errs.ERRORS[504], classification_name="MissingFilePath")
-        )
-
-    def test_504_c(self) -> None:
-        """Test error 504 for bad filter_column_name."""
-        self.assertTrue(
-            _axys_exception(self, errs.ERRORS[504], classification_name="BadFilterColumnName")
-        )
-
-    def test_504_d(self) -> None:
-        """Test error 504 for unknown field name."""
-        self.assertTrue(_axys_exception(self, errs.ERRORS[504], mapping_name="BadUnknownField"))
-
-    def test_505(self) -> None:
-        """Test error 505."""
-        self.assertTrue(
-            _axys_exception(
-                self, errs.ERRORS[505], "error_505_portperf.csv", "error_505_secperf.csv"
-            )
-        )
-
     ############################## General Exceptions ##############################
     def test_802(self) -> None:
         """Test error 802."""
@@ -335,7 +388,6 @@ class Test(unittest.TestCase):
     def test_804(self) -> None:
         """Test error 804."""
         assert util.file_path_error(util.EMPTY) == errs.ERRORS[804]
-        print(errs.ERRORS[804])
 
     ############################## Test cases for utilities.py ##############################
     def test_are_near(self) -> None:
@@ -374,6 +426,7 @@ class Test(unittest.TestCase):
         path = "/some/path/to/myfile.csv"
         base_name = util.file_basename_without_extension(path)
         self.assertEqual(base_name, "myfile")
+        self.assertEqual(util.file_basename_without_extension(Path(path)), "myfile")
 
     def test_file_path_exists(self) -> None:
         """Test file-existence detection for existing and missing paths."""
@@ -381,10 +434,22 @@ class Test(unittest.TestCase):
             temp_name = tmp_file.name
         try:
             self.assertTrue(util.file_path_exists(temp_name))
+            self.assertTrue(util.file_path_exists(Path(temp_name)))
         finally:
-            os.remove(temp_name)
+            Path(temp_name).unlink()
 
         self.assertFalse(util.file_path_exists("not_a_real_file.xyz"))
+        self.assertFalse(util.file_path_exists(Path("not_a_real_file.xyz")))
+
+    def test_demo_data_sources_return_paths(self) -> None:
+        """Test demo data source helpers return Path values for packaged files."""
+        performance_path = demo_data.performance_data_source("Large-Cap Benchmark.csv")
+        classification_path = demo_data.classification_data_source("Security")
+
+        self.assertIsInstance(performance_path, Path)
+        self.assertIsInstance(classification_path, Path)
+        self.assertTrue(util.file_path_exists(performance_path))
+        self.assertTrue(util.file_path_exists(classification_path))
 
     def test_logarithmic_linking_coefficient_series(self) -> None:
         """Test logarithmic linking coefficients for paired Polars Series."""
@@ -636,11 +701,11 @@ class Test(unittest.TestCase):
     def test_attribution_content(self) -> None:
         """Test attribution views, CSV output, HTML output, JSON/XML paths, and charts."""
         # Get the portfolio data as a Polars dataframe.
-        portfolio_path = str(test_util.performance_data_path("Mega-Cap Portfolio"))
+        portfolio_path = test_util.performance_data_path("Mega-Cap Portfolio")
         portfolio_df = pl.scan_csv(source=portfolio_path, try_parse_dates=True).collect()
 
         # Get the benchmark data as a Pandas dataframe.
-        benchmark_path = str(test_util.performance_data_path("Large-Cap Portfolio"))
+        benchmark_path = test_util.performance_data_path("Large-Cap Portfolio")
         benchmark_df = (
             pl.scan_csv(source=benchmark_path, try_parse_dates=True).collect().to_pandas()
         )
@@ -662,7 +727,6 @@ class Test(unittest.TestCase):
             attribution = test_util.get_attribution(analytics, classification_name)
             for view in View:
                 # Assert each classification/view.
-                print("Asserting", classification_name, view)
                 base_file_name = f"{view.value}_{classification_name}"
 
                 # Set the sort parameters.
@@ -676,26 +740,23 @@ class Test(unittest.TestCase):
                     ]
                     sort_descendings = [True, False, False]
 
-                # Assert the view csv file.  Note: Cannot use filecmp because sometimes zero will
-                # be represented as 0.00000, and other times as -0.00000.
+                # Compare parsed CSV results because zero can serialize as either 0.00000
+                # or -0.00000.
                 file_name = f"{base_file_name}.csv"
-                test_file_path = os.path.join(tempfile.gettempdir(), file_name)
+                test_file_path = Path(tempfile.gettempdir()) / file_name
                 attribution.write_csv(view, test_file_path, columns_to_sort, sort_descendings)
                 test_results = pl.read_csv(test_file_path)
                 expected_file_path = test_util.resolve_file_path(
                     _EXPECTED_RESULTS_DIRECTORIES, file_name
                 )
                 expected_results = pl.read_csv(expected_file_path)
-                # if not test_results.equals(expected_results):
-                #     pause_it = 9
-                #     continue
                 assert test_results.equals(expected_results)
-                os.remove(test_file_path)
+                test_file_path.unlink()
 
                 # Assert the view html file
                 html = attribution.to_html(view, columns_to_sort, sort_descendings)
                 file_name = f"{base_file_name}.html"
-                test_file_path = os.path.join(tempfile.gettempdir(), file_name)
+                test_file_path = Path(tempfile.gettempdir()) / file_name
                 with io.open(test_file_path, "w", encoding=util.ENCODING, newline="\n") as f:
                     f.write(html)
                 test_results = test_util.read_html_table(test_file_path)
@@ -705,7 +766,7 @@ class Test(unittest.TestCase):
                 expected_results = test_util.read_html_table(expected_file_path)
                 if _ASSERT_HTML:
                     assert test_results == expected_results
-                os.remove(test_file_path)
+                test_file_path.unlink()
 
                 # Just get the json and xml to make sure they do not fail.
                 if classification_name == "Economic Sector":
@@ -713,31 +774,15 @@ class Test(unittest.TestCase):
                     _ = attribution.to_xml(view)
 
             if classification_name == "Economic Sector":
-                # Assert the chart pngs
+                # Exercise each chart rendering path.
                 for chart in Chart:
-                    print("Asserting", classification_name, chart)
                     # Set the sort parameters.
                     columns_to_sort = util.EMPTY
                     sort_descendings = False
                     if chart == Chart.OVERALL_ATTRIBUTION:
                         columns_to_sort = [cols.CLASSIFICATION_NAME]
                         sort_descendings = True
-                    # Get the png
-                    png = attribution.to_chart(chart, columns_to_sort, sort_descendings)
-                    file_name = f"{chart.value}_{classification_name}.png"
-                    test_file_path = os.path.join(tempfile.gettempdir(), file_name)
-                    with open(test_file_path, "wb") as f:
-                        f.write(png)
-                    # The generated png files are different under macos vs windows.  Visually, they
-                    # look identical, but the ones generated under macos are smaller.  See git
-                    # issue #20: matplotlib generating different binary png files in macos vs
-                    # windows.
-                    expected_file_path = test_util.resolve_file_path(
-                        _EXPECTED_RESULTS_DIRECTORIES, f"{file_name[:-4]}.{os.name}.png"
-                    )
-                    if _ASSERT_PNG:
-                        assert filecmp.cmp(test_file_path, expected_file_path, shallow=False)
-                    os.remove(test_file_path)
+                    _ = attribution.to_chart(chart, columns_to_sort, sort_descendings)
 
     def test_audit(self) -> None:
         """Test auditing across performance files, classifications, frequencies, and views."""
@@ -758,7 +803,6 @@ class Test(unittest.TestCase):
                 # Benchmark
                 for frequency in Frequency:
                     # Frequency
-                    print("Auditing", file_name1, file_name2, frequency)
                     analytics = Analytics(
                         test_util.performance_data_path(file_name1),
                         test_util.performance_data_path(file_name2),
@@ -851,29 +895,25 @@ class Test(unittest.TestCase):
 
         # Assert the expected results in the riskstatistics.csv file
         file_name = "riskstatistics.csv"
-        test_file_path = os.path.join(tempfile.gettempdir(), file_name)
+        test_file_path = Path(tempfile.gettempdir()) / file_name
         riskstatistics.write_csv(test_file_path)
         test_results: pl.DataFrame = pl.read_csv(test_file_path)
         expected_file_path = test_util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
         expected_results: pl.DataFrame = pl.read_csv(expected_file_path)
-        # if not test_results.equals(expected_results):
-        #     pause_it = 9
         assert test_results.equals(expected_results)
-        os.remove(test_file_path)
+        test_file_path.unlink()
 
         # Assert the expected results in the riskstatistics.html file
         html = riskstatistics.to_html()
         file_name = "riskstatistics.html"
-        test_file_path = os.path.join(tempfile.gettempdir(), file_name)
+        test_file_path = Path(tempfile.gettempdir()) / file_name
         with io.open(test_file_path, "w", encoding=util.ENCODING, newline="\n") as f:
             f.write(html)
         test_results2: list[str] = test_util.read_html_table(test_file_path)
         expected_file_path = test_util.resolve_file_path(_EXPECTED_RESULTS_DIRECTORIES, file_name)
         expected_results2: list[str] = test_util.read_html_table(expected_file_path)
-        # if test_results2 != expected_results2:
-        #     pause_it = 9
         assert test_results2 == expected_results2
-        os.remove(test_file_path)
+        test_file_path.unlink()
 
         # Just get the json and xml to make sure they do not fail.
         _ = riskstatistics.to_json()
@@ -1096,6 +1136,30 @@ class Test(unittest.TestCase):
         assert "Ex-Post Risk Statistics" in full_html
         assert "Absolute Risk" in full_html
 
+    def test_write_csv_accepts_path_objects(self) -> None:
+        """Test public CSV writers accept pathlib.Path output paths."""
+        analytics = Analytics(
+            test_util.performance_data_path("Mega-Cap Portfolio"),
+            test_util.performance_data_path("Large-Cap Portfolio"),
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
+            beginning_date=dt.date(2023, 10, 31),
+            frequency=Frequency.MONTHLY,
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            attribution_path = Path(temp_dir) / "attribution.csv"
+            risk_path = Path(temp_dir) / "riskstatistics.csv"
+
+            test_util.get_attribution(analytics).write_csv(
+                View.OVERALL_ATTRIBUTION,
+                attribution_path,
+            )
+            analytics.get_riskstatistics().write_csv(risk_path)
+
+            assert attribution_path.is_file()
+            assert risk_path.is_file()
+
     def test_dependency_metadata(self) -> None:
         """Test package dependency metadata matches intentional runtime imports."""
         with open("pyproject.toml", "rb") as file:
@@ -1106,9 +1170,7 @@ class Test(unittest.TestCase):
         }
         with open("requirements.txt", "r", encoding=util.ENCODING) as file:
             requirements_dependencies = {
-                line.split(">=", maxsplit=1)[0].strip().lower()
-                for line in file
-                if line.strip()
+                line.split(">=", maxsplit=1)[0].strip().lower() for line in file if line.strip()
             }
 
         assert "great_tables" not in pyproject_dependencies
@@ -1167,57 +1229,21 @@ class Test(unittest.TestCase):
 
 
 ######################### Module-Wide Functions ########################
-def _axys_exception(
-    test: Test,
-    error_message: str,
-    portperf_file_name: str = "imex_portperf.csv",
-    secperf_file_name: str = "imex_secperf.csv",
-    portfolio_code: str = "PORT_SMALL",
-    axysdata_yaml_path: str = "axysdata.yaml",
-    from_date: dt.date | None = None,
-    thru_date: dt.date | None = None,
-    classification_name: str | None = None,
-    mapping_name: str | None = None,
-) -> bool:
-    """Return whether an ``AxysData`` construction raises an expected error.
-
-    Args:
-        test: Active ``unittest.TestCase`` instance.
-        error_message: Expected beginning of the raised error message.
-        portperf_file_name: Portperf test file name.
-        secperf_file_name: Secperf test file name.
-        portfolio_code: Portfolio code passed to ``AxysData``.
-        axysdata_yaml_path: YAML configuration file name.
-        from_date: Optional starting date filter.
-        thru_date: Optional ending date filter.
-        classification_name: Optional classification name to request.
-        mapping_name: Optional mapping name to request.
-
-    Returns:
-        ``True`` if the raised ``PpaError`` message starts with
-        ``error_message``; otherwise, ``False``.
-    """
-    with test.assertRaises(errs.PpaError) as context:
-        AxysData(
-            test_util.axys_data_path(axysdata_yaml_path, ".yaml"),
-            test_util.axys_data_path(portperf_file_name),
-            test_util.axys_data_path(secperf_file_name),
-            portfolio_codes=(portfolio_code,),
-            from_date=from_date,
-            thru_date=thru_date,
-            classification_names=classification_name,
-            mapping_names=mapping_name,
-        )
-        # RiskStatistics(returns, frequency, minimum_acceptable_return)
-    print()
-    print(str(context.exception))
-    return str(context.exception).startswith(error_message)
+def _resolve_performance_data_source(
+    data_source: util.PerformanceDataSource,
+) -> util.PerformanceDataSource:
+    """Resolve legacy fixture names while preserving inline data sources."""
+    return (
+        test_util.performance_data_path(data_source)
+        if isinstance(data_source, str)
+        else data_source
+    )
 
 
 def _attribution_exception(
     test: Test,
-    file_name1: str,
-    file_name2: str,
+    portfolio_data_source: util.PerformanceDataSource,
+    benchmark_data_source: util.PerformanceDataSource,
     error_message: str,
     portfolio_classification_name: str = util.EMPTY,
     benchmark_classification_name: str = util.EMPTY,
@@ -1230,8 +1256,8 @@ def _attribution_exception(
 
     Args:
         test: Active ``unittest.TestCase`` instance.
-        file_name1: Portfolio performance test file name.
-        file_name2: Benchmark performance test file name.
+        portfolio_data_source: Portfolio performance test data or fixture name.
+        benchmark_data_source: Benchmark performance test data or fixture name.
         error_message: Expected beginning of the raised error message.
         portfolio_classification_name: Portfolio classification name.
         benchmark_classification_name: Benchmark classification name.
@@ -1247,8 +1273,8 @@ def _attribution_exception(
     with test.assertRaises(errs.PpaError) as context:
         # Get the analytics
         analytics = Analytics(
-            test_util.performance_data_path(file_name1),
-            test_util.performance_data_path(file_name2),
+            _resolve_performance_data_source(portfolio_data_source),
+            _resolve_performance_data_source(benchmark_data_source),
             portfolio_classification_name=portfolio_classification_name,
             benchmark_classification_name=benchmark_classification_name,
         )
@@ -1265,16 +1291,12 @@ def _attribution_exception(
         if view is not None:
             attribution.to_html(view)
 
-    # Print the exception
-    print(str(context.exception))
-
-    # Assert that the exception starts with the expected error message
     return str(context.exception).startswith(error_message)
 
 
 def _performance_exception(
     test: Test,
-    file_name: str,
+    data_source: util.PerformanceDataSource,
     error_message: str,
     beginning_date: str | dt.date = dt.date.min,
     ending_date: str | dt.date = dt.date.max,
@@ -1283,7 +1305,7 @@ def _performance_exception(
 
     Args:
         test: Active ``unittest.TestCase`` instance.
-        file_name: Performance test file name.
+        data_source: Performance test data or fixture name.
         error_message: Expected beginning of the raised error message.
         beginning_date: Optional beginning date filter.
         ending_date: Optional ending date filter.
@@ -1294,18 +1316,17 @@ def _performance_exception(
     """
     with test.assertRaises(errs.PpaError) as context:
         Performance(
-            test_util.performance_data_path(file_name),
+            _resolve_performance_data_source(data_source),
             beginning_date=beginning_date,
             ending_date=ending_date,
         )
-    print(str(context.exception))
     return str(context.exception).startswith(error_message)
 
 
 def _riskstatistics_exception(
     test: Test,
     error_message: str,
-    returns: tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+    returns: Sequence[npt.NDArray[np.float64]],
     frequency: Frequency,
     minimum_acceptable_return: float = 0,
 ) -> bool:
@@ -1314,7 +1335,7 @@ def _riskstatistics_exception(
     Args:
         test: Active ``unittest.TestCase`` instance.
         error_message: Expected beginning of the raised error message.
-        returns: Tuple of portfolio and benchmark return arrays.
+        returns: Sequence of portfolio and benchmark return arrays.
         frequency: Return frequency.
         minimum_acceptable_return: Minimum acceptable return passed to
             ``RiskStatistics``.
@@ -1325,7 +1346,6 @@ def _riskstatistics_exception(
     """
     with test.assertRaises(errs.PpaError) as context:
         RiskStatistics(returns, frequency, minimum_acceptable_return)
-    print(str(context.exception))
     return str(context.exception).startswith(error_message)
 
 

@@ -16,6 +16,7 @@ Attribution instances are normally created by
 # Python Imports
 from enum import Enum
 import datetime as dt
+from pathlib import Path
 import re
 from typing import cast, Iterable, Sequence
 
@@ -136,16 +137,16 @@ class Attribution:
 
     def __init__(
         self,
-        performances: tuple[Performance, Performance],
+        performances: Sequence[Performance],
         classification_name: str,
         classification_data_source: util.ClassificationDataSource,
         frequency: Frequency,
-        classification_label: str = util.EMPTY,
+        classification_label: str | None = None,
     ):
         """Initialize an attribution calculation.
 
         Args:
-            performances: A two-item tuple containing the portfolio ``Performance`` at
+            performances: A two-item sequence containing the portfolio ``Performance`` at
                 index 0 and the benchmark ``Performance`` at index 1.
             classification_name: Classification name for which contribution and
                 attribution effects are calculated.
@@ -160,6 +161,8 @@ class Attribution:
             PpaError: If classification setup, performance alignment, linking, or
                 attribution calculation fails validation.
         """
+        classification_label = util.normalize_optional_string(classification_label)
+
         # Set internal instance variables from the constructor parameters.
         self._classification = Classification(
             classification_name, classification_data_source, performances
@@ -740,7 +743,7 @@ class Attribution:
     def _fetch_dataframe(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> pl.DataFrame:
         """Fetch the DataFrame for a view.
@@ -771,7 +774,11 @@ class Attribution:
 
         # Sort the dataframe.  View.CUMULATIVE_ATTRIBUTION is not sortable, because it has
         # "cumulative" columns that are implicitly chronological.
-        if not util.is_empty(columns_to_sort) and view != View.CUMULATIVE_ATTRIBUTION:
+        if (
+            columns_to_sort is not None
+            and not util.is_empty_string(columns_to_sort)
+            and view != View.CUMULATIVE_ATTRIBUTION
+        ):
             lf = lf.sort(by=columns_to_sort, descending=sort_descendings)
 
         # Must collect() before adding the total_row
@@ -951,7 +958,7 @@ class Attribution:
     def to_chart(
         self,
         chart: Chart,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> bytes:
         """Return a PNG chart for the requested attribution chart type.
@@ -1039,7 +1046,7 @@ class Attribution:
 
             case Chart.OVERALL_ATTRIBUTION:
                 # Set the default sorting.
-                if util.is_empty(columns_to_sort):
+                if columns_to_sort is None or util.is_empty_string(columns_to_sort):
                     columns_to_sort = cols.TOTAL_EFFECT_SMOOTHED
                     sort_descendings = True
                 # Set the DataFrame and remove the last "Total" row.
@@ -1051,7 +1058,7 @@ class Attribution:
 
             case _:  # Chart.OVERALL_CONTRIBUTION:
                 # Set the default sorting.
-                if util.is_empty(columns_to_sort):
+                if columns_to_sort is None or util.is_empty_string(columns_to_sort):
                     columns_to_sort = cols.PORTFOLIO_CONTRIB_SMOOTHED
                     sort_descendings = True
                 # Set the DataFrame and remove the last "Total" row.
@@ -1069,7 +1076,7 @@ class Attribution:
     def to_html(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> str:
         """Return a view as an HTML document string.
@@ -1101,7 +1108,7 @@ class Attribution:
     def to_json(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
         float_precision: int = _DEFAULT_OUTPUT_PRECISION,
     ) -> str:
@@ -1129,7 +1136,7 @@ class Attribution:
     def to_pandas(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> pd.DataFrame:
         """Return a view as a pandas DataFrame.
@@ -1152,7 +1159,7 @@ class Attribution:
     def to_polars(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> pl.DataFrame:
         """Return a view as a Polars DataFrame.
@@ -1175,7 +1182,7 @@ class Attribution:
     def to_table(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> html_table.HtmlTable:
         """Return a lightweight HTML table object for a view.
@@ -1213,7 +1220,7 @@ class Attribution:
     def to_xml(
         self,
         view: View,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
     ) -> str:
         """Return a view as an XML string.
@@ -1236,8 +1243,8 @@ class Attribution:
     def write_csv(
         self,
         view: View,
-        file_path: str,
-        columns_to_sort: str | Sequence[str] = util.EMPTY,
+        file_path: util.PathLike,
+        columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
         float_precision: int = _DEFAULT_OUTPUT_PRECISION,
     ) -> None:
@@ -1256,6 +1263,7 @@ class Attribution:
         Raises:
             PpaError: If view construction fails validation.
         """
+        file_path = Path(file_path)
         self._fetch_dataframe(view, columns_to_sort, sort_descendings).write_csv(
             file_path, float_precision=float_precision
         )

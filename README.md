@@ -70,13 +70,13 @@ The input data may be provided directly as either:
 3. Python dictionaries (for Classifications and Mappings).
 4. csv files.
 
-For sample input data sources, please refer to the python script demo.py and the ppar/demo_data directory.  Once the input data has been provided, then the analytics may be requested using different calculation parameters, time-periods, and frequencies:
+For sample input data sources, please refer to the ``ppar-demo`` command and the ppar/demo_data directory.  Once the input data has been provided, then the analytics may be requested using different calculation parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
 2. Monthly
 3. Quarterly
 4. Yearly
 
-Typically, a user will develop their own "data source" functions that provide the data in one of the above formats.  The python script "demo.py" has sample data source functions.
+Typically, a user will develop their own "data source" functions that provide the data in one of the above formats.  The ``ppar-demo`` command uses sample data source functions.
 
 ---
 
@@ -102,7 +102,7 @@ pip install ppar
 ---
 
 ## Usage
-python demo.py
+ppar-demo
 
 ---
 

@@ -42,6 +42,10 @@ dependencies = [
     "seaborn>=0.13.2",
 ]
 
+[project.scripts]
+# Console entry points installed with the package.
+ppar-demo = "ppar.demo:main"
+
 [tool.setuptools]
 # setuptools-specific configuration.
 # - `packages`: list package names included in the distribution.

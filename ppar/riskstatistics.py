@@ -1,6 +1,6 @@
 """Calculate and format ex-post portfolio risk statistics.
 
-This module contains the ``Statistic`` enumeration and the ``RiskStatistics``
+This module contains the ``_Statistic`` enumeration and the ``RiskStatistics``
 class. ``RiskStatistics`` calculates absolute risk, downside risk,
 benchmark-relative risk, risk-adjusted performance, and regression statistics
 for a portfolio and benchmark return series.
@@ -10,7 +10,8 @@ for a portfolio and benchmark return series.
 import datetime as dt
 from enum import Enum
 import math
-from typing import cast
+from pathlib import Path
+from typing import cast, Sequence
 
 # Third-Party Imports
 import numpy as np
@@ -31,7 +32,7 @@ import ppar.utilities as util
 _DEFAULT_OUTPUT_PRECISION = 8
 
 
-class Statistic(Enum):
+class _Statistic(Enum):
     """Enumeration of supported ex-post risk statistics.
 
     The values are arranged in the order used by the formatted output views.
@@ -89,7 +90,7 @@ class RiskStatistics:
 
     The class accepts either two ``Performance`` instances or two NumPy arrays
     of periodic returns. It calculates the statistics enumerated by
-    ``Statistic`` and stores the formatted results in a Polars DataFrame.
+    ``_Statistic`` and stores the formatted results in a Polars DataFrame.
 
     Public output methods:
         1. ``to_html()``
@@ -104,8 +105,8 @@ class RiskStatistics:
     def __init__(
         self,
         returns: (
-            tuple[Performance, Performance]
-            | tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
+            Sequence[Performance]
+            | Sequence[npt.NDArray[np.float64]]
         ),
         frequency: Frequency,
         annual_minimum_acceptable_return: float = util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN,
@@ -119,8 +120,8 @@ class RiskStatistics:
         """Initialize and calculate risk statistics.
 
         Args:
-            returns: Either a tuple of two ``Performance`` instances or a
-                tuple of two NumPy arrays of periodic returns. Index ``0`` is
+            returns: Either a sequence of two ``Performance`` instances or a
+                sequence of two NumPy arrays of periodic returns. Index ``0`` is
                 the portfolio and index ``1`` is the benchmark.
             frequency: Frequency of the portfolio and benchmark returns.
                 Supported values are ``Frequency.MONTHLY``,
@@ -137,7 +138,7 @@ class RiskStatistics:
         Raises:
             PpaError: If ``frequency`` is
                 ``Frequency.AS_OFTEN_AS_POSSIBLE``, ``returns`` is not a
-                supported tuple type, the portfolio and benchmark return
+                supported sequence type, the portfolio and benchmark return
                 series have different lengths, there are fewer than two
                 returns, or either return series contains NaN values.
         """
@@ -157,8 +158,8 @@ class RiskStatistics:
             self._benchmark_name = returns[1].name
             self._portfolio_returns = returns[0].df[cols.TOTAL_RETURN].to_numpy()
             self._benchmark_returns = returns[1].df[cols.TOTAL_RETURN].to_numpy()
-            self._performances_to_audit: tuple[Performance, Performance] = cast(
-                tuple[Performance, Performance], returns
+            self._performances_to_audit: Sequence[Performance] = cast(
+                Sequence[Performance], returns
             )
         elif isinstance(returns[0], np.ndarray) and isinstance(returns[1], np.ndarray):
             self._beginning_date = dt.date.min
@@ -167,8 +168,8 @@ class RiskStatistics:
             self._benchmark_name = "Benchmark"
             self._portfolio_returns = returns[0]
             self._benchmark_returns = returns[1]
-            self._performances_to_audit: tuple[Performance, Performance] = cast(
-                tuple[Performance, Performance], tuple()
+            self._performances_to_audit: Sequence[Performance] = cast(
+                Sequence[Performance], tuple()
             )
         else:
             # Should never reach here.
@@ -376,32 +377,32 @@ class RiskStatistics:
                 correlation_coefficient = np.nan
                 jensens_alpha = np.nan
 
-            for statistic in Statistic:
+            for statistic in _Statistic:
                 if idx == 0:
                     # Allocate the statistic: 0 = Portfolio, 1 = Benchmark.
                     statistic_values[statistic.value] = []
 
                 # Set the appropriate statistic value.
                 match statistic:
-                    case Statistic.ALPHA:
+                    case _Statistic.ALPHA:
                         value = alpha
-                    case Statistic.ALPHA_ANNUALIZED:
+                    case _Statistic.ALPHA_ANNUALIZED:
                         # Alpha is a return-like quantity, so annualize by compounding
                         # rather than by sqrt(periods), which is for volatility.
                         value = self._annualize_return(alpha, qty_periods_per_year)
-                    case Statistic.BETA:
+                    case _Statistic.BETA:
                         value = beta
-                    case Statistic.CORRELATION:
+                    case _Statistic.CORRELATION:
                         value = correlation_coefficient
-                    case Statistic.DOWNSIDE_DEVIATION:
+                    case _Statistic.DOWNSIDE_DEVIATION:
                         value = downside_deviation
-                    case Statistic.DOWNSIDE_DEVIATION_ANNUALIZED:
+                    case _Statistic.DOWNSIDE_DEVIATION_ANNUALIZED:
                         value = annualization_coefficient * downside_deviation
-                    case Statistic.DOWNSIDE_PROBABILITY:
+                    case _Statistic.DOWNSIDE_PROBABILITY:
                         value = len(returns_below_mar) / self._quantity_of_returns
-                    case Statistic.EXPECTED_DOWNSIDE_VALUE:
+                    case _Statistic.EXPECTED_DOWNSIDE_VALUE:
                         value = sum(returns_below_mar) / self._quantity_of_returns
-                    case Statistic.INFORMATION_RATIO:
+                    case _Statistic.INFORMATION_RATIO:
                         if idx == 0:
                             value = (
                                 np.inf
@@ -410,11 +411,11 @@ class RiskStatistics:
                             )
                         else:
                             value = np.nan
-                    case Statistic.JENSENS_ALPHA:
+                    case _Statistic.JENSENS_ALPHA:
                         value = jensens_alpha
-                    case Statistic.JENSENS_ALPHA_ANNUALIZED:
+                    case _Statistic.JENSENS_ALPHA_ANNUALIZED:
                         value = self._annualize_return(jensens_alpha, qty_periods_per_year)
-                    case Statistic.M_SQUARED:
+                    case _Statistic.M_SQUARED:
                         if idx == 0:
                             # M-squared expresses Sharpe performance as a return
                             # scaled to benchmark volatility, then adds back cash.
@@ -423,31 +424,31 @@ class RiskStatistics:
                             ) + frequency_rfr
                         else:
                             value = np.nan
-                    case Statistic.MEAN_RETURN:
+                    case _Statistic.MEAN_RETURN:
                         value = mean
-                    case Statistic.MEAN_RETURN_ANNUALIZED:
+                    case _Statistic.MEAN_RETURN_ANNUALIZED:
                         value = self._annualize_return(mean, qty_periods_per_year)
-                    case Statistic.R_SQUARED:
+                    case _Statistic.R_SQUARED:
                         value = correlation_coefficient**2
-                    case Statistic.RETURN_RANGE:
+                    case _Statistic.RETURN_RANGE:
                         value = np.max(rets) - np.min(rets)
-                    case Statistic.SHARPE_RATIO:
+                    case _Statistic.SHARPE_RATIO:
                         value = sharpe_ratio
-                    case Statistic.SHARPE_RATIO_ANNUALIZED:
+                    case _Statistic.SHARPE_RATIO_ANNUALIZED:
                         value = annualization_coefficient * sharpe_ratio
-                    case Statistic.SORTINO_RATIO:
+                    case _Statistic.SORTINO_RATIO:
                         value = sortino_ratio
-                    case Statistic.SORTINO_RATIO_ANNUALIZED:
+                    case _Statistic.SORTINO_RATIO_ANNUALIZED:
                         value = annualization_coefficient * sortino_ratio
-                    case Statistic.STANDARD_DEVIATION:
+                    case _Statistic.STANDARD_DEVIATION:
                         value = stddev
-                    case Statistic.STANDARD_DEVIATION_ANNUALIZED:
+                    case _Statistic.STANDARD_DEVIATION_ANNUALIZED:
                         value = annualization_coefficient * stddev
-                    case Statistic.TRACKING_ERROR:
+                    case _Statistic.TRACKING_ERROR:
                         value = active_returns_stddev
-                    case Statistic.TRACKING_ERROR_ANNUALIZED:
+                    case _Statistic.TRACKING_ERROR_ANNUALIZED:
                         value = annualization_coefficient * active_returns_stddev
-                    case Statistic.TREYNOR_RATIO:
+                    case _Statistic.TREYNOR_RATIO:
                         if idx == 0:
                             # Treynor uses beta, not volatility, as the risk unit.
                             # A zero-beta portfolio makes the ratio undefined; use
@@ -459,7 +460,7 @@ class RiskStatistics:
                             )
                         else:
                             value = np.nan
-                    case Statistic.VALUE_AT_RISK:
+                    case _Statistic.VALUE_AT_RISK:
                         value = RiskStatistics._parametric_var(
                             mean, stddev, confidence_level, portfolio_value
                         )
@@ -539,7 +540,7 @@ class RiskStatistics:
         Returns:
             Display column name.
         """
-        if column_name == Statistic.VALUE_AT_RISK.value:
+        if column_name == _Statistic.VALUE_AT_RISK.value:
             return (
                 f"{self._frequency.value} {column_name} for "
                 f"{self._currency_symbol}{portfolio_value:,.0f}"
@@ -651,7 +652,9 @@ class RiskStatistics:
         """
         return self.to_pandas().to_xml()
 
-    def write_csv(self, file_path: str, float_precision: int = _DEFAULT_OUTPUT_PRECISION) -> None:
+    def write_csv(
+        self, file_path: util.PathLike, float_precision: int = _DEFAULT_OUTPUT_PRECISION
+    ) -> None:
         """Write the statistics to a CSV file.
 
         Args:
@@ -659,4 +662,5 @@ class RiskStatistics:
             float_precision: Number of decimal places to write for floating
                 point values.
         """
+        file_path = Path(file_path)
         self._df.write_csv(file_path, float_precision=float_precision)
