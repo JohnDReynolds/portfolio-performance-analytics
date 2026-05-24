@@ -18,7 +18,7 @@ ERRORS = {
     # Attribution Class Error Messages
     202: "Error 202: There are no common reportable dates found ",
     203: "Error 203: A return less than zero is undefined. ",
-    204: "Error 204: Too many rows to produce 'great_table' html: ",
+    204: "Error 204: Too many rows to produce html: ",
     # Analytics Class Error Messages
     252: "Error 252: Must specify classification_name",
     # Classification Class Error Messages

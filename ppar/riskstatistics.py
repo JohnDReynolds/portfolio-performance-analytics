@@ -13,7 +13,6 @@ import math
 from typing import cast
 
 # Third-Party Imports
-import great_tables as gt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -24,6 +23,7 @@ from scipy.stats import norm  # type: ignore
 import ppar.columns as cols
 from ppar.errors import PpaError
 from ppar.frequency import Frequency, periods_per_year
+import ppar.html_table as html_table
 from ppar.performance import Performance
 import ppar.utilities as util
 
@@ -585,7 +585,13 @@ class RiskStatistics:
         Returns:
             HTML string containing the formatted risk-statistics table.
         """
-        return self.to_table().as_raw_html(make_page=True)
+        title, subtitle = self._title_and_subtitle()
+        return html_table.riskstatistics_html(
+            self._df,
+            title,
+            subtitle,
+            self._currency_symbol,
+        )
 
     def to_json(self, float_precision: int = _DEFAULT_OUTPUT_PRECISION) -> str:
         """Return the statistics as a JSON string.
@@ -615,36 +621,26 @@ class RiskStatistics:
         """
         return self._df
 
-    def to_table(self) -> gt.GT:
-        """Return the statistics as a formatted Great Tables table.
+    def to_table(self) -> html_table.HtmlTable:
+        """Return the statistics as a lightweight HTML table object.
 
         Returns:
-            ``great_tables.GT`` object containing the formatted
-            risk-statistics table.
+            HtmlTable object containing the formatted risk-statistics table.
         """
-        # Set the title and subtitle.
-        title = f"{self._portfolio_name} vs {self._benchmark_name}"
-        subtitle = (
-            f"Ex-Post Risk Statistics: {self._frequency.value} from {self._beginning_date} to "
-            f"{self._ending_date}"
+        title, subtitle = self._title_and_subtitle()
+        return html_table.riskstatistics_table(
+            self._df,
+            title,
+            subtitle,
+            self._currency_symbol,
         )
 
-        # Return the formatted table.
-        column_names = ["Portfolio", "Benchmark", "Difference"]
+    def _title_and_subtitle(self) -> tuple[str, str]:
+        """Return title and subtitle text for risk-statistics output."""
         return (
-            gt.GT(self._df.to_pandas())
-            .tab_header(title=title, subtitle=subtitle)
-            .tab_stub(rowname_col="column", groupname_col="Category")
-            # Format the statistics to 4 decimals (bps)
-            .fmt_number(columns=column_names, decimals=4)  # pyright: ignore
-            # Format the VaR to 0 decimals since it represents a currency amount.
-            .fmt_number(
-                columns=column_names,
-                pattern=f"{self._currency_symbol}{{x}}",  # the actual str {x}
-                decimals=0,
-                rows=9,
-            )
-            .opt_row_striping()
+            f"{self._portfolio_name} vs {self._benchmark_name}",
+            f"Ex-Post Risk Statistics: {self._frequency.value} from {self._beginning_date} to "
+            f"{self._ending_date}",
         )
 
     def to_xml(self) -> str:

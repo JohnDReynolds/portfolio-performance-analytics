@@ -20,7 +20,6 @@ import re
 from typing import cast, Iterable, Sequence
 
 # Third-Party Imports
-import great_tables as gt
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -31,8 +30,8 @@ import ppar.columns as cols
 from ppar.columns import AEL, AES, BCL, BCS, CON, PCL, PCS, RET, SEL, SES, WGT
 from ppar.errors import PpaError
 import ppar.format_chart as format_chart
-import ppar.format_table as format_table
 from ppar.frequency import Frequency
+import ppar.html_table as html_table
 from ppar.performance import Performance
 import ppar.utilities as util
 
@@ -132,7 +131,7 @@ class Attribution:
     An ``Attribution`` instance contains portfolio and benchmark ``Performance``
     objects, a ``Classification``, and the resulting contribution and attribution
     effects. It provides public methods for retrieving those results as charts,
-    HTML, JSON, pandas DataFrames, Polars DataFrames, Great Tables, XML, and CSV.
+    HTML, JSON, pandas DataFrames, Polars DataFrames, XML, and CSV.
     """
 
     def __init__(
@@ -1089,7 +1088,15 @@ class Attribution:
             PpaError: If the requested table is too large for HTML rendering or view
                 construction fails validation.
         """
-        return self.to_table(view, columns_to_sort, sort_descendings).as_raw_html(make_page=True)
+        df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
+        if 500 < len(df):
+            raise PpaError(f"{view.value}, Rows = {len(df)}", 204)
+        return html_table.attribution_html(
+            df,
+            view.value,
+            self._title_lines(view),
+            self._classification_label,
+        )
 
     def to_json(
         self,
@@ -1170,8 +1177,8 @@ class Attribution:
         view: View,
         columns_to_sort: str | Sequence[str] = util.EMPTY,
         sort_descendings: bool | Sequence[bool] = False,
-    ) -> gt.GT:
-        """Return a Great Tables object for a view.
+    ) -> html_table.HtmlTable:
+        """Return a lightweight HTML table object for a view.
 
         Args:
             view: View to render.
@@ -1181,42 +1188,27 @@ class Attribution:
                 corresponding sort columns should be sorted descending.
 
         Returns:
-            Great Tables object for the requested view.
+            HtmlTable object for the requested view.
 
         Raises:
             PpaError: If the requested view has more than 500 rows or view construction
                 fails validation.
         """
-        # Set the df
         df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
 
         # If there are more than a few hundred lines in an html file, then Attribution.to_html()
         # can be VERY slow.  This can occur when requesting html for a View that has one line for
         # each sub-period and classification item.  For instance, if the user requests to see 100
-        # days of 100 securities for View.SUBPERIOD_ATTRIBUTION.  The underlying problem is that
-        # Attribution.to_html() calls "great_tables" GT.as_raw_html(), which is inherently slow.
-        # It is designed for small tables.  So there is not much that can be done for this problem.
+        # days of 100 securities for View.SUBPERIOD_ATTRIBUTION.
         if 500 < len(df):
             raise PpaError(f"{view.value}, Rows = {len(df)}", 204)
 
-        # Create a great_table.  It slows down DRAMATICALLY if you do not convert the df to pandas!
-        table = gt.GT(df.to_pandas())
-        title, subtitle = self._title_lines(view)
-        table = table.tab_header(title=title, subtitle=subtitle)
-
-        # Now that you have the table template, create the specific table.
-        match view:
-            case View.CUMULATIVE_ATTRIBUTION:
-                table = format_table.cumulative_attribution(table)
-            case View.OVERALL_ATTRIBUTION:
-                table = format_table.overall_attribution(table, self._classification_label)
-            case View.SUBPERIOD_ATTRIBUTION:
-                table = format_table.subperiod_attribution(table, self._classification_label)
-            case View.SUBPERIOD_SUMMARY:
-                table = format_table.subperiod_summary(table)
-
-        # Return the table.
-        return table
+        return html_table.attribution_table(
+            df,
+            view.value,
+            self._title_lines(view),
+            self._classification_label,
+        )
 
     def to_xml(
         self,

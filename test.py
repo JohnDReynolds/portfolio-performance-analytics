@@ -20,6 +20,7 @@ import math
 import os
 import sys
 import tempfile
+import tomllib
 import unittest
 
 # Third-Party Imports
@@ -41,6 +42,7 @@ import ppar.columns as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.frequency import Frequency
+from ppar.html_table import ColumnSpec, HtmlTable, SpannerSpec
 from ppar.riskstatistics import RiskStatistics
 from ppar.performance import Performance
 import ppar.utilities as util
@@ -55,10 +57,10 @@ _EXPECTED_RESULTS_DIRECTORIES = [
 ]
 _MAPPING_DIRECTORIES = [f"{dir}mappings" for dir in _DATA_DIRECTORIES]
 
-# Testing switches.  These asserts are highly dependent on your version of great_tables,
-# matplotlib, and possibly other librairies.  So you must be in a very controlled environment
+# Testing switches.  PNG asserts are highly dependent on your versions of
+# matplotlib and possibly other libraries.  So you must be in a very controlled environment
 # not to get false negatives.
-_ASSERT_HTML = False
+_ASSERT_HTML = True
 _ASSERT_PNG = False
 
 
@@ -785,7 +787,7 @@ class Test(unittest.TestCase):
                         # Test Risk Statistics
                         risk_statistics = analytics.get_riskstatistics()
                         risk_statistics._audit()
-                        risk_statistics.to_table()
+                        assert isinstance(risk_statistics.to_table(), HtmlTable)
 
                     # Audit the analytics
                     analytics.audit()
@@ -1001,6 +1003,118 @@ class Test(unittest.TestCase):
             test_util.performance_data_path("abcde_portfolio1"),
         )
         test_util.get_attribution(analytics).to_html(View.OVERALL_ATTRIBUTION)
+
+    def test_html_table_renderer(self) -> None:
+        """Test the internal HTML renderer for escaping, grouping, and formatting."""
+        df = pl.DataFrame(
+            {
+                "Category": ["Group <A>", "Group <A>", "Group & B"],
+                "Name": ["Alpha <One>", "Beta & Two", "Gamma"],
+                "Date": [dt.date(2024, 1, 31), dt.date(2024, 2, 29), dt.date(2024, 3, 31)],
+                "Return": [0.012345, -0.02, float("nan")],
+                "VaR": [1234.56, 0.0, None],
+            }
+        )
+        table = HtmlTable(
+            df,
+            columns=(
+                ColumnSpec("Name", "Name", align="left"),
+                ColumnSpec("Date", "Ending", format="date", align="center"),
+                ColumnSpec("Return", "Return", format="number"),
+                ColumnSpec("VaR", "Value At Risk", format="currency"),
+            ),
+            title="Portfolio <A>",
+            subtitle="Risk & Return",
+            spanners=(SpannerSpec("Metrics", ("Return", "VaR")),),
+            group_column="Category",
+            stub_column="Name",
+        )
+
+        html = table.as_raw_html()
+        assert html.startswith("<!DOCTYPE html>")
+        assert "Portfolio &lt;A&gt;" in html
+        assert "Risk &amp; Return" in html
+        assert "Group &lt;A&gt;" in html
+        assert "Beta &amp; Two" in html
+        assert 'class="ppar_spanner" colspan="2">Metrics</th>' in html
+        assert "2024-02-29" in html
+        assert "0.0123" in html
+        assert "&minus;0.0200" in html
+        assert "$1,235" in html
+        assert html.count("<NA>") == 2
+        assert '<th scope="row" class="ppar_row ppar_left' in html
+
+    def test_html_table_renderer_fragment(self) -> None:
+        """Test the internal HTML renderer can emit a table fragment."""
+        table = HtmlTable(
+            pl.DataFrame({"Name": ["Alpha"], "Value": [1.25]}),
+            columns=(
+                ColumnSpec("Name", align="left"),
+                ColumnSpec("Value", format="number"),
+            ),
+        )
+
+        html = table.as_raw_html(make_page=False)
+        assert not html.startswith("<!DOCTYPE html>")
+        assert '<table class="ppar_table">' in html
+        assert "1.2500" in html
+
+    def test_attribution_to_table_returns_html_table(self) -> None:
+        """Test Attribution.to_table returns the internal HTML table object."""
+        analytics = Analytics(
+            test_util.performance_data_path("Mega-Cap Portfolio"),
+            test_util.performance_data_path("Large-Cap Portfolio"),
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
+            beginning_date=dt.date(2023, 10, 31),
+            frequency=Frequency.MONTHLY,
+        )
+
+        table = test_util.get_attribution(analytics).to_table(View.OVERALL_ATTRIBUTION)
+        html = table.as_raw_html(make_page=False)
+
+        assert isinstance(table, HtmlTable)
+        assert not html.startswith("<!DOCTYPE html>")
+        assert '<table class="ppar_table">' in html
+        assert "Overall Attribution" in html
+        assert "Portfolio" in html
+
+    def test_riskstatistics_to_table_returns_html_table(self) -> None:
+        """Test RiskStatistics.to_table returns the internal HTML table object."""
+        risk_statistics = RiskStatistics(
+            (np.array([0.01, -0.02, 0.03]), np.array([0.0, 0.01, -0.01])),
+            Frequency.QUARTERLY,
+        )
+
+        table = risk_statistics.to_table()
+        full_html = table.as_raw_html()
+        fragment_html = table.as_raw_html(make_page=False)
+
+        assert isinstance(table, HtmlTable)
+        assert full_html.startswith("<!DOCTYPE html>")
+        assert not fragment_html.startswith("<!DOCTYPE html>")
+        assert "Ex-Post Risk Statistics" in full_html
+        assert "Absolute Risk" in full_html
+
+    def test_dependency_metadata(self) -> None:
+        """Test package dependency metadata matches intentional runtime imports."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+        pyproject_dependencies = {
+            dependency.split(">=", maxsplit=1)[0].lower()
+            for dependency in pyproject["project"]["dependencies"]
+        }
+        with open("requirements.txt", "r", encoding=util.ENCODING) as file:
+            requirements_dependencies = {
+                line.split(">=", maxsplit=1)[0].strip().lower()
+                for line in file
+                if line.strip()
+            }
+
+        assert "great_tables" not in pyproject_dependencies
+        assert "great_tables" not in requirements_dependencies
+        assert "pyyaml" in pyproject_dependencies
+        assert pyproject_dependencies.issubset(requirements_dependencies)
 
     def test_non_annualizability(self) -> None:
         """Test annualized statistics are NaN when fewer than one year of returns exists."""

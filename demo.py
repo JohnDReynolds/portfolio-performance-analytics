@@ -181,7 +181,8 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     _ = attribution_by_sector.to_json(view)  # A json string
     _ = attribution_by_sector.to_pandas(view)  # A pandas DataFrame
     _ = attribution_by_sector.to_polars(view)  # A polars DataFrame
-    _ = attribution_by_sector.to_table(view)  # A "great_table"
+    table = attribution_by_sector.to_table(view)  # A lightweight HTML table object.
+    _ = table.as_raw_html(make_page=False)  # An html fragment without <html>/<body> tags.
     _ = attribution_by_sector.to_xml(view)  # Am xml string
 
     # Write a csv file of the attribution results by sector

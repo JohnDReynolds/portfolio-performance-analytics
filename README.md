@@ -89,10 +89,10 @@ The outputs are represented by different views and charts.  See [Features](#feat
 4. Pandas DataFrames
 5. png files
 6. Polars DataFrames
-7. Python "great tables"
+7. Lightweight Python HTML table objects
 8. xml strings
 
-Users can also develop their own "presentation layer" using the various output formats as the inputs to their presentation layer.
+The ``to_html()`` methods return complete HTML document strings. The ``to_table()`` methods return lightweight table objects whose ``as_raw_html()`` method can emit either a complete HTML document or a table fragment. Users can also develop their own "presentation layer" using the various output formats as the inputs to their presentation layer.
 
 ---
 
