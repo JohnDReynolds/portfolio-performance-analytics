@@ -19,7 +19,7 @@ from ppar.analytics import Analytics
 from ppar.attribution import Attribution, View
 import ppar.columns as cols
 from ppar.frequency import Frequency
-from ppar.html_table import ColumnSpec, HtmlTable, SpannerSpec
+from ppar.html_table import ColumnSpec, HtmlTable, SpannerSpec, attribution_table
 from ppar.riskstatistics import RiskStatistics
 
 
@@ -27,12 +27,11 @@ def _attribution() -> Attribution:
     """Return a small classified attribution result for output tests."""
     performance = pl.DataFrame(
         {
-            cols.BEGINNING_DATE: [dt.date(2023, 12, 31), dt.date(2024, 1, 31)],
-            cols.ENDING_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
-            "A.ret": [0.10, 0.02],
-            "A.wgt": [0.60, 0.40],
-            "B.ret": [-0.05, 0.03],
-            "B.wgt": [0.40, 0.60],
+            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 2 + [dt.date(2024, 1, 31)] * 2,
+            cols.ENDING_DATE: [dt.date(2024, 1, 31)] * 2 + [dt.date(2024, 2, 29)] * 2,
+            cols.IDENTIFIER: ["A", "B", "A", "B"],
+            cols.RETURN: [0.10, -0.05, 0.02, 0.03],
+            cols.WEIGHT: [0.60, 0.40, 0.40, 0.60],
         }
     )
     return Analytics(
@@ -120,6 +119,11 @@ class TestHtmlTableOutputs(unittest.TestCase):
         self.assertFalse(html.startswith("<!DOCTYPE html>"))
         self.assertIn('<table class="ppar_table">', html)
         self.assertIn("1.2500", html)
+
+    def test_attribution_table_rejects_unknown_view_name(self) -> None:
+        """Unknown attribution table layouts are rejected explicitly."""
+        with self.assertRaisesRegex(ValueError, "Unknown attribution view"):
+            attribution_table(pl.DataFrame(), "Unexpected View", ("Title", "Subtitle"))
 
 
 class TestAttributionOutputs(unittest.TestCase):

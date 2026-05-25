@@ -14,7 +14,7 @@ import yaml
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.attribution import View
-from ppar.axysdata import AxysData
+from ppar.axys import AxysData
 import ppar.columns as cols
 
 

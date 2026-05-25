@@ -26,23 +26,28 @@ def _make_performance_df(
     periods: Sequence[_Period],
     assets: Mapping[str, _AssetValues],
 ) -> pl.DataFrame:
-    """Create a small wide-format performance DataFrame.
+    """Create a small narrow-format performance DataFrame.
 
     Args:
         periods: Beginning and ending dates for each input period.
         assets: Asset identifiers mapped to return and weight sequences.
 
     Returns:
-        A wide-format Polars DataFrame accepted by ``Performance``.
+        A narrow-format Polars DataFrame accepted by ``Performance``.
     """
-    data: dict[str, Sequence[dt.date] | Sequence[float]] = {
-        cols.BEGINNING_DATE: [period[0] for period in periods],
-        cols.ENDING_DATE: [period[1] for period in periods],
-    }
-    for identifier, (returns, weights) in assets.items():
-        data[f"{identifier}.ret"] = returns
-        data[f"{identifier}.wgt"] = weights
-    return pl.DataFrame(data)
+    rows: list[dict[str, dt.date | str | float]] = []
+    for period_index, (beginning_date, ending_date) in enumerate(periods):
+        for identifier, (returns, weights) in assets.items():
+            rows.append(
+                {
+                    cols.BEGINNING_DATE: beginning_date,
+                    cols.ENDING_DATE: ending_date,
+                    cols.IDENTIFIER: identifier,
+                    cols.RETURN: returns[period_index],
+                    cols.WEIGHT: weights[period_index],
+                }
+            )
+    return pl.DataFrame(rows)
 
 
 class TestCalculationInvariants(unittest.TestCase):
@@ -58,9 +63,13 @@ class TestCalculationInvariants(unittest.TestCase):
         )
 
         self.assertTrue(
-            math.isclose(performance.df[cols.TOTAL_RETURN].item(), 0.0375, abs_tol=1e-12)
+            math.isclose(
+                performance.period_totals()[cols.TOTAL_RETURN].item(), 0.0375, abs_tol=1e-12
+            )
         )
-        self.assertTrue(math.isclose(performance.df["A.con"].item(), 0.0375, abs_tol=1e-12))
+        self.assertTrue(
+            math.isclose(performance.narrow_df[cols.CONTRIBUTION].item(), 0.0375, abs_tol=1e-12)
+        )
 
     def test_two_asset_total_return_equals_sum_of_contributions(self) -> None:
         """A period total return is the weighted sum of asset returns."""
@@ -74,12 +83,14 @@ class TestCalculationInvariants(unittest.TestCase):
             )
         )
 
-        contributions = (
-            performance.df.select(performance.col_names(".con")).sum_horizontal().item()
-        )
+        contributions = performance.narrow_df[cols.CONTRIBUTION].sum()
         self.assertTrue(math.isclose(contributions, 0.04, abs_tol=1e-12))
         self.assertTrue(
-            math.isclose(performance.df[cols.TOTAL_RETURN].item(), contributions, abs_tol=1e-12)
+            math.isclose(
+                performance.period_totals()[cols.TOTAL_RETURN].item(),
+                contributions,
+                abs_tol=1e-12,
+            )
         )
 
     def test_long_short_fully_invested_portfolio_reconciles(self) -> None:
@@ -94,10 +105,18 @@ class TestCalculationInvariants(unittest.TestCase):
             )
         )
 
-        self.assertTrue(math.isclose(performance.df["Long.con"].item(), 0.12, abs_tol=1e-12))
-        self.assertTrue(math.isclose(performance.df["Short.con"].item(), -0.01, abs_tol=1e-12))
+        contributions = dict(
+            zip(
+                performance.narrow_df[cols.IDENTIFIER],
+                performance.narrow_df[cols.CONTRIBUTION],
+            )
+        )
+        self.assertTrue(math.isclose(contributions["Long"], 0.12, abs_tol=1e-12))
+        self.assertTrue(math.isclose(contributions["Short"], -0.01, abs_tol=1e-12))
         self.assertTrue(
-            math.isclose(performance.df[cols.TOTAL_RETURN].item(), 0.11, abs_tol=1e-12)
+            math.isclose(
+                performance.period_totals()[cols.TOTAL_RETURN].item(), 0.11, abs_tol=1e-12
+            )
         )
         performance.audit()
 

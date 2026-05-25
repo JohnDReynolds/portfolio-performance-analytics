@@ -1,5 +1,4 @@
-"""
-Provide mapping support between two classification schemes.
+"""Provide mapping support between two classification schemes.
 
 This module contains the ``Mapping`` class, which loads a two-column mapping
 data source and creates a reverse lookup from each destination classification

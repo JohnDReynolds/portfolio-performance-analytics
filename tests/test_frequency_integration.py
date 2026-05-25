@@ -48,7 +48,9 @@ class TestFrequencyIntegration(unittest.TestCase):
 
         self.assertEqual(output[cols.BEGINNING_DATE].item(0), dt.date(2020, 12, 31))
         self.assertEqual(output[cols.ENDING_DATE].item(4), dt.date(2021, 3, 31))
-        self.assertTrue(util.are_near(output[cols.TOTAL_EFFECT_SIMPLE].item(3), 0.0012545960452570828))
+        self.assertTrue(
+            util.are_near(output[cols.TOTAL_EFFECT_SIMPLE].item(3), 0.0012545960452570828)
+        )
         self.assertTrue(
             util.are_near(output[cols.SELECTION_EFFECT_SIMPLE].item(14), 0.001057705826113624)
         )
@@ -74,10 +76,14 @@ class TestFrequencyIntegration(unittest.TestCase):
 
         self.assertEqual(output[cols.BEGINNING_DATE].item(0), dt.date(2020, 12, 31))
         self.assertEqual(output[cols.ENDING_DATE].item(4), dt.date(2022, 3, 31))
-        self.assertTrue(util.are_near(output[cols.TOTAL_EFFECT_SIMPLE].item(3), -0.0020721529010043226))
+        self.assertTrue(
+            util.are_near(output[cols.TOTAL_EFFECT_SIMPLE].item(3), -0.0020721529010043226)
+        )
         self.assertTrue(util.are_near(output[cols.PORTFOLIO_RETURN].item(8), 0.2401702546346276))
         self.assertTrue(
-            util.are_near(attribution._df[cols.TOTAL_EFFECT_SMOOTHED].item(3), -0.002740959239265768)
+            util.are_near(
+                attribution._df[cols.TOTAL_EFFECT_SMOOTHED].item(3), -0.002740959239265768
+            )
         )
 
     def test_map_mixed_frequency(self) -> None:
@@ -130,8 +136,12 @@ class TestFrequencyIntegration(unittest.TestCase):
             ending_date="2023-02-28",
         )
 
-        self.assertEqual(performance.df[cols.BEGINNING_DATE].item(0), dt.date(2023, 1, 31))
-        self.assertEqual(performance.df[cols.ENDING_DATE].item(1), dt.date(2023, 2, 28))
+        self.assertEqual(
+            performance.period_totals()[cols.BEGINNING_DATE].item(0), dt.date(2023, 1, 31)
+        )
+        self.assertEqual(
+            performance.period_totals()[cols.ENDING_DATE].item(1), dt.date(2023, 2, 28)
+        )
 
 
 if __name__ == "__main__":

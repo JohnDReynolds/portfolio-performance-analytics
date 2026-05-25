@@ -1,6 +1,4 @@
-"""
-This module contains numbered errors and the PpaError class
-"""
+"""Define numbered package errors and the package-specific exception type."""
 
 ERRORS = {
     # Performance Class Error Messages
@@ -9,9 +7,8 @@ ERRORS = {
     104: "Error 104: There are missing values ",
     105: "Error 105: Beginning dates not less than ending dates ",
     106: "Error 106: There are discontinuous time periods ",
-    107: "Error 107: The return columns (.ret) are not equal to the weight columns (.wgt) ",
     108: "Error 108: The weights do not sum to 1.0 ",
-    109: "Error 109: There are no return columns (.ret) or weight columns (.wgt) ",
+    109: "Error 109: Required narrow performance columns are missing ",
     110: "Error 110: Invalid Performance data format ",
     111: "Error 111: Beginning Date cannot be after Ending Date: ",
     112: "Error 112: Duplicate rows for the same period and identifier ",
@@ -45,11 +42,11 @@ ERRORS = {
 
 
 class PpaError(Exception):
-    """Custom Portfolio Analytics error class.
+    """Represent a package validation or calculation failure.
 
-    Attributes:
-        message: Human-readable error message.
-        code: Optional integer error code for programmatic handling.
+    Notes:
+        When an error code is supplied, its standard package prefix is prepended
+        to the detail message stored in the inherited exception arguments.
     """
 
     def __init__(self, message: str, code: int | None) -> None:

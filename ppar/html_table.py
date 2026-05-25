@@ -25,7 +25,7 @@ _MISSING_VALUE = "<NA>"
 class ColumnSpec:
     """Describe how one DataFrame column should appear in an HTML table.
 
-    Args:
+    Attributes:
         name: Source DataFrame column name.
         label: Optional display label. If omitted, ``name`` is used.
         format: Value formatter to apply to the column.
@@ -42,7 +42,7 @@ class ColumnSpec:
 class SpannerSpec:
     """Describe a grouped header spanning one or more adjacent columns.
 
-    Args:
+    Attributes:
         label: Display label for the spanner.
         columns: Ordered column names covered by the spanner.
     """
@@ -55,7 +55,7 @@ class SpannerSpec:
 class HtmlTable:
     """Small HTML table renderer for formatted report tables.
 
-    Args:
+    Attributes:
         df: Source Polars DataFrame.
         columns: Columns to display, in output order.
         title: Optional title displayed above the header rows.
@@ -223,7 +223,16 @@ class HtmlTable:
         return "\n".join(lines)
 
     def _column_format(self, row: dict[str, object], column: ColumnSpec) -> _ColumnFormat:
-        """Return the effective format for a column in one row."""
+        """Return the effective format for a column in one row.
+
+        Args:
+            row: Data row whose optional override value selects formatting.
+            column: Column specification providing the default format.
+
+        Returns:
+            Row-specific format override, when configured; otherwise, the
+            column's default format.
+        """
         if self.row_format_column is None or self.row_formats is None:
             return column.format
         if column.format != "number":
@@ -355,9 +364,21 @@ def riskstatistics_table(
 
 
 def _attribution_layout(
-    view_name: str, classification_label: str
+    view_name: str, classification_label: str | None
 ) -> tuple[tuple[ColumnSpec, ...], tuple[SpannerSpec, ...]]:
-    """Return column and spanner specs for an attribution view."""
+    """Return column and spanner specifications for an attribution view.
+
+    Args:
+        view_name: Display name identifying the attribution view layout.
+        classification_label: Optional display label for classification columns.
+
+    Returns:
+        Tuple containing ordered table columns and grouped header spanners.
+
+    Raises:
+        ValueError: If ``view_name`` does not identify a supported attribution
+            layout.
+    """
     date_columns = (
         ColumnSpec(cols.BEGINNING_DATE, "Beginning", format="date", align="center"),
         ColumnSpec(cols.ENDING_DATE, "Ending", format="date", align="center"),
@@ -432,25 +453,38 @@ def _attribution_layout(
         )
         return columns, spanners
 
-    columns = date_columns + _number_columns(cols.VIEW_SUBPERIOD_SUMMARY_COLUMNS, entity_labels)
-    spanners = (
-        time_period_spanner,
-        SpannerSpec("Returns", cols.RETURN_COLUMNS),
-        SpannerSpec("Contributions", cols.CONTRIBUTION_COLUMNS_SIMPLE),
-        SpannerSpec("Attribution Effects", cols.ATTRIBUTION_COLUMNS_SIMPLE),
-    )
-    return columns, spanners
+    if view_name == "Sub-Period Summary":
+        columns = date_columns + _number_columns(
+            cols.VIEW_SUBPERIOD_SUMMARY_COLUMNS, entity_labels
+        )
+        spanners = (
+            time_period_spanner,
+            SpannerSpec("Returns", cols.RETURN_COLUMNS),
+            SpannerSpec("Contributions", cols.CONTRIBUTION_COLUMNS_SIMPLE),
+            SpannerSpec("Attribution Effects", cols.ATTRIBUTION_COLUMNS_SIMPLE),
+        )
+        return columns, spanners
+
+    raise ValueError(f"Unknown attribution view: {view_name!r}")
 
 
-def _display_classification_label(classification_label: str) -> str:
+def _display_classification_label(classification_label: str | None) -> str:
     """Return the display label for classification spanners."""
-    return "" if util.is_empty(classification_label) else classification_label
+    return classification_label or ""
 
 
 def _number_columns(
     column_names: Sequence[str], labels: dict[str, str] | None = None
 ) -> tuple[ColumnSpec, ...]:
-    """Return numeric column specs with display labels."""
+    """Return numeric column specifications with display labels.
+
+    Args:
+        column_names: Source numeric columns to include.
+        labels: Optional explicit display-label overrides.
+
+    Returns:
+        Ordered numeric column specifications.
+    """
     return tuple(
         ColumnSpec(column_name, _column_label(column_name, labels), format="number")
         for column_name in column_names
@@ -458,7 +492,15 @@ def _number_columns(
 
 
 def _column_label(column_name: str, labels: dict[str, str] | None = None) -> str:
-    """Return the short display label used by attribution HTML tables."""
+    """Return the display label used by attribution HTML tables.
+
+    Args:
+        column_name: Technical source column name.
+        labels: Optional explicit display-label overrides.
+
+    Returns:
+        Override label when configured; otherwise, a shortened source name.
+    """
     if labels is not None and column_name in labels:
         return labels[column_name]
     labels = {
@@ -518,7 +560,17 @@ def _format_value(
     float_precision: int,
     currency_symbol: str,
 ) -> str:
-    """Format one cell value according to its column format."""
+    """Format one cell value according to its column format.
+
+    Args:
+        value: Raw DataFrame cell value.
+        column_format: Rendering category selected for the column.
+        float_precision: Decimal places to render for numeric values.
+        currency_symbol: Prefix to render for currency values.
+
+    Returns:
+        HTML-safe formatted cell contents.
+    """
     if value is None:
         return _MISSING_VALUE
     if isinstance(value, float) and math.isnan(value):
@@ -538,13 +590,29 @@ def _as_float(value: object) -> float:
 
 
 def _format_number(value: float, precision: int) -> str:
-    """Format a number using tabular-table conventions."""
+    """Format a number using tabular-table conventions.
+
+    Args:
+        value: Numeric value to format.
+        precision: Decimal places to display.
+
+    Returns:
+        Thousands-separated numeric text using an HTML minus sign for negative
+        values.
+    """
     formatted = f"{value:,.{precision}f}"
     return formatted.replace("-", "&minus;", 1) if formatted.startswith("-") else formatted
 
 
 def _style_block(table_class: str) -> str:
-    """Return CSS used by the lightweight HTML renderer."""
+    """Return CSS used by the lightweight HTML renderer.
+
+    Args:
+        table_class: CSS class assigned to the table element.
+
+    Returns:
+        Style element containing the report-table CSS rules.
+    """
     table_selector = f".{html.escape(table_class)}"
     return f"""<style>
 .ppar_table_container {{

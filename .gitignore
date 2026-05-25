@@ -101,6 +101,7 @@ $RECYCLE.BIN/
 
 # Temporary files
 *.~*
+.~lock.*#
 *.temp
 
 # Logs and databases

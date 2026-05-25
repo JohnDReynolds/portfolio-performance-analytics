@@ -27,32 +27,38 @@ portfolio-performance-analytics is a python package (https://pypi.org/project/pp
 
 The below sample outputs portray a large-cap alpha strategy that has achieved a high active return of 1737 bps over the benchmark.  In the total lines of the Economic Sector Attribution reports, you can see that this active return can be broken down into 359 bps in sector allocation and 1378 bps in selecting securities.  From the Risk Statistics report, you can see that this has been accomplished with a lower downside probabilty than the benchmark (29% vs 36%), and a higher annualized sharpe ratio than the benchmark (2.02 vs 1.27).  The largest contributor to active performance was in the Information Technology Sector.  Although the portfolio was slightly under-allocated in the Information Technology sector (by -0.05%), it did an excellent job of selecting securities for a total active contribution of 431 bps in the sector.
 
+<!--
+Image sources are repository-relative so they render for authorized GitHub
+viewers when this repository is private. PyPI cannot render these private
+assets; public image URLs are required there if image display is needed.
+-->
+
 - **Attribution & Contribution**:
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
+<img src="images/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
+<img src="images/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
+<img src="images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
+<img src="images/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
+<img src="images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
+<img src="images/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
+<img src="images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
+<img src="images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
+<img src="images/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
+<img src="images/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
 <br><br><br>
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
+<img src="images/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
 <br><br><br>
 
 - **Ex-Post Risk Statistics**:
-<img src="https://raw.githubusercontent.com/JohnDReynolds/portfolio-performance-analytics/main/images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
+<img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
 <br>
 
 ---
@@ -69,6 +75,18 @@ The input data may be provided directly as either:
 2. Polars DataFrames.
 3. Python dictionaries (for Classifications and Mappings).
 4. csv files.
+
+Portfolio and benchmark performance sources use narrow rows. The `name` column
+is optional; `contribution` and total return are calculated by the package.
+
+```csv
+beginning_date,ending_date,identifier,weight,return,name
+2023-12-31,2024-01-31,AAPL,0.4,-0.0422272121,Apple Inc.
+2023-12-31,2024-01-31,MSFT,0.6,0.0572811503,Microsoft
+```
+
+Wide performance files with per-identifier columns such as `AAPL.ret` and
+`AAPL.wgt` are not supported.
 
 For sample input data sources, please refer to the ``ppar-demo`` command and the ppar/demo_data directory.  Once the input data has been provided, then the analytics may be requested using different calculation parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
@@ -98,6 +116,11 @@ The ``to_html()`` methods return complete HTML document strings. The ``to_table(
 
 ## Installation
 pip install ppar
+
+For chart output, including the chart option in ``ppar-demo``:
+```
+pip install "ppar[charts]"
+```
 
 ---
 

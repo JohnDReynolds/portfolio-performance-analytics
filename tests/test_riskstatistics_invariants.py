@@ -195,8 +195,9 @@ class TestRiskStatisticsInvariants(unittest.TestCase):
             {
                 cols.BEGINNING_DATE: [dt.date(2023, 12, 31), dt.date(2024, 1, 31)],
                 cols.ENDING_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
-                "A.ret": [0.01, -0.02],
-                "A.wgt": [1.0, 1.0],
+                cols.IDENTIFIER: ["A", "A"],
+                cols.RETURN: [0.01, -0.02],
+                cols.WEIGHT: [1.0, 1.0],
             }
         )
         analytics = Analytics(data_source, frequency=Frequency.MONTHLY)

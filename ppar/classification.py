@@ -18,7 +18,7 @@ from ppar.performance import Performance
 import ppar.utilities as util
 
 _EMPTY_DF = pl.DataFrame(
-    {cols.CLASSIFICATION_IDENTIFIER: (util.EMPTY,), cols.CLASSIFICATION_NAME: (util.EMPTY,)}
+    schema={cols.CLASSIFICATION_IDENTIFIER: pl.String, cols.CLASSIFICATION_NAME: pl.String}
 )
 
 
@@ -39,14 +39,15 @@ class Classification:
 
     def __init__(
         self,
-        name: str,
+        name: str | None,
         data_source: util.ClassificationDataSource | None,
         performances: Sequence[Performance] | None = None,
     ):
         """Initialize a classification from a data source or performances.
 
         Args:
-            name: Classification name to use when ``data_source`` is supplied.
+            name: Optional classification name to use when ``data_source`` is
+                supplied.
             data_source: Classification data source. This can be a CSV file
                 path, dictionary, pandas DataFrame, or Polars DataFrame. The
                 data must contain exactly two columns: classification identifier
@@ -74,7 +75,7 @@ class Classification:
                 ``None``.
         """
         # Get the 2-column dataframe [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
-        if data_source is None or util.is_empty_string(data_source):
+        if data_source is None or (isinstance(data_source, str) and not data_source.strip()):
             # Use the performances.classification_items.
             self.name, self.df = Classification._load_from_performances(performances)
         else:
@@ -93,7 +94,7 @@ class Classification:
     @staticmethod
     def _load_from_performances(
         performances: Sequence[Performance] | None,
-    ) -> tuple[str, pl.DataFrame]:
+    ) -> tuple[str | None, pl.DataFrame]:
         """Build classification metadata from portfolio and benchmark data.
 
         Uses the ``classification_items`` DataFrames already stored on the
@@ -111,15 +112,15 @@ class Classification:
         Returns:
             Tuple containing the resolved classification name and a two-column
             Polars DataFrame of classification identifiers and names. Returns
-            ``util.EMPTY`` and an empty placeholder DataFrame when no matching
-            classification data is available.
+            ``None`` and an empty typed DataFrame when no matching classification
+            data is available.
         """
         # Return empty if there are no performances or the portfolio and benchmark are not of the
         # same classifiation_name.
         if (not performances) or (
             performances[0].classification_name != performances[1].classification_name
         ):
-            return util.EMPTY, _EMPTY_DF
+            return None, _EMPTY_DF
 
         # Get the classification items from the portfolio Performance and benchmark Performance.
         # The "reversed" will process the portfolio after the benchmark.  This is so that when we
@@ -135,7 +136,7 @@ class Classification:
 
         # Return empty if the performances do not have any classification_items.
         if not dfs:
-            return util.EMPTY, _EMPTY_DF
+            return None, _EMPTY_DF
 
         # Concatenate the portfolio and benchmark classification itemms, and remove duplicates.
         df = pl.concat(dfs, how="vertical")

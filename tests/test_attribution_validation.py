@@ -27,8 +27,9 @@ class TestAttributionValidation(unittest.TestCase):
             {
                 cols.BEGINNING_DATE: [dt.date(1979, 12, 14)],
                 cols.ENDING_DATE: [dt.date(1979, 12, 15)],
-                "aapl.ret": [-1.0521707668],
-                "aapl.wgt": [1.0],
+                cols.IDENTIFIER: ["aapl"],
+                cols.RETURN: [-1.0521707668],
+                cols.WEIGHT: [1.0],
             }
         )
 

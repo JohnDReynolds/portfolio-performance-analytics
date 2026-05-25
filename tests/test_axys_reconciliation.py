@@ -1,19 +1,19 @@
 """Focused in-memory tests for Axys secperf reconciliation calculations."""
 
-# pylint: disable=protected-access
-# pyright: reportPrivateUsage=false
-
 # Python Imports
 import datetime as dt
 import math
-from pathlib import Path
 import unittest
 
 # Third-Party Imports
 import polars as pl
 
 # Project Imports
-from ppar.axysdata import AxysData
+from ppar.axys.reconciliation import (
+    derive_reconciled_weights,
+    derive_secperf_for_all_periods,
+    filter_to_common_periods,
+)
 import ppar.columns as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
@@ -23,14 +23,9 @@ _BEGINNING_DATE = dt.date(2023, 12, 31)
 _ENDING_DATE = dt.date(2024, 1, 31)
 
 
-def _empty_axys_data() -> AxysData:
-    """Return an AxysData shell for exercising DataFrame-based calculations."""
-    axys_data = AxysData.__new__(AxysData)
-    axys_data.specifications_path = Path("in_memory.yaml")
-    axys_data.from_date = None
-    axys_data.thru_date = None
-    axys_data.portfolio_code = "PORT"
-    return axys_data
+def _error_message(message: str) -> str:
+    """Return calculation-only error details unchanged."""
+    return message
 
 
 def _single_period_secperf(
@@ -78,7 +73,7 @@ class TestAxysReconciliation(unittest.TestCase):
             weights=[0.50, 0.50],
         )
 
-        weights, achieved_return = _empty_axys_data()._derive_reconciled_weights(
+        weights, achieved_return = derive_reconciled_weights(
             secperf,
             portfolio_return=0.04,
         )
@@ -95,7 +90,7 @@ class TestAxysReconciliation(unittest.TestCase):
             weights=[None, -0.50],
         )
 
-        weights, achieved_return = _empty_axys_data()._derive_reconciled_weights(
+        weights, achieved_return = derive_reconciled_weights(
             secperf,
             portfolio_return=0.0,
         )
@@ -111,7 +106,7 @@ class TestAxysReconciliation(unittest.TestCase):
             weights=[0.50, 0.50],
         )
 
-        weights, achieved_return = _empty_axys_data()._derive_reconciled_weights(
+        weights, achieved_return = derive_reconciled_weights(
             secperf,
             portfolio_return=0.08,
         )
@@ -124,8 +119,7 @@ class TestAxysReconciliation(unittest.TestCase):
         """Only periods represented in both files proceed to reconciliation."""
         february_end = dt.date(2024, 2, 29)
         march_end = dt.date(2024, 3, 31)
-        axys_data = _empty_axys_data()
-        axys_data.portperf = pl.DataFrame(
+        portperf = pl.DataFrame(
             {
                 cols.PORTFOLIO_CODE: ["PORT", "PORT"],
                 cols.BEGINNING_DATE: [_BEGINNING_DATE, _ENDING_DATE],
@@ -133,7 +127,7 @@ class TestAxysReconciliation(unittest.TestCase):
                 cols.PORTFOLIO_RETURN: [0.04, 0.03],
             }
         )
-        axys_data.secperf = pl.DataFrame(
+        secperf = pl.DataFrame(
             {
                 cols.PORTFOLIO_CODE: ["PORT", "PORT"],
                 cols.BEGINNING_DATE: [_ENDING_DATE, february_end],
@@ -142,43 +136,43 @@ class TestAxysReconciliation(unittest.TestCase):
             }
         )
 
-        portperf, secperf = axys_data._filter_to_common_periods()
+        portperf, secperf = filter_to_common_periods(portperf, secperf, _error_message)
 
         self.assertEqual(portperf[cols.ENDING_DATE].to_list(), [february_end])
         self.assertEqual(secperf[cols.ENDING_DATE].to_list(), [february_end])
 
     def test_all_period_reconciliation_preserves_duplicate_identifier_rows(self) -> None:
         """Row-grain inputs remain separate even when identifiers repeat."""
-        axys_data = _empty_axys_data()
-        axys_data.portperf = _single_period_portperf(0.04)
-        axys_data.secperf = _single_period_secperf(
+        portperf = _single_period_portperf(0.04)
+        secperf = _single_period_secperf(
             contributions=[0.06, -0.02],
             returns=[0.10, -0.05],
             weights=[0.50, 0.50],
             identifiers=["A", "A"],
         )
 
-        unreconciled = axys_data._derive_secperf_for_all_periods()
+        reconciled, unreconciled = derive_secperf_for_all_periods(
+            portperf, secperf, _error_message
+        )
 
         self.assertEqual(unreconciled, set())
-        self.assertEqual(axys_data.secperf.height, 2)
-        self.assertEqual(axys_data.secperf[cols.IDENTIFIER].to_list(), ["A", "A"])
-        weights = axys_data.secperf[cols.WEIGHT].to_list()
+        self.assertEqual(reconciled.height, 2)
+        self.assertEqual(reconciled[cols.IDENTIFIER].to_list(), ["A", "A"])
+        weights = reconciled[cols.WEIGHT].to_list()
         self.assertTrue(math.isclose(weights[0], 0.60, abs_tol=1e-12))
         self.assertTrue(math.isclose(weights[1], 0.40, abs_tol=1e-12))
 
     def test_unreachable_period_return_raises_reconciliation_error(self) -> None:
         """A target outside the available return range cannot be reconciled."""
-        axys_data = _empty_axys_data()
-        axys_data.portperf = _single_period_portperf(0.10)
-        axys_data.secperf = _single_period_secperf(
+        portperf = _single_period_portperf(0.10)
+        secperf = _single_period_secperf(
             contributions=[0.005, 0.01],
             returns=[0.01, 0.02],
             weights=[0.50, 0.50],
         )
 
         with self.assertRaisesRegex(PpaError, errs.ERRORS[503]):
-            axys_data._derive_secperf_for_all_periods()
+            derive_secperf_for_all_periods(portperf, secperf, _error_message)
 
 
 if __name__ == "__main__":

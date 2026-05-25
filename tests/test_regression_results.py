@@ -66,10 +66,18 @@ class TestRegressionResults(unittest.TestCase):
         subperiods = attribution.to_polars(View.SUBPERIOD_SUMMARY)
         detail = attribution.to_polars(View.OVERALL_ATTRIBUTION)
 
-        self.assertTrue(util.are_near(subperiods[cols.PORTFOLIO_RETURN].item(0), 0.03638750268034727))
-        self.assertTrue(util.are_near(subperiods[cols.PORTFOLIO_RETURN].item(1), 0.004100599095234386))
-        self.assertTrue(util.are_near(subperiods[cols.BENCHMARK_RETURN].item(0), 0.03964350666619861))
-        self.assertTrue(util.are_near(subperiods[cols.BENCHMARK_RETURN].item(2), 0.06673607157200062))
+        self.assertTrue(
+            util.are_near(subperiods[cols.PORTFOLIO_RETURN].item(0), 0.03638750268034727)
+        )
+        self.assertTrue(
+            util.are_near(subperiods[cols.PORTFOLIO_RETURN].item(1), 0.004100599095234386)
+        )
+        self.assertTrue(
+            util.are_near(subperiods[cols.BENCHMARK_RETURN].item(0), 0.03964350666619861)
+        )
+        self.assertTrue(
+            util.are_near(subperiods[cols.BENCHMARK_RETURN].item(2), 0.06673607157200062)
+        )
         self.assertTrue(
             util.are_near(detail[cols.ALLOCATION_EFFECT_SMOOTHED].item(1), -0.0000097757165254280)
         )
@@ -77,12 +85,18 @@ class TestRegressionResults(unittest.TestCase):
             util.are_near(detail[cols.SELECTION_EFFECT_SMOOTHED].item(1), -0.0016362229861442853)
         )
 
-        legacy_detail = attribution._construct_df_for_detail_views(View.SUBPERIOD_ATTRIBUTION).collect()
+        constructed_detail = attribution._construct_df_for_detail_views(
+            View.SUBPERIOD_ATTRIBUTION
+        ).collect()
         self.assertTrue(
-            util.are_near(legacy_detail[cols.PORTFOLIO_CONTRIB_SMOOTHED].item(4), 0.01900264215424944)
+            util.are_near(
+                constructed_detail[cols.PORTFOLIO_CONTRIB_SMOOTHED].item(4), 0.01900264215424944
+            )
         )
         self.assertTrue(
-            util.are_near(legacy_detail[cols.BENCHMARK_CONTRIB_SMOOTHED].item(4), 0.019577639459518823)
+            util.are_near(
+                constructed_detail[cols.BENCHMARK_CONTRIB_SMOOTHED].item(4), 0.019577639459518823
+            )
         )
 
     def test_attribution_csv_results_and_serialization_paths(self) -> None:
@@ -108,7 +122,7 @@ class TestRegressionResults(unittest.TestCase):
         for classification_name in ("Security", "Economic Sector"):
             attribution = test_util.get_attribution(analytics, classification_name)
             for view in View:
-                columns_to_sort: str | list[str] = util.EMPTY
+                columns_to_sort: str | list[str] | None = None
                 sort_descendings: bool | list[bool] = False
                 if view == View.SUBPERIOD_ATTRIBUTION:
                     columns_to_sort = [
@@ -135,7 +149,7 @@ class TestRegressionResults(unittest.TestCase):
 
             if classification_name == "Economic Sector":
                 for chart in Chart:
-                    columns_to_sort = util.EMPTY
+                    columns_to_sort = None
                     sort_descendings = False
                     if chart == Chart.OVERALL_ATTRIBUTION:
                         columns_to_sort = [cols.CLASSIFICATION_NAME]
@@ -191,8 +205,12 @@ class TestRegressionResults(unittest.TestCase):
                 0.1294716319583555,
             )
         )
-        self.assertTrue(util.are_near(economic_sector._df[cols.TOTAL_EFFECT_SMOOTHED][3], 0.1585372255258416))
-        self.assertTrue(util.are_near(economic_sector._df[cols.ACTIVE_CONTRIB_SMOOTHED][3], 0.1463257464885667))
+        self.assertTrue(
+            util.are_near(economic_sector._df[cols.TOTAL_EFFECT_SMOOTHED][3], 0.1585372255258416)
+        )
+        self.assertTrue(
+            util.are_near(economic_sector._df[cols.ACTIVE_CONTRIB_SMOOTHED][3], 0.1463257464885667)
+        )
 
     def test_riskstatistics_csv_results_and_serialization_paths(self) -> None:
         """Risk-statistics output retains its CSV baseline and serialization paths."""

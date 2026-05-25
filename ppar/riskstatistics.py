@@ -10,7 +10,6 @@ for a portfolio and benchmark return series.
 import datetime as dt
 from enum import Enum
 import math
-from pathlib import Path
 from typing import cast, Sequence
 
 # Third-Party Imports
@@ -18,13 +17,14 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import polars as pl
-from scipy.stats import norm  # type: ignore
+from scipy.stats import norm  # pyright: ignore[reportMissingTypeStubs]
 
 # Project Imports
 import ppar.columns as cols
 from ppar.errors import PpaError
 from ppar.frequency import Frequency, periods_per_year
-import ppar.html_table as html_table
+from ppar import html_table
+from ppar import output
 from ppar.performance import Performance
 import ppar.utilities as util
 
@@ -92,22 +92,15 @@ class RiskStatistics:
     of periodic returns. It calculates the statistics enumerated by
     ``_Statistic`` and stores the formatted results in a Polars DataFrame.
 
-    Public output methods:
-        1. ``to_html()``
-        2. ``to_json()``
-        3. ``to_pandas()``
-        4. ``to_polars()``
-        5. ``to_table()``
-        6. ``to_xml()``
-        7. ``write_csv()``
+    Notes:
+        Results can be retrieved using ``to_html()``, ``to_json()``,
+        ``to_pandas()``, ``to_polars()``, ``to_table()``, or ``to_xml()``, and
+        written using ``write_csv()``.
     """
 
     def __init__(
         self,
-        returns: (
-            Sequence[Performance]
-            | Sequence[npt.NDArray[np.float64]]
-        ),
+        returns: Sequence[Performance] | Sequence[npt.NDArray[np.float64]],
         frequency: Frequency,
         annual_minimum_acceptable_return: float = util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN,
         annual_risk_free_rate: float = util.DEFAULT_ANNUAL_RISK_FREE_RATE,
@@ -152,12 +145,14 @@ class RiskStatistics:
 
         # Set the dates, names and returns depending on the input parameters.
         if isinstance(returns[0], Performance) and isinstance(returns[1], Performance):
-            self._beginning_date = returns[0].df[cols.BEGINNING_DATE][0]
-            self._ending_date = returns[0].df[cols.ENDING_DATE][-1]
+            portfolio_totals = returns[0].period_totals()
+            benchmark_totals = returns[1].period_totals()
+            self._beginning_date = portfolio_totals[cols.BEGINNING_DATE][0]
+            self._ending_date = portfolio_totals[cols.ENDING_DATE][-1]
             self._portfolio_name = returns[0].name
             self._benchmark_name = returns[1].name
-            self._portfolio_returns = returns[0].df[cols.TOTAL_RETURN].to_numpy()
-            self._benchmark_returns = returns[1].df[cols.TOTAL_RETURN].to_numpy()
+            self._portfolio_returns = portfolio_totals[cols.TOTAL_RETURN].to_numpy()
+            self._benchmark_returns = benchmark_totals[cols.TOTAL_RETURN].to_numpy()
             self._performances_to_audit: Sequence[Performance] = cast(
                 Sequence[Performance], returns
             )
@@ -190,7 +185,7 @@ class RiskStatistics:
         if np.any(np.isnan(self._portfolio_returns)) or np.any(np.isnan(self._benchmark_returns)):
             raise PpaError("", 405)
 
-        # If Performance objects were supplied directly, validate that the returns are date-aligned.
+        # If Performance objects were supplied directly, validate date alignment.
         if self._performances_to_audit:
             self._audit()
 
@@ -604,7 +599,7 @@ class RiskStatistics:
         Returns:
             JSON representation of the risk-statistics DataFrame.
         """
-        return self.to_pandas().to_json(double_precision=float_precision)  # type: ignore
+        return output.to_json(self._df, float_precision)
 
     def to_pandas(self) -> pd.DataFrame:
         """Return the statistics as a pandas DataFrame.
@@ -612,7 +607,7 @@ class RiskStatistics:
         Returns:
             pandas DataFrame containing the calculated risk statistics.
         """
-        return self._df.to_pandas()
+        return output.to_pandas(self._df)
 
     def to_polars(self) -> pl.DataFrame:
         """Return the statistics as a Polars DataFrame.
@@ -639,7 +634,7 @@ class RiskStatistics:
     def _title_and_subtitle(self) -> tuple[str, str]:
         """Return title and subtitle text for risk-statistics output."""
         return (
-            f"{self._portfolio_name} vs {self._benchmark_name}",
+            f"{self._portfolio_name or ''} vs {self._benchmark_name or ''}",
             f"Ex-Post Risk Statistics: {self._frequency.value} from {self._beginning_date} to "
             f"{self._ending_date}",
         )
@@ -650,7 +645,7 @@ class RiskStatistics:
         Returns:
             XML representation of the risk-statistics DataFrame.
         """
-        return self.to_pandas().to_xml()
+        return output.to_xml(self._df)
 
     def write_csv(
         self, file_path: util.PathLike, float_precision: int = _DEFAULT_OUTPUT_PRECISION
@@ -662,5 +657,4 @@ class RiskStatistics:
             float_precision: Number of decimal places to write for floating
                 point values.
         """
-        file_path = Path(file_path)
-        self._df.write_csv(file_path, float_precision=float_precision)
+        output.write_csv(self._df, file_path, float_precision)

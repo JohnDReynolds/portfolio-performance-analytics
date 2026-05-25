@@ -23,15 +23,14 @@ _PERIODS = [
 
 
 def _two_asset_performance() -> pl.DataFrame:
-    """Return three periods of wide-format performance data."""
+    """Return three periods of narrow-format performance data."""
     return pl.DataFrame(
         {
-            cols.BEGINNING_DATE: [period[0] for period in _PERIODS],
-            cols.ENDING_DATE: [period[1] for period in _PERIODS],
-            "A.ret": [0.10, 0.03, -0.02],
-            "A.wgt": [0.60, 0.60, 0.60],
-            "B.ret": [-0.05, 0.02, 0.04],
-            "B.wgt": [0.40, 0.40, 0.40],
+            cols.BEGINNING_DATE: [period[0] for period in _PERIODS for _ in ("A", "B")],
+            cols.ENDING_DATE: [period[1] for period in _PERIODS for _ in ("A", "B")],
+            cols.IDENTIFIER: ["A", "B"] * len(_PERIODS),
+            cols.RETURN: [0.10, -0.05, 0.03, 0.02, -0.02, 0.04],
+            cols.WEIGHT: [0.60, 0.40] * len(_PERIODS),
         }
     )
 
@@ -98,12 +97,9 @@ class TestAnalyticsContracts(unittest.TestCase):
 
     def test_detail_view_zero_fills_identifier_missing_from_benchmark(self) -> None:
         """Attribution aligns asymmetric holdings on one classification grid."""
-        portfolio = _two_asset_performance().head(1)
-        benchmark = portfolio.select(
-            cols.BEGINNING_DATE,
-            cols.ENDING_DATE,
-            pl.col("A.ret"),
-            pl.lit(1.0).alias("A.wgt"),
+        portfolio = _two_asset_performance().head(2)
+        benchmark = portfolio.filter(pl.col(cols.IDENTIFIER) == "A").with_columns(
+            pl.lit(1.0).alias(cols.WEIGHT)
         )
 
         detail = Analytics(portfolio, benchmark).get_attribution().to_polars(

@@ -46,7 +46,14 @@ RENDER_CONFIG = {
 
 
 def main() -> None:
-    """Render all README table screenshots."""
+    """Render all README table screenshots.
+
+    Raises:
+        RuntimeError: If Chrome or Chromium cannot be found.
+        subprocess.CalledProcessError: If Chrome cannot render a screenshot.
+        OSError: If temporary or generated image files cannot be read or
+            written.
+    """
     chrome_path = _find_chrome()
     with tempfile.TemporaryDirectory(prefix="ppar_readme_images_") as temp_dir_name:
         temp_dir = Path(temp_dir_name)
@@ -58,7 +65,18 @@ def main() -> None:
 
 
 def _write_html_inputs(temp_dir: Path) -> dict[str, Path]:
-    """Write temporary HTML files for the README table images."""
+    """Write temporary HTML inputs for the README table images.
+
+    Args:
+        temp_dir: Temporary directory in which to write HTML files.
+
+    Returns:
+        Mapping from README image stem to its temporary HTML input path.
+
+    Raises:
+        OSError: If an HTML input file cannot be written.
+        PpaError: If construction of demonstration analytics output fails.
+    """
     analytics = Analytics(
         demo_data.performance_data_source("Large-Cap Alpha Portfolio.csv"),
         demo_data.performance_data_source("Large-Cap Benchmark.csv"),
@@ -97,7 +115,17 @@ def _render_png(
     png_path: Path,
     window_size: Sequence[int],
 ) -> None:
-    """Render one HTML file to PNG using headless Chrome."""
+    """Render one HTML file to PNG using headless Chrome.
+
+    Args:
+        chrome_path: Path or executable name for Chrome or Chromium.
+        html_path: HTML document to render.
+        png_path: PNG output path.
+        window_size: Browser viewport width and height in pixels.
+
+    Raises:
+        subprocess.CalledProcessError: If the Chrome rendering process fails.
+    """
     command = [
         chrome_path,
         "--headless=new",
@@ -112,7 +140,16 @@ def _render_png(
 
 
 def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
-    """Crop white screenshot margins and save a high-quality JPG."""
+    """Crop white screenshot margins and save a high-quality JPEG.
+
+    Args:
+        png_path: Rendered PNG screenshot to open.
+        jpg_path: Destination JPEG path.
+
+    Raises:
+        OSError: If the source image cannot be opened or the destination image
+            cannot be written.
+    """
     image = Image.open(png_path).convert("RGB")
     white = Image.new("RGB", image.size, (255, 255, 255))
     bbox = ImageChops.difference(image, white).getbbox()
@@ -133,7 +170,14 @@ def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
 
 
 def _find_chrome() -> str:
-    """Return the Chrome executable used for screenshot rendering."""
+    """Return the Chrome executable used for screenshot rendering.
+
+    Returns:
+        Existing Chrome or Chromium executable path or discoverable command.
+
+    Raises:
+        RuntimeError: If no configured Chrome or Chromium executable exists.
+    """
     for candidate in CHROME_CANDIDATES:
         path = shutil.which(candidate) if "/" not in candidate else candidate
         if path and Path(path).exists():

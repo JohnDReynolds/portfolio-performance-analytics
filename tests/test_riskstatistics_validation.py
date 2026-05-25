@@ -66,9 +66,20 @@ class TestRiskStatisticsValidation(unittest.TestCase):
 
     def test_parametric_var_uses_lower_tail_loss(self) -> None:
         """Value at risk reports lower-tail loss rather than upper-tail movement."""
+        risk_statistics = RiskStatistics(
+            (np.array([-0.01, 0.03]), np.array([-0.01, 0.03])),
+            Frequency.MONTHLY,
+            confidence_level=0.95,
+            portfolio_value=(100_000, "$"),
+        )
+        output = risk_statistics.to_polars()
+        value_at_risk = output.filter(pl.col("column") == "Monthly Value At Risk for $100,000")[
+            "Portfolio"
+        ].item()
+
         self.assertTrue(
             math.isclose(
-                RiskStatistics._parametric_var(0.01, 0.02, 0.95, 100_000),
+                value_at_risk,
                 2289.7072539029457,
             )
         )
@@ -80,8 +91,9 @@ class TestRiskStatisticsValidation(unittest.TestCase):
                 {
                     cols.BEGINNING_DATE: [dt.date(2023, 1, 31), dt.date(2023, 2, 28)],
                     cols.ENDING_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
-                    "A.ret": [0.01, 0.02],
-                    "A.wgt": [1.0, 1.0],
+                    cols.IDENTIFIER: ["A", "A"],
+                    cols.RETURN: [0.01, 0.02],
+                    cols.WEIGHT: [1.0, 1.0],
                 }
             )
         )
@@ -90,8 +102,9 @@ class TestRiskStatisticsValidation(unittest.TestCase):
                 {
                     cols.BEGINNING_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
                     cols.ENDING_DATE: [dt.date(2023, 3, 31), dt.date(2023, 4, 30)],
-                    "A.ret": [0.03, 0.04],
-                    "A.wgt": [1.0, 1.0],
+                    cols.IDENTIFIER: ["A", "A"],
+                    cols.RETURN: [0.03, 0.04],
+                    cols.WEIGHT: [1.0, 1.0],
                 }
             )
         )

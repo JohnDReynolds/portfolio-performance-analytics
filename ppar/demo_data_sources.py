@@ -1,9 +1,8 @@
-"""
-This module contains custom functions for the Classification, Mapping, and Performance data
-sources.  It has been designed for the test data.  The functions in this module deliver the path
-of csv files containing the data.  Users can alternatively create their own custom data source
-functions that query databases and then deliver pandas dataframes, polars dataframes, or python
-dictionaries.
+"""Provide bundled data sources used by the demonstration application.
+
+These helpers return paths to packaged CSV fixtures for performance,
+classification, and mapping inputs. Applications may instead supply their own
+supported paths, dictionaries, or DataFrames to the analytics APIs.
 """
 
 # Python Imports
@@ -19,30 +18,33 @@ _DEMO_DATA_DIRECTORY = files("ppar.demo_data")
 
 
 def _demo_data_path(relative_path: str) -> Path:
-    """Return a filesystem path for a packaged demo-data resource."""
+    """Return a filesystem path for a packaged demo-data resource.
+
+    Args:
+        relative_path: Resource path relative to the demo-data package.
+
+    Returns:
+        Filesystem path representing the packaged resource.
+    """
     return Path(str(_DEMO_DATA_DIRECTORY.joinpath(relative_path)))
 
 
 def classification_data_source(
     classification_name: str | None = None,
-) -> util.PathLike:
-    """
-    This is a custom function for the Classification data source.  It has been designed for the
-    test data.  Users can create their own function(s) to deliver the data.
+) -> util.PathLike | None:
+    """Return a bundled classification data source.
 
     Args:
-        classification_name (str | None, optional): The Classification name.
-            Defaults to None.
+        classification_name: Classification name whose packaged CSV should be
+            loaded.
 
     Returns:
-        Path | str: The classification file path, or util.EMPTY when no classification was
-        requested.
+        Classification file path, or ``None`` when no classification was requested.
     """
     classification_name = util.normalize_optional_string(classification_name)
 
-    # Return util.EMPTY if the classification_name is empty.
-    if util.is_empty(classification_name):
-        return util.EMPTY
+    if classification_name is None:
+        return None
 
     # Return the path to the csv file containing the classification data.
     return _demo_data_path(f"classifications/{classification_name}.csv")
@@ -50,30 +52,28 @@ def classification_data_source(
 
 def mapping_data_sources(
     analytics: Analytics, to_classification_name: str | None = None
-) -> tuple[util.MappingDataSource, util.MappingDataSource]:
-    """
-    This is a custom function for the Mapping data sources.  It has been designed for the
-    test data.  Users can create their own function(s) to deliver the data.
+) -> tuple[util.MappingDataSource | None, util.MappingDataSource | None]:
+    """Return bundled portfolio and benchmark mapping data sources.
 
     Args:
-        analytics (Analytics): The Analytics instance.
-        to_classification_name (str, optional): The Classification name to map to.
-            Defaults to None.
+        analytics: Analytics instance whose input classification names determine
+            the required mappings.
+        to_classification_name: Destination classification name.
 
     Returns:
-        tuple[util.MappingDataSource, util.MappingDataSource]: A tuple of 2 mapping
-        data sources (0 = Portfolio Data Source, 1 = Benchmark Data Source)
+        Two-item tuple of portfolio and benchmark mapping sources. A source is
+        ``None`` when its performance already uses the destination
+        classification or no destination was requested.
     """
     to_classification_name = util.normalize_optional_string(to_classification_name)
 
-    # Return (util.EMPTY, util.EMPTY) if the classification_name is empty.
-    if util.is_empty(to_classification_name):
-        return (util.EMPTY, util.EMPTY)
+    if to_classification_name is None:
+        return (None, None)
 
     # Build the tuple of mapping data sources containing the csv file paths.
-    mapping_list: list[util.MappingDataSource] = [
+    mapping_list: list[util.MappingDataSource | None] = [
         (
-            util.EMPTY
+            None
             if from_classification_name == to_classification_name
             else _demo_data_path(
                 f"mappings/{from_classification_name}--to--{to_classification_name}.csv"
@@ -87,15 +87,13 @@ def mapping_data_sources(
 
 
 def performance_data_source(performance_name: str) -> Path:
-    """
-    This is a custom function for the Performance data source.  It has been designed for the
-    test data.  Users can create their own function(s) to deliver the data.
+    """Return the bundled CSV path for a named performance source.
 
     Args:
-        performance_name (str): The performance name.
+        performance_name: File name of the packaged performance source.
 
     Returns:
-        Path: The path of the performance file corresponding to performance_name.
+        Path to the requested packaged performance file.
     """
     # Return the path of the performance file corresponding to performance_name.
     return _demo_data_path(f"performance/{performance_name}")

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import tempfile
 import time
-from typing import Any, Iterable, Sequence, TypeAlias
+from typing import Iterable, Sequence, TypeAlias
 import webbrowser
 
 # Third-Party Imports
@@ -36,7 +36,6 @@ DEFAULT_CURRENCY_SYMBOL = "$"
 DEFAULT_PORTFOLIO_VALUE = 100_000  # $100,000
 ENCODING = "utf-8"
 _UNDEFINED_RETURN = -1.0
-EMPTY = "_empty_"  # Legacy sentinel. Prefer None in public APIs.
 
 
 class Tolerance(Enum):
@@ -162,7 +161,8 @@ def file_path_error(file_path: PathLike) -> str:
         The empty-path error message if ``file_path`` is empty; otherwise, the
         missing-file error message with ``file_path`` appended.
     """
-    return errs.ERRORS[804] if is_empty(file_path) else f"{errs.ERRORS[802]}{file_path}"
+    is_blank_path = isinstance(file_path, str) and not file_path.strip()
+    return errs.ERRORS[804] if is_blank_path else f"{errs.ERRORS[802]}{file_path}"
 
 
 def file_path_exists(file_path: PathLike) -> bool:
@@ -175,7 +175,7 @@ def file_path_exists(file_path: PathLike) -> bool:
         True if ``file_path`` is non-empty, exists, and is a file; otherwise,
         False.
     """
-    if is_empty(file_path):
+    if isinstance(file_path, str) and not file_path.strip():
         return False
     return Path(file_path).is_file()
 
@@ -193,58 +193,17 @@ def has_directory(path_str: PathLike) -> bool:
     return Path(path_str).parent != Path(".")
 
 
-def is_empty_string(thing: Any) -> bool:
-    """Return whether a value is an empty string or legacy empty marker.
-
-    Args:
-        thing: The value to test.
-
-    Returns:
-        True if ``thing`` is a string equal to ``EMPTY`` or contains only
-        whitespace; otherwise, False.
-    """
-    return isinstance(thing, str) and (thing == EMPTY or (not thing.strip()))
-
-
-def is_empty(thing: Any) -> bool:
-    """Return whether a value is an empty string or legacy empty marker.
-
-    This compatibility alias preserves the historical helper name. Prefer
-    ``is_empty_string()`` in new code when the value being tested is string-like.
-
-    Args:
-        thing: The value to test.
-
-    Returns:
-        True if ``thing`` is a string equal to ``EMPTY`` or contains only
-        whitespace; otherwise, False.
-    """
-    return is_empty_string(thing)
-
-
-def is_missing(thing: Any) -> bool:
-    """Return whether a public optional argument was not supplied.
-
-    Args:
-        thing: The value to test.
-
-    Returns:
-        True for ``None`` or an empty string marker; otherwise, False.
-    """
-    return thing is None or is_empty_string(thing)
-
-
-def normalize_optional_string(value: str | None) -> str:
-    """Normalize optional public string arguments to the legacy empty marker.
+def normalize_optional_string(value: str | None) -> str | None:
+    """Normalize optional public string arguments to ``None``.
 
     Args:
         value: Optional string value supplied by the caller.
 
     Returns:
-        ``EMPTY`` for ``None`` or blank/legacy-empty strings; otherwise, ``value``.
+        ``None`` for omitted or blank strings; otherwise, ``value``.
     """
-    if value is None or is_empty_string(value):
-        return EMPTY
+    if value is None or not value.strip():
+        return None
     return value
 
 

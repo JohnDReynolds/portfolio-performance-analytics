@@ -1,4 +1,4 @@
-"""As of May 2026, this is a work-in-progress.  It has not been published in the PyPI package."""
+"""Demonstrate Axys-backed analytics and attribution output."""
 
 # Imports below the repository path bootstrap are intentional for direct execution.
 # pylint: disable=wrong-import-order,wrong-import-position
@@ -15,18 +15,23 @@ sys.path.insert(0, str(_REPO_ROOT))
 # Project imports
 from ppar.analytics import Analytics  # noqa: E402
 from ppar.attribution import View  # noqa: E402
-from ppar.axysdata import AxysData  # noqa: E402
+from ppar.axys import AxysData  # noqa: E402
 import ppar.utilities as util  # noqa: E402
 
 _CLASSIFICATION_NAME = "Sector2"  # "Security", "Sector1", "Sector2"
 _MAPPING_NAME = "SecurityToSector" if _CLASSIFICATION_NAME.startswith("Sector") else None
 _PORTFOLIO_CODES = ("PORT_SMALL", "PORT_LARGE")
 _SECPERF_CLASSIFICATION_NAME = "Security"  # Always "Security"
-_AXYS_SPECIFICATIONS_PATH = _REPO_ROOT / "tests" / "data" / "axys_perf" / "axysdata.yaml"
+_AXYS_SPECIFICATIONS_PATH = _REPO_ROOT / "tests" / "data" / "axys_validation" / "axysdata.yaml"
 
 
 def main() -> None:
-    """Run the temporary Axys performance demonstration."""
+    """Run the Axys analytics demonstration.
+
+    Raises:
+        PpaError: If Axys source validation, reconciliation, or analytics
+            calculations fail.
+    """
     time_start = time.perf_counter()
 
     axys_data = AxysData(

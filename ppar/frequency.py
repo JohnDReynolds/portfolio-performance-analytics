@@ -1,7 +1,4 @@
-"""
-This module contains the ``Frequency`` enumeration and helper functions for
-working with reporting frequencies and calendar-aligned period boundaries.
-"""
+"""Define reporting frequencies and calendar-aligned period helpers."""
 
 # Pyton imports
 import calendar

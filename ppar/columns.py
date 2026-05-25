@@ -7,9 +7,6 @@ translate between related performance columns, such as return, weight, and
 contribution columns.
 """
 
-# Python Imports
-from typing import Iterable
-
 # All Column Names
 ACTIVE_CONTRIB_SMOOTHED = "Active_Contribution_Smoothed"
 ACTIVE_CONTRIB_SIMPLE = "Active_Contribution_Simple"
@@ -139,41 +136,6 @@ VIEW_SUBPERIOD_SUMMARY_COLUMNS = (
     RETURN_COLUMNS + CONTRIBUTION_COLUMNS_SIMPLE + ATTRIBUTION_COLUMNS_SIMPLE
 )
 
-# Performance column suffixes
-AEL = ".ael"  # Allocation Effect smoothed (log-linked)
-AES = ".aes"  # Allocation Effect simple
-BCL = ".bcl"  # Benchmark Contribution smoothed (log-linked)
-BCS = ".bcs"  # Benchmark Contribution simple
-CON = ".con"  # Contribution
-PCL = ".pcl"  # Portfolio Contribution smoothed (log-linked)
-PCS = ".pcs"  # Portfolio Contribution simple
-RET = ".ret"  # Return
-SEL = ".sel"  # Selection Effect smoothed (log-linked)
-SES = ".ses"  # Selection Effect simple
-WGT = ".wgt"  # Weight
-
-
-def col_names(from_col_names: Iterable[str], to_col_name_suffix: str) -> list[str]:
-    """Return related column names with a replacement suffix.
-
-    Each input column name is expected to use one of the package's four-character
-    performance suffixes, such as ``.ret``, ``.wgt``, or ``.con``. The function
-    removes the final four characters from each input name and appends
-    ``to_col_name_suffix``.
-
-    Args:
-        from_col_names (Iterable[str]): Column names whose final four characters
-            should be replaced.
-        to_col_name_suffix (str): Replacement suffix to append to each base
-            column name.
-
-    Returns:
-        list[str]: Column names with ``to_col_name_suffix`` appended to each
-        input column's base name.
-    """
-    return [f"{from_name[:-4]}{to_col_name_suffix}" for from_name in from_col_names]
-
-
 def short_column_name(full_column_name: str) -> str:
     """Return a shorter display label for a technical column name.
 
@@ -182,10 +144,10 @@ def short_column_name(full_column_name: str) -> str:
     column lookups.
 
     Args:
-        full_column_name (str): Technical column name to shorten.
+        full_column_name: Technical column name to shorten.
 
     Returns:
-        str: Shortened, space-separated display label.
+        Shortened, space-separated display label.
     """
     return (
         full_column_name.replace("Cumulative", "")

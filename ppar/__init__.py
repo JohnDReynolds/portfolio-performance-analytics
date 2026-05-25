@@ -1,6 +1,4 @@
-"""
-Imports and public exposure for the package.
-"""
+"""Expose the public portfolio performance analytics API."""
 
 # Explicitly import the specific members or modules.
 # If they are defined below in __all__, then they must be imported here.

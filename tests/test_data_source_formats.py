@@ -6,6 +6,7 @@
 
 # Python Imports
 import datetime as dt
+from collections.abc import Sequence
 import unittest
 
 # Third-Party Imports
@@ -131,13 +132,12 @@ class TestDataSourceFormats(unittest.TestCase):
         expected_html = test_util.get_attribution(expected_analytics, "Security").to_html(
             View.OVERALL_ATTRIBUTION
         )
-        performance_dict: dict[str, list[dt.date | float]] = {
-            cols.BEGINNING_DATE: [dt.date(2023, 12, 31), dt.date(2024, 1, 31)],
-            cols.ENDING_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
-            "AAPL.wgt": [0.5, 0.5],
-            "MSFT.wgt": [0.5, 0.5],
-            "AAPL.ret": [-0.0422272121, -0.019793881],
-            "MSFT.ret": [0.0572811503, 0.0403944092],
+        performance_dict: dict[str, Sequence[dt.date | str | float]] = {
+            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 2 + [dt.date(2024, 1, 31)] * 2,
+            cols.ENDING_DATE: [dt.date(2024, 1, 31)] * 2 + [dt.date(2024, 2, 29)] * 2,
+            cols.IDENTIFIER: ["AAPL", "MSFT", "AAPL", "MSFT"],
+            cols.WEIGHT: [0.5, 0.5, 0.5, 0.5],
+            cols.RETURN: [-0.0422272121, 0.0572811503, -0.019793881, 0.0403944092],
         }
 
         for data_frame_library in (pd, pl):

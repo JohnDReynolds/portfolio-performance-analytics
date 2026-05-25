@@ -13,7 +13,6 @@ import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.mapping import Mapping
 from ppar.performance import Performance
-import ppar.utilities as util
 
 
 def _named_performance(
@@ -37,16 +36,15 @@ def _named_performance(
     )
 
 
-def _wide_performance() -> pl.DataFrame:
-    """Return a minimal wide performance data set for attribution tests."""
+def _narrow_performance() -> pl.DataFrame:
+    """Return a minimal narrow performance data set for attribution tests."""
     return pl.DataFrame(
         {
-            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)],
-            cols.ENDING_DATE: [dt.date(2024, 1, 31)],
-            "A.ret": [0.10],
-            "B.ret": [-0.05],
-            "A.wgt": [0.60],
-            "B.wgt": [0.40],
+            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 2,
+            cols.ENDING_DATE: [dt.date(2024, 1, 31)] * 2,
+            cols.IDENTIFIER: ["A", "B"],
+            cols.RETURN: [0.10, -0.05],
+            cols.WEIGHT: [0.60, 0.40],
         }
     )
 
@@ -92,11 +90,9 @@ class ClassificationTests(unittest.TestCase):
 
         classification = Classification("", None, (portfolio, benchmark))
 
-        self.assertEqual(classification.name, util.EMPTY)
-        self.assertEqual(
-            classification.df[cols.CLASSIFICATION_IDENTIFIER].item(),
-            util.EMPTY,
-        )
+        self.assertIsNone(classification.name)
+        self.assertEqual(classification.df.columns, list(cols.CLASSIFICATION_COLUMNS))
+        self.assertTrue(classification.df.is_empty())
 
     def test_explicit_classification_filters_and_keeps_last_duplicate(self) -> None:
         """Explicit sources filter unused items and use the last duplicate name."""
@@ -173,8 +169,8 @@ class MappingTests(unittest.TestCase):
     def test_mapped_attribution_rollup_preserves_portfolio_contribution(self) -> None:
         """Mapped attribution totals retain underlying portfolio contribution."""
         analytics = Analytics(
-            _wide_performance(),
-            _wide_performance(),
+            _narrow_performance(),
+            _narrow_performance(),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
         )
@@ -191,6 +187,18 @@ class MappingTests(unittest.TestCase):
         self.assertEqual(details[cols.CLASSIFICATION_NAME].item(), "Technology")
         self.assertAlmostEqual(details[cols.PORTFOLIO_WEIGHT].item(), 1.0)
         self.assertAlmostEqual(details[cols.PORTFOLIO_CONTRIB_SIMPLE].item(), 0.04)
+
+    def test_missing_required_mapping_source_raises_error_804(self) -> None:
+        """A requested roll-up still requires an actual mapping source."""
+        analytics = Analytics(
+            _narrow_performance(),
+            _narrow_performance(),
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[804]):
+            analytics.get_attribution("Sector", mapping_data_sources=(None, None))
 
 
 if __name__ == "__main__":

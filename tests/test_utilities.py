@@ -1,12 +1,4 @@
-"""
-This module contains custom functions for the Classification, Mapping, and Performance data
-sources.  It has been designed for the test data.  Users are free to create their own
-function(s) to deliver the data.
-
-The functions in this file deliver the path of csv files containing the data.  Users
-could alternatively create their own custom data source functions that query databases and then
-deliver pandas dataframes, polars dataframes, or python dictionaries.
-"""
+"""Provide reusable test-data paths and focused utility-function tests."""
 
 # Python imports
 import datetime as dt
@@ -21,7 +13,6 @@ import polars as pl
 # Project imports
 from ppar.analytics import Analytics
 from ppar.attribution import Attribution
-import ppar.columns as cols
 import ppar.demo_data_sources as demo_data
 import ppar.errors as errs
 from ppar.errors import PpaError
@@ -29,39 +20,43 @@ import ppar.utilities as util
 
 # Directories containing the test data.
 _DATA_DIRECTORIES = (Path("tests/data"), Path("../tests/data"), Path("data"))
-_AXYS_DIRECTORIES = [directory / "axys_perf" for directory in _DATA_DIRECTORIES]
+_AXYS_DIRECTORIES = [directory / "axys_validation" for directory in _DATA_DIRECTORIES]
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]
 
 
 def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
-    """
-    This is a custom function for resolving the axys file_path (portperf or secperf or axysdata).
+    """Return a resolved path to an Axys fixture file.
 
     Args:
-        file_name (str): The portperf or secperf file name.
+        file_name: Base name of the Axys fixture.
+        suffix: File suffix to append when not already present.
 
     Returns:
-        Path: The path of the axys file corresponding to file_name.
+        Resolved path to the fixture file.
+
+    Raises:
+        PpaError: If the named fixture is not found.
     """
     return resolve_file_path(_AXYS_DIRECTORIES, file_name, suffix)
 
 
-def classification_data_path(classification_name: str) -> util.PathLike:
-    """
-    This is a custom function for the Classification data source.  It has been designed for the
-    test data.  Users are free to create their own function(s) to deliver the data.
+def classification_data_path(classification_name: str | None) -> util.PathLike | None:
+    """Return a classification fixture path or ``None``.
 
     Args:
-        classification_name (str): The classification name.
+        classification_name: Classification whose fixture is requested.
 
     Returns:
-        Path | str: The classification file path, or util.EMPTY when no classification was
+        Classification fixture path, or ``None`` when no classification was
         requested.
+
+    Raises:
+        PpaError: If a requested fixture is not found.
     """
-    if util.is_empty(classification_name):
-        return classification_name
+    if classification_name is None:
+        return None
     return resolve_file_path(_CLASSIFICATION_DIRECTORIES, classification_name, ".csv")
 
 
@@ -71,27 +66,34 @@ def get_attribution(
     classification_data_source: util.ClassificationDataSource | None = None,
     mapping_data_source: util.MappingDataSource | None = None,
 ) -> Attribution:
-    """Infer file path from the classification_name and then return the attribution.
+    """Return attribution using inferred fixture sources where needed.
 
     Args:
-        analytics (Analytics): The Analytics instance.
-        classification_name (str): The classification name to use when resolving a
-            classification data source.
-        classification_data_source (util.ClassificationDataSource): Optional
-            classification data source to use instead of resolving from the
-            classification name.
-        mapping_data_source (util.MappingDataSource): Optional mapping data source
-            to use for both portfolio and benchmark if supplied.
+        analytics: Analytics instance to query.
+        classification_name: Classification name used when resolving a
+            fixture source.
+        classification_data_source: Optional classification source to use
+            instead of resolving a fixture path.
+        mapping_data_source: Optional mapping source to use for both portfolio
+            and benchmark.
 
     Returns:
-        Attribution: The resulting attribution object.
+        Calculated attribution object.
+
+    Raises:
+        PpaError: If a required fixture cannot be found or attribution
+            construction fails.
     """
     classification_name = util.normalize_optional_string(classification_name)
 
-    if classification_data_source is None or util.is_empty_string(classification_data_source):
+    if classification_data_source is None or (
+        isinstance(classification_data_source, str) and not classification_data_source.strip()
+    ):
         classification_data_source = classification_data_path(classification_name)
 
-    if mapping_data_source is None or util.is_empty_string(mapping_data_source):
+    if mapping_data_source is None or (
+        isinstance(mapping_data_source, str) and not mapping_data_source.strip()
+    ):
         mapping_data_sources = mapping_data_paths(analytics, classification_name)
     else:
         mapping_data_sources = (mapping_data_source, mapping_data_source)
@@ -104,13 +106,13 @@ def get_attribution(
 
 
 def html_table_lines(html_string: str) -> list[str]:
-    """Get just the table lines from the html string.
+    """Return table markup lines from an HTML string.
 
     Args:
-        html_string (str): The HTML string to scan for the first table.
+        html_string: HTML string to scan for the first table.
 
     Returns:
-        list[str]: The lines from the first HTML table found in the input.
+        Lines beginning at the first HTML table found in the input.
     """
     # html_lines = html_string.split("\n")
     lines: list[str] = []
@@ -124,27 +126,28 @@ def html_table_lines(html_string: str) -> list[str]:
 
 
 def mapping_data_paths(
-    analytics: Analytics, to_classification_name: str
-) -> tuple[util.MappingDataSource, util.MappingDataSource]:
-    """
-    This is a custom function for the Mapping data sources.  It has been designed for the
-    test data.  Users are free to create their own function(s) to deliver the data.
+    analytics: Analytics, to_classification_name: str | None
+) -> tuple[util.MappingDataSource | None, util.MappingDataSource | None]:
+    """Return fixture mapping sources for portfolio and benchmark.
 
     Args:
-        analytics (Analytics): The Analytics instance.
-        to_classification_name (str): The classification name to map to.
+        analytics: Analytics instance whose classification names determine the
+            source mappings.
+        to_classification_name: Destination classification name.
 
     Returns:
-        tuple[util.MappingDataSource, util.MappingDataSource]: A tuple of 2 mapping
-        data sources (0 = Portfolio Data Source, 1 = Benchmark Data Source)
+        Two-item tuple of portfolio and benchmark mapping sources.
+
+    Raises:
+        PpaError: If a required mapping fixture cannot be found.
     """
-    if util.is_empty(to_classification_name):
-        return (util.EMPTY, util.EMPTY)
+    if to_classification_name is None:
+        return (None, None)
 
     # Build the tuple of mapping data sources containing the csv file paths.
-    mapping_list: list[util.MappingDataSource] = [
+    mapping_list: list[util.MappingDataSource | None] = [
         (
-            util.EMPTY
+            None
             if from_classification_name == to_classification_name
             else resolve_file_path(
                 _MAPPING_DIRECTORIES,
@@ -158,35 +161,38 @@ def mapping_data_paths(
 
 
 def performance_data_path(performance_name: str) -> Path:
-    """
-    This is a custom function for the Performance data source.  It has been designed for the
-    test data.  Users are free to create their own function(s) to deliver the data.
+    """Return a resolved path to a performance fixture file.
 
     Args:
-        performance_name (str): The performance name.
+        performance_name: Base name of the performance fixture.
 
     Returns:
-        Path: The path of the performance file corresponding to performance_name.
+        Resolved performance fixture path.
+
+    Raises:
+        PpaError: If the fixture is not found.
     """
     return resolve_file_path(_PERFORMANCE_DIRECTORIES, performance_name, ".csv")
 
 
 def resolve_file_path(
-    directories: Iterable[util.PathLike], file_name: str, suffix: str = util.EMPTY
+    directories: Iterable[util.PathLike], file_name: str, suffix: str | None = None
 ) -> Path:
-    """
-    Determines the file path where file_name is located.
+    """Return the first existing fixture path matching a file name.
 
     Args:
         directories: Potential directories where file_name may be located.
-        file_name (str): The file name.
-        suffix (str): The desired suffix.
+        file_name: File name to find.
+        suffix: Optional suffix appended when absent from ``file_name``.
 
     Returns:
-        Path: The resolved file path.
+        First matching file path.
+
+    Raises:
+        PpaError: If the file does not exist in any candidate directory.
     """
     # Append ".csv".
-    if (not util.is_empty(suffix)) and (not file_name.endswith(suffix)):
+    if suffix is not None and not file_name.endswith(suffix):
         file_name = f"{file_name}{suffix}"
 
     # Find the file_path.
@@ -219,13 +225,6 @@ class TestUtilities(unittest.TestCase):
         """Valid Carino inputs return a floating-point coefficient."""
         self.assertIsInstance(util.carino_linking_coefficient(0.05, 0.03), float)
 
-    def test_col_names(self) -> None:
-        """Column suffix replacement generates output column names."""
-        self.assertEqual(
-            list(cols.col_names(["Port_ret", "Bench_ret"], "_wgt")),
-            ["Port_wgt", "Bench_wgt"],
-        )
-
     def test_date_str(self) -> None:
         """Date formatting uses the package's ISO-style format."""
         self.assertEqual(util.date_str(dt.date(2023, 1, 5)), "2023-01-05")
@@ -251,7 +250,7 @@ class TestUtilities(unittest.TestCase):
 
     def test_empty_file_path_error_is_error_804(self) -> None:
         """An empty requested file path reports error 804."""
-        self.assertEqual(util.file_path_error(util.EMPTY), errs.ERRORS[804])
+        self.assertEqual(util.file_path_error(""), errs.ERRORS[804])
 
     def test_demo_data_sources_return_paths(self) -> None:
         """Packaged demo data helpers resolve existing Path instances."""
@@ -261,6 +260,8 @@ class TestUtilities(unittest.TestCase):
         self.assertIsInstance(performance_path, Path)
         self.assertIsInstance(classification_path, Path)
         self.assertTrue(util.file_path_exists(performance_path))
+        if classification_path is None:
+            self.fail("A named demo classification must resolve to a file path.")
         self.assertTrue(util.file_path_exists(classification_path))
 
     def test_logarithmic_linking_coefficient_series(self) -> None:
