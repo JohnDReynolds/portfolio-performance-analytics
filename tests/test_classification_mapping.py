@@ -9,6 +9,8 @@ from ppar.analytics import Analytics
 from ppar.attribution import View
 from ppar.classification import Classification
 import ppar.columns as cols
+import ppar.errors as errs
+from ppar.errors import PpaError
 from ppar.mapping import Mapping
 from ppar.performance import Performance
 import ppar.utilities as util
@@ -119,6 +121,13 @@ class ClassificationTests(unittest.TestCase):
             },
         )
 
+    def test_one_column_classification_source_raises_error_302(self) -> None:
+        """Explicit classification sources must supply identifier and name columns."""
+        source = pl.DataFrame({"identifier": ["A", "B"]})
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[302]):
+            Classification("Security", source, (_named_performance(), _named_performance()))
+
 
 class MappingTests(unittest.TestCase):
     """Verify the direct mapping contract and mapped attribution result."""
@@ -155,6 +164,11 @@ class MappingTests(unittest.TestCase):
         )
 
         self.assertEqual(dict(mapping.to_froms), {"HEALTH": ["A"]})
+
+    def test_one_column_mapping_source_raises_error_353(self) -> None:
+        """Mapping sources must supply both from and to identifier columns."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[353]):
+            Mapping(("A", "B"), pl.DataFrame({"from": ["A", "B"]}))
 
     def test_mapped_attribution_rollup_preserves_portfolio_contribution(self) -> None:
         """Mapped attribution totals retain underlying portfolio contribution."""

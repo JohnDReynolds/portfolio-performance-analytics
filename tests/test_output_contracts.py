@@ -19,6 +19,7 @@ from ppar.analytics import Analytics
 from ppar.attribution import Attribution, View
 import ppar.columns as cols
 from ppar.frequency import Frequency
+from ppar.html_table import ColumnSpec, HtmlTable, SpannerSpec
 from ppar.riskstatistics import RiskStatistics
 
 
@@ -55,6 +56,70 @@ def _risk_statistics() -> RiskStatistics:
         Frequency.MONTHLY,
         portfolio_value=(250_000.0, "$"),
     )
+
+
+class TestHtmlTableOutputs(unittest.TestCase):
+    """Verify the internal HTML table renderer's formatting contract."""
+
+    def test_renderer_escapes_groups_and_formats_values(self) -> None:
+        """Rendered HTML escapes text and formats grouped numeric output."""
+        table = HtmlTable(
+            pl.DataFrame(
+                {
+                    "Category": ["Group <A>", "Group <A>", "Group & B"],
+                    "Name": ["Alpha <One>", "Beta & Two", "Gamma"],
+                    "Date": [
+                        dt.date(2024, 1, 31),
+                        dt.date(2024, 2, 29),
+                        dt.date(2024, 3, 31),
+                    ],
+                    "Return": [0.012345, -0.02, float("nan")],
+                    "VaR": [1234.56, 0.0, None],
+                }
+            ),
+            columns=(
+                ColumnSpec("Name", "Name", align="left"),
+                ColumnSpec("Date", "Ending", format="date", align="center"),
+                ColumnSpec("Return", "Return", format="number"),
+                ColumnSpec("VaR", "Value At Risk", format="currency"),
+            ),
+            title="Portfolio <A>",
+            subtitle="Risk & Return",
+            spanners=(SpannerSpec("Metrics", ("Return", "VaR")),),
+            group_column="Category",
+            stub_column="Name",
+        )
+
+        html = table.as_raw_html()
+
+        self.assertTrue(html.startswith("<!DOCTYPE html>"))
+        self.assertIn("Portfolio &lt;A&gt;", html)
+        self.assertIn("Risk &amp; Return", html)
+        self.assertIn("Group &lt;A&gt;", html)
+        self.assertIn("Beta &amp; Two", html)
+        self.assertIn('class="ppar_spanner" colspan="2">Metrics</th>', html)
+        self.assertIn("2024-02-29", html)
+        self.assertIn("0.0123", html)
+        self.assertIn("&minus;0.0200", html)
+        self.assertIn("$1,235", html)
+        self.assertEqual(html.count("<NA>"), 2)
+        self.assertIn('<th scope="row" class="ppar_row ppar_left', html)
+
+    def test_renderer_can_emit_table_fragment(self) -> None:
+        """Rendered HTML may omit page scaffolding for embedding."""
+        table = HtmlTable(
+            pl.DataFrame({"Name": ["Alpha"], "Value": [1.25]}),
+            columns=(
+                ColumnSpec("Name", align="left"),
+                ColumnSpec("Value", format="number"),
+            ),
+        )
+
+        html = table.as_raw_html(make_page=False)
+
+        self.assertFalse(html.startswith("<!DOCTYPE html>"))
+        self.assertIn('<table class="ppar_table">', html)
+        self.assertIn("1.2500", html)
 
 
 class TestAttributionOutputs(unittest.TestCase):
@@ -113,6 +178,25 @@ class TestAttributionOutputs(unittest.TestCase):
         ].to_list()
         self.assertEqual(names, ["Beta", "Alpha"])
 
+    def test_to_table_returns_html_table(self) -> None:
+        """Attribution exposes the shared internal HTML table object."""
+        table = _attribution().to_table(View.OVERALL_ATTRIBUTION)
+        html = table.as_raw_html(make_page=False)
+
+        self.assertIsInstance(table, HtmlTable)
+        self.assertFalse(html.startswith("<!DOCTYPE html>"))
+        self.assertIn('<table class="ppar_table">', html)
+        self.assertIn("Overall Attribution", html)
+        self.assertIn("Portfolio", html)
+
+    def test_csv_accepts_path_object(self) -> None:
+        """Attribution CSV output accepts pathlib output paths."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "attribution.csv"
+            _attribution().write_csv(View.OVERALL_ATTRIBUTION, output_path)
+
+            self.assertTrue(output_path.is_file())
+
 
 class TestRiskStatisticsOutputs(unittest.TestCase):
     """Verify risk-statistics structured outputs retain labels and values."""
@@ -161,6 +245,26 @@ class TestRiskStatisticsOutputs(unittest.TestCase):
 
         mean_row = next(line for line in text.splitlines() if "Monthly Mean Return" in line)
         self.assertIn(",0.007,", mean_row)
+
+    def test_to_table_returns_html_table(self) -> None:
+        """Risk statistics expose the shared internal HTML table object."""
+        table = _risk_statistics().to_table()
+        full_html = table.as_raw_html()
+        fragment_html = table.as_raw_html(make_page=False)
+
+        self.assertIsInstance(table, HtmlTable)
+        self.assertTrue(full_html.startswith("<!DOCTYPE html>"))
+        self.assertFalse(fragment_html.startswith("<!DOCTYPE html>"))
+        self.assertIn("Ex-Post Risk Statistics", full_html)
+        self.assertIn("Absolute Risk", full_html)
+
+    def test_csv_accepts_path_object(self) -> None:
+        """Risk-statistics CSV output accepts pathlib output paths."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "riskstatistics.csv"
+            _risk_statistics().write_csv(output_path)
+
+            self.assertTrue(output_path.is_file())
 
 
 if __name__ == "__main__":

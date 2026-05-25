@@ -130,6 +130,29 @@ class TestPerformanceNormalization(unittest.TestCase):
 
         self.assertTrue(performance.classification_items.is_empty())
 
+    def test_duplicate_ending_dates_raise_error_102(self) -> None:
+        """A repeated reporting date is rejected from wide-format input."""
+        duplicate_dates = pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 3,
+                cols.ENDING_DATE: [
+                    dt.date(2024, 1, 31),
+                    dt.date(2023, 12, 31),
+                    dt.date(2024, 1, 31),
+                ],
+                "A.ret": [0.01] * 3,
+                "A.wgt": [1.0] * 3,
+            }
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[102]):
+            Performance(duplicate_dates)
+
+    def test_empty_filtered_input_raises_error_103(self) -> None:
+        """Date filtering that leaves no periods reports an input error."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[103]):
+            Performance(_wide_performance_df(), ending_date=dt.date(1900, 1, 31))
+
     def test_duplicate_narrow_date_identifier_rows_raise_error_112(self) -> None:
         """A duplicate narrow asset row is rejected before pivoting."""
         duplicate = pl.concat([_narrow_performance_df(), _narrow_performance_df().head(1)])
@@ -158,6 +181,15 @@ class TestPerformanceNormalization(unittest.TestCase):
         with self.assertRaisesRegex(PpaError, errs.ERRORS[104]):
             Performance(null_returns)
 
+    def test_beginning_date_after_ending_date_raises_error_105(self) -> None:
+        """An input row may not start after its reporting date."""
+        invalid_period = _wide_performance_df().head(1).with_columns(
+            pl.lit(dt.date(2024, 2, 1)).alias(cols.BEGINNING_DATE)
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[105]):
+            Performance(invalid_period)
+
     def test_discontinuous_dates_raise_error_106(self) -> None:
         """A gap between adjacent performance periods is rejected."""
         discontinuous = _wide_performance_df().with_columns(
@@ -169,6 +201,53 @@ class TestPerformanceNormalization(unittest.TestCase):
 
         with self.assertRaisesRegex(PpaError, errs.ERRORS[106]):
             Performance(discontinuous)
+
+    def test_missing_return_and_weight_columns_raise_error_109(self) -> None:
+        """Inputs without recognizable return and weight suffixes are rejected."""
+        invalid_columns = pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(2023, 12, 31)],
+                cols.ENDING_DATE: [dt.date(2024, 1, 31)],
+                "A.retx": [0.01],
+                "A.wgtx": [1.0],
+            }
+        )
+
+        with self.assertRaisesRegex(PpaError, re.escape(errs.ERRORS[109])):
+            Performance(invalid_columns)
+
+    def test_invalid_numeric_return_raises_error_110(self) -> None:
+        """An unparseable return value reports a numeric input error."""
+        invalid_return = pl.DataFrame(
+            {
+                cols.BEGINNING_DATE: [dt.date(2023, 12, 31)],
+                cols.ENDING_DATE: [dt.date(2024, 1, 31)],
+                "A.ret": ["not-a-number"],
+                "A.wgt": [1.0],
+            }
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[110]):
+            Performance(invalid_return)
+
+    def test_requested_beginning_date_after_ending_date_raises_error_111(self) -> None:
+        """A reversed requested date window is rejected before calculation."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[111]):
+            Performance(
+                _wide_performance_df(),
+                beginning_date=dt.date(2024, 1, 31),
+                ending_date=dt.date(2023, 12, 31),
+            )
+
+    def test_invalid_date_text_raises_error_803(self) -> None:
+        """A malformed requested date string is rejected during normalization."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[803]):
+            Performance(_wide_performance_df(), beginning_date="2020-aa-bb")
+
+    def test_missing_input_file_raises_error_802(self) -> None:
+        """A missing file data source reports the requested input path."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[802]):
+            Performance("_does_not_exist_")
 
 
 if __name__ == "__main__":
