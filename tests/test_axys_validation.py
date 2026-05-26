@@ -1,7 +1,9 @@
 """Focused tests for AxysData source and specification validation failures."""
 
 # Python Imports
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+import datetime as dt
 from pathlib import Path
 import tempfile
 from typing import cast
@@ -33,33 +35,37 @@ class _AxysArguments:
     secperf_path: Path | None = field(
         default_factory=lambda: test_util.axys_data_path("secperf.csv")
     )
+    source_path_overrides: Mapping[str, Path] | None = None
     portfolio_code: str = "PORT_SMALL"
     classification_name: str | None = None
-    mapping_name: str | None = None
 
 
 def _assert_axys_error(
     test: unittest.TestCase,
     error_code: int,
     arguments: _AxysArguments | None = None,
+    message_contains: str | None = None,
 ) -> None:
     """Assert that constructing AxysData fails with a numbered PpaError."""
     arguments = arguments or _AxysArguments()
 
     with test.assertRaises(PpaError) as context:
-        AxysData(
+        data = AxysData(
             arguments.specifications_path,
             arguments.portperf_path,
             arguments.secperf_path,
-            portfolio_codes=(arguments.portfolio_code,),
-            classification_names=arguments.classification_name,
-            mapping_names=arguments.mapping_name,
+            arguments.source_path_overrides,
         )
+        portfolio = data.get_portfolio(arguments.portfolio_code)
+        if arguments.classification_name is not None:
+            data.get_classification_sources(arguments.classification_name, portfolio)
 
     test.assertTrue(
         str(context.exception).startswith(errs.ERRORS[error_code]),
         str(context.exception),
     )
+    if message_contains is not None:
+        test.assertIn(message_contains, str(context.exception))
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
@@ -216,17 +222,42 @@ class TestAxysValidation(unittest.TestCase):
                 _AxysArguments(specifications_path=path, secperf_path=None),
             )
 
-    def test_missing_security_master_classification_raises_error_504(self) -> None:
-        """A requested classification set must include a security master."""
-        _assert_axys_error(self, 504, _AxysArguments(classification_name="Sector1"))
-
     def test_unknown_classification_raises_error_504(self) -> None:
         """Requested classification names must be defined in the specification."""
         _assert_axys_error(self, 504, _AxysArguments(classification_name="unknown"))
 
+    def test_missing_portfolio_error_includes_requested_dates(self) -> None:
+        """Portfolio-loading errors report the requested date window."""
+        data = AxysData(
+            test_util.axys_data_path("axysdata.yaml", ".yaml"),
+            test_util.axys_data_path("portperf.csv"),
+            test_util.axys_data_path("secperf.csv"),
+        )
+
+        with self.assertRaises(PpaError) as context:
+            data.get_portfolio(
+                "UNKNOWN_PORTFOLIO",
+                from_date=dt.date(2024, 1, 1),
+                thru_date=dt.date(2024, 12, 31),
+            )
+
+        self.assertIn("from_date=2024-01-01", str(context.exception))
+        self.assertIn("thru_date=2024-12-31", str(context.exception))
+
     def test_missing_required_source_field_raises_error_504(self) -> None:
-        """Classification and mapping definitions require their source fields."""
+        """Classification and mapping definitions require their default path fields."""
         _assert_axys_error(self, 504, _AxysArguments(classification_name="MissingFilePath"))
+
+    def test_unknown_source_path_override_raises_error_504(self) -> None:
+        """Source path overrides must reference configured source names."""
+        _assert_axys_error(
+            self,
+            504,
+            _AxysArguments(
+                source_path_overrides={"UnknownSource": Path("x.csv")},
+            ),
+            "Unknown source path override names",
+        )
 
     def test_nonexistent_source_column_raises_error_504(self) -> None:
         """Specified source columns must exist in their CSV source."""
@@ -234,7 +265,78 @@ class TestAxysValidation(unittest.TestCase):
 
     def test_unknown_source_field_raises_error_504(self) -> None:
         """Unrecognized source-definition fields are rejected."""
-        _assert_axys_error(self, 504, _AxysArguments(mapping_name="BadUnknownField"))
+        specification = _fixture_specification()
+        classifications = cast(dict[str, object], specification["classifications"])
+        sector = cast(dict[str, object], classifications["Sector1"])
+        sector["default_file_path"] = str(test_util.axys_data_path("classification_lookup.csv"))
+        sector["mapping"] = "BadUnknownField"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path, classification_name="Sector1"),
+            )
+
+    def test_non_security_master_classification_requires_mapping(self) -> None:
+        """Classifications below security grain must identify their mapping."""
+        specification = _fixture_specification()
+        classifications = cast(dict[str, object], specification["classifications"])
+        sector = cast(dict[str, object], classifications["Sector1"])
+        del sector["mapping"]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path, classification_name="Sector1"),
+                "Missing mapping for classification 'Sector1'",
+            )
+
+    def test_classification_mapping_must_be_configured(self) -> None:
+        """Classification mapping references must point to configured mappings."""
+        specification = _fixture_specification()
+        classifications = cast(dict[str, object], specification["classifications"])
+        sector = cast(dict[str, object], classifications["Sector1"])
+        sector["mapping"] = "UnknownMapping"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path, classification_name="Sector1"),
+                "Unknown mapping 'UnknownMapping' for classification 'Sector1'",
+            )
+
+    def test_mapping_definition_rejects_classification_mapping_field(self) -> None:
+        """The mapping field belongs to classifications, not mapping sources."""
+        specification = _fixture_specification()
+        classifications = cast(dict[str, object], specification["classifications"])
+        mappings = cast(dict[str, object], specification["mappings"])
+        security = cast(dict[str, object], classifications["Security"])
+        sector = cast(dict[str, object], classifications["Sector1"])
+        security_to_sector = cast(dict[str, object], mappings["SecurityToSector"])
+        security["default_file_path"] = str(test_util.axys_data_path("security_master.csv"))
+        sector["default_file_path"] = str(test_util.axys_data_path("classification_lookup.csv"))
+        security_to_sector["default_file_path"] = str(
+            test_util.axys_data_path("security_master.csv")
+        )
+        security_to_sector["mapping"] = "SecurityToSector"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(
+                    specifications_path=path,
+                    classification_name="Sector1",
+                ),
+                "Unknown fields for mapping 'SecurityToSector'",
+            )
 
     def test_non_boolean_security_master_setting_raises_error_504(self) -> None:
         """The security-master setting accepts booleans only."""
@@ -243,9 +345,11 @@ class TestAxysValidation(unittest.TestCase):
         mappings = cast(dict[str, object], specification["mappings"])
         security = cast(dict[str, object], classifications["Security"])
         security_mapping = cast(dict[str, object], mappings["SecurityToSector"])
-        security["file_path"] = str(test_util.axys_data_path("security_master.csv"))
+        security["default_file_path"] = str(test_util.axys_data_path("security_master.csv"))
         security["is_security_master"] = "true"
-        security_mapping["file_path"] = str(test_util.axys_data_path("security_master.csv"))
+        security_mapping["default_file_path"] = str(
+            test_util.axys_data_path("security_master.csv")
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_yaml(Path(temp_dir), specification)

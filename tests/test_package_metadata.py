@@ -9,7 +9,12 @@ import unittest
 # Project Imports
 import ppar.utilities as util
 from ppar import axys
-from ppar.axys import AxysData, AxysPortfolio, AxysSpecification, AxysSupportingSources
+from ppar.axys import (
+    AxysClassificationSources,
+    AxysData,
+    AxysPortfolio,
+    AxysSpecification,
+)
 
 
 class TestPackageMetadata(unittest.TestCase):
@@ -45,17 +50,17 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_axys_import_contract(self) -> None:
         """The documented Axys package exports remain importable."""
         expected_exports = {
+            "AxysClassificationSources",
             "AxysData",
             "AxysPortfolio",
             "AxysSpecification",
-            "AxysSupportingSources",
         }
 
         self.assertEqual(set(axys.__all__), expected_exports)
+        self.assertIs(AxysClassificationSources, axys.AxysClassificationSources)
         self.assertIs(AxysData, axys.AxysData)
         self.assertIs(AxysPortfolio, axys.AxysPortfolio)
         self.assertIs(AxysSpecification, axys.AxysSpecification)
-        self.assertIs(AxysSupportingSources, axys.AxysSupportingSources)
 
     def test_chart_dependencies_are_optional(self) -> None:
         """Normal package imports do not load optional chart rendering code."""

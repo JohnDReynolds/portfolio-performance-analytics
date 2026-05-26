@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 # Python imports
-from typing import Any, Final
+from collections.abc import Mapping
+from typing import Any, Final, cast
 
 # Third-party imports
 import polars as pl
@@ -13,8 +14,17 @@ from ppar.axys.specification import AxysSpecification, ErrorMessage, SourceType
 from ppar.errors import PpaError
 import ppar.utilities as util
 
-_CLASSIFICATION_MAPPING_FIELDS_ALLOWED: Final[set[str]] = {
-    "file_path",
+_CLASSIFICATION_FIELDS_ALLOWED: Final[set[str]] = {
+    "default_file_path",
+    "identifier_column",
+    "name_column",
+    "is_security_master",
+    "filter_column",
+    "filter_value",
+    "mapping",
+}
+_MAPPING_FIELDS_ALLOWED: Final[set[str]] = {
+    "default_file_path",
     "identifier_column",
     "name_column",
     "is_security_master",
@@ -22,7 +32,7 @@ _CLASSIFICATION_MAPPING_FIELDS_ALLOWED: Final[set[str]] = {
     "filter_value",
 }
 _CLASSIFICATION_MAPPING_FIELDS_REQUIRED: Final[set[str]] = {
-    "file_path",
+    "default_file_path",
     "identifier_column",
     "name_column",
 }
@@ -45,6 +55,7 @@ class AxysClassificationSourceLoader:
         self,
         specification: AxysSpecification,
         error_message: ErrorMessage,
+        source_path_overrides: Mapping[str, util.PathLike] | None = None,
     ) -> None:
         """Initialize a classification/mapping source loader.
 
@@ -52,9 +63,17 @@ class AxysClassificationSourceLoader:
             specification: Parsed Axys configuration.
             error_message: Callback that adds facade-level source context to
                 validation messages.
+            source_path_overrides: Optional source file paths keyed by
+                configured classification or mapping source name.
+
+        Raises:
+            PpaError: If a source path override references an unknown
+                classification or mapping source.
         """
         self._specification = specification
         self._error_message = error_message
+        self._source_path_overrides = dict(source_path_overrides or {})
+        self._validate_source_path_overrides()
 
     def load(
         self,
@@ -93,7 +112,7 @@ class AxysClassificationSourceLoader:
         data_source = data_sources[source_name]
         self._validate_source_definition(source_type, source_name, data_source)
 
-        file_path = self._specification.resolve_path(data_source["file_path"])
+        file_path = self._source_file_path(source_name, data_source)
         if not util.file_path_exists(file_path):
             raise PpaError(self._error_message(util.file_path_error(file_path)), None)
 
@@ -170,9 +189,16 @@ class AxysClassificationSourceLoader:
 
         Raises:
             PpaError: If required fields are missing, unknown fields are
-                present, or ``is_security_master`` is not boolean.
+                present, ``is_security_master`` is not boolean, or a
+                non-security-master classification does not identify a
+                configured mapping.
         """
-        unknown_fields = set(data_source) - _CLASSIFICATION_MAPPING_FIELDS_ALLOWED
+        allowed_fields = (
+            _CLASSIFICATION_FIELDS_ALLOWED
+            if source_type == "classification"
+            else _MAPPING_FIELDS_ALLOWED
+        )
+        unknown_fields = set(data_source) - allowed_fields
         if unknown_fields:
             raise PpaError(
                 self._error_message(
@@ -196,6 +222,79 @@ class AxysClassificationSourceLoader:
                 self._error_message(
                     f"Invalid is_security_master value for {source_type} {source_name!r}: "
                     f"{is_security_master!r} must be a boolean."
+                ),
+                504,
+            )
+
+        mapping_name = data_source.get("mapping")
+        if source_type == "classification" and not is_security_master:
+            self._validate_classification_mapping(source_name, mapping_name)
+
+    def _validate_classification_mapping(
+        self,
+        source_name: str,
+        mapping_name: object,
+    ) -> None:
+        """Validate a non-security-master classification mapping reference.
+
+        Args:
+            source_name: Configured classification source name.
+            mapping_name: Mapping reference from the classification source
+                definition.
+
+        Raises:
+            PpaError: If the classification does not reference a configured
+                mapping.
+        """
+        if not isinstance(mapping_name, str) or not mapping_name:
+            raise PpaError(
+                self._error_message(
+                    f"Missing mapping for classification {source_name!r}. "
+                    "Non-security-master classifications must specify a mapping."
+                ),
+                504,
+            )
+        if mapping_name not in self._specification.values.get("mappings", {}):
+            raise PpaError(
+                self._error_message(
+                    f"Unknown mapping {mapping_name!r} for classification {source_name!r}"
+                ),
+                504,
+            )
+
+    def _source_file_path(self, source_name: str, data_source: dict[str, Any]) -> util.PathLike:
+        """Return the override or configured default path for a source.
+
+        Args:
+            source_name: Configured classification or mapping source name.
+            data_source: Source definition from the Axys specification.
+
+        Returns:
+            Resolved source file path.
+        """
+        override_path = self._source_path_overrides.get(source_name)
+        file_path = (
+            override_path
+            if override_path is not None
+            else cast(util.PathLike, data_source["default_file_path"])
+        )
+        return self._specification.resolve_path(file_path)
+
+    def _validate_source_path_overrides(self) -> None:
+        """Validate that file path overrides reference configured sources.
+
+        Raises:
+            PpaError: If any override key is not a configured classification or
+                mapping source name.
+        """
+        configured_source_names = set(
+            self._specification.values.get("classifications", {})
+        ) | set(self._specification.values.get("mappings", {}))
+        unknown_source_names = set(self._source_path_overrides) - configured_source_names
+        if unknown_source_names:
+            raise PpaError(
+                self._error_message(
+                    f"Unknown source path override names: {unknown_source_names}"
                 ),
                 504,
             )

@@ -103,17 +103,6 @@ class AxysSpecification:
         """
         return self.values.get("settings", {}).get("prefix_portfolio_code")
 
-    def default_source_names(self, source_type: SourceType) -> tuple[str, ...]:
-        """Return configured classification or mapping source names.
-
-        Args:
-            source_type: Kind of supporting source to enumerate.
-
-        Returns:
-            Configured source names in specification insertion order.
-        """
-        return tuple(self.values.get(f"{source_type}s", {}).keys())
-
     def is_security_master(self, classification_name: str) -> bool:
         """Return whether a configured classification is the security master.
 

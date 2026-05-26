@@ -9,7 +9,7 @@ Attribution and RiskStatistics objects.
 # Python Imports
 import bisect
 import datetime as dt
-from typing import Sequence
+from typing import Protocol, Sequence
 
 # Third-Party Imports
 import polars as pl
@@ -23,6 +23,25 @@ from ppar.mapping import Mapping
 from ppar.performance import Performance
 from ppar.riskstatistics import RiskStatistics
 import ppar.utilities as util
+
+
+class _AttributionSources(Protocol):  # pylint: disable=too-few-public-methods
+    """Describe bundled classification sources accepted by Analytics."""
+
+    @property
+    def classification_name(self) -> str | None:
+        """Return the target classification name."""
+        raise NotImplementedError
+
+    @property
+    def classification_data_source(self) -> util.ClassificationDataSource | None:
+        """Return the classification data source."""
+        raise NotImplementedError
+
+    @property
+    def mapping_data_sources(self) -> Sequence[util.MappingDataSource | None] | None:
+        """Return optional mapping data sources."""
+        raise NotImplementedError
 
 
 class Analytics:
@@ -552,6 +571,35 @@ class Analytics:
 
         # Return the Attribution coresponding to classification_name.
         return self._attributions[classification_name]
+
+    def get_attribution_for(
+        self,
+        sources: _AttributionSources,
+        classification_label: str | None = None,
+    ) -> Attribution:
+        """Return an Attribution instance from a bundled source object.
+
+        Args:
+            sources: Object containing a classification name, classification data
+                source, and optional mapping data sources. Axys classification
+                source bundles implement this shape.
+            classification_label: Display label used in tables and charts when the
+                classification name is empty and the Performance classification items
+                are used directly.
+
+        Returns:
+            Attribution instance associated with ``sources.classification_name``.
+
+        Raises:
+            PpaError: If the bundled source values cannot produce the requested
+                Attribution.
+        """
+        return self.get_attribution(
+            classification_name=sources.classification_name,
+            classification_data_source=sources.classification_data_source,
+            mapping_data_sources=sources.mapping_data_sources,
+            classification_label=classification_label,
+        )
 
     def get_riskstatistics(self) -> RiskStatistics:
         """Return risk statistics for the aligned Performance objects.

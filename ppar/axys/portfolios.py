@@ -5,6 +5,8 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Callable
 from dataclasses import dataclass
+import datetime as dt
+from typing import TYPE_CHECKING
 
 # Third-party imports
 import polars as pl
@@ -15,7 +17,12 @@ from ppar.axys.performance_sources import AxysPerformanceSourceLoader
 from ppar.axys.specification import AxysSpecification
 import ppar.columns as cols
 from ppar.errors import PpaError
+from ppar.frequency import Frequency
 import ppar.utilities as util
+
+if TYPE_CHECKING:
+    from ppar.analytics import Analytics
+    from ppar.axys.supporting_sources import AxysClassificationSources
 
 _ANALYTICS_REQUIRED_COLUMNS = {
     cols.BEGINNING_DATE,
@@ -24,6 +31,7 @@ _ANALYTICS_REQUIRED_COLUMNS = {
     cols.RETURN,
     cols.WEIGHT,
 }
+_SECPERF_CLASSIFICATION_NAME = "Security"
 _PortfolioErrorMessage = Callable[[str, str | None], str]
 
 
@@ -36,11 +44,99 @@ class AxysPortfolio:
         portfolio_name: Display name supplied to analytics output.
         secperf: Reconciled security-level performance rows accepted by
             :class:`ppar.analytics.Analytics`.
+        classification_sources: Optional classification source bundle requested
+            alongside the portfolio.
     """
 
     portfolio_code: str
     portfolio_name: str
     secperf: pl.DataFrame
+    classification_sources: AxysClassificationSources | None = None
+
+    def to_analytics(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        self,
+        benchmark_data_source: util.PerformanceDataSource | None = None,
+        benchmark_name: str | None = None,
+        portfolio_classification_name: str = _SECPERF_CLASSIFICATION_NAME,
+        benchmark_classification_name: str | None = None,
+        beginning_date: str | dt.date = dt.date.min,
+        ending_date: str | dt.date = dt.date.max,
+        frequency: Frequency = Frequency.AS_OFTEN_AS_POSSIBLE,
+        annual_minimum_acceptable_return: float = (
+            util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN
+        ),
+        annual_risk_free_rate: float = util.DEFAULT_ANNUAL_RISK_FREE_RATE,
+        confidence_level: float = util.DEFAULT_CONFIDENCE_LEVEL,
+        portfolio_value: tuple[float, str] = (
+            util.DEFAULT_PORTFOLIO_VALUE,
+            util.DEFAULT_CURRENCY_SYMBOL,
+        ),
+    ) -> Analytics:
+        """Return an Analytics instance for this reconciled Axys portfolio.
+
+        Args:
+            benchmark_data_source: Optional benchmark performance data source. When
+                omitted, Analytics reuses the portfolio data as its benchmark.
+            benchmark_name: Benchmark display name used in output titles.
+            portfolio_classification_name: Classification name associated with Axys
+                security-performance rows. Defaults to ``"Security"``.
+            benchmark_classification_name: Classification name associated with the
+                benchmark performance data.
+            beginning_date: Earliest allowed beginning date.
+            ending_date: Latest allowed ending date.
+            frequency: Reporting frequency used to consolidate subperiods.
+            annual_minimum_acceptable_return: Annual minimum acceptable return used in
+                downside-risk calculations.
+            annual_risk_free_rate: Annual risk-free rate used in risk statistics that
+                require a risk-free return.
+            confidence_level: Confidence level used when calculating value at risk.
+            portfolio_value: Tuple containing the portfolio value and its currency
+                symbol for value-at-risk calculations.
+
+        Returns:
+            Analytics instance initialized with this portfolio's reconciled
+            security-performance rows and display name.
+
+        Raises:
+            PpaError: If Analytics validation fails.
+        """
+        # Import lazily so Axys portfolio containers do not force analytics imports
+        # unless the convenience adapter is used.
+        from ppar.analytics import Analytics  # pylint: disable=import-outside-toplevel
+
+        return Analytics(
+            portfolio_data_source=self.secperf,
+            benchmark_data_source=benchmark_data_source,
+            portfolio_name=self.portfolio_name,
+            benchmark_name=benchmark_name,
+            portfolio_classification_name=portfolio_classification_name,
+            benchmark_classification_name=benchmark_classification_name,
+            beginning_date=beginning_date,
+            ending_date=ending_date,
+            frequency=frequency,
+            annual_minimum_acceptable_return=annual_minimum_acceptable_return,
+            annual_risk_free_rate=annual_risk_free_rate,
+            confidence_level=confidence_level,
+            portfolio_value=portfolio_value,
+        )
+
+    @property
+    def required_classification_sources(self) -> AxysClassificationSources:
+        """Return requested classification sources or raise a clear error.
+
+        Returns:
+            Classification source bundle requested with this portfolio.
+
+        Raises:
+            PpaError: If the portfolio was loaded without a classification.
+        """
+        if self.classification_sources is None:
+            raise PpaError(
+                "AxysPortfolio was loaded without classification sources. "
+                "Pass classification_name to AxysData.get_portfolio().",
+                999,
+            )
+        return self.classification_sources
 
 
 class AxysPortfolioLoader:

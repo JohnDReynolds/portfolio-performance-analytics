@@ -61,37 +61,41 @@ secperf_columns:
 classifications:
   # Valid security master classification.
   Security:
-    file_path: security_master.csv
+    default_file_path: security_master.csv
     identifier_column: SECURITY_ID
     name_column: SECURITY_NAME
     is_security_master: true
 
   # Intentionally bad test case: bad filter column name.
   BadFilterColumnName:
-    file_path: classification_lookup.csv
+    default_file_path: classification_lookup.csv
     identifier_column: CODE
     name_column: DESCRIPTION
     filter_column: CLASSIFICATION_TYPE_XXX
     filter_value: SECTOR
+    mapping: SecurityToSector
 
-  # Intentionally bad test case: missing file_path.
+  # Intentionally bad test case: missing default_file_path.
   MissingFilePath:
     identifier_column: CODE
     name_column: DESCRIPTION
+    mapping: SecurityToSector
 
   # Valid lookup-table-based sector classification.
   Sector1:
-    file_path: classification_lookup.csv
+    default_file_path: classification_lookup.csv
     identifier_column: CODE
     name_column: DESCRIPTION
     filter_column: CLASSIFICATION_TYPE
     filter_value: SECTOR
+    mapping: SecurityToSector
 
   # Valid security-master-based sector classification.
   Sector2:
-    file_path: security_master.csv
+    default_file_path: security_master.csv
     identifier_column: SECTOR_CODE
     name_column: SECTOR_DESC
+    mapping: SecurityToSector
 
 # =========================
 # Mappings
@@ -100,7 +104,7 @@ classifications:
 mappings:
   # Valid mapping from security to sector.
   SecurityToSector:
-    file_path: security_master.csv
+    default_file_path: security_master.csv
     identifier_column: SECURITY_ID
     name_column: SECTOR_CODE
     is_security_master: true
