@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from dataclasses import dataclass
+from typing import cast
 
 # Third-party imports
 import polars as pl
@@ -20,7 +21,8 @@ class AxysClassificationSources:
     """Contain one classification and its optional mapping source.
 
     Attributes:
-        classification_name: Requested Axys classification name.
+        classification_name: Display name for the requested Axys
+            classification.
         classification_data_source: Normalized classification source.
         mapping_data_sources: Pair of identical mapping sources for analytics
             attribution calls, or ``None`` when the requested classification is
@@ -74,20 +76,31 @@ class AxysSupportingSourceLoader:
             PpaError: If the classification source is unknown, invalid, or
                 references an invalid mapping source.
         """
-        unique_security_ids = portfolio.secperf[cols.IDENTIFIER].unique().to_list()
+        unique_security_ids = (
+            portfolio.security_performance[cols.IDENTIFIER].unique().to_list()
+        )
         classification = self._loader.load(
             "classification", classification_name, unique_security_ids
         )
+        classification_source = self._specification.values.get(
+            "classifications",
+            {},
+        ).get(classification_name, {})
         if self._specification.is_security_master(classification_name):
             mapping_data_sources = None
         else:
-            mapping_name = self._specification.values["classifications"][classification_name][
-                "mapping"
-            ]
+            mapping_name = classification_source.get("mapping", classification_name)
             mapping = self._loader.load("mapping", mapping_name, unique_security_ids)
             mapping_data_sources = (mapping, mapping)
+        display_name = cast(
+            str,
+            classification_source.get(
+                "display_name",
+                classification_name,
+            ),
+        )
         return AxysClassificationSources(
-            classification_name,
+            display_name,
             classification,
             mapping_data_sources,
         )

@@ -36,8 +36,8 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
     Attributes:
         specifications_path: Path to the Axys YAML specification file.
         specifications: Parsed specification settings.
-        portperf_path: Resolved portfolio-performance CSV path.
-        secperf_path: Resolved security-performance CSV path.
+        portfolio_performance_path: Resolved portfolio-performance CSV path.
+        security_performance_path: Resolved security-performance CSV path.
         _specification: Parsed Axys specification object.
         _classification_loader: Loader used to normalize classification and
             mapping sources.
@@ -48,8 +48,8 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
     def __init__(
         self,
         specifications_path: util.PathLike,
-        portperf_path: util.PathLike | None = None,
-        secperf_path: util.PathLike | None = None,
+        portfolio_performance_path: util.PathLike | None = None,
+        security_performance_path: util.PathLike | None = None,
         source_path_overrides: Mapping[str, util.PathLike] | None = None,
     ) -> None:
         """Initialize Axys source configuration.
@@ -57,13 +57,13 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         Args:
             specifications_path: YAML file describing Axys source paths,
                 source-column mappings, classifications, and mappings.
-            portperf_path: Optional portfolio-performance CSV path overriding
-                the specification setting.
-            secperf_path: Optional security-performance CSV path overriding the
-                specification setting.
-            source_path_overrides: Optional classification or mapping source
-                file paths keyed by source name. These override configured
-                ``default_file_path`` values.
+            portfolio_performance_path: Optional portfolio-performance CSV
+                path overriding the specification setting.
+            security_performance_path: Optional security-performance CSV path
+                overriding the specification setting.
+            source_path_overrides: Optional classification source file paths
+                keyed by source name. These override configured
+                ``file_path`` values for explicit classification sources.
 
         Raises:
             PpaError: If required performance paths are missing from both
@@ -74,11 +74,11 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
 
         self._specification = AxysSpecification(self.specifications_path, self._error_message)
         self.specifications: dict[str, Any] = self._specification.values
-        self.portperf_path = self._specification.performance_path(
-            portperf_path, "portperf_path", self._error_message
+        self.portfolio_performance_path = self._specification.performance_path(
+            portfolio_performance_path, "portfolio_performance_path", self._error_message
         )
-        self.secperf_path = self._specification.performance_path(
-            secperf_path, "secperf_path", self._error_message
+        self.security_performance_path = self._specification.performance_path(
+            security_performance_path, "security_performance_path", self._error_message
         )
         self._classification_loader = AxysClassificationSourceLoader(
             self._specification,
@@ -122,7 +122,7 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         if portfolio_code not in portfolios:
             raise PpaError(
                 self._error_message(
-                    f"No portperf rows for portfolio {portfolio_code!r}",
+                    f"No portfolio performance rows for portfolio {portfolio_code!r}",
                     portfolio_code,
                     from_date,
                     thru_date,
@@ -193,8 +193,8 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
             self._specification,
             performance_loader,
             error_message,
-            self.portperf_path,
-            self.secperf_path,
+            self.portfolio_performance_path,
+            self.security_performance_path,
         )
 
     def _error_message(
@@ -218,8 +218,10 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         context = (
             "Context: "
             f"specifications_path={self.specifications_path}, "
-            f"portperf_path={getattr(self, 'portperf_path', None)}, "
-            f"secperf_path={getattr(self, 'secperf_path', None)}, "
+            "portfolio_performance_path="
+            f"{getattr(self, 'portfolio_performance_path', None)}, "
+            "security_performance_path="
+            f"{getattr(self, 'security_performance_path', None)}, "
             f"portfolio_code={portfolio_code}, "
             f"from_date={from_date}, "
             f"thru_date={thru_date}"

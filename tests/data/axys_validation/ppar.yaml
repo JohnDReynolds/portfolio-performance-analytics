@@ -1,0 +1,142 @@
+# =========================
+# PPAR Axys Configuration
+# =========================
+# This file tells PPAR where to find your Axys exports and how to interpret
+# the columns in those files.
+#
+# General Rules:
+# - File paths may be absolute or relative to this file.
+# - In many cases, only the three file paths below are required.
+# - PPAR can infer common Axys/IMEX column names for performance and security
+#   master exports.
+# - Add optional column sections only when your export uses names PPAR cannot
+#   infer.
+# - Fields ending in "_column" contain Axys export column names.
+# - Unknown fields are rejected so spelling mistakes fail loudly.
+
+
+# =========================
+# Settings
+# =========================
+settings:
+  # Optional text inserted between the Axys account code and account name in
+  # report titles.
+  prefix_portfolio_code: " - "
+
+
+# =========================
+# Portfolio Performance Export
+# =========================
+# Path to the Axys portfolio-level performance export.
+portfolio_performance_path: portperf.csv
+
+# Optional: Portfolio Performance Column Overrides
+# Usually this section can be omitted. Add it only if your Axys export uses
+# column names PPAR cannot infer.
+# portfolio_performance_columns:
+#   from_date: FROM_DATE
+#   thru_date: THRU_DATE
+#   portfolio_code: PORTFOLIO_CODE
+#   portfolio_name: PORTFOLIO_NAME
+#   portfolio_return: PORT_RETURN
+
+
+# =========================
+# Security Performance Export
+# =========================
+# Path to the Axys security-level performance export.
+security_performance_path: secperf.csv
+
+# Optional: Security Performance Column Overrides
+# Usually this section can be omitted. Add it only if your Axys export uses
+# column names PPAR cannot infer.
+# security_performance_columns:
+#   from_date: FROM_DATE
+#   contribution: CONTRIBUTION
+#   thru_date: THRU_DATE
+#   identifier: SECURITY_ID
+#   portfolio_code: PORTFOLIO_CODE
+#   return: SEC_RETURN
+#   weight: BEGIN_WEIGHT
+
+# =========================
+# Security Master
+# =========================
+# Path to the Axys security master or security reference export.
+security_master_path: security_master.csv
+
+# Optional: Security Master Column Overrides
+# Usually this section can be omitted. Add it only if your Axys export uses
+# column names PPAR cannot infer.
+# security_master_columns:
+#   identifier_column: SECURITY_ID
+#   name_column: SECURITY_NAME
+
+# =========================
+# Classifications
+# =========================
+# Optional: Lookup Table Classifications
+# Add entries here when your Axys grouping codes need to be translated through
+# a separate lookup export. Groupings already present on the security master
+# can usually be configured in the mappings section instead.
+classifications:
+  # Test-only example: bad filter column name.
+  BadFilterColumnName:
+    file_path: classification_lookup.csv
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    filter_column: CLASSIFICATION_TYPE_XXX
+    filter_value: SECTOR
+    mapping: Sector
+
+  # Test-only example: missing file_path.
+  BadMissingFilePath:
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    mapping: Sector
+
+  # Optional lookup-table-based sector classification.
+  SectorLookup:
+    file_path: classification_lookup.csv
+    display_name: Sector
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    filter_column: CLASSIFICATION_TYPE
+    filter_value: SECTOR
+    mapping: Sector
+
+# =========================
+# Mappings
+# =========================
+# Groupings From The Security Master
+# Each mapping tells PPAR how to roll securities up to a grouping such as
+# sector, country, currency, or asset class.
+mappings:
+  # Security -> asset class.
+  AssetClass:
+    classification_column: ASSET_CLASS_CODE
+    display_name_column: ASSET_CLASS_DESC
+
+  # Security -> country.
+  Country:
+    classification_column: COUNTRY_CODE
+    display_name_column: COUNTRY_DESC
+
+  # Security -> currency.
+  Currency:
+    classification_column: CURRENCY_CODE
+    display_name_column: CURRENCY_DESC
+
+  # Security -> industry.
+  Industry:
+    classification_column: INDUSTRY_CODE
+    display_name_column: INDUSTRY_DESC
+
+  # Security -> sector.
+  Sector:
+    classification_column: SECTOR_CODE
+    display_name_column: SECTOR_DESC
+
+  # Test-only example: unknown field.
+  BadUnknownField:
+    unknown_field_xxx: security_master.csv

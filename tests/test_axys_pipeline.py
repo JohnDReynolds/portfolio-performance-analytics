@@ -59,6 +59,7 @@ def _write_axys_inputs(directory: Path) -> Path:
             "SECURITY_ID": ["A", "B", "C", "UNUSED"],
             "SECURITY_NAME": ["Alpha", "Beta", "Cash", "Unused"],
             "SECTOR_CODE": ["TECH", "DEF", "CASH", "OTHER"],
+            "SECTOR_DESC": ["Technology", "Defensive", "Cash", "Other"],
         }
     ).write_csv(directory / "security_master.csv")
     pl.DataFrame(
@@ -70,16 +71,16 @@ def _write_axys_inputs(directory: Path) -> Path:
     ).write_csv(directory / "classifications.csv")
     specification: dict[str, object] = {
         "settings": {"prefix_portfolio_code": " - "},
-        "portperf_path": "portperf.csv",
-        "portperf_columns": {
+        "portfolio_performance_path": "portperf.csv",
+        "portfolio_performance_columns": {
             cols.FROM_DATE: "FROM_DATE",
             cols.THRU_DATE: "THRU_DATE",
             cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
             cols.PORTFOLIO_NAME: "PORTFOLIO_NAME",
-            cols.PORTFOLIO_RETURN: "PORT_RETURN",
+            "portfolio_return": "PORT_RETURN",
         },
-        "secperf_path": "secperf.csv",
-        "secperf_columns": {
+        "security_performance_path": "secperf.csv",
+        "security_performance_columns": {
             cols.FROM_DATE: "FROM_DATE",
             cols.THRU_DATE: "THRU_DATE",
             cols.IDENTIFIER: "SECURITY_ID",
@@ -88,32 +89,30 @@ def _write_axys_inputs(directory: Path) -> Path:
             cols.WEIGHT: "BEGIN_WEIGHT",
             cols.CONTRIBUTION: "CONTRIBUTION",
         },
+        "security_master_path": "security_master.csv",
+        "security_master_columns": {
+            "identifier_column": "SECURITY_ID",
+            "name_column": "SECURITY_NAME",
+        },
         "classifications": {
-            "Security": {
-                "default_file_path": "security_master.csv",
-                "identifier_column": "SECURITY_ID",
-                "name_column": "SECURITY_NAME",
-                "is_security_master": True,
-            },
-            "Sector": {
-                "default_file_path": "classifications.csv",
+            "SectorLookup": {
+                "file_path": "classifications.csv",
+                "display_name": "Sector",
                 "identifier_column": "CODE",
                 "name_column": "DESCRIPTION",
                 "filter_column": "TYPE",
                 "filter_value": "SECTOR",
-                "mapping": "SecurityToSector",
+                "mapping": "Sector",
             },
         },
         "mappings": {
-            "SecurityToSector": {
-                "default_file_path": "security_master.csv",
-                "identifier_column": "SECURITY_ID",
-                "name_column": "SECTOR_CODE",
-                "is_security_master": True,
+            "Sector": {
+                "classification_column": "SECTOR_CODE",
+                "display_name_column": "SECTOR_DESC",
             }
         },
     }
-    specification_path = directory / "axysdata.yaml"
+    specification_path = directory / "ppar.yaml"
     specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
     return specification_path
 
@@ -127,7 +126,7 @@ class TestAxysPipeline(unittest.TestCase):
             data = AxysData(_write_axys_inputs(Path(temp_dir)))
 
             portfolio = data.get_portfolio("P1")
-            performance = portfolio.secperf
+            performance = portfolio.security_performance
             security_sources = data.get_classification_sources("Security", portfolio)
             sector_sources = data.get_classification_sources("Sector", portfolio)
 
@@ -166,6 +165,92 @@ class TestAxysPipeline(unittest.TestCase):
             self.assertEqual(portfolio.portfolio_code, "P2")
             self.assertEqual(portfolio.portfolio_name, "P2 - Income")
 
+    def test_performance_columns_can_be_inferred_from_standard_aliases(self) -> None:
+        """Portfolio and security performance column mappings can be omitted."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_axys_inputs(Path(temp_dir))
+            specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            assert isinstance(specification, dict)
+            del specification["portfolio_performance_columns"]
+            del specification["security_performance_columns"]
+            specification_path.write_text(
+                yaml.safe_dump(specification),
+                encoding="utf-8",
+            )
+
+            data = AxysData(specification_path)
+            portfolio = data.get_portfolio("P1")
+
+            self.assertEqual(portfolio.portfolio_name, "P1 - Growth")
+            self.assertEqual(portfolio.security_performance.height, 4)
+
+    def test_explicit_performance_mapping_wins_over_aliases(self) -> None:
+        """Configured performance columns avoid ambiguity from alias columns."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_axys_inputs(directory)
+            portperf_path = directory / "portperf.csv"
+            (
+                pl.read_csv(portperf_path)
+                .with_columns(
+                    pl.lit(0.99).alias("RET"),
+                    pl.lit(0.88).alias("RETURN"),
+                )
+                .write_csv(portperf_path)
+            )
+
+            data = AxysData(specification_path)
+            portfolio = data.get_portfolio("P1")
+
+            self.assertEqual(portfolio.portfolio_name, "P1 - Growth")
+            self.assertEqual(portfolio.security_performance.height, 4)
+
+    def test_security_master_columns_can_be_inferred_from_standard_aliases(self) -> None:
+        """Security master identifier and name columns can be omitted."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_axys_inputs(Path(temp_dir))
+            specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            assert isinstance(specification, dict)
+            del specification["security_master_columns"]
+            specification_path.write_text(
+                yaml.safe_dump(specification),
+                encoding="utf-8",
+            )
+
+            data = AxysData(specification_path)
+            portfolio = data.get_portfolio("P1")
+            security_sources = data.get_classification_sources("Security", portfolio)
+            sector_sources = data.get_classification_sources("Sector", portfolio)
+
+            self.assertEqual(
+                security_sources.classification_data_source["identifier_column"]
+                .sort()
+                .to_list(),
+                ["A", "B"],
+            )
+            self.assertEqual(sector_sources.classification_name, "Sector")
+
+    def test_explicit_security_master_mapping_wins_over_aliases(self) -> None:
+        """Configured security master columns avoid ambiguity from alias columns."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_axys_inputs(directory)
+            security_master_path = directory / "security_master.csv"
+            (
+                pl.read_csv(security_master_path)
+                .with_columns(pl.lit("Wrong Alias").alias("NAME"))
+                .write_csv(security_master_path)
+            )
+
+            data = AxysData(specification_path)
+            portfolio = data.get_portfolio("P1")
+            sources = data.get_classification_sources("Security", portfolio)
+
+            self.assertEqual(
+                sources.classification_data_source["name_column"].sort().to_list(),
+                ["Alpha", "Beta"],
+            )
+
     def test_date_filters_apply_before_returning_portfolio_performance(self) -> None:
         """Axys date arguments restrict the periods retained for a portfolio."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -176,7 +261,7 @@ class TestAxysPipeline(unittest.TestCase):
                 thru_date=dt.date(2024, 2, 29),
             )
 
-            performance = portfolio.secperf
+            performance = portfolio.security_performance
 
             self.assertEqual(performance.height, 2)
             self.assertEqual(
@@ -193,7 +278,7 @@ class TestAxysPipeline(unittest.TestCase):
 
             self.assertEqual(portfolio.portfolio_code, "P1")
             self.assertEqual(portfolio.portfolio_name, "P1 - Growth")
-            self.assertEqual(portfolio.secperf.height, 4)
+            self.assertEqual(portfolio.security_performance.height, 4)
 
     def test_get_portfolio_applies_date_filters(self) -> None:
         """Lazy portfolio loading accepts its own date window."""
@@ -206,9 +291,9 @@ class TestAxysPipeline(unittest.TestCase):
                 thru_date=dt.date(2024, 2, 29),
             )
 
-            self.assertEqual(portfolio.secperf.height, 2)
+            self.assertEqual(portfolio.security_performance.height, 2)
             self.assertEqual(
-                portfolio.secperf[cols.THRU_DATE].unique().to_list(),
+                portfolio.security_performance[cols.THRU_DATE].unique().to_list(),
                 [dt.date(2024, 2, 29)],
             )
 
@@ -219,7 +304,7 @@ class TestAxysPipeline(unittest.TestCase):
             portfolio = data.get_portfolio("P1")
             sources = data.get_classification_sources("Sector", portfolio)
             analytics = Analytics(
-                portfolio.secperf,
+                portfolio.security_performance,
                 portfolio_name=portfolio.portfolio_name,
                 portfolio_classification_name="Security",
             )
@@ -297,12 +382,15 @@ class TestAxysPipeline(unittest.TestCase):
             ).write_csv(directory / "alternate_classifications.csv")
             data = AxysData(
                 specification_path,
-                source_path_overrides={"Sector": directory / "alternate_classifications.csv"},
+                source_path_overrides={
+                    "SectorLookup": directory / "alternate_classifications.csv"
+                },
             )
             portfolio = data.get_portfolio("P1")
 
-            sources = data.get_classification_sources("Sector", portfolio)
+            sources = data.get_classification_sources("SectorLookup", portfolio)
 
+            self.assertEqual(sources.classification_name, "Sector")
             self.assertEqual(
                 sources.classification_data_source["name_column"].sort().to_list(),
                 ["Cash", "Defensive Sector", "Growth Sector"],
@@ -322,6 +410,52 @@ class TestAxysPipeline(unittest.TestCase):
                 sources.classification_data_source["identifier_column"].sort().to_list(),
                 ["A", "B"],
             )
+
+    def test_security_master_backed_classification_uses_mapping_column(self) -> None:
+        """Security-master classifications can inherit path and identifier fields."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data = AxysData(_write_axys_inputs(Path(temp_dir)))
+            portfolio = data.get_portfolio("P1")
+
+            sources = data.get_classification_sources("Sector", portfolio)
+
+            self.assertIsNotNone(sources.mapping_data_sources)
+            self.assertEqual(
+                sources.classification_data_source["identifier_column"].sort().to_list(),
+                ["CASH", "DEF", "OTHER", "TECH"],
+            )
+            self.assertEqual(
+                sources.classification_data_source["name_column"].sort().to_list(),
+                ["Cash", "Defensive", "Other", "Technology"],
+            )
+
+    def test_sector_and_sector_lookup_generate_same_attribution(self) -> None:
+        """Security-master and lookup-table sector sources produce identical output."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data = AxysData(_write_axys_inputs(Path(temp_dir)))
+            portfolio = data.get_portfolio("P1")
+            analytics = Analytics(
+                portfolio.security_performance,
+                portfolio_name=portfolio.portfolio_name,
+                portfolio_classification_name="Security",
+            )
+
+            sector_sources = data.get_classification_sources("Sector", portfolio)
+            lookup_sources = data.get_classification_sources("SectorLookup", portfolio)
+            sector_detail = analytics.get_attribution(
+                sector_sources.classification_name,
+                sector_sources.classification_data_source,
+                sector_sources.mapping_data_sources,
+            ).to_polars(View.SUBPERIOD_ATTRIBUTION)
+            lookup_detail = analytics.get_attribution(
+                lookup_sources.classification_name,
+                lookup_sources.classification_data_source,
+                lookup_sources.mapping_data_sources,
+            ).to_polars(View.SUBPERIOD_ATTRIBUTION)
+
+            self.assertEqual(sector_sources.classification_name, "Sector")
+            self.assertEqual(lookup_sources.classification_name, "Sector")
+            self.assertTrue(sector_detail.equals(lookup_detail))
 
 
 if __name__ == "__main__":

@@ -29,9 +29,9 @@ ERRORS = {
     405: "Error 405: The portfolio returns or benchmark returns have NaN values.",
     # Axys Errors
     502: "Error 502: Missing required column(s): ",
-    503: "Error 503: Could not derive weights for secperf: ",
+    503: "Error 503: Could not derive weights for security performance: ",
     504: "Error 504: Bad specifications file: ",
-    505: "Error 505: Portperf and secperf have no common periods.",
+    505: "Error 505: Portfolio performance and security performance have no common periods.",
     # General Error Messages
     802: "Error 802: File path does not exist: ",
     803: "Error 803: Cannot convert to a date. ",

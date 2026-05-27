@@ -18,13 +18,14 @@ _RETURN_EPSILON: Final[float] = 1e-12
 
 
 def derive_reconciled_weights(
-    secperf_df: pl.DataFrame,
+    security_performance_df: pl.DataFrame,
     portfolio_return: float,
 ) -> tuple[list[float], float]:
     """Return nonnegative normalized weights aligned to a portfolio return.
 
     Args:
-        secperf_df: Security-level rows for a single portfolio period.
+        security_performance_df: Security-level rows for a single portfolio
+            period.
         portfolio_return: Portfolio return reported for the same period.
 
     Returns:
@@ -32,7 +33,7 @@ def derive_reconciled_weights(
         weighted security return achieved by those weights.
 
     Raises:
-        ValueError: If ``secperf_df`` contains no rows.
+        ValueError: If ``security_performance_df`` contains no rows.
 
     Notes:
         When a security return is nonzero, contribution divided by return is
@@ -40,15 +41,26 @@ def derive_reconciled_weights(
         used. Invalid anchors fall back to equal participation before the
         weights are tilted toward the portfolio return.
     """
-    if secperf_df.is_empty():
-        raise ValueError("secperf_df must contain at least one row.")
+    if security_performance_df.is_empty():
+        raise ValueError("security_performance_df must contain at least one row.")
 
     contributions = (
-        secperf_df[cols.CONTRIBUTION].cast(pl.Float64, strict=False).fill_null(0.0).to_list()
+        security_performance_df[cols.CONTRIBUTION]
+        .cast(pl.Float64, strict=False)
+        .fill_null(0.0)
+        .to_list()
     )
-    returns = secperf_df[cols.RETURN].cast(pl.Float64, strict=False).fill_null(0.0).to_list()
+    returns = (
+        security_performance_df[cols.RETURN]
+        .cast(pl.Float64, strict=False)
+        .fill_null(0.0)
+        .to_list()
+    )
     weights = (
-        secperf_df[cols.WEIGHT].cast(pl.Float64, strict=False).fill_null(float("nan")).to_list()
+        security_performance_df[cols.WEIGHT]
+        .cast(pl.Float64, strict=False)
+        .fill_null(float("nan"))
+        .to_list()
     )
     contributions = [_finite_or_default(value, 0.0) for value in contributions]
     returns = [_finite_or_default(value, 0.0) for value in returns]

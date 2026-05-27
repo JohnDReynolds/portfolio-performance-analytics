@@ -33,15 +33,15 @@ _PERIOD_UNIQUE_KEY_COLUMNS: Final[tuple[str, ...]] = (
 
 
 def filter_to_common_periods(
-    portperf: pl.DataFrame,
-    secperf: pl.DataFrame,
+    portfolio_performance: pl.DataFrame,
+    security_performance: pl.DataFrame,
     error_message: ErrorMessage,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Keep only periods represented in both performance sources.
 
     Args:
-        portperf: Portfolio-level performance rows.
-        secperf: Security-level performance rows.
+        portfolio_performance: Portfolio-level performance rows.
+        security_performance: Security-level performance rows.
         error_message: Callback that adds facade-level source context to error
             messages.
 
@@ -52,32 +52,38 @@ def filter_to_common_periods(
     Raises:
         PpaError: If the sources do not have any common periods.
     """
-    portperf_periods = portperf.select(_PERIOD_UNIQUE_KEY_COLUMNS).unique()
-    secperf_periods = secperf.select(_PERIOD_UNIQUE_KEY_COLUMNS).unique()
-    common_periods = portperf_periods.join(
-        secperf_periods,
+    portfolio_performance_periods = portfolio_performance.select(
+        _PERIOD_UNIQUE_KEY_COLUMNS
+    ).unique()
+    security_performance_periods = security_performance.select(
+        _PERIOD_UNIQUE_KEY_COLUMNS
+    ).unique()
+    common_periods = portfolio_performance_periods.join(
+        security_performance_periods,
         on=_PERIOD_UNIQUE_KEY_COLUMNS,
         how="inner",
     )
     if common_periods.is_empty():
         raise PpaError(error_message(""), 505)
     return (
-        portperf.join(common_periods, on=_PERIOD_UNIQUE_KEY_COLUMNS, how="inner"),
-        secperf.join(common_periods, on=_PERIOD_UNIQUE_KEY_COLUMNS, how="inner"),
+        portfolio_performance.join(common_periods, on=_PERIOD_UNIQUE_KEY_COLUMNS, how="inner"),
+        security_performance.join(common_periods, on=_PERIOD_UNIQUE_KEY_COLUMNS, how="inner"),
     )
 
 
 # pylint: disable-next=too-many-locals
-def derive_secperf_for_all_periods(
-    portperf: pl.DataFrame,
-    secperf: pl.DataFrame,
+def derive_security_performance_for_all_periods(
+    portfolio_performance: pl.DataFrame,
+    security_performance: pl.DataFrame,
     error_message: ErrorMessage,
 ) -> tuple[pl.DataFrame, set[UnreconciledPeriod]]:
     """Return security performance with reconciled weights for every period.
 
     Args:
-        portperf: Portfolio-level performance rows with one row per period.
-        secperf: Security-level performance rows for the portfolio periods.
+        portfolio_performance: Portfolio-level performance rows with one row
+            per period.
+        security_performance: Security-level performance rows for the
+            portfolio periods.
         error_message: Callback that adds facade-level source context to error
             messages.
 
@@ -93,20 +99,28 @@ def derive_secperf_for_all_periods(
             weight.
     """
     duplicate_periods = (
-        portperf.group_by(_PERIOD_UNIQUE_KEY_COLUMNS).len().filter(pl.col("len") > 1)
+        portfolio_performance.group_by(_PERIOD_UNIQUE_KEY_COLUMNS)
+        .len()
+        .filter(pl.col("len") > 1)
     )
     if not duplicate_periods.is_empty():
         raise PpaError(
-            error_message(f"Duplicate portperf periods: {duplicate_periods.head(10).to_dicts()}"),
+            error_message(
+                "Duplicate portfolio performance periods: "
+                f"{duplicate_periods.head(10).to_dicts()}"
+            ),
             999,
         )
 
-    secperf_with_row_index = secperf.with_row_index(name="_ROW_IDX")
-    secperf_lookup = secperf_with_row_index.partition_by(_PERIOD_UNIQUE_KEY_COLUMNS, as_dict=True)
-    adjusted_weight_values: list[float] = [float("nan")] * secperf.height
+    security_performance_with_row_index = security_performance.with_row_index(name="_ROW_IDX")
+    security_performance_lookup = security_performance_with_row_index.partition_by(
+        _PERIOD_UNIQUE_KEY_COLUMNS,
+        as_dict=True,
+    )
+    adjusted_weight_values: list[float] = [float("nan")] * security_performance.height
     unreconciled_periods: set[UnreconciledPeriod] = set()
 
-    for portfolio_code, from_date, thru_date, port_return in portperf.select(
+    for portfolio_code, from_date, thru_date, port_return in portfolio_performance.select(
         [
             cols.PORTFOLIO_CODE,
             cols.FROM_DATE,
@@ -116,16 +130,19 @@ def derive_secperf_for_all_periods(
     ).iter_rows():
         key = (str(portfolio_code), from_date, thru_date)
         target_return = float(port_return)
-        secperf_period = secperf_lookup.get(key)
-        if secperf_period is None or secperf_period.is_empty():
-            raise PpaError(error_message(f"No secperf rows for period {key}"), 999)
+        security_performance_period = security_performance_lookup.get(key)
+        if security_performance_period is None or security_performance_period.is_empty():
+            raise PpaError(
+                error_message(f"No security performance rows for period {key}"),
+                999,
+            )
 
         adjusted_weights, achieved_return = derive_reconciled_weights(
-            secperf_period,
+            security_performance_period,
             target_return,
         )
         for row_index, adjusted_weight in zip(
-            secperf_period["_ROW_IDX"].to_list(), adjusted_weights
+            security_performance_period["_ROW_IDX"].to_list(), adjusted_weights
         ):
             adjusted_weight_values[int(row_index)] = adjusted_weight
 
@@ -141,15 +158,16 @@ def derive_secperf_for_all_periods(
     if any(math.isnan(weight) for weight in adjusted_weight_values):
         raise PpaError(
             error_message(
-                f"Incomplete {cols.WEIGHT} assignment. One or more secperf rows were not "
+                f"Incomplete {cols.WEIGHT} assignment. One or more security "
+                "performance rows were not "
                 "assigned a derived weight."
             ),
             999,
         )
-    reconciled_secperf = secperf.with_columns(
+    reconciled_security_performance = security_performance.with_columns(
         pl.Series(name=cols.WEIGHT, values=adjusted_weight_values, dtype=pl.Float64)
     )
-    return reconciled_secperf, unreconciled_periods
+    return reconciled_security_performance, unreconciled_periods
 
 
 def unreconciled_difference(unreconciled_periods: set[UnreconciledPeriod]) -> float:

@@ -17,9 +17,9 @@ from ppar.attribution import View  # noqa: E402
 from ppar.axys import AxysData  # noqa: E402
 import ppar.utilities as util  # noqa: E402
 
-_CLASSIFICATION_NAME = "Sector2"  # "Security", "Sector1", "Sector2"
+_CLASSIFICATION_NAME = "Sector"  # "Security", "Sector", "SectorLookup"
 _PORTFOLIO_CODES = ("PORT_SMALL", "PORT_LARGE")
-_AXYS_SPECIFICATIONS_PATH = _REPO_ROOT / "tests" / "data" / "axys_validation" / "axysdata.yaml"
+_AXYS_SPECIFICATIONS_PATH = _REPO_ROOT / "tests" / "data" / "axys_validation" / "ppar.yaml"
 
 
 def main() -> None:

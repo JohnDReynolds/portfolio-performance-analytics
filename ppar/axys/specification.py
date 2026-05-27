@@ -63,7 +63,10 @@ class AxysSpecification:
     def performance_path(
         self,
         argument_path: util.PathLike | None,
-        specification_key: Literal["portperf_path", "secperf_path"],
+        specification_key: Literal[
+            "portfolio_performance_path",
+            "security_performance_path",
+        ],
         error_message: ErrorMessage,
     ) -> Path:
         """Resolve an explicit or configured performance source path.
@@ -113,11 +116,14 @@ class AxysSpecification:
             ``True`` if the classification is marked as the security master;
             otherwise, ``False``.
 
-        Raises:
-            KeyError: If ``classification_name`` is not configured.
+        Notes:
+            ``Security`` is a built-in security-master classification when it
+            is not explicitly configured.
         """
+        if classification_name == "Security":
+            return True
         return bool(
-            self.values["classifications"][classification_name].get(
-                "is_security_master", False
-            )
+            self.values.get("classifications", {})
+            .get(classification_name, {})
+            .get("is_security_master", False)
         )

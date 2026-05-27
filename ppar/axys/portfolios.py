@@ -31,7 +31,7 @@ _ANALYTICS_REQUIRED_COLUMNS = {
     cols.RETURN,
     cols.WEIGHT,
 }
-_SECPERF_CLASSIFICATION_NAME = "Security"
+_SECURITY_PERFORMANCE_CLASSIFICATION_NAME = "Security"
 _PortfolioErrorMessage = Callable[[str, str | None], str]
 
 
@@ -42,22 +42,22 @@ class AxysPortfolio:
     Attributes:
         portfolio_code: Identifier used to select the portfolio in Axys sources.
         portfolio_name: Display name supplied to analytics output.
-        secperf: Reconciled security-level performance rows accepted by
-            :class:`ppar.analytics.Analytics`.
+        security_performance: Reconciled security-level performance rows
+            accepted by :class:`ppar.analytics.Analytics`.
         classification_sources: Optional classification source bundle requested
             alongside the portfolio.
     """
 
     portfolio_code: str
     portfolio_name: str
-    secperf: pl.DataFrame
+    security_performance: pl.DataFrame
     classification_sources: AxysClassificationSources | None = None
 
     def to_analytics(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         benchmark_data_source: util.PerformanceDataSource | None = None,
         benchmark_name: str | None = None,
-        portfolio_classification_name: str = _SECPERF_CLASSIFICATION_NAME,
+        portfolio_classification_name: str = _SECURITY_PERFORMANCE_CLASSIFICATION_NAME,
         benchmark_classification_name: str | None = None,
         from_date: str | dt.date = dt.date.min,
         thru_date: str | dt.date = dt.date.max,
@@ -106,7 +106,7 @@ class AxysPortfolio:
         from ppar.analytics import Analytics  # pylint: disable=import-outside-toplevel
 
         return Analytics(
-            portfolio_data_source=self.secperf,
+            portfolio_data_source=self.security_performance,
             benchmark_data_source=benchmark_data_source,
             portfolio_name=self.portfolio_name,
             benchmark_name=benchmark_name,
@@ -148,8 +148,8 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
         _specification: Parsed Axys source configuration.
         _loader: Source loader used to read portfolio and security performance.
         _error_message: Callback used to add facade-level validation context.
-        _portperf_path: Portfolio-performance CSV path.
-        _secperf_path: Security-performance CSV path.
+        _portfolio_performance_path: Portfolio-performance CSV path.
+        _security_performance_path: Security-performance CSV path.
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -157,8 +157,8 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
         specification: AxysSpecification,
         loader: AxysPerformanceSourceLoader,
         error_message: _PortfolioErrorMessage,
-        portperf_path: util.PathLike,
-        secperf_path: util.PathLike,
+        portfolio_performance_path: util.PathLike,
+        security_performance_path: util.PathLike,
     ) -> None:
         """Initialize a portfolio loader.
 
@@ -167,14 +167,14 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
                 settings.
             loader: Source loader used to read portfolio and security data.
             error_message: Callback used to add facade-level source context.
-            portperf_path: Portfolio-performance CSV path.
-            secperf_path: Security-performance CSV path.
+            portfolio_performance_path: Portfolio-performance CSV path.
+            security_performance_path: Security-performance CSV path.
         """
         self._specification = specification
         self._loader = loader
         self._error_message = error_message
-        self._portperf_path = portperf_path
-        self._secperf_path = secperf_path
+        self._portfolio_performance_path = portfolio_performance_path
+        self._security_performance_path = security_performance_path
 
     def load(self, portfolio_codes: tuple[str, ...] | None) -> dict[str, AxysPortfolio]:
         """Return reconciled security performance for requested portfolios.
@@ -192,8 +192,13 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
                 returns.
         """
         if not portfolio_codes:
-            portperf = self._loader.load(self._portperf_path, "portperf_columns")
-            portfolio_codes = tuple(portperf[cols.PORTFOLIO_CODE].unique().sort().to_list())
+            portfolio_performance = self._loader.load(
+                self._portfolio_performance_path,
+                "portfolio_performance_columns",
+            )
+            portfolio_codes = tuple(
+                portfolio_performance[cols.PORTFOLIO_CODE].unique().sort().to_list()
+            )
 
         return {
             portfolio.portfolio_code: portfolio
@@ -215,19 +220,30 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
             PpaError: If common periods cannot be found or security returns
                 cannot be reconciled to portfolio returns.
         """
-        portperf = self._loader.load(self._portperf_path, "portperf_columns", portfolio_code)
-        if portperf.is_empty():
+        portfolio_performance = self._loader.load(
+            self._portfolio_performance_path,
+            "portfolio_performance_columns",
+            portfolio_code,
+        )
+        if portfolio_performance.is_empty():
             return None
 
-        secperf = self._loader.load(self._secperf_path, "secperf_columns", portfolio_code)
-        portperf, secperf = reconciliation.filter_to_common_periods(
-            portperf,
-            secperf,
+        security_performance = self._loader.load(
+            self._security_performance_path,
+            "security_performance_columns",
+            portfolio_code,
+        )
+        portfolio_performance, security_performance = reconciliation.filter_to_common_periods(
+            portfolio_performance,
+            security_performance,
             lambda message, code=portfolio_code: self._error_message(message, code),
         )
-        secperf, unreconciled_periods = reconciliation.derive_secperf_for_all_periods(
-            portperf,
-            secperf,
+        (
+            security_performance,
+            unreconciled_periods,
+        ) = reconciliation.derive_security_performance_for_all_periods(
+            portfolio_performance,
+            security_performance,
             lambda message, code=portfolio_code: self._error_message(message, code),
         )
         difference = reconciliation.unreconciled_difference(unreconciled_periods)
@@ -240,7 +256,7 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
                 503,
             )
 
-        portfolio_name = str(portperf[cols.PORTFOLIO_NAME][0])
+        portfolio_name = str(portfolio_performance[cols.PORTFOLIO_NAME][0])
         if self._specification.prefix_portfolio_code:
             portfolio_name = (
                 f"{portfolio_code}{self._specification.prefix_portfolio_code}{portfolio_name}"
@@ -248,5 +264,5 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
         return AxysPortfolio(
             portfolio_code,
             portfolio_name,
-            secperf.select(_ANALYTICS_REQUIRED_COLUMNS),
+            security_performance.select(_ANALYTICS_REQUIRED_COLUMNS),
         )
