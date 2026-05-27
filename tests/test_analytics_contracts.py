@@ -16,9 +16,9 @@ from ppar.errors import PpaError
 
 
 _PERIODS = [
-    (dt.date(2023, 12, 31), dt.date(2024, 1, 31)),
-    (dt.date(2024, 1, 31), dt.date(2024, 2, 29)),
-    (dt.date(2024, 2, 29), dt.date(2024, 3, 31)),
+    (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+    (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+    (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
 ]
 
 
@@ -26,8 +26,8 @@ def _two_asset_performance() -> pl.DataFrame:
     """Return three periods of narrow-format performance data."""
     return pl.DataFrame(
         {
-            cols.BEGINNING_DATE: [period[0] for period in _PERIODS for _ in ("A", "B")],
-            cols.ENDING_DATE: [period[1] for period in _PERIODS for _ in ("A", "B")],
+            cols.FROM_DATE: [period[0] for period in _PERIODS for _ in ("A", "B")],
+            cols.THRU_DATE: [period[1] for period in _PERIODS for _ in ("A", "B")],
             cols.IDENTIFIER: ["A", "B"] * len(_PERIODS),
             cols.RETURN: [0.10, -0.05, 0.03, 0.02, -0.02, 0.04],
             cols.WEIGHT: [0.60, 0.40] * len(_PERIODS),
@@ -56,18 +56,18 @@ class TestAnalyticsContracts(unittest.TestCase):
         """Date parameters constrain the aligned reportable periods."""
         analytics = Analytics(
             _two_asset_performance(),
-            beginning_date="2024-01-31",
-            ending_date=dt.date(2024, 3, 31),
+            from_date="2024-02-01",
+            thru_date=dt.date(2024, 3, 31),
         )
 
         summary = analytics.get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
 
         self.assertEqual(
-            summary[cols.BEGINNING_DATE].to_list(),
-            [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
+            summary[cols.FROM_DATE].to_list(),
+            [dt.date(2024, 2, 1), dt.date(2024, 3, 1)],
         )
         self.assertEqual(
-            summary[cols.ENDING_DATE].to_list(),
+            summary[cols.THRU_DATE].to_list(),
             [dt.date(2024, 2, 29), dt.date(2024, 3, 31)],
         )
 
@@ -121,7 +121,7 @@ class TestAnalyticsContracts(unittest.TestCase):
         summary = attribution.to_polars(View.SUBPERIOD_SUMMARY)
         detail = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
 
-        self.assertEqual(cumulative[cols.ENDING_DATE].item(-1), "Total")
+        self.assertEqual(cumulative[cols.THRU_DATE].item(-1), "Total")
         self.assertEqual(overall[cols.CLASSIFICATION_NAME].item(-1), "Total")
         self.assertEqual(summary.height, len(_PERIODS))
         self.assertEqual(detail.height, 2 * len(_PERIODS))

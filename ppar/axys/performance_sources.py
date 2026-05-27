@@ -18,16 +18,16 @@ import ppar.utilities as util
 PerformanceSourceType = Literal["portperf_columns", "secperf_columns"]
 
 _PORTPERF_REQUIRED_COLUMNS: Final[set[str]] = {
-    cols.BEGINNING_DATE,
-    cols.ENDING_DATE,
+    cols.FROM_DATE,
+    cols.THRU_DATE,
     cols.PORTFOLIO_CODE,
     cols.PORTFOLIO_NAME,
     cols.PORTFOLIO_RETURN,
 }
 _SECPERF_REQUIRED_COLUMNS: Final[set[str]] = {
-    cols.BEGINNING_DATE,
+    cols.FROM_DATE,
     cols.CONTRIBUTION,
-    cols.ENDING_DATE,
+    cols.THRU_DATE,
     cols.IDENTIFIER,
     cols.PORTFOLIO_CODE,
     cols.RETURN,
@@ -41,8 +41,8 @@ class AxysPerformanceSourceLoader:
     Attributes:
         _specification: Parsed Axys source configuration.
         _error_message: Callback used to add facade-level validation context.
-        _from_date: Optional inclusive earliest beginning date to retain.
-        _thru_date: Optional inclusive latest ending date to retain.
+        _from_date: Optional inclusive earliest reporting date to retain.
+        _thru_date: Optional inclusive latest thru date to retain.
     """
 
     def __init__(
@@ -58,8 +58,8 @@ class AxysPerformanceSourceLoader:
             specification: Parsed Axys configuration.
             error_message: Callback that adds facade-level source context to
                 validation messages.
-            from_date: Optional inclusive earliest beginning date to retain.
-            thru_date: Optional inclusive latest ending date to retain.
+            from_date: Optional inclusive earliest reporting date to retain.
+            thru_date: Optional inclusive latest thru date to retain.
         """
         self._specification = specification
         self._error_message = error_message
@@ -108,18 +108,18 @@ class AxysPerformanceSourceLoader:
             .rename(csv_to_internal_mappings)
             .select(required_columns)
             .with_columns(
-                pl.col(cols.BEGINNING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-                pl.col(cols.ENDING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+                pl.col(cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+                pl.col(cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             )
         )
         if portfolio_code is not None:
             lazy_frame = lazy_frame.filter(pl.col(cols.PORTFOLIO_CODE) == portfolio_code)
         if self._from_date is not None:
             lazy_frame = lazy_frame.filter(
-                pl.lit(self._from_date) <= pl.col(cols.BEGINNING_DATE)
+                pl.lit(self._from_date) <= pl.col(cols.THRU_DATE)
             )
         if self._thru_date is not None:
-            lazy_frame = lazy_frame.filter(pl.col(cols.ENDING_DATE) <= pl.lit(self._thru_date))
+            lazy_frame = lazy_frame.filter(pl.col(cols.THRU_DATE) <= pl.lit(self._thru_date))
         return lazy_frame.collect()
 
     def _csv_to_internal_mappings(

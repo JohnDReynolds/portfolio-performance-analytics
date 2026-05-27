@@ -3,11 +3,7 @@
 # Python Imports
 import datetime as dt
 import math
-from collections.abc import Mapping, Sequence
 import unittest
-
-# Third-Party Imports
-import polars as pl
 
 # Project Imports
 from ppar.analytics import Analytics
@@ -17,37 +13,7 @@ import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.frequency import Frequency
 from ppar.performance import Performance
-
-_Period = tuple[dt.date, dt.date]
-_AssetValues = tuple[Sequence[float], Sequence[float]]
-
-
-def _make_performance_df(
-    periods: Sequence[_Period],
-    assets: Mapping[str, _AssetValues],
-) -> pl.DataFrame:
-    """Create a small narrow-format performance DataFrame.
-
-    Args:
-        periods: Beginning and ending dates for each input period.
-        assets: Asset identifiers mapped to return and weight sequences.
-
-    Returns:
-        A narrow-format Polars DataFrame accepted by ``Performance``.
-    """
-    rows: list[dict[str, dt.date | str | float]] = []
-    for period_index, (beginning_date, ending_date) in enumerate(periods):
-        for identifier, (returns, weights) in assets.items():
-            rows.append(
-                {
-                    cols.BEGINNING_DATE: beginning_date,
-                    cols.ENDING_DATE: ending_date,
-                    cols.IDENTIFIER: identifier,
-                    cols.RETURN: returns[period_index],
-                    cols.WEIGHT: weights[period_index],
-                }
-            )
-    return pl.DataFrame(rows)
+from tests import test_utilities as test_util
 
 
 class TestCalculationInvariants(unittest.TestCase):
@@ -56,8 +22,8 @@ class TestCalculationInvariants(unittest.TestCase):
     def test_single_asset_total_return_equals_asset_return(self) -> None:
         """A fully invested single asset contributes its entire return."""
         performance = Performance(
-            _make_performance_df(
-                [(dt.date(2023, 12, 31), dt.date(2024, 1, 31))],
+            test_util.make_performance_df(
+                [(dt.date(2024, 1, 1), dt.date(2024, 1, 31))],
                 {"A": ([0.0375], [1.0])},
             )
         )
@@ -74,8 +40,8 @@ class TestCalculationInvariants(unittest.TestCase):
     def test_two_asset_total_return_equals_sum_of_contributions(self) -> None:
         """A period total return is the weighted sum of asset returns."""
         performance = Performance(
-            _make_performance_df(
-                [(dt.date(2023, 12, 31), dt.date(2024, 1, 31))],
+            test_util.make_performance_df(
+                [(dt.date(2024, 1, 1), dt.date(2024, 1, 31))],
                 {
                     "A": ([0.10], [0.60]),
                     "B": ([-0.05], [0.40]),
@@ -96,8 +62,8 @@ class TestCalculationInvariants(unittest.TestCase):
     def test_long_short_fully_invested_portfolio_reconciles(self) -> None:
         """Gross exposures above one reconcile when net weights equal one."""
         performance = Performance(
-            _make_performance_df(
-                [(dt.date(2023, 12, 31), dt.date(2024, 1, 31))],
+            test_util.make_performance_df(
+                [(dt.date(2024, 1, 1), dt.date(2024, 1, 31))],
                 {
                     "Long": ([0.10], [1.20]),
                     "Short": ([0.05], [-0.20]),
@@ -123,10 +89,10 @@ class TestCalculationInvariants(unittest.TestCase):
     def test_identical_portfolio_and_benchmark_have_zero_active_effects(self) -> None:
         """Identical inputs have no active return or attribution effects."""
         periods = [
-            (dt.date(2023, 12, 31), dt.date(2024, 1, 31)),
-            (dt.date(2024, 1, 31), dt.date(2024, 2, 29)),
+            (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+            (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
         ]
-        df = _make_performance_df(
+        df = test_util.make_performance_df(
             periods,
             {
                 "A": ([0.08, -0.01], [0.60, 0.55]),
@@ -148,18 +114,18 @@ class TestCalculationInvariants(unittest.TestCase):
     def test_overall_smoothed_effects_reconcile_to_active_return(self) -> None:
         """Linked attribution effects reconcile to linked active return."""
         periods = [
-            (dt.date(2023, 12, 31), dt.date(2024, 1, 31)),
-            (dt.date(2024, 1, 31), dt.date(2024, 2, 29)),
-            (dt.date(2024, 2, 29), dt.date(2024, 3, 31)),
+            (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+            (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+            (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
         ]
-        portfolio = _make_performance_df(
+        portfolio = test_util.make_performance_df(
             periods,
             {
                 "A": ([0.08, -0.01, 0.03], [0.70, 0.55, 0.60]),
                 "B": ([-0.02, 0.05, 0.01], [0.30, 0.45, 0.40]),
             },
         )
-        benchmark = _make_performance_df(
+        benchmark = test_util.make_performance_df(
             periods,
             {
                 "A": ([0.06, 0.01, 0.02], [0.50, 0.50, 0.50]),
@@ -183,12 +149,12 @@ class TestCalculationInvariants(unittest.TestCase):
     def test_daily_periods_consolidate_to_monthly_return(self) -> None:
         """Sub-monthly total returns compound into monthly report periods."""
         periods = [
-            (dt.date(2023, 12, 31), dt.date(2024, 1, 15)),
-            (dt.date(2024, 1, 15), dt.date(2024, 1, 31)),
-            (dt.date(2024, 1, 31), dt.date(2024, 2, 15)),
-            (dt.date(2024, 2, 15), dt.date(2024, 2, 29)),
+            (dt.date(2024, 1, 1), dt.date(2024, 1, 15)),
+            (dt.date(2024, 1, 16), dt.date(2024, 1, 31)),
+            (dt.date(2024, 2, 1), dt.date(2024, 2, 15)),
+            (dt.date(2024, 2, 16), dt.date(2024, 2, 29)),
         ]
-        df = _make_performance_df(
+        df = test_util.make_performance_df(
             periods,
             {"A": ([0.01, 0.02, -0.03, 0.04], [1.0, 1.0, 1.0, 1.0])},
         )
@@ -215,19 +181,19 @@ class TestCalculationInvariants(unittest.TestCase):
 
     def test_date_alignment_keeps_only_common_periods(self) -> None:
         """Analytics restricts portfolio and benchmark to their common periods."""
-        portfolio = _make_performance_df(
+        portfolio = test_util.make_performance_df(
             [
-                (dt.date(2023, 12, 31), dt.date(2024, 1, 31)),
-                (dt.date(2024, 1, 31), dt.date(2024, 2, 29)),
-                (dt.date(2024, 2, 29), dt.date(2024, 3, 31)),
+                (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+                (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+                (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
             ],
             {"A": ([0.01, 0.02, 0.03], [1.0, 1.0, 1.0])},
         )
-        benchmark = _make_performance_df(
+        benchmark = test_util.make_performance_df(
             [
-                (dt.date(2024, 1, 31), dt.date(2024, 2, 29)),
-                (dt.date(2024, 2, 29), dt.date(2024, 3, 31)),
-                (dt.date(2024, 3, 31), dt.date(2024, 4, 30)),
+                (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+                (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
+                (dt.date(2024, 4, 1), dt.date(2024, 4, 30)),
             ],
             {"A": ([0.02, 0.01, 0.04], [1.0, 1.0, 1.0])},
         )
@@ -237,17 +203,17 @@ class TestCalculationInvariants(unittest.TestCase):
         )
 
         self.assertEqual(summary.height, 2)
-        self.assertEqual(summary[cols.BEGINNING_DATE].item(0), dt.date(2024, 1, 31))
-        self.assertEqual(summary[cols.ENDING_DATE].item(-1), dt.date(2024, 3, 31))
+        self.assertEqual(summary[cols.FROM_DATE].item(0), dt.date(2024, 2, 1))
+        self.assertEqual(summary[cols.THRU_DATE].item(-1), dt.date(2024, 3, 31))
 
     def test_no_common_periods_raises_expected_error(self) -> None:
         """Analytics fails when portfolio and benchmark do not overlap."""
-        portfolio = _make_performance_df(
-            [(dt.date(2023, 12, 31), dt.date(2024, 1, 31))],
+        portfolio = test_util.make_performance_df(
+            [(dt.date(2024, 1, 1), dt.date(2024, 1, 31))],
             {"A": ([0.01], [1.0])},
         )
-        benchmark = _make_performance_df(
-            [(dt.date(2024, 1, 31), dt.date(2024, 2, 29))],
+        benchmark = test_util.make_performance_df(
+            [(dt.date(2024, 2, 1), dt.date(2024, 2, 29))],
             {"A": ([0.02], [1.0])},
         )
 

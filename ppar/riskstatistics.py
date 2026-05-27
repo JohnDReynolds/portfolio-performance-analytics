@@ -143,12 +143,12 @@ class RiskStatistics:
         # Set the currency symbol used when presenting the VaR.
         self._currency_symbol = portfolio_value[1]
 
-        # Set the dates, names and returns depending on the input parameters.
+        # Set the dates, names and returns depthru on the input parameters.
         if isinstance(returns[0], Performance) and isinstance(returns[1], Performance):
             portfolio_totals = returns[0].period_totals()
             benchmark_totals = returns[1].period_totals()
-            self._beginning_date = portfolio_totals[cols.BEGINNING_DATE][0]
-            self._ending_date = portfolio_totals[cols.ENDING_DATE][-1]
+            self._from_date = portfolio_totals[cols.FROM_DATE][0]
+            self._thru_date = portfolio_totals[cols.THRU_DATE][-1]
             self._portfolio_name = returns[0].name
             self._benchmark_name = returns[1].name
             self._portfolio_returns = portfolio_totals[cols.TOTAL_RETURN].to_numpy()
@@ -157,8 +157,8 @@ class RiskStatistics:
                 Sequence[Performance], returns
             )
         elif isinstance(returns[0], np.ndarray) and isinstance(returns[1], np.ndarray):
-            self._beginning_date = dt.date.min
-            self._ending_date = dt.date.max
+            self._from_date = dt.date.min
+            self._thru_date = dt.date.max
             self._portfolio_name = "Portfolio"
             self._benchmark_name = "Benchmark"
             self._portfolio_returns = returns[0]
@@ -247,7 +247,7 @@ class RiskStatistics:
         """
         # Audit the portfolio/benchmark pair of performances.
         Performance.audit_performances(
-            self._performances_to_audit, self._beginning_date, self._ending_date
+            self._performances_to_audit, self._from_date, self._thru_date
         )
 
     @staticmethod
@@ -635,8 +635,8 @@ class RiskStatistics:
         """Return title and subtitle text for risk-statistics output."""
         return (
             f"{self._portfolio_name or ''} vs {self._benchmark_name or ''}",
-            f"Ex-Post Risk Statistics: {self._frequency.value} from {self._beginning_date} to "
-            f"{self._ending_date}",
+            f"Ex-Post Risk Statistics: {self._frequency.value} from {self._from_date} to "
+            f"{self._thru_date}",
         )
 
     def to_xml(self) -> str:

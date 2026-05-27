@@ -2,15 +2,15 @@
 
 ERRORS = {
     # Performance Class Error Messages
-    102: "Error 102: Ending dates are not unique ",
+    102: "Error 102: Thru dates are not unique ",
     103: "Error 103: No performance rows found ",
     104: "Error 104: There are missing values ",
-    105: "Error 105: Beginning dates not less than ending dates ",
+    105: "Error 105: From dates not less than thru dates ",
     106: "Error 106: There are discontinuous time periods ",
     108: "Error 108: The weights do not sum to 1.0 ",
     109: "Error 109: Required narrow performance columns are missing ",
     110: "Error 110: Invalid Performance data format ",
-    111: "Error 111: Beginning Date cannot be after Ending Date: ",
+    111: "Error 111: From Date cannot be after Thru Date: ",
     112: "Error 112: Duplicate rows for the same period and identifier ",
     # Attribution Class Error Messages
     202: "Error 202: There are no common reportable dates found ",

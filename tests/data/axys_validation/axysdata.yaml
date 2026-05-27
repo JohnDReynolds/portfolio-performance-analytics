@@ -28,8 +28,8 @@ portperf_path: portperf.csv
 
 # Internal field name -> CSV column name
 portperf_columns:
-  beginning_date: FROM_DATE
-  ending_date: THRU_DATE
+  from_date: FROM_DATE
+  thru_date: THRU_DATE
   portfolio_code: PORTFOLIO_CODE
   portfolio_name: PORTFOLIO_NAME
   Portfolio_Return: PORT_RETURN
@@ -43,9 +43,9 @@ secperf_path: secperf.csv
 
 # Internal field name -> CSV column name
 secperf_columns:
-  beginning_date: FROM_DATE
+  from_date: FROM_DATE
   contribution: CONTRIBUTION_W_X_R
-  ending_date: THRU_DATE
+  thru_date: THRU_DATE
   identifier: SECURITY_ID
   portfolio_code: PORTFOLIO_CODE
   return: SEC_RETURN

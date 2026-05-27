@@ -3,7 +3,6 @@
 # Python Imports
 import datetime as dt
 import math
-from collections.abc import Mapping, Sequence
 import unittest
 
 # Third-Party Imports
@@ -14,53 +13,22 @@ from ppar.analytics import Analytics
 from ppar.attribution import View
 import ppar.columns as cols
 from ppar.frequency import Frequency
+from tests import test_utilities as test_util
 
-_Period = tuple[dt.date, dt.date]
-_AssetValues = tuple[Sequence[float], Sequence[float]]
-
-_MONTHLY_PERIODS: tuple[_Period, ...] = (
-    (dt.date(2023, 12, 31), dt.date(2024, 1, 31)),
-    (dt.date(2024, 1, 31), dt.date(2024, 2, 29)),
-    (dt.date(2024, 2, 29), dt.date(2024, 3, 31)),
-    (dt.date(2024, 3, 31), dt.date(2024, 4, 30)),
-    (dt.date(2024, 4, 30), dt.date(2024, 5, 31)),
-    (dt.date(2024, 5, 31), dt.date(2024, 6, 30)),
-    (dt.date(2024, 6, 30), dt.date(2024, 7, 31)),
-    (dt.date(2024, 7, 31), dt.date(2024, 8, 31)),
-    (dt.date(2024, 8, 31), dt.date(2024, 9, 30)),
-    (dt.date(2024, 9, 30), dt.date(2024, 10, 31)),
-    (dt.date(2024, 10, 31), dt.date(2024, 11, 30)),
-    (dt.date(2024, 11, 30), dt.date(2024, 12, 31)),
+_MONTHLY_PERIODS: tuple[test_util.Period, ...] = (
+    (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+    (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+    (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
+    (dt.date(2024, 4, 1), dt.date(2024, 4, 30)),
+    (dt.date(2024, 5, 1), dt.date(2024, 5, 31)),
+    (dt.date(2024, 6, 1), dt.date(2024, 6, 30)),
+    (dt.date(2024, 7, 1), dt.date(2024, 7, 31)),
+    (dt.date(2024, 8, 1), dt.date(2024, 8, 31)),
+    (dt.date(2024, 9, 1), dt.date(2024, 9, 30)),
+    (dt.date(2024, 10, 1), dt.date(2024, 10, 31)),
+    (dt.date(2024, 11, 1), dt.date(2024, 11, 30)),
+    (dt.date(2024, 12, 1), dt.date(2024, 12, 31)),
 )
-
-
-def _narrow_performance(
-    periods: Sequence[_Period],
-    assets: Mapping[str, _AssetValues],
-) -> pl.DataFrame:
-    """Create narrow performance rows from aligned asset return and weight values.
-
-    Args:
-        periods: Beginning and ending dates for each period.
-        assets: Asset identifiers mapped to return and weight sequences aligned
-            to ``periods``.
-
-    Returns:
-        Narrow Polars DataFrame accepted by ``Analytics`` and ``Performance``.
-    """
-    rows: list[dict[str, dt.date | str | float]] = []
-    for period_index, (beginning_date, ending_date) in enumerate(periods):
-        for identifier, (returns, weights) in assets.items():
-            rows.append(
-                {
-                    cols.BEGINNING_DATE: beginning_date,
-                    cols.ENDING_DATE: ending_date,
-                    cols.IDENTIFIER: identifier,
-                    cols.RETURN: returns[period_index],
-                    cols.WEIGHT: weights[period_index],
-                }
-            )
-    return pl.DataFrame(rows)
 
 
 def _scalable_narrow_performance(identifier_count: int, period_count: int) -> pl.DataFrame:
@@ -76,14 +44,14 @@ def _scalable_narrow_performance(identifier_count: int, period_count: int) -> pl
     """
     weight = 1.0 / identifier_count
     rows: list[dict[str, dt.date | str | float]] = []
-    for period_index, (beginning_date, ending_date) in enumerate(
+    for period_index, (from_date, thru_date) in enumerate(
         _MONTHLY_PERIODS[:period_count]
     ):
         for identifier_index in range(identifier_count):
             rows.append(
                 {
-                    cols.BEGINNING_DATE: beginning_date,
-                    cols.ENDING_DATE: ending_date,
+                    cols.FROM_DATE: from_date,
+                    cols.THRU_DATE: thru_date,
                     cols.IDENTIFIER: f"S{identifier_index:04d}",
                     cols.RETURN: ((identifier_index % 11) - 5) / 1000.0
                     + ((period_index % 5) - 2) / 10000.0,
@@ -106,14 +74,14 @@ class TestNarrowModelContracts(unittest.TestCase):
     def test_attribution_values_from_narrow_inputs_are_stable(self) -> None:
         """Narrow attribution preserves representative summary and overall values."""
         periods = _MONTHLY_PERIODS[:3]
-        portfolio = _narrow_performance(
+        portfolio = test_util.make_performance_df(
             periods,
             {
                 "A": ([0.08, -0.01, 0.03], [0.70, 0.55, 0.60]),
                 "B": ([-0.02, 0.05, 0.01], [0.30, 0.45, 0.40]),
             },
         )
-        benchmark = _narrow_performance(
+        benchmark = test_util.make_performance_df(
             periods,
             {
                 "A": ([0.06, 0.01, 0.02], [0.50, 0.50, 0.50]),
@@ -158,11 +126,11 @@ class TestNarrowModelContracts(unittest.TestCase):
 
     def test_mapping_values_from_narrow_inputs_are_stable(self) -> None:
         """Narrow security rows roll up to mapped attribution totals."""
-        portfolio = _narrow_performance(
+        portfolio = test_util.make_performance_df(
             _MONTHLY_PERIODS[:1],
             {"A": ([0.10], [0.60]), "B": ([-0.05], [0.40])},
         )
-        benchmark = _narrow_performance(
+        benchmark = test_util.make_performance_df(
             _MONTHLY_PERIODS[:1],
             {"A": ([0.06], [0.50]), "B": ([0.00], [0.50])},
         )
@@ -189,12 +157,12 @@ class TestNarrowModelContracts(unittest.TestCase):
     def test_consolidation_values_from_narrow_inputs_are_stable(self) -> None:
         """Narrow sub-monthly rows compound to stable monthly totals."""
         periods = (
-            (dt.date(2023, 12, 31), dt.date(2024, 1, 15)),
-            (dt.date(2024, 1, 15), dt.date(2024, 1, 31)),
-            (dt.date(2024, 1, 31), dt.date(2024, 2, 15)),
-            (dt.date(2024, 2, 15), dt.date(2024, 2, 29)),
+            (dt.date(2024, 1, 1), dt.date(2024, 1, 15)),
+            (dt.date(2024, 1, 16), dt.date(2024, 1, 31)),
+            (dt.date(2024, 2, 1), dt.date(2024, 2, 15)),
+            (dt.date(2024, 2, 16), dt.date(2024, 2, 29)),
         )
-        performance = _narrow_performance(
+        performance = test_util.make_performance_df(
             periods,
             {"A": ([0.01, 0.02, -0.03, 0.04], [1.0, 1.0, 1.0, 1.0])},
         )
@@ -215,11 +183,11 @@ class TestNarrowModelContracts(unittest.TestCase):
 
     def test_risk_statistics_values_from_narrow_inputs_are_stable(self) -> None:
         """Narrow monthly inputs feed stable risk-statistics results."""
-        portfolio = _narrow_performance(
+        portfolio = test_util.make_performance_df(
             _MONTHLY_PERIODS,
             {"A": ([0.01, -0.02, 0.03, 0.01, -0.01, 0.02] * 2, [1.0] * 12)},
         )
-        benchmark = _narrow_performance(
+        benchmark = test_util.make_performance_df(
             _MONTHLY_PERIODS,
             {"A": ([0.005, -0.01, 0.02, 0.015, -0.005, 0.01] * 2, [1.0] * 12)},
         )
@@ -246,9 +214,9 @@ class TestNarrowModelContracts(unittest.TestCase):
         detail = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
         summary = attribution.to_polars(View.SUBPERIOD_SUMMARY)
         expected_returns = (
-            performance.group_by(cols.ENDING_DATE)
+            performance.group_by(cols.THRU_DATE)
             .agg((pl.col(cols.RETURN) * pl.col(cols.WEIGHT)).sum().alias("expected"))
-            .sort(cols.ENDING_DATE)["expected"]
+            .sort(cols.THRU_DATE)["expected"]
         )
 
         self.assertEqual(performance.height, identifier_count * period_count)

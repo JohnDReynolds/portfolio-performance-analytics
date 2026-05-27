@@ -89,8 +89,8 @@ class TestRiskStatisticsValidation(unittest.TestCase):
         portfolio = Performance(
             pl.DataFrame(
                 {
-                    cols.BEGINNING_DATE: [dt.date(2023, 1, 31), dt.date(2023, 2, 28)],
-                    cols.ENDING_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
+                    cols.FROM_DATE: [dt.date(2023, 2, 1), dt.date(2023, 3, 1)],
+                    cols.THRU_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
                     cols.IDENTIFIER: ["A", "A"],
                     cols.RETURN: [0.01, 0.02],
                     cols.WEIGHT: [1.0, 1.0],
@@ -100,8 +100,8 @@ class TestRiskStatisticsValidation(unittest.TestCase):
         benchmark = Performance(
             pl.DataFrame(
                 {
-                    cols.BEGINNING_DATE: [dt.date(2023, 2, 28), dt.date(2023, 3, 31)],
-                    cols.ENDING_DATE: [dt.date(2023, 3, 31), dt.date(2023, 4, 30)],
+                    cols.FROM_DATE: [dt.date(2023, 3, 1), dt.date(2023, 4, 1)],
+                    cols.THRU_DATE: [dt.date(2023, 3, 31), dt.date(2023, 4, 30)],
                     cols.IDENTIFIER: ["A", "A"],
                     cols.RETURN: [0.03, 0.04],
                     cols.WEIGHT: [1.0, 1.0],

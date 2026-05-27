@@ -66,7 +66,7 @@ assets; public image URLs are required there if image display is needed.
 ## Inputs
 
 The inputs required to produce the analytics fall into three categories:
-1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*. They will typically be beginning-of-period weights and period returns. (Required)
+1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*. They will typically be from-of-period weights and period returns. (Required)
 2. Classification items and descriptions. (Optional)
 3. Mappings from the classification scheme of the weights and returns to a reporting classification. (Optional)
 
@@ -80,7 +80,7 @@ Portfolio and benchmark performance sources use narrow rows. The `name` column
 is optional; `contribution` and total return are calculated by the package.
 
 ```csv
-beginning_date,ending_date,identifier,weight,return,name
+from_date,thru_date,identifier,weight,return,name
 2023-12-31,2024-01-31,AAPL,0.4,-0.0422272121,Apple Inc.
 2023-12-31,2024-01-31,MSFT,0.6,0.0572811503,Microsoft
 ```

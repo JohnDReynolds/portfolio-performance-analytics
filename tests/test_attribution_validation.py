@@ -25,8 +25,8 @@ class TestAttributionValidation(unittest.TestCase):
         """Attribution linking rejects a return less than negative one."""
         invalid_return = pl.DataFrame(
             {
-                cols.BEGINNING_DATE: [dt.date(1979, 12, 14)],
-                cols.ENDING_DATE: [dt.date(1979, 12, 15)],
+                cols.FROM_DATE: [dt.date(1979, 12, 15)],
+                cols.THRU_DATE: [dt.date(1979, 12, 15)],
                 cols.IDENTIFIER: ["aapl"],
                 cols.RETURN: [-1.0521707668],
                 cols.WEIGHT: [1.0],

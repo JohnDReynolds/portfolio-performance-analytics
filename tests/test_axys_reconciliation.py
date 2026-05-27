@@ -19,8 +19,8 @@ import ppar.errors as errs
 from ppar.errors import PpaError
 
 
-_BEGINNING_DATE = dt.date(2023, 12, 31)
-_ENDING_DATE = dt.date(2024, 1, 31)
+_FROM_DATE = dt.date(2023, 12, 31)
+_THRU_DATE = dt.date(2024, 1, 31)
 
 
 def _error_message(message: str) -> str:
@@ -40,8 +40,8 @@ def _single_period_secperf(
     return pl.DataFrame(
         {
             cols.PORTFOLIO_CODE: ["PORT"] * len(returns),
-            cols.BEGINNING_DATE: [_BEGINNING_DATE] * len(returns),
-            cols.ENDING_DATE: [_ENDING_DATE] * len(returns),
+            cols.FROM_DATE: [_FROM_DATE] * len(returns),
+            cols.THRU_DATE: [_THRU_DATE] * len(returns),
             cols.IDENTIFIER: identifiers,
             cols.CONTRIBUTION: pl.Series(contributions, dtype=pl.Float64),
             cols.RETURN: pl.Series(returns, dtype=pl.Float64),
@@ -55,8 +55,8 @@ def _single_period_portperf(portfolio_return: float) -> pl.DataFrame:
     return pl.DataFrame(
         {
             cols.PORTFOLIO_CODE: ["PORT"],
-            cols.BEGINNING_DATE: [_BEGINNING_DATE],
-            cols.ENDING_DATE: [_ENDING_DATE],
+            cols.FROM_DATE: [_FROM_DATE],
+            cols.THRU_DATE: [_THRU_DATE],
             cols.PORTFOLIO_RETURN: [portfolio_return],
         }
     )
@@ -122,24 +122,24 @@ class TestAxysReconciliation(unittest.TestCase):
         portperf = pl.DataFrame(
             {
                 cols.PORTFOLIO_CODE: ["PORT", "PORT"],
-                cols.BEGINNING_DATE: [_BEGINNING_DATE, _ENDING_DATE],
-                cols.ENDING_DATE: [_ENDING_DATE, february_end],
+                cols.FROM_DATE: [_FROM_DATE, _THRU_DATE],
+                cols.THRU_DATE: [_THRU_DATE, february_end],
                 cols.PORTFOLIO_RETURN: [0.04, 0.03],
             }
         )
         secperf = pl.DataFrame(
             {
                 cols.PORTFOLIO_CODE: ["PORT", "PORT"],
-                cols.BEGINNING_DATE: [_ENDING_DATE, february_end],
-                cols.ENDING_DATE: [february_end, march_end],
+                cols.FROM_DATE: [_THRU_DATE, february_end],
+                cols.THRU_DATE: [february_end, march_end],
                 cols.IDENTIFIER: ["A", "A"],
             }
         )
 
         portperf, secperf = filter_to_common_periods(portperf, secperf, _error_message)
 
-        self.assertEqual(portperf[cols.ENDING_DATE].to_list(), [february_end])
-        self.assertEqual(secperf[cols.ENDING_DATE].to_list(), [february_end])
+        self.assertEqual(portperf[cols.THRU_DATE].to_list(), [february_end])
+        self.assertEqual(secperf[cols.THRU_DATE].to_list(), [february_end])
 
     def test_all_period_reconciliation_preserves_duplicate_identifier_rows(self) -> None:
         """Row-grain inputs remain separate even when identifiers repeat."""

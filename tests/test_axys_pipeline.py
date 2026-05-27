@@ -24,7 +24,7 @@ def _write_axys_inputs(directory: Path) -> Path:
     """Write minimal Axys-like sources into a temporary test directory."""
     pl.DataFrame(
         {
-            "FROM_DATE": ["2023-12-31", "2024-01-31", "2023-12-31"],
+            "FROM_DATE": ["2024-01-01", "2024-02-01", "2024-01-01"],
             "THRU_DATE": ["2024-01-31", "2024-02-29", "2024-01-31"],
             "PORTFOLIO_CODE": ["P1", "P1", "P2"],
             "PORTFOLIO_NAME": ["Growth", "Growth", "Income"],
@@ -34,11 +34,11 @@ def _write_axys_inputs(directory: Path) -> Path:
     pl.DataFrame(
         {
             "FROM_DATE": [
-                "2023-12-31",
-                "2023-12-31",
-                "2024-01-31",
-                "2024-01-31",
-                "2023-12-31",
+                "2024-01-01",
+                "2024-01-01",
+                "2024-02-01",
+                "2024-02-01",
+                "2024-01-01",
             ],
             "THRU_DATE": [
                 "2024-01-31",
@@ -72,16 +72,16 @@ def _write_axys_inputs(directory: Path) -> Path:
         "settings": {"prefix_portfolio_code": " - "},
         "portperf_path": "portperf.csv",
         "portperf_columns": {
-            cols.BEGINNING_DATE: "FROM_DATE",
-            cols.ENDING_DATE: "THRU_DATE",
+            cols.FROM_DATE: "FROM_DATE",
+            cols.THRU_DATE: "THRU_DATE",
             cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
             cols.PORTFOLIO_NAME: "PORTFOLIO_NAME",
             cols.PORTFOLIO_RETURN: "PORT_RETURN",
         },
         "secperf_path": "secperf.csv",
         "secperf_columns": {
-            cols.BEGINNING_DATE: "FROM_DATE",
-            cols.ENDING_DATE: "THRU_DATE",
+            cols.FROM_DATE: "FROM_DATE",
+            cols.THRU_DATE: "THRU_DATE",
             cols.IDENTIFIER: "SECURITY_ID",
             cols.PORTFOLIO_CODE: "PORTFOLIO_CODE",
             cols.RETURN: "SEC_RETURN",
@@ -143,7 +143,7 @@ class TestAxysPipeline(unittest.TestCase):
                 ["A", "B"],
             )
             first_period_weights = performance.filter(
-                pl.col(cols.ENDING_DATE) == dt.date(2024, 1, 31)
+                pl.col(cols.THRU_DATE) == dt.date(2024, 1, 31)
             )[cols.WEIGHT].to_list()
             self.assertTrue(math.isclose(first_period_weights[0], 0.60, abs_tol=1e-12))
             self.assertTrue(math.isclose(first_period_weights[1], 0.40, abs_tol=1e-12))
@@ -172,7 +172,7 @@ class TestAxysPipeline(unittest.TestCase):
             data = AxysData(_write_axys_inputs(Path(temp_dir)))
             portfolio = data.get_portfolio(
                 "P1",
-                from_date=dt.date(2024, 1, 31),
+                from_date=dt.date(2024, 2, 1),
                 thru_date=dt.date(2024, 2, 29),
             )
 
@@ -180,7 +180,7 @@ class TestAxysPipeline(unittest.TestCase):
 
             self.assertEqual(performance.height, 2)
             self.assertEqual(
-                performance[cols.ENDING_DATE].unique().to_list(),
+                performance[cols.THRU_DATE].unique().to_list(),
                 [dt.date(2024, 2, 29)],
             )
 
@@ -202,13 +202,13 @@ class TestAxysPipeline(unittest.TestCase):
 
             portfolio = data.get_portfolio(
                 "P1",
-                from_date=dt.date(2024, 1, 31),
+                from_date=dt.date(2024, 2, 1),
                 thru_date=dt.date(2024, 2, 29),
             )
 
             self.assertEqual(portfolio.secperf.height, 2)
             self.assertEqual(
-                portfolio.secperf[cols.ENDING_DATE].unique().to_list(),
+                portfolio.secperf[cols.THRU_DATE].unique().to_list(),
                 [dt.date(2024, 2, 29)],
             )
 
@@ -260,9 +260,7 @@ class TestAxysPipeline(unittest.TestCase):
             portfolio = data.get_portfolio("P1", classification_name="Sector")
 
             analytics = portfolio.to_analytics()
-            attribution = analytics.get_attribution_for(
-                portfolio.required_classification_sources
-            )
+            attribution = analytics.get_attribution()
             detail = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
 
             self.assertEqual(analytics.classification_names(), ("Security", "Security"))

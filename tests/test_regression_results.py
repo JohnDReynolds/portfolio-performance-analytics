@@ -116,7 +116,7 @@ class TestRegressionResults(unittest.TestCase):
             benchmark_name="Large-Cap Portfolio",
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
-            beginning_date="2024-01-31",
+            from_date="2024-02-01",
         )
 
         for classification_name in ("Security", "Economic Sector"):
@@ -126,7 +126,7 @@ class TestRegressionResults(unittest.TestCase):
                 sort_descendings: bool | list[bool] = False
                 if view == View.SUBPERIOD_ATTRIBUTION:
                     columns_to_sort = [
-                        cols.BEGINNING_DATE,
+                        cols.FROM_DATE,
                         cols.PORTFOLIO_WEIGHT,
                         cols.CLASSIFICATION_IDENTIFIER,
                     ]
@@ -163,7 +163,7 @@ class TestRegressionResults(unittest.TestCase):
             test_util.performance_data_path("Large-Cap Portfolio"),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
-            beginning_date=dt.date(2023, 10, 31),
+            from_date=dt.date(2023, 11, 1),
             frequency=Frequency.MONTHLY,
         )
         economic_sector = test_util.get_attribution(analytics, "Economic Sector")
@@ -219,8 +219,8 @@ class TestRegressionResults(unittest.TestCase):
             test_util.performance_data_path("Large-Cap Portfolio"),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
-            beginning_date=dt.date(2021, 12, 31),
-            ending_date=dt.date(2023, 3, 31),
+            from_date=dt.date(2022, 1, 1),
+            thru_date=dt.date(2023, 3, 31),
             frequency=Frequency.QUARTERLY,
             annual_minimum_acceptable_return=-0.16,
         )

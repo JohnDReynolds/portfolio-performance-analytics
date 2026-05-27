@@ -27,8 +27,8 @@ _FATAL_PERIOD_TOLERANCE = 0.0001
 _PERIOD_TOLERANCE: Final[float] = 0.0000001
 _PERIOD_UNIQUE_KEY_COLUMNS: Final[tuple[str, ...]] = (
     cols.PORTFOLIO_CODE,
-    cols.BEGINNING_DATE,
-    cols.ENDING_DATE,
+    cols.FROM_DATE,
+    cols.THRU_DATE,
 )
 
 
@@ -47,7 +47,7 @@ def filter_to_common_periods(
 
     Returns:
         Tuple containing portfolio and security rows restricted to common
-        portfolio code, beginning date, and ending date keys.
+        portfolio code, from date, and thru date keys.
 
     Raises:
         PpaError: If the sources do not have any common periods.
@@ -106,15 +106,15 @@ def derive_secperf_for_all_periods(
     adjusted_weight_values: list[float] = [float("nan")] * secperf.height
     unreconciled_periods: set[UnreconciledPeriod] = set()
 
-    for portfolio_code, beginning_date, ending_date, port_return in portperf.select(
+    for portfolio_code, from_date, thru_date, port_return in portperf.select(
         [
             cols.PORTFOLIO_CODE,
-            cols.BEGINNING_DATE,
-            cols.ENDING_DATE,
+            cols.FROM_DATE,
+            cols.THRU_DATE,
             cols.PORTFOLIO_RETURN,
         ]
     ).iter_rows():
-        key = (str(portfolio_code), beginning_date, ending_date)
+        key = (str(portfolio_code), from_date, thru_date)
         target_return = float(port_return)
         secperf_period = secperf_lookup.get(key)
         if secperf_period is None or secperf_period.is_empty():

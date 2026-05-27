@@ -196,7 +196,8 @@ class HtmlTable:
                     f'class="ppar_group_heading">{_format_text(current_group)}</th></tr>'
                 )
             stripe = " ppar_striped" if data_row_index % 2 == 1 else ""
-            lines.append(f"  <tr{f' class=\"{stripe.strip()}\"' if stripe else ''}>")
+            row_class = f' class="{stripe.strip()}"' if stripe else ""
+            lines.append(f"  <tr{row_class}>")
             for column in self.columns:
                 tag = "th" if column.name == self.stub_column else "td"
                 scope = ' scope="row"' if tag == "th" else ""
@@ -380,8 +381,8 @@ def _attribution_layout(
             layout.
     """
     date_columns = (
-        ColumnSpec(cols.BEGINNING_DATE, "Beginning", format="date", align="center"),
-        ColumnSpec(cols.ENDING_DATE, "Ending", format="date", align="center"),
+        ColumnSpec(cols.FROM_DATE, "From", format="date", align="center"),
+        ColumnSpec(cols.THRU_DATE, "Thru", format="date", align="center"),
     )
     time_period_spanner = SpannerSpec("Time Period", cols.DATE_COLUMNS)
     classification_columns = (

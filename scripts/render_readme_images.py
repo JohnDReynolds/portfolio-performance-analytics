@@ -82,8 +82,8 @@ def _write_html_inputs(temp_dir: Path) -> dict[str, Path]:
         demo_data.performance_data_source("Large-Cap Benchmark.csv"),
         portfolio_classification_name="Security",
         benchmark_classification_name="Security",
-        beginning_date="2022-12-31",
-        ending_date="2024-02-29",
+        from_date="2023-01-01",
+        thru_date="2024-02-29",
         frequency=Frequency.MONTHLY,
     )
     security = analytics.get_attribution()

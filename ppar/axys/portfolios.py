@@ -25,8 +25,8 @@ if TYPE_CHECKING:
     from ppar.axys.supporting_sources import AxysClassificationSources
 
 _ANALYTICS_REQUIRED_COLUMNS = {
-    cols.BEGINNING_DATE,
-    cols.ENDING_DATE,
+    cols.FROM_DATE,
+    cols.THRU_DATE,
     cols.IDENTIFIER,
     cols.RETURN,
     cols.WEIGHT,
@@ -59,8 +59,8 @@ class AxysPortfolio:
         benchmark_name: str | None = None,
         portfolio_classification_name: str = _SECPERF_CLASSIFICATION_NAME,
         benchmark_classification_name: str | None = None,
-        beginning_date: str | dt.date = dt.date.min,
-        ending_date: str | dt.date = dt.date.max,
+        from_date: str | dt.date = dt.date.min,
+        thru_date: str | dt.date = dt.date.max,
         frequency: Frequency = Frequency.AS_OFTEN_AS_POSSIBLE,
         annual_minimum_acceptable_return: float = (
             util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN
@@ -82,8 +82,8 @@ class AxysPortfolio:
                 security-performance rows. Defaults to ``"Security"``.
             benchmark_classification_name: Classification name associated with the
                 benchmark performance data.
-            beginning_date: Earliest allowed beginning date.
-            ending_date: Latest allowed ending date.
+            from_date: Earliest allowed from date.
+            thru_date: Latest allowed thru date.
             frequency: Reporting frequency used to consolidate subperiods.
             annual_minimum_acceptable_return: Annual minimum acceptable return used in
                 downside-risk calculations.
@@ -95,7 +95,8 @@ class AxysPortfolio:
 
         Returns:
             Analytics instance initialized with this portfolio's reconciled
-            security-performance rows and display name.
+            security-performance rows, display name, and optional default attribution
+            sources.
 
         Raises:
             PpaError: If Analytics validation fails.
@@ -111,9 +112,10 @@ class AxysPortfolio:
             benchmark_name=benchmark_name,
             portfolio_classification_name=portfolio_classification_name,
             benchmark_classification_name=benchmark_classification_name,
-            beginning_date=beginning_date,
-            ending_date=ending_date,
+            from_date=from_date,
+            thru_date=thru_date,
             frequency=frequency,
+            default_attribution_sources=self.classification_sources,
             annual_minimum_acceptable_return=annual_minimum_acceptable_return,
             annual_risk_free_rate=annual_risk_free_rate,
             confidence_level=confidence_level,
@@ -139,7 +141,7 @@ class AxysPortfolio:
         return self.classification_sources
 
 
-class AxysPortfolioLoader:
+class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
     """Load and reconcile requested Axys portfolios.
 
     Attributes:
@@ -150,7 +152,7 @@ class AxysPortfolioLoader:
         _secperf_path: Security-performance CSV path.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         specification: AxysSpecification,
         loader: AxysPerformanceSourceLoader,

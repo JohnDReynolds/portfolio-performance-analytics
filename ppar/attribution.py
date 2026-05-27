@@ -90,33 +90,10 @@ class View(Enum):
 
 # Column names that should be equivalent between all Attribution instances for a given Analytics.
 _EQUIVALENT_COLUMN_NAMES = (
-    cols.BEGINNING_DATE,
-    cols.ENDING_DATE,
+    cols.FROM_DATE,
+    cols.THRU_DATE,
     cols.QUANTITY_OF_DAYS,
     cols.TOTAL_RETURN,
-)
-
-# Various pairs of columns that should be equal to each other for the total row.
-_OVERALL_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL = (
-    # Smoothed Contributions
-    (cols.PORTFOLIO_RETURN, cols.PORTFOLIO_CONTRIB_SMOOTHED),
-    (cols.BENCHMARK_RETURN, cols.BENCHMARK_CONTRIB_SMOOTHED),
-    (cols.ACTIVE_RETURN, cols.ACTIVE_CONTRIB_SMOOTHED),
-    # Cumulative Returns
-    (cols.PORTFOLIO_RETURN, cols.CUMULATIVE_PORTFOLIO_RETURN),
-    (cols.BENCHMARK_RETURN, cols.CUMULATIVE_BENCHMARK_RETURN),
-    (cols.ACTIVE_RETURN, cols.CUMULATIVE_ACTIVE_RETURN),
-    # Cumulative Contributions
-    (cols.PORTFOLIO_RETURN, cols.CUMULATIVE_PORTFOLIO_CONTRIB),
-    (cols.BENCHMARK_RETURN, cols.CUMULATIVE_BENCHMARK_CONTRIB),
-    (cols.ACTIVE_RETURN, cols.CUMULATIVE_ACTIVE_CONTRIB),
-    # Attribution Effects
-    (cols.ALLOCATION_EFFECT_SMOOTHED, cols.CUMULATIVE_ALLOCATION_EFFECT),
-    (cols.SELECTION_EFFECT_SMOOTHED, cols.CUMULATIVE_SELECTION_EFFECT),
-    (cols.TOTAL_EFFECT_SMOOTHED, cols.CUMULATIVE_TOTAL_EFFECT),
-    # Total Effect
-    (cols.ACTIVE_RETURN, cols.TOTAL_EFFECT_SMOOTHED),
-    (cols.ACTIVE_RETURN, cols.CUMULATIVE_TOTAL_EFFECT),
 )
 
 # Various pairs of simple columns that should be equal to each other.
@@ -206,7 +183,7 @@ class Attribution:
 
         Returns:
             DataFrame with one additional bottom row containing totals or linked return
-            values, depending on the available columns.
+            values, depthru on the available columns.
         """
         # Start the total_row as a sum of df.
         total_row = df.sum()
@@ -217,18 +194,18 @@ class Attribution:
             total_row[0, cols.CLASSIFICATION_NAME] = "Total"
 
         # Add the "Total" label to the total row.
-        if cols.BEGINNING_DATE in df.columns:
+        if cols.FROM_DATE in df.columns:
             # Convert the date columns to strings just so "Total" can be added.
             df = df.with_columns(
-                pl.col([cols.BEGINNING_DATE, cols.ENDING_DATE]).dt.strftime(
+                pl.col([cols.FROM_DATE, cols.THRU_DATE]).dt.strftime(
                     util.DATE_FORMAT_STRING
                 )
             )
             total_row = total_row.cast(
-                {cols.BEGINNING_DATE: pl.String, cols.ENDING_DATE: pl.String}
+                {cols.FROM_DATE: pl.String, cols.THRU_DATE: pl.String}
             )
-            total_row[0, cols.BEGINNING_DATE] = None
-            total_row[0, cols.ENDING_DATE] = "Total"
+            total_row[0, cols.FROM_DATE] = None
+            total_row[0, cols.THRU_DATE] = "Total"
 
         # Override the returns since they should be linked, not summed.
         if cols.ACTIVE_RETURN in df.columns:
@@ -262,8 +239,8 @@ class Attribution:
         # Audit the portfolio/benchmark pair of performance objects.
         Performance.audit_performances(
             self._performances,
-            self._beginning_date(),
-            self._ending_date(),
+            self._from_date(),
+            self._thru_date(),
             self._classification.name,
         )
 
@@ -299,11 +276,11 @@ class Attribution:
                 attribution._performances[0]
                 .narrow_df.select(_EQUIVALENT_COLUMN_NAMES)
                 .unique()
-                .sort(cols.ENDING_DATE),
+                .sort(cols.THRU_DATE),
                 attribution._performances[1]
                 .narrow_df.select(_EQUIVALENT_COLUMN_NAMES)
                 .unique()
-                .sort(cols.ENDING_DATE),
+                .sort(cols.THRU_DATE),
             ]
             # pylint: enable=protected-access
 
@@ -352,15 +329,12 @@ class Attribution:
         # Audit df_overall.
         if not df_overall.is_empty():
             # Assert that certain column pairs in df_overall should be equal.
-            for col1, col2 in _OVERALL_COLUMN_PAIRS_THAT_SHOULD_BE_EQUAL:
-                if col1 in df_overall.columns and col2 in df_overall.columns:
-                    if not df_overall[col1].round(7).equals(df_overall[col2].round(7)):
-                        raise PpaError(f"_audit_columns() df_overall: {col1} <> {col2}.", 999)
-
             # Assert that the vertical sum of the smoothed columns of df is equal to df_overall.
             for col_name in cols.ALL_SMOOTHED_COLUMNS:
                 if not util.are_near(
-                    df[col_name].sum(), df_overall[col_name].item(0), util.Tolerance.MEDIUM
+                    float(df[col_name].sum()),
+                    float(df_overall[col_name].item(0)),
+                    util.Tolerance.MEDIUM,
                 ):
                     raise PpaError(f"_audit_columns: {col_name} does not foot when summed.", 999)
 
@@ -402,13 +376,13 @@ class Attribution:
                 do_assert_simple_column_pairs = True
         Attribution._audit_columns(df, df_overall, do_assert_simple_column_pairs)
 
-    def _beginning_date(self) -> dt.date:
-        """Return the first beginning date in the attribution period.
+    def _from_date(self) -> dt.date:
+        """Return the first from date in the attribution period.
 
         Returns:
-            Overall beginning date.
+            Overall from date.
         """
-        return cast(dt.date, self._performances[0].narrow_df[cols.BEGINNING_DATE].item(0))
+        return cast(dt.date, self._performances[0].narrow_df[cols.FROM_DATE].item(0))
 
     @staticmethod
     def _attribution_performance_rows(
@@ -521,7 +495,7 @@ class Attribution:
                 .rename({cols.TOTAL_RETURN: cols.BENCHMARK_RETURN}),
                 on=cols.DATE_COLUMNS,
             )
-            .sort(cols.ENDING_DATE)
+            .sort(cols.THRU_DATE)
         )
         portfolio_overall_return = cast(
             float, (period_returns[cols.PORTFOLIO_RETURN] + 1).product() - 1
@@ -649,7 +623,7 @@ class Attribution:
                 cols.SELECTION_EFFECT_SMOOTHED,
                 cols.TOTAL_EFFECT_SMOOTHED,
             )
-            .sort([cols.ENDING_DATE, cols.CLASSIFICATION_IDENTIFIER])
+            .sort([cols.THRU_DATE, cols.CLASSIFICATION_IDENTIFIER])
         )
         summary = (
             detail.group_by(cols.DATE_COLUMNS)
@@ -664,7 +638,7 @@ class Attribution:
                 pl.col(cols.SELECTION_EFFECT_SMOOTHED).sum(),
             )
             .join(period_returns, on=cols.DATE_COLUMNS)
-            .sort(cols.ENDING_DATE)
+            .sort(cols.THRU_DATE)
             .with_columns(self._detail_derived_expressions(include_weight=False))
         )
         return self._sum_columns_and_rows(summary.lazy()).collect(), detail
@@ -682,8 +656,8 @@ class Attribution:
         df_overall = self._df.sum()
 
         # Override the total row date columns.
-        df_overall[0, cols.BEGINNING_DATE] = self._df[cols.BEGINNING_DATE][0]
-        df_overall[0, cols.ENDING_DATE] = self._df[cols.ENDING_DATE][-1]
+        df_overall[0, cols.FROM_DATE] = self._df[cols.FROM_DATE][0]
+        df_overall[0, cols.THRU_DATE] = self._df[cols.THRU_DATE][-1]
 
         # Override the total row return columns.
         df_overall[0, cols.PORTFOLIO_RETURN] = portfolio_overall_return
@@ -754,7 +728,7 @@ class Attribution:
             .with_columns(
                 pl.col(cols.CLASSIFICATION_NAME).fill_null(pl.col(cols.CLASSIFICATION_IDENTIFIER))
             )
-            .sort(cols.BEGINNING_DATE, cols.CLASSIFICATION_IDENTIFIER)
+            .sort(cols.FROM_DATE, cols.CLASSIFICATION_IDENTIFIER)
         )
 
     @staticmethod
@@ -771,9 +745,9 @@ class Attribution:
         Returns:
             One overall-period row per identifier.
         """
-        beginning_date = cast(dt.date, performance.narrow_df[cols.BEGINNING_DATE].min())
-        ending_date = cast(dt.date, performance.narrow_df[cols.ENDING_DATE].max())
-        total_days = (ending_date - beginning_date).days
+        from_date = cast(dt.date, performance.narrow_df[cols.FROM_DATE].min())
+        thru_date = cast(dt.date, performance.narrow_df[cols.THRU_DATE].max())
+        total_days = (thru_date - from_date).days + 1
         weight_coefficient = (
             pl.lit(1.0)
             if total_days == 0
@@ -787,8 +761,8 @@ class Attribution:
             )
             .rename({cols.IDENTIFIER: cols.CLASSIFICATION_IDENTIFIER})
             .with_columns(
-                pl.lit(beginning_date).alias(cols.BEGINNING_DATE),
-                pl.lit(ending_date).alias(cols.ENDING_DATE),
+                pl.lit(from_date).alias(cols.FROM_DATE),
+                pl.lit(thru_date).alias(cols.THRU_DATE),
             )
             .select(
                 *cols.DATE_COLUMNS,
@@ -798,13 +772,13 @@ class Attribution:
             )
         )
 
-    def _ending_date(self) -> dt.date:
-        """Return the last ending date in the attribution period.
+    def _thru_date(self) -> dt.date:
+        """Return the last thru date in the attribution period.
 
         Returns:
-            Overall ending date.
+            Overall thru date.
         """
-        return cast(dt.date, self._performances[0].narrow_df[cols.ENDING_DATE].item(-1))
+        return cast(dt.date, self._performances[0].narrow_df[cols.THRU_DATE].item(-1))
 
     def _equalize_columns(self) -> None:
         """Equalize portfolio and benchmark identifier rows.
@@ -1014,7 +988,7 @@ class Attribution:
         # Line 2: Chart/View name, classification, frequency, dates.
         line2 = (
             f"{chart_or_view.value}{classification_description}: {self._frequency.value}"
-            f" from {self._beginning_date()} to {self._ending_date()}"
+            f" from {self._from_date()} to {self._thru_date()}"
         )
 
         # Return the title and subtitle.

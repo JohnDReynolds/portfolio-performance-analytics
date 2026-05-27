@@ -9,7 +9,7 @@ Attribution and RiskStatistics objects.
 # Python Imports
 import bisect
 import datetime as dt
-from typing import Protocol, Sequence
+from typing import cast, Protocol, Sequence
 
 # Third-Party Imports
 import polars as pl
@@ -25,7 +25,7 @@ from ppar.riskstatistics import RiskStatistics
 import ppar.utilities as util
 
 
-class _AttributionSources(Protocol):  # pylint: disable=too-few-public-methods
+class AttributionSources(Protocol):  # pylint: disable=too-few-public-methods
     """Describe bundled classification sources accepted by Analytics."""
 
     @property
@@ -44,7 +44,7 @@ class _AttributionSources(Protocol):  # pylint: disable=too-few-public-methods
         raise NotImplementedError
 
 
-class Analytics:
+class Analytics:  # pylint: disable=too-many-instance-attributes
     """Coordinate attribution and risk-statistics calculations.
 
     Analytics validates and aligns portfolio and benchmark Performance data, then
@@ -52,7 +52,7 @@ class Analytics:
     public entry point for attribution and risk-statistics calculations.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         # Portfolio and Benchmark parameters
         portfolio_data_source: util.PerformanceDataSource,
@@ -62,9 +62,10 @@ class Analytics:
         portfolio_classification_name: str | None = None,
         benchmark_classification_name: str | None = None,
         # Date and frequency parameters
-        beginning_date: str | dt.date = dt.date.min,
-        ending_date: str | dt.date = dt.date.max,
+        from_date: str | dt.date = dt.date.min,
+        thru_date: str | dt.date = dt.date.max,
         frequency: Frequency = Frequency.AS_OFTEN_AS_POSSIBLE,
+        default_attribution_sources: AttributionSources | None = None,
         # RiskStatistics parameters
         annual_minimum_acceptable_return: float = util.DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN,
         annual_risk_free_rate: float = util.DEFAULT_ANNUAL_RISK_FREE_RATE,
@@ -94,11 +95,14 @@ class Analytics:
                 portfolio performance data.
             benchmark_classification_name: Classification name associated with the
                 benchmark performance data.
-            beginning_date: Earliest allowed beginning date, either as a
+            from_date: Earliest allowed from date, either as a
                 ``datetime.date`` or a string in ``yyyy-mm-dd`` format.
-            ending_date: Latest allowed ending date, either as a ``datetime.date`` or
+            thru_date: Latest allowed thru date, either as a ``datetime.date`` or
                 a string in ``yyyy-mm-dd`` format.
             frequency: Reporting frequency used to consolidate subperiods.
+            default_attribution_sources: Optional bundled classification source used
+                when ``get_attribution()`` is called without explicit attribution
+                source arguments.
             annual_minimum_acceptable_return: Annual minimum acceptable return used in
                 downside-risk calculations.
             annual_risk_free_rate: Annual risk-free rate used in risk statistics that
@@ -115,9 +119,9 @@ class Analytics:
 
             Narrow layout::
 
-                beginning_date, ending_date, identifier, return, weight, name
-                2023-12-31, 2024-01-31, AAPL, -0.0422272121, 0.4, Apple Inc.
-                2023-12-31, 2024-01-31, MSFT,  0.0572811503, 0.6, Microsoft
+                from_date, thru_date, identifier, return, weight, name
+                2024-01-01, 2024-01-31, AAPL, -0.0422272121, 0.4, Apple Inc.
+                2024-01-01, 2024-01-31, MSFT,  0.0572811503, 0.6, Microsoft
 
         Raises:
             PpaError: If either date cannot be converted, the portfolio and benchmark
@@ -144,13 +148,14 @@ class Analytics:
             benchmark_classification_name = portfolio_classification_name
 
         # Convert the dates to dt.date types.
-        beginning_date = util.convert_to_date(beginning_date)
-        ending_date = util.convert_to_date(ending_date)
+        from_date = util.convert_to_date(from_date)
+        thru_date = util.convert_to_date(thru_date)
 
         # Set the simple class variables directly from the constructor parameters.
         self._annual_minimum_acceptable_return = annual_minimum_acceptable_return
         self._annual_risk_free_rate = annual_risk_free_rate
         self._confidence_level = confidence_level
+        self._default_attribution_sources = default_attribution_sources
         self._frequency = frequency
         self._portfolio_value = portfolio_value
 
@@ -165,23 +170,23 @@ class Analytics:
                 portfolio_data_source,
                 name=portfolio_name,
                 classification_name=portfolio_classification_name,
-                beginning_date=beginning_date,
-                ending_date=ending_date,
+                from_date=from_date,
+                thru_date=thru_date,
             ),
             # Benchmark
             Performance(
                 benchmark_data_source,
                 name=benchmark_name,
                 classification_name=benchmark_classification_name,
-                beginning_date=beginning_date,
-                ending_date=ending_date,
+                from_date=from_date,
+                thru_date=thru_date,
             ),
         )
 
-        # Get the beginning_dates and ending_dates for all subperiods that are common between the
+        # Get the from_dates and thru_dates for all subperiods that are common between the
         # two Performances.
         self._subperiod_dates = self._calculate_subperiod_dates(
-            f"from {util.date_str(beginning_date)} to {util.date_str(ending_date)}"
+            f"from {util.date_str(from_date)} to {util.date_str(thru_date)}"
         )
 
         # Now that the dates have been firmly established, remove the extraneous rows (dates) from
@@ -190,8 +195,8 @@ class Analytics:
             perf.reset_narrow_df(
                 perf.narrow_df.lazy()
                 .filter(
-                    (self._beginning_date() <= pl.col(cols.BEGINNING_DATE))
-                    & (pl.col(cols.ENDING_DATE) <= self._ending_date())
+                    (self._from_date() <= pl.col(cols.THRU_DATE))
+                    & (pl.col(cols.THRU_DATE) <= self._thru_date())
                 )
                 .collect()
             )
@@ -210,36 +215,36 @@ class Analytics:
             PpaError: If any underlying Performance or Attribution audit fails.
         """
         # Audit the portfolio/benchmark pair of performances.  These are the performances that
-        # were originally read in the constructor.  Depending on their classifications, they may
-        # be differenct than the performances in the attributions.
+        # were originally read in the constructor. Depending on their classifications, they may
+        # be different than the performances in the attributions.
         Performance.audit_performances(
-            self._performances, self._beginning_date(), self._ending_date()
+            self._performances, self._from_date(), self._thru_date()
         )
 
         # Audit the attributions and their associated performances.
         Attribution.audit_attributions(list(self._attributions.values()))
 
-    def _beginning_date(self) -> dt.date:
-        """Return the overall beginning date.
+    def _from_date(self) -> dt.date:
+        """Return the overall from date.
 
         Returns:
-            The first beginning date in the aligned subperiod date range.
+            The first from date in the aligned subperiod date range.
         """
         return self._subperiod_dates[0][0]
 
     def _calculate_subperiod_dates(self, message_suffix: str) -> list[tuple[dt.date, dt.date]]:
         """Calculate common subperiod dates for portfolio and benchmark data.
 
-        Finds beginning and ending dates that exist in both Performance objects,
+        Finds from and thru dates that exist in both Performance objects,
         optionally filters those dates to match ``self._frequency``, and pairs each
-        beginning date with the next strictly later ending date.
+        from date with the next valid thru date.
 
         Args:
             message_suffix: Suffix to include in the ``PpaError`` message when no
                 valid subperiods are found.
 
         Returns:
-            A list of ``(beginning_date, ending_date)`` tuples for the aligned
+            A list of ``(from_date, thru_date)`` tuples for the aligned
             subperiods.
 
         Raises:
@@ -256,8 +261,6 @@ class Analytics:
             Returns:
                 Sorted Polars Series containing dates common to both inputs.
             """
-            # Note that using set intersection is MUCH slower.
-            # return sorted(set(dates1) & set(dates2))
             return dates1.filter(dates1.is_in(dates2.to_list())).sort()
 
         def _filter_dates_on_frequency(dates: pl.Series | list[dt.date]) -> list[dt.date]:
@@ -276,40 +279,40 @@ class Analytics:
         df0 = self._performances[0].period_totals()
         df1 = self._performances[1].period_totals()
 
-        # Compute sorted common beginning and ending dates separately. This ensures
-        # the aligned subperiods use only dates that are present in both the
-        # portfolio and benchmark streams, and that beginning dates are paired with
-        # valid later ending dates.
-        common_beginning_dates: pl.Series | list[dt.date] = _common_dates(
-            df0[cols.BEGINNING_DATE], df1[cols.BEGINNING_DATE]
+        common_from_dates: pl.Series | list[dt.date] = _common_dates(
+            df0[cols.FROM_DATE], df1[cols.FROM_DATE]
         )
-        common_ending_dates: pl.Series | list[dt.date] = _common_dates(
-            df0[cols.ENDING_DATE], df1[cols.ENDING_DATE]
+        common_thru_dates: pl.Series | list[dt.date] = _common_dates(
+            df0[cols.THRU_DATE], df1[cols.THRU_DATE]
         )
 
-        # Filter the dates based on frequency.
         if self._frequency != Frequency.AS_OFTEN_AS_POSSIBLE:
-            common_beginning_dates = _filter_dates_on_frequency(common_beginning_dates)
-            common_ending_dates = _filter_dates_on_frequency(common_ending_dates)
-
-        # For each beginning date, find the first ending date that is strictly greater.
-        subperiod_dates: list[tuple[dt.date, dt.date]] = []
-        idx = 0
-        len_common_end_dates = len(common_ending_dates)
-        for begin_date in common_beginning_dates:
-            if idx < len_common_end_dates and common_ending_dates[idx] <= begin_date:
-                # bisect_right returns the insertion point which is the index of the first ending
-                # date > b.
-                idx = bisect.bisect_right(common_ending_dates, begin_date, lo=idx + 1)
-            if idx < len_common_end_dates:
-                subperiod_dates.append((begin_date, common_ending_dates[idx]))
-                idx += 1
+            common_thru_dates = _filter_dates_on_frequency(common_thru_dates)
+            subperiod_dates: list[tuple[dt.date, dt.date]] = []
+            next_from_date = max(
+                cast(dt.date, df0[cols.FROM_DATE].min()),
+                cast(dt.date, df1[cols.FROM_DATE].min()),
+            )
+            for thru_date in common_thru_dates:
+                if next_from_date <= thru_date:
+                    subperiod_dates.append((next_from_date, thru_date))
+                    next_from_date = thru_date + dt.timedelta(days=1)
+        else:
+            subperiod_dates = []
+            idx = 0
+            len_common_thru_dates = len(common_thru_dates)
+            for start_date in common_from_dates:
+                if idx < len_common_thru_dates and common_thru_dates[idx] < start_date:
+                    idx = bisect.bisect_left(common_thru_dates, start_date, lo=idx + 1)
+                if idx < len_common_thru_dates:
+                    subperiod_dates.append((start_date, common_thru_dates[idx]))
+                    idx += 1
 
         # Assert that there is at least one subperiod.
         if len(subperiod_dates) == 0:
             raise PpaError(message_suffix, 202)
 
-        # Return the common beginning and ending dates that define the subperiods.
+        # Return the common from and thru dates that define the subperiods.
         return subperiod_dates
 
     def classification_names(self) -> tuple[str | None, str | None]:
@@ -341,8 +344,8 @@ class Analytics:
             if quantity_of_periods < len(self._subperiod_dates):
                 raise PpaError(
                     f"{performance.error_message_context} from "
-                    f"{util.date_str(self._beginning_date())} "
-                    f"to {util.date_str(self._ending_date())}",
+                    f"{util.date_str(self._from_date())} "
+                    f"to {util.date_str(self._thru_date())}",
                     999,
                 )
 
@@ -368,23 +371,32 @@ class Analytics:
         subperiods = (
             pl.DataFrame(
                 {
-                    "beg_date": [bd for bd, _ in self._subperiod_dates],
-                    "end_date": [ed for _, ed in self._subperiod_dates],
+                    "_subperiod_from_date": [bd for bd, _ in self._subperiod_dates],
+                    "_subperiod_thru_date": [ed for _, ed in self._subperiod_dates],
                 }
             )
             .with_row_index(name="subperiod_id")
-            .sort("beg_date")
+            .with_columns(
+                (
+                    (
+                        pl.col("_subperiod_thru_date")
+                        - pl.col("_subperiod_from_date")
+                    ).dt.total_days()
+                    + 1
+                ).alias("_subperiod_quantity_of_days")
+            )
+            .sort("_subperiod_from_date")
         )
 
         source_periods = performance.narrow_df.select(
             *cols.DATE_COLUMNS,
             cols.QUANTITY_OF_DAYS,
             cols.TOTAL_RETURN,
-        ).unique().sort(cols.BEGINNING_DATE)
+        ).unique().sort(cols.THRU_DATE)
         assigned_periods = source_periods.join_asof(
             subperiods,
-            left_on=cols.BEGINNING_DATE,
-            right_on="beg_date",
+            left_on=cols.THRU_DATE,
+            right_on="_subperiod_from_date",
             strategy="backward",
         )
 
@@ -393,42 +405,53 @@ class Analytics:
         subperiod_returns = assigned_periods.group_by("subperiod_id").agg(
             pl.col(cols.TOTAL_RETURN).add(1).product().sub(1).alias("subperiod_return")
         )
+        subperiod_weight_denominators = assigned_periods.group_by("subperiod_id").agg(
+            pl.col(cols.QUANTITY_OF_DAYS).sum().alias("_weight_denominator_days")
+        )
 
         assigned_rows = (
             performance.narrow_df.join(
                 assigned_periods.select(
-                    *cols.DATE_COLUMNS, "subperiod_id", "beg_date", "end_date"
+                    *cols.DATE_COLUMNS,
+                    "subperiod_id",
+                    "_subperiod_from_date",
+                    "_subperiod_thru_date",
+                    "_subperiod_quantity_of_days",
                 ),
                 on=cols.DATE_COLUMNS,
             )
             .join(subperiod_returns, on="subperiod_id")
+            .join(subperiod_weight_denominators, on="subperiod_id")
             .with_columns(
-            # Weights are interpreted as period exposures, so consolidation averages
-            # them by elapsed days instead of taking the first or last holding weight.
-            (
-                pl.col(cols.QUANTITY_OF_DAYS)
-                / (pl.col("end_date") - pl.col("beg_date")).dt.total_days()
-            ).alias("weight_coefficient"),
-            # Contributions are linked so their sum over source rows equals the
-            # geometrically linked reporting-period return. This preserves the
-            # additive attribution story while returns themselves compound.
-            pl.struct(["subperiod_return", cols.TOTAL_RETURN])
-            .map_batches(
-                lambda x: util.logarithmic_linking_coefficient_series(
-                    x.struct.field("subperiod_return"), x.struct.field(cols.TOTAL_RETURN)
-                ),
-                return_dtype=pl.Float64,
-            )
-            .alias("linking_coefficient"),
+                # Weights are interpreted as period exposures, so consolidation averages
+                # them by elapsed days instead of taking the first or last holding weight.
+                (
+                    pl.col(cols.QUANTITY_OF_DAYS)
+                    / pl.col("_weight_denominator_days")
+                ).alias("weight_coefficient"),
+                # Contributions are linked so their sum over source rows equals the
+                # geometrically linked reporting-period return. This preserves the
+                # additive attribution story while returns themselves compound.
+                pl.struct(["subperiod_return", cols.TOTAL_RETURN])
+                .map_batches(
+                    lambda x: util.logarithmic_linking_coefficient_series(
+                        x.struct.field("subperiod_return"),
+                        x.struct.field(cols.TOTAL_RETURN),
+                    ),
+                    return_dtype=pl.Float64,
+                )
+                .alias("linking_coefficient"),
             )
         )
 
         consolidated_subperiods = (
             assigned_rows.group_by(["subperiod_id", cols.IDENTIFIER])
             .agg(
-                pl.col("beg_date").first().alias(cols.BEGINNING_DATE),
-                pl.col("end_date").first().alias(cols.ENDING_DATE),
-                pl.col(cols.QUANTITY_OF_DAYS).sum(),
+                pl.col("_subperiod_from_date").first().alias(cols.FROM_DATE),
+                pl.col("_subperiod_thru_date").first().alias(cols.THRU_DATE),
+                pl.col("_subperiod_quantity_of_days")
+                .first()
+                .alias(cols.QUANTITY_OF_DAYS),
                 pl.col("subperiod_return").first().alias(cols.TOTAL_RETURN),
                 pl.col(cols.RETURN).add(1).product().sub(1).alias(cols.RETURN),
                 (pl.col(cols.WEIGHT) * pl.col("weight_coefficient")).sum().alias(cols.WEIGHT),
@@ -445,18 +468,18 @@ class Analytics:
                 cols.WEIGHT,
                 cols.CONTRIBUTION,
             )
-            .sort([cols.ENDING_DATE, cols.IDENTIFIER])
+            .sort([cols.THRU_DATE, cols.IDENTIFIER])
         )
 
         performance.subperiods_have_been_consolidated = True
 
         return consolidated_subperiods
 
-    def _ending_date(self) -> dt.date:
-        """Return the overall ending date.
+    def _thru_date(self) -> dt.date:
+        """Return the overall thru date.
 
         Returns:
-            The last ending date in the aligned subperiod date range.
+            The last thru date in the aligned subperiod date range.
         """
         return self._subperiod_dates[-1][-1]
 
@@ -469,9 +492,11 @@ class Analytics:
     ) -> Attribution:
         """Return an Attribution instance for the requested classification.
 
-        Returns a cached Attribution object when available. Otherwise, maps portfolio
-        and/or benchmark Performance objects to the requested classification when
-        needed, creates the Attribution object, stores it in the cache, and returns it.
+        Returns a cached Attribution object when available. If no attribution source
+        arguments are supplied and the Analytics instance was initialized with default
+        attribution sources, those defaults are used. Otherwise, maps portfolio and/or
+        benchmark Performance objects to the requested classification when needed,
+        creates the Attribution object, stores it in the cache, and returns it.
 
         Args:
             classification_name: Classification name for the requested Attribution.
@@ -512,6 +537,16 @@ class Analytics:
         classification_label = util.normalize_optional_string(classification_label)
         if isinstance(classification_data_source, str) and not classification_data_source.strip():
             classification_data_source = None
+        if (
+            classification_name is None
+            and classification_data_source is None
+            and mapping_data_sources is None
+            and self._default_attribution_sources is not None
+        ):
+            return self.get_attribution_for(
+                self._default_attribution_sources,
+                classification_label=classification_label,
+            )
         if mapping_data_sources is None:
             mapping_data_sources = (None, None)
         else:
@@ -574,7 +609,7 @@ class Analytics:
 
     def get_attribution_for(
         self,
-        sources: _AttributionSources,
+        sources: AttributionSources,
         classification_label: str | None = None,
     ) -> Attribution:
         """Return an Attribution instance from a bundled source object.

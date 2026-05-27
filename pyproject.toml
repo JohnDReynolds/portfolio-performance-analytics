@@ -60,6 +60,14 @@ charts = [
 # Console entry points installed with the package.
 ppar-demo = "ppar.demo:main"
 
+[tool.pylint.design]
+max-args = 8
+max-positional-arguments = 8
+max-branches = 40
+max-locals = 30
+max-attributes = 12
+min-public-methods = 0
+
 [tool.setuptools]
 # setuptools-specific configuration.
 # - `packages`: list package names included in the distribution.

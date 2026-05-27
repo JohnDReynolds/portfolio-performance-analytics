@@ -126,15 +126,15 @@ class TestDataSourceFormats(unittest.TestCase):
             test_util.performance_data_path("Big 2"),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
-            beginning_date=dt.date(2023, 12, 31),
-            ending_date="2024-02-29",
+            from_date=dt.date(2024, 1, 1),
+            thru_date="2024-02-29",
         )
         expected_html = test_util.get_attribution(expected_analytics, "Security").to_html(
             View.OVERALL_ATTRIBUTION
         )
         performance_dict: dict[str, Sequence[dt.date | str | float]] = {
-            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 2 + [dt.date(2024, 1, 31)] * 2,
-            cols.ENDING_DATE: [dt.date(2024, 1, 31)] * 2 + [dt.date(2024, 2, 29)] * 2,
+            cols.FROM_DATE: [dt.date(2024, 1, 1)] * 2 + [dt.date(2024, 2, 1)] * 2,
+            cols.THRU_DATE: [dt.date(2024, 1, 31)] * 2 + [dt.date(2024, 2, 29)] * 2,
             cols.IDENTIFIER: ["AAPL", "MSFT", "AAPL", "MSFT"],
             cols.WEIGHT: [0.5, 0.5, 0.5, 0.5],
             cols.RETURN: [-0.0422272121, 0.0572811503, -0.019793881, 0.0403944092],
@@ -160,8 +160,8 @@ class TestDataSourceFormats(unittest.TestCase):
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("Big 2"),
-            beginning_date=dt.date(2023, 12, 31),
-            ending_date="2024-02-29",
+            from_date=dt.date(2024, 1, 1),
+            thru_date="2024-02-29",
         )
         html = analytics.get_attribution(classification_label="Security").to_html(
             View.OVERALL_ATTRIBUTION

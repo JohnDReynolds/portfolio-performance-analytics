@@ -1,6 +1,7 @@
 """Provide reusable test-data paths and focused utility-function tests."""
 
 # Python imports
+from collections.abc import Mapping, Sequence
 import datetime as dt
 from pathlib import Path
 import tempfile
@@ -13,10 +14,14 @@ import polars as pl
 # Project imports
 from ppar.analytics import Analytics
 from ppar.attribution import Attribution
+import ppar.columns as cols
 import ppar.demo_data_sources as demo_data
 import ppar.errors as errs
 from ppar.errors import PpaError
 import ppar.utilities as util
+
+Period = tuple[dt.date, dt.date]
+AssetValues = tuple[Sequence[float], Sequence[float]]
 
 # Directories containing the test data.
 _DATA_DIRECTORIES = (Path("tests/data"), Path("../tests/data"), Path("data"))
@@ -24,6 +29,35 @@ _AXYS_DIRECTORIES = [directory / "axys_validation" for directory in _DATA_DIRECT
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]
+
+
+def make_performance_df(
+    periods: Sequence[Period],
+    assets: Mapping[str, AssetValues],
+) -> pl.DataFrame:
+    """Create narrow performance rows from aligned asset return and weight values.
+
+    Args:
+        periods: From and thru dates for each input period.
+        assets: Asset identifiers mapped to return and weight sequences.
+
+    Returns:
+        Narrow-format Polars DataFrame accepted by ``Analytics`` and
+        ``Performance``.
+    """
+    rows: list[dict[str, dt.date | str | float]] = []
+    for period_index, (from_date, thru_date) in enumerate(periods):
+        for identifier, (returns, weights) in assets.items():
+            rows.append(
+                {
+                    cols.FROM_DATE: from_date,
+                    cols.THRU_DATE: thru_date,
+                    cols.IDENTIFIER: identifier,
+                    cols.RETURN: returns[period_index],
+                    cols.WEIGHT: weights[period_index],
+                }
+            )
+    return pl.DataFrame(rows)
 
 
 def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
@@ -112,7 +146,7 @@ def html_table_lines(html_string: str) -> list[str]:
         html_string: HTML string to scan for the first table.
 
     Returns:
-        Lines beginning at the first HTML table found in the input.
+        Lines from at the first HTML table found in the input.
     """
     # html_lines = html_string.split("\n")
     lines: list[str] = []

@@ -43,7 +43,7 @@ def main() -> None:
             classification_name=_CLASSIFICATION_NAME,
         )
         analytics = portfolio.to_analytics()
-        attribution = analytics.get_attribution_for(portfolio.required_classification_sources)
+        attribution = analytics.get_attribution()
 
         html = attribution.to_html(View.OVERALL_ATTRIBUTION)
         util.open_in_browser(html)

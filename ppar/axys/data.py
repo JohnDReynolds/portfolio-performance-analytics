@@ -103,8 +103,8 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         Args:
             portfolio_code: Portfolio code to load from Axys performance
                 sources.
-            from_date: Optional inclusive earliest beginning date to retain.
-            thru_date: Optional inclusive latest ending date to retain.
+            from_date: Optional inclusive earliest from date to retain.
+            thru_date: Optional inclusive latest thru date to retain.
             classification_name: Optional configured Axys classification to
                 load with the returned portfolio.
 
@@ -172,8 +172,8 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         """Return a portfolio loader for the requested date window.
 
         Args:
-            from_date: Optional inclusive earliest beginning date to retain.
-            thru_date: Optional inclusive latest ending date to retain.
+            from_date: Optional inclusive earliest from date to retain.
+            thru_date: Optional inclusive latest thru date to retain.
 
         Returns:
             Portfolio loader using the configured performance paths and date
@@ -209,8 +209,8 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         Args:
             specific_message: Error-specific text to prefix to context.
             portfolio_code: Portfolio involved in the error, when known.
-            from_date: Optional inclusive earliest beginning date requested.
-            thru_date: Optional inclusive latest ending date requested.
+            from_date: Optional inclusive earliest from date requested.
+            thru_date: Optional inclusive latest thru date requested.
 
         Returns:
             Error detail text including paths, portfolio code, and date filters.

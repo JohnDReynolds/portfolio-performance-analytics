@@ -46,8 +46,8 @@ class Performance:
         data_source: util.PerformanceDataSource,
         name: str | None = None,
         classification_name: str | None = None,
-        beginning_date: str | dt.date = dt.date.min,
-        ending_date: str | dt.date = dt.date.max,
+        from_date: str | dt.date = dt.date.min,
+        thru_date: str | dt.date = dt.date.max,
     ):
         """Initialize a ``Performance`` instance from narrow performance rows.
 
@@ -58,15 +58,15 @@ class Performance:
                 a CSV input, the file basename is used.
             classification_name: Name of the represented classification, such
                 as ``"Security"`` or ``"Economic Sector"``.
-            beginning_date: Earliest beginning date to keep.
-            ending_date: Latest ending date to keep.
+            from_date: Earliest from date to keep.
+            thru_date: Latest thru date to keep.
 
         Data Parameters:
             Input must use one row per period and identifier with these columns::
 
-                beginning_date, ending_date, identifier, return, weight, name
-                2023-12-31, 2024-01-31, AAPL, -0.0422272121, 0.4, Apple Inc.
-                2023-12-31, 2024-01-31, MSFT,  0.0572811503, 0.6, Microsoft
+                from_date, thru_date, identifier, return, weight, name
+                2024-01-01, 2024-01-31, AAPL, -0.0422272121, 0.4, Apple Inc.
+                2024-01-01, 2024-01-31, MSFT,  0.0572811503, 0.6, Microsoft
 
             The ``name`` column is optional. For each period, weights must sum
             to ``1.0``.
@@ -74,28 +74,28 @@ class Performance:
         Raises:
             PpaError: If input rows cannot be loaded or converted, required
                 columns are absent, values are missing, rows or periods are
-                duplicated, dates are invalid or discontinuous, or period
+                duplicated, dates are invalid or overlapping, or period
                 weights do not sum to ``1.0``.
         """
         name = util.normalize_optional_string(name)
         self.classification_name = util.normalize_optional_string(classification_name)
-        beginning_date = util.convert_to_date(beginning_date)
-        ending_date = util.convert_to_date(ending_date)
+        from_date = util.convert_to_date(from_date)
+        thru_date = util.convert_to_date(thru_date)
         self.subperiods_have_been_consolidated = False
         self.error_message_context = (
             f"in the file {data_source}"
             if isinstance(data_source, str | Path)
             else f"in the dataframe {name}"
         )
-        if beginning_date > ending_date:
+        if from_date > thru_date:
             raise PpaError(
                 f"{self.error_message_context}: "
-                f"Beginning date {beginning_date} is after ending date {ending_date}.",
+                f"From date {from_date} is after thru date {thru_date}.",
                 111,
             )
 
         self.name, self.narrow_df = self._load_data(
-            name, data_source, beginning_date, ending_date
+            name, data_source, from_date, thru_date
         )
         if self.narrow_df.is_empty():
             raise PpaError(self.error_message_context, 103)
@@ -154,16 +154,16 @@ class Performance:
     @staticmethod
     def audit_performances(
         performances: Sequence["Performance"],
-        expected_beginning_date: dt.date,
-        expected_ending_date: dt.date,
+        expected_from_date: dt.date,
+        expected_thru_date: dt.date,
         common_classification_name: str | None = None,
     ) -> None:
         """Validate a portfolio/benchmark performance pair.
 
         Args:
             performances: Portfolio and benchmark performance streams.
-            expected_beginning_date: Expected first beginning date.
-            expected_ending_date: Expected final ending date.
+            expected_from_date: Expected first from date.
+            expected_thru_date: Expected final thru date.
             common_classification_name: Optional classification name expected
                 on both streams.
 
@@ -182,8 +182,8 @@ class Performance:
         if not portfolio_periods.equals(benchmark_periods):
             raise PpaError("audit_perfs(): Portfolio and Benchmark dates are not equal.", 999)
         if not (
-            portfolio_periods[cols.BEGINNING_DATE][0] == expected_beginning_date
-            and portfolio_periods[cols.ENDING_DATE][-1] == expected_ending_date
+            portfolio_periods[cols.FROM_DATE][0] == expected_from_date
+            and portfolio_periods[cols.THRU_DATE][-1] == expected_thru_date
         ):
             raise PpaError("audit_perfs(): Date logic error.", 999)
         if common_classification_name is not None:
@@ -197,9 +197,9 @@ class Performance:
             One overall-period row per identifier, including linked returns,
             day-weighted weights, summed contributions, and common total return.
         """
-        overall_beginning_date = cast(dt.date, self.narrow_df[cols.BEGINNING_DATE].min())
-        overall_ending_date = cast(dt.date, self.narrow_df[cols.ENDING_DATE].max())
-        total_days = (overall_ending_date - overall_beginning_date).days
+        overall_from_date = cast(dt.date, self.narrow_df[cols.FROM_DATE].min())
+        overall_thru_date = cast(dt.date, self.narrow_df[cols.THRU_DATE].max())
+        total_days = (overall_thru_date - overall_from_date).days + 1
         coefficient = (
             pl.lit(1.0) if total_days == 0 else pl.col(cols.QUANTITY_OF_DAYS) / total_days
         )
@@ -214,8 +214,8 @@ class Performance:
                 pl.col(cols.CONTRIBUTION).sum().alias(cols.CONTRIBUTION),
             )
             .with_columns(
-                pl.lit(overall_beginning_date).alias(cols.BEGINNING_DATE),
-                pl.lit(overall_ending_date).alias(cols.ENDING_DATE),
+                pl.lit(overall_from_date).alias(cols.FROM_DATE),
+                pl.lit(overall_thru_date).alias(cols.THRU_DATE),
                 pl.lit(total_days).alias(cols.QUANTITY_OF_DAYS),
                 pl.lit(overall_total_return).alias(cols.TOTAL_RETURN),
             )
@@ -235,9 +235,10 @@ class Performance:
         """Add calculated contribution, elapsed-day, and total-return columns."""
         self.narrow_df = (
             self.narrow_df.with_columns(
-                (pl.col(cols.ENDING_DATE) - pl.col(cols.BEGINNING_DATE))
-                .dt.total_days()
-                .alias(cols.QUANTITY_OF_DAYS),
+                (
+                    (pl.col(cols.THRU_DATE) - pl.col(cols.FROM_DATE)).dt.total_days()
+                    + 1
+                ).alias(cols.QUANTITY_OF_DAYS),
                 (pl.col(cols.WEIGHT) * pl.col(cols.RETURN)).alias(cols.CONTRIBUTION),
             )
             .join(
@@ -257,7 +258,7 @@ class Performance:
                 cols.WEIGHT,
                 cols.CONTRIBUTION,
             )
-            .sort([cols.ENDING_DATE, cols.IDENTIFIER])
+            .sort([cols.THRU_DATE, cols.IDENTIFIER])
         )
         weights = self.narrow_df.group_by(cols.DATE_COLUMNS).agg(pl.col(cols.WEIGHT).sum())
         if not (weights[cols.WEIGHT].round(8) == 1.0).all():
@@ -307,11 +308,11 @@ class Performance:
         self.narrow_df = self.narrow_df.select(*required_columns, *optional_columns)
 
     def _clean_and_validate_dates(self) -> None:
-        """Sort, normalize, and validate narrow period dates.
+        """Sort and validate inclusive narrow period dates.
 
         Raises:
-            PpaError: If rows are duplicated, period ending dates conflict,
-                beginning dates are invalid, or periods are discontinuous.
+            PpaError: If rows are duplicated, period thru dates conflict,
+                from dates are invalid, or periods overlap.
         """
         duplicate_rows = (
             self.narrow_df.group_by([*cols.DATE_COLUMNS, cols.IDENTIFIER])
@@ -324,28 +325,16 @@ class Performance:
             )
             raise PpaError(f"{self.error_message_context}: {sample_rows}", 112)
 
-        periods = self.narrow_df.select(cols.DATE_COLUMNS).unique().sort(cols.ENDING_DATE)
-        if periods[cols.ENDING_DATE].n_unique() != periods.height:
+        periods = self.narrow_df.select(cols.DATE_COLUMNS).unique().sort(cols.THRU_DATE)
+        if periods[cols.THRU_DATE].n_unique() != periods.height:
             raise PpaError(self.error_message_context, 102)
-        if periods.height > 1:
-            previous_day = periods[cols.BEGINNING_DATE] - dt.timedelta(days=1)
-            if (previous_day[1:] == periods[cols.ENDING_DATE][:-1]).all():
-                normalized_periods = periods.with_columns(
-                    previous_day.alias(cols.BEGINNING_DATE)
-                )
-                self.narrow_df = (
-                    self.narrow_df.drop(cols.BEGINNING_DATE)
-                    .join(normalized_periods, on=cols.ENDING_DATE)
-                    .select(*cols.DATE_COLUMNS, *self.narrow_df.columns[2:])
-                )
-                periods = normalized_periods
-        if (periods[cols.BEGINNING_DATE] >= periods[cols.ENDING_DATE]).any():
+        if (periods[cols.FROM_DATE] > periods[cols.THRU_DATE]).any():
             raise PpaError(self.error_message_context, 105)
         if periods.height > 1 and (
-            periods[cols.BEGINNING_DATE][1:] != periods[cols.ENDING_DATE][:-1]
+            periods[cols.FROM_DATE][1:] <= periods[cols.THRU_DATE][:-1]
         ).any():
             raise PpaError(self.error_message_context, 106)
-        self.narrow_df = self.narrow_df.sort([cols.ENDING_DATE, cols.IDENTIFIER])
+        self.narrow_df = self.narrow_df.sort([cols.THRU_DATE, cols.IDENTIFIER])
 
     def _set_classification_items(self) -> None:
         """Capture identifier/name pairs supplied with narrow input data."""
@@ -369,7 +358,7 @@ class Performance:
         """
         return self.narrow_df.select(
             *cols.DATE_COLUMNS, cols.QUANTITY_OF_DAYS, cols.TOTAL_RETURN
-        ).unique().sort(cols.ENDING_DATE)
+        ).unique().sort(cols.THRU_DATE)
 
     def df_overall(self) -> pl.DataFrame:
         """Return cached overall-period narrow identifier rows."""
@@ -387,16 +376,16 @@ class Performance:
     def _load_data(
         name: str | None,
         data_source: util.PerformanceDataSource,
-        beginning_date: dt.date,
-        ending_date: dt.date,
+        from_date: dt.date,
+        thru_date: dt.date,
     ) -> tuple[str | None, pl.DataFrame]:
         """Load performance rows and apply the requested date bounds.
 
         Args:
             name: Optional descriptive performance name.
             data_source: CSV path, pandas DataFrame, or Polars DataFrame.
-            beginning_date: Earliest beginning date to retain.
-            ending_date: Latest ending date to retain.
+            from_date: Earliest from date to retain.
+            thru_date: Latest thru date to retain.
 
         Returns:
             Resolved optional name and loaded DataFrame.
@@ -415,10 +404,10 @@ class Performance:
             lazy_frame = pl.from_pandas(data_source).lazy()
         else:
             lazy_frame = data_source.lazy()
-        if beginning_date != dt.date.min:
-            lazy_frame = lazy_frame.filter(beginning_date <= pl.col(cols.BEGINNING_DATE))
-        if ending_date != dt.date.max:
-            lazy_frame = lazy_frame.filter(pl.col(cols.ENDING_DATE) <= ending_date)
+        if from_date != dt.date.min:
+            lazy_frame = lazy_frame.filter(from_date <= pl.col(cols.THRU_DATE))
+        if thru_date != dt.date.max:
+            lazy_frame = lazy_frame.filter(pl.col(cols.THRU_DATE) <= thru_date)
         return name, lazy_frame.collect()
 
     def overall_return(self) -> float:
@@ -433,6 +422,6 @@ class Performance:
                 schema.
         """
         self._df_overall = pl.DataFrame()
-        self.narrow_df = df.sort([cols.ENDING_DATE, cols.IDENTIFIER])
+        self.narrow_df = df.sort([cols.THRU_DATE, cols.IDENTIFIER])
         self.identifiers = sorted(self.narrow_df[cols.IDENTIFIER].unique().to_list())
         self.df = self.narrow_df

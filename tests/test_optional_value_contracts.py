@@ -20,8 +20,8 @@ def _performance_rows() -> pl.DataFrame:
     """Return minimal narrow performance rows for sentinel compatibility tests."""
     return pl.DataFrame(
         {
-            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 2,
-            cols.ENDING_DATE: [dt.date(2024, 1, 31)] * 2,
+            cols.FROM_DATE: [dt.date(2024, 1, 1)] * 2,
+            cols.THRU_DATE: [dt.date(2024, 2, 1)] * 2,
             cols.IDENTIFIER: ["A", "B"],
             cols.RETURN: [0.10, -0.05],
             cols.WEIGHT: [0.60, 0.40],

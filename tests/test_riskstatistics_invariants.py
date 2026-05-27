@@ -193,8 +193,8 @@ class TestRiskStatisticsInvariants(unittest.TestCase):
         """Repeated risk-statistics retrieval reuses the calculated result."""
         data_source = pl.DataFrame(
             {
-                cols.BEGINNING_DATE: [dt.date(2023, 12, 31), dt.date(2024, 1, 31)],
-                cols.ENDING_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
+                cols.FROM_DATE: [dt.date(2024, 1, 1), dt.date(2024, 2, 1)],
+                cols.THRU_DATE: [dt.date(2024, 1, 31), dt.date(2024, 2, 29)],
                 cols.IDENTIFIER: ["A", "A"],
                 cols.RETURN: [0.01, -0.02],
                 cols.WEIGHT: [1.0, 1.0],

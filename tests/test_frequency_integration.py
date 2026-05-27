@@ -40,14 +40,14 @@ class TestFrequencyIntegration(unittest.TestCase):
         analytics = Analytics(
             test_util.performance_data_path("big2_daily"),
             test_util.performance_data_path("Big 2"),
-            beginning_date=dt.date(2020, 12, 31),
+            from_date=dt.date(2021, 1, 1),
             frequency=Frequency.MONTHLY,
         )
         attribution = test_util.get_attribution(analytics)
         output = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
 
-        self.assertEqual(output[cols.BEGINNING_DATE].item(0), dt.date(2020, 12, 31))
-        self.assertEqual(output[cols.ENDING_DATE].item(4), dt.date(2021, 3, 31))
+        self.assertEqual(output[cols.FROM_DATE].item(0), dt.date(2021, 1, 1))
+        self.assertEqual(output[cols.THRU_DATE].item(4), dt.date(2021, 3, 31))
         self.assertTrue(
             util.are_near(output[cols.TOTAL_EFFECT_SIMPLE].item(3), 0.0012545960452570828)
         )
@@ -68,14 +68,14 @@ class TestFrequencyIntegration(unittest.TestCase):
         analytics = Analytics(
             test_util.performance_data_path("big2_daily"),
             test_util.performance_data_path("Big 2"),
-            beginning_date=dt.date(2020, 12, 31),
+            from_date=dt.date(2021, 1, 1),
             frequency=Frequency.QUARTERLY,
         )
         attribution = test_util.get_attribution(analytics)
         output = attribution.to_polars(View.SUBPERIOD_SUMMARY)
 
-        self.assertEqual(output[cols.BEGINNING_DATE].item(0), dt.date(2020, 12, 31))
-        self.assertEqual(output[cols.ENDING_DATE].item(4), dt.date(2022, 3, 31))
+        self.assertEqual(output[cols.FROM_DATE].item(0), dt.date(2021, 1, 1))
+        self.assertEqual(output[cols.THRU_DATE].item(4), dt.date(2022, 3, 31))
         self.assertTrue(
             util.are_near(output[cols.TOTAL_EFFECT_SIMPLE].item(3), -0.0020721529010043226)
         )
@@ -119,28 +119,29 @@ class TestFrequencyIntegration(unittest.TestCase):
         analytics = Analytics(
             test_util.performance_data_path("Big 2"),
             test_util.performance_data_path("big2_daily"),
-            beginning_date=dt.date(2020, 12, 31),
+            from_date=dt.date(2021, 1, 1),
             frequency=Frequency.YEARLY,
         )
         output = test_util.get_attribution(analytics).to_polars(View.SUBPERIOD_SUMMARY)
 
         self.assertEqual(len(output), 3)
-        self.assertEqual(output[cols.BEGINNING_DATE].item(0), dt.date(2020, 12, 31))
-        self.assertEqual(output[cols.ENDING_DATE].item(2), dt.date(2023, 12, 31))
+        self.assertEqual(output[cols.FROM_DATE].item(0), dt.date(2021, 1, 1))
+        self.assertEqual(output[cols.THRU_DATE].item(2), dt.date(2023, 12, 31))
 
     def test_specify_dates(self) -> None:
         """Explicit dates filter the fixture performance rows inclusively."""
         performance = Performance(
-            test_util.performance_data_path("case_adjust_beginning_dates"),
-            beginning_date="2023-01-31",
-            ending_date="2023-02-28",
+            test_util.performance_data_path("case_adjust_from_dates"),
+            from_date="2023-01-31",
+            thru_date="2023-02-28",
         )
 
         self.assertEqual(
-            performance.period_totals()[cols.BEGINNING_DATE].item(0), dt.date(2023, 1, 31)
+            performance.period_totals()[cols.FROM_DATE].item(0), dt.date(2023, 1, 2)
         )
         self.assertEqual(
-            performance.period_totals()[cols.ENDING_DATE].item(1), dt.date(2023, 2, 28)
+            performance.period_totals()[cols.THRU_DATE].to_list(),
+            [dt.date(2023, 1, 31), dt.date(2023, 2, 12), dt.date(2023, 2, 28)],
         )
 
 

@@ -52,7 +52,7 @@ def cumulative_lines(
 
     Args:
         df: Cumulative attribution view data containing
-            ``cols.ENDING_DATE`` and the requested cumulative value columns.
+            ``cols.THRU_DATE`` and the requested cumulative value columns.
         column_names: Names of the cumulative columns to plot. The colors are
             assigned by column order.
         title_lines: Main title and subtitle to display above the chart.
@@ -72,7 +72,7 @@ def cumulative_lines(
     plt.suptitle(f"{title_lines[0]}\n{title_lines[1]}")
 
     # Set the dates
-    dates = df[cols.ENDING_DATE]
+    dates = df[cols.THRU_DATE]
 
     # Plot the lines
     for idx, column_name in enumerate(column_names):
@@ -131,7 +131,7 @@ def heatmap(
     """Return a heatmap chart as PNG bytes.
 
     Args:
-        df: Subperiod attribution data containing ending dates,
+        df: Subperiod attribution data containing thru dates,
             classification identifiers, classification names, portfolio weights,
             and the requested value column.
         column_name: Name of the metric column to display in the heatmap cells.
@@ -153,7 +153,7 @@ def heatmap(
 
     # Convert the date column to a string label with the format "yyyy-mm-dd"
     df = df.with_columns(
-        pl.col(cols.ENDING_DATE).dt.strftime(util.DATE_FORMAT_STRING).alias("date_label")
+        pl.col(cols.THRU_DATE).dt.strftime(util.DATE_FORMAT_STRING).alias("date_label")
     )
 
     # Word-wrap the classification labels
@@ -442,7 +442,7 @@ def vertical_bars(
     """Return a vertical grouped bar chart as PNG bytes.
 
     Args:
-        df: Subperiod summary data containing ``cols.ENDING_DATE`` and the
+        df: Subperiod summary data containing ``cols.THRU_DATE`` and the
             requested metric columns.
         column_names: Metric columns to plot as grouped vertical bars. The
             colors are assigned by column order.
@@ -453,7 +453,7 @@ def vertical_bars(
         PNG image bytes for the rendered vertical bar chart.
     """
     # Set the dates
-    dates = df[cols.ENDING_DATE]
+    dates = df[cols.THRU_DATE]
 
     # Define the bar width
     bar_width = 0.2
@@ -550,26 +550,26 @@ def _word_wrap(df: pl.DataFrame) -> list[str]:
 
     Args:
         df: DataFrame containing ``cols.CLASSIFICATION_IDENTIFIER`` and
-            ``cols.CLASSIFICATION_NAME``. If ``cols.ENDING_DATE`` is present,
-            duplicate detection is based on the first ending-date group.
+            ``cols.CLASSIFICATION_NAME``. If ``cols.THRU_DATE`` is present,
+            duplicate detection is based on the first thru-date group.
 
     Returns:
         Word-wrapped classification labels in DataFrame row order.
     """
     # Get the columns.
-    ending_dates = df[cols.ENDING_DATE] if cols.ENDING_DATE in df else pl.Series()
+    thru_dates = df[cols.THRU_DATE] if cols.THRU_DATE in df else pl.Series()
     identifiers = df[cols.CLASSIFICATION_IDENTIFIER]
     names = df[cols.CLASSIFICATION_NAME]
 
     # Get all duplicate names.
-    if 0 < len(ending_dates):
-        # If you have ending_dates, then there will be multiple sets of the same classification
-        # names, one set for each date.  So only look for duplicates in the first ending_dates.
-        names_to_check = df.filter(df[cols.ENDING_DATE] == ending_dates[0])[
+    if 0 < len(thru_dates):
+        # If you have thru_dates, then there will be multiple sets of the same classification
+        # names, one set for each date.  So only look for duplicates in the first thru_dates.
+        names_to_check = df.filter(df[cols.THRU_DATE] == thru_dates[0])[
             cols.CLASSIFICATION_NAME
         ]
     else:
-        # There are no ending_dates, so there will only be one set of names.
+        # There are no thru_dates, so there will only be one set of names.
         names_to_check = names
     duplicate_names = names_to_check.filter(names_to_check.is_duplicated())
 

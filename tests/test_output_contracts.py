@@ -27,8 +27,8 @@ def _attribution() -> Attribution:
     """Return a small classified attribution result for output tests."""
     performance = pl.DataFrame(
         {
-            cols.BEGINNING_DATE: [dt.date(2023, 12, 31)] * 2 + [dt.date(2024, 1, 31)] * 2,
-            cols.ENDING_DATE: [dt.date(2024, 1, 31)] * 2 + [dt.date(2024, 2, 29)] * 2,
+            cols.FROM_DATE: [dt.date(2024, 1, 1)] * 2 + [dt.date(2024, 2, 1)] * 2,
+            cols.THRU_DATE: [dt.date(2024, 1, 31)] * 2 + [dt.date(2024, 2, 29)] * 2,
             cols.IDENTIFIER: ["A", "B", "A", "B"],
             cols.RETURN: [0.10, -0.05, 0.02, 0.03],
             cols.WEIGHT: [0.60, 0.40, 0.40, 0.60],
@@ -78,7 +78,7 @@ class TestHtmlTableOutputs(unittest.TestCase):
             ),
             columns=(
                 ColumnSpec("Name", "Name", align="left"),
-                ColumnSpec("Date", "Ending", format="date", align="center"),
+                ColumnSpec("Date", "Thru", format="date", align="center"),
                 ColumnSpec("Return", "Return", format="number"),
                 ColumnSpec("VaR", "Value At Risk", format="currency"),
             ),
@@ -154,13 +154,13 @@ class TestAttributionOutputs(unittest.TestCase):
         self.assertEqual(len(rows), expected.height)
         self.assertTrue(
             rows[0]
-            .findtext(cols.BEGINNING_DATE, "")
-            .startswith(expected[cols.BEGINNING_DATE].item(0).isoformat())
+            .findtext(cols.FROM_DATE, "")
+            .startswith(expected[cols.FROM_DATE].item(0).isoformat())
         )
         self.assertTrue(
             rows[-1]
-            .findtext(cols.ENDING_DATE, "")
-            .startswith(expected[cols.ENDING_DATE].item(-1).isoformat())
+            .findtext(cols.THRU_DATE, "")
+            .startswith(expected[cols.THRU_DATE].item(-1).isoformat())
         )
 
     def test_csv_respects_sorting_for_detail_view(self) -> None:
@@ -172,12 +172,12 @@ class TestAttributionOutputs(unittest.TestCase):
             attribution.write_csv(
                 View.SUBPERIOD_ATTRIBUTION,
                 output_path,
-                columns_to_sort=[cols.BEGINNING_DATE, cols.CLASSIFICATION_NAME],
+                columns_to_sort=[cols.FROM_DATE, cols.CLASSIFICATION_NAME],
                 sort_descendings=[False, True],
             )
             output = pl.read_csv(output_path, try_parse_dates=True)
 
-        names = output.filter(pl.col(cols.BEGINNING_DATE) == dt.date(2023, 12, 31))[
+        names = output.filter(pl.col(cols.FROM_DATE) == dt.date(2024, 1, 1))[
             cols.CLASSIFICATION_NAME
         ].to_list()
         self.assertEqual(names, ["Beta", "Alpha"])

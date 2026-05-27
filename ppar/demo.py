@@ -23,11 +23,11 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     also displayed.
 
     Args:
-        periodicity: Reporting periodicity selector. Values beginning with
-            ``"q"`` or ``"Q"`` use quarterly reporting, values beginning with
+        periodicity: Reporting periodicity selector. Values from with
+            ``"q"`` or ``"Q"`` use quarterly reporting, values from with
             ``"y"`` or ``"Y"`` use yearly reporting, and all other values use
             monthly reporting.
-        tables_or_charts: Output selector. Values beginning with ``"c"`` or
+        tables_or_charts: Output selector. Values from with ``"c"`` or
             ``"C"`` display charts; all other values display tables.
 
     Raises:
@@ -51,7 +51,7 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     # time period must sum to 1.0. The time periods can be of any duration, and
     # column or row order does not matter. The "name" column is optional.
     #     Narrow layout:
-    #         beginning_date, ending_date, identifier,        return, weight, name
+    #         from_date, thru_date, identifier,        return, weight, name
     #         2023-12-31,      2024-01-31,       AAPL, -0.0422272121,    0.4, Apple Inc.
     #         2023-12-31,      2024-01-31,       MSFT,  0.0572811503,    0.6, Microsoft
     #         2024-01-31,      2024-02-29,       AAPL, -0.019793881,     0.7, Apple Inc.
@@ -76,8 +76,8 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
             benchmark_data_source,
             portfolio_classification_name=portfolio_classification_name,
             benchmark_classification_name=benchmark_classification_name,
-            beginning_date="2022-12-31",
-            ending_date="2024-02-29",
+            from_date="2023-01-01",
+            thru_date="2024-02-29",
             frequency=frequency,
         )
     else:
