@@ -35,7 +35,7 @@ defaults:
 # Portfolio Performance Export
 # =========================
 # Path to the Axys portfolio-level performance export.
-portfolio_performance_path: portperf.csv
+portfolio_performance_path: axys_a/portperf.csv
 
 # Optional: Portfolio Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -62,7 +62,7 @@ portfolio_performance_path: portperf.csv
 # Security Performance Export
 # =========================
 # Path to the Axys security-level performance export.
-security_performance_path: secperf.csv
+security_performance_path: axys_a/secperf.csv
 
 # Optional: Security Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -84,7 +84,7 @@ security_performance_path: secperf.csv
 #   # Security return for the period.
 #   return: SEC_RETURN
 #
-#   # Security beginning weight for the period.
+#   # Security weight used for return/contribution analysis.
 #   weight: BEGIN_WEIGHT
 #
 #   # Security contribution for the period.
@@ -94,7 +94,7 @@ security_performance_path: secperf.csv
 # Security Master
 # =========================
 # Path to the Axys security master or security reference export.
-security_master_path: sec_ref.csv
+security_master_path: axys_a/sec_ref.csv
 
 # Optional: Security Master Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -117,7 +117,7 @@ security_master_path: sec_ref.csv
 classifications:
   # Optional lookup-table-based sector classification.
   SectorLookup:
-    file_path: classification_lookup.csv
+    file_path: axys_a/classification_lookup.csv
     display_name: Sector
     identifier_column: CODE
     name_column: DESCRIPTION

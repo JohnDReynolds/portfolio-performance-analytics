@@ -1,0 +1,38 @@
+# =========================
+# PPAR Performance Comparison Configuration
+# =========================
+# This file compares two source-data snapshots. File paths under `files` are
+# resolved relative to each snapshot directory. The referenced schema YAML is
+# resolved relative to this file.
+
+comparison:
+  name: Axys fixture baseline comparison
+
+snapshots:
+  a:
+    label: axys_a
+    path: axys_a
+    vendor: axys
+    schema: ppar_axys.yaml
+
+  b:
+    label: axys_b
+    path: axys_b
+    vendor: axys
+    schema: ppar_axys.yaml
+
+files:
+  portfolio_performance: portperf.csv
+  security_performance: secperf.csv
+  security_master: sec_ref.csv
+  prices: prices.csv
+  transactions: transactions.csv
+  positions: positions_holdings.csv
+  cash: cash.csv
+
+tolerances:
+  return: 0.000001
+  contribution: 0.000001
+  weight: 0.000001
+  market_value: 0.01
+  price: 0.000001

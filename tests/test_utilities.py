@@ -26,6 +26,7 @@ AssetValues = tuple[Sequence[float], Sequence[float]]
 # Directories containing the test data.
 _DATA_DIRECTORIES = (Path("tests/data"), Path("../tests/data"), Path("data"))
 _AXYS_DIRECTORIES = [directory / "axys" for directory in _DATA_DIRECTORIES]
+_DEFAULT_AXYS_SNAPSHOT_DIRECTORY = "axys_a"
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]
@@ -64,7 +65,8 @@ def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
     """Return a resolved path to an Axys fixture file.
 
     Args:
-        file_name: Base name of the Axys fixture.
+        file_name: Base name of the Axys fixture. Simple file names resolve
+            from the Axys fixture root or the default ``axys_a`` snapshot.
         suffix: File suffix to append when not already present.
 
     Returns:
@@ -73,7 +75,15 @@ def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
     Raises:
         PpaError: If the named fixture is not found.
     """
-    return resolve_file_path(_AXYS_DIRECTORIES, file_name, suffix)
+    candidate_file_names = [file_name]
+    if not Path(file_name).parent.parts:
+        candidate_file_names.append(f"{_DEFAULT_AXYS_SNAPSHOT_DIRECTORY}/{file_name}")
+    for candidate_file_name in candidate_file_names:
+        try:
+            return resolve_file_path(_AXYS_DIRECTORIES, candidate_file_name, suffix).resolve()
+        except PpaError:
+            continue
+    return resolve_file_path(_AXYS_DIRECTORIES, file_name, suffix).resolve()
 
 
 def classification_data_path(classification_name: str | None) -> util.PathLike | None:

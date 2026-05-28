@@ -61,11 +61,11 @@ class AxysSpecification:
             file_path: Source path from an argument or specification setting.
 
         Returns:
-            ``file_path`` when it includes a directory component; otherwise,
-            the source name resolved beside the specification file.
+            Absolute paths unchanged; relative paths resolved beside the
+            specification file.
         """
         path = Path(file_path)
-        return path if util.has_directory(path) else self.path.parent / path
+        return path if path.is_absolute() else self.path.parent / path
 
     def performance_path(
         self,

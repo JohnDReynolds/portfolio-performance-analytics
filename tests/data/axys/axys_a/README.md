@@ -20,7 +20,6 @@ Files:
   with validation scenarios and compatibility columns
 - sec_ref.csv: security master/reference data, merged with validation
   classification columns
-- ppar.yaml: Axys loader configuration for the merged fixture files
 - classification_lookup.csv: lookup-table classification source
 - unreachable_target_secperf.csv: intentionally unreconcilable validation rows
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
@@ -28,6 +27,11 @@ Files:
 - prices.csv: daily price history for every security including Treasuries and CASH_USD
 - fx_currency.csv: daily USD/USD FX rates
 - cash.csv: month-end cash balances by portfolio/currency
+
+Shared fixture configuration lives one directory above this snapshot:
+
+- ppar_axys.yaml: Axys loader configuration
+- ppar_performance_comparison.yaml: comparison configuration for axys_a and axys_b
 
 Intentional event coverage:
 - BUY and SELL transactions

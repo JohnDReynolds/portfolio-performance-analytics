@@ -27,7 +27,7 @@ class _AxysArguments:
     """Constructor inputs that a validation test needs to override."""
 
     specifications_path: Path = field(
-        default_factory=lambda: test_util.axys_data_path("ppar.yaml", ".yaml")
+        default_factory=lambda: test_util.axys_data_path("ppar_axys.yaml", ".yaml")
     )
     portfolio_performance_path: Path | None = field(
         default_factory=lambda: test_util.axys_data_path("portperf.csv")
@@ -91,7 +91,7 @@ def _write_frame_csv(directory: Path, file_name: str, data: dict[str, list[objec
 
 def _fixture_specification() -> dict[str, object]:
     """Load the committed valid specification as mutable data."""
-    path = test_util.axys_data_path("ppar.yaml", ".yaml")
+    path = test_util.axys_data_path("ppar_axys.yaml", ".yaml")
     specification: object = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(specification, dict)
     mutable_specification = cast(dict[str, object], specification)
@@ -326,7 +326,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_missing_portfolio_error_includes_requested_dates(self) -> None:
         """Portfolio-loading errors report the requested date window."""
         data = AxysData(
-            test_util.axys_data_path("ppar.yaml", ".yaml"),
+            test_util.axys_data_path("ppar_axys.yaml", ".yaml"),
             test_util.axys_data_path("portperf.csv"),
             test_util.axys_data_path("secperf.csv"),
         )
