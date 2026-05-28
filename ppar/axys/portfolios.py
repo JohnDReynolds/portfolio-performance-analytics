@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 import datetime as dt
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 # Third-party imports
 import polars as pl
@@ -55,7 +55,7 @@ class AxysPortfolio:
 
     def to_analytics(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
-        benchmark_data_source: util.PerformanceDataSource | None = None,
+        benchmark_data_source: AxysPortfolio | util.PerformanceDataSource | None = None,
         benchmark_name: str | None = None,
         portfolio_classification_name: str = _SECURITY_PERFORMANCE_CLASSIFICATION_NAME,
         benchmark_classification_name: str | None = None,
@@ -75,8 +75,9 @@ class AxysPortfolio:
         """Return an Analytics instance for this reconciled Axys portfolio.
 
         Args:
-            benchmark_data_source: Optional benchmark performance data source. When
-                omitted, Analytics reuses the portfolio data as its benchmark.
+            benchmark_data_source: Optional benchmark portfolio or benchmark
+                performance data source. When omitted, Analytics reuses the
+                portfolio data as its benchmark.
             benchmark_name: Benchmark display name used in output titles.
             portfolio_classification_name: Classification name associated with Axys
                 security-performance rows. Defaults to ``"Security"``.
@@ -105,9 +106,28 @@ class AxysPortfolio:
         # unless the convenience adapter is used.
         from ppar.analytics import Analytics  # pylint: disable=import-outside-toplevel
 
+        benchmark = (
+            benchmark_data_source
+            if isinstance(benchmark_data_source, AxysPortfolio)
+            else None
+        )
+        benchmark_performance_data_source = cast(
+            util.PerformanceDataSource | None,
+            None if benchmark is not None else benchmark_data_source,
+        )
+        default_attribution_sources = self._default_attribution_sources(benchmark)
+        if benchmark is not None:
+            benchmark_performance_data_source = benchmark.security_performance
+            benchmark_name = benchmark.portfolio_name if benchmark_name is None else benchmark_name
+            benchmark_classification_name = (
+                portfolio_classification_name
+                if benchmark_classification_name is None
+                else benchmark_classification_name
+            )
+
         return Analytics(
             portfolio_data_source=self.security_performance,
-            benchmark_data_source=benchmark_data_source,
+            benchmark_data_source=benchmark_performance_data_source,
             portfolio_name=self.portfolio_name,
             benchmark_name=benchmark_name,
             portfolio_classification_name=portfolio_classification_name,
@@ -115,11 +135,98 @@ class AxysPortfolio:
             from_date=from_date,
             thru_date=thru_date,
             frequency=frequency,
-            default_attribution_sources=self.classification_sources,
+            default_attribution_sources=default_attribution_sources,
             annual_minimum_acceptable_return=annual_minimum_acceptable_return,
             annual_risk_free_rate=annual_risk_free_rate,
             confidence_level=confidence_level,
             portfolio_value=portfolio_value,
+        )
+
+    def _default_attribution_sources(
+        self,
+        benchmark: AxysPortfolio | None,
+    ) -> AxysClassificationSources | None:
+        """Return default attribution sources for this portfolio/benchmark pair.
+
+        Args:
+            benchmark: Optional Axys benchmark portfolio.
+
+        Returns:
+            Default attribution sources for ``Analytics.get_attribution()``.
+
+        Raises:
+            PpaError: If the portfolio and benchmark carry conflicting or
+                incomplete default classification sources.
+        """
+        if benchmark is None:
+            return self.classification_sources
+
+        portfolio_sources = self.classification_sources
+        benchmark_sources = benchmark.classification_sources
+        if portfolio_sources is None and benchmark_sources is None:
+            return None
+        if portfolio_sources is None or benchmark_sources is None:
+            raise PpaError(
+                "Both AxysPortfolio objects must be loaded with the same "
+                "classification_name to use default attribution sources.",
+                506,
+            )
+        if portfolio_sources.classification_name != benchmark_sources.classification_name:
+            raise PpaError(
+                f"portfolio={portfolio_sources.classification_name!r}, "
+                f"benchmark={benchmark_sources.classification_name!r}",
+                506,
+            )
+
+        classification_data_source = (
+            pl.concat(
+                [
+                    portfolio_sources.classification_data_source,
+                    benchmark_sources.classification_data_source,
+                ],
+                how="vertical",
+            )
+            .unique(subset=[cols.IDENTIFIER], keep="any")
+            .sort(cols.IDENTIFIER)
+        )
+        mapping_data_sources = self._combined_mapping_sources(
+            portfolio_sources,
+            benchmark_sources,
+        )
+        # Import lazily to avoid a module import cycle.
+        from ppar.axys.supporting_sources import (  # pylint: disable=import-outside-toplevel
+            AxysClassificationSources,
+        )
+
+        return AxysClassificationSources(
+            portfolio_sources.classification_name,
+            classification_data_source,
+            mapping_data_sources,
+        )
+
+    @staticmethod
+    def _combined_mapping_sources(
+        portfolio_sources: AxysClassificationSources,
+        benchmark_sources: AxysClassificationSources,
+    ) -> tuple[pl.DataFrame, pl.DataFrame] | None:
+        """Return mapping sources aligned to portfolio and benchmark performance."""
+        if (
+            portfolio_sources.mapping_data_sources is None
+            and benchmark_sources.mapping_data_sources is None
+        ):
+            return None
+        if (
+            portfolio_sources.mapping_data_sources is None
+            or benchmark_sources.mapping_data_sources is None
+        ):
+            raise PpaError(
+                "Portfolio and benchmark mapping sources must both be present or "
+                "both be omitted.",
+                506,
+            )
+        return (
+            portfolio_sources.mapping_data_sources[0],
+            benchmark_sources.mapping_data_sources[0],
         )
 
     @property

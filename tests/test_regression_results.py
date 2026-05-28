@@ -6,6 +6,7 @@
 
 # Python Imports
 import datetime as dt
+import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
@@ -28,6 +29,10 @@ _EXPECTED_RESULTS_DIRECTORIES = [
     "../tests/expected_results",
     "expected_results",
 ]
+_CHART_DEPENDENCIES_AVAILABLE = all(
+    importlib.util.find_spec(dependency) is not None
+    for dependency in ("matplotlib", "seaborn")
+)
 
 
 class TestRegressionResults(unittest.TestCase):
@@ -148,6 +153,8 @@ class TestRegressionResults(unittest.TestCase):
                     attribution.to_xml(view)
 
             if classification_name == "Economic Sector":
+                if not _CHART_DEPENDENCIES_AVAILABLE:
+                    self.skipTest("Chart regression checks require optional ppar[charts].")
                 for chart in Chart:
                     columns_to_sort = None
                     sort_descendings = False

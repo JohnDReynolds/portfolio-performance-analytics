@@ -82,10 +82,10 @@ class AxysSupportingSourceLoader:
         classification = self._loader.load(
             "classification", classification_name, unique_security_ids
         )
-        classification_source = self._specification.values.get(
-            "classifications",
+        classification_source = self._specification.classifications.get(
+            classification_name,
             {},
-        ).get(classification_name, {})
+        )
         if self._specification.is_security_master(classification_name):
             mapping_data_sources = None
         else:

@@ -90,11 +90,38 @@ def _write_frame_csv(directory: Path, file_name: str, data: dict[str, list[objec
 
 
 def _fixture_specification() -> dict[str, object]:
-    """Load the committed valid/bad-case specification as mutable data."""
+    """Load the committed valid specification as mutable data."""
     path = test_util.axys_data_path("ppar.yaml", ".yaml")
     specification: object = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(specification, dict)
-    return cast(dict[str, object], specification)
+    mutable_specification = cast(dict[str, object], specification)
+    mutable_specification["portfolio_performance_path"] = str(
+        test_util.axys_data_path("portperf.csv")
+    )
+    mutable_specification["security_performance_path"] = str(
+        test_util.axys_data_path("secperf.csv")
+    )
+    mutable_specification["security_master_path"] = str(
+        test_util.axys_data_path("security_master.csv")
+    )
+    classifications = _classification_definitions(mutable_specification)
+    for classification in classifications.values():
+        if isinstance(classification, dict):
+            classification_source = cast(dict[str, object], classification)
+            file_path = classification_source.get("file_path")
+            if isinstance(file_path, str):
+                classification_source["file_path"] = str(test_util.axys_data_path(file_path))
+    return mutable_specification
+
+
+def _classification_definitions(specification: dict[str, object]) -> dict[str, object]:
+    """Return mutable classification definitions from a specification."""
+    return cast(dict[str, object], specification.setdefault("classifications", {}))
+
+
+def _mapping_definitions(specification: dict[str, object]) -> dict[str, object]:
+    """Return mutable mapping definitions from a specification."""
+    return cast(dict[str, object], specification.setdefault("mappings", {}))
 
 
 class TestAxysValidation(unittest.TestCase):
@@ -268,6 +295,34 @@ class TestAxysValidation(unittest.TestCase):
         """Requested classification names must be defined in the specification."""
         _assert_axys_error(self, 504, _AxysArguments(classification_name="unknown"))
 
+    def test_invalid_default_date_raises_error_504(self) -> None:
+        """Default Axys date filters must be ISO dates."""
+        specification = _fixture_specification()
+        specification["defaults"] = {"from_date": "01/01/2024"}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path),
+                "defaults.from_date must be an ISO date",
+            )
+
+    def test_invalid_default_classification_raises_error_504(self) -> None:
+        """Default Axys classification must be a string."""
+        specification = _fixture_specification()
+        specification["defaults"] = {"classification": ["Country"]}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(specifications_path=path),
+                "defaults.classification must be a string",
+            )
+
     def test_missing_portfolio_error_includes_requested_dates(self) -> None:
         """Portfolio-loading errors report the requested date window."""
         data = AxysData(
@@ -288,7 +343,24 @@ class TestAxysValidation(unittest.TestCase):
 
     def test_missing_required_source_field_raises_error_504(self) -> None:
         """Explicit classification source definitions require a path."""
-        _assert_axys_error(self, 504, _AxysArguments(classification_name="BadMissingFilePath"))
+        specification = _fixture_specification()
+        classifications = _classification_definitions(specification)
+        classifications["BadMissingFilePath"] = {
+            "identifier_column": "CODE",
+            "name_column": "DESCRIPTION",
+            "mapping": "Sector",
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(
+                    specifications_path=path,
+                    classification_name="BadMissingFilePath",
+                ),
+            )
 
     def test_unknown_source_path_override_raises_error_504(self) -> None:
         """Source path overrides must reference configured source names."""
@@ -314,7 +386,27 @@ class TestAxysValidation(unittest.TestCase):
 
     def test_nonexistent_source_column_raises_error_504(self) -> None:
         """Specified source columns must exist in their CSV source."""
-        _assert_axys_error(self, 504, _AxysArguments(classification_name="BadFilterColumnName"))
+        specification = _fixture_specification()
+        classifications = _classification_definitions(specification)
+        classifications["BadFilterColumnName"] = {
+            "file_path": str(test_util.axys_data_path("classification_lookup.csv")),
+            "identifier_column": "CODE",
+            "name_column": "DESCRIPTION",
+            "filter_column": "CLASSIFICATION_TYPE_XXX",
+            "filter_value": "SECTOR",
+            "mapping": "Sector",
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_yaml(Path(temp_dir), specification)
+            _assert_axys_error(
+                self,
+                504,
+                _AxysArguments(
+                    specifications_path=path,
+                    classification_name="BadFilterColumnName",
+                ),
+            )
 
     def test_ambiguous_security_master_column_aliases_raise_error_504(self) -> None:
         """Inferred security master columns must resolve to one CSV header."""
@@ -347,7 +439,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_mapping_without_display_name_column_cannot_be_classification(self) -> None:
         """Mapping-backed classifications require display_name_column."""
         specification = _fixture_specification()
-        mappings = cast(dict[str, object], specification["mappings"])
+        mappings = _mapping_definitions(specification)
         mappings["SectorCodeOnly"] = {"classification_column": "SECTOR_CODE"}
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -366,10 +458,12 @@ class TestAxysValidation(unittest.TestCase):
     def test_unknown_source_field_raises_error_504(self) -> None:
         """Unrecognized source-definition fields are rejected."""
         specification = _fixture_specification()
-        classifications = cast(dict[str, object], specification["classifications"])
+        classifications = _classification_definitions(specification)
         sector = cast(dict[str, object], classifications["SectorLookup"])
         sector["file_path"] = str(test_util.axys_data_path("classification_lookup.csv"))
         sector["mapping"] = "BadUnknownField"
+        mappings = _mapping_definitions(specification)
+        mappings["BadUnknownField"] = {"unknown_field_xxx": "security_master.csv"}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             path = _write_yaml(Path(temp_dir), specification)
@@ -382,7 +476,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_non_security_master_classification_requires_mapping(self) -> None:
         """Classifications below security grain must identify their mapping."""
         specification = _fixture_specification()
-        classifications = cast(dict[str, object], specification["classifications"])
+        classifications = _classification_definitions(specification)
         sector = cast(dict[str, object], classifications["SectorLookup"])
         del sector["mapping"]
 
@@ -398,7 +492,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_classification_mapping_must_be_configured(self) -> None:
         """Classification mapping references must point to configured mappings."""
         specification = _fixture_specification()
-        classifications = cast(dict[str, object], specification["classifications"])
+        classifications = _classification_definitions(specification)
         sector = cast(dict[str, object], classifications["SectorLookup"])
         sector["mapping"] = "UnknownMapping"
 
@@ -414,8 +508,8 @@ class TestAxysValidation(unittest.TestCase):
     def test_mapping_definition_rejects_classification_mapping_field(self) -> None:
         """The mapping field belongs to classifications, not mapping sources."""
         specification = _fixture_specification()
-        classifications = cast(dict[str, object], specification["classifications"])
-        mappings = cast(dict[str, object], specification["mappings"])
+        classifications = _classification_definitions(specification)
+        mappings = _mapping_definitions(specification)
         sector = cast(dict[str, object], classifications["SectorLookup"])
         sector_mapping = cast(dict[str, object], mappings["Sector"])
         sector["file_path"] = str(test_util.axys_data_path("classification_lookup.csv"))
@@ -436,7 +530,7 @@ class TestAxysValidation(unittest.TestCase):
     def test_non_boolean_is_security_master_setting_raises_error_504(self) -> None:
         """The optional is_security_master setting accepts booleans only."""
         specification = _fixture_specification()
-        classifications = cast(dict[str, object], specification["classifications"])
+        classifications = _classification_definitions(specification)
         sector = cast(dict[str, object], classifications["SectorLookup"])
         sector["is_security_master"] = "true"
 

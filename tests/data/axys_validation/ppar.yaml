@@ -16,12 +16,19 @@
 
 
 # =========================
-# Settings
+# Defaults
 # =========================
-settings:
-  # Optional text inserted between the Axys account code and account name in
-  # report titles.
-  prefix_portfolio_code: " - "
+# Optional defaults used when a caller does not pass these values to
+# AxysData.get_portfolio().
+defaults:
+  # Optional inclusive earliest reporting date to retain.
+  from_date: 2024-01-01
+
+  # Optional inclusive latest thru date to retain.
+  thru_date: 2024-12-31
+
+  # Optional classification loaded with each portfolio.
+  classification: Country
 
 
 # =========================
@@ -33,11 +40,21 @@ portfolio_performance_path: portperf.csv
 # Optional: Portfolio Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
 # column names PPAR cannot infer.
+#
 # portfolio_performance_columns:
+#   # First date in the portfolio performance period.
 #   from_date: FROM_DATE
+#
+#   # Last date in the portfolio performance period.
 #   thru_date: THRU_DATE
+#
+#   # Axys account code.
 #   portfolio_code: PORTFOLIO_CODE
+#
+#   # Axys account name.
 #   portfolio_name: PORTFOLIO_NAME
+#
+#   # Portfolio return for the period.
 #   portfolio_return: PORT_RETURN
 
 
@@ -50,14 +67,28 @@ security_performance_path: secperf.csv
 # Optional: Security Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
 # column names PPAR cannot infer.
+#
 # security_performance_columns:
+#   # First date in the security performance period.
 #   from_date: FROM_DATE
-#   contribution: CONTRIBUTION
+#
+#   # Last date in the security performance period.
 #   thru_date: THRU_DATE
+#
+#   # Security identifier used in the security master.
 #   identifier: SECURITY_ID
+#
+#   # Axys account code.
 #   portfolio_code: PORTFOLIO_CODE
+#
+#   # Security return for the period.
 #   return: SEC_RETURN
+#
+#   # Security beginning weight for the period.
 #   weight: BEGIN_WEIGHT
+#
+#   # Security contribution for the period.
+#   contribution: CONTRIBUTION
 
 # =========================
 # Security Master
@@ -68,8 +99,12 @@ security_master_path: security_master.csv
 # Optional: Security Master Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
 # column names PPAR cannot infer.
+#
 # security_master_columns:
+#   # Security identifier matched to security performance rows.
 #   identifier_column: SECURITY_ID
+#
+#   # Security display name used in reports.
 #   name_column: SECURITY_NAME
 
 # =========================
@@ -80,21 +115,6 @@ security_master_path: security_master.csv
 # a separate lookup export. Groupings already present on the security master
 # can usually be configured in the mappings section instead.
 classifications:
-  # Test-only example: bad filter column name.
-  BadFilterColumnName:
-    file_path: classification_lookup.csv
-    identifier_column: CODE
-    name_column: DESCRIPTION
-    filter_column: CLASSIFICATION_TYPE_XXX
-    filter_value: SECTOR
-    mapping: Sector
-
-  # Test-only example: missing file_path.
-  BadMissingFilePath:
-    identifier_column: CODE
-    name_column: DESCRIPTION
-    mapping: Sector
-
   # Optional lookup-table-based sector classification.
   SectorLookup:
     file_path: classification_lookup.csv
@@ -136,7 +156,3 @@ mappings:
   Sector:
     classification_column: SECTOR_CODE
     display_name_column: SECTOR_DESC
-
-  # Test-only example: unknown field.
-  BadUnknownField:
-    unknown_field_xxx: security_master.csv

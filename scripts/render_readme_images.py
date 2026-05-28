@@ -4,7 +4,11 @@ The script uses bundled demo data, headless Chrome, and Pillow cropping to
 refresh the table screenshots referenced by ``README.md``.
 """
 
-# Imports below the repository path bootstrap are intentional for direct execution.
+# This script is meant to run directly from the repository checkout. Insert the
+# repository root before importing ppar so the local source tree is used even
+# when the package has not been installed. The ppar imports below therefore
+# intentionally sit after executable bootstrap code; `noqa: E402` suppresses
+# the "module import not at top of file" warning for those lines.
 # pylint: disable=wrong-import-order,wrong-import-position
 
 # Python Imports

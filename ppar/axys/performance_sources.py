@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 # Python imports
-import datetime as dt
 from typing import Final, Literal
 
 # Third-party imports
@@ -11,6 +10,8 @@ import polars as pl
 
 # Project imports
 from ppar.axys.specification import AxysSpecification, ErrorMessage
+from ppar.axys.column_aliases import resolve_column
+from ppar.axys.date_ranges import AxysDateRange
 import ppar.columns as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
@@ -90,16 +91,14 @@ class AxysPerformanceSourceLoader:
     Attributes:
         _specification: Parsed Axys source configuration.
         _error_message: Callback used to add facade-level validation context.
-        _from_date: Optional inclusive earliest reporting date to retain.
-        _thru_date: Optional inclusive latest thru date to retain.
+        _date_range: Inclusive date window to retain.
     """
 
     def __init__(
         self,
         specification: AxysSpecification,
         error_message: ErrorMessage,
-        from_date: dt.date | None = None,
-        thru_date: dt.date | None = None,
+        date_range: AxysDateRange | None = None,
     ) -> None:
         """Initialize a performance source loader.
 
@@ -107,13 +106,11 @@ class AxysPerformanceSourceLoader:
             specification: Parsed Axys configuration.
             error_message: Callback that adds facade-level source context to
                 validation messages.
-            from_date: Optional inclusive earliest reporting date to retain.
-            thru_date: Optional inclusive latest thru date to retain.
+            date_range: Optional inclusive date window to retain.
         """
         self._specification = specification
         self._error_message = error_message
-        self._from_date = from_date
-        self._thru_date = thru_date
+        self._date_range = date_range or AxysDateRange()
 
     def load(
         self,
@@ -163,13 +160,7 @@ class AxysPerformanceSourceLoader:
         )
         if portfolio_code is not None:
             lazy_frame = lazy_frame.filter(pl.col(cols.PORTFOLIO_CODE) == portfolio_code)
-        if self._from_date is not None:
-            lazy_frame = lazy_frame.filter(
-                pl.lit(self._from_date) <= pl.col(cols.THRU_DATE)
-            )
-        if self._thru_date is not None:
-            lazy_frame = lazy_frame.filter(pl.col(cols.THRU_DATE) <= pl.lit(self._thru_date))
-        return lazy_frame.collect()
+        return self._date_range.filter_performance(lazy_frame).collect()
 
     def _csv_to_internal_mappings(
         self,
@@ -207,29 +198,27 @@ class AxysPerformanceSourceLoader:
         csv_to_internal_mappings: dict[str, str] = {}
 
         for internal_column in required_columns:
-            source_column = column_mappings.get(internal_column)
-            if source_column is not None:
-                if source_column not in available_columns:
-                    missing_columns.append(
-                        f"{internal_column!r} configured as {source_column!r}"
-                    )
-                    continue
-                csv_to_internal_mappings[source_column] = internal_column
-                continue
-
-            inferred_column = self._infer_source_column(
+            source_column = self._resolve_source_column(
                 path,
                 column_name_mappings_name,
                 internal_column,
                 available_columns,
+                column_mappings.get(internal_column),
             )
-            if inferred_column is None:
-                missing_columns.append(self._missing_column_message(
-                    column_name_mappings_name,
-                    internal_column,
-                ))
+            if source_column is None:
+                explicit_column = column_mappings.get(internal_column)
+                missing_columns.append(
+                    (
+                        f"{internal_column!r} configured as {explicit_column!r}"
+                        if explicit_column is not None
+                        else self._missing_column_message(
+                            column_name_mappings_name,
+                            internal_column,
+                        )
+                    )
+                )
                 continue
-            csv_to_internal_mappings[inferred_column] = internal_column
+            csv_to_internal_mappings[source_column] = internal_column
 
         if missing_columns:
             raise PpaError(
@@ -268,41 +257,45 @@ class AxysPerformanceSourceLoader:
             for key, value in column_mappings.items()
         }
 
-    def _infer_source_column(
+    def _resolve_source_column(
         self,
         path: util.PathLike,
         column_name_mappings_name: PerformanceSourceType,
         internal_column: str,
         available_columns: set[str],
+        explicit_column: str | None,
     ) -> str | None:
-        """Infer a source CSV column from known Axys/IMEX aliases.
+        """Resolve a source CSV column from YAML or known aliases.
 
         Args:
             path: Source CSV path used for error context.
             column_name_mappings_name: Specification section being loaded.
             internal_column: Internal package column to resolve.
             available_columns: CSV header columns.
+            explicit_column: Explicit source column from the YAML, if any.
 
         Returns:
-            The inferred CSV column, or ``None`` when no known alias exists.
+            The explicit or inferred CSV column, or ``None`` when not found.
 
         Raises:
             PpaError: If more than one alias exists for the same internal
                 column.
         """
+        yaml_key = _PERFORMANCE_COLUMN_KEYS[column_name_mappings_name][internal_column]
         aliases = _PERFORMANCE_COLUMN_ALIASES[column_name_mappings_name][internal_column]
-        matches = [alias for alias in aliases if alias in available_columns]
-        if len(matches) > 1:
-            raise PpaError(
-                self._error_message(
-                    f"Ambiguous inferred source columns for {internal_column!r} "
-                    f"in {str(path)!r}: {matches}. Configure "
-                    f"{_PERFORMANCE_COLUMN_KEYS[column_name_mappings_name][internal_column]!r} "
-                    "explicitly."
-                ),
-                502,
-            )
-        return matches[0] if matches else None
+        resolved_column = resolve_column(
+            internal_column,
+            aliases,
+            available_columns,
+            self._error_message,
+            explicit_column=explicit_column,
+            ambiguous_message=(
+                f"Ambiguous inferred source columns in {str(path)!r}. "
+                f"Configure {yaml_key!r} explicitly"
+            ),
+            error_code=502,
+        )
+        return resolved_column
 
     @staticmethod
     def _missing_column_message(

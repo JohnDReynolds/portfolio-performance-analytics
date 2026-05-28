@@ -15,6 +15,7 @@ from typing import Any
 
 # Project imports
 from ppar.axys.classification_sources import AxysClassificationSourceLoader
+from ppar.axys.date_ranges import AxysDateRange
 from ppar.axys.performance_sources import AxysPerformanceSourceLoader
 from ppar.axys.portfolios import AxysPortfolio, AxysPortfolioLoader
 from ppar.axys.specification import AxysSpecification
@@ -118,14 +119,22 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
                 portfolio returns, or if the requested classification source is
                 unknown or invalid.
         """
-        portfolios = self._portfolio_loader(from_date, thru_date).load((portfolio_code,))
+        date_range = AxysDateRange(
+            from_date or self._specification.default_from_date,
+            thru_date or self._specification.default_thru_date,
+        )
+        classification_name = (
+            classification_name or self._specification.default_classification_name
+        )
+
+        portfolios = self._portfolio_loader(date_range).load((portfolio_code,))
         if portfolio_code not in portfolios:
             raise PpaError(
                 self._error_message(
                     f"No portfolio performance rows for portfolio {portfolio_code!r}",
                     portfolio_code,
-                    from_date,
-                    thru_date,
+                    date_range.from_date,
+                    date_range.thru_date,
                 ),
                 504,
             )
@@ -166,14 +175,12 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
 
     def _portfolio_loader(
         self,
-        from_date: dt.date | None,
-        thru_date: dt.date | None,
+        date_range: AxysDateRange,
     ) -> AxysPortfolioLoader:
         """Return a portfolio loader for the requested date window.
 
         Args:
-            from_date: Optional inclusive earliest from date to retain.
-            thru_date: Optional inclusive latest thru date to retain.
+            date_range: Inclusive date window to retain.
 
         Returns:
             Portfolio loader using the configured performance paths and date
@@ -181,13 +188,17 @@ class AxysData:  # pylint: disable=too-few-public-methods,too-many-instance-attr
         """
         def error_message(message: str, portfolio_code: str | None = None) -> str:
             """Return error context for this portfolio-loading request."""
-            return self._error_message(message, portfolio_code, from_date, thru_date)
+            return self._error_message(
+                message,
+                portfolio_code,
+                date_range.from_date,
+                date_range.thru_date,
+            )
 
         performance_loader = AxysPerformanceSourceLoader(
             self._specification,
             error_message,
-            from_date,
-            thru_date,
+            date_range,
         )
         return AxysPortfolioLoader(
             self._specification,

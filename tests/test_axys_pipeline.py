@@ -60,6 +60,8 @@ def _write_axys_inputs(directory: Path) -> Path:
             "SECURITY_NAME": ["Alpha", "Beta", "Cash", "Unused"],
             "SECTOR_CODE": ["TECH", "DEF", "CASH", "OTHER"],
             "SECTOR_DESC": ["Technology", "Defensive", "Cash", "Other"],
+            "COUNTRY_CODE": ["US", "GB", "US", "CA"],
+            "COUNTRY_DESC": ["United States", "United Kingdom", "United States", "Canada"],
         }
     ).write_csv(directory / "security_master.csv")
     pl.DataFrame(
@@ -70,7 +72,6 @@ def _write_axys_inputs(directory: Path) -> Path:
         }
     ).write_csv(directory / "classifications.csv")
     specification: dict[str, object] = {
-        "settings": {"prefix_portfolio_code": " - "},
         "portfolio_performance_path": "portperf.csv",
         "portfolio_performance_columns": {
             cols.FROM_DATE: "FROM_DATE",
@@ -106,6 +107,10 @@ def _write_axys_inputs(directory: Path) -> Path:
             },
         },
         "mappings": {
+            "Country": {
+                "classification_column": "COUNTRY_CODE",
+                "display_name_column": "COUNTRY_DESC",
+            },
             "Sector": {
                 "classification_column": "SECTOR_CODE",
                 "display_name_column": "SECTOR_DESC",
@@ -132,13 +137,13 @@ class TestAxysPipeline(unittest.TestCase):
 
             self.assertEqual(portfolio.portfolio_name, "P1 - Growth")
             self.assertEqual(
-                security_sources.classification_data_source["identifier_column"].sort().to_list(),
+                security_sources.classification_data_source[cols.IDENTIFIER].sort().to_list(),
                 ["A", "B"],
             )
             self.assertIsNotNone(sector_sources.mapping_data_sources)
             assert sector_sources.mapping_data_sources is not None
             self.assertEqual(
-                sector_sources.mapping_data_sources[0]["identifier_column"].sort().to_list(),
+                sector_sources.mapping_data_sources[0][cols.IDENTIFIER].sort().to_list(),
                 ["A", "B"],
             )
             first_period_weights = performance.filter(
@@ -223,7 +228,7 @@ class TestAxysPipeline(unittest.TestCase):
             sector_sources = data.get_classification_sources("Sector", portfolio)
 
             self.assertEqual(
-                security_sources.classification_data_source["identifier_column"]
+                security_sources.classification_data_source[cols.IDENTIFIER]
                 .sort()
                 .to_list(),
                 ["A", "B"],
@@ -247,7 +252,7 @@ class TestAxysPipeline(unittest.TestCase):
             sources = data.get_classification_sources("Security", portfolio)
 
             self.assertEqual(
-                sources.classification_data_source["name_column"].sort().to_list(),
+                sources.classification_data_source[cols.NAME].sort().to_list(),
                 ["Alpha", "Beta"],
             )
 
@@ -297,23 +302,73 @@ class TestAxysPipeline(unittest.TestCase):
                 [dt.date(2024, 2, 29)],
             )
 
+    def test_get_portfolio_uses_configured_defaults(self) -> None:
+        """YAML defaults supply omitted date filters and classification."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_axys_inputs(Path(temp_dir))
+            specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            assert isinstance(specification, dict)
+            specification["defaults"] = {
+                "from_date": dt.date(2024, 2, 1),
+                "thru_date": dt.date(2024, 2, 29),
+                "classification": "Country",
+            }
+            specification_path.write_text(
+                yaml.safe_dump(specification),
+                encoding="utf-8",
+            )
+            data = AxysData(specification_path)
+
+            portfolio = data.get_portfolio("P1")
+
+            sources = portfolio.required_classification_sources
+            self.assertEqual(portfolio.security_performance.height, 2)
+            self.assertEqual(sources.classification_name, "Country")
+            self.assertEqual(
+                sources.classification_data_source[cols.NAME].sort().to_list(),
+                ["Canada", "United Kingdom", "United States"],
+            )
+
+    def test_get_portfolio_arguments_override_configured_defaults(self) -> None:
+        """Explicit date and classification arguments override YAML defaults."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_axys_inputs(Path(temp_dir))
+            specification = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            assert isinstance(specification, dict)
+            specification["defaults"] = {
+                "from_date": "2024-02-01",
+                "thru_date": "2024-02-29",
+                "classification": "Country",
+            }
+            specification_path.write_text(
+                yaml.safe_dump(specification),
+                encoding="utf-8",
+            )
+            data = AxysData(specification_path)
+
+            portfolio = data.get_portfolio(
+                "P1",
+                from_date=dt.date(2024, 1, 1),
+                thru_date=dt.date(2024, 1, 31),
+                classification_name="Sector",
+            )
+
+            sources = portfolio.required_classification_sources
+            self.assertEqual(portfolio.security_performance.height, 2)
+            self.assertEqual(
+                portfolio.security_performance[cols.THRU_DATE].unique().to_list(),
+                [dt.date(2024, 1, 31)],
+            )
+            self.assertEqual(sources.classification_name, "Sector")
+
     def test_axys_sources_roll_up_through_analytics_to_sector_attribution(self) -> None:
         """Generated classification and mapping sources drive public attribution."""
         with tempfile.TemporaryDirectory() as temp_dir:
             data = AxysData(_write_axys_inputs(Path(temp_dir)))
-            portfolio = data.get_portfolio("P1")
-            sources = data.get_classification_sources("Sector", portfolio)
-            analytics = Analytics(
-                portfolio.security_performance,
-                portfolio_name=portfolio.portfolio_name,
-                portfolio_classification_name="Security",
-            )
+            portfolio = data.get_portfolio("P1", classification_name="Sector")
 
-            attribution = analytics.get_attribution(
-                sources.classification_name,
-                sources.classification_data_source,
-                sources.mapping_data_sources,
-            )
+            analytics = portfolio.to_analytics()
+            attribution = analytics.get_attribution()
             detail = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
 
             self.assertEqual(
@@ -334,7 +389,7 @@ class TestAxysPipeline(unittest.TestCase):
             self.assertEqual(sources.classification_name, "Sector")
             self.assertIsNotNone(sources.mapping_data_sources)
             self.assertEqual(
-                sources.classification_data_source["name_column"].sort().to_list(),
+                sources.classification_data_source[cols.NAME].sort().to_list(),
                 ["Cash", "Defensive", "Other", "Technology"],
             )
 
@@ -353,6 +408,53 @@ class TestAxysPipeline(unittest.TestCase):
                 set(detail[cols.CLASSIFICATION_NAME].to_list()),
                 {"Defensive", "Technology"},
             )
+
+    def test_portfolio_convenience_method_accepts_axys_benchmark(self) -> None:
+        """An Axys benchmark portfolio can supply benchmark data and mappings."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data = AxysData(_write_axys_inputs(Path(temp_dir)))
+            portfolio = data.get_portfolio("P1", classification_name="Country")
+            benchmark = data.get_portfolio("P2", classification_name="Country")
+
+            analytics = portfolio.to_analytics(benchmark)
+            attribution = analytics.get_attribution()
+            detail = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
+
+            self.assertEqual(analytics.classification_names(), ("Security", "Security"))
+            self.assertEqual(
+                set(detail[cols.CLASSIFICATION_NAME].to_list()),
+                {"United Kingdom", "United States"},
+            )
+
+    def test_portfolio_convenience_method_rejects_different_classifications(self) -> None:
+        """Default Axys attribution requires matching portfolio classifications."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data = AxysData(_write_axys_inputs(Path(temp_dir)))
+            portfolio = data.get_portfolio("P1", classification_name="Country")
+            benchmark = data.get_portfolio("P2", classification_name="Sector")
+
+            with self.assertRaisesRegex(PpaError, errs.ERRORS[506]):
+                portfolio.to_analytics(benchmark)
+
+    def test_portfolio_convenience_method_requires_overlapping_periods(self) -> None:
+        """Analytics raises its normal error when Axys portfolios do not overlap."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data = AxysData(_write_axys_inputs(Path(temp_dir)))
+            portfolio = data.get_portfolio(
+                "P1",
+                from_date=dt.date(2024, 2, 1),
+                thru_date=dt.date(2024, 2, 29),
+                classification_name="Country",
+            )
+            benchmark = data.get_portfolio(
+                "P2",
+                from_date=dt.date(2024, 1, 1),
+                thru_date=dt.date(2024, 1, 31),
+                classification_name="Country",
+            )
+
+            with self.assertRaisesRegex(PpaError, errs.ERRORS[202]):
+                portfolio.to_analytics(benchmark)
 
     def test_required_classification_sources_requires_attached_sources(self) -> None:
         """Required classification access fails when none were requested."""
@@ -392,7 +494,7 @@ class TestAxysPipeline(unittest.TestCase):
 
             self.assertEqual(sources.classification_name, "Sector")
             self.assertEqual(
-                sources.classification_data_source["name_column"].sort().to_list(),
+                sources.classification_data_source[cols.NAME].sort().to_list(),
                 ["Cash", "Defensive Sector", "Growth Sector"],
             )
 
@@ -407,7 +509,7 @@ class TestAxysPipeline(unittest.TestCase):
             self.assertEqual(sources.classification_name, "Security")
             self.assertIsNone(sources.mapping_data_sources)
             self.assertEqual(
-                sources.classification_data_source["identifier_column"].sort().to_list(),
+                sources.classification_data_source[cols.IDENTIFIER].sort().to_list(),
                 ["A", "B"],
             )
 
@@ -421,11 +523,11 @@ class TestAxysPipeline(unittest.TestCase):
 
             self.assertIsNotNone(sources.mapping_data_sources)
             self.assertEqual(
-                sources.classification_data_source["identifier_column"].sort().to_list(),
+                sources.classification_data_source[cols.IDENTIFIER].sort().to_list(),
                 ["CASH", "DEF", "OTHER", "TECH"],
             )
             self.assertEqual(
-                sources.classification_data_source["name_column"].sort().to_list(),
+                sources.classification_data_source[cols.NAME].sort().to_list(),
                 ["Cash", "Defensive", "Other", "Technology"],
             )
 

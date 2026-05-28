@@ -32,6 +32,7 @@ ERRORS = {
     503: "Error 503: Could not derive weights for security performance: ",
     504: "Error 504: Bad specifications file: ",
     505: "Error 505: Portfolio performance and security performance have no common periods.",
+    506: "Error 506: Axys portfolio and benchmark classifications differ: ",
     # General Error Messages
     802: "Error 802: File path does not exist: ",
     803: "Error 803: Cannot convert to a date. ",

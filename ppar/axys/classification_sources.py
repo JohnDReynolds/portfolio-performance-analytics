@@ -11,6 +11,8 @@ import polars as pl
 
 # Project imports
 from ppar.axys.specification import AxysSpecification, ErrorMessage, SourceType
+from ppar.axys.column_aliases import resolve_column
+import ppar.columns as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
 
@@ -52,6 +54,7 @@ _SECURITY_MASTER_PATH_KEY: Final[str] = "security_master_path"
 _SECURITY_CLASSIFICATION_NAME: Final[str] = "Security"
 _FILTER_TO_SECURITY_IDS: Final[str] = "_filter_to_security_ids"
 _SOURCE_FILE_PATH: Final[str] = "_source_file_path"
+_NORMALIZED_SOURCE_COLUMNS: Final[tuple[str, str]] = (cols.IDENTIFIER, cols.NAME)
 
 
 class AxysClassificationSourceLoader:
@@ -143,14 +146,14 @@ class AxysClassificationSourceLoader:
             )
 
         rename_mappings = {
-            effective_source["identifier_column"]: "identifier_column",
-            effective_source["name_column"]: "name_column",
+            effective_source["identifier_column"]: cols.IDENTIFIER,
+            effective_source["name_column"]: cols.NAME,
         }
         return (
             lazy_frame.collect()
             .rename(rename_mappings)
-            .select(("identifier_column", "name_column"))
-            .unique(subset=["identifier_column"], keep="any")
+            .select(_NORMALIZED_SOURCE_COLUMNS)
+            .unique(subset=[cols.IDENTIFIER], keep="any")
         )
 
     def _source_definition(
@@ -169,9 +172,10 @@ class AxysClassificationSourceLoader:
             mapping-backed classification definition, or ``None`` when the
             source is unknown.
         """
-        data_sources: dict[str, dict[str, Any]] = self._specification.values.get(
-            f"{source_type}s",
-            {},
+        data_sources = (
+            self._specification.classifications
+            if source_type == "classification"
+            else self._specification.mappings
         )
         data_source = data_sources.get(source_name)
         if data_source is not None:
@@ -180,9 +184,7 @@ class AxysClassificationSourceLoader:
         if source_type == "classification":
             if source_name == _SECURITY_CLASSIFICATION_NAME:
                 return {"is_security_master": True}
-            mapping_source = self._specification.values.get("mappings", {}).get(
-                source_name,
-            )
+            mapping_source = self._specification.mappings.get(source_name)
             if (
                 isinstance(mapping_source, dict)
                 and "display_name_column" in mapping_source
@@ -387,7 +389,7 @@ class AxysClassificationSourceLoader:
                 ),
                 504,
             )
-        if mapping_name not in self._specification.values.get("mappings", {}):
+        if mapping_name not in self._specification.mappings:
             raise PpaError(
                 self._error_message(
                     f"Unknown mapping {mapping_name!r} for classification {source_name!r}"
@@ -472,7 +474,7 @@ class AxysClassificationSourceLoader:
             }
 
         mapping_name = cast(str, data_source["mapping"])
-        mapping = self._specification.values["mappings"][mapping_name]
+        mapping = self._specification.mappings[mapping_name]
         security_master = self._security_master_definition(source_name)
         return {
             **data_source,
@@ -553,28 +555,31 @@ class AxysClassificationSourceLoader:
         resolved_columns: dict[str, str] = {}
         missing_fields: list[str] = []
         for field_name in _SECURITY_MASTER_FIELDS_REQUIRED:
-            explicit_column = configured_columns.get(field_name)
-            if explicit_column is not None:
-                if explicit_column not in available_columns:
-                    missing_fields.append(
-                        f"{field_name!r} configured as {explicit_column!r}"
-                    )
-                    continue
-                resolved_columns[field_name] = cast(str, explicit_column)
-                continue
-
-            inferred_column = self._infer_security_master_column(
-                source_name,
+            source_column = resolve_column(
                 field_name,
+                _SECURITY_MASTER_COLUMN_ALIASES[field_name],
                 available_columns,
+                self._error_message,
+                explicit_column=configured_columns.get(field_name),
+                ambiguous_message=(
+                    "Ambiguous inferred security master column. "
+                    f"Configure {field_name!r} explicitly. "
+                    f"Source requiring security master: {source_name!r}"
+                ),
+                error_code=504,
             )
-            if inferred_column is None:
+            if source_column is None:
                 missing_fields.append(
                     f"{field_name!r}; tried aliases "
                     f"{list(_SECURITY_MASTER_COLUMN_ALIASES[field_name])}"
                 )
                 continue
-            resolved_columns[field_name] = inferred_column
+            if source_column not in available_columns:
+                missing_fields.append(
+                    f"{field_name!r} configured as {source_column!r}"
+                )
+                continue
+            resolved_columns[field_name] = source_column
 
         if missing_fields:
             raise PpaError(
@@ -586,26 +591,6 @@ class AxysClassificationSourceLoader:
                 504,
             )
         return resolved_columns
-
-    def _infer_security_master_column(
-        self,
-        source_name: str,
-        field_name: str,
-        available_columns: set[str],
-    ) -> str | None:
-        """Infer one security master column from known Axys/IMEX aliases."""
-        aliases = _SECURITY_MASTER_COLUMN_ALIASES[field_name]
-        matches = [alias for alias in aliases if alias in available_columns]
-        if len(matches) > 1:
-            raise PpaError(
-                self._error_message(
-                    f"Ambiguous inferred security master column for {field_name!r}: "
-                    f"{matches}. Configure {field_name!r} explicitly. "
-                    f"Source requiring security master: {source_name!r}"
-                ),
-                504,
-            )
-        return matches[0] if matches else None
 
     @staticmethod
     def _explicit_or_security_master_path(
@@ -625,7 +610,7 @@ class AxysClassificationSourceLoader:
             PpaError: If any override key is not a configured classification
                 source name.
         """
-        configured_source_names = set(self._specification.values.get("classifications", {}))
+        configured_source_names = set(self._specification.classifications)
         unknown_source_names = set(self._source_path_overrides) - configured_source_names
         if unknown_source_names:
             raise PpaError(
