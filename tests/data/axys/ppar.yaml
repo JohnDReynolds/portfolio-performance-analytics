@@ -94,7 +94,7 @@ security_performance_path: secperf.csv
 # Security Master
 # =========================
 # Path to the Axys security master or security reference export.
-security_master_path: security_master.csv
+security_master_path: sec_ref.csv
 
 # Optional: Security Master Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses

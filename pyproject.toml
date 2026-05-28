@@ -51,6 +51,8 @@ dependencies = [
 
 [project.optional-dependencies]
 # Plotting support used only by Attribution.to_chart() and chart demo output.
+# Keep matplotlib/seaborn optional so core analytics installs remain lighter and
+# avoid plotting-stack font/backend/cache issues unless chart output is needed.
 charts = [
     "matplotlib>=3.8.2",
     "seaborn>=0.13.2",

@@ -25,7 +25,7 @@ AssetValues = tuple[Sequence[float], Sequence[float]]
 
 # Directories containing the test data.
 _DATA_DIRECTORIES = (Path("tests/data"), Path("../tests/data"), Path("data"))
-_AXYS_DIRECTORIES = [directory / "axys_validation" for directory in _DATA_DIRECTORIES]
+_AXYS_DIRECTORIES = [directory / "axys" for directory in _DATA_DIRECTORIES]
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]

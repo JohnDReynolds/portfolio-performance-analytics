@@ -102,7 +102,7 @@ def _fixture_specification() -> dict[str, object]:
         test_util.axys_data_path("secperf.csv")
     )
     mutable_specification["security_master_path"] = str(
-        test_util.axys_data_path("security_master.csv")
+        test_util.axys_data_path("sec_ref.csv")
     )
     classifications = _classification_definitions(mutable_specification)
     for classification in classifications.values():

@@ -498,7 +498,7 @@ class AxysClassificationSourceLoader:
                 configured.
         """
         security_master_path = self._specification.values.get(_SECURITY_MASTER_PATH_KEY)
-        configured_columns = self._specification.values.get(
+        configured_columns_value = self._specification.values.get(
             _SECURITY_MASTER_COLUMNS_KEY,
             {},
         )
@@ -509,11 +509,12 @@ class AxysClassificationSourceLoader:
                 ),
                 504,
             )
-        if not isinstance(configured_columns, dict):
+        if not isinstance(configured_columns_value, dict):
             raise PpaError(
                 self._error_message(f"{_SECURITY_MASTER_COLUMNS_KEY} must be a mapping."),
                 504,
             )
+        configured_columns = cast(dict[str, Any], configured_columns_value)
 
         security_master_columns = self._resolve_security_master_columns(
             source_name,

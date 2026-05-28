@@ -14,9 +14,15 @@ IMPORTANT:
 - The goal is importer development, testing, and product-design realism.
 
 Files:
-- portperf.csv: portfolio-level monthly performance/control totals
-- secperf.csv: security-level monthly performance/contribution rows
-- sec_ref.csv: security master/reference data
+- portperf.csv: portfolio-level monthly performance/control totals, merged with
+  validation scenarios and compatibility columns
+- secperf.csv: security-level monthly performance/contribution rows, merged
+  with validation scenarios and compatibility columns
+- sec_ref.csv: security master/reference data, merged with validation
+  classification columns
+- ppar.yaml: Axys loader configuration for the merged fixture files
+- classification_lookup.csv: lookup-table classification source
+- unreachable_target_secperf.csv: intentionally unreconcilable validation rows
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
 - positions_holdings.csv: month-end position snapshots, including CASH_USD
 - prices.csv: daily price history for every security including Treasuries and CASH_USD
