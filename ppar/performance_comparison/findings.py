@@ -20,6 +20,7 @@ PORTFOLIO_ID = "portfolio_id"
 SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
+SOURCE_FILE = "source_file"
 SOURCE_COLUMN = "source_column"
 MESSAGE = "message"
 SUPPRESSED = "suppressed"
@@ -36,6 +37,13 @@ PC_SEC_ADD: Final[str] = "PC-SEC-ADD"
 PC_SEC_DROP: Final[str] = "PC-SEC-DROP"
 PC_REF_ID: Final[str] = "PC-REF-ID"
 PC_REF_CLASS: Final[str] = "PC-REF-CLASS"
+PC_POS_QTY: Final[str] = "PC-POS-QTY"
+PC_POS_MV: Final[str] = "PC-POS-MV"
+PC_CASH_MV: Final[str] = "PC-CASH-MV"
+PC_PRICE: Final[str] = "PC-PRICE"
+PC_TXN_ADD: Final[str] = "PC-TXN-ADD"
+PC_TXN_DROP: Final[str] = "PC-TXN-DROP"
+PC_TXN_AMT: Final[str] = "PC-TXN-AMT"
 
 SEVERITY_INFORMATIONAL: Final[str] = "informational"
 SEVERITY_MATERIAL: Final[str] = "material"
@@ -50,6 +58,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     SECURITY_ID,
     FROM_DATE,
     THRU_DATE,
+    SOURCE_FILE,
     SOURCE_COLUMN,
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
@@ -72,6 +81,8 @@ class Finding:
         security_id: Optional security identifier.
         from_date: Optional period start date.
         thru_date: Optional period end date.
+        source_file: Optional configured source file associated with the
+            finding.
         source_column: Optional normalized column associated with the finding.
         snapshot_a_value: Value from snapshot A.
         snapshot_b_value: Value from snapshot B.
@@ -88,6 +99,7 @@ class Finding:
     security_id: object | None = None
     from_date: object | None = None
     thru_date: object | None = None
+    source_file: str | None = None
     source_column: str | None = None
     snapshot_a_value: object | None = None
     snapshot_b_value: object | None = None
@@ -106,6 +118,7 @@ class Finding:
             SECURITY_ID: self.security_id,
             FROM_DATE: self.from_date,
             THRU_DATE: self.thru_date,
+            SOURCE_FILE: self.source_file,
             SOURCE_COLUMN: self.source_column,
             SNAPSHOT_A_VALUE: self.snapshot_a_value,
             SNAPSHOT_B_VALUE: self.snapshot_b_value,

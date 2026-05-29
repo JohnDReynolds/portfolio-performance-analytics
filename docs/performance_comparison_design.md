@@ -18,10 +18,11 @@ This should not be treated as an Axys-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
 live in small normalization adapters, with Axys as the first likely adapter.
 
-The first implementation should stay intentionally narrow: compare portfolio
-and security performance rows, report material return changes, and produce a
-clear finding model. Explanations from prices, transactions, holdings, cash, and
-security master files can be added after the finding model is stable.
+The first implementation should stay intentionally narrow: compare normalized
+portfolio performance, security performance, security master, positions, cash,
+prices, and transactions rows, report material changes, and produce a clear
+finding model. Deeper causal inference can be added after the finding model is
+stable.
 
 ## Non-Goals For The First Pass
 
@@ -93,14 +94,11 @@ vendor export changes between extraction dates.
 ### Normalized Dataset
 
 A normalized dataset is the source-agnostic form consumed by the comparison
-engine. Initial normalized datasets should include:
+engine. Initial normalized datasets include:
 
 - `portfolio_performance`
 - `security_performance`
 - `security_master`
-
-Later datasets can include:
-
 - `prices`
 - `transactions`
 - `positions`
@@ -278,8 +276,23 @@ The primary comparison keys should be configurable but have sensible defaults:
 - Security performance: portfolio code, security identifier, from date,
   thru date.
 - Prices: security identifier, price date, currency/source where available.
-- Transactions: ideally a transaction id; otherwise a composite fallback.
+- Transactions: transaction id when available; otherwise a conservative
+  composite fallback.
 - Positions: portfolio code, security identifier, position date.
+
+When transactions have a stable `transaction_id` in both snapshots, matching
+rows can report changed amounts as `PC-TXN-AMT`. When no transaction id is
+available, the fallback key includes portfolio, security, trade date, settlement
+date if present, transaction code, quantity, price, and amount. This avoids
+guessing that two similar rows are the same transaction. In that fallback mode,
+an amount restatement is expected to appear as one `PC-TXN-DROP` and one
+`PC-TXN-ADD`, not as `PC-TXN-AMT`.
+
+Duplicate comparison keys should fail loudly before row-presence checks or
+value comparisons run. Silent duplicate handling can collapse rows into a set
+or multiply rows during joins, both of which can produce misleading findings.
+The default policy is therefore to raise an error for duplicate keys in either
+snapshot.
 
 ### Finding
 
@@ -299,7 +312,7 @@ Candidate fields:
 - `security_id`: Optional security context.
 - `from_date`: Optional period start.
 - `thru_date`: Optional period end.
-- `source_file`: Source file associated with the finding.
+- `source_file`: Configured source file associated with the finding.
 - `source_column`: Source column associated with the finding.
 - `message`: Human-readable explanation.
 - `suppressed`: Whether a suppression rule hid the finding from normal output.
@@ -321,8 +334,7 @@ PC-SEC-WGT      Security weight changed
 PC-SEC-CONTR    Security contribution changed
 PC-SEC-ADD      Security appears only in snapshot B
 PC-SEC-DROP     Security appears only in snapshot A
-PC-PRICE-BEG    Beginning price changed
-PC-PRICE-END    Ending price changed
+PC-PRICE        Price changed
 PC-TXN-ADD      Transaction appears only in snapshot B
 PC-TXN-DROP     Transaction appears only in snapshot A
 PC-TXN-AMT      Transaction amount changed
@@ -335,7 +347,10 @@ PC-RESIDUAL     Unexplained residual remains
 ```
 
 Codes should be stable once public. New detail can be added through fields
-rather than by renaming codes.
+rather than by renaming codes. Canonical codes should be stored and displayed
+in uppercase, such as `PC-PORT-RET`. Configuration sections, including
+suppressions, can accept case-insensitive code input by normalizing configured
+values to uppercase at the boundary.
 
 ## Configuration
 
@@ -432,7 +447,7 @@ materiality:
   minimum_market_value_delta: 0.01
 
 suppressions:
-  - code: PC-SEC-RET
+  - code: pc-sec-ret
     portfolio_id: PORT_SMALL
     security_id: CASH_USD
     thru_date: 2024-12-31
@@ -477,30 +492,77 @@ Column mappings should resolve in this order:
 4. Built-in default aliases.
 5. Error when the column is missing or ambiguous.
 
-The first implementation can support the simple shared-schema case first, but
-the configuration shape should not block snapshot-specific schemas later.
+Built-in aliases should be conservative and dataset-scoped. Generic names such
+as `DATE`, `ID`, `TYPE`, and undifferentiated `VALUE` are too ambiguous for
+defaults unless a specific schema mapping says what they mean. If a source file
+contains two aliases for the same normalized column, loading should fail with a
+clear error instead of choosing one by priority.
+
+The current implementation honors explicit mappings from referenced schema YAML
+files for `portfolio_performance_columns`, `security_performance_columns`, and
+`security_master_columns`. For mapped columns, the explicit schema mapping is
+authoritative. Built-in aliases remain the fallback for columns not mapped in
+the schema file. Inline snapshot-specific schema mappings remain a future step.
 
 ## Suppression And Filtering
 
-Suppression rules should be explicit and auditable. They should not delete
-findings; they should mark findings as suppressed so a full audit appendix can
-still show what was hidden.
+Suppression rules are explicit exact-match rules. They do not delete findings;
+they mark findings as `suppressed=True` so a full audit output can still show
+what was hidden from active output.
 
-Potential filter/suppression fields:
+First-pass suppression fields:
 
-- `code`
-- `portfolio_id`
-- `security_id`
-- `from_date`
-- `thru_date`
-- `source_file`
-- `source_column`
-- numeric threshold overrides
-- regular-expression matching for portfolio/security identifiers
-- required `reason`
+- `code`: Required finding code. Configured values are normalized to uppercase.
+- `dataset`: Optional normalized dataset name.
+- `portfolio_id`: Optional exact portfolio identifier.
+- `security_id`: Optional exact security identifier.
+- `from_date`: Optional exact period start date.
+- `thru_date`: Optional exact period end date.
+- `source_column`: Optional normalized source column name.
+- `reason`: Optional informational explanation for the suppression.
 
-Open question: should suppressions be exact-match only at first? Exact matching
-is easier to audit and less surprising.
+Unsupported suppression keys should fail validation instead of being silently
+ignored. This keeps configuration mistakes visible.
+
+The public runner keeps the audit trail by default:
+
+```python
+compare_snapshots(path)  # Includes suppressed findings.
+compare_snapshots(path, include_suppressed=False)  # Active findings only.
+```
+
+Finding summaries should include suppression-aware counts:
+
+- finding count by code
+- finding count by dataset
+- finding count by suppression state
+- finding count by code and suppression state
+
+## Public API And Output Layers
+
+The current public runner layer exposes three small helpers:
+
+```python
+findings = compare_snapshots(path)
+summaries = summarize_findings(findings)
+compact = compact_findings_table(findings)
+```
+
+Current output layers:
+
+- Full audit findings: The complete findings table returned by
+  `compare_snapshots()`. It includes all finding columns and includes
+  suppressed findings by default.
+- Compact active findings: A report-friendly subset returned by
+  `compact_findings_table()`. It excludes suppressed findings by default and
+  keeps the most useful review columns: code, dataset, portfolio/security
+  context, period dates, source file, source column, delta, and message.
+- Summaries: Count tables returned by `summarize_findings()` for code, dataset,
+  suppression state, and code plus suppression state.
+
+This is intentionally not a final report format. It gives callers stable
+building blocks for a future CSV, Markdown, HTML, or portfolio-period bridge
+report without committing the project to one presentation too early.
 
 ## Suggested Milestones
 
@@ -515,11 +577,11 @@ is easier to audit and less surprising.
   weights, and contributions.
 - Apply tolerances and suppressions.
 - Return findings as a Polars DataFrame.
-- Add CSV or JSON output.
+- Provide compact findings and summary helper tables.
 
 ### Milestone 2: Human Report
 
-- Add compact text/HTML summary.
+- Add CSV, Markdown, or HTML output using the current findings helpers.
 - Group by portfolio and period.
 - Rank largest return and contribution deltas.
 - Include suppressed findings appendix.
@@ -534,7 +596,7 @@ is easier to audit and less surprising.
 
 ### Milestone 4: Public API And Demo
 
-- Add stable public entry point.
+- Add stable public entry points.
 - Add sample comparison fixture directories.
 - Add script or demo command.
 - Document configuration and finding codes.
@@ -544,19 +606,18 @@ is easier to audit and less surprising.
 1. Should output be organized around findings, around portfolio-period bridges,
    or both?
 2. What is the minimum set of fields required to match transactions reliably?
-3. How should duplicate rows with the same comparison key be handled?
-4. Should comparison tolerate missing supporting files, or treat them as
+3. Should comparison tolerate missing supporting files, or treat them as
    blocking errors?
-5. Should suppressions require a `reason` field?
-6. Should row matching allow fuzzy keys, such as ticker fallback when security
+4. Should suppressions require a `reason` field?
+5. Should row matching allow fuzzy keys, such as ticker fallback when security
    id changes?
-7. Should numeric tolerances be absolute only at first, or support relative
+6. Should numeric tolerances be absolute only at first, or support relative
    tolerances too?
-8. Should an unexplained residual always be emitted when explanations do not
+7. Should an unexplained residual always be emitted when explanations do not
    account for a return delta?
-9. Should this package reuse `PpaError` codes or introduce comparison-specific
+8. Should this package reuse `PpaError` codes or introduce comparison-specific
     finding codes only?
-10. How much of the existing `ppar.axys` inference code should be shared with
+9. How much of the existing `ppar.axys` inference code should be shared with
     future vendor adapters, and how much should remain Axys-specific?
 
 ## Recommended Starting Point

@@ -28,7 +28,7 @@ ERRORS = {
     404: "Error 404: The qty of portfolio returns <> the qty of the benchmark returns: ",
     405: "Error 405: The portfolio returns or benchmark returns have NaN values.",
     # Axys Errors
-    502: "Error 502: Missing required column(s): ",
+    502: "Error 502: Source column resolution failed: ",
     503: "Error 503: Could not derive weights for security performance: ",
     504: "Error 504: Bad specifications file: ",
     505: "Error 505: Portfolio performance and security performance have no common periods.",

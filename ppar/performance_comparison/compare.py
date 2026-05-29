@@ -10,9 +10,12 @@ from typing import Any, Final, cast
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison.cash import CashLoader
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
+    PC_CASH_MV,
     PC_PORT_FLOW,
     PC_PORT_MV,
     PC_PORT_RET,
@@ -23,16 +26,26 @@ from ppar.performance_comparison.findings import (
     PC_SEC_DROP,
     PC_SEC_RET,
     PC_SEC_WGT,
+    PC_TXN_ADD,
+    PC_TXN_AMT,
+    PC_TXN_DROP,
     PC_REF_CLASS,
     PC_REF_ID,
+    PC_POS_MV,
+    PC_POS_QTY,
+    PC_PRICE,
     SEVERITY_INFORMATIONAL,
     SEVERITY_MATERIAL,
     Finding,
 )
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
+from ppar.performance_comparison.positions import PositionsLoader
+from ppar.performance_comparison.prices import PricesLoader
+from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.security_master import SecurityMasterLoader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.transactions import TransactionsLoader
 
 _PORTFOLIO_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
@@ -46,6 +59,33 @@ _SECURITY_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
     pc_cols.THRU_DATE,
 )
 _SECURITY_MASTER_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.SECURITY_ID,)
+_POSITIONS_KEY_COLUMNS: Final[tuple[str, str, str]] = (
+    pc_cols.PORTFOLIO_ID,
+    pc_cols.SECURITY_ID,
+    pc_cols.POSITION_DATE,
+)
+_CASH_KEY_COLUMNS: Final[tuple[str, str, str]] = (
+    pc_cols.PORTFOLIO_ID,
+    pc_cols.CASH_DATE,
+    pc_cols.CURRENCY,
+)
+_PRICE_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
+    pc_cols.SECURITY_ID,
+    pc_cols.PRICE_DATE,
+    pc_cols.CURRENCY,
+    pc_cols.PRICE_SOURCE,
+)
+_TRANSACTION_ID_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.TRANSACTION_ID,)
+_TRANSACTION_FALLBACK_KEY_COLUMNS: Final[tuple[str, ...]] = (
+    pc_cols.PORTFOLIO_ID,
+    pc_cols.SECURITY_ID,
+    pc_cols.TRANSACTION_DATE,
+    pc_cols.SETTLEMENT_DATE,
+    pc_cols.TRANSACTION_CODE,
+    pc_cols.QUANTITY,
+    pc_cols.PRICE,
+    pc_cols.AMOUNT,
+)
 _PORTFOLIO_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.PORTFOLIO_RETURN: PC_PORT_RET,
     pc_cols.BEGIN_MARKET_VALUE: PC_PORT_MV,
@@ -70,11 +110,26 @@ _SECURITY_MASTER_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.INDUSTRY: PC_REF_CLASS,
     pc_cols.ASSET_CLASS: PC_REF_CLASS,
 }
+_POSITIONS_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.QUANTITY: PC_POS_QTY,
+    pc_cols.MARKET_VALUE: PC_POS_MV,
+}
+_CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.CASH_BALANCE: PC_CASH_MV,
+    pc_cols.MARKET_VALUE: PC_CASH_MV,
+}
+_PRICE_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.PRICE: PC_PRICE,
+}
+_TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.AMOUNT: PC_TXN_AMT,
+}
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
     "weight": 1e-6,
     "market_value": 0.01,
+    "quantity": 1e-6,
 }
 _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.PORTFOLIO_RETURN: "return",
@@ -86,6 +141,11 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.SECURITY_RETURN: "return",
     pc_cols.WEIGHT: "weight",
     pc_cols.CONTRIBUTION: "contribution",
+    pc_cols.QUANTITY: "quantity",
+    pc_cols.MARKET_VALUE: "market_value",
+    pc_cols.CASH_BALANCE: "market_value",
+    pc_cols.PRICE: "price",
+    pc_cols.AMOUNT: "market_value",
 }
 
 
@@ -97,6 +157,10 @@ class PerformanceComparison:
         _portfolio_loader: Loader for normalized portfolio performance rows.
         _security_loader: Loader for normalized security performance rows.
         _security_master_loader: Loader for normalized security master rows.
+        _positions_loader: Loader for normalized position rows.
+        _cash_loader: Loader for normalized cash rows.
+        _prices_loader: Loader for normalized price rows.
+        _transactions_loader: Loader for normalized transaction rows.
     """
 
     def __init__(self, specification: PerformanceComparisonSpecification) -> None:
@@ -109,6 +173,10 @@ class PerformanceComparison:
         self._portfolio_loader = PortfolioPerformanceLoader(specification)
         self._security_loader = SecurityPerformanceLoader(specification)
         self._security_master_loader = SecurityMasterLoader(specification)
+        self._positions_loader = PositionsLoader(specification)
+        self._cash_loader = CashLoader(specification)
+        self._prices_loader = PricesLoader(specification)
+        self._transactions_loader = TransactionsLoader(specification)
 
     def compare_portfolio_performance(self) -> list[Finding]:
         """Compare portfolio performance rows for snapshots A and B.
@@ -133,7 +201,11 @@ class PerformanceComparison:
         findings = self.compare_portfolio_performance()
         findings.extend(self.compare_security_performance())
         findings.extend(self.compare_security_master())
-        return findings
+        findings.extend(self.compare_positions())
+        findings.extend(self.compare_cash())
+        findings.extend(self.compare_prices())
+        findings.extend(self.compare_transactions())
+        return apply_suppressions(findings, self._specification)
 
     def compare_security_performance(self) -> list[Finding]:
         """Compare security performance rows for snapshots A and B.
@@ -203,6 +275,145 @@ class PerformanceComparison:
         )
         return findings
 
+    def compare_positions(self) -> list[Finding]:
+        """Compare position rows for snapshots A and B.
+
+        Returns:
+            Findings for added/dropped rows and material position quantity or
+            market value changes. Returns an empty list when the optional
+            positions dataset is unavailable.
+        """
+        snapshot_a = self._positions_loader.load("a")
+        snapshot_b = self._positions_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return []
+
+        findings = self._row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            _POSITIONS_KEY_COLUMNS,
+            PC_ROW_ADD,
+            PC_ROW_DROP,
+            pc_cols.POSITIONS,
+            "Position row appears only in snapshot B.",
+            "Position row appears only in snapshot A.",
+        )
+        findings.extend(
+            self._changed_value_findings(
+                snapshot_a,
+                snapshot_b,
+                _POSITIONS_KEY_COLUMNS,
+                _POSITIONS_COMPARE_COLUMNS,
+                pc_cols.POSITIONS,
+            )
+        )
+        return findings
+
+    def compare_cash(self) -> list[Finding]:
+        """Compare cash rows for snapshots A and B.
+
+        Returns:
+            Findings for added/dropped rows and material cash balance or market
+            value changes. Returns an empty list when the optional cash dataset
+            is unavailable.
+        """
+        snapshot_a = self._cash_loader.load("a")
+        snapshot_b = self._cash_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return []
+
+        key_columns = self._cash_key_columns(snapshot_a, snapshot_b)
+        findings = self._row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+            PC_ROW_ADD,
+            PC_ROW_DROP,
+            pc_cols.CASH,
+            "Cash row appears only in snapshot B.",
+            "Cash row appears only in snapshot A.",
+        )
+        findings.extend(
+            self._changed_value_findings(
+                snapshot_a,
+                snapshot_b,
+                key_columns,
+                _CASH_COMPARE_COLUMNS,
+                pc_cols.CASH,
+            )
+        )
+        return findings
+
+    def compare_prices(self) -> list[Finding]:
+        """Compare price rows for snapshots A and B.
+
+        Returns:
+            Findings for added/dropped rows and material price changes. Returns
+            an empty list when the optional prices dataset is unavailable.
+        """
+        snapshot_a = self._prices_loader.load("a")
+        snapshot_b = self._prices_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return []
+
+        key_columns = self._optional_key_columns(snapshot_a, snapshot_b, _PRICE_KEY_COLUMNS)
+        findings = self._row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+            PC_ROW_ADD,
+            PC_ROW_DROP,
+            pc_cols.PRICES,
+            "Price row appears only in snapshot B.",
+            "Price row appears only in snapshot A.",
+        )
+        findings.extend(
+            self._changed_value_findings(
+                snapshot_a,
+                snapshot_b,
+                key_columns,
+                _PRICE_COMPARE_COLUMNS,
+                pc_cols.PRICES,
+            )
+        )
+        return findings
+
+    def compare_transactions(self) -> list[Finding]:
+        """Compare transaction rows for snapshots A and B.
+
+        Returns:
+            Findings for added/dropped transaction rows. When both snapshots
+            contain transaction identifiers, matching rows are also compared
+            for material amount changes.
+        """
+        snapshot_a = self._transactions_loader.load("a")
+        snapshot_b = self._transactions_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return []
+
+        key_columns = self._transaction_key_columns(snapshot_a, snapshot_b)
+        findings = self._row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+            PC_TXN_ADD,
+            PC_TXN_DROP,
+            pc_cols.TRANSACTIONS,
+            "Transaction row appears only in snapshot B.",
+            "Transaction row appears only in snapshot A.",
+        )
+        if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
+            findings.extend(
+                self._changed_value_findings(
+                    snapshot_a,
+                    snapshot_b,
+                    key_columns,
+                    _TRANSACTION_COMPARE_COLUMNS,
+                    pc_cols.TRANSACTIONS,
+                )
+            )
+        return findings
+
     def _row_presence_findings(
         self,
         snapshot_a: pl.DataFrame,
@@ -215,8 +426,11 @@ class PerformanceComparison:
         drop_message: str = "Portfolio performance row appears only in snapshot A.",
     ) -> list[Finding]:
         """Return findings for portfolio rows present in only one snapshot."""
+        self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
+        self._validate_unique_keys(snapshot_b, key_columns, dataset, "snapshot B")
         rows_a = self._row_keys(snapshot_a, key_columns)
         rows_b = self._row_keys(snapshot_b, key_columns)
+        source_file = self._source_file(dataset)
         findings: list[Finding] = []
 
         for row_key in sorted(rows_b - rows_a, key=self._sortable_key):
@@ -224,7 +438,9 @@ class PerformanceComparison:
                 self._key_finding(
                     add_code,
                     row_key,
+                    key_columns,
                     dataset,
+                    source_file,
                     add_message,
                 )
             )
@@ -233,7 +449,9 @@ class PerformanceComparison:
                 self._key_finding(
                     drop_code,
                     row_key,
+                    key_columns,
                     dataset,
+                    source_file,
                     drop_message,
                 )
             )
@@ -256,6 +474,7 @@ class PerformanceComparison:
         if not shared_columns:
             return []
 
+        source_file = self._source_file(dataset)
         joined = snapshot_a.join(
             snapshot_b,
             on=list(key_columns),
@@ -279,6 +498,7 @@ class PerformanceComparison:
                         security_id=row.get(pc_cols.SECURITY_ID),
                         from_date=row.get(pc_cols.FROM_DATE),
                         thru_date=row.get(pc_cols.THRU_DATE),
+                        source_file=source_file,
                         source_column=column,
                         snapshot_a_value=snapshot_a_value,
                         snapshot_b_value=snapshot_b_value,
@@ -305,6 +525,7 @@ class PerformanceComparison:
         if not shared_columns:
             return []
 
+        source_file = self._source_file(dataset)
         joined = snapshot_a.join(
             snapshot_b,
             on=list(key_columns),
@@ -327,10 +548,11 @@ class PerformanceComparison:
                         severity=SEVERITY_MATERIAL,
                         confidence=CONFIDENCE_HIGH,
                         dataset=dataset,
-                        portfolio_id=row[pc_cols.PORTFOLIO_ID],
+                        portfolio_id=row.get(pc_cols.PORTFOLIO_ID),
                         security_id=row.get(pc_cols.SECURITY_ID),
-                        from_date=row[pc_cols.FROM_DATE],
-                        thru_date=row[pc_cols.THRU_DATE],
+                        from_date=row.get(pc_cols.FROM_DATE),
+                        thru_date=row.get(pc_cols.THRU_DATE),
+                        source_file=source_file,
                         source_column=column,
                         snapshot_a_value=snapshot_a_value,
                         snapshot_b_value=snapshot_b_value,
@@ -346,15 +568,85 @@ class PerformanceComparison:
         return set(frame.select(key_columns).iter_rows())
 
     @staticmethod
+    def _validate_unique_keys(
+        frame: pl.DataFrame,
+        key_columns: tuple[str, ...],
+        dataset: str,
+        snapshot_label: str,
+    ) -> None:
+        """Raise if a normalized frame has duplicate comparison keys."""
+        duplicate_keys = (
+            frame.group_by(list(key_columns))
+            .len(name="_duplicate_count")
+            .filter(pl.col("_duplicate_count") > 1)
+        )
+        if duplicate_keys.is_empty():
+            return
+
+        duplicate_key = duplicate_keys.select(key_columns).row(0, named=True)
+        key_names = ", ".join(key_columns)
+        raise PpaError(
+            (
+                f"{dataset} contains duplicate {snapshot_label} rows for "
+                f"key columns {key_names}: {duplicate_key}"
+            ),
+            112,
+        )
+
+    @staticmethod
     def _sortable_key(row_key: tuple[object, ...]) -> tuple[str, ...]:
         """Return a deterministic string sort key for finding output."""
         return tuple(str(value) for value in row_key)
 
     @staticmethod
+    def _cash_key_columns(
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+    ) -> tuple[str, ...]:
+        """Return cash comparison key columns, including currency when present."""
+        return PerformanceComparison._optional_key_columns(
+            snapshot_a,
+            snapshot_b,
+            _CASH_KEY_COLUMNS,
+        )
+
+    @staticmethod
+    def _optional_key_columns(
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+        candidate_key_columns: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Return key columns present in both snapshots."""
+        return tuple(
+            column
+            for column in candidate_key_columns
+            if column in snapshot_a.columns and column in snapshot_b.columns
+        )
+
+    @staticmethod
+    def _transaction_key_columns(
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+    ) -> tuple[str, ...]:
+        """Return transaction ID key when available, else composite fallback."""
+        if (
+            pc_cols.TRANSACTION_ID in snapshot_a.columns
+            and pc_cols.TRANSACTION_ID in snapshot_b.columns
+        ):
+            return _TRANSACTION_ID_KEY_COLUMNS
+        return PerformanceComparison._optional_key_columns(
+            snapshot_a,
+            snapshot_b,
+            _TRANSACTION_FALLBACK_KEY_COLUMNS,
+        )
+
+    @staticmethod
     def _key_finding(
         code: str,
         row_key: tuple[object, ...],
+        key_columns: tuple[str, ...],
         dataset: str,
+        source_file: str | None,
         message: str,
     ) -> Finding:
         """Return a row-presence finding from a portfolio key tuple."""
@@ -362,12 +654,11 @@ class PerformanceComparison:
         security_id: object | None = None
         from_date: object | None = None
         thru_date: object | None = None
-        if len(row_key) == 1:
-            security_id = row_key[0]
-        elif len(row_key) == 3:
-            portfolio_id, from_date, thru_date = row_key
-        elif len(row_key) == 4:
-            portfolio_id, security_id, from_date, thru_date = row_key
+        row_context = dict(zip(key_columns, row_key, strict=True))
+        portfolio_id = row_context.get(pc_cols.PORTFOLIO_ID)
+        security_id = row_context.get(pc_cols.SECURITY_ID)
+        from_date = row_context.get(pc_cols.FROM_DATE)
+        thru_date = row_context.get(pc_cols.THRU_DATE)
 
         return Finding(
             code=code,
@@ -378,6 +669,7 @@ class PerformanceComparison:
             security_id=security_id,
             from_date=from_date,
             thru_date=thru_date,
+            source_file=source_file,
             message=message,
         )
 
@@ -402,3 +694,10 @@ class PerformanceComparison:
             if isinstance(configured_tolerance, int | float):
                 return float(configured_tolerance)
         return _DEFAULT_TOLERANCES[tolerance_key]
+
+    def _source_file(self, dataset: str) -> str | None:
+        """Return the configured relative source file for a dataset."""
+        comparison_file = self._specification.files.get(dataset)
+        if comparison_file is None:
+            return None
+        return comparison_file.relative_path.as_posix()
