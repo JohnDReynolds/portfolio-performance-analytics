@@ -2,6 +2,7 @@
 
 # Python imports
 from pathlib import Path
+import tempfile
 import unittest
 
 # Third-party imports
@@ -11,6 +12,7 @@ import polars as pl
 from ppar.performance_comparison import (
     compare_snapshots,
     performance_comparison_markdown_report,
+    write_performance_comparison_markdown_report,
 )
 from ppar.performance_comparison.report import _markdown_table
 
@@ -87,6 +89,25 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         rendered = _markdown_table(table, ["message"])
 
         self.assertIn("a\\|b", rendered)
+
+    def test_write_markdown_report_creates_parent_directory(self) -> None:
+        """Markdown reports can be written as durable artifacts."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "nested" / "report.md"
+
+            written_path = write_performance_comparison_markdown_report(
+                findings,
+                output_path,
+                title="Controlled Restatement",
+                top_evidence_limit=2,
+            )
+
+            self.assertEqual(written_path, output_path)
+            self.assertTrue(output_path.exists())
+            report = output_path.read_text(encoding="utf-8")
+            self.assertIn("# Controlled Restatement", report)
+            self.assertIn("## Top Evidence", report)
 
 
 def _section(report: str, start: str, end: str) -> str:

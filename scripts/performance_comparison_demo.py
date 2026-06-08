@@ -32,6 +32,7 @@ from ppar.performance_comparison import (  # noqa: E402
     security_period_summary,
     summarize_findings,
     transaction_activity_summary,
+    write_performance_comparison_markdown_report,
 )
 
 
@@ -55,6 +56,7 @@ def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None
 def main() -> None:
     """Run the performance comparison demonstration."""
     comparison_path = _AXYS_DATA_ROOT / "ppar_performance_comparison_restatement.yaml"
+    report_path = _REPO_ROOT / "_demo_output" / "performance_comparison_restatement.md"
     suppressed_comparison_path = (
         _AXYS_DATA_ROOT / "ppar_performance_comparison_suppressed.yaml"
     )
@@ -79,7 +81,13 @@ def main() -> None:
     suppressed_summaries = summarize_findings(suppressed_findings)
     suppressed_active_summaries = summarize_findings(suppressed_active_findings)
     markdown_report = performance_comparison_markdown_report(findings)
+    written_report_path = write_performance_comparison_markdown_report(
+        findings,
+        report_path,
+    )
     print("Restatement comparison")
+    print()
+    print(f"Markdown report written to: {written_report_path}")
     print()
     print(markdown_report)
     print()

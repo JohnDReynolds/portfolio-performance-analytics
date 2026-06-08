@@ -5,11 +5,13 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Sequence
 import datetime as dt
+from pathlib import Path
 
 # Third-party imports
 import polars as pl
 
 # Project imports
+import ppar.utilities as util
 from ppar.performance_comparison.explain import (
     ESTIMATED_RETURN_IMPACT,
     FINDING_COUNT,
@@ -93,6 +95,42 @@ def performance_comparison_markdown_report(
     if include_suppressed_appendix:
         sections.append(_suppressed_appendix_section(findings, summaries))
     return "\n\n".join(section for section in sections if section).rstrip() + "\n"
+
+
+def write_performance_comparison_markdown_report(
+    findings: pl.DataFrame,
+    output_path: util.PathLike,
+    *,
+    title: str = "Performance Comparison Report",
+    include_suppressed_appendix: bool = True,
+    top_evidence_limit: int = 10,
+) -> Path:
+    """Write a Markdown performance comparison report to disk.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        output_path: Destination Markdown file path. Parent directories are
+            created when needed.
+        title: Markdown H1 text for the report.
+        include_suppressed_appendix: Whether to include a compact table of
+            suppressed findings at the end of the report.
+        top_evidence_limit: Maximum number of contribution-candidate evidence
+            rows to show per portfolio period.
+
+    Returns:
+        Normalized ``Path`` to the written report file.
+    """
+    report_path = Path(output_path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report = performance_comparison_markdown_report(
+        findings,
+        title=title,
+        include_suppressed_appendix=include_suppressed_appendix,
+        top_evidence_limit=top_evidence_limit,
+    )
+    report_path.write_text(report, encoding=util.ENCODING)
+    return report_path
 
 
 def _run_summary_section(
@@ -303,4 +341,3 @@ def _escape_markdown_text(value: object) -> str:
     """Escape Markdown table delimiters and normalize whitespace."""
     text = " ".join(str(value).split())
     return text.replace("|", "\\|")
-

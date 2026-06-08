@@ -50,6 +50,7 @@ from ppar.performance_comparison import (
     security_period_summary,
     summarize_findings,
     transaction_activity_summary,
+    write_performance_comparison_markdown_report,
 )
 
 
@@ -139,6 +140,7 @@ class TestPackageMetadata(unittest.TestCase):
             "security_period_summary",
             "summarize_findings",
             "transaction_activity_summary",
+            "write_performance_comparison_markdown_report",
         }
 
         self.assertEqual(set(performance_comparison.__all__), expected_exports)
@@ -214,6 +216,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             transaction_activity_summary,
             performance_comparison.transaction_activity_summary,
+        )
+        self.assertIs(
+            write_performance_comparison_markdown_report,
+            performance_comparison.write_performance_comparison_markdown_report,
         )
 
     def test_chart_dependencies_are_optional(self) -> None:

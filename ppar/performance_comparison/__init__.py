@@ -26,7 +26,10 @@ from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
 from ppar.performance_comparison.positions import PositionsLoader
 from ppar.performance_comparison.prices import PricesLoader
-from ppar.performance_comparison.report import performance_comparison_markdown_report
+from ppar.performance_comparison.report import (
+    performance_comparison_markdown_report,
+    write_performance_comparison_markdown_report,
+)
 from ppar.performance_comparison.rules import SuppressionRule, apply_suppressions
 from ppar.performance_comparison.runner import (
     compact_findings_table,
@@ -77,4 +80,5 @@ __all__ = [
     "security_period_summary",
     "summarize_findings",
     "transaction_activity_summary",
+    "write_performance_comparison_markdown_report",
 ]
