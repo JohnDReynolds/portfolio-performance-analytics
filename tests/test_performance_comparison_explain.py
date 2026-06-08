@@ -42,6 +42,7 @@ from ppar.performance_comparison.explain import (
     IMPACT_MESSAGE,
     IMPACT_METHOD,
     IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
+    MISSING_IMPACT_INPUTS,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_FINDING_COUNT,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
@@ -446,7 +447,13 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertIsNone(transaction_row[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(transaction_row[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
         self.assertEqual(transaction_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
-        self.assertIn("transaction-type sign", transaction_row[IMPACT_MESSAGE])
+        self.assertIn("Missing impact inputs", transaction_row[IMPACT_MESSAGE])
+        self.assertIn("return denominator", transaction_row[IMPACT_MESSAGE])
+        self.assertIn(
+            "transaction sign and flow semantics",
+            transaction_row[IMPACT_MESSAGE],
+        )
+        self.assertNotIn("normalized transaction category", transaction_row[IMPACT_MESSAGE])
 
     def test_portfolio_period_cause_summary_includes_direct_input_buckets(
         self,
@@ -571,6 +578,11 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertAlmostEqual(row[AMOUNT_DELTA], -100.0)
         self.assertAlmostEqual(row[QUANTITY_DELTA], 1.0)
         self.assertAlmostEqual(row[PRICE_DELTA], 0.5)
+        self.assertEqual(
+            row[MISSING_IMPACT_INPUTS],
+            "portfolio period, return denominator, "
+            "transaction sign and flow semantics",
+        )
 
     def test_transaction_activity_summary_is_evidence_only(self) -> None:
         """Transaction activity summary does not estimate return impact."""
@@ -582,6 +594,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
         self.assertEqual(row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIn("evidence-only", row[IMPACT_MESSAGE])
+        self.assertIn("Missing impact inputs", row[IMPACT_MESSAGE])
 
     def test_transaction_activity_summary_returns_stable_empty_table(self) -> None:
         """No transaction findings produce an empty transaction summary."""

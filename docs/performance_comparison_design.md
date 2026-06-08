@@ -330,6 +330,16 @@ guessing them would make `transaction_activity` look more precise than it is.
 Until those sign rules are explicitly modeled, transaction differences should
 remain evidence-only and should not receive an estimated return impact.
 
+Transaction activity should become eligible for a future return-impact estimate
+only when the changed evidence has an affected portfolio, security, linked
+portfolio period, normalized transaction category, return denominator, and
+modeled transaction sign and flow semantics. Until then, transaction summaries
+should expose missing impact inputs instead of calculating an estimate.
+
+Markdown reports should include a compact Transaction Activity section so
+reviewers can see changed fields, deltas, and missing impact inputs without
+digging through lower-level evidence tables.
+
 `positions` required columns:
 
 - `portfolio_id`
@@ -982,8 +992,10 @@ First contribution estimates should start only where the math is defensible:
   deltas in the aggregate cause summary when both are present.
 - Position, price, and transaction evidence: These should receive an estimated
   return impact only when the finding can be linked to an affected portfolio,
-  period, security, and denominator. Otherwise they should remain ranked review
-  evidence with `impact_basis` set to `no_estimate`.
+  period, security, and denominator. Transaction evidence also requires a
+  normalized transaction category plus modeled transaction sign and flow
+  semantics. Otherwise these rows should remain ranked review evidence with
+  `impact_basis` set to `no_estimate`.
 - FX evidence: FX rate changes should not receive a portfolio-period return
   impact unless they can be linked to affected currency exposure, valuation, or
   transactions.

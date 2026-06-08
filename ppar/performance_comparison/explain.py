@@ -136,6 +136,8 @@ CHANGED_FIELDS = "changed_fields"
 AMOUNT_DELTA = "amount_delta"
 QUANTITY_DELTA = "quantity_delta"
 PRICE_DELTA = "price_delta"
+MISSING_IMPACT_INPUTS = "missing_impact_inputs"
+TRANSACTION_SIGN_AND_FLOW_SEMANTICS = "transaction sign and flow semantics"
 PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PORTFOLIO_ID,
     FROM_DATE,
@@ -149,6 +151,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     SECURITY_ID,
     SOURCE_FILE,
     SOURCE_COLUMN,
+    TRANSACTION_CATEGORY,
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
@@ -186,6 +189,7 @@ TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
     AMOUNT_DELTA,
     QUANTITY_DELTA,
     PRICE_DELTA,
+    MISSING_IMPACT_INPUTS,
     IMPACT_BASIS,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
@@ -531,8 +535,8 @@ def transaction_activity_summary(
     Returns:
         One row per portfolio, security, period, and normalized transaction
         category. Numeric source-field deltas are summed by field, but no
-        return-impact estimate is produced because transaction sign and flow
-        semantics are not modeled yet.
+        return-impact estimate is produced until all transaction impact inputs
+        are available and modeled.
     """
     if findings.is_empty() or TRANSACTION_CATEGORY not in findings.columns:
         return _empty_transaction_activity_summary()
@@ -903,6 +907,7 @@ def _ranked_evidence_row(
         SECURITY_ID: finding[SECURITY_ID],
         SOURCE_FILE: finding[SOURCE_FILE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
+        TRANSACTION_CATEGORY: finding[TRANSACTION_CATEGORY],
         DELTA_B_MINUS_A: delta,
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
@@ -1011,6 +1016,11 @@ def _is_security_return_weighted_impact_candidate(row: dict[str, object]) -> boo
         and not isinstance(weight, bool)
         and float(weight) != 0.0
     )
+
+
+def _is_usable_number(value: object) -> bool:
+    """Return whether a value can be used in impact arithmetic."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value != 0
 
 
 def _root_cause_area(row: dict[str, object]) -> str:
@@ -1144,8 +1154,8 @@ def _summary_impact_message(
         )
     if root_cause_area == ROOT_CAUSE_TRANSACTION_ACTIVITY:
         return (
-            "Transaction differences are grouped as evidence only; impact "
-            "requires transaction-type sign and flow semantics."
+            "Transaction differences are grouped as evidence only. Missing "
+            f"impact inputs: {_transaction_missing_impact_inputs_message(rows)}."
         )
     return (
         "Grouped evidence only; no defensible return-impact estimate is "
@@ -1203,13 +1213,54 @@ def _transaction_activity_summary_row(
         AMOUNT_DELTA: _field_delta(rows, pc_cols.AMOUNT),
         QUANTITY_DELTA: _field_delta(rows, pc_cols.QUANTITY),
         PRICE_DELTA: _field_delta(rows, pc_cols.PRICE),
+        MISSING_IMPACT_INPUTS: _transaction_missing_impact_inputs_message(rows),
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
         IMPACT_MESSAGE: (
-            "Transaction activity summary is evidence-only; return impact "
-            "requires transaction-type sign and flow semantics."
+            "Transaction activity summary is evidence-only. Missing impact "
+            f"inputs: {_transaction_missing_impact_inputs_message(rows)}."
         ),
     }
+
+
+def _transaction_missing_impact_inputs_message(rows: list[dict[str, object]]) -> str:
+    """Return a readable checklist of missing transaction impact inputs."""
+    return ", ".join(_transaction_missing_impact_inputs(rows))
+
+
+def _transaction_missing_impact_inputs(rows: list[dict[str, object]]) -> list[str]:
+    """Return transaction impact eligibility inputs not present or not modeled."""
+    if not rows:
+        return [
+            "portfolio",
+            "security",
+            "portfolio period",
+            "normalized transaction category",
+            "return denominator",
+            TRANSACTION_SIGN_AND_FLOW_SEMANTICS,
+        ]
+
+    missing_inputs: list[str] = []
+    if not any(row.get(PORTFOLIO_ID) is not None for row in rows):
+        missing_inputs.append("portfolio")
+    if not any(row.get(SECURITY_ID) is not None for row in rows):
+        missing_inputs.append("security")
+    if not any(
+        row.get(FROM_DATE) is not None and row.get(THRU_DATE) is not None
+        for row in rows
+    ):
+        missing_inputs.append("portfolio period")
+    if not any(
+        row.get(TRANSACTION_CATEGORY) not in {None, "", "unknown"} for row in rows
+    ):
+        missing_inputs.append("normalized transaction category")
+    if not any(_is_usable_number(row.get(RETURN_DENOMINATOR)) for row in rows):
+        missing_inputs.append("return denominator")
+
+    # Even fully linked transaction evidence remains unestimated until the
+    # comparison model has vendor/accounting-specific transaction sign rules.
+    missing_inputs.append(TRANSACTION_SIGN_AND_FLOW_SEMANTICS)
+    return missing_inputs
 
 
 def _changed_transaction_fields(rows: list[dict[str, object]]) -> list[str]:
@@ -1415,6 +1466,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             SECURITY_ID: pl.String,
             SOURCE_FILE: pl.String,
             SOURCE_COLUMN: pl.String,
+            TRANSACTION_CATEGORY: pl.String,
             DELTA_B_MINUS_A: pl.Float64,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,
@@ -1471,6 +1523,7 @@ def _empty_transaction_activity_summary() -> pl.DataFrame:
             AMOUNT_DELTA: pl.Float64,
             QUANTITY_DELTA: pl.Float64,
             PRICE_DELTA: pl.Float64,
+            MISSING_IMPACT_INPUTS: pl.String,
             IMPACT_BASIS: pl.String,
             IMPACT_CONFIDENCE: pl.String,
             IMPACT_MESSAGE: pl.String,

@@ -46,6 +46,7 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn("# Script Restatement Report", report)
             self.assertIn("## Impact Estimate Summary", report)
             self.assertIn("## Residual Status", report)
+            self.assertIn("## Transaction Activity", report)
             self.assertIn("## Top Evidence", report)
             self.assertIn("PC-PORT-MV", report)
 

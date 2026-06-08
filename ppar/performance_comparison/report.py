@@ -13,6 +13,8 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.performance_comparison.explain import (
+    AMOUNT_DELTA,
+    CHANGED_FIELDS,
     ESTIMATED_RETURN_IMPACT,
     FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
@@ -23,9 +25,12 @@ from ppar.performance_comparison.explain import (
     IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
+    MISSING_IMPACT_INPUTS,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
     PORTFOLIO_RETURN_DELTA,
+    PRICE_DELTA,
+    QUANTITY_DELTA,
     ROOT_CAUSE_AREA,
     ROOT_CAUSE_CASH,
     ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
@@ -37,6 +42,7 @@ from ppar.performance_comparison.explain import (
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_summary,
+    transaction_activity_summary,
 )
 from ppar.performance_comparison.findings import (
     DATASET,
@@ -50,6 +56,7 @@ from ppar.performance_comparison.findings import (
     SOURCE_COLUMN,
     SUPPRESSED,
     THRU_DATE,
+    TRANSACTION_CATEGORY,
 )
 from ppar.performance_comparison.runner import (
     compact_findings_table,
@@ -113,6 +120,7 @@ def performance_comparison_markdown_report(
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
         _residual_status_section(active_findings),
+        _transaction_activity_section(active_findings),
         _portfolio_period_section(active_findings),
         _cause_summary_section(active_findings),
         _top_evidence_section(active_findings, top_evidence_limit),
@@ -191,6 +199,7 @@ def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
         "Review Notes",
         "Impact Estimate Summary",
         "Residual Status",
+        "Transaction Activity",
         "Portfolio-Period Changes",
         "Cause Summary",
         "Top Evidence",
@@ -248,8 +257,9 @@ def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
     cause_areas = {cause[ROOT_CAUSE_AREA] for cause in causes}
     if ROOT_CAUSE_TRANSACTION_ACTIVITY in cause_areas:
         notes.append(
-            "Transaction activity is evidence-only because transaction-type "
-            "sign and flow semantics are not modeled yet."
+            "Transaction activity is evidence-only until portfolio period, "
+            "return denominator, and transaction sign and flow semantics are "
+            "available."
         )
     if ROOT_CAUSE_MARKET_VALUE_OR_POSITION in cause_areas:
         notes.append(
@@ -404,6 +414,33 @@ def _portfolio_period_section(findings: pl.DataFrame) -> str:
         [
             "## Portfolio-Period Changes",
             _markdown_table(summary, columns, empty_message="No portfolio return changes."),
+        ]
+    )
+
+
+def _transaction_activity_section(findings: pl.DataFrame) -> str:
+    """Return changed transaction activity and impact-eligibility gaps."""
+    summary = transaction_activity_summary(findings)
+    columns = [
+        PORTFOLIO_ID,
+        SECURITY_ID,
+        FROM_DATE,
+        THRU_DATE,
+        TRANSACTION_CATEGORY,
+        CHANGED_FIELDS,
+        AMOUNT_DELTA,
+        QUANTITY_DELTA,
+        PRICE_DELTA,
+        MISSING_IMPACT_INPUTS,
+    ]
+    return "\n".join(
+        [
+            "## Transaction Activity",
+            _markdown_table(
+                summary,
+                columns,
+                empty_message="No changed transaction activity.",
+            ),
         ]
     )
 

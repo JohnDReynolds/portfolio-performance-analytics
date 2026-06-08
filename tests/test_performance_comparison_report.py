@@ -65,7 +65,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertIn("Evidence-only areas are", report)
         self.assertIn("## Review Notes", report)
-        self.assertIn("transaction-type sign and flow semantics", report)
+        self.assertIn("return denominator", report)
+        self.assertIn("transaction sign and flow semantics", report)
         self.assertIn("source-field estimates are low-confidence", report)
         self.assertIn("vendor contribution deltas are preferred", report)
         self.assertIn("No residual amount is calculated", report)
@@ -87,6 +88,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Residual amounts are intentionally withheld", residual_status)
         self.assertIn("withheld", residual_status)
         self.assertIn("partial or overlapping estimates", residual_status)
+        self.assertIn("## Transaction Activity", report)
+        transaction_activity = _section(
+            report,
+            "## Transaction Activity",
+            "## Portfolio-Period Changes",
+        )
+        self.assertIn("buy", transaction_activity)
+        self.assertIn("amount, quantity, price", transaction_activity)
+        self.assertIn("return denominator", transaction_activity)
+        self.assertIn("transaction sign and flow semantics", transaction_activity)
         self.assertIn("## Portfolio-Period Changes", report)
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
         self.assertIn("## Cause Summary", report)
@@ -131,6 +142,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("_No portfolio-period review notes._", report)
         self.assertIn("_No impact estimates are currently available._", report)
         self.assertIn("_No portfolio return changes need residual review._", report)
+        self.assertIn("_No changed transaction activity._", report)
         self.assertIn("_No portfolio return changes._", report)
         self.assertIn("_No cause summary available._", report)
         self.assertIn("_No ranked evidence is available for portfolio return changes._", report)
@@ -208,6 +220,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertIn("- Impact Estimate Summary", contents)
         self.assertIn("- Residual Status", contents)
+        self.assertIn("- Transaction Activity", contents)
         self.assertIn("- Top Evidence", contents)
         self.assertNotIn("Suppressed Findings Appendix", contents)
         self.assertNotIn("## Suppressed Findings Appendix", report)
@@ -228,6 +241,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Residual Status"),
+            report.index("## Transaction Activity"),
+        )
+        self.assertLess(
+            report.index("## Transaction Activity"),
             report.index("## Portfolio-Period Changes"),
         )
         self.assertLess(
