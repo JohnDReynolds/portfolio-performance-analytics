@@ -673,6 +673,8 @@ class PerformanceComparison:
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
                             delta_b_minus_a=delta,
+                            return_denominator=self._return_denominator(row, dataset),
+                            return_weight=self._return_weight(row, dataset),
                             message=f"{dataset} {column!r} changed.",
                         )
                     )
@@ -720,6 +722,32 @@ class PerformanceComparison:
         if dataset != pc_cols.TRANSACTIONS:
             return None
         return row.get(pc_cols.TRANSACTION_CATEGORY)
+
+    @staticmethod
+    def _return_denominator(
+        row: Mapping[str, object],
+        dataset: str,
+    ) -> float | None:
+        """Return beginning market value for approximate return impacts."""
+        if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
+            return None
+        value = row.get(pc_cols.BEGIN_MARKET_VALUE)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        return float(value)
+
+    @staticmethod
+    def _return_weight(
+        row: Mapping[str, object],
+        dataset: str,
+    ) -> float | None:
+        """Return snapshot A security weight for approximate return impacts."""
+        if dataset != pc_cols.SECURITY_PERFORMANCE:
+            return None
+        value = row.get(pc_cols.WEIGHT)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        return float(value)
 
     @staticmethod
     def _changed_value_contexts(

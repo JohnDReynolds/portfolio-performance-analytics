@@ -20,6 +20,8 @@ from ppar.performance_comparison.findings import (
     PC_SEC_RET,
     PORTFOLIO_ID,
     RELATED_OUTPUT,
+    RETURN_DENOMINATOR,
+    RETURN_WEIGHT,
     SECURITY_ID,
     SOURCE_COLUMN,
     SOURCE_FILE,
@@ -107,9 +109,17 @@ IMPACT_CONFIDENCE = "impact_confidence"
 IMPACT_METHOD = "impact_method"
 IMPACT_MESSAGE = "impact_message"
 IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
+IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
+IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
+IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT = (
+    "security_return_delta_times_weight"
+)
+IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV = (
+    "source_field_delta_over_begin_market_value"
+)
 IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = "vendor_contribution_delta"
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
@@ -140,6 +150,8 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     SOURCE_FILE,
     SOURCE_COLUMN,
     DELTA_B_MINUS_A,
+    RETURN_DENOMINATOR,
+    RETURN_WEIGHT,
     ABSOLUTE_DELTA,
     MESSAGE,
 )
@@ -892,6 +904,8 @@ def _ranked_evidence_row(
         SOURCE_FILE: finding[SOURCE_FILE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
         DELTA_B_MINUS_A: delta,
+        RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
+        RETURN_WEIGHT: finding[RETURN_WEIGHT],
         ABSOLUTE_DELTA: absolute_delta,
         MESSAGE: finding[MESSAGE],
     }
@@ -929,6 +943,34 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "related-output impact estimate, not as root-cause attribution."
             ),
         }
+    if _is_portfolio_source_field_impact_candidate(row):
+        delta_float = float(delta)
+        denominator = float(row[RETURN_DENOMINATOR])
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
+            IMPACT_BASIS: IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the portfolio source-field delta "
+                "divided by beginning market value. Treat as a low-confidence "
+                "screening estimate."
+            ),
+        }
+    if _is_security_return_weighted_impact_candidate(row):
+        delta_float = float(delta)
+        weight = float(row[RETURN_WEIGHT])
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float * weight,
+            IMPACT_BASIS: IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the security return delta multiplied "
+                "by snapshot A portfolio weight. Prefer vendor contribution "
+                "deltas when available."
+            ),
+        }
     return {
         ESTIMATED_RETURN_IMPACT: None,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
@@ -939,6 +981,36 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             "finding yet."
         ),
     }
+
+
+def _is_portfolio_source_field_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a portfolio source-field row supports a rough estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    denominator = row[RETURN_DENOMINATOR]
+    return (
+        row[DATASET] == pc_cols.PORTFOLIO_PERFORMANCE
+        and row[SOURCE_COLUMN] in {pc_cols.INCOME, pc_cols.GAIN_LOSS}
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(denominator, (int, float))
+        and not isinstance(denominator, bool)
+        and float(denominator) != 0.0
+    )
+
+
+def _is_security_return_weighted_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a security return row supports a weighted estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    weight = row[RETURN_WEIGHT]
+    return (
+        row[DATASET] == pc_cols.SECURITY_PERFORMANCE
+        and row[SOURCE_COLUMN] == pc_cols.SECURITY_RETURN
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(weight, (int, float))
+        and not isinstance(weight, bool)
+        and float(weight) != 0.0
+    )
 
 
 def _root_cause_area(row: dict[str, object]) -> str:
@@ -987,6 +1059,7 @@ def _portfolio_period_cause_summary_row(
             root_cause_area,
             estimated_impact,
             top_codes,
+            rows,
         ),
     }
 
@@ -994,7 +1067,8 @@ def _portfolio_period_cause_summary_row(
 def _summed_estimated_return_impact(rows: list[dict[str, object]]) -> float | None:
     """Return the sum of available impact estimates, or ``None``."""
     estimates: list[float] = []
-    for row in rows:
+    estimated_rows = _preferred_estimate_rows(rows)
+    for row in estimated_rows:
         estimate = row[ESTIMATED_RETURN_IMPACT]
         if isinstance(estimate, bool) or not isinstance(estimate, (int, float)):
             continue
@@ -1002,6 +1076,17 @@ def _summed_estimated_return_impact(rows: list[dict[str, object]]) -> float | No
     if not estimates:
         return None
     return sum(estimates)
+
+
+def _preferred_estimate_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Return estimate rows, preferring vendor contribution over weighted return."""
+    if any(row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION for row in rows):
+        return [
+            row
+            for row in rows
+            if row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION
+        ]
+    return rows
 
 
 def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
@@ -1013,6 +1098,10 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
     }
     if IMPACT_BASIS_SECURITY_CONTRIBUTION in bases:
         return IMPACT_BASIS_SECURITY_CONTRIBUTION
+    if IMPACT_BASIS_SECURITY_RETURN_WEIGHTED in bases:
+        return IMPACT_BASIS_SECURITY_RETURN_WEIGHTED
+    if IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD in bases:
+        return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
     return IMPACT_BASIS_NO_ESTIMATE
 
 
@@ -1038,8 +1127,16 @@ def _summary_impact_message(
     root_cause_area: str,
     estimated_impact: float | None,
     top_codes: str,
+    rows: list[dict[str, object]],
 ) -> str:
     """Return a short explanation for a cause-area summary row."""
+    if _has_vendor_contribution_and_weighted_return(rows):
+        return (
+            "Estimated impact uses vendor contribution deltas. Weighted "
+            "security return estimates are available as review cross-checks "
+            "but are not summed to avoid double-counting. Representative "
+            f"codes: {top_codes}."
+        )
     if estimated_impact is not None:
         return (
             "Estimated impact is based on currently supported contribution "
@@ -1053,6 +1150,15 @@ def _summary_impact_message(
     return (
         "Grouped evidence only; no defensible return-impact estimate is "
         f"available yet. Representative codes: {top_codes}."
+    )
+
+
+def _has_vendor_contribution_and_weighted_return(rows: list[dict[str, object]]) -> bool:
+    """Return whether a security bucket has both preferred and cross-check estimates."""
+    bases = {row[IMPACT_BASIS] for row in rows}
+    return (
+        IMPACT_BASIS_SECURITY_CONTRIBUTION in bases
+        and IMPACT_BASIS_SECURITY_RETURN_WEIGHTED in bases
     )
 
 
@@ -1310,6 +1416,8 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             SOURCE_FILE: pl.String,
             SOURCE_COLUMN: pl.String,
             DELTA_B_MINUS_A: pl.Float64,
+            RETURN_DENOMINATOR: pl.Float64,
+            RETURN_WEIGHT: pl.Float64,
             ABSOLUTE_DELTA: pl.Float64,
             MESSAGE: pl.String,
         }

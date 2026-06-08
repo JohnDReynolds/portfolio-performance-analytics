@@ -33,7 +33,9 @@ from ppar.performance_comparison.explain import (
     HAS_SUPPRESSED_FINDINGS,
     IMPACT_BASIS,
     IMPACT_BASIS_NO_ESTIMATE,
+    IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
     IMPACT_BASIS_SECURITY_CONTRIBUTION,
+    IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_CONFIDENCE,
     IMPACT_CONFIDENCE_LOW,
     IMPACT_CONFIDENCE_MEDIUM,
@@ -70,6 +72,7 @@ from ppar.performance_comparison.explain import (
     TRANSACTION_ACTIVITY_SUMMARY_COLUMNS,
     TOP_CODES,
 )
+from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.findings import (
     CONTEXT,
     DATASET,
@@ -81,6 +84,7 @@ from ppar.performance_comparison.findings import (
     PORTFOLIO_ID,
     RELATED_OUTPUT,
     SECURITY_ID,
+    SOURCE_COLUMN,
     TARGET_OUTPUT,
     TRANSACTION_CATEGORY,
 )
@@ -292,6 +296,44 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
         )
 
+    def test_portfolio_period_contribution_candidates_estimates_source_field(
+        self,
+    ) -> None:
+        """Contribution candidates estimate supported portfolio source fields."""
+        findings = self._restatement()
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        source_field = candidates.filter(
+            (pl.col(SOURCE_COLUMN) == pc_cols.GAIN_LOSS)
+            & (pl.col(IMPACT_BASIS) == IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD)
+        ).row(0, named=True)
+
+        self.assertAlmostEqual(
+            source_field[ESTIMATED_RETURN_IMPACT],
+            500.0 / 999915.0,
+        )
+        self.assertEqual(source_field[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
+        self.assertIn("beginning market value", source_field[IMPACT_MESSAGE])
+
+    def test_portfolio_period_contribution_candidates_estimates_security_return(
+        self,
+    ) -> None:
+        """Contribution candidates estimate weighted security return deltas."""
+        findings = self._restatement()
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        security_return = candidates.filter(
+            (pl.col(FINDING_CODE) == PC_SEC_RET)
+            & (pl.col(IMPACT_BASIS) == IMPACT_BASIS_SECURITY_RETURN_WEIGHTED)
+        ).row(0, named=True)
+
+        self.assertAlmostEqual(
+            security_return[ESTIMATED_RETURN_IMPACT],
+            0.01 * 0.05319463,
+        )
+        self.assertEqual(security_return[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
+        self.assertIn("portfolio weight", security_return[IMPACT_MESSAGE])
+
     def test_portfolio_period_contribution_candidates_keeps_no_estimate_rows(
         self,
     ) -> None:
@@ -304,7 +346,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         row = no_estimate.row(0, named=True)
 
-        self.assertEqual(no_estimate.height, 15)
+        self.assertEqual(no_estimate.height, 13)
         self.assertIsNone(row[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIsNone(row[IMPACT_METHOD])
@@ -347,6 +389,25 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertEqual(contribution_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_MEDIUM)
         self.assertIn("PC-SEC-CONTR", contribution_row[TOP_CODES])
+        self.assertIn("vendor contribution deltas", contribution_row[IMPACT_MESSAGE])
+        self.assertIn("review cross-checks", contribution_row[IMPACT_MESSAGE])
+
+    def test_portfolio_period_cause_summary_prefers_vendor_contribution(
+        self,
+    ) -> None:
+        """Security cause summary avoids double-counting weighted returns."""
+        findings = self._restatement()
+
+        summary = portfolio_period_cause_summary(findings)
+        contribution_row = summary.filter(
+            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
+        ).row(0, named=True)
+
+        self.assertAlmostEqual(contribution_row[ESTIMATED_RETURN_IMPACT], 0.00058425)
+        self.assertEqual(
+            contribution_row[IMPACT_BASIS],
+            IMPACT_BASIS_SECURITY_CONTRIBUTION,
+        )
 
     def test_portfolio_period_cause_summary_keeps_transactions_evidence_only(
         self,

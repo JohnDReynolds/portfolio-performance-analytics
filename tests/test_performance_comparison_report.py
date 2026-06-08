@@ -35,9 +35,28 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         report = performance_comparison_markdown_report(findings)
 
         self.assertIn("# Performance Comparison Report", report)
+        self.assertIn("## Report Contents", report)
+        self.assertIn("- Run Summary", report)
+        self.assertIn("- Suppressed Findings Appendix", report)
         self.assertIn("## Run Summary", report)
         self.assertIn("- Total findings: 21", report)
         self.assertIn("- Active findings: 21", report)
+        self.assertIn("## Portfolio-Period Narrative", report)
+        self.assertIn(
+            "PORT_A changed by 0.0005 for 2025-05-30 to 2025-05-30.",
+            report,
+        )
+        self.assertIn(
+            "The strongest currently estimated impact is "
+            "security_return_or_contribution at 0.00058425",
+            report,
+        )
+        self.assertIn("Evidence-only areas are", report)
+        self.assertIn("## Review Notes", report)
+        self.assertIn("transaction-type sign and flow semantics", report)
+        self.assertIn("source-field estimates are low-confidence", report)
+        self.assertIn("vendor contribution deltas are preferred", report)
+        self.assertIn("No residual is reported", report)
         self.assertIn("## Portfolio-Period Changes", report)
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
         self.assertIn("## Cause Summary", report)
@@ -78,6 +97,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         report = performance_comparison_markdown_report(findings)
 
         self.assertIn("- Total findings: 0", report)
+        self.assertIn("_No portfolio return changes to narrate._", report)
+        self.assertIn("_No portfolio-period review notes._", report)
         self.assertIn("_No portfolio return changes._", report)
         self.assertIn("_No cause summary available._", report)
         self.assertIn("_No ranked evidence is available for portfolio return changes._", report)
@@ -89,6 +110,21 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         rendered = _markdown_table(table, ["message"])
 
         self.assertIn("a\\|b", rendered)
+
+    def test_markdown_report_contents_track_suppressed_appendix_option(self) -> None:
+        """Report contents omit the appendix when the appendix is omitted."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        report = performance_comparison_markdown_report(
+            findings,
+            include_suppressed_appendix=False,
+        )
+
+        contents = _section(report, "## Report Contents", "## Run Summary")
+
+        self.assertIn("- Top Evidence", contents)
+        self.assertNotIn("Suppressed Findings Appendix", contents)
+        self.assertNotIn("## Suppressed Findings Appendix", report)
 
     def test_write_markdown_report_creates_parent_directory(self) -> None:
         """Markdown reports can be written as durable artifacts."""

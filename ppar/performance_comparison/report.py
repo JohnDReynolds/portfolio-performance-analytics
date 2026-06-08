@@ -17,12 +17,22 @@ from ppar.performance_comparison.explain import (
     FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
     IMPACT_BASIS,
+    IMPACT_BASIS_NO_ESTIMATE,
+    IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+    IMPACT_BASIS_SECURITY_CONTRIBUTION,
+    IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
     PORTFOLIO_RETURN_DELTA,
     ROOT_CAUSE_AREA,
+    ROOT_CAUSE_CASH,
+    ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+    ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
+    ROOT_CAUSE_PRICE,
+    ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
+    ROOT_CAUSE_TRANSACTION_ACTIVITY,
     TOP_CODES,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
@@ -87,7 +97,12 @@ def performance_comparison_markdown_report(
         f"# {_escape_markdown_text(title)}",
         _ACTIVE_ONLY_NOTE,
         _NO_ESTIMATE_NOTE,
+        _report_contents_section(
+            include_suppressed_appendix=include_suppressed_appendix,
+        ),
         _run_summary_section(findings, active_findings, summaries, active_summaries),
+        _portfolio_period_narrative_section(active_findings),
+        _review_notes_section(active_findings),
         _portfolio_period_section(active_findings),
         _cause_summary_section(active_findings),
         _top_evidence_section(active_findings, top_evidence_limit),
@@ -156,6 +171,210 @@ def _run_summary_section(
         _markdown_table(summaries["by_suppressed"], [SUPPRESSED, _COUNT]),
     ]
     return "\n".join(lines)
+
+
+def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
+    """Return the report contents section."""
+    section_names = [
+        "Run Summary",
+        "Portfolio-Period Narrative",
+        "Review Notes",
+        "Portfolio-Period Changes",
+        "Cause Summary",
+        "Top Evidence",
+    ]
+    if include_suppressed_appendix:
+        section_names.append("Suppressed Findings Appendix")
+    lines = ["## Report Contents", *[f"- {name}" for name in section_names]]
+    return "\n".join(lines)
+
+
+def _portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
+    """Return conservative narrative summaries for portfolio-period changes."""
+    summary = portfolio_period_summary(findings)
+    if summary.is_empty():
+        return "\n".join(
+            [
+                "## Portfolio-Period Narrative",
+                "_No portfolio return changes to narrate._",
+            ]
+        )
+
+    causes = portfolio_period_cause_summary(findings)
+    paragraphs = ["## Portfolio-Period Narrative"]
+    for period in summary.iter_rows(named=True):
+        period_causes = _period_cause_rows(causes, period)
+        paragraphs.append(_portfolio_period_narrative(period, period_causes))
+    return "\n\n".join(paragraphs)
+
+
+def _review_notes_section(findings: pl.DataFrame) -> str:
+    """Return review notes for current model limits visible in the report."""
+    causes = portfolio_period_cause_summary(findings)
+    if causes.is_empty():
+        return "\n".join(
+            [
+                "## Review Notes",
+                "_No portfolio-period review notes._",
+            ]
+        )
+
+    cause_rows = list(causes.iter_rows(named=True))
+    notes = _review_notes_for_cause_rows(cause_rows)
+    if not notes:
+        notes = [
+            "No model-limit review notes were generated for the current evidence mix.",
+        ]
+
+    lines = ["## Review Notes", *[f"- {note}" for note in notes]]
+    return "\n".join(lines)
+
+
+def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
+    """Return deterministic review notes for cause areas present in a report."""
+    notes: list[str] = []
+    cause_areas = {cause[ROOT_CAUSE_AREA] for cause in causes}
+    if ROOT_CAUSE_TRANSACTION_ACTIVITY in cause_areas:
+        notes.append(
+            "Transaction activity is evidence-only because transaction-type "
+            "sign and flow semantics are not modeled yet."
+        )
+    if ROOT_CAUSE_MARKET_VALUE_OR_POSITION in cause_areas:
+        notes.append(
+            "Market value or position evidence has no return-impact estimate yet."
+        )
+    if ROOT_CAUSE_PRICE in cause_areas:
+        notes.append(
+            "Price evidence is linked to affected portfolio periods, but no "
+            "portfolio-period impact estimate is calculated yet."
+        )
+    if ROOT_CAUSE_CASH in cause_areas:
+        notes.append("Cash evidence has no return-impact estimate yet.")
+    if ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT in cause_areas:
+        notes.append(_portfolio_source_field_review_note(causes))
+    if ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION in cause_areas:
+        notes.append(_security_return_weighted_review_note(causes))
+    notes.append(
+        "No residual is reported because not enough defensible impact estimates "
+        "exist yet."
+    )
+    return notes
+
+
+def _portfolio_source_field_review_note(causes: list[dict[str, object]]) -> str:
+    """Return a review note for portfolio performance source-field estimates."""
+    has_estimate = any(
+        cause[ROOT_CAUSE_AREA] == ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT
+        and cause[IMPACT_BASIS] == IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
+        for cause in causes
+    )
+    if has_estimate:
+        return (
+            "Portfolio performance source-field estimates are low-confidence "
+            "approximations based on source-field deltas over beginning "
+            "market value."
+        )
+    return (
+        "Portfolio performance source-field changes are direct evidence, but "
+        "denominator-based impact formulas are not modeled for these rows yet."
+    )
+
+
+def _security_return_weighted_review_note(causes: list[dict[str, object]]) -> str:
+    """Return a review note for weighted security return estimates."""
+    has_vendor_contribution = any(
+        cause[ROOT_CAUSE_AREA] == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
+        and cause[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION
+        for cause in causes
+    )
+    if has_vendor_contribution:
+        return (
+            "Weighted security return estimates are available for review, but "
+            "vendor contribution deltas are preferred in the cause summary to "
+            "avoid double-counting."
+        )
+    return (
+        "Weighted security return estimates are low-confidence approximations "
+        "using security return deltas times portfolio weight."
+    )
+
+
+def _portfolio_period_narrative(
+    period: dict[str, object],
+    causes: list[dict[str, object]],
+) -> str:
+    """Return one portfolio-period narrative paragraph."""
+    portfolio_id = _format_value(period[PORTFOLIO_ID])
+    from_date = _format_value(period[FROM_DATE])
+    thru_date = _format_value(period[THRU_DATE])
+    return_delta = _format_value(period[PORTFOLIO_RETURN_DELTA])
+    sentences = [
+        (
+            f"{portfolio_id} changed by {return_delta} for {from_date} to "
+            f"{thru_date}."
+        )
+    ]
+
+    estimated_causes = [
+        cause
+        for cause in causes
+        if cause.get(ESTIMATED_RETURN_IMPACT) is not None
+    ]
+    if estimated_causes:
+        strongest = max(
+            estimated_causes,
+            key=lambda cause: abs(float(cause[ESTIMATED_RETURN_IMPACT])),
+        )
+        sentences.append(_estimated_impact_sentence(strongest))
+    else:
+        sentences.append(
+            "No currently supported impact estimates are available for this period."
+        )
+
+    evidence_only_areas = [
+        str(cause[ROOT_CAUSE_AREA])
+        for cause in causes
+        if cause.get(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE
+    ]
+    if evidence_only_areas:
+        sentences.append(
+            "Evidence-only areas are "
+            f"{_comma_separated(evidence_only_areas)}; these rows remain "
+            f"{IMPACT_BASIS_NO_ESTIMATE}."
+        )
+
+    if period[HAS_SUPPRESSED_FINDINGS]:
+        sentences.append("Suppressed findings exist for this portfolio period.")
+
+    return " ".join(_escape_markdown_text(sentence) for sentence in sentences)
+
+
+def _estimated_impact_sentence(cause: dict[str, object]) -> str:
+    """Return a conservative sentence for the strongest estimated impact."""
+    cause_area = _format_value(cause[ROOT_CAUSE_AREA])
+    estimated_impact = _format_value(cause[ESTIMATED_RETURN_IMPACT])
+    impact_basis = _format_value(cause[IMPACT_BASIS])
+    confidence = _format_value(cause[IMPACT_CONFIDENCE])
+    return (
+        "The strongest currently estimated impact is "
+        f"{cause_area} at {estimated_impact}, based on {impact_basis} "
+        f"with {confidence} confidence."
+    )
+
+
+def _period_cause_rows(
+    causes: pl.DataFrame,
+    period: dict[str, object],
+) -> list[dict[str, object]]:
+    """Return cause-summary rows matching one portfolio period."""
+    if causes.is_empty():
+        return []
+    period_causes = causes.filter(
+        (pl.col(PORTFOLIO_ID) == period[PORTFOLIO_ID])
+        & (pl.col(FROM_DATE) == period[FROM_DATE])
+        & (pl.col(THRU_DATE) == period[THRU_DATE])
+    )
+    return list(period_causes.iter_rows(named=True))
 
 
 def _portfolio_period_section(findings: pl.DataFrame) -> str:
@@ -335,6 +554,11 @@ def _format_value(value: object) -> str:
     if isinstance(value, (dt.date, dt.datetime)):
         return value.isoformat()
     return str(value)
+
+
+def _comma_separated(values: Sequence[str]) -> str:
+    """Return a readable comma-separated list."""
+    return ", ".join(values)
 
 
 def _escape_markdown_text(value: object) -> str:

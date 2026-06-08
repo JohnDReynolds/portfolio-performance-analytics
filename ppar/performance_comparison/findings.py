@@ -17,6 +17,8 @@ EVIDENCE_ROLE = "evidence_role"
 SNAPSHOT_A_VALUE = "snapshot_a_value"
 SNAPSHOT_B_VALUE = "snapshot_b_value"
 DELTA_B_MINUS_A = "delta_b_minus_a"
+RETURN_DENOMINATOR = "return_denominator"
+RETURN_WEIGHT = "return_weight"
 PORTFOLIO_ID = "portfolio_id"
 SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
@@ -75,6 +77,8 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
     DELTA_B_MINUS_A,
+    RETURN_DENOMINATOR,
+    RETURN_WEIGHT,
     MESSAGE,
     SUPPRESSED,
 )
@@ -102,6 +106,10 @@ class Finding:
         snapshot_a_value: Value from snapshot A.
         snapshot_b_value: Value from snapshot B.
         delta_b_minus_a: Numeric difference calculated as B minus A.
+        return_denominator: Optional denominator for approximate
+            return-impact estimates.
+        return_weight: Optional weight for approximate security return-impact
+            estimates.
         message: Human-readable summary.
         suppressed: Whether a suppression rule hid the finding.
     """
@@ -121,6 +129,8 @@ class Finding:
     snapshot_a_value: object | None = None
     snapshot_b_value: object | None = None
     delta_b_minus_a: float | None = None
+    return_denominator: float | None = None
+    return_weight: float | None = None
     message: str = ""
     suppressed: bool = False
 
@@ -142,6 +152,8 @@ class Finding:
             SNAPSHOT_A_VALUE: self.snapshot_a_value,
             SNAPSHOT_B_VALUE: self.snapshot_b_value,
             DELTA_B_MINUS_A: self.delta_b_minus_a,
+            RETURN_DENOMINATOR: self.return_denominator,
+            RETURN_WEIGHT: self.return_weight,
             MESSAGE: self.message,
             SUPPRESSED: self.suppressed,
         }
