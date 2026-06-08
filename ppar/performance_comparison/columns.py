@@ -4,6 +4,7 @@ PORTFOLIO_PERFORMANCE = "portfolio_performance"
 SECURITY_PERFORMANCE = "security_performance"
 SECURITY_MASTER = "security_master"
 PRICES = "prices"
+FX_RATES = "fx_rates"
 TRANSACTIONS = "transactions"
 POSITIONS = "positions"
 CASH = "cash"
@@ -13,6 +14,7 @@ SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
 PRICE_DATE = "price_date"
+RATE_DATE = "rate_date"
 TRANSACTION_DATE = "transaction_date"
 SETTLEMENT_DATE = "settlement_date"
 POSITION_DATE = "position_date"
@@ -20,6 +22,9 @@ CASH_DATE = "cash_date"
 PORTFOLIO_RETURN = "portfolio_return"
 SECURITY_RETURN = "security_return"
 PRICE = "price"
+FX_RATE = "fx_rate"
+FROM_CURRENCY = "from_currency"
+TO_CURRENCY = "to_currency"
 WEIGHT = "weight"
 CONTRIBUTION = "contribution"
 PORTFOLIO_NAME = "portfolio_name"
@@ -41,8 +46,13 @@ PERIOD_ID = "period_id"
 CURRENCY = "currency"
 PRICE_SOURCE = "price_source"
 PRICE_TYPE = "price_type"
+RATE_SOURCE = "rate_source"
+RATE_TYPE = "rate_type"
 TRANSACTION_ID = "transaction_id"
 TRANSACTION_CODE = "transaction_code"
+TRANSACTION_CATEGORY = "transaction_category"
+CASH_FLOW_SIGN = "cash_flow_sign"
+PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
 QUANTITY = "quantity"
 AMOUNT = "amount"
 COMMISSION = "commission"
@@ -135,6 +145,23 @@ PRICES_COLUMNS = (
     *PRICES_OPTIONAL_COLUMNS,
 )
 
+FX_RATES_REQUIRED_COLUMNS = (
+    FROM_CURRENCY,
+    TO_CURRENCY,
+    RATE_DATE,
+    FX_RATE,
+)
+
+FX_RATES_OPTIONAL_COLUMNS = (
+    RATE_SOURCE,
+    RATE_TYPE,
+)
+
+FX_RATES_COLUMNS = (
+    *FX_RATES_REQUIRED_COLUMNS,
+    *FX_RATES_OPTIONAL_COLUMNS,
+)
+
 TRANSACTIONS_REQUIRED_COLUMNS = (
     PORTFOLIO_ID,
     SECURITY_ID,
@@ -145,6 +172,9 @@ TRANSACTIONS_OPTIONAL_COLUMNS = (
     TRANSACTION_ID,
     SETTLEMENT_DATE,
     TRANSACTION_CODE,
+    TRANSACTION_CATEGORY,
+    CASH_FLOW_SIGN,
+    PERFORMANCE_FLOW_SIGN,
     QUANTITY,
     PRICE,
     AMOUNT,

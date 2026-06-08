@@ -31,7 +31,7 @@ def main() -> None:
     """
     time_start = time.perf_counter()
 
-    axys_data = AxysData(_REPO_ROOT / "tests" / "data" / "axys" / "ppar_axys.yaml")
+    axys_data = AxysData(_REPO_ROOT / "tests" / "data" / "axys" / "axys_column_mappings.yaml")
 
     for portfolio_code in ("PORT_SMALL", "PORT_LARGE"):
         # Specify dates and classification.

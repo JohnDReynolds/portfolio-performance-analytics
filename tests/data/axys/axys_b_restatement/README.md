@@ -25,12 +25,12 @@ Files:
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
 - positions_holdings.csv: month-end position snapshots, including CASH_USD
 - prices.csv: daily price history for every security including Treasuries and CASH_USD
-- fx_currency.csv: daily USD/USD FX rates
+- fx_rates.csv: daily FX rates
 - cash.csv: month-end cash balances by portfolio/currency
 
 Shared fixture configuration lives one directory above this snapshot:
 
-- ppar_axys.yaml: Axys loader configuration
+- axys_column_mappings.yaml: Axys column mapping configuration
 - ppar_performance_comparison.yaml: comparison configuration for axys_a and axys_b
 
 Intentional event coverage:

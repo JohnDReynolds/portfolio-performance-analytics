@@ -13,19 +13,20 @@ snapshots:
     label: axys_a
     path: axys_a
     vendor: axys
-    schema: ppar_axys.yaml
+    schema: axys_column_mappings.yaml
 
   b:
     label: axys_b
     path: axys_b
     vendor: axys
-    schema: ppar_axys.yaml
+    schema: axys_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   security_master: sec_ref.csv
   prices: prices.csv
+  fx_rates: fx_rates.csv
   transactions: transactions.csv
   positions: positions_holdings.csv
   cash: cash.csv
@@ -36,3 +37,4 @@ tolerances:
   weight: 0.000001
   market_value: 0.01
   price: 0.000001
+  fx_rate: 0.00000001

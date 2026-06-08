@@ -13,6 +13,7 @@ from ppar.performance_comparison.portfolio_performance import SnapshotKey
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 import ppar.utilities as util
 
+
 class CashLoader:
     """Load normalized cash rows for comparison snapshots.
 
@@ -43,7 +44,11 @@ class CashLoader:
             PpaError: If the source exists but required columns cannot be
                 resolved.
         """
-        path = self._cash_path(snapshot_key)
+        path = source_loader.optional_file_path(
+            self._specification,
+            pc_cols.CASH,
+            snapshot_key,
+        )
         if path is None or not util.file_path_exists(path):
             return None
 
@@ -59,15 +64,4 @@ class CashLoader:
             .with_columns(
                 pl.col(pc_cols.CASH_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             )
-        )
-
-    def _cash_path(self, snapshot_key: SnapshotKey) -> util.PathLike | None:
-        """Return the resolved cash path for a snapshot."""
-        comparison_file = self._specification.files.get(pc_cols.CASH)
-        if comparison_file is None:
-            return None
-        return (
-            comparison_file.snapshot_a_path
-            if snapshot_key == "a"
-            else comparison_file.snapshot_b_path
         )

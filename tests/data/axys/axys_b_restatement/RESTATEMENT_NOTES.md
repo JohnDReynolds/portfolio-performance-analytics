@@ -9,12 +9,14 @@ Controlled changes:
 - `secperf.csv`: Restated the `PORT_A`/`AAPL` row for `2025-05-30`.
 - `secperf.csv`: Added `RESTATED_SEC` for `PORT_A` on `2025-05-30`.
 - `secperf.csv`: Removed `PFE` for `PORT_A` on `2025-05-30`.
-- `positions_holdings.csv`: Restated the `PORT_A`/`AAPL` quantity and market
-  value for `2025-05-30`.
+- `positions_holdings.csv`: Restated the `PORT_A`/`AAPL` quantity, market
+  value, cost, and accrued amount for `2025-05-30`.
 - `cash.csv`: Restated `PORT_A` USD cash balance and market value for
   `2025-05-30`.
 - `prices.csv`: Restated the `AAPL` price for `2025-05-30`.
-- `transactions.csv`: Restated the `TXN000001` AAPL transaction amount.
+- `fx_rates.csv`: Restated the `EUR` to `USD` spot rate for `2025-05-30`.
+- `transactions.csv`: Restated the `TXN000001` AAPL transaction quantity,
+  price, and amount.
 - `sec_ref.csv`: Restated the `AAPL` name and sector fields.
 - `sec_ref.csv`: Added `RESTATED_SEC`.
 

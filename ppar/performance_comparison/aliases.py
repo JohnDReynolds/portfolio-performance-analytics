@@ -96,6 +96,17 @@ PRICES_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.PRICE_TYPE: ("PRICE_TYPE",),
 }
 
+FX_RATES_REQUIRED_ALIASES: Final[ColumnAliases] = {
+    pc_cols.FROM_CURRENCY: ("FROM_CURRENCY", "FROM_CCY", "BASE_CURRENCY", "BASE_CCY"),
+    pc_cols.TO_CURRENCY: ("TO_CURRENCY", "TO_CCY", "QUOTE_CURRENCY", "QUOTE_CCY"),
+    pc_cols.RATE_DATE: ("RATE_DATE", "FX_DATE"),
+    pc_cols.FX_RATE: ("FX_RATE", "RATE", "EXCHANGE_RATE"),
+}
+FX_RATES_OPTIONAL_ALIASES: Final[ColumnAliases] = {
+    pc_cols.RATE_SOURCE: ("RATE_SOURCE", "SOURCE", "SRC", "VENDOR"),
+    pc_cols.RATE_TYPE: ("RATE_TYPE",),
+}
+
 TRANSACTIONS_REQUIRED_ALIASES: Final[ColumnAliases] = {
     pc_cols.PORTFOLIO_ID: PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES[pc_cols.PORTFOLIO_ID],
     pc_cols.SECURITY_ID: SECURITY_PERFORMANCE_REQUIRED_ALIASES[pc_cols.SECURITY_ID],
@@ -117,6 +128,13 @@ TRANSACTIONS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
         "TRANS_CODE",
         "ACTIVITY",
     ),
+    pc_cols.TRANSACTION_CATEGORY: (
+        "TRANSACTION_CATEGORY",
+        "TXN_CATEGORY",
+        "ACTIVITY_CATEGORY",
+    ),
+    pc_cols.CASH_FLOW_SIGN: ("CASH_FLOW_SIGN",),
+    pc_cols.PERFORMANCE_FLOW_SIGN: ("PERFORMANCE_FLOW_SIGN",),
     pc_cols.QUANTITY: ("QUANTITY", "QTY", "UNITS", "SHARES"),
     pc_cols.PRICE: ("PRICE", "PX", "TRADE_PRICE"),
     pc_cols.AMOUNT: ("AMOUNT", "AMT", "NET_AMOUNT", "NET_AMT"),

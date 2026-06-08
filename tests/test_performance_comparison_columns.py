@@ -39,12 +39,30 @@ class TestPerformanceComparisonColumns(unittest.TestCase):
             (pc_cols.SECURITY_ID, pc_cols.PRICE_DATE, pc_cols.PRICE),
         )
         self.assertEqual(
+            pc_cols.FX_RATES_REQUIRED_COLUMNS,
+            (
+                pc_cols.FROM_CURRENCY,
+                pc_cols.TO_CURRENCY,
+                pc_cols.RATE_DATE,
+                pc_cols.FX_RATE,
+            ),
+        )
+        self.assertEqual(
             pc_cols.TRANSACTIONS_REQUIRED_COLUMNS,
             (
                 pc_cols.PORTFOLIO_ID,
                 pc_cols.SECURITY_ID,
                 pc_cols.TRANSACTION_DATE,
             ),
+        )
+        self.assertIn(
+            pc_cols.TRANSACTION_CATEGORY,
+            pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS,
+        )
+        self.assertIn(pc_cols.CASH_FLOW_SIGN, pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS)
+        self.assertIn(
+            pc_cols.PERFORMANCE_FLOW_SIGN,
+            pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS,
         )
         self.assertEqual(
             pc_cols.POSITIONS_REQUIRED_COLUMNS,

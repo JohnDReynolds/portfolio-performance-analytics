@@ -219,6 +219,35 @@ def snapshot_by_key(
     raise PpaError(f"Unknown snapshot key: {snapshot_key}", 999)
 
 
+def optional_file_path(
+    specification: PerformanceComparisonSpecification,
+    dataset_name: str,
+    snapshot_key: str,
+) -> util.PathLike | None:
+    """Return a resolved optional file path for a snapshot.
+
+    Args:
+        specification: Parsed comparison specification.
+        dataset_name: Normalized comparison dataset name.
+        snapshot_key: Snapshot side to load, either ``"a"`` or ``"b"``.
+
+    Returns:
+        The resolved snapshot-specific file path, or ``None`` when the
+        optional dataset is not configured.
+
+    Raises:
+        PpaError: If ``snapshot_key`` is not a known neutral snapshot key.
+    """
+    comparison_file = specification.files.get(dataset_name)
+    if comparison_file is None:
+        return None
+    if snapshot_key == "a":
+        return comparison_file.snapshot_a_path
+    if snapshot_key == "b":
+        return comparison_file.snapshot_b_path
+    raise PpaError(f"Unknown snapshot key: {snapshot_key}", 999)
+
+
 def aliases_with_schema_overrides(
     dataset_name: str,
     default_aliases: ColumnAliases,

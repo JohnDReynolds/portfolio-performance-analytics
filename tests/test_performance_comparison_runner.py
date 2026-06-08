@@ -13,15 +13,20 @@ from ppar.performance_comparison import (
 from ppar.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
+    EVIDENCE_ROLE,
     FINDING_CODE,
     FROM_DATE,
     MESSAGE,
     PC_CASH_MV,
+    PC_FX_RATE,
+    PC_POS_ACCR,
     PC_PORT_RET,
     PC_POS_QTY,
     PC_PRICE,
     PC_SEC_RET,
     PC_TXN_AMT,
+    PC_TXN_PRICE,
+    PC_TXN_QTY,
     PORTFOLIO_ID,
     SECURITY_ID,
     SOURCE_COLUMN,
@@ -40,6 +45,7 @@ _SUPPRESSED_COMPARISON_PATH = Path(
 _COMPACT_FINDING_COLUMNS = [
     FINDING_CODE,
     DATASET,
+    EVIDENCE_ROLE,
     PORTFOLIO_ID,
     SECURITY_ID,
     FROM_DATE,
@@ -72,9 +78,13 @@ class TestPerformanceComparisonRunner(unittest.TestCase):
                 PC_PORT_RET,
                 PC_SEC_RET,
                 PC_POS_QTY,
+                PC_POS_ACCR,
                 PC_CASH_MV,
                 PC_PRICE,
+                PC_FX_RATE,
                 PC_TXN_AMT,
+                PC_TXN_QTY,
+                PC_TXN_PRICE,
             }.issubset(finding_codes)
         )
 
@@ -92,11 +102,17 @@ class TestPerformanceComparisonRunner(unittest.TestCase):
         self.assertIn("count", by_code.columns)
         self.assertIn(DATASET, by_dataset.columns)
         self.assertIn("count", by_dataset.columns)
+        self.assertIn(EVIDENCE_ROLE, summaries["by_evidence_role"].columns)
+        self.assertIn("count", summaries["by_evidence_role"].columns)
         self.assertIn(SUPPRESSED, by_suppressed.columns)
         self.assertIn("count", by_suppressed.columns)
         self.assertEqual(by_code_suppressed.columns, [FINDING_CODE, SUPPRESSED, "count"])
         self.assertEqual(by_code.get_column("count").sum(), findings.height)
         self.assertEqual(by_dataset.get_column("count").sum(), findings.height)
+        self.assertEqual(
+            summaries["by_evidence_role"].get_column("count").sum(),
+            findings.height,
+        )
         self.assertEqual(by_suppressed.get_column("count").sum(), findings.height)
         self.assertEqual(by_code_suppressed.get_column("count").sum(), findings.height)
 
@@ -108,10 +124,15 @@ class TestPerformanceComparisonRunner(unittest.TestCase):
 
         self.assertTrue(summaries["by_code"].is_empty())
         self.assertTrue(summaries["by_dataset"].is_empty())
+        self.assertTrue(summaries["by_evidence_role"].is_empty())
         self.assertTrue(summaries["by_suppressed"].is_empty())
         self.assertTrue(summaries["by_code_suppressed"].is_empty())
         self.assertEqual(summaries["by_code"].columns, [FINDING_CODE, "count"])
         self.assertEqual(summaries["by_dataset"].columns, [DATASET, "count"])
+        self.assertEqual(
+            summaries["by_evidence_role"].columns,
+            [EVIDENCE_ROLE, "count"],
+        )
         self.assertEqual(summaries["by_suppressed"].columns, [SUPPRESSED, "count"])
         self.assertEqual(
             summaries["by_code_suppressed"].columns,

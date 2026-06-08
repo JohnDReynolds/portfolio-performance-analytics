@@ -13,6 +13,7 @@ from ppar.performance_comparison.portfolio_performance import SnapshotKey
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 import ppar.utilities as util
 
+
 class SecurityPerformanceLoader:
     """Load normalized security performance rows for comparison snapshots.
 
@@ -43,7 +44,11 @@ class SecurityPerformanceLoader:
             PpaError: If the source exists but required columns cannot be
                 resolved.
         """
-        path = self._security_performance_path(snapshot_key)
+        path = source_loader.optional_file_path(
+            self._specification,
+            pc_cols.SECURITY_PERFORMANCE,
+            snapshot_key,
+        )
         if path is None or not util.file_path_exists(path):
             return None
 
@@ -61,15 +66,4 @@ class SecurityPerformanceLoader:
                 pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
                 pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             )
-        )
-
-    def _security_performance_path(self, snapshot_key: SnapshotKey) -> util.PathLike | None:
-        """Return the resolved security performance path for a snapshot."""
-        comparison_file = self._specification.files.get(pc_cols.SECURITY_PERFORMANCE)
-        if comparison_file is None:
-            return None
-        return (
-            comparison_file.snapshot_a_path
-            if snapshot_key == "a"
-            else comparison_file.snapshot_b_path
         )

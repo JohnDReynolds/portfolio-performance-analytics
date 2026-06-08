@@ -11,8 +11,8 @@ The core question is:
 > when I ran it on date 2?
 
 The feature will compare two snapshot directories. Each snapshot contains
-vendor exports such as portfolio performance, security performance, prices,
-transactions, positions, cash, and security master/reference files.
+vendor exports such as portfolio performance, security performance, prices, FX
+rates, transactions, positions, cash, and security master/reference files.
 
 This should not be treated as an Axys-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
@@ -20,9 +20,45 @@ live in small normalization adapters, with Axys as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
 portfolio performance, security performance, security master, positions, cash,
-prices, and transactions rows, report material changes, and produce a clear
-finding model. Deeper causal inference can be added after the finding model is
-stable.
+prices, FX rates, and transactions rows, report material changes, and produce a
+clear finding model. Deeper causal inference can be added after the finding
+model is stable.
+
+## Current Checkpoint
+
+The current implementation has crossed from pure design into a usable
+data-loading and comparison checkpoint. It can load two snapshot directories,
+compare the first set of normalized datasets, emit stable finding records, apply
+explicit suppressions, and produce small summary tables for review.
+
+Implemented normalized comparison datasets:
+
+- `portfolio_performance`
+- `security_performance`
+- `security_master`
+- `prices`
+- `fx_rates`
+- `transactions`
+- `positions`
+- `cash`
+
+Implemented output helpers:
+
+- full audit findings
+- compact active findings
+- finding summaries by code, dataset, evidence role, and suppression state
+- portfolio-period summaries
+- portfolio-period evidence breakdowns
+- portfolio-period evidence rankings
+- portfolio-period contribution candidates
+- portfolio-period cause summaries
+- transaction activity summaries
+- security-period summaries
+- security-period evidence breakdowns
+
+This checkpoint is still a comparison and evidence organization layer. It is
+not yet a causal attribution engine, a return calculator, or a final report
+writer.
 
 ## Non-Goals For The First Pass
 
@@ -48,31 +84,49 @@ FactSet, Bloomberg PORT, custodian files, or another vendor. It should compare
 standard datasets with standard column names and let adapters handle source
 schema details.
 
-## Proposed Package Layout
+## Current Package Shape
 
 ```text
 ppar/performance_comparison/
   __init__.py
+  aliases.py
+  cash.py
+  columns.py
   specification.py
-  snapshot.py
-  adapters.py
+  source_loader.py
   compare.py
   findings.py
-  rules.py
   explain.py
-  report.py
+  fx_rates.py
+  period_linking.py
+  positions.py
+  prices.py
+  runner.py
+  security_master.py
+  security_performance.py
+  transactions.py
 ```
 
-Possible responsibilities:
+Current responsibilities:
 
 - `specification.py`: Read and validate comparison YAML.
-- `snapshot.py`: Load one snapshot directory and normalize file paths.
-- `adapters.py`: Define source-system adapter interfaces.
+- `source_loader.py`: Load one snapshot directory, resolve optional files, and
+  normalize configured columns.
 - `compare.py`: Compare normalized snapshot A/snapshot B data sets.
-- `findings.py`: Define finding records, severity, confidence, and codes.
-- `rules.py`: Apply tolerances, materiality, filters, and suppressions.
-- `explain.py`: Add likely-cause explanations from supporting files.
-- `report.py`: Render DataFrame, CSV, JSON, or HTML outputs.
+- Dataset modules such as `prices.py`, `fx_rates.py`, `transactions.py`,
+  `positions.py`, and `cash.py`: dataset-specific loading, comparison keys,
+  changed-column rules, and default aliases.
+- `period_linking.py`: Link dated evidence to containing portfolio periods
+  where the linkage is conservative.
+- `findings.py`: Define finding records, roles, suppressions, and codes.
+- `explain.py`: Build portfolio/security period summaries, evidence
+  breakdowns, rankings, contribution candidates, and cause summaries.
+- `runner.py`: Public execution helpers, compact output tables, and summary
+  tables.
+
+Report rendering remains deliberately outside the package for now. The current
+helpers return stable Polars tables that can later feed CSV, Markdown, HTML, or
+other report formats.
 
 ## Core Concepts
 
@@ -100,6 +154,7 @@ engine. Initial normalized datasets include:
 - `security_performance`
 - `security_master`
 - `prices`
+- `fx_rates`
 - `transactions`
 - `positions`
 - `cash`
@@ -198,6 +253,22 @@ columns when useful.
 - `price_source`
 - `price_type`
 
+`fx_rates` required columns:
+
+- `from_currency`
+- `to_currency`
+- `rate_date`
+- `fx_rate`
+
+`fx_rates` useful optional columns:
+
+- `rate_source`
+- `rate_type`
+
+`fx_rates` represents exchange rates, not currency positions or cash
+balances. Currency exposure belongs in positions, cash, transactions, or
+valuation datasets.
+
 `transactions` required columns:
 
 - `portfolio_id`
@@ -209,12 +280,55 @@ columns when useful.
 - `transaction_id`
 - `settlement_date`
 - `transaction_code`
+- `transaction_category`
+- `cash_flow_sign`
+- `performance_flow_sign`
 - `quantity`
 - `price`
 - `amount`
 - `commission`
 - `currency`
 - `broker`
+
+Future transaction enhancements should consider optional fixed-income and
+income detail fields when real source files provide them:
+
+- `accrued_interest`
+- `interest`
+- `principal`
+- `gross_amount`
+- `net_amount`
+- `tax_withheld`
+
+These fields should remain part of the `transactions` dataset rather than
+forcing a separate income/accrual dataset by default. Position-level `accrued`
+represents an accrued balance at a position date; transaction-level accrued
+interest represents bought/sold accrued interest, posted interest, or other
+activity detail. Transaction-level comparisons should still require stable
+transaction matching, preferably by `transaction_id`.
+
+`transaction_category` should use a small normalized vocabulary:
+
+- `external_flow`
+- `income`
+- `fee_expense`
+- `buy`
+- `sell`
+- `transfer`
+- `corporate_action`
+- `unknown`
+
+The comparison loader can infer this category from common transaction codes
+when the source does not provide a category. For example, `BUY` maps to `buy`,
+`SELL` maps to `sell`, and `DIV` or `INT` maps to `income`. This category is an
+explanation label only.
+
+`cash_flow_sign` and `performance_flow_sign` are optional source-supplied
+semantics. They should not be inferred from transaction code in the first pass.
+Directional sign rules are vendor-specific and accounting-specific enough that
+guessing them would make `transaction_activity` look more precise than it is.
+Until those sign rules are explicitly modeled, transaction differences should
+remain evidence-only and should not receive an estimated return impact.
 
 `positions` required columns:
 
@@ -317,6 +431,96 @@ Candidate fields:
 - `message`: Human-readable explanation.
 - `suppressed`: Whether a suppression rule hid the finding from normal output.
 
+## Explanation Model
+
+The comparison has two levels of performance delta that may need explanation:
+
+- `portfolio_period`: Portfolio performance for one portfolio and period. This
+  is the required top-level explanation target because `portfolio_performance`
+  is the only required dataset.
+- `security_period`: Security performance for one portfolio, security, and
+  period. This is an optional secondary explanation target when
+  `security_performance` is available.
+
+Security performance deltas should not be treated as root causes of portfolio
+performance deltas. They are related output deltas: useful context, but not the
+underlying input change that caused portfolio performance to move.
+
+Root-cause evidence should come from input/source-like datasets such as prices,
+FX rates, transactions, positions, cash, market values, accruals, income, and
+other source fields. Security master and classification changes can provide
+useful context, but are often not numeric causes by themselves.
+
+The first explanation layer should use the term `related evidence`, not
+`root cause`, until the system can calculate cause contribution amounts. A
+future contribution-ranking model can estimate how much each root-cause
+evidence item explains of the portfolio-period return delta.
+
+The first bridge object is `portfolio_period_summary`: one row per portfolio
+return delta with counts of related findings, flags for suppressed findings,
+and numeric deltas where they are already meaningful. This bridges raw findings
+to future reports without pretending to perform full return attribution.
+
+The current implementation also includes conservative explanation helpers for
+evidence breakdowns, review-priority rankings, contribution candidates, coarse
+cause summaries, transaction activity summaries, and optional security-period
+evidence views. These helpers organize evidence; they still avoid claiming
+full causal attribution.
+
+### Evidence Role
+
+Findings distinguish their role in the explanation model using the
+`evidence_role` column. This prevents contextual evidence from being mistaken
+for a direct time-weighted return driver.
+
+Evidence roles:
+
+- `target_output`: The performance delta being explained, such as a portfolio
+  return change.
+- `related_output`: Calculated output deltas that help locate the change, such
+  as security return, weight, or contribution changes.
+- `direct_input`: Source/input changes that can plausibly drive time-weighted
+  return, such as prices, FX rates, flows, market values, positions, accruals,
+  transaction amounts, and cash balances.
+- `context`: Reference, classification, schema, or accounting context that aids
+  investigation but is not a direct performance driver by itself.
+
+The portfolio-period summary and evidence breakdown count roles from
+`evidence_role`, while still reporting dataset-level counts for familiar
+review workflows.
+
+The stored `evidence_role` is global and portfolio-period oriented. Because
+portfolio performance is the only required top-level target, security
+performance deltas are stored as `related_output` in the findings table. In the
+local `security_period_evidence_breakdown()` helper, a `PC-SEC-RET` finding is
+displayed as the security-period `target_output`, while security weight and
+contribution changes remain `related_output`. This is a presentation choice for
+the local security-period view, not a change to the underlying finding record.
+
+### Dataset Roles
+
+The first-pass role model should remain intentionally small:
+
+- `portfolio_performance`: `target_output` for portfolio return changes, and
+  `direct_input` for source fields such as market value, flow, income, and
+  gain/loss changes.
+- `security_performance`: `related_output` in the global portfolio-period
+  model. In a local security-period view, the security return change is the
+  local `target_output`.
+- `prices`: `direct_input` because price changes can drive valuation and return
+  changes.
+- `fx_rates`: `direct_input` because exchange-rate changes can drive translated
+  values and returns.
+- `transactions`: `direct_input` because activity, cash flow, quantity, price,
+  and amount changes can drive performance inputs.
+- `positions`: `direct_input` because quantity, market value, price, and
+  accrued-balance changes can drive performance inputs.
+- `cash`: `direct_input` because cash balance and cash market value changes can
+  drive portfolio-level valuation and return inputs.
+- `security_master`: `context` because reference and classification changes
+  usually explain how data is grouped or identified, not a numeric TWR driver
+  by themselves.
+
 ## Finding Codes
 
 Initial code family:
@@ -335,11 +539,15 @@ PC-SEC-CONTR    Security contribution changed
 PC-SEC-ADD      Security appears only in snapshot B
 PC-SEC-DROP     Security appears only in snapshot A
 PC-PRICE        Price changed
+PC-FX-RATE      FX rate changed
 PC-TXN-ADD      Transaction appears only in snapshot B
 PC-TXN-DROP     Transaction appears only in snapshot A
 PC-TXN-AMT      Transaction amount changed
+PC-TXN-QTY      Transaction quantity changed
+PC-TXN-PRICE    Transaction price changed
 PC-POS-QTY      Position quantity changed
 PC-POS-MV       Position market value changed
+PC-POS-ACCR     Position accrued amount changed
 PC-CASH-MV      Cash balance or cash market value changed
 PC-REF-ID       Security identifier/reference field changed
 PC-REF-CLASS    Security classification changed
@@ -354,16 +562,25 @@ values to uppercase at the boundary.
 
 ## Configuration
 
-The existing Axys loader configuration and the new comparison configuration
-serve different purposes and should have distinct names:
+The existing Axys column mapping configuration and the new comparison
+configuration serve different purposes and should have distinct names:
 
-- `ppar_axys.yaml`: Describes how to load one Axys source set.
-- `ppar_performance_comparison.yaml`: Describes how to compare two snapshots.
+- `axys_column_mappings.yaml`: Describes how Axys source columns map to
+  normalized internal column names for reusable Axys datasets.
+- `ppar_performance_comparison.yaml`: Describes which snapshots and files to
+  compare, plus comparison tolerances, materiality, and suppressions.
 
 A comparison probably needs one YAML file for the comparison run, not a separate
 YAML file inside each snapshot. The comparison YAML can point at both snapshot
 directories, define shared rules, and optionally reference vendor schema files
-such as `ppar_axys.yaml`.
+such as `axys_column_mappings.yaml`.
+
+The performance comparison feature has its own normalization/default alias
+layer. Referencing `axys_column_mappings.yaml` is a reuse mechanism for shared
+Axys datasets, not a requirement that performance comparison become Axys-only.
+Comparison-only datasets such as prices, FX rates, transactions, positions,
+and cash can use performance-comparison mappings even when the referenced Axys
+mapping file does not define them.
 
 The comparison YAML should keep vendor-specific parameters minimal. Prefer
 shared, source-agnostic sections for files, tolerances, materiality, and
@@ -383,15 +600,15 @@ Path resolution should be predictable:
 2. Relative paths in `ppar_performance_comparison.yaml` resolve relative to
    that comparison YAML file.
 3. Snapshot data files resolve relative to the configured snapshot directory.
-4. Relative paths inside a referenced schema YAML, such as `ppar_axys.yaml`,
-   resolve relative to that schema YAML file.
+4. Relative paths inside a referenced schema YAML, such as
+   `axys_column_mappings.yaml`, resolve relative to that schema YAML file.
 
 A suggested project layout is:
 
 ```text
 comparisons/
   ppar_performance_comparison.yaml
-  ppar_axys.yaml
+  axys_column_mappings.yaml
 
 snapshots/
   2026-05-01/
@@ -416,19 +633,20 @@ snapshots:
     label: run_2026_05_01
     path: snapshots/2026-05-01
     vendor: axys
-    schema: ppar_axys.yaml
+    schema: axys_column_mappings.yaml
 
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
     vendor: axys
-    schema: ppar_axys.yaml
+    schema: axys_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   security_master: sec_ref.csv
   prices: prices.csv
+  fx_rates: fx_rates.csv
   transactions:
     path: transactions.csv
     required: true
@@ -441,6 +659,7 @@ tolerances:
   weight: 0.000001
   market_value: 0.01
   price: 0.000001
+  fx_rate: 0.00000001
 
 materiality:
   minimum_return_delta: 0.000001
@@ -488,7 +707,7 @@ Column mappings should resolve in this order:
 
 1. Snapshot-specific mapping in `ppar_performance_comparison.yaml`.
 2. Shared comparison-level mapping in `ppar_performance_comparison.yaml`.
-3. Referenced vendor schema file, such as `ppar_axys.yaml`.
+3. Referenced vendor schema file, such as `axys_column_mappings.yaml`.
 4. Built-in default aliases.
 5. Error when the column is missing or ambiguous.
 
@@ -502,7 +721,15 @@ The current implementation honors explicit mappings from referenced schema YAML
 files for `portfolio_performance_columns`, `security_performance_columns`, and
 `security_master_columns`. For mapped columns, the explicit schema mapping is
 authoritative. Built-in aliases remain the fallback for columns not mapped in
-the schema file. Inline snapshot-specific schema mappings remain a future step.
+the schema file.
+
+Comparison-only datasets such as prices, FX rates, transactions, positions,
+and cash currently use the performance-comparison alias/default layer. They do
+not require entries in `axys_column_mappings.yaml`.
+
+Inline snapshot-specific schema mappings remain a future step. The current
+test fixtures use one referenced Axys column-mapping file plus
+performance-comparison defaults.
 
 ## Suppression And Filtering
 
@@ -540,13 +767,32 @@ Finding summaries should include suppression-aware counts:
 
 ## Public API And Output Layers
 
-The current public runner layer exposes three small helpers:
+The current public runner layer exposes small helpers:
 
 ```python
 findings = compare_snapshots(path)
 summaries = summarize_findings(findings)
 compact = compact_findings_table(findings)
+periods = portfolio_period_summary(findings)
+security_periods = security_period_summary(findings)
+evidence = portfolio_period_evidence_breakdown(findings)
+ranked_evidence = rank_portfolio_period_evidence(findings)
+contribution_candidates = portfolio_period_contribution_candidates(findings)
+cause_summary = portfolio_period_cause_summary(findings)
+transaction_summary = transaction_activity_summary(findings)
+security_evidence = security_period_evidence_breakdown(findings)
 ```
+
+Current module ownership:
+
+- `runner.py` owns execution-facing helpers: snapshot comparison, compact
+  findings, and finding-count summaries.
+- `explain.py` owns explanation-facing table helpers: portfolio/security
+  period summaries, evidence breakdowns, and evidence rankings.
+- `__init__.py` re-exports the stable public helpers so callers do not need to
+  care which internal module owns the implementation.
+- `runner.py` also re-exports explanation helpers and constants as a
+  compatibility bridge for earlier imports.
 
 Current output layers:
 
@@ -555,18 +801,193 @@ Current output layers:
   suppressed findings by default.
 - Compact active findings: A report-friendly subset returned by
   `compact_findings_table()`. It excludes suppressed findings by default and
-  keeps the most useful review columns: code, dataset, portfolio/security
-  context, period dates, source file, source column, delta, and message.
+  keeps the most useful review columns: code, dataset, evidence role,
+  portfolio/security context, period dates, source file, source column, delta,
+  and message.
 - Summaries: Count tables returned by `summarize_findings()` for code, dataset,
-  suppression state, and code plus suppression state.
+  evidence role, suppression state, and code plus suppression state.
+- Portfolio-period summary: A lightweight explanation bridge returned by
+  `portfolio_period_summary()`. It groups existing findings around portfolio
+  return deltas and reports related evidence counts without claiming causal
+  contribution yet. It includes role counts for direct input findings, related
+  output findings, and contextual findings.
+- Security-period summary: A lightweight optional explanation bridge returned
+  by `security_period_summary()`. It groups existing findings around security
+  return deltas when `security_performance` is available, and returns a stable
+  empty table when it is not.
+- Portfolio-period evidence breakdown: A long-form explanation bridge returned
+  by `portfolio_period_evidence_breakdown()`. It reports role total rows and
+  nonzero dataset rows for each portfolio-period return delta, making the
+  evidence mix easier to inspect than a single wide row.
+- Portfolio-period evidence ranking: A review-priority helper returned by
+  `rank_portfolio_period_evidence()`. It ranks related non-target findings for
+  each portfolio-period return delta using a transparent heuristic based on
+  evidence role, dataset, and whether a numeric delta exists. The score is not
+  a contribution amount or explained return.
+- Portfolio-period contribution candidates: A conservative helper returned by
+  `portfolio_period_contribution_candidates()`. It adds stable impact columns
+  to ranked evidence rows and may return `no_estimate` when a defensible impact
+  estimate is not available. The first supported estimate uses vendor security
+  contribution deltas as related-output impact estimates.
+- Portfolio-period cause summary: A coarse explanation-bucket helper returned
+  by `portfolio_period_cause_summary()`. It rolls contribution candidates up
+  to portfolio period plus root-cause area, preserving finding counts, top
+  codes, aggregate confidence, and any currently supported impact estimate.
+  Transaction activity remains evidence-only until transaction-type sign and
+  flow semantics are explicitly modeled.
+- Transaction activity summary: An evidence-only helper returned by
+  `transaction_activity_summary()`. It groups changed transaction fields by
+  portfolio, security, period, and normalized transaction category, and reports
+  summed amount, quantity, and price deltas where present. It does not estimate
+  return impact.
+- Security-period evidence breakdown: A long-form optional explanation bridge
+  returned by `security_period_evidence_breakdown()`. It reports role total
+  rows and nonzero dataset rows for each security-period return delta. In this
+  local security-period view, the security return finding is treated as the
+  `target_output`, while other security performance findings remain
+  `related_output`.
 
 This is intentionally not a final report format. It gives callers stable
 building blocks for a future CSV, Markdown, HTML, or portfolio-period bridge
 report without committing the project to one presentation too early.
 
+## Evidence Linking
+
+Some source-input findings can be linked to a portfolio period before any
+return-impact estimate is available. This linking improves review grouping; it
+does not imply that the system has calculated causal contribution.
+
+Implemented period-linking rules:
+
+- `transactions`, `positions`, and `cash` findings link directly to portfolio
+  periods by `portfolio_id` plus their source date. The source date is
+  `transaction_date`, `position_date`, or `cash_date`, respectively.
+- When more than one configured portfolio period contains the source date, the
+  finding links to the narrowest containing period for that portfolio.
+- `prices` findings link through `security_performance` when available. A
+  price finding for `security_id` and `price_date` links to every
+  portfolio-security period containing that date.
+- If the same security appears in multiple portfolios for the same price date,
+  the price comparison can emit one linked finding per matching
+  portfolio-period. This avoids hiding affected portfolios behind an arbitrary
+  single match.
+- Unmatched dated evidence keeps null period fields.
+- `fx_rates` findings intentionally remain unlinked for now. FX linkage needs
+  currency exposure context from positions, cash, transactions, portfolio
+  currency, or valuation data. A rate row alone is not enough to identify the
+  affected portfolio period conservatively.
+
+These rules are intentionally asymmetric. Price rows can be linked through
+security-period output because they share a security identifier and date. FX
+rates need currency exposure context that is not guaranteed by
+`security_performance`.
+
+## Current Limits
+
+The current evidence model is useful, but it should not be overstated.
+
+- Evidence counts are not contribution amounts. A portfolio-period summary can
+  say that related price, transaction, position, cash, or security-output
+  findings exist; it does not yet calculate how much each item explains of the
+  portfolio return delta.
+- Portfolio-period evidence rankings are review-priority heuristics. They help
+  sort the audit trail but do not quantify causal contribution.
+- Prices often lack portfolio identifiers, but they can be linked through
+  security-performance periods when `security_performance` is available. FX
+  rates often lack both portfolio identifiers and exposure context, so they
+  remain unlinked until a conservative exposure linker exists.
+- Transaction matching depends on stable keys. With `transaction_id`, changed
+  amounts can be reported as changed transactions. Without it, conservative
+  fallback matching may report one drop and one add rather than guessing two
+  similar rows are the same transaction.
+- Changed transaction, position, and cash findings are linked to the narrowest
+  configured portfolio performance period for the same portfolio when their
+  source date falls inside that period. Unmatched dated evidence findings keep
+  null period fields.
+- Security master changes are context unless future logic ties them to a
+  grouping, reporting, or identifier-resolution effect.
+- Security-period summaries are optional. The portfolio-period explanation path
+  must continue to work when `security_performance` is absent.
+- The implementation compares source evidence. It does not recalculate TWR from
+  raw transactions, positions, prices, or cash.
+
+## Contribution Ranking Direction
+
+The existing `rank_portfolio_period_evidence()` helper is a review-priority
+sort. It helps decide which findings to inspect first, but it is not a
+contribution model and should not be labeled as explaining a portion of return.
+
+A future contribution-ranking layer should be optional, conservative, and
+explicit about its basis. The output should be allowed to say "no estimate"
+when a finding lacks the denominator, linkage, or methodology needed for a
+defensible return-impact estimate.
+
+Implemented contribution-candidate fields:
+
+- `estimated_return_impact`: Optional numeric estimate of return impact.
+- `impact_basis`: Short basis label, such as `portfolio_source_field`,
+  `security_contribution`, `linked_position_price`, or `no_estimate`.
+- `impact_confidence`: High, medium, or low confidence in the estimate.
+- `impact_method`: The formula or rule used to estimate impact.
+- `impact_message`: Human-readable explanation of the estimate or why no
+  estimate was produced.
+
+The first implementation of contribution candidates preserves all ranked
+evidence rows, populates these columns, and estimates only vendor-provided
+security contribution deltas. That estimate uses
+`impact_basis = security_contribution`, `impact_method =
+vendor_contribution_delta`, and medium confidence. All other rows use
+`impact_basis = no_estimate` until a more defensible method exists.
+
+First contribution estimates should start only where the math is defensible:
+
+- Portfolio performance source fields: Changes in fields such as `income`,
+  `gain_loss`, `flow`, `begin_market_value`, and `end_market_value` may support
+  rough return-impact estimates when the relevant denominator is present. These
+  estimates should clearly state the denominator and formula.
+- Security contribution deltas: If a vendor supplies contribution, changed
+  contribution can be ranked by contribution delta. This remains `related_output`
+  evidence, not root cause, because contribution is already calculated output.
+- Position, price, and transaction evidence: These should receive an estimated
+  return impact only when the finding can be linked to an affected portfolio,
+  period, security, and denominator. Otherwise they should remain ranked review
+  evidence with `impact_basis` set to `no_estimate`.
+- FX evidence: FX rate changes should not receive a portfolio-period return
+  impact unless they can be linked to affected currency exposure, valuation, or
+  transactions.
+
+Contribution ranking should not require every finding to receive an estimate.
+A mixed output is acceptable: some rows may have `estimated_return_impact`, and
+others may remain review-priority evidence only.
+
+Residual findings should wait until the system has a credible contribution
+model. Emitting residuals before enough impact estimates exist would imply a
+precision the comparison does not yet have.
+
+## Near-Term Roadmap
+
+The next design work should focus on explanation quality before adding broad
+new datasets.
+
+- Strengthen the contribution-candidate helper only where the math is
+  defensible. Portfolio source fields may be next if the denominator and
+  formula can be stated clearly.
+- Add a residual concept only after there are enough credible contribution
+  estimates. A residual emitted too early would imply precision the system does
+  not have.
+- Keep report/export formats separate from comparison logic. CSV, Markdown, or
+  HTML outputs can be built from the current helper tables later.
+- Consider a dataset comparison registry if more datasets are added. The
+  current explicit comparison functions are readable; a registry becomes useful
+  only when repeated dataset boilerplate starts to obscure the rules.
+- Avoid adding new datasets unless real source files expose evidence that is
+  not adequately represented by the current normalized datasets.
+
 ## Suggested Milestones
 
 ### Milestone 1: Portfolio Performance Difference Engine
+
+Status: mostly implemented for the current fixture set.
 
 - Read comparison YAML.
 - Load two snapshot directories.
@@ -581,12 +1002,17 @@ report without committing the project to one presentation too early.
 
 ### Milestone 2: Human Report
 
+Status: intentionally deferred.
+
 - Add CSV, Markdown, or HTML output using the current findings helpers.
 - Group by portfolio and period.
 - Rank largest return and contribution deltas.
 - Include suppressed findings appendix.
 
 ### Milestone 3: Supporting-File Explanations
+
+Status: implemented at the comparison/evidence-linking level for current
+datasets; causal impact estimates remain limited.
 
 - Compare prices for securities with changed returns.
 - Compare transactions for affected portfolio/security/period rows.
@@ -596,29 +1022,61 @@ report without committing the project to one presentation too early.
 
 ### Milestone 4: Public API And Demo
 
+Status: partially implemented.
+
 - Add stable public entry points.
 - Add sample comparison fixture directories.
 - Add script or demo command.
 - Document configuration and finding codes.
 
+## Long-Term Dataset Watchlist
+
+The current normalized dataset set already covers the first useful comparison
+surface: portfolio performance, security performance, positions, cash,
+transactions, prices, FX rates, and security master/reference data. Additional
+datasets should be added only when real source files expose evidence that is
+not adequately represented by those existing datasets.
+
+Potential long-term datasets to keep in mind:
+
+- `market_values` or `valuations`: Portfolio/security valuation totals when a
+  vendor provides them separately from holdings.
+- `tax_lots`: Lot-level cost, realized gain/loss, acquisition-date, or
+  tax-basis differences.
+- `corporate_actions`: Splits, mergers, spinoffs, symbol changes,
+  return-of-capital events, and similar security events.
+- `benchmark_performance`: Benchmark-relative performance deltas if benchmark
+  comparison becomes part of the explanation question.
+- `fees_expenses`: Management fees, custody fees, advisory fees, expense
+  accruals, or other charges when they are not represented as transactions.
+- `realized_gain_loss`: Realized profit/loss supplied as a separate accounting
+  output rather than derivable from transactions or lots.
+- `extract_manifest`: Snapshot timestamps, vendor version, accounting basis,
+  source system, extraction parameters, and other run metadata.
+
+These are open design items, not near-term implementation targets. Before
+adding any of them, prefer strengthening comparisons for useful columns already
+present in existing datasets, such as position cost/accrued values or
+transaction quantity, price, and commission.
+
 ## Open Design Issues
 
-1. Should output be organized around findings, around portfolio-period bridges,
-   or both?
-2. What is the minimum set of fields required to match transactions reliably?
-3. Should comparison tolerate missing supporting files, or treat them as
-   blocking errors?
-4. Should suppressions require a `reason` field?
-5. Should row matching allow fuzzy keys, such as ticker fallback when security
+1. What is the minimum set of fields required to match transactions reliably
+   when `transaction_id` is unavailable?
+2. Should suppressions require a `reason` field, or remain optional for terse
+   operational configs?
+3. Should row matching allow fuzzy keys, such as ticker fallback when security
    id changes?
-6. Should numeric tolerances be absolute only at first, or support relative
+4. Should numeric tolerances be absolute only at first, or support relative
    tolerances too?
-7. Should an unexplained residual always be emitted when explanations do not
-   account for a return delta?
-8. Should this package reuse `PpaError` codes or introduce comparison-specific
-    finding codes only?
-9. How much of the existing `ppar.axys` inference code should be shared with
-    future vendor adapters, and how much should remain Axys-specific?
+5. What is the simplest defensible contribution-ranking model for
+   portfolio-period deltas?
+6. When contribution ranking exists, when should an unexplained residual be
+   emitted?
+7. Should this package reuse `PpaError` codes or introduce comparison-specific
+   finding codes only?
+8. How much of the existing `ppar.axys` inference code should be shared with
+   future vendor adapters, and how much should remain Axys-specific?
 
 ## Recommended Starting Point
 

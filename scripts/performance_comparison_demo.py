@@ -22,8 +22,33 @@ sys.path.insert(0, str(_REPO_ROOT))
 from ppar.performance_comparison import (  # noqa: E402
     compact_findings_table,
     compare_snapshots,
+    portfolio_period_cause_summary,
+    portfolio_period_contribution_candidates,
+    portfolio_period_evidence_breakdown,
+    portfolio_period_summary,
+    rank_portfolio_period_evidence,
+    security_period_evidence_breakdown,
+    security_period_summary,
     summarize_findings,
+    transaction_activity_summary,
 )
+
+
+def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None:
+    """Print a titled table using demo-friendly Polars display settings."""
+    print(title)
+    if wide:
+        with pl.Config(
+            tbl_cols=-1,
+            tbl_rows=-1,
+            tbl_width_chars=240,
+            fmt_str_lengths=80,
+        ):
+            print(table)
+    else:
+        with pl.Config(tbl_cols=-1, tbl_rows=-1, tbl_width_chars=160):
+            print(table)
+    print()
 
 
 def main() -> None:
@@ -35,6 +60,14 @@ def main() -> None:
     findings = compare_snapshots(comparison_path)
     active_findings = compare_snapshots(comparison_path, include_suppressed=False)
     compact_active_findings = compact_findings_table(findings)
+    period_summary = portfolio_period_summary(findings)
+    security_summary = security_period_summary(findings)
+    evidence_breakdown = portfolio_period_evidence_breakdown(findings)
+    evidence_ranking = rank_portfolio_period_evidence(findings)
+    contribution_candidates = portfolio_period_contribution_candidates(findings)
+    cause_summary = portfolio_period_cause_summary(findings)
+    transaction_summary = transaction_activity_summary(findings)
+    security_evidence_breakdown = security_period_evidence_breakdown(findings)
     summaries = summarize_findings(findings)
     active_summaries = summarize_findings(active_findings)
     suppressed_findings = compare_snapshots(suppressed_comparison_path)
@@ -44,43 +77,40 @@ def main() -> None:
     )
     suppressed_summaries = summarize_findings(suppressed_findings)
     suppressed_active_summaries = summarize_findings(suppressed_active_findings)
-    with pl.Config(tbl_cols=-1, tbl_rows=-1):
-        print("Restatement comparison")
-        print()
-        print("Finding count by code")
-        print(summaries["by_code"])
-        print()
-        print("Finding count by dataset")
-        print(summaries["by_dataset"])
-        print()
-        print("Finding count by suppression state")
-        print(summaries["by_suppressed"])
-        print()
-        print("Finding count by code and suppression state")
-        print(summaries["by_code_suppressed"])
-        print()
-        print("Active finding count by code")
-        print(active_summaries["by_code"])
-        print()
-        print("Compact active findings")
-        print(compact_active_findings)
-        print()
-        print("Full audit findings")
-        print(findings)
-        print()
-        print("Suppressed restatement comparison")
-        print()
-        print(f"All findings: {suppressed_findings.height}")
-        print(f"Active findings: {suppressed_active_findings.height}")
-        print()
-        print("Finding count by suppression state")
-        print(suppressed_summaries["by_suppressed"])
-        print()
-        print("Finding count by code and suppression state")
-        print(suppressed_summaries["by_code_suppressed"])
-        print()
-        print("Active finding count by code")
-        print(suppressed_active_summaries["by_code"])
+    print("Restatement comparison")
+    print()
+    _print_table("Finding count by code", summaries["by_code"])
+    _print_table("Finding count by dataset", summaries["by_dataset"])
+    _print_table("Finding count by evidence role", summaries["by_evidence_role"])
+    _print_table("Finding count by suppression state", summaries["by_suppressed"])
+    _print_table("Finding count by code and suppression state", summaries["by_code_suppressed"])
+    _print_table("Active finding count by code", active_summaries["by_code"])
+    _print_table("Portfolio-period summary", period_summary)
+    _print_table("Security-period summary", security_summary)
+    _print_table("Portfolio-period evidence breakdown", evidence_breakdown)
+    _print_table("Portfolio-period evidence ranking", evidence_ranking, wide=True)
+    _print_table(
+        "Portfolio-period contribution candidates",
+        contribution_candidates,
+        wide=True,
+    )
+    _print_table("Portfolio-period cause summary", cause_summary, wide=True)
+    _print_table("Transaction activity summary", transaction_summary, wide=True)
+    _print_table("Security-period evidence breakdown", security_evidence_breakdown)
+    _print_table("Compact active findings", compact_active_findings, wide=True)
+    _print_table("Full audit findings", findings, wide=True)
+
+    print("Suppressed restatement comparison")
+    print()
+    print(f"All findings: {suppressed_findings.height}")
+    print(f"Active findings: {suppressed_active_findings.height}")
+    print()
+    _print_table("Finding count by suppression state", suppressed_summaries["by_suppressed"])
+    _print_table(
+        "Finding count by code and suppression state",
+        suppressed_summaries["by_code_suppressed"],
+    )
+    _print_table("Active finding count by code", suppressed_active_summaries["by_code"])
 
 
 if __name__ == "__main__":

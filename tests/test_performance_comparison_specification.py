@@ -53,7 +53,7 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
         )
         self.assertEqual(
             specification.snapshot_b.schema_path,
-            Path("tests/data/axys/ppar_axys.yaml"),
+            Path("tests/data/axys/axys_column_mappings.yaml"),
         )
 
         portfolio_file = specification.files["portfolio_performance"]

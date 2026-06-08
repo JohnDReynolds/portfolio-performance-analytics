@@ -15,6 +15,7 @@ from ppar.performance_comparison import aliases
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.specification import ComparisonSnapshot
+from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
 
 class TestSourceLoader(unittest.TestCase):
@@ -24,7 +25,7 @@ class TestSourceLoader(unittest.TestCase):
         """Referenced schema mappings are honored before built-in defaults."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
-            schema_path = directory / "ppar_axys.yaml"
+            schema_path = directory / "axys_column_mappings.yaml"
             source_path = directory / "portperf.csv"
             schema_path.write_text(
                 yaml.safe_dump(
@@ -78,7 +79,7 @@ class TestSourceLoader(unittest.TestCase):
         """Referenced schema mappings support security performance and master."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
-            schema_path = directory / "ppar_axys.yaml"
+            schema_path = directory / "axys_column_mappings.yaml"
             schema_path.write_text(
                 yaml.safe_dump(
                     {
@@ -178,6 +179,85 @@ class TestSourceLoader(unittest.TestCase):
             self.assertTrue(message.startswith("Error 502"))
             self.assertIn("Ambiguous test dataset source columns", message)
             self.assertIn("price_source", message)
+
+    def test_optional_file_path_returns_snapshot_specific_paths(self) -> None:
+        """Optional file paths resolve to the requested snapshot side."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_source_loader_specification(directory)
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            snapshot_a_path = source_loader.optional_file_path(
+                specification,
+                pc_cols.PRICES,
+                "a",
+            )
+            snapshot_b_path = source_loader.optional_file_path(
+                specification,
+                pc_cols.PRICES,
+                "b",
+            )
+
+            self.assertEqual(snapshot_a_path, directory / "snapshot_a" / "prices.csv")
+            self.assertEqual(snapshot_b_path, directory / "snapshot_b" / "prices.csv")
+
+    def test_optional_file_path_returns_none_for_omitted_dataset(self) -> None:
+        """Omitted optional datasets return ``None``."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_source_loader_specification(directory)
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            path = source_loader.optional_file_path(
+                specification,
+                pc_cols.TRANSACTIONS,
+                "a",
+            )
+
+            self.assertIsNone(path)
+
+    def test_optional_file_path_rejects_unknown_snapshot_key(self) -> None:
+        """Unknown neutral snapshot keys fail clearly."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            specification_path = _write_source_loader_specification(directory)
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            with self.assertRaises(PpaError) as context:
+                source_loader.optional_file_path(
+                    specification,
+                    pc_cols.PRICES,
+                    "c",
+                )
+
+            self.assertTrue(str(context.exception).startswith("Error 999"))
+            self.assertIn("Unknown snapshot key", str(context.exception))
+
+
+def _write_source_loader_specification(directory: Path) -> Path:
+    """Write a minimal source-loader comparison specification."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "prices": "prices.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 import datetime as dt
+from collections.abc import Mapping
 from typing import Any, Final, cast
 
 # Third-party imports
@@ -15,7 +16,12 @@ from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.cash import CashLoader
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
+    CONTEXT,
+    DIRECT_INPUT,
+    RELATED_OUTPUT,
+    TARGET_OUTPUT,
     PC_CASH_MV,
+    PC_FX_RATE,
     PC_PORT_FLOW,
     PC_PORT_MV,
     PC_PORT_RET,
@@ -29,14 +35,24 @@ from ppar.performance_comparison.findings import (
     PC_TXN_ADD,
     PC_TXN_AMT,
     PC_TXN_DROP,
+    PC_TXN_PRICE,
+    PC_TXN_QTY,
     PC_REF_CLASS,
     PC_REF_ID,
     PC_POS_MV,
     PC_POS_QTY,
+    PC_POS_ACCR,
     PC_PRICE,
     SEVERITY_INFORMATIONAL,
     SEVERITY_MATERIAL,
     Finding,
+)
+from ppar.performance_comparison.fx_rates import FxRatesLoader
+from ppar.performance_comparison.period_linking import (
+    period_context_for_dated_evidence,
+    portfolio_periods_from_snapshots,
+    security_period_contexts_for_dated_evidence,
+    security_periods_from_snapshots,
 )
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
 from ppar.performance_comparison.positions import PositionsLoader
@@ -74,6 +90,13 @@ _PRICE_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
     pc_cols.PRICE_DATE,
     pc_cols.CURRENCY,
     pc_cols.PRICE_SOURCE,
+)
+_FX_RATE_KEY_COLUMNS: Final[tuple[str, str, str, str, str]] = (
+    pc_cols.FROM_CURRENCY,
+    pc_cols.TO_CURRENCY,
+    pc_cols.RATE_DATE,
+    pc_cols.RATE_SOURCE,
+    pc_cols.RATE_TYPE,
 )
 _TRANSACTION_ID_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.TRANSACTION_ID,)
 _TRANSACTION_FALLBACK_KEY_COLUMNS: Final[tuple[str, ...]] = (
@@ -113,6 +136,7 @@ _SECURITY_MASTER_COMPARE_COLUMNS: Final[dict[str, str]] = {
 _POSITIONS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.QUANTITY: PC_POS_QTY,
     pc_cols.MARKET_VALUE: PC_POS_MV,
+    pc_cols.ACCRUED: PC_POS_ACCR,
 }
 _CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.CASH_BALANCE: PC_CASH_MV,
@@ -121,15 +145,31 @@ _CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
 _PRICE_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.PRICE: PC_PRICE,
 }
+_FX_RATE_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.FX_RATE: PC_FX_RATE,
+}
 _TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.AMOUNT: PC_TXN_AMT,
+    pc_cols.QUANTITY: PC_TXN_QTY,
+    pc_cols.PRICE: PC_TXN_PRICE,
 }
+_DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
+    {
+        pc_cols.PRICES,
+        pc_cols.FX_RATES,
+        pc_cols.TRANSACTIONS,
+        pc_cols.POSITIONS,
+        pc_cols.CASH,
+    }
+)
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
     "weight": 1e-6,
     "market_value": 0.01,
     "quantity": 1e-6,
+    "price": 1e-6,
+    "fx_rate": 1e-8,
 }
 _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.PORTFOLIO_RETURN: "return",
@@ -143,8 +183,10 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.CONTRIBUTION: "contribution",
     pc_cols.QUANTITY: "quantity",
     pc_cols.MARKET_VALUE: "market_value",
+    pc_cols.ACCRUED: "market_value",
     pc_cols.CASH_BALANCE: "market_value",
     pc_cols.PRICE: "price",
+    pc_cols.FX_RATE: "fx_rate",
     pc_cols.AMOUNT: "market_value",
 }
 
@@ -160,6 +202,7 @@ class PerformanceComparison:
         _positions_loader: Loader for normalized position rows.
         _cash_loader: Loader for normalized cash rows.
         _prices_loader: Loader for normalized price rows.
+        _fx_rates_loader: Loader for normalized FX rate rows.
         _transactions_loader: Loader for normalized transaction rows.
     """
 
@@ -176,6 +219,7 @@ class PerformanceComparison:
         self._positions_loader = PositionsLoader(specification)
         self._cash_loader = CashLoader(specification)
         self._prices_loader = PricesLoader(specification)
+        self._fx_rates_loader = FxRatesLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
 
     def compare_portfolio_performance(self) -> list[Finding]:
@@ -204,6 +248,7 @@ class PerformanceComparison:
         findings.extend(self.compare_positions())
         findings.extend(self.compare_cash())
         findings.extend(self.compare_prices())
+        findings.extend(self.compare_fx_rates())
         findings.extend(self.compare_transactions())
         return apply_suppressions(findings, self._specification)
 
@@ -288,6 +333,7 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
+        portfolio_periods = self._portfolio_periods()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -305,6 +351,7 @@ class PerformanceComparison:
                 _POSITIONS_KEY_COLUMNS,
                 _POSITIONS_COMPARE_COLUMNS,
                 pc_cols.POSITIONS,
+                portfolio_periods,
             )
         )
         return findings
@@ -322,6 +369,7 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
+        portfolio_periods = self._portfolio_periods()
         key_columns = self._cash_key_columns(snapshot_a, snapshot_b)
         findings = self._row_presence_findings(
             snapshot_a,
@@ -340,6 +388,7 @@ class PerformanceComparison:
                 key_columns,
                 _CASH_COMPARE_COLUMNS,
                 pc_cols.CASH,
+                portfolio_periods,
             )
         )
         return findings
@@ -357,6 +406,7 @@ class PerformanceComparison:
             return []
 
         key_columns = self._optional_key_columns(snapshot_a, snapshot_b, _PRICE_KEY_COLUMNS)
+        security_periods = self._security_periods()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -374,6 +424,46 @@ class PerformanceComparison:
                 key_columns,
                 _PRICE_COMPARE_COLUMNS,
                 pc_cols.PRICES,
+                security_periods=security_periods,
+            )
+        )
+        return findings
+
+    def compare_fx_rates(self) -> list[Finding]:
+        """Compare FX rate rows for snapshots A and B.
+
+        Returns:
+            Findings for added/dropped rows and material FX rate changes.
+            Returns an empty list when the optional FX rates dataset is
+            unavailable.
+        """
+        snapshot_a = self._fx_rates_loader.load("a")
+        snapshot_b = self._fx_rates_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return []
+
+        key_columns = self._optional_key_columns(
+            snapshot_a,
+            snapshot_b,
+            _FX_RATE_KEY_COLUMNS,
+        )
+        findings = self._row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+            PC_ROW_ADD,
+            PC_ROW_DROP,
+            pc_cols.FX_RATES,
+            "FX rate row appears only in snapshot B.",
+            "FX rate row appears only in snapshot A.",
+        )
+        findings.extend(
+            self._changed_value_findings(
+                snapshot_a,
+                snapshot_b,
+                key_columns,
+                _FX_RATE_COMPARE_COLUMNS,
+                pc_cols.FX_RATES,
             )
         )
         return findings
@@ -392,6 +482,7 @@ class PerformanceComparison:
             return []
 
         key_columns = self._transaction_key_columns(snapshot_a, snapshot_b)
+        portfolio_periods = self._portfolio_periods()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -410,6 +501,7 @@ class PerformanceComparison:
                     key_columns,
                     _TRANSACTION_COMPARE_COLUMNS,
                     pc_cols.TRANSACTIONS,
+                    portfolio_periods,
                 )
             )
         return findings
@@ -494,12 +586,18 @@ class PerformanceComparison:
                         severity=SEVERITY_INFORMATIONAL,
                         confidence=CONFIDENCE_HIGH,
                         dataset=dataset,
+                        evidence_role=self._evidence_role(
+                            compare_columns[column],
+                            dataset,
+                            column,
+                        ),
                         portfolio_id=row.get(pc_cols.PORTFOLIO_ID),
                         security_id=row.get(pc_cols.SECURITY_ID),
                         from_date=row.get(pc_cols.FROM_DATE),
                         thru_date=row.get(pc_cols.THRU_DATE),
                         source_file=source_file,
                         source_column=column,
+                        transaction_category=self._transaction_category(row, dataset),
                         snapshot_a_value=snapshot_a_value,
                         snapshot_b_value=snapshot_b_value,
                         message=f"{dataset} {column!r} changed.",
@@ -514,6 +612,8 @@ class PerformanceComparison:
         key_columns: tuple[str, ...] = _PORTFOLIO_KEY_COLUMNS,
         compare_columns: dict[str, str] | None = None,
         dataset: str = pc_cols.PORTFOLIO_PERFORMANCE,
+        portfolio_periods: pl.DataFrame | None = None,
+        security_periods: pl.DataFrame | None = None,
     ) -> list[Finding]:
         """Return findings for material value changes on matching rows."""
         compare_columns = compare_columns or _PORTFOLIO_COMPARE_COLUMNS
@@ -534,6 +634,12 @@ class PerformanceComparison:
         )
         findings: list[Finding] = []
         for row in joined.iter_rows(named=True):
+            finding_contexts = self._changed_value_contexts(
+                row,
+                dataset,
+                portfolio_periods,
+                security_periods,
+            )
             for column in shared_columns:
                 snapshot_a_value = row[column]
                 snapshot_b_value = row[f"{column}_b"]
@@ -542,24 +648,34 @@ class PerformanceComparison:
                     continue
                 if abs(delta) <= self._tolerance(column):
                     continue
-                findings.append(
-                    Finding(
-                        code=compare_columns[column],
-                        severity=SEVERITY_MATERIAL,
-                        confidence=CONFIDENCE_HIGH,
-                        dataset=dataset,
-                        portfolio_id=row.get(pc_cols.PORTFOLIO_ID),
-                        security_id=row.get(pc_cols.SECURITY_ID),
-                        from_date=row.get(pc_cols.FROM_DATE),
-                        thru_date=row.get(pc_cols.THRU_DATE),
-                        source_file=source_file,
-                        source_column=column,
-                        snapshot_a_value=snapshot_a_value,
-                        snapshot_b_value=snapshot_b_value,
-                        delta_b_minus_a=delta,
-                        message=f"{dataset} {column!r} changed.",
+                for portfolio_id, from_date, thru_date in finding_contexts:
+                    findings.append(
+                        Finding(
+                            code=compare_columns[column],
+                            severity=SEVERITY_MATERIAL,
+                            confidence=CONFIDENCE_HIGH,
+                            dataset=dataset,
+                            evidence_role=self._evidence_role(
+                                compare_columns[column],
+                                dataset,
+                                column,
+                            ),
+                            portfolio_id=portfolio_id,
+                            security_id=row.get(pc_cols.SECURITY_ID),
+                            from_date=from_date,
+                            thru_date=thru_date,
+                            source_file=source_file,
+                            source_column=column,
+                            transaction_category=self._transaction_category(
+                                row,
+                                dataset,
+                            ),
+                            snapshot_a_value=snapshot_a_value,
+                            snapshot_b_value=snapshot_b_value,
+                            delta_b_minus_a=delta,
+                            message=f"{dataset} {column!r} changed.",
+                        )
                     )
-                )
         return findings
 
     @staticmethod
@@ -597,6 +713,51 @@ class PerformanceComparison:
     def _sortable_key(row_key: tuple[object, ...]) -> tuple[str, ...]:
         """Return a deterministic string sort key for finding output."""
         return tuple(str(value) for value in row_key)
+
+    @staticmethod
+    def _transaction_category(row: dict[str, object], dataset: str) -> object | None:
+        """Return normalized transaction category context for transaction rows."""
+        if dataset != pc_cols.TRANSACTIONS:
+            return None
+        return row.get(pc_cols.TRANSACTION_CATEGORY)
+
+    @staticmethod
+    def _changed_value_contexts(
+        row: Mapping[str, object],
+        dataset: str,
+        portfolio_periods: pl.DataFrame | None,
+        security_periods: pl.DataFrame | None,
+    ) -> list[tuple[object | None, object | None, object | None]]:
+        """Return portfolio and period contexts for changed-value findings."""
+        security_period_contexts = security_period_contexts_for_dated_evidence(
+            row,
+            dataset,
+            security_periods,
+        )
+        if security_period_contexts:
+            return security_period_contexts
+
+        period_context = period_context_for_dated_evidence(
+            row,
+            dataset,
+            portfolio_periods,
+        )
+        return [(row.get(pc_cols.PORTFOLIO_ID), period_context[0], period_context[1])]
+
+    def _portfolio_periods(self) -> pl.DataFrame:
+        """Return portfolio period rows from both snapshots for evidence linking."""
+        return portfolio_periods_from_snapshots(
+            self._portfolio_loader.load("a"),
+            self._portfolio_loader.load("b"),
+        )
+
+    def _security_periods(self) -> pl.DataFrame | None:
+        """Return security period rows from both snapshots for evidence linking."""
+        snapshot_a = self._security_loader.load("a")
+        snapshot_b = self._security_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return None
+        return security_periods_from_snapshots(snapshot_a, snapshot_b)
 
     @staticmethod
     def _cash_key_columns(
@@ -665,6 +826,7 @@ class PerformanceComparison:
             severity=SEVERITY_INFORMATIONAL,
             confidence=CONFIDENCE_HIGH,
             dataset=dataset,
+            evidence_role=PerformanceComparison._evidence_role(code, dataset, None),
             portfolio_id=portfolio_id,
             security_id=security_id,
             from_date=from_date,
@@ -672,6 +834,26 @@ class PerformanceComparison:
             source_file=source_file,
             message=message,
         )
+
+    @staticmethod
+    def _evidence_role(
+        code: str,
+        dataset: str,
+        source_column: str | None,
+    ) -> str:
+        """Return the explanation role for a finding."""
+        if dataset == pc_cols.PORTFOLIO_PERFORMANCE:
+            if (
+                code in {PC_ROW_ADD, PC_ROW_DROP, PC_PORT_RET}
+                and source_column in {None, pc_cols.PORTFOLIO_RETURN}
+            ):
+                return TARGET_OUTPUT
+            return DIRECT_INPUT
+        if dataset == pc_cols.SECURITY_PERFORMANCE:
+            return RELATED_OUTPUT
+        if dataset in _DIRECT_INPUT_DATASETS:
+            return DIRECT_INPUT
+        return CONTEXT
 
     @staticmethod
     def _numeric_delta(snapshot_a_value: object, snapshot_b_value: object) -> float | None:

@@ -7,9 +7,77 @@ import polars as pl
 
 # Project imports
 from ppar.performance_comparison.compare import PerformanceComparison
+from ppar.performance_comparison.explain import (
+    ABSOLUTE_DELTA,
+    AMOUNT_DELTA,
+    CASH_FINDING_COUNT,
+    CHANGED_FIELDS,
+    CONTEXT,
+    CONTEXT_FINDING_COUNT,
+    DIRECT_INPUT,
+    DIRECT_INPUT_FINDING_COUNT,
+    EVIDENCE_GROUP,
+    FINDING_COUNT,
+    FX_RATE_FINDING_COUNT,
+    HAS_SUPPRESSED_FINDINGS,
+    ESTIMATED_RETURN_IMPACT,
+    IMPACT_BASIS,
+    IMPACT_BASIS_NO_ESTIMATE,
+    IMPACT_BASIS_SECURITY_CONTRIBUTION,
+    IMPACT_CONFIDENCE,
+    IMPACT_CONFIDENCE_LOW,
+    IMPACT_CONFIDENCE_MEDIUM,
+    IMPACT_MESSAGE,
+    IMPACT_METHOD,
+    IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
+    PORTFOLIO_FINDING_COUNT,
+    PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
+    PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
+    PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS,
+    PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS,
+    PORTFOLIO_PERIOD_SUMMARY_COLUMNS,
+    PORTFOLIO_RETURN_DELTA,
+    POSITION_FINDING_COUNT,
+    PRICE_FINDING_COUNT,
+    PRIORITY_REASON,
+    PRIORITY_SCORE,
+    REFERENCE_FINDING_COUNT,
+    RELATED_OUTPUT,
+    RELATED_OUTPUT_FINDING_COUNT,
+    REVIEW_RANK,
+    ROOT_CAUSE_AREA,
+    ROOT_CAUSE_CASH,
+    ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
+    ROOT_CAUSE_FX_RATE,
+    ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+    ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
+    ROOT_CAUSE_PRICE,
+    ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
+    ROOT_CAUSE_TRANSACTION_ACTIVITY,
+    ROOT_CAUSE_UNEXPLAINED,
+    SECURITY_FINDING_COUNT,
+    SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS,
+    SECURITY_PERIOD_SUMMARY_COLUMNS,
+    SECURITY_RETURN_DELTA,
+    TARGET_OUTPUT,
+    TOP_CODES,
+    PRICE_DELTA,
+    QUANTITY_DELTA,
+    TRANSACTION_FINDING_COUNT,
+    TRANSACTION_ACTIVITY_SUMMARY_COLUMNS,
+    portfolio_period_cause_summary,
+    portfolio_period_contribution_candidates,
+    portfolio_period_evidence_breakdown,
+    portfolio_period_summary,
+    rank_portfolio_period_evidence,
+    security_period_evidence_breakdown,
+    security_period_summary,
+    transaction_activity_summary,
+)
 from ppar.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
+    EVIDENCE_ROLE,
     FINDING_CODE,
     FROM_DATE,
     MESSAGE,
@@ -63,12 +131,14 @@ def summarize_findings(findings: pl.DataFrame) -> dict[str, pl.DataFrame]:
 
     Returns:
         Dictionary containing count tables keyed by ``"by_code"``,
-        ``"by_dataset"``, ``"by_suppressed"``, and ``"by_code_suppressed"``.
-        Empty findings return empty summary tables with stable columns.
+        ``"by_dataset"``, ``"by_evidence_role"``, ``"by_suppressed"``, and
+        ``"by_code_suppressed"``. Empty findings return empty summary tables
+        with stable columns.
     """
     return {
         "by_code": _count_by(findings, FINDING_CODE),
         "by_dataset": _count_by(findings, DATASET),
+        "by_evidence_role": _count_by(findings, EVIDENCE_ROLE),
         "by_suppressed": _count_by_suppressed(findings),
         "by_code_suppressed": _count_by_code_suppressed(findings),
     }
@@ -92,6 +162,7 @@ def compact_findings_table(
     compact_columns = [
         FINDING_CODE,
         DATASET,
+        EVIDENCE_ROLE,
         PORTFOLIO_ID,
         SECURITY_ID,
         FROM_DATE,

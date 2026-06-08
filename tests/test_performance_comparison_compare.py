@@ -18,10 +18,17 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.findings import (
+    CONTEXT,
     DELTA_B_MINUS_A,
+    DIRECT_INPUT,
+    EVIDENCE_ROLE,
     FINDING_CODE,
+    FROM_DATE,
+    PORTFOLIO_ID,
     PC_CASH_MV,
+    PC_FX_RATE,
     PC_PORT_MV,
+    PC_POS_ACCR,
     PC_PORT_RET,
     PC_POS_MV,
     PC_POS_QTY,
@@ -34,11 +41,18 @@ from ppar.performance_comparison.findings import (
     PC_TXN_ADD,
     PC_TXN_AMT,
     PC_TXN_DROP,
+    PC_TXN_PRICE,
+    PC_TXN_QTY,
     PC_REF_CLASS,
     PC_REF_ID,
+    RELATED_OUTPUT,
     SECURITY_ID,
     SOURCE_FILE,
     SOURCE_COLUMN,
+    TARGET_OUTPUT,
+    THRU_DATE,
+    TRANSACTION_CATEGORY,
+    Finding,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
@@ -78,6 +92,144 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
     return specification_path
 
 
+def _write_transaction_period_specification(directory: Path) -> Path:
+    """Write a minimal transaction comparison fixture with transaction ids."""
+    for snapshot_name, amount in (("snapshot_a", "100.00"), ("snapshot_b", "110.00")):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
+            f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount}\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "transactions": "transactions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_position_period_specification(directory: Path) -> Path:
+    """Write a minimal position comparison fixture with a containing period."""
+    for snapshot_name, market_value in (
+        ("snapshot_a", "1000.00"),
+        ("snapshot_b", "1010.00"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "positions.csv").write_text(
+            "PORT,SEC,POSITION_DATE,QTY,MKT_VAL\n"
+            f"PORT_A,AAPL,2025-05-31,10,{market_value}\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "positions": "positions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_cash_period_specification(directory: Path) -> Path:
+    """Write a minimal cash comparison fixture with a containing period."""
+    for snapshot_name, cash_balance in (
+        ("snapshot_a", "1000.00"),
+        ("snapshot_b", "1010.00"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "cash.csv").write_text(
+            "PORT,CASH_DATE,CURRENCY,CASH_BALANCE\n"
+            f"PORT_A,2025-05-31,USD,{cash_balance}\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "cash": "cash.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_multi_portfolio_price_specification(directory: Path) -> Path:
+    """Write a fixture where one price change affects two portfolio periods."""
+    for snapshot_name, price in (("snapshot_a", "100.00"), ("snapshot_b", "101.00")):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,0.01\n"
+            "PORT_B,2025-05-01,2025-05-31,0.02\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "secperf.csv").write_text(
+            "PORTFOLIO_CODE,SEC,FROM_DATE,THRU_DATE,SEC_RETURN\n"
+            "PORT_A,AAPL,2025-05-01,2025-05-31,0.01\n"
+            "PORT_B,AAPL,2025-05-01,2025-05-31,0.02\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "prices.csv").write_text(
+            "SEC,PRICE_DATE,PRICE\n"
+            f"AAPL,2025-05-31,{price}\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "security_performance": "secperf.csv",
+            "prices": "prices.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
 def _write_duplicate_portfolio_specification(directory: Path) -> Path:
     """Write a minimal comparison fixture with duplicate portfolio keys."""
     for snapshot_name in ("snapshot_a", "snapshot_b"):
@@ -109,19 +261,67 @@ def _write_duplicate_portfolio_specification(directory: Path) -> Path:
 class TestPerformanceComparison(unittest.TestCase):
     """Verify portfolio performance comparison findings."""
 
+    _baseline_specification: PerformanceComparisonSpecification
+    _restatement_specification: PerformanceComparisonSpecification
+    _baseline_combined_findings: list[Finding]
+    _restatement_combined_findings: list[Finding]
+    _baseline_portfolio_findings: list[Finding]
+    _restatement_portfolio_findings: list[Finding]
+    _baseline_security_findings: list[Finding]
+    _restatement_security_findings: list[Finding]
+    _baseline_security_master_findings: list[Finding]
+    _restatement_security_master_findings: list[Finding]
+    _baseline_position_findings: list[Finding]
+    _restatement_position_findings: list[Finding]
+    _baseline_cash_findings: list[Finding]
+    _restatement_cash_findings: list[Finding]
+    _baseline_price_findings: list[Finding]
+    _restatement_price_findings: list[Finding]
+    _baseline_fx_rate_findings: list[Finding]
+    _restatement_fx_rate_findings: list[Finding]
+    _baseline_transaction_findings: list[Finding]
+    _restatement_transaction_findings: list[Finding]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Cache shared fixture comparisons for the class."""
+        cls._baseline_specification = PerformanceComparisonSpecification(
+            _BASELINE_COMPARISON_PATH
+        )
+        cls._restatement_specification = PerformanceComparisonSpecification(
+            _RESTATEMENT_COMPARISON_PATH
+        )
+        baseline = PerformanceComparison(cls._baseline_specification)
+        restatement = PerformanceComparison(cls._restatement_specification)
+
+        cls._baseline_combined_findings = baseline.compare()
+        cls._restatement_combined_findings = restatement.compare()
+        cls._baseline_portfolio_findings = baseline.compare_portfolio_performance()
+        cls._restatement_portfolio_findings = restatement.compare_portfolio_performance()
+        cls._baseline_security_findings = baseline.compare_security_performance()
+        cls._restatement_security_findings = restatement.compare_security_performance()
+        cls._baseline_security_master_findings = baseline.compare_security_master()
+        cls._restatement_security_master_findings = restatement.compare_security_master()
+        cls._baseline_position_findings = baseline.compare_positions()
+        cls._restatement_position_findings = restatement.compare_positions()
+        cls._baseline_cash_findings = baseline.compare_cash()
+        cls._restatement_cash_findings = restatement.compare_cash()
+        cls._baseline_price_findings = baseline.compare_prices()
+        cls._restatement_price_findings = restatement.compare_prices()
+        cls._baseline_fx_rate_findings = baseline.compare_fx_rates()
+        cls._restatement_fx_rate_findings = restatement.compare_fx_rates()
+        cls._baseline_transaction_findings = baseline.compare_transactions()
+        cls._restatement_transaction_findings = restatement.compare_transactions()
+
     def test_identical_baseline_snapshots_have_no_portfolio_findings(self) -> None:
         """The baseline fixture compares identical A/B snapshots."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_portfolio_performance()
+        findings = list(self._baseline_portfolio_findings)
 
         self.assertEqual(findings, [])
 
     def test_restatement_fixture_reports_portfolio_return_change(self) -> None:
         """The restatement fixture reports controlled portfolio-level changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_portfolio_performance()
+        findings = list(self._restatement_portfolio_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         return_findings = [
             finding
@@ -157,17 +357,13 @@ class TestPerformanceComparison(unittest.TestCase):
 
     def test_identical_baseline_snapshots_have_no_security_findings(self) -> None:
         """The baseline fixture compares identical security performance rows."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_security_performance()
+        findings = list(self._baseline_security_findings)
 
         self.assertEqual(findings, [])
 
     def test_restatement_fixture_reports_security_changes(self) -> None:
         """The restatement fixture reports controlled security-level changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_security_performance()
+        findings = list(self._restatement_security_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         aapl_return_findings = [
             finding
@@ -223,10 +419,8 @@ class TestPerformanceComparison(unittest.TestCase):
 
     def test_compare_combines_portfolio_and_security_findings(self) -> None:
         """Combined comparison returns all currently supported finding groups."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
         finding_dicts = [
-            finding.to_dict() for finding in PerformanceComparison(specification).compare()
+            finding.to_dict() for finding in self._restatement_combined_findings
         ]
         finding_codes = {finding[FINDING_CODE] for finding in finding_dicts}
 
@@ -235,46 +429,66 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertIn(PC_SEC_ADD, finding_codes)
         self.assertIn(PC_SEC_DROP, finding_codes)
         self.assertIn(PC_POS_QTY, finding_codes)
+        self.assertIn(PC_POS_ACCR, finding_codes)
         self.assertIn(PC_CASH_MV, finding_codes)
         self.assertIn(PC_PRICE, finding_codes)
+        self.assertIn(PC_FX_RATE, finding_codes)
         self.assertIn(PC_TXN_AMT, finding_codes)
+        self.assertIn(PC_TXN_QTY, finding_codes)
+        self.assertIn(PC_TXN_PRICE, finding_codes)
 
     def test_combined_findings_convert_to_polars(self) -> None:
         """Combined findings can be converted to a stable Polars table."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-        findings = PerformanceComparison(specification).compare()
+        findings = list(self._restatement_combined_findings)
 
         frame = findings_to_polars(findings)
 
         self.assertFalse(frame.is_empty())
         self.assertIn(FINDING_CODE, frame.columns)
+        self.assertIn(EVIDENCE_ROLE, frame.columns)
         self.assertIn(DELTA_B_MINUS_A, frame.columns)
         self.assertIn(SOURCE_FILE, frame.columns)
 
+    def test_restatement_findings_have_explanation_roles(self) -> None:
+        """Comparison assigns explicit evidence roles to finding families."""
+        findings = list(self._restatement_combined_findings)
+        frame = findings_to_polars(findings)
+
+        role_by_code = {
+            row[FINDING_CODE]: row[EVIDENCE_ROLE]
+            for row in frame.select(FINDING_CODE, EVIDENCE_ROLE).iter_rows(named=True)
+        }
+
+        self.assertEqual(role_by_code[PC_PORT_RET], TARGET_OUTPUT)
+        self.assertEqual(role_by_code[PC_PORT_MV], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_SEC_RET], RELATED_OUTPUT)
+        self.assertEqual(role_by_code[PC_POS_QTY], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_CASH_MV], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_PRICE], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_FX_RATE], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_TXN_AMT], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_REF_ID], CONTEXT)
+
     def test_baseline_combined_compare_has_empty_polars_output(self) -> None:
         """Identical baseline snapshots produce an empty stable finding table."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-        findings = PerformanceComparison(specification).compare()
+        findings = list(self._baseline_combined_findings)
 
         frame = findings_to_polars(findings)
 
         self.assertTrue(frame.is_empty())
         self.assertIn(FINDING_CODE, frame.columns)
+        self.assertIn(EVIDENCE_ROLE, frame.columns)
         self.assertIn(SOURCE_FILE, frame.columns)
 
     def test_identical_baseline_snapshots_have_no_security_master_findings(self) -> None:
         """The baseline fixture compares identical security master rows."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_security_master()
+        findings = list(self._baseline_security_master_findings)
 
         self.assertEqual(findings, [])
 
     def test_restatement_fixture_reports_security_master_changes(self) -> None:
         """The restatement fixture reports controlled security master changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_security_master()
+        findings = list(self._restatement_security_master_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         aapl_name_findings = [
             finding
@@ -308,17 +522,13 @@ class TestPerformanceComparison(unittest.TestCase):
 
     def test_identical_baseline_snapshots_have_no_position_findings(self) -> None:
         """The baseline fixture compares identical position rows."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_positions()
+        findings = list(self._baseline_position_findings)
 
         self.assertEqual(findings, [])
 
     def test_restatement_fixture_reports_position_changes(self) -> None:
         """The restatement fixture reports controlled position-level changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_positions()
+        findings = list(self._restatement_position_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         quantity_findings = [
             finding
@@ -334,6 +544,13 @@ class TestPerformanceComparison(unittest.TestCase):
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
         ]
+        accrued_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_POS_ACCR
+            and finding[SECURITY_ID] == "AAPL"
+            and finding[SOURCE_COLUMN] == pc_cols.ACCRUED
+        ]
 
         self.assertEqual(len(quantity_findings), 1)
         self.assertAlmostEqual(
@@ -345,20 +562,38 @@ class TestPerformanceComparison(unittest.TestCase):
             cast(float, market_value_findings[0][DELTA_B_MINUS_A]),
             2648.56,
         )
+        self.assertEqual(len(accrued_findings), 1)
+        self.assertAlmostEqual(
+            cast(float, accrued_findings[0][DELTA_B_MINUS_A]),
+            6.25,
+        )
+
+    def test_position_changes_link_to_containing_portfolio_period(self) -> None:
+        """Changed position rows inherit the containing portfolio period."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_position_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_positions()
+            finding_dicts = [finding.to_dict() for finding in findings]
+            market_value_finding = next(
+                finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_POS_MV
+            )
+
+            self.assertEqual(str(market_value_finding[FROM_DATE]), "2025-05-01")
+            self.assertEqual(str(market_value_finding[THRU_DATE]), "2025-05-31")
 
     def test_identical_baseline_snapshots_have_no_cash_findings(self) -> None:
         """The baseline fixture compares identical cash rows."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_cash()
+        findings = list(self._baseline_cash_findings)
 
         self.assertEqual(findings, [])
 
     def test_restatement_fixture_reports_cash_changes(self) -> None:
         """The restatement fixture reports controlled cash-level changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_cash()
+        findings = list(self._restatement_cash_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         cash_balance_findings = [
             finding
@@ -384,19 +619,32 @@ class TestPerformanceComparison(unittest.TestCase):
             500.0,
         )
 
+    def test_cash_changes_link_to_containing_portfolio_period(self) -> None:
+        """Changed cash rows inherit the containing portfolio period."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_cash_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_cash()
+            finding_dicts = [finding.to_dict() for finding in findings]
+            cash_balance_finding = next(
+                finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_CASH_MV
+            )
+
+            self.assertEqual(str(cash_balance_finding[FROM_DATE]), "2025-05-01")
+            self.assertEqual(str(cash_balance_finding[THRU_DATE]), "2025-05-31")
+
     def test_identical_baseline_snapshots_have_no_price_findings(self) -> None:
         """The baseline fixture compares identical price rows."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_prices()
+        findings = list(self._baseline_price_findings)
 
         self.assertEqual(findings, [])
 
     def test_restatement_fixture_reports_price_changes(self) -> None:
         """The restatement fixture reports controlled price changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
-
-        findings = PerformanceComparison(specification).compare_prices()
+        findings = list(self._restatement_price_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         price_findings = [
             finding
@@ -411,20 +659,73 @@ class TestPerformanceComparison(unittest.TestCase):
             cast(float, price_findings[0][DELTA_B_MINUS_A]),
             1.0,
         )
+        self.assertEqual(price_findings[0][PORTFOLIO_ID], "PORT_A")
+        self.assertEqual(str(price_findings[0][FROM_DATE]), "2025-05-30")
+        self.assertEqual(str(price_findings[0][THRU_DATE]), "2025-05-30")
 
-    def test_identical_baseline_snapshots_have_no_transaction_findings(self) -> None:
-        """The baseline fixture compares identical transaction rows."""
-        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+    def test_price_changes_expand_to_matching_portfolio_periods(self) -> None:
+        """One security price change links to every matching portfolio period."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_multi_portfolio_price_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(path)
 
-        findings = PerformanceComparison(specification).compare_transactions()
+            findings = PerformanceComparison(specification).compare_prices()
+            price_findings = [
+                finding.to_dict()
+                for finding in findings
+                if finding.code == PC_PRICE
+            ]
+            contexts = sorted(
+                (
+                    finding[PORTFOLIO_ID],
+                    str(finding[FROM_DATE]),
+                    str(finding[THRU_DATE]),
+                    finding[SECURITY_ID],
+                    finding[DELTA_B_MINUS_A],
+                )
+                for finding in price_findings
+            )
+
+            self.assertEqual(
+                contexts,
+                [
+                    ("PORT_A", "2025-05-01", "2025-05-31", "AAPL", 1.0),
+                    ("PORT_B", "2025-05-01", "2025-05-31", "AAPL", 1.0),
+                ],
+            )
+
+    def test_identical_baseline_snapshots_have_no_fx_rate_findings(self) -> None:
+        """The baseline fixture compares identical FX rate rows."""
+        findings = list(self._baseline_fx_rate_findings)
 
         self.assertEqual(findings, [])
 
-    def test_restatement_fixture_reports_transaction_amount_change(self) -> None:
-        """The restatement fixture reports controlled transaction amount changes."""
-        specification = PerformanceComparisonSpecification(_RESTATEMENT_COMPARISON_PATH)
+    def test_restatement_fixture_reports_fx_rate_changes(self) -> None:
+        """The restatement fixture reports controlled FX rate changes."""
+        findings = list(self._restatement_fx_rate_findings)
+        finding_dicts = [finding.to_dict() for finding in findings]
+        fx_rate_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_FX_RATE
+            and finding[SOURCE_COLUMN] == pc_cols.FX_RATE
+        ]
 
-        findings = PerformanceComparison(specification).compare_transactions()
+        self.assertEqual(len(fx_rate_findings), 1)
+        self.assertAlmostEqual(
+            cast(float, fx_rate_findings[0][DELTA_B_MINUS_A]),
+            0.005,
+        )
+
+    def test_identical_baseline_snapshots_have_no_transaction_findings(self) -> None:
+        """The baseline fixture compares identical transaction rows."""
+        findings = list(self._baseline_transaction_findings)
+
+        self.assertEqual(findings, [])
+
+    def test_restatement_fixture_reports_transaction_changes(self) -> None:
+        """The restatement fixture reports controlled transaction changes."""
+        findings = list(self._restatement_transaction_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         amount_findings = [
             finding
@@ -433,12 +734,59 @@ class TestPerformanceComparison(unittest.TestCase):
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.AMOUNT
         ]
+        quantity_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_TXN_QTY
+            and finding[SECURITY_ID] == "AAPL"
+            and finding[SOURCE_COLUMN] == pc_cols.QUANTITY
+        ]
+        price_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_TXN_PRICE
+            and finding[SECURITY_ID] == "AAPL"
+            and finding[SOURCE_COLUMN] == pc_cols.PRICE
+        ]
 
         self.assertEqual(len(amount_findings), 1)
+        self.assertEqual(amount_findings[0][TRANSACTION_CATEGORY], "buy")
+        self.assertIsNone(amount_findings[0][FROM_DATE])
+        self.assertIsNone(amount_findings[0][THRU_DATE])
         self.assertAlmostEqual(
             cast(float, amount_findings[0][DELTA_B_MINUS_A]),
             -100.0,
         )
+        self.assertEqual(len(quantity_findings), 1)
+        self.assertEqual(quantity_findings[0][TRANSACTION_CATEGORY], "buy")
+        self.assertAlmostEqual(
+            cast(float, quantity_findings[0][DELTA_B_MINUS_A]),
+            1.0,
+        )
+        self.assertEqual(len(price_findings), 1)
+        self.assertEqual(price_findings[0][TRANSACTION_CATEGORY], "buy")
+        self.assertAlmostEqual(
+            cast(float, price_findings[0][DELTA_B_MINUS_A]),
+            0.5,
+        )
+
+    def test_transaction_changes_link_to_containing_portfolio_period(self) -> None:
+        """Changed transaction rows inherit the containing portfolio period."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            finding_dicts = [finding.to_dict() for finding in findings]
+            amount_finding = next(
+                finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertEqual(str(amount_finding[FROM_DATE]), "2025-05-01")
+            self.assertEqual(str(amount_finding[THRU_DATE]), "2025-05-31")
+            self.assertEqual(amount_finding[TRANSACTION_CATEGORY], "buy")
 
     def test_transaction_fallback_key_treats_amount_change_as_add_drop(self) -> None:
         """Transaction amount changes require a stable transaction id."""

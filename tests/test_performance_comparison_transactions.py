@@ -16,6 +16,13 @@ from ppar.performance_comparison import (
     TransactionsLoader,
 )
 from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison.transactions import (
+    TRANSACTION_CATEGORY_BUY,
+    TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+    TRANSACTION_CATEGORY_INCOME,
+    normalize_transaction_category,
+    transaction_category_from_code,
+)
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
 
@@ -63,6 +70,7 @@ class TestTransactionsLoader(unittest.TestCase):
         )
         self.assertIn(pc_cols.SETTLEMENT_DATE, frame.columns)
         self.assertIn(pc_cols.TRANSACTION_CODE, frame.columns)
+        self.assertIn(pc_cols.TRANSACTION_CATEGORY, frame.columns)
         self.assertIn(pc_cols.BROKER, frame.columns)
         self.assertEqual(frame.schema[pc_cols.TRANSACTION_DATE], pl.Date)
         self.assertEqual(frame.schema[pc_cols.SETTLEMENT_DATE], pl.Date)
@@ -73,8 +81,69 @@ class TestTransactionsLoader(unittest.TestCase):
             & (pl.col(pc_cols.TRANSACTION_DATE) == pl.date(2025, 5, 1))
         ).row(0, named=True)
         self.assertEqual(target_row[pc_cols.TRANSACTION_CODE], "BUY")
+        self.assertEqual(target_row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
         self.assertEqual(target_row[pc_cols.QUANTITY], 200.0)
         self.assertEqual(target_row[pc_cols.BROKER], "INIT")
+
+    def test_transaction_category_is_inferred_from_transaction_code(self) -> None:
+        """Transaction codes are labeled with conservative normalized categories."""
+        specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        dividend_row = frame.filter(pl.col(pc_cols.TRANSACTION_CODE) == "DIV").row(
+            0,
+            named=True,
+        )
+        interest_row = frame.filter(pl.col(pc_cols.TRANSACTION_CODE) == "INT").row(
+            0,
+            named=True,
+        )
+
+        self.assertEqual(dividend_row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_INCOME)
+        self.assertEqual(interest_row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_INCOME)
+
+    def test_normalize_transaction_category_handles_known_labels(self) -> None:
+        """Source category labels normalize to the documented category vocabulary."""
+        self.assertEqual(normalize_transaction_category("Cash Deposit"), "external_flow")
+        self.assertEqual(normalize_transaction_category("fee-expense"), "fee_expense")
+        self.assertEqual(normalize_transaction_category(""), "unknown")
+        self.assertEqual(transaction_category_from_code("SELL"), "sell")
+        self.assertEqual(transaction_category_from_code("not-a-real-code"), "unknown")
+
+    def test_source_transaction_category_and_sign_columns_are_loaded(self) -> None:
+        """Optional source category and sign columns load without inferred signs."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "ACTIVITY_CATEGORY": ["cash deposit"],
+                        "CASH_FLOW_SIGN": ["positive"],
+                        "PERFORMANCE_FLOW_SIGN": ["external"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_CATEGORY],
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+            )
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
+            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
 
     def test_omitted_transactions_returns_none(self) -> None:
         """Transactions are optional when omitted from YAML."""

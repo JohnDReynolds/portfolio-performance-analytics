@@ -7,6 +7,7 @@ import unittest
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     DELTA_B_MINUS_A,
+    EVIDENCE_ROLE,
     FINDING_COLUMNS,
     FINDING_CODE,
     MESSAGE,
@@ -14,6 +15,7 @@ from ppar.performance_comparison.findings import (
     SEVERITY_MATERIAL,
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
+    TARGET_OUTPUT,
     Finding,
     findings_to_polars,
 )
@@ -29,6 +31,7 @@ class TestPerformanceComparisonFindings(unittest.TestCase):
             severity=SEVERITY_MATERIAL,
             confidence=CONFIDENCE_HIGH,
             dataset="portfolio_performance",
+            evidence_role=TARGET_OUTPUT,
             snapshot_a_value=0.01,
             snapshot_b_value=0.02,
             delta_b_minus_a=0.01,
@@ -39,6 +42,7 @@ class TestPerformanceComparisonFindings(unittest.TestCase):
 
         self.assertEqual(tuple(finding_dict), FINDING_COLUMNS)
         self.assertEqual(finding_dict[FINDING_CODE], PC_PORT_RET)
+        self.assertEqual(finding_dict[EVIDENCE_ROLE], TARGET_OUTPUT)
         self.assertEqual(finding_dict[SNAPSHOT_A_VALUE], 0.01)
         self.assertEqual(finding_dict[SNAPSHOT_B_VALUE], 0.02)
         self.assertEqual(finding_dict[DELTA_B_MINUS_A], 0.01)
