@@ -44,6 +44,8 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertTrue(output_path.exists())
             report = output_path.read_text(encoding="utf-8")
             self.assertIn("# Script Restatement Report", report)
+            self.assertIn("## Impact Estimate Summary", report)
+            self.assertIn("## Residual Status", report)
             self.assertIn("## Top Evidence", report)
             self.assertIn("PC-PORT-MV", report)
 

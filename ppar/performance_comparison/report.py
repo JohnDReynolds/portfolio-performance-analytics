@@ -65,6 +65,14 @@ _NO_ESTIMATE_NOTE = (
     "Impact estimates are intentionally conservative. Blank impact values mean "
     "the comparison has evidence, but no defensible return-impact estimate yet."
 )
+_ESTIMATED_IMPACT_AREAS = "estimated_impact_areas"
+_RESIDUAL_STATUS = "residual_status"
+_RESIDUAL_REASON = "residual_reason"
+_RESIDUAL_WITHHELD = "withheld"
+_RESIDUAL_STATUS_NOTE = (
+    "Residual amounts are intentionally withheld until the attribution model has "
+    "enough defensible, non-overlapping impact estimates."
+)
 
 
 def performance_comparison_markdown_report(
@@ -104,6 +112,7 @@ def performance_comparison_markdown_report(
         _portfolio_period_narrative_section(active_findings),
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
+        _residual_status_section(active_findings),
         _portfolio_period_section(active_findings),
         _cause_summary_section(active_findings),
         _top_evidence_section(active_findings, top_evidence_limit),
@@ -181,6 +190,7 @@ def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
         "Portfolio-Period Narrative",
         "Review Notes",
         "Impact Estimate Summary",
+        "Residual Status",
         "Portfolio-Period Changes",
         "Cause Summary",
         "Top Evidence",
@@ -257,8 +267,8 @@ def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
     if ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION in cause_areas:
         notes.append(_security_return_weighted_review_note(causes))
     notes.append(
-        "No residual is reported because not enough defensible impact estimates "
-        "exist yet."
+        "No residual amount is calculated because not enough defensible impact "
+        "estimates exist yet."
     )
     return notes
 
@@ -396,6 +406,79 @@ def _portfolio_period_section(findings: pl.DataFrame) -> str:
             _markdown_table(summary, columns, empty_message="No portfolio return changes."),
         ]
     )
+
+
+def _residual_status_section(findings: pl.DataFrame) -> str:
+    """Return a Markdown section explaining whether residuals are calculated."""
+    periods = portfolio_period_summary(findings)
+    if periods.is_empty():
+        residuals = pl.DataFrame(
+            schema={
+                PORTFOLIO_ID: pl.String,
+                FROM_DATE: pl.Date,
+                THRU_DATE: pl.Date,
+                PORTFOLIO_RETURN_DELTA: pl.Float64,
+                _ESTIMATED_IMPACT_AREAS: pl.String,
+                _RESIDUAL_STATUS: pl.String,
+                _RESIDUAL_REASON: pl.String,
+            }
+        )
+    else:
+        causes = portfolio_period_cause_summary(findings)
+        residuals = pl.DataFrame(
+            [
+                _residual_status_row(period, _period_cause_rows(causes, period))
+                for period in periods.iter_rows(named=True)
+            ]
+        )
+
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        PORTFOLIO_RETURN_DELTA,
+        _ESTIMATED_IMPACT_AREAS,
+        _RESIDUAL_STATUS,
+        _RESIDUAL_REASON,
+    ]
+    return "\n".join(
+        [
+            "## Residual Status",
+            _RESIDUAL_STATUS_NOTE,
+            "",
+            _markdown_table(
+                residuals,
+                columns,
+                empty_message="No portfolio return changes need residual review.",
+            ),
+        ]
+    )
+
+
+def _residual_status_row(
+    period: dict[str, object],
+    causes: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one residual-status row for a portfolio period."""
+    estimated_areas = [
+        str(cause[ROOT_CAUSE_AREA])
+        for cause in causes
+        if cause.get(ESTIMATED_RETURN_IMPACT) is not None
+    ]
+    if estimated_areas:
+        reason = "partial or overlapping estimates"
+    else:
+        reason = "no defensible impact estimates"
+
+    return {
+        PORTFOLIO_ID: period[PORTFOLIO_ID],
+        FROM_DATE: period[FROM_DATE],
+        THRU_DATE: period[THRU_DATE],
+        PORTFOLIO_RETURN_DELTA: period[PORTFOLIO_RETURN_DELTA],
+        _ESTIMATED_IMPACT_AREAS: _comma_separated(estimated_areas),
+        _RESIDUAL_STATUS: _RESIDUAL_WITHHELD,
+        _RESIDUAL_REASON: reason,
+    }
 
 
 def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:

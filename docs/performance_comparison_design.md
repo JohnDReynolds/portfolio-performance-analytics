@@ -996,6 +996,11 @@ Residual findings should wait until the system has a credible contribution
 model. Emitting residuals before enough impact estimates exist would imply a
 precision the comparison does not yet have.
 
+Reports may still include a residual status section for portfolio-period return
+changes. This section should use a section-level caveat plus compact per-period
+reason labels, rather than calculating an unexplained amount from partial or
+mixed-confidence estimates.
+
 ## Near-Term Roadmap
 
 The next design work should focus on explanation quality before adding broad

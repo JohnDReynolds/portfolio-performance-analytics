@@ -1,6 +1,7 @@
 """Tests for performance comparison Markdown reporting."""
 
 # Python imports
+import datetime as dt
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,9 +11,20 @@ import polars as pl
 
 # Project imports
 from ppar.performance_comparison import (
+    DIRECT_INPUT,
+    Finding,
+    TARGET_OUTPUT,
+    columns as pc_cols,
     compare_snapshots,
+    findings_to_polars,
     performance_comparison_markdown_report,
     write_performance_comparison_markdown_report,
+)
+from ppar.performance_comparison.findings import (
+    CONFIDENCE_HIGH,
+    PC_PORT_MV,
+    PC_PORT_RET,
+    SEVERITY_MATERIAL,
 )
 from ppar.performance_comparison.report import _markdown_table
 
@@ -56,7 +68,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("transaction-type sign and flow semantics", report)
         self.assertIn("source-field estimates are low-confidence", report)
         self.assertIn("vendor contribution deltas are preferred", report)
-        self.assertIn("No residual is reported", report)
+        self.assertIn("No residual amount is calculated", report)
         self.assertIn("## Impact Estimate Summary", report)
         impact_summary = _section(
             report,
@@ -66,6 +78,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("security_contribution", impact_summary)
         self.assertIn("portfolio_source_field", impact_summary)
         self.assertIn("0.00058425", impact_summary)
+        self.assertIn("## Residual Status", report)
+        residual_status = _section(
+            report,
+            "## Residual Status",
+            "## Portfolio-Period Changes",
+        )
+        self.assertIn("Residual amounts are intentionally withheld", residual_status)
+        self.assertIn("withheld", residual_status)
+        self.assertIn("partial or overlapping estimates", residual_status)
         self.assertIn("## Portfolio-Period Changes", report)
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
         self.assertIn("## Cause Summary", report)
@@ -109,9 +130,62 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("_No portfolio return changes to narrate._", report)
         self.assertIn("_No portfolio-period review notes._", report)
         self.assertIn("_No impact estimates are currently available._", report)
+        self.assertIn("_No portfolio return changes need residual review._", report)
         self.assertIn("_No portfolio return changes._", report)
         self.assertIn("_No cause summary available._", report)
         self.assertIn("_No ranked evidence is available for portfolio return changes._", report)
+
+    def test_markdown_report_withholds_residual_when_no_estimates_exist(self) -> None:
+        """Residual status explains changed periods with evidence but no estimates."""
+        period_date = dt.date(2025, 5, 30)
+        findings = findings_to_polars(
+            [
+                Finding(
+                    code=PC_PORT_RET,
+                    severity=SEVERITY_MATERIAL,
+                    confidence=CONFIDENCE_HIGH,
+                    dataset=pc_cols.PORTFOLIO_PERFORMANCE,
+                    evidence_role=TARGET_OUTPUT,
+                    portfolio_id="PORT_NO_EST",
+                    from_date=period_date,
+                    thru_date=period_date,
+                    source_column=pc_cols.PORTFOLIO_RETURN,
+                    snapshot_a_value=0.01,
+                    snapshot_b_value=0.011,
+                    delta_b_minus_a=0.001,
+                    message="portfolio_performance 'portfolio_return' changed.",
+                ),
+                Finding(
+                    code=PC_PORT_MV,
+                    severity=SEVERITY_MATERIAL,
+                    confidence=CONFIDENCE_HIGH,
+                    dataset=pc_cols.PORTFOLIO_PERFORMANCE,
+                    evidence_role=DIRECT_INPUT,
+                    portfolio_id="PORT_NO_EST",
+                    from_date=period_date,
+                    thru_date=period_date,
+                    source_column=pc_cols.END_MARKET_VALUE,
+                    snapshot_a_value=1000000.0,
+                    snapshot_b_value=1000100.0,
+                    delta_b_minus_a=100.0,
+                    message="portfolio_performance 'end_market_value' changed.",
+                ),
+            ]
+        )
+
+        report = performance_comparison_markdown_report(findings)
+
+        self.assertIn("_No impact estimates are currently available._", report)
+        residual_status = _section(
+            report,
+            "## Residual Status",
+            "## Portfolio-Period Changes",
+        )
+        self.assertIn("PORT_NO_EST", residual_status)
+        self.assertIn("Residual amounts are intentionally withheld", residual_status)
+        self.assertIn("withheld", residual_status)
+        self.assertIn("no defensible impact estimates", residual_status)
+        self.assertNotIn("partial or overlapping estimates", residual_status)
 
     def test_markdown_table_escapes_pipe_characters(self) -> None:
         """Markdown cell values cannot accidentally split table columns."""
@@ -133,9 +207,33 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         contents = _section(report, "## Report Contents", "## Run Summary")
 
         self.assertIn("- Impact Estimate Summary", contents)
+        self.assertIn("- Residual Status", contents)
         self.assertIn("- Top Evidence", contents)
         self.assertNotIn("Suppressed Findings Appendix", contents)
         self.assertNotIn("## Suppressed Findings Appendix", report)
+
+    def test_markdown_report_orders_impact_summary_before_detail_sections(self) -> None:
+        """Impact and residual summaries appear before lower-level details."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        report = performance_comparison_markdown_report(findings)
+
+        self.assertLess(
+            report.index("## Review Notes"),
+            report.index("## Impact Estimate Summary"),
+        )
+        self.assertLess(
+            report.index("## Impact Estimate Summary"),
+            report.index("## Residual Status"),
+        )
+        self.assertLess(
+            report.index("## Residual Status"),
+            report.index("## Portfolio-Period Changes"),
+        )
+        self.assertLess(
+            report.index("## Portfolio-Period Changes"),
+            report.index("## Cause Summary"),
+        )
 
     def test_write_markdown_report_creates_parent_directory(self) -> None:
         """Markdown reports can be written as durable artifacts."""
