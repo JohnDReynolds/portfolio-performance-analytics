@@ -57,6 +57,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("source-field estimates are low-confidence", report)
         self.assertIn("vendor contribution deltas are preferred", report)
         self.assertIn("No residual is reported", report)
+        self.assertIn("## Impact Estimate Summary", report)
+        impact_summary = _section(
+            report,
+            "## Impact Estimate Summary",
+            "## Portfolio-Period Changes",
+        )
+        self.assertIn("security_contribution", impact_summary)
+        self.assertIn("portfolio_source_field", impact_summary)
+        self.assertIn("0.00058425", impact_summary)
         self.assertIn("## Portfolio-Period Changes", report)
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
         self.assertIn("## Cause Summary", report)
@@ -99,6 +108,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("- Total findings: 0", report)
         self.assertIn("_No portfolio return changes to narrate._", report)
         self.assertIn("_No portfolio-period review notes._", report)
+        self.assertIn("_No impact estimates are currently available._", report)
         self.assertIn("_No portfolio return changes._", report)
         self.assertIn("_No cause summary available._", report)
         self.assertIn("_No ranked evidence is available for portfolio return changes._", report)
@@ -122,6 +132,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         contents = _section(report, "## Report Contents", "## Run Summary")
 
+        self.assertIn("- Impact Estimate Summary", contents)
         self.assertIn("- Top Evidence", contents)
         self.assertNotIn("Suppressed Findings Appendix", contents)
         self.assertNotIn("## Suppressed Findings Appendix", report)

@@ -103,6 +103,7 @@ def performance_comparison_markdown_report(
         _run_summary_section(findings, active_findings, summaries, active_summaries),
         _portfolio_period_narrative_section(active_findings),
         _review_notes_section(active_findings),
+        _impact_estimate_summary_section(active_findings),
         _portfolio_period_section(active_findings),
         _cause_summary_section(active_findings),
         _top_evidence_section(active_findings, top_evidence_limit),
@@ -179,6 +180,7 @@ def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
         "Run Summary",
         "Portfolio-Period Narrative",
         "Review Notes",
+        "Impact Estimate Summary",
         "Portfolio-Period Changes",
         "Cause Summary",
         "Top Evidence",
@@ -392,6 +394,36 @@ def _portfolio_period_section(findings: pl.DataFrame) -> str:
         [
             "## Portfolio-Period Changes",
             _markdown_table(summary, columns, empty_message="No portfolio return changes."),
+        ]
+    )
+
+
+def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
+    """Return a concise Markdown section for currently quantified impacts."""
+    summary = portfolio_period_cause_summary(findings)
+    if summary.is_empty():
+        estimated_summary = summary
+    else:
+        estimated_summary = summary.filter(pl.col(ESTIMATED_RETURN_IMPACT).is_not_null())
+
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        ROOT_CAUSE_AREA,
+        ESTIMATED_RETURN_IMPACT,
+        IMPACT_BASIS,
+        IMPACT_CONFIDENCE,
+        IMPACT_MESSAGE,
+    ]
+    return "\n".join(
+        [
+            "## Impact Estimate Summary",
+            _markdown_table(
+                estimated_summary,
+                columns,
+                empty_message="No impact estimates are currently available.",
+            ),
         ]
     )
 
