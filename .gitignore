@@ -1,9 +1,10 @@
 # My Stuff
-_*
-!tests/__init__.py
+/_*
+!**/__init__.py
 delete_me.csv
 junk*/
 .pylintrc
+!tests/__init__.py
 
 
 # Byte-compiled / optimized / DLL files

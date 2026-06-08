@@ -22,6 +22,7 @@ sys.path.insert(0, str(_REPO_ROOT))
 from ppar.performance_comparison import (  # noqa: E402
     compact_findings_table,
     compare_snapshots,
+    performance_comparison_markdown_report,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
@@ -77,7 +78,10 @@ def main() -> None:
     )
     suppressed_summaries = summarize_findings(suppressed_findings)
     suppressed_active_summaries = summarize_findings(suppressed_active_findings)
+    markdown_report = performance_comparison_markdown_report(findings)
     print("Restatement comparison")
+    print()
+    print(markdown_report)
     print()
     _print_table("Finding count by code", summaries["by_code"])
     _print_table("Finding count by dataset", summaries["by_dataset"])

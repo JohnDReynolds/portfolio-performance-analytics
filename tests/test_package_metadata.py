@@ -8,12 +8,48 @@ import unittest
 
 # Project Imports
 import ppar.utilities as util
-from ppar import axys
+from ppar import axys, performance_comparison
 from ppar.axys import (
     AxysClassificationSources,
     AxysData,
     AxysPortfolio,
     AxysSpecification,
+)
+from ppar.performance_comparison import (
+    CashLoader,
+    ComparisonFile,
+    ComparisonSnapshot,
+    CONTEXT,
+    DIRECT_INPUT,
+    EVIDENCE_ROLE,
+    Finding,
+    FxRatesLoader,
+    PerformanceComparison,
+    PerformanceComparisonSpecification,
+    PortfolioPerformanceLoader,
+    PositionsLoader,
+    PricesLoader,
+    RELATED_OUTPUT,
+    SecurityMasterLoader,
+    SecurityPerformanceLoader,
+    SuppressionRule,
+    TARGET_OUTPUT,
+    TransactionsLoader,
+    apply_suppressions,
+    columns,
+    compact_findings_table,
+    compare_snapshots,
+    findings_to_polars,
+    performance_comparison_markdown_report,
+    portfolio_period_cause_summary,
+    portfolio_period_contribution_candidates,
+    portfolio_period_evidence_breakdown,
+    portfolio_period_summary,
+    rank_portfolio_period_evidence,
+    security_period_evidence_breakdown,
+    security_period_summary,
+    summarize_findings,
+    transaction_activity_summary,
 )
 
 
@@ -46,6 +82,10 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject = tomllib.load(file)
 
         self.assertIn("ppar.axys", pyproject["tool"]["setuptools"]["packages"])
+        self.assertIn(
+            "ppar.performance_comparison",
+            pyproject["tool"]["setuptools"]["packages"],
+        )
 
     def test_public_axys_import_contract(self) -> None:
         """The documented Axys package exports remain importable."""
@@ -61,6 +101,120 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(AxysData, axys.AxysData)
         self.assertIs(AxysPortfolio, axys.AxysPortfolio)
         self.assertIs(AxysSpecification, axys.AxysSpecification)
+
+    def test_public_performance_comparison_import_contract(self) -> None:
+        """The documented performance comparison exports remain importable."""
+        expected_exports = {
+            "CashLoader",
+            "ComparisonFile",
+            "ComparisonSnapshot",
+            "CONTEXT",
+            "DIRECT_INPUT",
+            "EVIDENCE_ROLE",
+            "Finding",
+            "FxRatesLoader",
+            "PerformanceComparison",
+            "PortfolioPerformanceLoader",
+            "PerformanceComparisonSpecification",
+            "PositionsLoader",
+            "PricesLoader",
+            "SecurityPerformanceLoader",
+            "SecurityMasterLoader",
+            "SuppressionRule",
+            "RELATED_OUTPUT",
+            "TARGET_OUTPUT",
+            "TransactionsLoader",
+            "apply_suppressions",
+            "columns",
+            "compact_findings_table",
+            "compare_snapshots",
+            "findings_to_polars",
+            "portfolio_period_cause_summary",
+            "portfolio_period_contribution_candidates",
+            "portfolio_period_evidence_breakdown",
+            "portfolio_period_summary",
+            "performance_comparison_markdown_report",
+            "rank_portfolio_period_evidence",
+            "security_period_evidence_breakdown",
+            "security_period_summary",
+            "summarize_findings",
+            "transaction_activity_summary",
+        }
+
+        self.assertEqual(set(performance_comparison.__all__), expected_exports)
+        self.assertIs(CashLoader, performance_comparison.CashLoader)
+        self.assertIs(ComparisonFile, performance_comparison.ComparisonFile)
+        self.assertIs(ComparisonSnapshot, performance_comparison.ComparisonSnapshot)
+        self.assertIs(CONTEXT, performance_comparison.CONTEXT)
+        self.assertIs(DIRECT_INPUT, performance_comparison.DIRECT_INPUT)
+        self.assertIs(EVIDENCE_ROLE, performance_comparison.EVIDENCE_ROLE)
+        self.assertIs(Finding, performance_comparison.Finding)
+        self.assertIs(FxRatesLoader, performance_comparison.FxRatesLoader)
+        self.assertIs(PerformanceComparison, performance_comparison.PerformanceComparison)
+        self.assertIs(
+            PerformanceComparisonSpecification,
+            performance_comparison.PerformanceComparisonSpecification,
+        )
+        self.assertIs(
+            PortfolioPerformanceLoader,
+            performance_comparison.PortfolioPerformanceLoader,
+        )
+        self.assertIs(PositionsLoader, performance_comparison.PositionsLoader)
+        self.assertIs(PricesLoader, performance_comparison.PricesLoader)
+        self.assertIs(RELATED_OUTPUT, performance_comparison.RELATED_OUTPUT)
+        self.assertIs(
+            SecurityMasterLoader,
+            performance_comparison.SecurityMasterLoader,
+        )
+        self.assertIs(
+            SecurityPerformanceLoader,
+            performance_comparison.SecurityPerformanceLoader,
+        )
+        self.assertIs(SuppressionRule, performance_comparison.SuppressionRule)
+        self.assertIs(TARGET_OUTPUT, performance_comparison.TARGET_OUTPUT)
+        self.assertIs(TransactionsLoader, performance_comparison.TransactionsLoader)
+        self.assertIs(apply_suppressions, performance_comparison.apply_suppressions)
+        self.assertIs(columns, performance_comparison.columns)
+        self.assertIs(compact_findings_table, performance_comparison.compact_findings_table)
+        self.assertIs(compare_snapshots, performance_comparison.compare_snapshots)
+        self.assertIs(findings_to_polars, performance_comparison.findings_to_polars)
+        self.assertIs(
+            performance_comparison_markdown_report,
+            performance_comparison.performance_comparison_markdown_report,
+        )
+        self.assertIs(
+            portfolio_period_cause_summary,
+            performance_comparison.portfolio_period_cause_summary,
+        )
+        self.assertIs(
+            portfolio_period_contribution_candidates,
+            performance_comparison.portfolio_period_contribution_candidates,
+        )
+        self.assertIs(
+            portfolio_period_evidence_breakdown,
+            performance_comparison.portfolio_period_evidence_breakdown,
+        )
+        self.assertIs(
+            portfolio_period_summary,
+            performance_comparison.portfolio_period_summary,
+        )
+        self.assertIs(
+            rank_portfolio_period_evidence,
+            performance_comparison.rank_portfolio_period_evidence,
+        )
+        self.assertIs(
+            security_period_evidence_breakdown,
+            performance_comparison.security_period_evidence_breakdown,
+        )
+        self.assertIs(
+            security_period_summary,
+            performance_comparison.security_period_summary,
+        )
+        self.assertIs(summarize_findings, performance_comparison.summarize_findings)
+        self.assertIs(
+            transaction_activity_summary,
+            performance_comparison.transaction_activity_summary,
+        )
 
     def test_chart_dependencies_are_optional(self) -> None:
         """Normal package imports do not load optional chart rendering code."""
