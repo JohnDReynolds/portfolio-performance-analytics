@@ -409,6 +409,28 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             IMPACT_BASIS_SECURITY_CONTRIBUTION,
         )
 
+    def test_portfolio_period_cause_summary_uses_weighted_return_fallback(
+        self,
+    ) -> None:
+        """Security cause summary uses weighted return when contribution is absent."""
+        findings = self._restatement().filter(pl.col(FINDING_CODE) != PC_SEC_CONTR)
+
+        summary = portfolio_period_cause_summary(findings)
+        contribution_row = summary.filter(
+            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
+        ).row(0, named=True)
+
+        self.assertAlmostEqual(
+            contribution_row[ESTIMATED_RETURN_IMPACT],
+            0.01 * 0.05319463,
+        )
+        self.assertEqual(
+            contribution_row[IMPACT_BASIS],
+            IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+        )
+        self.assertEqual(contribution_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
+        self.assertNotIn("vendor contribution deltas", contribution_row[IMPACT_MESSAGE])
+
     def test_portfolio_period_cause_summary_keeps_transactions_evidence_only(
         self,
     ) -> None:

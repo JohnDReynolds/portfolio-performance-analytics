@@ -24,6 +24,10 @@ from ppar.performance_comparison import (
     EVIDENCE_ROLE,
     Finding,
     FxRatesLoader,
+    IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+    IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+    IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
+    IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
     PerformanceComparison,
     PerformanceComparisonSpecification,
     PortfolioPerformanceLoader,
@@ -114,6 +118,10 @@ class TestPackageMetadata(unittest.TestCase):
             "EVIDENCE_ROLE",
             "Finding",
             "FxRatesLoader",
+            "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD",
+            "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED",
+            "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT",
+            "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV",
             "PerformanceComparison",
             "PortfolioPerformanceLoader",
             "PerformanceComparisonSpecification",
@@ -152,6 +160,22 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(EVIDENCE_ROLE, performance_comparison.EVIDENCE_ROLE)
         self.assertIs(Finding, performance_comparison.Finding)
         self.assertIs(FxRatesLoader, performance_comparison.FxRatesLoader)
+        self.assertIs(
+            IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+            performance_comparison.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+        )
+        self.assertIs(
+            IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+            performance_comparison.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+        )
+        self.assertIs(
+            IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
+            performance_comparison.IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
+        )
+        self.assertIs(
+            IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
+            performance_comparison.IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
+        )
         self.assertIs(PerformanceComparison, performance_comparison.PerformanceComparison)
         self.assertIs(
             PerformanceComparisonSpecification,

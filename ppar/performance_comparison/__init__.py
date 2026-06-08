@@ -4,6 +4,10 @@ from ppar.performance_comparison.cash import CashLoader
 from ppar.performance_comparison import columns
 from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.explain import (
+    IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+    IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+    IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
+    IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
@@ -54,6 +58,10 @@ __all__ = [
     "EVIDENCE_ROLE",
     "Finding",
     "FxRatesLoader",
+    "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD",
+    "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED",
+    "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT",
+    "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV",
     "PerformanceComparison",
     "PortfolioPerformanceLoader",
     "PerformanceComparisonSpecification",

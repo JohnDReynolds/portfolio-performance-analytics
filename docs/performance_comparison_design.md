@@ -932,22 +932,54 @@ Implemented contribution-candidate fields:
 - `impact_message`: Human-readable explanation of the estimate or why no
   estimate was produced.
 
-The first implementation of contribution candidates preserves all ranked
-evidence rows, populates these columns, and estimates only vendor-provided
-security contribution deltas. That estimate uses
-`impact_basis = security_contribution`, `impact_method =
-vendor_contribution_delta`, and medium confidence. All other rows use
-`impact_basis = no_estimate` until a more defensible method exists.
+The contribution-candidate implementation preserves all ranked evidence rows
+and populates stable impact columns. It estimates only where the current
+evidence carries enough denominator, weight, or vendor output context to state
+the method clearly.
+
+Current supported impact estimates:
+
+1. Vendor security contribution delta:
+   - `impact_basis = security_contribution`
+   - `impact_method = vendor_contribution_delta`
+   - `impact_confidence = medium`
+   - Uses the vendor-provided contribution delta as a related-output impact
+     estimate. This is preferred for the `security_return_or_contribution`
+     cause-area aggregate when available.
+2. Weighted security return delta:
+   - `impact_basis = security_return_weighted`
+   - `impact_method = security_return_delta_times_weight`
+   - `impact_confidence = low`
+   - Formula: `security_return_delta * snapshot_a_weight`.
+   - Used as a candidate-level review cross-check or fallback. It is not summed
+     with vendor contribution in the same security cause bucket because that
+     would double-count two estimates of related security-level performance.
+3. Portfolio source-field delta:
+   - `impact_basis = portfolio_source_field`
+   - `impact_method = source_field_delta_over_begin_market_value`
+   - `impact_confidence = low`
+   - Formula: `source_field_delta / beginning_market_value`.
+   - Currently applies only to return-bearing portfolio source fields such as
+     `income` and `gain_loss`. It does not apply to control/output fields such
+     as `end_market_value`.
+
+All other rows use `impact_basis = no_estimate` until a defensible method,
+denominator, and linkage are available.
 
 First contribution estimates should start only where the math is defensible:
 
-- Portfolio performance source fields: Changes in fields such as `income`,
-  `gain_loss`, `flow`, `begin_market_value`, and `end_market_value` may support
-  rough return-impact estimates when the relevant denominator is present. These
-  estimates should clearly state the denominator and formula.
+- Portfolio performance source fields: Changes in return-bearing fields such
+  as `income` and `gain_loss` may support rough return-impact estimates when
+  beginning market value is present. These estimates should clearly state the
+  denominator and formula. Control/output fields such as `end_market_value`
+  should remain evidence-only until a defensible interpretation is modeled.
 - Security contribution deltas: If a vendor supplies contribution, changed
   contribution can be ranked by contribution delta. This remains `related_output`
   evidence, not root cause, because contribution is already calculated output.
+- Security return deltas: If a security return finding has a usable portfolio
+  weight, a low-confidence weighted estimate can be calculated as
+  `security_return_delta * snapshot_a_weight`. Prefer vendor contribution
+  deltas in the aggregate cause summary when both are present.
 - Position, price, and transaction evidence: These should receive an estimated
   return impact only when the finding can be linked to an affected portfolio,
   period, security, and denominator. Otherwise they should remain ranked review
