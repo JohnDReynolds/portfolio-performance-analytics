@@ -1025,6 +1025,8 @@ The bundle contains the Markdown report, raw findings, current report helper
 tables as CSV files, and a JSON manifest with options, counts, artifact names,
 and row counts. This makes reviewer handoffs reproducible without coupling the
 comparison engine to a future HTML or Axys-style presentation layer.
+The `scripts/performance_comparison_report_bundle.py` command-line script
+exposes the same bundle workflow for comparison YAML files.
 
 ## Near-Term Roadmap
 
