@@ -33,6 +33,7 @@ from ppar.performance_comparison import (  # noqa: E402
     security_period_summary,
     summarize_findings,
     transaction_activity_summary,
+    write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
 )
@@ -59,6 +60,7 @@ def main() -> None:
     """Run the performance comparison demonstration."""
     comparison_path = _AXYS_DATA_ROOT / "ppar_performance_comparison_restatement.yaml"
     report_path = _REPO_ROOT / "_demo_output" / "performance_comparison_restatement.md"
+    html_report_path = _REPO_ROOT / "_demo_output" / "performance_comparison_restatement.html"
     bundle_path = _REPO_ROOT / "_demo_output" / "performance_comparison_bundle"
     suppressed_comparison_path = (
         _AXYS_DATA_ROOT / "ppar_performance_comparison_suppressed.yaml"
@@ -89,6 +91,10 @@ def main() -> None:
         findings,
         report_path,
     )
+    written_html_report_path = write_performance_comparison_html_report(
+        findings,
+        html_report_path,
+    )
     written_bundle_paths = write_performance_comparison_report_bundle(
         findings,
         bundle_path,
@@ -96,6 +102,7 @@ def main() -> None:
     print("Restatement comparison")
     print()
     print(f"Markdown report written to: {written_report_path}")
+    print(f"HTML report written to: {written_html_report_path}")
     print(f"Report bundle written to: {written_bundle_paths['manifest'].parent}")
     print()
     print(markdown_report)

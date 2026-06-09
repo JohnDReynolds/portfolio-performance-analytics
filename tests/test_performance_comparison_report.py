@@ -18,7 +18,9 @@ from ppar.performance_comparison import (
     columns as pc_cols,
     compare_snapshots,
     findings_to_polars,
+    performance_comparison_html_report,
     performance_comparison_markdown_report,
+    write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
 )
@@ -125,6 +127,28 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("PC-SEC-CONTR", report)
         self.assertIn("## Suppressed Findings Appendix", report)
 
+    def test_html_report_summarizes_restatement_findings(self) -> None:
+        """HTML reports include the same reviewer-facing sections and tables."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        report = performance_comparison_html_report(
+            findings,
+            title="HTML <Restatement>",
+            top_evidence_limit=2,
+        )
+
+        self.assertTrue(report.startswith("<!DOCTYPE html>"))
+        self.assertIn("<title>HTML &lt;Restatement&gt;</title>", report)
+        self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
+        self.assertIn('id="impact-coverage"', report)
+        self.assertIn("Impact Coverage", report)
+        self.assertIn("Residual Status", report)
+        self.assertIn("Transaction Activity", report)
+        self.assertIn("security_contribution", report)
+        self.assertIn("0.001084292504", report)
+        self.assertIn("PC-PORT-MV", report)
+        self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
+
     def test_markdown_report_limits_top_evidence_per_portfolio_period(self) -> None:
         """Top evidence limit controls displayed contribution candidate rows."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
@@ -164,6 +188,17 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("_No portfolio return changes._", report)
         self.assertIn("_No cause summary available._", report)
         self.assertIn("_No ranked evidence is available for portfolio return changes._", report)
+
+    def test_html_report_handles_empty_findings(self) -> None:
+        """Baseline HTML reports render stable empty-state sections."""
+        findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
+
+        report = performance_comparison_html_report(findings)
+
+        self.assertIn("No portfolio return changes to narrate.", report)
+        self.assertIn("No impact estimates are currently available.", report)
+        self.assertIn("No changed transaction activity.", report)
+        self.assertIn("No cause summary available.", report)
 
     def test_markdown_report_withholds_residual_when_no_estimates_exist(self) -> None:
         """Residual status explains changed periods with evidence but no estimates."""
@@ -294,11 +329,31 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("# Controlled Restatement", report)
             self.assertIn("## Top Evidence", report)
 
+    def test_write_html_report_creates_parent_directory(self) -> None:
+        """HTML reports can be written as durable artifacts."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "nested" / "report.html"
+
+            written_path = write_performance_comparison_html_report(
+                findings,
+                output_path,
+                title="Controlled HTML Restatement",
+                top_evidence_limit=2,
+            )
+
+            self.assertEqual(written_path, output_path)
+            self.assertTrue(output_path.exists())
+            report = output_path.read_text(encoding="utf-8")
+            self.assertIn("<h1>Controlled HTML Restatement</h1>", report)
+            self.assertIn("Top Evidence", report)
+
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
         """Report bundles contain Markdown, CSV tables, and manifest metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         expected_keys = {
             "report",
+            "html_report",
             "findings",
             "portfolio_period_summary",
             "cause_summary",
@@ -323,6 +378,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             for path in paths.values():
                 self.assertTrue(path.exists(), path)
             self.assertIn("# Bundle Restatement", paths["report"].read_text())
+            self.assertIn("<h1>Bundle Restatement</h1>", paths["html_report"].read_text())
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
@@ -331,6 +387,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["counts"]["active_findings"], 21)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
+            self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
 
             impact_coverage = pl.read_csv(paths["impact_coverage"])
@@ -364,6 +421,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 def _section(report: str, start: str, end: str) -> str:
     """Return report text between two section markers."""
     return report.split(start, maxsplit=1)[1].split(end, maxsplit=1)[0]
+
+
+def _html_section(report: str, section_id: str) -> str:
+    """Return one HTML section by id."""
+    start = f'<section class="pc-section" id="{section_id}">'
+    return report.split(start, maxsplit=1)[1].split("</section>", maxsplit=1)[0]
 
 
 if __name__ == "__main__":

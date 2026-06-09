@@ -5,6 +5,7 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Sequence
 import datetime as dt
+import html as html_lib
 import json
 from pathlib import Path
 
@@ -140,6 +141,73 @@ def performance_comparison_markdown_report(
     return "\n\n".join(section for section in sections if section).rstrip() + "\n"
 
 
+def performance_comparison_html_report(
+    findings: pl.DataFrame,
+    *,
+    title: str = "Performance Comparison Report",
+    include_suppressed_appendix: bool = True,
+    top_evidence_limit: int = 10,
+) -> str:
+    """Return a standalone HTML report for performance comparison findings.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        title: HTML document title and visible H1 text.
+        include_suppressed_appendix: Whether to include a compact table of
+            suppressed findings at the end of the report.
+        top_evidence_limit: Maximum number of contribution-candidate evidence
+            rows to show per portfolio period.
+
+    Returns:
+        Complete HTML document string suitable for writing to disk or opening
+        in a browser.
+    """
+    active_findings = _active_findings(findings)
+    summaries = summarize_findings(findings)
+    active_summaries = summarize_findings(active_findings)
+    sections = [
+        _html_run_summary_section(findings, active_findings, summaries, active_summaries),
+        _html_portfolio_period_narrative_section(active_findings),
+        _html_review_notes_section(active_findings),
+        _html_impact_estimate_summary_section(active_findings),
+        _html_impact_coverage_section(active_findings),
+        _html_residual_status_section(active_findings),
+        _html_transaction_activity_section(active_findings),
+        _html_portfolio_period_section(active_findings),
+        _html_cause_summary_section(active_findings),
+        _html_top_evidence_section(active_findings, top_evidence_limit),
+    ]
+    if include_suppressed_appendix:
+        sections.append(_html_suppressed_appendix_section(findings, summaries))
+
+    return "\n".join(
+        [
+            "<!DOCTYPE html>",
+            '<html lang="en">',
+            "<head>",
+            '<meta charset="utf-8"/>',
+            '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
+            f"<title>{_escape_html(title)}</title>",
+            _html_style_block(),
+            "</head>",
+            "<body>",
+            '<main class="pc-report">',
+            '<header class="pc-header">',
+            f"<h1>{_escape_html(title)}</h1>",
+            f"<p>{_escape_html(_ACTIVE_ONLY_NOTE)}</p>",
+            f"<p>{_escape_html(_NO_ESTIMATE_NOTE)}</p>",
+            "</header>",
+            _html_contents_section(include_suppressed_appendix=include_suppressed_appendix),
+            *sections,
+            "</main>",
+            "</body>",
+            "</html>",
+            "",
+        ]
+    )
+
+
 def write_performance_comparison_markdown_report(
     findings: pl.DataFrame,
     output_path: util.PathLike,
@@ -167,6 +235,42 @@ def write_performance_comparison_markdown_report(
     report_path = Path(output_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report = performance_comparison_markdown_report(
+        findings,
+        title=title,
+        include_suppressed_appendix=include_suppressed_appendix,
+        top_evidence_limit=top_evidence_limit,
+    )
+    report_path.write_text(report, encoding=util.ENCODING)
+    return report_path
+
+
+def write_performance_comparison_html_report(
+    findings: pl.DataFrame,
+    output_path: util.PathLike,
+    *,
+    title: str = "Performance Comparison Report",
+    include_suppressed_appendix: bool = True,
+    top_evidence_limit: int = 10,
+) -> Path:
+    """Write an HTML performance comparison report to disk.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        output_path: Destination HTML report path. Parent directories are
+            created when needed.
+        title: HTML document title and visible H1 text.
+        include_suppressed_appendix: Whether to include the suppressed findings
+            appendix section.
+        top_evidence_limit: Maximum number of top-evidence rows to show per
+            portfolio period.
+
+    Returns:
+        Normalized ``Path`` to the written report file.
+    """
+    report_path = Path(output_path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report = performance_comparison_html_report(
         findings,
         title=title,
         include_suppressed_appendix=include_suppressed_appendix,
@@ -213,6 +317,14 @@ def write_performance_comparison_report_bundle(
         top_evidence_limit=top_evidence_limit,
     )
     paths["report"] = report_path
+    html_report_path = write_performance_comparison_html_report(
+        findings,
+        bundle_directory / "report.html",
+        title=title,
+        include_suppressed_appendix=include_suppressed_appendix,
+        top_evidence_limit=top_evidence_limit,
+    )
+    paths["html_report"] = html_report_path
     paths["findings"] = _write_csv(findings, bundle_directory / "findings.csv")
     for name, table in tables.items():
         paths[name] = _write_csv(table, bundle_directory / f"{name}.csv")
@@ -323,6 +435,36 @@ def _run_summary_section(
 
 def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
     """Return the report contents section."""
+    section_names = _report_section_names(
+        include_suppressed_appendix=include_suppressed_appendix
+    )
+    lines = ["## Report Contents", *[f"- {name}" for name in section_names]]
+    return "\n".join(lines)
+
+
+def _html_contents_section(*, include_suppressed_appendix: bool) -> str:
+    """Return the HTML report contents navigation."""
+    section_names = _report_section_names(
+        include_suppressed_appendix=include_suppressed_appendix
+    )
+    links = [
+        f'<li><a href="#{_html_section_id(name)}">{_escape_html(name)}</a></li>'
+        for name in section_names
+    ]
+    return "\n".join(
+        [
+            '<nav class="pc-section" aria-labelledby="report-contents">',
+            '<h2 id="report-contents">Report Contents</h2>',
+            "<ul>",
+            *links,
+            "</ul>",
+            "</nav>",
+        ]
+    )
+
+
+def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
+    """Return report section names in display order."""
     section_names = [
         "Run Summary",
         "Portfolio-Period Narrative",
@@ -337,8 +479,7 @@ def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
     ]
     if include_suppressed_appendix:
         section_names.append("Suppressed Findings Appendix")
-    lines = ["## Report Contents", *[f"- {name}" for name in section_names]]
-    return "\n".join(lines)
+    return section_names
 
 
 def _portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
@@ -829,6 +970,286 @@ def _suppressed_appendix_section(
     return "\n".join(lines)
 
 
+def _html_run_summary_section(
+    findings: pl.DataFrame,
+    active_findings: pl.DataFrame,
+    summaries: dict[str, pl.DataFrame],
+    active_summaries: dict[str, pl.DataFrame],
+) -> str:
+    """Return the run summary HTML section."""
+    cards = [
+        ("Total findings", findings.height),
+        ("Active findings", active_findings.height),
+        ("Suppressed findings", findings.height - active_findings.height),
+    ]
+    card_html = "\n".join(_html_summary_card(label, value) for label, value in cards)
+    content = "\n".join(
+        [
+            '<div class="pc-card-row">',
+            card_html,
+            "</div>",
+            "<h3>Active Findings By Code</h3>",
+            _html_table(active_summaries["by_code"], [FINDING_CODE, _COUNT]),
+            "<h3>Active Findings By Dataset</h3>",
+            _html_table(active_summaries["by_dataset"], [DATASET, _COUNT]),
+            "<h3>Findings By Suppression State</h3>",
+            _html_table(summaries["by_suppressed"], [SUPPRESSED, _COUNT]),
+        ]
+    )
+    return _html_section("Run Summary", content)
+
+
+def _html_portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
+    """Return conservative narrative summaries as HTML."""
+    summary = portfolio_period_summary(findings)
+    if summary.is_empty():
+        return _html_section(
+            "Portfolio-Period Narrative",
+            _html_empty("No portfolio return changes to narrate."),
+        )
+
+    causes = portfolio_period_cause_summary(findings)
+    paragraphs = [
+        _html_paragraph(
+            _portfolio_period_narrative(period, _period_cause_rows(causes, period))
+        )
+        for period in summary.iter_rows(named=True)
+    ]
+    return _html_section("Portfolio-Period Narrative", "\n".join(paragraphs))
+
+
+def _html_review_notes_section(findings: pl.DataFrame) -> str:
+    """Return current model-limit review notes as HTML."""
+    causes = portfolio_period_cause_summary(findings)
+    if causes.is_empty():
+        return _html_section(
+            "Review Notes",
+            _html_empty("No portfolio-period review notes."),
+        )
+
+    notes = _review_notes_for_cause_rows(list(causes.iter_rows(named=True)))
+    if not notes:
+        notes = [
+            "No model-limit review notes were generated for the current evidence mix.",
+        ]
+    return _html_section("Review Notes", _html_list(notes))
+
+
+def _html_impact_estimate_summary_section(findings: pl.DataFrame) -> str:
+    """Return quantified impact estimates as an HTML section."""
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        ROOT_CAUSE_AREA,
+        ESTIMATED_RETURN_IMPACT,
+        IMPACT_BASIS,
+        IMPACT_CONFIDENCE,
+        IMPACT_MESSAGE,
+    ]
+    return _html_section(
+        "Impact Estimate Summary",
+        _html_table(
+            _impact_estimate_summary_table(findings),
+            columns,
+            empty_message="No impact estimates are currently available.",
+        ),
+    )
+
+
+def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
+    """Return estimate-coverage status as an HTML section."""
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        PORTFOLIO_RETURN_DELTA,
+        ROOT_CAUSE_AREA_COUNT,
+        ESTIMATED_CAUSE_AREA_COUNT,
+        EVIDENCE_ONLY_CAUSE_AREA_COUNT,
+        LOW_CONFIDENCE_ESTIMATE_COUNT,
+        MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
+        ESTIMATED_RETURN_IMPACT_TOTAL,
+        EVIDENCE_ONLY_AREAS,
+        MISSING_IMPACT_INPUTS,
+        IMPACT_MESSAGE,
+    ]
+    return _html_section(
+        "Impact Coverage",
+        _html_table(
+            portfolio_period_impact_coverage_summary(findings),
+            columns,
+            empty_message="No portfolio return changes need impact coverage review.",
+        ),
+    )
+
+
+def _html_residual_status_section(findings: pl.DataFrame) -> str:
+    """Return residual-status caveats and rows as an HTML section."""
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        PORTFOLIO_RETURN_DELTA,
+        _ESTIMATED_IMPACT_AREAS,
+        _RESIDUAL_STATUS,
+        _RESIDUAL_REASON,
+    ]
+    content = "\n".join(
+        [
+            f'<p class="pc-note">{_escape_html(_RESIDUAL_STATUS_NOTE)}</p>',
+            _html_table(
+                _residual_status_table(findings),
+                columns,
+                empty_message="No portfolio return changes need residual review.",
+            ),
+        ]
+    )
+    return _html_section("Residual Status", content)
+
+
+def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
+    """Return changed transaction activity as an HTML section."""
+    columns = [
+        PORTFOLIO_ID,
+        SECURITY_ID,
+        FROM_DATE,
+        THRU_DATE,
+        TRANSACTION_CATEGORY,
+        CHANGED_FIELDS,
+        AMOUNT_DELTA,
+        QUANTITY_DELTA,
+        PRICE_DELTA,
+        MISSING_IMPACT_INPUTS,
+    ]
+    return _html_section(
+        "Transaction Activity",
+        _html_table(
+            transaction_activity_summary(findings),
+            columns,
+            empty_message="No changed transaction activity.",
+        ),
+    )
+
+
+def _html_portfolio_period_section(findings: pl.DataFrame) -> str:
+    """Return portfolio-period return changes as an HTML section."""
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        PORTFOLIO_RETURN_DELTA,
+        FINDING_COUNT,
+        HAS_SUPPRESSED_FINDINGS,
+    ]
+    return _html_section(
+        "Portfolio-Period Changes",
+        _html_table(
+            portfolio_period_summary(findings),
+            columns,
+            empty_message="No portfolio return changes.",
+        ),
+    )
+
+
+def _html_cause_summary_section(findings: pl.DataFrame) -> str:
+    """Return cause-area summaries as an HTML section."""
+    columns = [
+        column
+        for column in PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS
+        if column
+        in {
+            PORTFOLIO_ID,
+            FROM_DATE,
+            THRU_DATE,
+            ROOT_CAUSE_AREA,
+            FINDING_COUNT,
+            ESTIMATED_RETURN_IMPACT,
+            IMPACT_BASIS,
+            IMPACT_CONFIDENCE,
+            TOP_CODES,
+            IMPACT_MESSAGE,
+        }
+    ]
+    return _html_section(
+        "Cause Summary",
+        _html_table(
+            portfolio_period_cause_summary(findings),
+            columns,
+            empty_message="No cause summary available.",
+        ),
+    )
+
+
+def _html_top_evidence_section(
+    findings: pl.DataFrame,
+    top_evidence_limit: int,
+) -> str:
+    """Return top contribution-candidate evidence as an HTML section."""
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        "review_rank",
+        FINDING_CODE,
+        DATASET,
+        EVIDENCE_ROLE,
+        SECURITY_ID,
+        SOURCE_COLUMN,
+        DELTA_B_MINUS_A,
+        ESTIMATED_RETURN_IMPACT,
+        IMPACT_BASIS,
+        IMPACT_CONFIDENCE,
+        MESSAGE,
+    ]
+    return _html_section(
+        "Top Evidence",
+        _html_table(
+            _top_evidence_table(findings, top_evidence_limit),
+            columns,
+            empty_message="No ranked evidence is available.",
+        ),
+    )
+
+
+def _html_suppressed_appendix_section(
+    findings: pl.DataFrame,
+    summaries: dict[str, pl.DataFrame],
+) -> str:
+    """Return suppressed findings audit appendix as HTML."""
+    suppressed = findings.filter(pl.col(SUPPRESSED)) if not findings.is_empty() else findings
+    content = "\n".join(
+        [
+            "<h3>Suppressed Counts By Code</h3>",
+            _html_table(
+                summaries["by_code_suppressed"].filter(pl.col(SUPPRESSED))
+                if not summaries["by_code_suppressed"].is_empty()
+                else summaries["by_code_suppressed"],
+                [FINDING_CODE, SUPPRESSED, _COUNT],
+                empty_message="No suppressed findings.",
+            ),
+            "<h3>Suppressed Finding Detail</h3>",
+            _html_table(
+                compact_findings_table(suppressed, include_suppressed=True),
+                [
+                    FINDING_CODE,
+                    DATASET,
+                    EVIDENCE_ROLE,
+                    PORTFOLIO_ID,
+                    SECURITY_ID,
+                    FROM_DATE,
+                    THRU_DATE,
+                    SOURCE_COLUMN,
+                    DELTA_B_MINUS_A,
+                    MESSAGE,
+                ],
+                empty_message="No suppressed finding detail.",
+            ),
+        ]
+    )
+    return _html_section("Suppressed Findings Appendix", content)
+
+
 def _active_findings(findings: pl.DataFrame) -> pl.DataFrame:
     """Return unsuppressed findings, preserving empty-table behavior."""
     if findings.is_empty() or SUPPRESSED not in findings.columns:
@@ -859,6 +1280,107 @@ def _markdown_table(
         for row in table.select(available_columns).iter_rows(named=True)
     ]
     return "\n".join([header, separator, *body])
+
+
+def _html_section(title: str, content: str) -> str:
+    """Return one titled HTML report section."""
+    section_id = _html_section_id(title)
+    return "\n".join(
+        [
+            f'<section class="pc-section" id="{section_id}">',
+            f"<h2>{_escape_html(title)}</h2>",
+            content,
+            "</section>",
+        ]
+    )
+
+
+def _html_summary_card(label: str, value: object) -> str:
+    """Return one compact summary card."""
+    return "\n".join(
+        [
+            '<div class="pc-card">',
+            f"<span>{_escape_html(label)}</span>",
+            f"<strong>{_escape_html(_format_value(value))}</strong>",
+            "</div>",
+        ]
+    )
+
+
+def _html_paragraph(value: object) -> str:
+    """Return one escaped HTML paragraph."""
+    return f"<p>{_escape_html(value)}</p>"
+
+
+def _html_table(
+    table: pl.DataFrame,
+    columns: Sequence[str],
+    *,
+    empty_message: str = "No rows.",
+) -> str:
+    """Return an HTML table for selected columns."""
+    if table.is_empty():
+        return _html_empty(empty_message)
+
+    available_columns = [column for column in columns if column in table.columns]
+    if not available_columns:
+        return _html_empty(empty_message)
+
+    header_cells = [
+        f'<th scope="col">{_escape_html(_display_header(column))}</th>'
+        for column in available_columns
+    ]
+    body_rows = []
+    for row in table.select(available_columns).iter_rows(named=True):
+        cells = [
+            _html_table_cell(row[column], _html_cell_alignment(row[column]))
+            for column in available_columns
+        ]
+        body_rows.append("<tr>" + "".join(cells) + "</tr>")
+    return "\n".join(
+        [
+            '<div class="pc-table-wrap">',
+            "<table>",
+            "<thead>",
+            "<tr>" + "".join(header_cells) + "</tr>",
+            "</thead>",
+            "<tbody>",
+            *body_rows,
+            "</tbody>",
+            "</table>",
+            "</div>",
+        ]
+    )
+
+
+def _html_table_cell(value: object, alignment: str) -> str:
+    """Return one escaped HTML table cell."""
+    return f'<td class="{alignment}">{_escape_html(_format_value(value))}</td>'
+
+
+def _html_cell_alignment(value: object) -> str:
+    """Return a CSS alignment class for an HTML table value."""
+    if isinstance(value, bool):
+        return "pc-center"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return "pc-right"
+    return "pc-left"
+
+
+def _html_empty(message: str) -> str:
+    """Return a styled empty-state paragraph."""
+    return f'<p class="pc-empty">{_escape_html(message)}</p>'
+
+
+def _html_list(items: Sequence[str]) -> str:
+    """Return an escaped unordered HTML list."""
+    list_items = [f"<li>{_escape_html(item)}</li>" for item in items]
+    return "\n".join(["<ul>", *list_items, "</ul>"])
+
+
+def _html_section_id(title: str) -> str:
+    """Return a deterministic HTML section id."""
+    return title.lower().replace(" ", "-")
 
 
 def _display_header(column: str) -> str:
@@ -893,3 +1415,115 @@ def _escape_markdown_text(value: object) -> str:
     """Escape Markdown table delimiters and normalize whitespace."""
     text = " ".join(str(value).split())
     return text.replace("|", "\\|")
+
+
+def _escape_html(value: object) -> str:
+    """Escape text for HTML element content."""
+    text = " ".join(str(value).split())
+    return html_lib.escape(text, quote=True)
+
+
+def _html_style_block() -> str:
+    """Return CSS for the standalone performance comparison HTML report."""
+    return """
+<style>
+:root {
+  color-scheme: light;
+  --pc-bg: #f6f7f9;
+  --pc-panel: #ffffff;
+  --pc-border: #d7dce2;
+  --pc-text: #1e2329;
+  --pc-muted: #5d6978;
+  --pc-accent: #276f86;
+  --pc-table-stripe: #f1f5f8;
+}
+body {
+  margin: 0;
+  background: var(--pc-bg);
+  color: var(--pc-text);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.pc-report {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.pc-header,
+.pc-section {
+  background: var(--pc-panel);
+  border: 1px solid var(--pc-border);
+  border-radius: 6px;
+  margin: 0 0 16px;
+  padding: 16px;
+}
+.pc-header h1,
+.pc-section h2,
+.pc-section h3 {
+  margin: 0 0 10px;
+}
+.pc-header p,
+.pc-section p {
+  margin: 6px 0;
+}
+.pc-section a {
+  color: var(--pc-accent);
+}
+.pc-card-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 14px;
+}
+.pc-card {
+  border: 1px solid var(--pc-border);
+  border-radius: 6px;
+  padding: 10px;
+}
+.pc-card span {
+  color: var(--pc-muted);
+  display: block;
+  font-size: 12px;
+}
+.pc-card strong {
+  display: block;
+  font-size: 22px;
+  margin-top: 2px;
+}
+.pc-note,
+.pc-empty {
+  color: var(--pc-muted);
+}
+.pc-table-wrap {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+th,
+td {
+  border: 1px solid var(--pc-border);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+th {
+  background: #e9eef2;
+  text-align: left;
+  white-space: nowrap;
+}
+tbody tr:nth-child(even) {
+  background: var(--pc-table-stripe);
+}
+.pc-left {
+  text-align: left;
+}
+.pc-center {
+  text-align: center;
+}
+.pc-right {
+  text-align: right;
+  white-space: nowrap;
+}
+</style>""".strip()

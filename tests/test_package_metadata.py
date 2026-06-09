@@ -44,6 +44,7 @@ from ppar.performance_comparison import (
     compact_findings_table,
     compare_snapshots,
     findings_to_polars,
+    performance_comparison_html_report,
     performance_comparison_markdown_report,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
@@ -55,6 +56,7 @@ from ppar.performance_comparison import (
     security_period_summary,
     summarize_findings,
     transaction_activity_summary,
+    write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
 )
@@ -145,12 +147,14 @@ class TestPackageMetadata(unittest.TestCase):
             "portfolio_period_evidence_breakdown",
             "portfolio_period_impact_coverage_summary",
             "portfolio_period_summary",
+            "performance_comparison_html_report",
             "performance_comparison_markdown_report",
             "rank_portfolio_period_evidence",
             "security_period_evidence_breakdown",
             "security_period_summary",
             "summarize_findings",
             "transaction_activity_summary",
+            "write_performance_comparison_html_report",
             "write_performance_comparison_markdown_report",
             "write_performance_comparison_report_bundle",
         }
@@ -209,6 +213,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(compare_snapshots, performance_comparison.compare_snapshots)
         self.assertIs(findings_to_polars, performance_comparison.findings_to_polars)
         self.assertIs(
+            performance_comparison_html_report,
+            performance_comparison.performance_comparison_html_report,
+        )
+        self.assertIs(
             performance_comparison_markdown_report,
             performance_comparison.performance_comparison_markdown_report,
         )
@@ -248,6 +256,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             transaction_activity_summary,
             performance_comparison.transaction_activity_summary,
+        )
+        self.assertIs(
+            write_performance_comparison_html_report,
+            performance_comparison.write_performance_comparison_html_report,
         )
         self.assertIs(
             write_performance_comparison_markdown_report,

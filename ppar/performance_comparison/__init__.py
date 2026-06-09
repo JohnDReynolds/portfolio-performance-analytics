@@ -32,7 +32,9 @@ from ppar.performance_comparison.portfolio_performance import PortfolioPerforman
 from ppar.performance_comparison.positions import PositionsLoader
 from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.report import (
+    performance_comparison_html_report,
     performance_comparison_markdown_report,
+    write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
 )
@@ -85,12 +87,14 @@ __all__ = [
     "portfolio_period_evidence_breakdown",
     "portfolio_period_impact_coverage_summary",
     "portfolio_period_summary",
+    "performance_comparison_html_report",
     "performance_comparison_markdown_report",
     "rank_portfolio_period_evidence",
     "security_period_evidence_breakdown",
     "security_period_summary",
     "summarize_findings",
     "transaction_activity_summary",
+    "write_performance_comparison_html_report",
     "write_performance_comparison_markdown_report",
     "write_performance_comparison_report_bundle",
 ]

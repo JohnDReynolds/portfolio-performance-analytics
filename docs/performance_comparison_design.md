@@ -1028,6 +1028,12 @@ comparison engine to a future HTML or Axys-style presentation layer.
 The `scripts/performance_comparison_report_bundle.py` command-line script
 exposes the same bundle workflow for comparison YAML files.
 
+HTML reports can be rendered with `performance_comparison_html_report()` or
+written with `write_performance_comparison_html_report()`. The first HTML
+version is intentionally conservative: it uses the same helper tables and
+section ordering as the Markdown report, with lightweight CSS for reviewer
+readability rather than separate HTML-specific analytics logic.
+
 ## Near-Term Roadmap
 
 The next design work should focus on explanation quality before adding broad
