@@ -15,6 +15,7 @@ _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
 _SCRIPT_PATH = Path("scripts/performance_comparison_report.py")
+_HTML_SCRIPT_PATH = Path("scripts/performance_comparison_html_report.py")
 _BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_report_bundle.py")
 
 
@@ -73,6 +74,59 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             report = output_path.read_text(encoding="utf-8")
             self.assertIn("- Suppressed findings: 1", report)
             self.assertNotIn("## Suppressed Findings Appendix", report)
+
+    def test_html_script_writes_html_report(self) -> None:
+        """The HTML script writes a browser-readable report file."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "reports" / "comparison.html"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_HTML_SCRIPT_PATH),
+                    str(_RESTATEMENT_COMPARISON_PATH),
+                    str(output_path),
+                    "--title",
+                    "Script HTML Report",
+                    "--top-evidence-limit",
+                    "2",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn(str(output_path), result.stdout)
+            self.assertTrue(output_path.exists())
+            report = output_path.read_text(encoding="utf-8")
+            self.assertIn("<h1>Script HTML Report</h1>", report)
+            self.assertIn('id="impact-coverage"', report)
+            self.assertIn("security_contribution", report)
+            self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
+
+    def test_html_script_can_omit_suppressed_appendix(self) -> None:
+        """The HTML script can suppress the suppressed-findings appendix."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "comparison.html"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(_HTML_SCRIPT_PATH),
+                    str(_SUPPRESSED_COMPARISON_PATH),
+                    str(output_path),
+                    "--active-only",
+                    "--no-suppressed-appendix",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            report = output_path.read_text(encoding="utf-8")
+            self.assertIn("<span>Suppressed findings</span>", report)
+            self.assertIn("<strong>0</strong>", report)
+            self.assertNotIn("Suppressed Findings Appendix</h2>", report)
 
     def test_bundle_script_writes_report_bundle(self) -> None:
         """The bundle script writes Markdown, CSV, and manifest artifacts."""
@@ -137,6 +191,12 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertNotIn("## Suppressed Findings Appendix", report)
             self.assertEqual(manifest["counts"]["findings"], 20)
             self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
+
+
+def _html_section(report: str, section_id: str) -> str:
+    """Return one HTML section by id."""
+    start = f'<section class="pc-section" id="{section_id}">'
+    return report.split(start, maxsplit=1)[1].split("</section>", maxsplit=1)[0]
 
 
 if __name__ == "__main__":

@@ -1033,6 +1033,8 @@ written with `write_performance_comparison_html_report()`. The first HTML
 version is intentionally conservative: it uses the same helper tables and
 section ordering as the Markdown report, with lightweight CSS for reviewer
 readability rather than separate HTML-specific analytics logic.
+The `scripts/performance_comparison_html_report.py` command-line script writes
+the same HTML report directly from a comparison YAML file.
 
 ## Near-Term Roadmap
 
