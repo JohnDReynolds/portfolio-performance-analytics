@@ -188,6 +188,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "## Transaction Activity",
             "## Portfolio-Period Changes",
         )
+        top_evidence = _section(
+            report,
+            "## Top Evidence",
+            "## Suppressed Findings Appendix",
+        )
 
         self.assertIn("transaction_activity", impact_summary)
         self.assertIn("transaction_performance_amount", impact_summary)
@@ -195,6 +200,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("performance-treated amount deltas", report)
         self.assertIn("| PORT_A | AAPL | 2025-05-01 | 2025-05-31 | buy |", transaction_activity)
         self.assertIn("| -10 |", transaction_activity)
+        self.assertIn("transaction_amount_delta_over_return_denominator", top_evidence)
+        self.assertIn("source-signed transaction amount", top_evidence)
         self.assertNotIn("transaction sign and flow semantics", report)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
@@ -468,6 +475,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             top_evidence = pl.read_csv(paths["top_evidence"])
             self.assertEqual(top_evidence.height, 2)
             self.assertIn("review_rank", top_evidence.columns)
+            self.assertIn("impact_method", top_evidence.columns)
+            self.assertIn("impact_message", top_evidence.columns)
 
     def test_write_report_bundle_preserves_empty_table_columns(self) -> None:
         """Report bundles write stable CSV headers for baseline empty tables."""

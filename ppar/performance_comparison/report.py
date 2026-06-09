@@ -31,6 +31,7 @@ from ppar.performance_comparison.explain import (
     IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
+    IMPACT_METHOD,
     LOW_CONFIDENCE_ESTIMATE_COUNT,
     MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
     MISSING_IMPACT_INPUTS,
@@ -926,6 +927,8 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
         ESTIMATED_RETURN_IMPACT,
         IMPACT_BASIS,
         IMPACT_CONFIDENCE,
+        IMPACT_METHOD,
+        IMPACT_MESSAGE,
         MESSAGE,
     ]
     return "\n".join(
@@ -1216,6 +1219,8 @@ def _html_top_evidence_section(
         ESTIMATED_RETURN_IMPACT,
         IMPACT_BASIS,
         IMPACT_CONFIDENCE,
+        IMPACT_METHOD,
+        IMPACT_MESSAGE,
         MESSAGE,
     ]
     return _html_section(
