@@ -892,7 +892,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
-                "external_flow": {"method": "modified_dietz"}
+                "external_flow": {"method": "not_a_supported_method"}
             }
             specification_path.write_text(
                 yaml.safe_dump(configuration),
@@ -906,9 +906,53 @@ class TestPerformanceComparison(unittest.TestCase):
 
             self.assertIn("external_flow.method", str(context.exception))
 
+    def test_transaction_modified_dietz_design_contract_validates_fields(self) -> None:
+        """Modified Dietz YAML fields have explicit allowed values before support."""
+        scenarios = [
+            ({"flow_timing": "activity_date"}, "external_flow.flow_timing"),
+            ({"day_count": "business_days"}, "external_flow.day_count"),
+            ({"inclusion_rule": "midday"}, "external_flow.inclusion_rule"),
+            ({"denominator_source": "average_market_value"}, "external_flow.denominator_source"),
+            ({"double_count_policy": "aggregate"}, "external_flow.double_count_policy"),
+            ({"unsupported_key": "value"}, "unsupported modified_dietz keys"),
+        ]
+
+        for overrides, expected_message in scenarios:
+            with self.subTest(overrides=overrides):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    specification_path = _write_transaction_period_specification(
+                        Path(temp_dir)
+                    )
+                    configuration = yaml.safe_load(
+                        specification_path.read_text(encoding="utf-8")
+                    )
+                    modified_dietz = {
+                        "method": "modified_dietz",
+                        "flow_timing": "trade_date",
+                        "day_count": "actual_days",
+                        "inclusion_rule": "beginning_of_day",
+                        "denominator_source": "begin_market_value",
+                        "double_count_policy": "cross_check_only",
+                    }
+                    modified_dietz.update(overrides)
+                    configuration["transaction_impact_methods"] = {
+                        "external_flow": modified_dietz
+                    }
+                    specification_path.write_text(
+                        yaml.safe_dump(configuration),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaises(PpaError) as context:
+                        PerformanceComparison(
+                            PerformanceComparisonSpecification(specification_path)
+                        )
+
+                    self.assertIn(expected_message, str(context.exception))
+
     def test_transaction_external_flow_future_methods_remain_rejected(self) -> None:
         """Future method names are reserved until their formulas are implemented."""
-        for method in ("modified_dietz", "subperiod_linked", "unweighted_flow_delta"):
+        for method in ("subperiod_linked", "unweighted_flow_delta"):
             with self.subTest(method=method):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     specification_path = _write_transaction_period_specification(
@@ -968,7 +1012,7 @@ class TestPerformanceComparison(unittest.TestCase):
             ({"external_flow": {}}, "external_flow.method is required"),
             (
                 {"external_flow": {"method": "modified_dietz"}},
-                "external_flow.method must be 'evidence_only'",
+                "missing required modified_dietz keys",
             ),
         ]
 

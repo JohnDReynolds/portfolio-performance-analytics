@@ -411,15 +411,17 @@ transaction_impact_methods:
 Proposed `modified_dietz` fields:
 
 - `flow_timing`: Which transaction date anchors the flow weight, such as
-  `trade_date` or `settlement_date`.
+  `trade_date` or `settlement_date`. Allowed values: `trade_date`,
+  `settlement_date`.
 - `day_count`: How calendar distance is measured, starting with `actual_days`.
+  Allowed value: `actual_days`.
 - `inclusion_rule`: Whether a dated flow is treated as beginning-of-day or
-  end-of-day for weighting.
+  end-of-day for weighting. Allowed values: `beginning_of_day`, `end_of_day`.
 - `denominator_source`: Which normalized field supplies the return denominator,
-  such as `begin_market_value`.
+  such as `begin_market_value`. Allowed value: `begin_market_value`.
 - `double_count_policy`: Whether transaction-derived impacts are eligible for
   aggregation or are only cross-check evidence when portfolio `flow` deltas are
-  present.
+  present. Allowed value: `cross_check_only`.
 
 This block is design-only today. It is rejected until the Modified Dietz
 formula, allowed values, and double-counting rules are implemented and tested.

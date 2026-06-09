@@ -176,6 +176,23 @@ _DAY_COUNT_KEY: Final[str] = "day_count"
 _INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
 _DENOMINATOR_SOURCE_KEY: Final[str] = "denominator_source"
 _DOUBLE_COUNT_POLICY_KEY: Final[str] = "double_count_policy"
+_MODIFIED_DIETZ_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _FLOW_TIMING_KEY,
+        _DAY_COUNT_KEY,
+        _INCLUSION_RULE_KEY,
+        _DENOMINATOR_SOURCE_KEY,
+        _DOUBLE_COUNT_POLICY_KEY,
+    }
+)
+_MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _FLOW_TIMING_KEY: frozenset({"trade_date", "settlement_date"}),
+    _DAY_COUNT_KEY: frozenset({"actual_days"}),
+    _INCLUSION_RULE_KEY: frozenset({"beginning_of_day", "end_of_day"}),
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+    _DOUBLE_COUNT_POLICY_KEY: frozenset({"cross_check_only"}),
+}
 _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
     {
         _MODIFIED_DIETZ_METHOD,
@@ -1110,16 +1127,75 @@ def _transaction_impact_policies(
             ),
             504,
         )
+    if method == _MODIFIED_DIETZ_METHOD:
+        _validate_reserved_modified_dietz_method(specification, external_flow_value)
+        _raise_unsupported_external_flow_method(specification, method)
     if method != _EVIDENCE_ONLY_METHOD:
+        _raise_unsupported_external_flow_method(specification, method)
+
+    policies[_EXTERNAL_FLOW_KEY] = TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
+    return policies
+
+
+def _validate_reserved_modified_dietz_method(
+    specification: PerformanceComparisonSpecification,
+    external_flow_value: Mapping[str, object],
+) -> None:
+    """Validate the proposed Modified Dietz YAML contract before rejection."""
+    unsupported_keys = set(external_flow_value) - _MODIFIED_DIETZ_REQUIRED_KEYS
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
             (
                 f"{specification.path}: "
-                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
-                f"{_METHOD_KEY} must be {_EVIDENCE_ONLY_METHOD!r} until an "
-                "external-flow impact formula is explicitly supported."
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY} "
+                f"has unsupported modified_dietz keys: {unsupported}."
             ),
             504,
         )
 
-    policies[_EXTERNAL_FLOW_KEY] = TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
-    return policies
+    missing_keys = _MODIFIED_DIETZ_REQUIRED_KEYS - set(external_flow_value)
+    if missing_keys:
+        missing = ", ".join(sorted(str(key) for key in missing_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY} "
+                f"is missing required modified_dietz keys: {missing}."
+            ),
+            504,
+        )
+
+    for key, allowed_values in _MODIFIED_DIETZ_ALLOWED_VALUES.items():
+        value = external_flow_value.get(key)
+        if value not in allowed_values:
+            allowed = ", ".join(sorted(allowed_values))
+            raise PpaError(
+                (
+                    f"{specification.path}: "
+                    f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
+                    f"{key} must be one of: {allowed}."
+                ),
+                504,
+            )
+
+
+def _raise_unsupported_external_flow_method(
+    specification: PerformanceComparisonSpecification,
+    method: object,
+) -> None:
+    """Raise for external-flow methods that are not implemented yet."""
+    method_text = str(method)
+    reserved_note = ""
+    if method_text in _RESERVED_EXTERNAL_FLOW_METHODS:
+        reserved_note = " The method name is reserved but not implemented."
+    raise PpaError(
+        (
+            f"{specification.path}: "
+            f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
+            f"{_METHOD_KEY} must be {_EVIDENCE_ONLY_METHOD!r} until an "
+            "external-flow impact formula is explicitly supported."
+            f"{reserved_note}"
+        ),
+        504,
+    )
