@@ -380,6 +380,21 @@ chooses a return convention. Other external-flow methods, such as Modified
 Dietz day-weighting or subperiod linking, must be added as explicit supported
 YAML methods before they can be used.
 
+Planned external-flow method names are reserved and rejected until their formulas
+and YAML inputs are implemented:
+
+- `modified_dietz`: Requires flow timing convention, day-count convention,
+  beginning/end inclusion rule, and denominator source.
+- `subperiod_linked`: Requires subperiod boundary rule, linking formula, and
+  large-flow threshold or explicit breakpoints.
+- `unweighted_flow_delta`: Requires explicit reviewer acknowledgement that no
+  day-weighting applies and a denominator source.
+
+Each future method must define whether transaction deltas are independent of
+portfolio-level `flow` deltas or only explanatory cross-checks. This prevents
+double counting when portfolio performance rows already include the external
+flow effect.
+
 Source-supplied recognized category/sign semantics remain authoritative. YAML
 rules fill only missing or `unknown` category, `cash_flow_sign`, and
 `performance_flow_sign` values.

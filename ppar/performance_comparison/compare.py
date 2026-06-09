@@ -170,6 +170,13 @@ _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
 _METHOD_KEY: Final[str] = "method"
 _EVIDENCE_ONLY_METHOD: Final[str] = "evidence_only"
+_RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
+    {
+        "modified_dietz",
+        "subperiod_linked",
+        "unweighted_flow_delta",
+    }
+)
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
