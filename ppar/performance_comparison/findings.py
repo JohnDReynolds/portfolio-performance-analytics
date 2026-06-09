@@ -26,6 +26,8 @@ THRU_DATE = "thru_date"
 SOURCE_FILE = "source_file"
 SOURCE_COLUMN = "source_column"
 TRANSACTION_CATEGORY = "transaction_category"
+CASH_FLOW_SIGN = "cash_flow_sign"
+PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
 MESSAGE = "message"
 SUPPRESSED = "suppressed"
 
@@ -74,6 +76,8 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     SOURCE_FILE,
     SOURCE_COLUMN,
     TRANSACTION_CATEGORY,
+    CASH_FLOW_SIGN,
+    PERFORMANCE_FLOW_SIGN,
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
     DELTA_B_MINUS_A,
@@ -103,6 +107,10 @@ class Finding:
         source_column: Optional normalized column associated with the finding.
         transaction_category: Optional normalized transaction category for
             transaction findings.
+        cash_flow_sign: Optional normalized source-supplied cash-flow sign for
+            transaction findings.
+        performance_flow_sign: Optional normalized source-supplied performance
+            flow treatment for transaction findings.
         snapshot_a_value: Value from snapshot A.
         snapshot_b_value: Value from snapshot B.
         delta_b_minus_a: Numeric difference calculated as B minus A.
@@ -126,6 +134,8 @@ class Finding:
     source_file: str | None = None
     source_column: str | None = None
     transaction_category: object | None = None
+    cash_flow_sign: object | None = None
+    performance_flow_sign: object | None = None
     snapshot_a_value: object | None = None
     snapshot_b_value: object | None = None
     delta_b_minus_a: float | None = None
@@ -149,6 +159,8 @@ class Finding:
             SOURCE_FILE: self.source_file,
             SOURCE_COLUMN: self.source_column,
             TRANSACTION_CATEGORY: self.transaction_category,
+            CASH_FLOW_SIGN: self.cash_flow_sign,
+            PERFORMANCE_FLOW_SIGN: self.performance_flow_sign,
             SNAPSHOT_A_VALUE: self.snapshot_a_value,
             SNAPSHOT_B_VALUE: self.snapshot_b_value,
             DELTA_B_MINUS_A: self.delta_b_minus_a,

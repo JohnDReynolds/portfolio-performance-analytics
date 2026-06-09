@@ -17,10 +17,21 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.transactions import (
+    TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    TRANSACTION_CASH_FLOW_SIGN_NONE,
+    TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    TRANSACTION_CASH_FLOW_SIGN_UNKNOWN,
     TRANSACTION_CATEGORY_BUY,
     TRANSACTION_CATEGORY_EXTERNAL_FLOW,
     TRANSACTION_CATEGORY_INCOME,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+    normalize_transaction_cash_flow_sign,
     normalize_transaction_category,
+    normalize_transaction_performance_flow_sign,
+    transaction_impact_semantics_available,
     transaction_category_from_code,
 )
 
@@ -111,6 +122,69 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(transaction_category_from_code("SELL"), "sell")
         self.assertEqual(transaction_category_from_code("not-a-real-code"), "unknown")
 
+    def test_transaction_sign_semantics_use_documented_vocabulary(self) -> None:
+        """Transaction sign semantics normalize only recognized source labels."""
+        self.assertEqual(
+            normalize_transaction_cash_flow_sign("cash in"),
+            TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+        )
+        self.assertEqual(
+            normalize_transaction_cash_flow_sign("withdrawal"),
+            TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+        )
+        self.assertEqual(
+            normalize_transaction_cash_flow_sign("neutral"),
+            TRANSACTION_CASH_FLOW_SIGN_NONE,
+        )
+        self.assertEqual(
+            normalize_transaction_cash_flow_sign("not-a-real-sign"),
+            TRANSACTION_CASH_FLOW_SIGN_UNKNOWN,
+        )
+        self.assertEqual(
+            normalize_transaction_performance_flow_sign("external flow"),
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+        )
+        self.assertEqual(
+            normalize_transaction_performance_flow_sign("included"),
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+        )
+        self.assertEqual(
+            normalize_transaction_performance_flow_sign("none"),
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+        )
+        self.assertEqual(
+            normalize_transaction_performance_flow_sign("not-a-real-treatment"),
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+        )
+
+    def test_transaction_impact_semantics_available_requires_both_signs(self) -> None:
+        """Future transaction impact estimates require both semantic fields."""
+        self.assertTrue(
+            transaction_impact_semantics_available(
+                {
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                }
+            )
+        )
+        self.assertFalse(
+            transaction_impact_semantics_available(
+                {
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
+                    ),
+                }
+            )
+        )
+        self.assertFalse(
+            transaction_impact_semantics_available(
+                {pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE}
+            )
+        )
+
     def test_source_transaction_category_and_sign_columns_are_loaded(self) -> None:
         """Optional source category and sign columns load without inferred signs."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -144,6 +218,43 @@ class TestTransactionsLoader(unittest.TestCase):
             )
             self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
             self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
+            self.assertTrue(transaction_impact_semantics_available(row))
+
+    def test_unknown_transaction_sign_columns_remain_unknown(self) -> None:
+        """Unrecognized sign semantics remain unavailable for impact estimates."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "CASH_FLOW_SIGN": ["vendor-only"],
+                        "PERFORMANCE_FLOW_SIGN": ["mystery"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(
+                row[pc_cols.CASH_FLOW_SIGN],
+                TRANSACTION_CASH_FLOW_SIGN_UNKNOWN,
+            )
+            self.assertEqual(
+                row[pc_cols.PERFORMANCE_FLOW_SIGN],
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+            )
+            self.assertFalse(transaction_impact_semantics_available(row))
 
     def test_omitted_transactions_returns_none(self) -> None:
         """Transactions are optional when omitted from YAML."""

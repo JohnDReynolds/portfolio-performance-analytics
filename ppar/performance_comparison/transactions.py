@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+# Python imports
+from collections.abc import Mapping
+
 # Third-party imports
 import polars as pl
 
@@ -21,6 +24,14 @@ TRANSACTION_CATEGORY_SELL = "sell"
 TRANSACTION_CATEGORY_TRANSFER = "transfer"
 TRANSACTION_CATEGORY_CORPORATE_ACTION = "corporate_action"
 TRANSACTION_CATEGORY_UNKNOWN = "unknown"
+TRANSACTION_CASH_FLOW_SIGN_POSITIVE = "positive"
+TRANSACTION_CASH_FLOW_SIGN_NEGATIVE = "negative"
+TRANSACTION_CASH_FLOW_SIGN_NONE = "none"
+TRANSACTION_CASH_FLOW_SIGN_UNKNOWN = "unknown"
+TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL = "external"
+TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE = "performance"
+TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL = "neutral"
+TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN = "unknown"
 
 _CATEGORY_NORMALIZATION: dict[str, str] = {
     "activity": TRANSACTION_CATEGORY_UNKNOWN,
@@ -72,6 +83,38 @@ _TRANSACTION_CODE_CATEGORIES: dict[str, str] = {
     "SPIN": TRANSACTION_CATEGORY_CORPORATE_ACTION,
 }
 
+_CASH_FLOW_SIGN_NORMALIZATION: dict[str, str] = {
+    "0": TRANSACTION_CASH_FLOW_SIGN_NONE,
+    "cash_in": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    "cash_out": TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    "deposit": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    "in": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    "inflow": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    "minus": TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    "negative": TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    "neutral": TRANSACTION_CASH_FLOW_SIGN_NONE,
+    "no_cash_flow": TRANSACTION_CASH_FLOW_SIGN_NONE,
+    "none": TRANSACTION_CASH_FLOW_SIGN_NONE,
+    "out": TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    "outflow": TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    "plus": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    "positive": TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    "withdrawal": TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+}
+
+_PERFORMANCE_FLOW_SIGN_NORMALIZATION: dict[str, str] = {
+    "0": TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+    "external": TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    "external_flow": TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    "excluded": TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    "included": TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    "market": TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    "neutral": TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+    "none": TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+    "performance": TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    "performance_effect": TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+}
+
 
 def normalize_transaction_category(value: object) -> str:
     """Return a normalized transaction category label.
@@ -109,6 +152,70 @@ def transaction_category_from_code(value: object) -> str:
     return _TRANSACTION_CODE_CATEGORIES.get(
         normalized_value,
         normalize_transaction_category(normalized_value),
+    )
+
+
+def normalize_transaction_cash_flow_sign(value: object) -> str:
+    """Return normalized source-supplied transaction cash-flow direction.
+
+    Args:
+        value: Source cash-flow sign or direction label.
+
+    Returns:
+        ``"positive"``, ``"negative"``, ``"none"``, or ``"unknown"``.
+        Unknown, blank, and missing values return ``"unknown"``.
+    """
+    return _normalize_transaction_semantic_label(
+        value,
+        _CASH_FLOW_SIGN_NORMALIZATION,
+        TRANSACTION_CASH_FLOW_SIGN_UNKNOWN,
+    )
+
+
+def normalize_transaction_performance_flow_sign(value: object) -> str:
+    """Return normalized transaction performance-flow treatment.
+
+    Args:
+        value: Source performance-flow sign or treatment label.
+
+    Returns:
+        ``"external"``, ``"performance"``, ``"neutral"``, or ``"unknown"``.
+        Unknown, blank, and missing values return ``"unknown"``.
+    """
+    return _normalize_transaction_semantic_label(
+        value,
+        _PERFORMANCE_FLOW_SIGN_NORMALIZATION,
+        TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+    )
+
+
+def transaction_impact_semantics_available(row: Mapping[str, object]) -> bool:
+    """Return whether a transaction row carries modeled sign/flow semantics.
+
+    Args:
+        row: Normalized transaction row.
+
+    Returns:
+        ``True`` only when both optional semantic fields are present and
+        normalized to recognized non-unknown values. This helper is an
+        eligibility check for future impact methods; it does not imply that a
+        return-impact estimate is currently calculated.
+    """
+    cash_flow_sign = row.get(pc_cols.CASH_FLOW_SIGN)
+    performance_flow_sign = row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
+    return (
+        cash_flow_sign
+        in {
+            TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+            TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+            TRANSACTION_CASH_FLOW_SIGN_NONE,
+        }
+        and performance_flow_sign
+        in {
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+        }
     )
 
 
@@ -166,7 +273,7 @@ class TransactionsLoader:
         frame = frame.with_columns(
             pl.col(date_columns).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
-        return _with_transaction_category(frame)
+        return _with_transaction_semantics(_with_transaction_category(frame))
 
 
 def _with_transaction_category(frame: pl.DataFrame) -> pl.DataFrame:
@@ -186,3 +293,40 @@ def _with_transaction_category(frame: pl.DataFrame) -> pl.DataFrame:
     return frame.with_columns(
         pl.lit(TRANSACTION_CATEGORY_UNKNOWN).alias(pc_cols.TRANSACTION_CATEGORY)
     )
+
+
+def _with_transaction_semantics(frame: pl.DataFrame) -> pl.DataFrame:
+    """Return transaction rows with normalized optional sign semantics."""
+    expressions = []
+    if pc_cols.CASH_FLOW_SIGN in frame.columns:
+        expressions.append(
+            pl.col(pc_cols.CASH_FLOW_SIGN)
+            .map_elements(normalize_transaction_cash_flow_sign, return_dtype=pl.String)
+            .alias(pc_cols.CASH_FLOW_SIGN)
+        )
+    if pc_cols.PERFORMANCE_FLOW_SIGN in frame.columns:
+        expressions.append(
+            pl.col(pc_cols.PERFORMANCE_FLOW_SIGN)
+            .map_elements(
+                normalize_transaction_performance_flow_sign,
+                return_dtype=pl.String,
+            )
+            .alias(pc_cols.PERFORMANCE_FLOW_SIGN)
+        )
+    if not expressions:
+        return frame
+    return frame.with_columns(*expressions)
+
+
+def _normalize_transaction_semantic_label(
+    value: object,
+    normalization: Mapping[str, str],
+    unknown_value: str,
+) -> str:
+    """Return a normalized transaction semantic label."""
+    if value is None:
+        return unknown_value
+    normalized_value = str(value).strip().lower().replace("-", "_").replace(" ", "_")
+    if not normalized_value:
+        return unknown_value
+    return normalization.get(normalized_value, unknown_value)

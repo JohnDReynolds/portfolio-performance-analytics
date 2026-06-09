@@ -18,6 +18,7 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.findings import (
+    CASH_FLOW_SIGN,
     CONTEXT,
     DELTA_B_MINUS_A,
     DIRECT_INPUT,
@@ -52,6 +53,7 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_CATEGORY,
+    PERFORMANCE_FLOW_SIGN,
     Finding,
 )
 
@@ -103,8 +105,10 @@ def _write_transaction_period_specification(directory: Path) -> Path:
             encoding="utf-8",
         )
         (snapshot_path / "transactions.csv").write_text(
-            "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
-            f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount}\n",
+            "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
+            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount},"
+            "cash out,external\n",
             encoding="utf-8",
         )
 
@@ -787,6 +791,8 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(str(amount_finding[FROM_DATE]), "2025-05-01")
             self.assertEqual(str(amount_finding[THRU_DATE]), "2025-05-31")
             self.assertEqual(amount_finding[TRANSACTION_CATEGORY], "buy")
+            self.assertEqual(amount_finding[CASH_FLOW_SIGN], "negative")
+            self.assertEqual(amount_finding[PERFORMANCE_FLOW_SIGN], "external")
 
     def test_transaction_fallback_key_treats_amount_change_as_add_drop(self) -> None:
         """Transaction amount changes require a stable transaction id."""

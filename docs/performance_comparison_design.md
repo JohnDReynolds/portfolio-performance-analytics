@@ -327,8 +327,26 @@ explanation label only.
 semantics. They should not be inferred from transaction code in the first pass.
 Directional sign rules are vendor-specific and accounting-specific enough that
 guessing them would make `transaction_activity` look more precise than it is.
-Until those sign rules are explicitly modeled, transaction differences should
-remain evidence-only and should not receive an estimated return impact.
+
+`cash_flow_sign` normalizes to:
+
+- `positive`: Cash moves into the portfolio.
+- `negative`: Cash moves out of the portfolio.
+- `none`: No cash movement.
+- `unknown`: Source value is blank, missing, or not recognized.
+
+`performance_flow_sign` normalizes to:
+
+- `external`: Treat as external flow for performance purposes.
+- `performance`: Treat as performance-affecting activity.
+- `neutral`: No performance-flow effect.
+- `unknown`: Source value is blank, missing, or not recognized.
+
+Both semantic fields must be present and non-`unknown` before a transaction row
+has the sign/flow inputs required for a future return-impact estimate. Until
+those sign rules are explicitly source-supplied and normalized, transaction
+differences should remain evidence-only and should not receive an estimated
+return impact.
 
 Transaction activity should become eligible for a future return-impact estimate
 only when the changed evidence has an affected portfolio, security, linked

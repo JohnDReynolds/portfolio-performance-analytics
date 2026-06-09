@@ -11,6 +11,7 @@ import polars as pl
 # Project imports
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.findings import (
+    CASH_FLOW_SIGN,
     CONTEXT,
     DATASET,
     DELTA_B_MINUS_A,
@@ -21,6 +22,7 @@ from ppar.performance_comparison.findings import (
     MESSAGE,
     PC_PORT_RET,
     PC_SEC_RET,
+    PERFORMANCE_FLOW_SIGN,
     PORTFOLIO_ID,
     RELATED_OUTPUT,
     RETURN_DENOMINATOR,
@@ -33,6 +35,7 @@ from ppar.performance_comparison.findings import (
     THRU_DATE,
     TRANSACTION_CATEGORY,
 )
+from ppar.performance_comparison.transactions import transaction_impact_semantics_available
 
 PORTFOLIO_RETURN_DELTA = "portfolio_return_delta"
 SECURITY_RETURN_DELTA = "security_return_delta"
@@ -155,6 +158,8 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     SOURCE_FILE,
     SOURCE_COLUMN,
     TRANSACTION_CATEGORY,
+    CASH_FLOW_SIGN,
+    PERFORMANCE_FLOW_SIGN,
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
@@ -1015,6 +1020,8 @@ def _ranked_evidence_row(
         SOURCE_FILE: finding[SOURCE_FILE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
         TRANSACTION_CATEGORY: finding[TRANSACTION_CATEGORY],
+        CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
+        PERFORMANCE_FLOW_SIGN: finding[PERFORMANCE_FLOW_SIGN],
         DELTA_B_MINUS_A: delta,
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
@@ -1550,9 +1557,11 @@ def _transaction_missing_impact_inputs(
     if not any(_is_usable_number(row.get(RETURN_DENOMINATOR)) for row in rows):
         missing_inputs.append("return denominator")
 
-    # Even fully linked transaction evidence remains unestimated until the
-    # comparison model has vendor/accounting-specific transaction sign rules.
-    missing_inputs.append(TRANSACTION_SIGN_AND_FLOW_SEMANTICS)
+    # Sign/flow semantics must be source-supplied and normalized. Recognized
+    # semantics only remove this missing-input flag; they do not make
+    # transaction evidence estimable until a separate impact method exists.
+    if not any(transaction_impact_semantics_available(row) for row in rows):
+        missing_inputs.append(TRANSACTION_SIGN_AND_FLOW_SEMANTICS)
     return missing_inputs
 
 
@@ -1760,6 +1769,8 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             SOURCE_FILE: pl.String,
             SOURCE_COLUMN: pl.String,
             TRANSACTION_CATEGORY: pl.String,
+            CASH_FLOW_SIGN: pl.String,
+            PERFORMANCE_FLOW_SIGN: pl.String,
             DELTA_B_MINUS_A: pl.Float64,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,

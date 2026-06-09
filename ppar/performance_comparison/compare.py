@@ -598,6 +598,11 @@ class PerformanceComparison:
                         source_file=source_file,
                         source_column=column,
                         transaction_category=self._transaction_category(row, dataset),
+                        cash_flow_sign=self._transaction_cash_flow_sign(row, dataset),
+                        performance_flow_sign=self._transaction_performance_flow_sign(
+                            row,
+                            dataset,
+                        ),
                         snapshot_a_value=snapshot_a_value,
                         snapshot_b_value=snapshot_b_value,
                         message=f"{dataset} {column!r} changed.",
@@ -670,6 +675,13 @@ class PerformanceComparison:
                                 row,
                                 dataset,
                             ),
+                            cash_flow_sign=self._transaction_cash_flow_sign(
+                                row,
+                                dataset,
+                            ),
+                            performance_flow_sign=(
+                                self._transaction_performance_flow_sign(row, dataset)
+                            ),
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
                             delta_b_minus_a=delta,
@@ -722,6 +734,26 @@ class PerformanceComparison:
         if dataset != pc_cols.TRANSACTIONS:
             return None
         return row.get(pc_cols.TRANSACTION_CATEGORY)
+
+    @staticmethod
+    def _transaction_cash_flow_sign(
+        row: dict[str, object],
+        dataset: str,
+    ) -> object | None:
+        """Return normalized transaction cash-flow semantics for transaction rows."""
+        if dataset != pc_cols.TRANSACTIONS:
+            return None
+        return row.get(pc_cols.CASH_FLOW_SIGN)
+
+    @staticmethod
+    def _transaction_performance_flow_sign(
+        row: dict[str, object],
+        dataset: str,
+    ) -> object | None:
+        """Return normalized transaction performance-flow semantics."""
+        if dataset != pc_cols.TRANSACTIONS:
+            return None
+        return row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
 
     @staticmethod
     def _return_denominator(

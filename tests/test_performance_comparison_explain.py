@@ -649,6 +649,37 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             "return denominator, transaction sign and flow semantics",
         )
 
+    def test_transaction_activity_summary_uses_available_sign_semantics(self) -> None:
+        """Recognized sign semantics remove only the sign missing-input flag."""
+        findings = self._restatement().with_columns(
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit("positive"))
+            .otherwise(pl.col(pc_cols.CASH_FLOW_SIGN))
+            .alias(pc_cols.CASH_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit("external"))
+            .otherwise(pl.col(pc_cols.PERFORMANCE_FLOW_SIGN))
+            .alias(pc_cols.PERFORMANCE_FLOW_SIGN),
+        )
+
+        summary = transaction_activity_summary(findings)
+        row = summary.row(0, named=True)
+
+        self.assertEqual(row[MISSING_IMPACT_INPUTS], "return denominator")
+        self.assertEqual(row[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
+        self.assertIn("evidence-only", row[IMPACT_MESSAGE])
+        self.assertNotIn("transaction sign and flow semantics", row[IMPACT_MESSAGE])
+
+        cause_summary = portfolio_period_cause_summary(findings)
+        transaction_row = cause_summary.filter(
+            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_TRANSACTION_ACTIVITY
+        ).row(0, named=True)
+        self.assertIn("return denominator", transaction_row[IMPACT_MESSAGE])
+        self.assertNotIn(
+            "transaction sign and flow semantics",
+            transaction_row[IMPACT_MESSAGE],
+        )
+
     def test_transaction_activity_summary_is_evidence_only(self) -> None:
         """Transaction activity summary does not estimate return impact."""
         findings = self._restatement()
