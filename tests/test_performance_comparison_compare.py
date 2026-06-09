@@ -53,6 +53,8 @@ from ppar.performance_comparison.findings import (
     SOURCE_COLUMN,
     TARGET_OUTPUT,
     THRU_DATE,
+    TRANSACTION_IMPACT_POLICY,
+    TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
     TRANSACTION_SEMANTICS_SOURCE,
     PERFORMANCE_FLOW_SIGN,
@@ -857,6 +859,89 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(amount_finding[CASH_FLOW_SIGN], "negative")
             self.assertEqual(amount_finding[PERFORMANCE_FLOW_SIGN], "external")
             self.assertEqual(amount_finding[TRANSACTION_SEMANTICS_SOURCE], "source")
+
+    def test_transaction_external_flow_policy_is_loaded_from_yaml(self) -> None:
+        """Explicit external-flow impact policy is carried into findings."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "external_flow": {"method": "evidence_only"}
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            amount_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertEqual(
+                amount_finding[TRANSACTION_IMPACT_POLICY],
+                TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+            )
+
+    def test_transaction_external_flow_policy_rejects_unsupported_method(self) -> None:
+        """Unsupported external-flow methods fail instead of implying a formula."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "external_flow": {"method": "modified_dietz"}
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(PpaError) as context:
+                PerformanceComparison(
+                    PerformanceComparisonSpecification(specification_path)
+                )
+
+            self.assertIn("external_flow.method", str(context.exception))
+
+    def test_transaction_impact_methods_reject_malformed_yaml(self) -> None:
+        """Transaction impact method YAML must use the supported contract."""
+        scenarios = [
+            ("not-a-mapping", "must be a mapping"),
+            ({"unsupported": {"method": "evidence_only"}}, "unsupported"),
+            ({"external_flow": "evidence_only"}, "external_flow must be a mapping"),
+            ({"external_flow": {}}, "external_flow.method is required"),
+            (
+                {"external_flow": {"method": "modified_dietz"}},
+                "external_flow.method must be 'evidence_only'",
+            ),
+        ]
+
+        for transaction_impact_methods, expected_message in scenarios:
+            with self.subTest(transaction_impact_methods=transaction_impact_methods):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    specification_path = _write_transaction_period_specification(
+                        Path(temp_dir)
+                    )
+                    configuration = yaml.safe_load(
+                        specification_path.read_text(encoding="utf-8")
+                    )
+                    configuration["transaction_impact_methods"] = (
+                        transaction_impact_methods
+                    )
+                    specification_path.write_text(
+                        yaml.safe_dump(configuration),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaises(PpaError) as context:
+                        PerformanceComparison(
+                            PerformanceComparisonSpecification(specification_path)
+                        )
+
+                    self.assertIn(expected_message, str(context.exception))
 
     def test_transaction_outside_period_does_not_get_denominator(self) -> None:
         """Out-of-period transaction rows do not inherit a return denominator."""

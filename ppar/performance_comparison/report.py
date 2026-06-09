@@ -68,6 +68,7 @@ from ppar.performance_comparison.findings import (
     SOURCE_COLUMN,
     SUPPRESSED,
     THRU_DATE,
+    TRANSACTION_IMPACT_POLICY,
     TRANSACTION_CATEGORY,
     TRANSACTION_SEMANTICS_SOURCE,
 )
@@ -928,6 +929,7 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
         SECURITY_ID,
         SOURCE_COLUMN,
         TRANSACTION_SEMANTICS_SOURCE,
+        TRANSACTION_IMPACT_POLICY,
         DELTA_B_MINUS_A,
         ESTIMATED_RETURN_IMPACT,
         IMPACT_BASIS,
@@ -1223,6 +1225,7 @@ def _html_top_evidence_section(
         SECURITY_ID,
         SOURCE_COLUMN,
         TRANSACTION_SEMANTICS_SOURCE,
+        TRANSACTION_IMPACT_POLICY,
         DELTA_B_MINUS_A,
         ESTIMATED_RETURN_IMPACT,
         IMPACT_BASIS,

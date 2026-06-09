@@ -49,6 +49,10 @@ transaction_rules:
     cash_flow_sign: positive
     performance_flow_sign: performance
 
+transaction_impact_methods:
+  external_flow:
+    method: evidence_only
+
 tolerances:
   return: 0.000001
   contribution: 0.000001

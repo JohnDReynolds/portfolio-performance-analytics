@@ -20,6 +20,7 @@ from ppar.performance_comparison.findings import (
     DIRECT_INPUT,
     RELATED_OUTPUT,
     TARGET_OUTPUT,
+    TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_FLOW,
@@ -61,7 +62,10 @@ from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.security_master import SecurityMasterLoader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
-from ppar.performance_comparison.transactions import TransactionsLoader
+from ppar.performance_comparison.transactions import (
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    TransactionsLoader,
+)
 
 _PORTFOLIO_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
@@ -162,6 +166,10 @@ _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
         pc_cols.CASH,
     }
 )
+_TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
+_EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
+_METHOD_KEY: Final[str] = "method"
+_EVIDENCE_ONLY_METHOD: Final[str] = "evidence_only"
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
@@ -204,6 +212,8 @@ class PerformanceComparison:
         _prices_loader: Loader for normalized price rows.
         _fx_rates_loader: Loader for normalized FX rate rows.
         _transactions_loader: Loader for normalized transaction rows.
+        _transaction_impact_policies: YAML-configured transaction impact
+            policies keyed by performance-flow treatment.
     """
 
     def __init__(self, specification: PerformanceComparisonSpecification) -> None:
@@ -221,6 +231,9 @@ class PerformanceComparison:
         self._prices_loader = PricesLoader(specification)
         self._fx_rates_loader = FxRatesLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
+        self._transaction_impact_policies = _transaction_impact_policies(
+            specification
+        )
 
     def compare_portfolio_performance(self) -> list[Finding]:
         """Compare portfolio performance rows for snapshots A and B.
@@ -608,6 +621,9 @@ class PerformanceComparison:
                         transaction_semantics_source=(
                             self._transaction_semantics_source(row, dataset)
                         ),
+                        transaction_impact_policy=(
+                            self._transaction_impact_policy(row, dataset)
+                        ),
                         snapshot_a_value=snapshot_a_value,
                         snapshot_b_value=snapshot_b_value,
                         message=f"{dataset} {column!r} changed.",
@@ -690,6 +706,9 @@ class PerformanceComparison:
                             ),
                             transaction_semantics_source=(
                                 self._transaction_semantics_source(row, dataset)
+                            ),
+                            transaction_impact_policy=(
+                                self._transaction_impact_policy(row, dataset)
                             ),
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
@@ -780,6 +799,18 @@ class PerformanceComparison:
         if dataset != pc_cols.TRANSACTIONS:
             return None
         return row.get(pc_cols.TRANSACTION_SEMANTICS_SOURCE)
+
+    def _transaction_impact_policy(
+        self,
+        row: dict[str, object],
+        dataset: str,
+    ) -> object | None:
+        """Return YAML-configured transaction impact policy for a row."""
+        if dataset != pc_cols.TRANSACTIONS:
+            return None
+        if row.get(pc_cols.PERFORMANCE_FLOW_SIGN) != TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
+            return None
+        return self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
 
     @staticmethod
     def _return_denominator(
@@ -999,3 +1030,83 @@ class PerformanceComparison:
         if comparison_file is None:
             return None
         return comparison_file.relative_path.as_posix()
+
+
+def _transaction_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, str]:
+    """Return validated YAML-configured transaction impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Transaction impact policies keyed by normalized performance-flow
+        treatment. Missing configuration returns an empty mapping.
+
+    Raises:
+        PpaError: If transaction impact method configuration is malformed or
+            names an unsupported method.
+    """
+    methods_value = specification.values.get(_TRANSACTION_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_TRANSACTION_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    unsupported_keys = set(methods_value) - {_EXTERNAL_FLOW_KEY}
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[str, str] = {}
+    external_flow_value = methods_value.get(_EXTERNAL_FLOW_KEY)
+    if external_flow_value is None:
+        return policies
+    if not isinstance(external_flow_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    method = external_flow_value.get(_METHOD_KEY)
+    if method is None:
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
+                f"{_METHOD_KEY} is required and must be "
+                f"{_EVIDENCE_ONLY_METHOD!r} until an external-flow impact "
+                "formula is explicitly supported."
+            ),
+            504,
+        )
+    if method != _EVIDENCE_ONLY_METHOD:
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
+                f"{_METHOD_KEY} must be {_EVIDENCE_ONLY_METHOD!r} until an "
+                "external-flow impact formula is explicitly supported."
+            ),
+            504,
+        )
+
+    policies[_EXTERNAL_FLOW_KEY] = TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
+    return policies

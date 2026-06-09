@@ -357,6 +357,29 @@ transaction_rules:
     performance_flow_sign: external
 ```
 
+External-flow impact treatment must also be explicit. The only supported
+external-flow policy today is evidence-only:
+
+```yaml
+transaction_impact_methods:
+  external_flow:
+    method: evidence_only
+```
+
+The supported `transaction_impact_methods` contract is intentionally narrow:
+
+- Top-level value must be a mapping.
+- Supported key: `external_flow`.
+- `external_flow` must be a mapping.
+- Required `external_flow.method` value: `evidence_only`.
+
+This policy documents that external-flow transaction differences should remain
+review evidence rather than receive a formula-driven impact estimate. Missing
+or unsupported method names are rejected so the comparison never silently
+chooses a return convention. Other external-flow methods, such as Modified
+Dietz day-weighting or subperiod linking, must be added as explicit supported
+YAML methods before they can be used.
+
 Source-supplied recognized category/sign semantics remain authoritative. YAML
 rules fill only missing or `unknown` category, `cash_flow_sign`, and
 `performance_flow_sign` values.
@@ -1049,6 +1072,10 @@ Current supported impact estimates:
      `external-flow impact method`, `neutral-flow impact method`, or
      `no-cash transaction impact method` so reviewers can distinguish
      semantics gaps from method gaps.
+   - If YAML sets `transaction_impact_methods.external_flow.method` to
+     `evidence_only`, external-flow transaction rows still receive no estimate,
+     but review summaries identify the explicit evidence-only policy rather
+     than implying a missing formula.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.

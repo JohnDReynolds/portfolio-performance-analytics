@@ -104,6 +104,8 @@ from ppar.performance_comparison.findings import (
     SOURCE_COLUMN,
     TARGET_OUTPUT,
     THRU_DATE,
+    TRANSACTION_IMPACT_POLICY,
+    TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
     TRANSACTION_SEMANTICS_SOURCE,
 )
@@ -152,6 +154,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         cash_flow_sign: str | None = "negative",
         performance_flow_sign: str | None = "performance",
         transaction_semantics_source: str | None = "source",
+        transaction_impact_policy: str | None = None,
         return_denominator: float | None = 1000.0,
         from_date: date | None = date(2025, 5, 30),
         thru_date: date | None = date(2025, 5, 30),
@@ -170,6 +173,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit(transaction_semantics_source))
             .otherwise(pl.col(TRANSACTION_SEMANTICS_SOURCE))
             .alias(TRANSACTION_SEMANTICS_SOURCE),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(transaction_impact_policy))
+            .otherwise(pl.col(TRANSACTION_IMPACT_POLICY))
+            .alias(TRANSACTION_IMPACT_POLICY),
             pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
             .then(pl.lit(return_denominator).cast(pl.Float64))
             .otherwise(pl.col(RETURN_DENOMINATOR))
@@ -853,6 +860,36 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             "external-flow impact method",
         )
         self.assertIn("external-flow impact method", activity_row[IMPACT_MESSAGE])
+
+    def test_external_transaction_evidence_only_policy_stays_unestimated(self) -> None:
+        """Explicit YAML evidence-only policy documents external-flow treatment."""
+        findings = self._transaction_estimate_findings(
+            performance_flow_sign="external",
+            transaction_impact_policy=(
+                TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
+            ),
+        )
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        transaction_amount = candidates.filter(
+            (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+        ).row(0, named=True)
+
+        self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
+        self.assertEqual(transaction_amount[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
+        self.assertEqual(
+            transaction_amount[TRANSACTION_IMPACT_POLICY],
+            TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+        )
+
+        activity = transaction_activity_summary(findings)
+        activity_row = activity.row(0, named=True)
+        self.assertEqual(
+            activity_row[MISSING_IMPACT_INPUTS],
+            "external-flow evidence-only policy",
+        )
+        self.assertIn("evidence-only policy", activity_row[IMPACT_MESSAGE])
 
     def test_transaction_amount_requires_usable_denominator(self) -> None:
         """Missing or zero denominators keep transaction amount rows unestimated."""

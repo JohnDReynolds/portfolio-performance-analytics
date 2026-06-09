@@ -33,6 +33,8 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     TARGET_OUTPUT,
     THRU_DATE,
+    TRANSACTION_IMPACT_POLICY,
+    TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
     TRANSACTION_SEMANTICS_SOURCE,
 )
@@ -164,6 +166,7 @@ MISSING_IMPACT_INPUTS = "missing_impact_inputs"
 TRANSACTION_SEMANTICS_SOURCES = "transaction_semantics_sources"
 TRANSACTION_SIGN_AND_FLOW_SEMANTICS = "transaction sign and flow semantics"
 EXTERNAL_FLOW_IMPACT_METHOD = "external-flow impact method"
+EXTERNAL_FLOW_EVIDENCE_ONLY_POLICY = "external-flow evidence-only policy"
 NEUTRAL_FLOW_IMPACT_METHOD = "neutral-flow impact method"
 NO_CASH_TRANSACTION_IMPACT_METHOD = "no-cash transaction impact method"
 TRANSACTION_IMPACT_METHOD = "transaction impact method"
@@ -184,6 +187,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
     TRANSACTION_SEMANTICS_SOURCE,
+    TRANSACTION_IMPACT_POLICY,
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
@@ -1049,6 +1053,7 @@ def _ranked_evidence_row(
         CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
         PERFORMANCE_FLOW_SIGN: finding[PERFORMANCE_FLOW_SIGN],
         TRANSACTION_SEMANTICS_SOURCE: finding[TRANSACTION_SEMANTICS_SOURCE],
+        TRANSACTION_IMPACT_POLICY: finding[TRANSACTION_IMPACT_POLICY],
         DELTA_B_MINUS_A: delta,
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
@@ -1750,7 +1755,13 @@ def _transaction_unmodeled_method_inputs(rows: list[dict[str, object]]) -> list[
         performance_flow_sign = row.get(PERFORMANCE_FLOW_SIGN)
         cash_flow_sign = row.get(CASH_FLOW_SIGN)
         if performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
-            _extend_unique(missing_inputs, [EXTERNAL_FLOW_IMPACT_METHOD])
+            if (
+                row.get(TRANSACTION_IMPACT_POLICY)
+                == TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
+            ):
+                _extend_unique(missing_inputs, [EXTERNAL_FLOW_EVIDENCE_ONLY_POLICY])
+            else:
+                _extend_unique(missing_inputs, [EXTERNAL_FLOW_IMPACT_METHOD])
         elif performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL:
             _extend_unique(missing_inputs, [NEUTRAL_FLOW_IMPACT_METHOD])
         elif (
@@ -1972,6 +1983,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             CASH_FLOW_SIGN: pl.String,
             PERFORMANCE_FLOW_SIGN: pl.String,
             TRANSACTION_SEMANTICS_SOURCE: pl.String,
+            TRANSACTION_IMPACT_POLICY: pl.String,
             DELTA_B_MINUS_A: pl.Float64,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,

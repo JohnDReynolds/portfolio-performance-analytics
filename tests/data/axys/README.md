@@ -42,7 +42,8 @@ comparison feature currently uses `fx_rates.csv` for FX rate comparisons.
   config. It compares `axys_a` to `axys_b_restatement`.
 - `ppar_performance_comparison_restatement_transaction_rules.yaml`:
   Restatement comparison config with YAML `transaction_rules` that supply
-  transaction sign/flow semantics missing from the Axys transaction CSVs.
+  transaction sign/flow semantics missing from the Axys transaction CSVs, plus
+  an explicit external-flow evidence-only impact policy.
 - `ppar_performance_comparison_suppressed.yaml`: Restatement comparison config
   with a suppression rule applied. It should still preserve the full audit
   trail while excluding suppressed findings from active-output helpers.
