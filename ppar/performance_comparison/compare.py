@@ -605,6 +605,9 @@ class PerformanceComparison:
                             row,
                             dataset,
                         ),
+                        transaction_semantics_source=(
+                            self._transaction_semantics_source(row, dataset)
+                        ),
                         snapshot_a_value=snapshot_a_value,
                         snapshot_b_value=snapshot_b_value,
                         message=f"{dataset} {column!r} changed.",
@@ -685,6 +688,9 @@ class PerformanceComparison:
                             performance_flow_sign=(
                                 self._transaction_performance_flow_sign(row, dataset)
                             ),
+                            transaction_semantics_source=(
+                                self._transaction_semantics_source(row, dataset)
+                            ),
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
                             delta_b_minus_a=delta,
@@ -764,6 +770,16 @@ class PerformanceComparison:
         if dataset != pc_cols.TRANSACTIONS:
             return None
         return row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
+
+    @staticmethod
+    def _transaction_semantics_source(
+        row: dict[str, object],
+        dataset: str,
+    ) -> object | None:
+        """Return transaction semantics provenance for transaction rows."""
+        if dataset != pc_cols.TRANSACTIONS:
+            return None
+        return row.get(pc_cols.TRANSACTION_SEMANTICS_SOURCE)
 
     @staticmethod
     def _return_denominator(

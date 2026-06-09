@@ -28,6 +28,7 @@ SOURCE_COLUMN = "source_column"
 TRANSACTION_CATEGORY = "transaction_category"
 CASH_FLOW_SIGN = "cash_flow_sign"
 PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
+TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 MESSAGE = "message"
 SUPPRESSED = "suppressed"
 
@@ -78,6 +79,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
+    TRANSACTION_SEMANTICS_SOURCE,
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
     DELTA_B_MINUS_A,
@@ -111,6 +113,8 @@ class Finding:
             transaction findings.
         performance_flow_sign: Optional normalized source-supplied performance
             flow treatment for transaction findings.
+        transaction_semantics_source: Optional provenance label for normalized
+            transaction category/sign/flow semantics.
         snapshot_a_value: Value from snapshot A.
         snapshot_b_value: Value from snapshot B.
         delta_b_minus_a: Numeric difference calculated as B minus A.
@@ -136,6 +140,7 @@ class Finding:
     transaction_category: object | None = None
     cash_flow_sign: object | None = None
     performance_flow_sign: object | None = None
+    transaction_semantics_source: object | None = None
     snapshot_a_value: object | None = None
     snapshot_b_value: object | None = None
     delta_b_minus_a: float | None = None
@@ -161,6 +166,7 @@ class Finding:
             TRANSACTION_CATEGORY: self.transaction_category,
             CASH_FLOW_SIGN: self.cash_flow_sign,
             PERFORMANCE_FLOW_SIGN: self.performance_flow_sign,
+            TRANSACTION_SEMANTICS_SOURCE: self.transaction_semantics_source,
             SNAPSHOT_A_VALUE: self.snapshot_a_value,
             SNAPSHOT_B_VALUE: self.snapshot_b_value,
             DELTA_B_MINUS_A: self.delta_b_minus_a,

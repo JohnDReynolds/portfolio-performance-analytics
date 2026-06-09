@@ -64,6 +64,10 @@ class TestPerformanceComparisonColumns(unittest.TestCase):
             pc_cols.PERFORMANCE_FLOW_SIGN,
             pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS,
         )
+        self.assertIn(
+            pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            pc_cols.TRANSACTIONS_OPTIONAL_COLUMNS,
+        )
         self.assertEqual(
             pc_cols.POSITIONS_REQUIRED_COLUMNS,
             (pc_cols.PORTFOLIO_ID, pc_cols.SECURITY_ID, pc_cols.POSITION_DATE),

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 # Third-party imports
 import polars as pl
@@ -34,14 +34,20 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_CATEGORY,
+    TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    TRANSACTION_CATEGORY_UNKNOWN,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    TRANSACTION_SEMANTICS_SOURCE_MIXED,
+    TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+    TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
+    TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
     transaction_impact_semantics_available,
 )
 
@@ -155,6 +161,7 @@ AMOUNT_DELTA = "amount_delta"
 QUANTITY_DELTA = "quantity_delta"
 PRICE_DELTA = "price_delta"
 MISSING_IMPACT_INPUTS = "missing_impact_inputs"
+TRANSACTION_SEMANTICS_SOURCES = "transaction_semantics_sources"
 TRANSACTION_SIGN_AND_FLOW_SEMANTICS = "transaction sign and flow semantics"
 EXTERNAL_FLOW_IMPACT_METHOD = "external-flow impact method"
 NEUTRAL_FLOW_IMPACT_METHOD = "neutral-flow impact method"
@@ -176,6 +183,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
+    TRANSACTION_SEMANTICS_SOURCE,
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
@@ -221,6 +229,7 @@ PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS = (
     MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
     ESTIMATED_RETURN_IMPACT_TOTAL,
     EVIDENCE_ONLY_AREAS,
+    TRANSACTION_SEMANTICS_SOURCES,
     MISSING_IMPACT_INPUTS,
     IMPACT_MESSAGE,
 )
@@ -235,6 +244,7 @@ TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
     AMOUNT_DELTA,
     QUANTITY_DELTA,
     PRICE_DELTA,
+    TRANSACTION_SEMANTICS_SOURCES,
     MISSING_IMPACT_INPUTS,
     IMPACT_BASIS,
     IMPACT_CONFIDENCE,
@@ -655,7 +665,7 @@ def transaction_activity_summary(
             row[SECURITY_ID],
             from_date,
             thru_date,
-            row[TRANSACTION_CATEGORY] or "unknown",
+            row[TRANSACTION_CATEGORY] or TRANSACTION_CATEGORY_UNKNOWN,
         )
         buckets.setdefault(key, []).append(row)
 
@@ -1038,6 +1048,7 @@ def _ranked_evidence_row(
         TRANSACTION_CATEGORY: finding[TRANSACTION_CATEGORY],
         CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
         PERFORMANCE_FLOW_SIGN: finding[PERFORMANCE_FLOW_SIGN],
+        TRANSACTION_SEMANTICS_SOURCE: finding[TRANSACTION_SEMANTICS_SOURCE],
         DELTA_B_MINUS_A: delta,
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
@@ -1114,12 +1125,7 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             IMPACT_BASIS: IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
             IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
-            IMPACT_MESSAGE: (
-                "Approximate impact uses the source-signed transaction amount "
-                "delta divided by the return denominator. Applies only when "
-                "source-supplied semantics mark the transaction as "
-                "performance-affecting."
-            ),
+            IMPACT_MESSAGE: _transaction_performance_amount_impact_message(row),
         }
     return {
         ESTIMATED_RETURN_IMPACT: None,
@@ -1185,6 +1191,33 @@ def _is_transaction_performance_amount_impact_candidate(
         and not isinstance(denominator, bool)
         and float(denominator) != 0.0
     )
+
+
+def _transaction_performance_amount_impact_message(row: dict[str, object]) -> str:
+    """Return a provenance-aware transaction amount impact message."""
+    semantics_source = row.get(TRANSACTION_SEMANTICS_SOURCE)
+    source_text = _readable_transaction_semantics_source(semantics_source)
+    return (
+        "Approximate impact uses the source-signed transaction amount delta "
+        "divided by the return denominator. Applies only when normalized "
+        "sign/flow semantics mark the transaction as performance-affecting. "
+        f"Transaction semantics source: {source_text}."
+    )
+
+
+def _readable_transaction_semantics_source(value: object) -> str:
+    """Return reviewer-facing text for a transaction semantics provenance value."""
+    if value == TRANSACTION_SEMANTICS_SOURCE_SOURCE:
+        return "source"
+    if value == TRANSACTION_SEMANTICS_SOURCE_YAML_RULE:
+        return "YAML transaction_rules"
+    if value == TRANSACTION_SEMANTICS_SOURCE_MIXED:
+        return "mixed source and YAML transaction_rules"
+    if value == TRANSACTION_SEMANTICS_SOURCE_UNKNOWN:
+        return "unknown"
+    if value is None or value == "":
+        return "not provided"
+    return str(value)
 
 
 def _has_transaction_impact_method_candidate(rows: list[dict[str, object]]) -> bool:
@@ -1282,6 +1315,9 @@ def _impact_coverage_summary_row(
         ESTIMATED_RETURN_IMPACT_TOTAL: _sum_available_return_impacts(estimate_rows),
         EVIDENCE_ONLY_AREAS: _join_unique(
             str(cause[ROOT_CAUSE_AREA]) for cause in evidence_only_rows
+        ),
+        TRANSACTION_SEMANTICS_SOURCES: _period_transaction_semantics_sources(
+            transactions
         ),
         MISSING_IMPACT_INPUTS: _coverage_missing_impact_inputs(
             evidence_only_rows,
@@ -1559,6 +1595,7 @@ def _transaction_activity_summary_row(
         AMOUNT_DELTA: _field_delta(rows, pc_cols.AMOUNT),
         QUANTITY_DELTA: _field_delta(rows, pc_cols.QUANTITY),
         PRICE_DELTA: _field_delta(rows, pc_cols.PRICE),
+        TRANSACTION_SEMANTICS_SOURCES: _transaction_semantics_source_counts(rows),
         MISSING_IMPACT_INPUTS: missing_impact_inputs,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
@@ -1577,6 +1614,70 @@ def _transaction_activity_impact_message(missing_impact_inputs: str) -> str:
         "Transaction activity has modeled impact inputs; supported estimates "
         "are available in contribution candidates and cause summaries."
     )
+
+
+def _period_transaction_semantics_sources(
+    transactions: list[dict[str, object]],
+) -> str:
+    """Return aggregate transaction semantics provenance counts for a period."""
+    counts: dict[str, int] = {}
+    for transaction in transactions:
+        for source, count in _parse_transaction_semantics_sources(
+            transaction.get(TRANSACTION_SEMANTICS_SOURCES)
+        ).items():
+            counts[source] = counts.get(source, 0) + count
+    return _format_transaction_semantics_source_counts(counts)
+
+
+def _transaction_semantics_source_counts(rows: list[dict[str, object]]) -> str:
+    """Return compact transaction semantics provenance counts for evidence rows."""
+    counts: dict[str, int] = {}
+    for row in rows:
+        source = row.get(TRANSACTION_SEMANTICS_SOURCE)
+        if not isinstance(source, str) or not source:
+            continue
+        counts[source] = counts.get(source, 0) + 1
+    return _format_transaction_semantics_source_counts(counts)
+
+
+def _parse_transaction_semantics_sources(value: object) -> dict[str, int]:
+    """Return provenance counts parsed from a transaction summary string."""
+    if not isinstance(value, str) or not value:
+        return {}
+
+    counts: dict[str, int] = {}
+    for part in value.split(","):
+        source, separator, count_text = part.strip().partition(":")
+        if not source or not separator:
+            continue
+        try:
+            count = int(count_text.strip())
+        except ValueError:
+            continue
+        counts[source.strip()] = counts.get(source.strip(), 0) + count
+    return counts
+
+
+def _format_transaction_semantics_source_counts(counts: Mapping[str, int]) -> str:
+    """Return stable readable transaction semantics provenance counts."""
+    ordered_sources = (
+        TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+        TRANSACTION_SEMANTICS_SOURCE_MIXED,
+        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+        TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
+    )
+    parts = [
+        f"{source}: {counts[source]}"
+        for source in ordered_sources
+        if counts.get(source, 0) > 0
+    ]
+    other_sources = sorted(source for source in counts if source not in ordered_sources)
+    parts.extend(
+        f"{source}: {counts[source]}"
+        for source in other_sources
+        if counts.get(source, 0) > 0
+    )
+    return ", ".join(parts)
 
 
 def _transaction_missing_impact_inputs_message(
@@ -1624,7 +1725,8 @@ def _transaction_missing_impact_inputs(
     if not has_period:
         missing_inputs.append("portfolio period")
     if not any(
-        row.get(TRANSACTION_CATEGORY) not in {None, "", "unknown"} for row in rows
+        row.get(TRANSACTION_CATEGORY) not in {None, "", TRANSACTION_CATEGORY_UNKNOWN}
+        for row in rows
     ):
         missing_inputs.append("normalized transaction category")
     if not any(_is_usable_number(row.get(RETURN_DENOMINATOR)) for row in rows):
@@ -1869,6 +1971,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             TRANSACTION_CATEGORY: pl.String,
             CASH_FLOW_SIGN: pl.String,
             PERFORMANCE_FLOW_SIGN: pl.String,
+            TRANSACTION_SEMANTICS_SOURCE: pl.String,
             DELTA_B_MINUS_A: pl.Float64,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,
@@ -1926,6 +2029,7 @@ def _empty_portfolio_period_impact_coverage_summary() -> pl.DataFrame:
             MEDIUM_CONFIDENCE_ESTIMATE_COUNT: pl.UInt32,
             ESTIMATED_RETURN_IMPACT_TOTAL: pl.Float64,
             EVIDENCE_ONLY_AREAS: pl.String,
+            TRANSACTION_SEMANTICS_SOURCES: pl.String,
             MISSING_IMPACT_INPUTS: pl.String,
             IMPACT_MESSAGE: pl.String,
         }
@@ -1946,6 +2050,7 @@ def _empty_transaction_activity_summary() -> pl.DataFrame:
             AMOUNT_DELTA: pl.Float64,
             QUANTITY_DELTA: pl.Float64,
             PRICE_DELTA: pl.Float64,
+            TRANSACTION_SEMANTICS_SOURCES: pl.String,
             MISSING_IMPACT_INPUTS: pl.String,
             IMPACT_BASIS: pl.String,
             IMPACT_CONFIDENCE: pl.String,

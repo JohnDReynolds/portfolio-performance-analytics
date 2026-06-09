@@ -36,6 +36,9 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.ya
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
 )
+_RESTATEMENT_TRANSACTION_RULES_PATH = Path(
+    "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
+)
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
@@ -133,6 +136,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 6 | 2 | 4 |", impact_coverage)
         self.assertIn("0.001084292504", impact_coverage)
         self.assertIn("transaction_activity", impact_coverage)
+        self.assertIn("Transaction Semantics Sources", impact_coverage)
+        self.assertIn("unknown: 3", impact_coverage)
         self.assertIn("return-impact method", impact_coverage)
         self.assertIn("2 cause area(s) have estimates", impact_coverage)
         self.assertIn("## Residual Status", report)
@@ -151,6 +156,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "## Portfolio-Period Changes",
         )
         self.assertIn("buy", transaction_activity)
+        self.assertIn("Transaction Semantics Sources", transaction_activity)
+        self.assertIn("unknown: 3", transaction_activity)
         self.assertIn(
             "| PORT_A | AAPL | 2025-05-30 | 2025-05-30 | buy |",
             transaction_activity,
@@ -167,6 +174,34 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("## Top Evidence", report)
         self.assertIn("PC-SEC-CONTR", report)
         self.assertIn("## Suppressed Findings Appendix", report)
+
+    def test_markdown_report_shows_transaction_rule_semantics(self) -> None:
+        """YAML transaction rule provenance appears in reviewer-facing tables."""
+        findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+
+        report = performance_comparison_markdown_report(findings)
+        impact_coverage = _section(
+            report,
+            "## Impact Coverage",
+            "## Residual Status",
+        )
+        transaction_activity = _section(
+            report,
+            "## Transaction Activity",
+            "## Portfolio-Period Changes",
+        )
+        top_evidence = _section(
+            report,
+            "## Top Evidence",
+            "## Suppressed Findings Appendix",
+        )
+
+        self.assertIn("mixed: 3", impact_coverage)
+        self.assertIn("mixed: 3", transaction_activity)
+        self.assertIn("return denominator", transaction_activity)
+        self.assertNotIn("transaction sign and flow semantics", transaction_activity)
+        self.assertIn("Transaction Semantics Source", top_evidence)
+        self.assertIn("| mixed | -100 |", top_evidence)
 
     def test_markdown_report_shows_source_loaded_transaction_estimate(self) -> None:
         """Source transaction semantics flow through to report impact estimates."""
@@ -199,7 +234,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("-0.01", impact_summary)
         self.assertIn("performance-treated amount deltas", report)
         self.assertIn("| PORT_A | AAPL | 2025-05-01 | 2025-05-31 | buy |", transaction_activity)
+        self.assertIn("source: 1", transaction_activity)
         self.assertIn("| -10 |", transaction_activity)
+        self.assertIn("Transaction Semantics Source", top_evidence)
+        self.assertIn("| source | -10 |", top_evidence)
         self.assertIn("transaction_amount_delta_over_return_denominator", top_evidence)
         self.assertIn("source-signed transaction amount", top_evidence)
         self.assertNotIn("transaction sign and flow semantics", report)
@@ -470,11 +508,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             impact_coverage = pl.read_csv(paths["impact_coverage"])
             self.assertEqual(impact_coverage.height, 1)
             self.assertIn("estimated_cause_area_count", impact_coverage.columns)
+            self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
 
             top_evidence = pl.read_csv(paths["top_evidence"])
             self.assertEqual(top_evidence.height, 2)
             self.assertIn("review_rank", top_evidence.columns)
+            self.assertIn("transaction_semantics_source", top_evidence.columns)
             self.assertIn("impact_method", top_evidence.columns)
             self.assertIn("impact_message", top_evidence.columns)
 

@@ -361,11 +361,27 @@ Source-supplied recognized category/sign semantics remain authoritative. YAML
 rules fill only missing or `unknown` category, `cash_flow_sign`, and
 `performance_flow_sign` values.
 
+Loaded transaction rows also carry `transaction_semantics_source` so reviewers
+can audit how the normalized category/sign/flow treatment was obtained:
+
+- `source`: Usable sign/flow semantics came from recognized source fields, with
+  any category supplied by source data or transaction-code inference.
+- `yaml_rule`: Usable sign/flow semantics came entirely from `transaction_rules`.
+- `mixed`: Some recognized semantics came from the source, while YAML rules
+  filled other missing or `unknown` fields.
+- `unknown`: The row still lacks usable sign/flow semantics.
+
+Transaction Activity and Impact Coverage summaries expose
+`transaction_semantics_sources` as compact evidence-row counts such as
+`source: 3`, `mixed: 1`, or `yaml_rule: 2`. These counts are review aids, not
+distinct transaction counts, because the finding table is currently organized
+by changed evidence field.
+
 Both semantic fields must be present and non-`unknown` before a transaction row
 has the sign/flow inputs required for a return-impact estimate. Until those
-sign rules are explicitly source-supplied and normalized, transaction
-differences should remain evidence-only and should not receive an estimated
-return impact.
+sign rules are explicitly source-supplied or configured in YAML and normalized,
+transaction differences should remain evidence-only and should not receive an
+estimated return impact.
 
 Transaction activity should become eligible for a return-impact estimate only
 when the changed evidence has an affected portfolio, security, linked portfolio

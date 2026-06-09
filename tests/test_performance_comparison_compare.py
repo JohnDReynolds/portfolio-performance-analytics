@@ -54,6 +54,7 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_CATEGORY,
+    TRANSACTION_SEMANTICS_SOURCE,
     PERFORMANCE_FLOW_SIGN,
     Finding,
 )
@@ -61,6 +62,9 @@ from ppar.performance_comparison.findings import (
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+)
+_RESTATEMENT_TRANSACTION_RULES_PATH = Path(
+    "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 
 
@@ -808,6 +812,31 @@ class TestPerformanceComparison(unittest.TestCase):
             0.5,
         )
 
+    def test_restatement_transaction_rules_fixture_carries_yaml_semantics(
+        self,
+    ) -> None:
+        """YAML transaction rules fill sign/flow semantics in Axys findings."""
+        specification = PerformanceComparisonSpecification(
+            _RESTATEMENT_TRANSACTION_RULES_PATH
+        )
+
+        findings = PerformanceComparison(specification).compare_transactions()
+        changed_fields = {
+            finding.to_dict()[SOURCE_COLUMN]: finding.to_dict()
+            for finding in findings
+            if finding.to_dict()[SECURITY_ID] == "AAPL"
+        }
+
+        self.assertEqual(
+            set(changed_fields),
+            {pc_cols.AMOUNT, pc_cols.QUANTITY, pc_cols.PRICE},
+        )
+        for finding in changed_fields.values():
+            self.assertEqual(finding[TRANSACTION_CATEGORY], "buy")
+            self.assertEqual(finding[CASH_FLOW_SIGN], "negative")
+            self.assertEqual(finding[PERFORMANCE_FLOW_SIGN], "performance")
+            self.assertEqual(finding[TRANSACTION_SEMANTICS_SOURCE], "mixed")
+
     def test_transaction_changes_link_to_containing_portfolio_period(self) -> None:
         """Changed transaction rows inherit the containing portfolio period."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -827,6 +856,7 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(amount_finding[TRANSACTION_CATEGORY], "buy")
             self.assertEqual(amount_finding[CASH_FLOW_SIGN], "negative")
             self.assertEqual(amount_finding[PERFORMANCE_FLOW_SIGN], "external")
+            self.assertEqual(amount_finding[TRANSACTION_SEMANTICS_SOURCE], "source")
 
     def test_transaction_outside_period_does_not_get_denominator(self) -> None:
         """Out-of-period transaction rows do not inherit a return denominator."""
@@ -849,6 +879,7 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertIsNone(amount_finding[RETURN_DENOMINATOR])
             self.assertEqual(amount_finding[CASH_FLOW_SIGN], "negative")
             self.assertEqual(amount_finding[PERFORMANCE_FLOW_SIGN], "performance")
+            self.assertEqual(amount_finding[TRANSACTION_SEMANTICS_SOURCE], "source")
 
     def test_transaction_fallback_key_treats_amount_change_as_add_drop(self) -> None:
         """Transaction amount changes require a stable transaction id."""

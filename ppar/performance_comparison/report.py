@@ -48,6 +48,7 @@ from ppar.performance_comparison.explain import (
     ROOT_CAUSE_AREA_COUNT,
     ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
+    TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
@@ -68,6 +69,7 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     THRU_DATE,
     TRANSACTION_CATEGORY,
+    TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.runner import (
     compact_findings_table,
@@ -720,6 +722,7 @@ def _transaction_activity_section(findings: pl.DataFrame) -> str:
         AMOUNT_DELTA,
         QUANTITY_DELTA,
         PRICE_DELTA,
+        TRANSACTION_SEMANTICS_SOURCES,
         MISSING_IMPACT_INPUTS,
     ]
     return "\n".join(
@@ -826,6 +829,7 @@ def _impact_coverage_section(findings: pl.DataFrame) -> str:
         MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
         ESTIMATED_RETURN_IMPACT_TOTAL,
         EVIDENCE_ONLY_AREAS,
+        TRANSACTION_SEMANTICS_SOURCES,
         MISSING_IMPACT_INPUTS,
         IMPACT_MESSAGE,
     ]
@@ -923,6 +927,7 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
         EVIDENCE_ROLE,
         SECURITY_ID,
         SOURCE_COLUMN,
+        TRANSACTION_SEMANTICS_SOURCE,
         DELTA_B_MINUS_A,
         ESTIMATED_RETURN_IMPACT,
         IMPACT_BASIS,
@@ -1090,6 +1095,7 @@ def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
         MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
         ESTIMATED_RETURN_IMPACT_TOTAL,
         EVIDENCE_ONLY_AREAS,
+        TRANSACTION_SEMANTICS_SOURCES,
         MISSING_IMPACT_INPUTS,
         IMPACT_MESSAGE,
     ]
@@ -1139,6 +1145,7 @@ def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
         AMOUNT_DELTA,
         QUANTITY_DELTA,
         PRICE_DELTA,
+        TRANSACTION_SEMANTICS_SOURCES,
         MISSING_IMPACT_INPUTS,
     ]
     return _html_section(
@@ -1215,6 +1222,7 @@ def _html_top_evidence_section(
         EVIDENCE_ROLE,
         SECURITY_ID,
         SOURCE_COLUMN,
+        TRANSACTION_SEMANTICS_SOURCE,
         DELTA_B_MINUS_A,
         ESTIMATED_RETURN_IMPACT,
         IMPACT_BASIS,

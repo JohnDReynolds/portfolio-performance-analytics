@@ -53,6 +53,7 @@ TRANSACTION_CODE = "transaction_code"
 TRANSACTION_CATEGORY = "transaction_category"
 CASH_FLOW_SIGN = "cash_flow_sign"
 PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
+TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 QUANTITY = "quantity"
 AMOUNT = "amount"
 COMMISSION = "commission"
@@ -175,6 +176,7 @@ TRANSACTIONS_OPTIONAL_COLUMNS = (
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
+    TRANSACTION_SEMANTICS_SOURCE,
     QUANTITY,
     PRICE,
     AMOUNT,

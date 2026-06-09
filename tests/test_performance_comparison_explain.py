@@ -83,6 +83,7 @@ from ppar.performance_comparison.explain import (
     SECURITY_RETURN_DELTA,
     TRANSACTION_FINDING_COUNT,
     TRANSACTION_ACTIVITY_SUMMARY_COLUMNS,
+    TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
 )
 from ppar.performance_comparison import columns as pc_cols
@@ -104,11 +105,15 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_CATEGORY,
+    TRANSACTION_SEMANTICS_SOURCE,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+)
+_RESTATEMENT_TRANSACTION_RULES_PATH = Path(
+    "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
@@ -146,6 +151,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         *,
         cash_flow_sign: str | None = "negative",
         performance_flow_sign: str | None = "performance",
+        transaction_semantics_source: str | None = "source",
         return_denominator: float | None = 1000.0,
         from_date: date | None = date(2025, 5, 30),
         thru_date: date | None = date(2025, 5, 30),
@@ -160,6 +166,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit(performance_flow_sign))
             .otherwise(pl.col(pc_cols.PERFORMANCE_FLOW_SIGN))
             .alias(pc_cols.PERFORMANCE_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(transaction_semantics_source))
+            .otherwise(pl.col(TRANSACTION_SEMANTICS_SOURCE))
+            .alias(TRANSACTION_SEMANTICS_SOURCE),
             pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
             .then(pl.lit(return_denominator).cast(pl.Float64))
             .otherwise(pl.col(RETURN_DENOMINATOR))
@@ -595,6 +605,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertIn(ROOT_CAUSE_TRANSACTION_ACTIVITY, row[EVIDENCE_ONLY_AREAS])
         self.assertIn(ROOT_CAUSE_PRICE, row[EVIDENCE_ONLY_AREAS])
+        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
         self.assertIn("return denominator", row[MISSING_IMPACT_INPUTS])
         self.assertIn(
             "transaction sign and flow semantics",
@@ -680,9 +691,32 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertAlmostEqual(row[AMOUNT_DELTA], -100.0)
         self.assertAlmostEqual(row[QUANTITY_DELTA], 1.0)
         self.assertAlmostEqual(row[PRICE_DELTA], 0.5)
+        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
         self.assertEqual(
             row[MISSING_IMPACT_INPUTS],
             "return denominator, transaction sign and flow semantics",
+        )
+
+    def test_transaction_rules_fixture_summarizes_yaml_semantics(self) -> None:
+        """Axys YAML transaction rules flow into transaction summaries."""
+        findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+
+        activity = transaction_activity_summary(findings)
+        activity_row = activity.row(0, named=True)
+        coverage = portfolio_period_impact_coverage_summary(findings)
+        coverage_row = coverage.row(0, named=True)
+
+        self.assertEqual(activity_row[TRANSACTION_SEMANTICS_SOURCES], "mixed: 3")
+        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "return denominator")
+        self.assertNotIn(
+            "transaction sign and flow semantics",
+            activity_row[IMPACT_MESSAGE],
+        )
+        self.assertEqual(coverage_row[TRANSACTION_SEMANTICS_SOURCES], "mixed: 3")
+        self.assertIn("return denominator", coverage_row[MISSING_IMPACT_INPUTS])
+        self.assertNotIn(
+            "transaction sign and flow semantics",
+            coverage_row[MISSING_IMPACT_INPUTS],
         )
 
     def test_transaction_activity_summary_uses_available_sign_semantics(self) -> None:
@@ -700,11 +734,16 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit(None).cast(pl.Float64))
             .otherwise(pl.col(RETURN_DENOMINATOR))
             .alias(RETURN_DENOMINATOR),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit("source"))
+            .otherwise(pl.col(TRANSACTION_SEMANTICS_SOURCE))
+            .alias(TRANSACTION_SEMANTICS_SOURCE),
         )
 
         summary = transaction_activity_summary(findings)
         row = summary.row(0, named=True)
 
+        self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "source: 3")
         self.assertEqual(row[MISSING_IMPACT_INPUTS], "return denominator")
         self.assertEqual(row[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
         self.assertIn("evidence-only", row[IMPACT_MESSAGE])
@@ -735,6 +774,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit(1000.0))
             .otherwise(pl.col(RETURN_DENOMINATOR))
             .alias(RETURN_DENOMINATOR),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit("source"))
+            .otherwise(pl.col(TRANSACTION_SEMANTICS_SOURCE))
+            .alias(TRANSACTION_SEMANTICS_SOURCE),
         )
 
         candidates = portfolio_period_contribution_candidates(findings)
@@ -754,6 +797,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
         )
         self.assertIn("source-signed transaction amount", transaction_amount[IMPACT_MESSAGE])
+        self.assertIn("Transaction semantics source: source", transaction_amount[IMPACT_MESSAGE])
 
         summary = portfolio_period_cause_summary(findings)
         transaction_row = summary.filter(
@@ -767,8 +811,26 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
         activity = transaction_activity_summary(findings)
         activity_row = activity.row(0, named=True)
+        self.assertEqual(activity_row[TRANSACTION_SEMANTICS_SOURCES], "source: 3")
         self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "")
         self.assertIn("modeled impact inputs", activity_row[IMPACT_MESSAGE])
+
+    def test_transaction_amount_candidate_reports_mixed_semantics_source(self) -> None:
+        """Transaction estimates disclose when YAML rules helped supply semantics."""
+        findings = self._transaction_estimate_findings(
+            transaction_semantics_source="mixed"
+        )
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        transaction_amount = candidates.filter(
+            (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+        ).row(0, named=True)
+
+        self.assertIn(
+            "mixed source and YAML transaction_rules",
+            transaction_amount[IMPACT_MESSAGE],
+        )
 
     def test_external_transaction_amount_stays_unestimated(self) -> None:
         """External-flow transaction amounts need a separate impact method."""

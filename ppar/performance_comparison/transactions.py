@@ -33,6 +33,10 @@ TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL = "external"
 TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE = "performance"
 TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL = "neutral"
 TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN = "unknown"
+TRANSACTION_SEMANTICS_SOURCE_SOURCE = "source"
+TRANSACTION_SEMANTICS_SOURCE_YAML_RULE = "yaml_rule"
+TRANSACTION_SEMANTICS_SOURCE_MIXED = "mixed"
+TRANSACTION_SEMANTICS_SOURCE_UNKNOWN = "unknown"
 _TRANSACTION_RULES_KEY = "transaction_rules"
 
 _CATEGORY_NORMALIZATION: dict[str, str] = {
@@ -355,9 +359,6 @@ def _with_transaction_rules(
     rules: dict[str, dict[str, str]],
 ) -> pl.DataFrame:
     """Return transaction rows with missing semantics filled from YAML rules."""
-    if not rules or pc_cols.TRANSACTION_CODE not in frame.columns:
-        return frame
-
     if pc_cols.CASH_FLOW_SIGN not in frame.columns:
         frame = frame.with_columns(
             pl.lit(TRANSACTION_CASH_FLOW_SIGN_UNKNOWN).alias(pc_cols.CASH_FLOW_SIGN)
@@ -368,9 +369,22 @@ def _with_transaction_rules(
                 pc_cols.PERFORMANCE_FLOW_SIGN
             )
         )
+    if pc_cols.TRANSACTION_SEMANTICS_SOURCE not in frame.columns:
+        frame = frame.with_columns(
+            pl.lit(TRANSACTION_SEMANTICS_SOURCE_UNKNOWN).alias(
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE
+            )
+        )
+
+    if not rules or pc_cols.TRANSACTION_CODE not in frame.columns:
+        rows = [
+            _row_with_transaction_semantics_source(dict(row), False, row)
+            for row in frame.iter_rows(named=True)
+        ]
+        return pl.DataFrame(rows).select(frame.columns)
 
     rows = [_row_with_transaction_rule(row, rules) for row in frame.iter_rows(named=True)]
-    return pl.DataFrame(rows, schema=frame.schema)
+    return pl.DataFrame(rows).select(frame.columns)
 
 
 def _row_with_transaction_rule(
@@ -378,24 +392,92 @@ def _row_with_transaction_rule(
     rules: dict[str, dict[str, str]],
 ) -> dict[str, object]:
     """Return one transaction row with YAML rule values filling unknown fields."""
+    original_row = dict(row)
     raw_code = row.get(pc_cols.TRANSACTION_CODE)
     if raw_code is None:
-        return row
+        return _row_with_transaction_semantics_source(dict(row), False, original_row)
     rule = rules.get(str(raw_code).strip().upper())
     if rule is None:
-        return row
+        return _row_with_transaction_semantics_source(dict(row), False, original_row)
 
     updated_row = dict(row)
+    yaml_filled = False
     if updated_row.get(pc_cols.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_UNKNOWN:
         updated_row[pc_cols.TRANSACTION_CATEGORY] = rule[pc_cols.TRANSACTION_CATEGORY]
+        yaml_filled = rule[pc_cols.TRANSACTION_CATEGORY] != TRANSACTION_CATEGORY_UNKNOWN
     if updated_row.get(pc_cols.CASH_FLOW_SIGN) == TRANSACTION_CASH_FLOW_SIGN_UNKNOWN:
         updated_row[pc_cols.CASH_FLOW_SIGN] = rule[pc_cols.CASH_FLOW_SIGN]
+        yaml_filled = yaml_filled or (
+            rule[pc_cols.CASH_FLOW_SIGN] != TRANSACTION_CASH_FLOW_SIGN_UNKNOWN
+        )
     if (
         updated_row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
         == TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
     ):
         updated_row[pc_cols.PERFORMANCE_FLOW_SIGN] = rule[pc_cols.PERFORMANCE_FLOW_SIGN]
-    return updated_row
+        yaml_filled = yaml_filled or (
+            rule[pc_cols.PERFORMANCE_FLOW_SIGN]
+            != TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
+        )
+    return _row_with_transaction_semantics_source(
+        updated_row,
+        yaml_filled,
+        original_row,
+    )
+
+
+def _row_with_transaction_semantics_source(
+    row: dict[str, object],
+    yaml_filled: bool,
+    original_row: Mapping[str, object],
+) -> dict[str, object]:
+    """Return one row tagged with transaction semantics provenance."""
+    # The provenance label is intentionally conservative: a row is only usable
+    # for transaction impact estimates when both sign fields are recognized.
+    if not transaction_impact_semantics_available(row):
+        row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_UNKNOWN
+        return row
+
+    source_supplied = _has_source_transaction_semantics(original_row)
+    if yaml_filled and source_supplied:
+        row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_MIXED
+    elif yaml_filled:
+        row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+    else:
+        row[pc_cols.TRANSACTION_SEMANTICS_SOURCE] = TRANSACTION_SEMANTICS_SOURCE_SOURCE
+    return row
+
+
+def _has_source_transaction_semantics(row: Mapping[str, object]) -> bool:
+    """Return whether the source row carried any recognized transaction semantics."""
+    return (
+        _recognized_transaction_category(row.get(pc_cols.TRANSACTION_CATEGORY))
+        or _recognized_cash_flow_sign(row.get(pc_cols.CASH_FLOW_SIGN))
+        or _recognized_performance_flow_sign(row.get(pc_cols.PERFORMANCE_FLOW_SIGN))
+    )
+
+
+def _recognized_transaction_category(value: object) -> bool:
+    """Return whether a normalized transaction category is recognized."""
+    return value not in {None, "", TRANSACTION_CATEGORY_UNKNOWN}
+
+
+def _recognized_cash_flow_sign(value: object) -> bool:
+    """Return whether a normalized transaction cash-flow sign is recognized."""
+    return value in {
+        TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+        TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+        TRANSACTION_CASH_FLOW_SIGN_NONE,
+    }
+
+
+def _recognized_performance_flow_sign(value: object) -> bool:
+    """Return whether a normalized transaction performance-flow sign is recognized."""
+    return value in {
+        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+        TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+    }
 
 
 def _normalized_transaction_rule(rule: Mapping[str, object]) -> dict[str, str]:

@@ -28,6 +28,10 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+    TRANSACTION_SEMANTICS_SOURCE_MIXED,
+    TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+    TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
+    TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
     normalize_transaction_cash_flow_sign,
     normalize_transaction_category,
     normalize_transaction_performance_flow_sign,
@@ -218,6 +222,10 @@ class TestTransactionsLoader(unittest.TestCase):
             )
             self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
             self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+            )
             self.assertTrue(transaction_impact_semantics_available(row))
 
     def test_unknown_transaction_sign_columns_remain_unknown(self) -> None:
@@ -253,6 +261,10 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertEqual(
                 row[pc_cols.PERFORMANCE_FLOW_SIGN],
                 TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+            )
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
             )
             self.assertFalse(transaction_impact_semantics_available(row))
 
@@ -294,6 +306,10 @@ class TestTransactionsLoader(unittest.TestCase):
             )
             self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
             self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_MIXED,
+            )
             self.assertTrue(transaction_impact_semantics_available(row))
 
     def test_yaml_transaction_rules_do_not_override_source_semantics(self) -> None:
@@ -333,6 +349,88 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
             self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
             self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+            )
+
+    def test_yaml_transaction_rules_mark_rule_only_semantics(self) -> None:
+        """YAML rules are tagged as the sole source when no source semantics exist."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "CUSTOM": {
+                    "transaction_category": "external_flow",
+                    "cash_flow_sign": "positive",
+                    "performance_flow_sign": "external",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["CUSTOM"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+            )
+
+    def test_yaml_transaction_rules_mark_mixed_semantics(self) -> None:
+        """YAML-filled fields are tagged mixed when source fields are retained."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "BUY": {
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["BUY"],
+                        "CASH_FLOW_SIGN": ["negative"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
+            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_MIXED,
+            )
 
     def test_invalid_yaml_transaction_rules_raise_error(self) -> None:
         """Transaction rules must be a YAML mapping."""
