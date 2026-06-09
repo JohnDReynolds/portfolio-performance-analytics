@@ -14,6 +14,7 @@ from ppar.performance_comparison import (
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
+    portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     rank_portfolio_period_evidence,
     security_period_evidence_breakdown,
@@ -28,7 +29,11 @@ from ppar.performance_comparison.explain import (
     CONTEXT_FINDING_COUNT,
     DIRECT_INPUT_FINDING_COUNT,
     EVIDENCE_GROUP,
+    ESTIMATED_CAUSE_AREA_COUNT,
     ESTIMATED_RETURN_IMPACT,
+    ESTIMATED_RETURN_IMPACT_TOTAL,
+    EVIDENCE_ONLY_AREAS,
+    EVIDENCE_ONLY_CAUSE_AREA_COUNT,
     FINDING_COUNT,
     FX_RATE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
@@ -43,12 +48,15 @@ from ppar.performance_comparison.explain import (
     IMPACT_MESSAGE,
     IMPACT_METHOD,
     IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
+    LOW_CONFIDENCE_ESTIMATE_COUNT,
+    MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
     MISSING_IMPACT_INPUTS,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_FINDING_COUNT,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
     PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS,
     PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS,
+    PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS,
     PORTFOLIO_PERIOD_SUMMARY_COLUMNS,
     PORTFOLIO_RETURN_DELTA,
     POSITION_FINDING_COUNT,
@@ -64,6 +72,7 @@ from ppar.performance_comparison.explain import (
     ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
     ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
     ROOT_CAUSE_PRICE,
+    ROOT_CAUSE_AREA_COUNT,
     ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
     SECURITY_FINDING_COUNT,
@@ -140,6 +149,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertIs(
             pc_explain.portfolio_period_evidence_breakdown,
             portfolio_period_evidence_breakdown,
+        )
+        self.assertIs(
+            pc_explain.portfolio_period_impact_coverage_summary,
+            portfolio_period_impact_coverage_summary,
         )
         self.assertIs(
             pc_explain.rank_portfolio_period_evidence,
@@ -517,6 +530,55 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
                 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION: 5,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY: 3,
             },
+        )
+
+    def test_portfolio_period_impact_coverage_summary_counts_estimate_coverage(
+        self,
+    ) -> None:
+        """Impact coverage summarizes estimated and evidence-only cause areas."""
+        findings = self._restatement()
+
+        coverage = portfolio_period_impact_coverage_summary(findings)
+        row = coverage.row(0, named=True)
+
+        self.assertEqual(
+            coverage.columns,
+            list(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS),
+        )
+        self.assertEqual(coverage.height, 1)
+        self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
+        self.assertAlmostEqual(row[PORTFOLIO_RETURN_DELTA], 0.0005)
+        self.assertEqual(row[ROOT_CAUSE_AREA_COUNT], 6)
+        self.assertEqual(row[ESTIMATED_CAUSE_AREA_COUNT], 2)
+        self.assertEqual(row[EVIDENCE_ONLY_CAUSE_AREA_COUNT], 4)
+        self.assertEqual(row[LOW_CONFIDENCE_ESTIMATE_COUNT], 1)
+        self.assertEqual(row[MEDIUM_CONFIDENCE_ESTIMATE_COUNT], 1)
+        self.assertAlmostEqual(
+            row[ESTIMATED_RETURN_IMPACT_TOTAL],
+            0.0010842925036128068,
+        )
+        self.assertIn(ROOT_CAUSE_TRANSACTION_ACTIVITY, row[EVIDENCE_ONLY_AREAS])
+        self.assertIn(ROOT_CAUSE_PRICE, row[EVIDENCE_ONLY_AREAS])
+        self.assertIn("return denominator", row[MISSING_IMPACT_INPUTS])
+        self.assertIn(
+            "transaction sign and flow semantics",
+            row[MISSING_IMPACT_INPUTS],
+        )
+        self.assertIn("return-impact method", row[MISSING_IMPACT_INPUTS])
+        self.assertIn("2 cause area(s) have estimates", row[IMPACT_MESSAGE])
+
+    def test_portfolio_period_impact_coverage_summary_returns_stable_empty_table(
+        self,
+    ) -> None:
+        """No portfolio return deltas produce an empty coverage summary."""
+        findings = self._baseline()
+
+        coverage = portfolio_period_impact_coverage_summary(findings)
+
+        self.assertTrue(coverage.is_empty())
+        self.assertEqual(
+            coverage.columns,
+            list(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS),
         )
 
     def test_portfolio_period_cause_summary_works_without_security_performance(

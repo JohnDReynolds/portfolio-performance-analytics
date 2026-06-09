@@ -15,7 +15,11 @@ import ppar.utilities as util
 from ppar.performance_comparison.explain import (
     AMOUNT_DELTA,
     CHANGED_FIELDS,
+    ESTIMATED_CAUSE_AREA_COUNT,
     ESTIMATED_RETURN_IMPACT,
+    ESTIMATED_RETURN_IMPACT_TOTAL,
+    EVIDENCE_ONLY_AREAS,
+    EVIDENCE_ONLY_CAUSE_AREA_COUNT,
     FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
     IMPACT_BASIS,
@@ -25,6 +29,8 @@ from ppar.performance_comparison.explain import (
     IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
+    LOW_CONFIDENCE_ESTIMATE_COUNT,
+    MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
     MISSING_IMPACT_INPUTS,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
@@ -36,11 +42,13 @@ from ppar.performance_comparison.explain import (
     ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
     ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
     ROOT_CAUSE_PRICE,
+    ROOT_CAUSE_AREA_COUNT,
     ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
     TOP_CODES,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
+    portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     transaction_activity_summary,
 )
@@ -119,6 +127,7 @@ def performance_comparison_markdown_report(
         _portfolio_period_narrative_section(active_findings),
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
+        _impact_coverage_section(active_findings),
         _residual_status_section(active_findings),
         _transaction_activity_section(active_findings),
         _portfolio_period_section(active_findings),
@@ -198,6 +207,7 @@ def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
         "Portfolio-Period Narrative",
         "Review Notes",
         "Impact Estimate Summary",
+        "Impact Coverage",
         "Residual Status",
         "Transaction Activity",
         "Portfolio-Period Changes",
@@ -516,6 +526,36 @@ def _residual_status_row(
         _RESIDUAL_STATUS: _RESIDUAL_WITHHELD,
         _RESIDUAL_REASON: reason,
     }
+
+
+def _impact_coverage_section(findings: pl.DataFrame) -> str:
+    """Return estimate-coverage status by portfolio period."""
+    coverage = portfolio_period_impact_coverage_summary(findings)
+    columns = [
+        PORTFOLIO_ID,
+        FROM_DATE,
+        THRU_DATE,
+        PORTFOLIO_RETURN_DELTA,
+        ROOT_CAUSE_AREA_COUNT,
+        ESTIMATED_CAUSE_AREA_COUNT,
+        EVIDENCE_ONLY_CAUSE_AREA_COUNT,
+        LOW_CONFIDENCE_ESTIMATE_COUNT,
+        MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
+        ESTIMATED_RETURN_IMPACT_TOTAL,
+        EVIDENCE_ONLY_AREAS,
+        MISSING_IMPACT_INPUTS,
+        IMPACT_MESSAGE,
+    ]
+    return "\n".join(
+        [
+            "## Impact Coverage",
+            _markdown_table(
+                coverage,
+                columns,
+                empty_message="No portfolio return changes need impact coverage review.",
+            ),
+        ]
+    )
 
 
 def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:

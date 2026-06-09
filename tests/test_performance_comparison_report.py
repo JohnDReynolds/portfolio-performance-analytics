@@ -74,16 +74,27 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         impact_summary = _section(
             report,
             "## Impact Estimate Summary",
-            "## Portfolio-Period Changes",
+            "## Impact Coverage",
         )
         self.assertIn("security_contribution", impact_summary)
         self.assertIn("portfolio_source_field", impact_summary)
         self.assertIn("0.00058425", impact_summary)
+        self.assertIn("## Impact Coverage", report)
+        impact_coverage = _section(
+            report,
+            "## Impact Coverage",
+            "## Residual Status",
+        )
+        self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 6 | 2 | 4 |", impact_coverage)
+        self.assertIn("0.001084292504", impact_coverage)
+        self.assertIn("transaction_activity", impact_coverage)
+        self.assertIn("return-impact method", impact_coverage)
+        self.assertIn("2 cause area(s) have estimates", impact_coverage)
         self.assertIn("## Residual Status", report)
         residual_status = _section(
             report,
             "## Residual Status",
-            "## Portfolio-Period Changes",
+            "## Transaction Activity",
         )
         self.assertIn("Residual amounts are intentionally withheld", residual_status)
         self.assertIn("withheld", residual_status)
@@ -224,6 +235,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         contents = _section(report, "## Report Contents", "## Run Summary")
 
         self.assertIn("- Impact Estimate Summary", contents)
+        self.assertIn("- Impact Coverage", contents)
         self.assertIn("- Residual Status", contents)
         self.assertIn("- Transaction Activity", contents)
         self.assertIn("- Top Evidence", contents)
@@ -242,6 +254,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Impact Estimate Summary"),
+            report.index("## Impact Coverage"),
+        )
+        self.assertLess(
+            report.index("## Impact Coverage"),
             report.index("## Residual Status"),
         )
         self.assertLess(

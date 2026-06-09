@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+# Python imports
+from collections.abc import Iterable
+
 # Third-party imports
 import polars as pl
 
@@ -176,6 +179,28 @@ PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS = (
     IMPACT_BASIS,
     IMPACT_CONFIDENCE,
     TOP_CODES,
+    IMPACT_MESSAGE,
+)
+ROOT_CAUSE_AREA_COUNT = "root_cause_area_count"
+ESTIMATED_CAUSE_AREA_COUNT = "estimated_cause_area_count"
+EVIDENCE_ONLY_CAUSE_AREA_COUNT = "evidence_only_cause_area_count"
+LOW_CONFIDENCE_ESTIMATE_COUNT = "low_confidence_estimate_count"
+MEDIUM_CONFIDENCE_ESTIMATE_COUNT = "medium_confidence_estimate_count"
+ESTIMATED_RETURN_IMPACT_TOTAL = "estimated_return_impact_total"
+EVIDENCE_ONLY_AREAS = "evidence_only_areas"
+PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS = (
+    PORTFOLIO_ID,
+    FROM_DATE,
+    THRU_DATE,
+    PORTFOLIO_RETURN_DELTA,
+    ROOT_CAUSE_AREA_COUNT,
+    ESTIMATED_CAUSE_AREA_COUNT,
+    EVIDENCE_ONLY_CAUSE_AREA_COUNT,
+    LOW_CONFIDENCE_ESTIMATE_COUNT,
+    MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
+    ESTIMATED_RETURN_IMPACT_TOTAL,
+    EVIDENCE_ONLY_AREAS,
+    MISSING_IMPACT_INPUTS,
     IMPACT_MESSAGE,
 )
 TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
@@ -517,6 +542,51 @@ def portfolio_period_cause_summary(
     ]
     sorted_rows = sorted(rows, key=_portfolio_period_cause_summary_sort_key)
     return pl.DataFrame(sorted_rows).select(PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS)
+
+
+def portfolio_period_impact_coverage_summary(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return estimate-coverage status for each changed portfolio period.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed findings should be included in
+            the underlying portfolio-period, cause-area, and transaction
+            summaries.
+
+    Returns:
+        One row per changed portfolio period. Counts are cause-area based, not
+        finding-row based, because impact estimates are currently aggregated at
+        the cause-area level.
+    """
+    periods = portfolio_period_summary(
+        findings,
+        include_suppressed=include_suppressed,
+    )
+    if periods.is_empty():
+        return _empty_portfolio_period_impact_coverage_summary()
+
+    causes = portfolio_period_cause_summary(
+        findings,
+        include_suppressed=include_suppressed,
+    )
+    transactions = transaction_activity_summary(
+        findings,
+        include_suppressed=include_suppressed,
+    )
+    rows = [
+        _impact_coverage_summary_row(
+            period,
+            _matching_period_rows(causes, period),
+            _matching_period_rows(transactions, period),
+        )
+        for period in periods.iter_rows(named=True)
+    ]
+    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS)
 
 
 def transaction_activity_summary(
@@ -1111,6 +1181,170 @@ def _portfolio_period_cause_summary_row(
     }
 
 
+def _impact_coverage_summary_row(
+    period: dict[str, object],
+    causes: list[dict[str, object]],
+    transactions: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one cause-area estimate-coverage row for a portfolio period."""
+    estimate_rows = [
+        cause for cause in causes if cause.get(ESTIMATED_RETURN_IMPACT) is not None
+    ]
+    evidence_only_rows = [
+        cause
+        for cause in causes
+        if cause.get(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE
+    ]
+
+    return {
+        PORTFOLIO_ID: period[PORTFOLIO_ID],
+        FROM_DATE: period[FROM_DATE],
+        THRU_DATE: period[THRU_DATE],
+        PORTFOLIO_RETURN_DELTA: period[PORTFOLIO_RETURN_DELTA],
+        ROOT_CAUSE_AREA_COUNT: len(causes),
+        ESTIMATED_CAUSE_AREA_COUNT: len(estimate_rows),
+        EVIDENCE_ONLY_CAUSE_AREA_COUNT: len(evidence_only_rows),
+        LOW_CONFIDENCE_ESTIMATE_COUNT: _impact_confidence_count(
+            estimate_rows,
+            IMPACT_CONFIDENCE_LOW,
+        ),
+        MEDIUM_CONFIDENCE_ESTIMATE_COUNT: _impact_confidence_count(
+            estimate_rows,
+            IMPACT_CONFIDENCE_MEDIUM,
+        ),
+        ESTIMATED_RETURN_IMPACT_TOTAL: _sum_available_return_impacts(estimate_rows),
+        EVIDENCE_ONLY_AREAS: _join_unique(
+            str(cause[ROOT_CAUSE_AREA]) for cause in evidence_only_rows
+        ),
+        MISSING_IMPACT_INPUTS: _coverage_missing_impact_inputs(
+            evidence_only_rows,
+            transactions,
+        ),
+        IMPACT_MESSAGE: _impact_coverage_message(
+            estimated_count=len(estimate_rows),
+            evidence_only_count=len(evidence_only_rows),
+        ),
+    }
+
+
+def _impact_confidence_count(
+    rows: list[dict[str, object]],
+    confidence: str,
+) -> int:
+    """Return the number of estimated rows with the requested confidence."""
+    return sum(1 for row in rows if row.get(IMPACT_CONFIDENCE) == confidence)
+
+
+def _sum_available_return_impacts(rows: list[dict[str, object]]) -> float | None:
+    """Return the sum of already-selected impact estimates."""
+    estimates: list[float] = []
+    for row in rows:
+        estimate = row.get(ESTIMATED_RETURN_IMPACT)
+        if isinstance(estimate, bool) or not isinstance(estimate, (int, float)):
+            continue
+        estimates.append(float(estimate))
+    if not estimates:
+        return None
+    return sum(estimates)
+
+
+def _impact_coverage_message(
+    *,
+    estimated_count: int,
+    evidence_only_count: int,
+) -> str:
+    """Return a concise explanation of estimate coverage for a period."""
+    if estimated_count == 0:
+        return "No cause areas have defensible return-impact estimates yet."
+    if evidence_only_count == 0:
+        return "All current cause areas have return-impact estimates."
+    return (
+        f"{estimated_count} cause area(s) have estimates; "
+        f"{evidence_only_count} remain evidence-only."
+    )
+
+
+def _coverage_missing_impact_inputs(
+    evidence_only_causes: list[dict[str, object]],
+    transactions: list[dict[str, object]],
+) -> str:
+    """Return compact missing-input themes for evidence-only cause areas."""
+    missing_inputs: list[str] = []
+    for cause in evidence_only_causes:
+        cause_area = cause.get(ROOT_CAUSE_AREA)
+        if cause_area == ROOT_CAUSE_TRANSACTION_ACTIVITY:
+            transaction_inputs_found = False
+            for transaction in transactions:
+                transaction_inputs_found = True
+                _extend_unique(
+                    missing_inputs,
+                    _split_missing_impact_inputs(transaction.get(MISSING_IMPACT_INPUTS)),
+                )
+            if not transaction_inputs_found:
+                _extend_unique(
+                    missing_inputs,
+                    _split_transaction_cause_missing_inputs(cause.get(IMPACT_MESSAGE)),
+                )
+        elif cause_area in {
+            ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+            ROOT_CAUSE_PRICE,
+            ROOT_CAUSE_CASH,
+            ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
+        }:
+            _extend_unique(missing_inputs, ["return-impact method"])
+        elif cause_area == ROOT_CAUSE_FX_RATE:
+            _extend_unique(missing_inputs, ["currency exposure linkage"])
+        else:
+            _extend_unique(missing_inputs, ["defensible impact method"])
+    return ", ".join(missing_inputs)
+
+
+def _split_missing_impact_inputs(value: object) -> list[str]:
+    """Return missing impact inputs parsed from a readable checklist string."""
+    if not isinstance(value, str) or not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _split_transaction_cause_missing_inputs(value: object) -> list[str]:
+    """Return transaction missing inputs parsed from a cause-summary message."""
+    if not isinstance(value, str) or "Missing impact inputs:" not in value:
+        return []
+    _, missing_inputs = value.split("Missing impact inputs:", maxsplit=1)
+    return _split_missing_impact_inputs(missing_inputs.rstrip("."))
+
+
+def _extend_unique(target: list[str], values: list[str]) -> None:
+    """Append values to target while preserving first-seen order."""
+    for value in values:
+        if value not in target:
+            target.append(value)
+
+
+def _join_unique(values: Iterable[str]) -> str:
+    """Return a comma-separated string with first-seen duplicates removed."""
+    unique_values: list[str] = []
+    for value in values:
+        if value not in unique_values:
+            unique_values.append(value)
+    return ", ".join(unique_values)
+
+
+def _matching_period_rows(
+    table: pl.DataFrame,
+    period: dict[str, object],
+) -> list[dict[str, object]]:
+    """Return rows from a summary table that match a portfolio period."""
+    if table.is_empty():
+        return []
+    period_rows = table.filter(
+        (pl.col(PORTFOLIO_ID) == period[PORTFOLIO_ID])
+        & (pl.col(FROM_DATE) == period[FROM_DATE])
+        & (pl.col(THRU_DATE) == period[THRU_DATE])
+    )
+    return list(period_rows.iter_rows(named=True))
+
+
 def _summed_estimated_return_impact(rows: list[dict[str, object]]) -> float | None:
     """Return the sum of available impact estimates, or ``None``."""
     estimates: list[float] = []
@@ -1563,6 +1797,27 @@ def _empty_portfolio_period_cause_summary() -> pl.DataFrame:
             IMPACT_BASIS: pl.String,
             IMPACT_CONFIDENCE: pl.String,
             TOP_CODES: pl.String,
+            IMPACT_MESSAGE: pl.String,
+        }
+    )
+
+
+def _empty_portfolio_period_impact_coverage_summary() -> pl.DataFrame:
+    """Return empty impact coverage summary with stable columns."""
+    return pl.DataFrame(
+        schema={
+            PORTFOLIO_ID: pl.String,
+            FROM_DATE: pl.Date,
+            THRU_DATE: pl.Date,
+            PORTFOLIO_RETURN_DELTA: pl.Float64,
+            ROOT_CAUSE_AREA_COUNT: pl.UInt32,
+            ESTIMATED_CAUSE_AREA_COUNT: pl.UInt32,
+            EVIDENCE_ONLY_CAUSE_AREA_COUNT: pl.UInt32,
+            LOW_CONFIDENCE_ESTIMATE_COUNT: pl.UInt32,
+            MEDIUM_CONFIDENCE_ESTIMATE_COUNT: pl.UInt32,
+            ESTIMATED_RETURN_IMPACT_TOTAL: pl.Float64,
+            EVIDENCE_ONLY_AREAS: pl.String,
+            MISSING_IMPACT_INPUTS: pl.String,
             IMPACT_MESSAGE: pl.String,
         }
     )

@@ -845,6 +845,13 @@ Current output layers:
   codes, aggregate confidence, and any currently supported impact estimate.
   Transaction activity remains evidence-only until transaction-type sign and
   flow semantics are explicitly modeled.
+- Portfolio-period impact coverage summary: A transparency helper returned by
+  `portfolio_period_impact_coverage_summary()`. It counts, by changed
+  portfolio period, how many cause areas currently have return-impact
+  estimates, how many remain evidence-only, and which missing-input themes are
+  blocking the evidence-only areas. The coverage total sums already-selected
+  cause-area estimates for review context; it is not a residual calculation or
+  a complete attribution statement.
 - Transaction activity summary: An evidence-only helper returned by
   `transaction_activity_summary()`. It groups changed transaction fields by
   portfolio, security, period, and normalized transaction category, and reports
@@ -1019,8 +1026,7 @@ The next design work should focus on explanation quality before adding broad
 new datasets.
 
 - Strengthen the contribution-candidate helper only where the math is
-  defensible. Portfolio source fields may be next if the denominator and
-  formula can be stated clearly.
+  defensible.
 - Add a residual concept only after there are enough credible contribution
   estimates. A residual emitted too early would imply precision the system does
   not have.

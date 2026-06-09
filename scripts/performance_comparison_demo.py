@@ -26,6 +26,7 @@ from ppar.performance_comparison import (  # noqa: E402
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
+    portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     rank_portfolio_period_evidence,
     security_period_evidence_breakdown,
@@ -69,6 +70,7 @@ def main() -> None:
     evidence_ranking = rank_portfolio_period_evidence(findings)
     contribution_candidates = portfolio_period_contribution_candidates(findings)
     cause_summary = portfolio_period_cause_summary(findings)
+    impact_coverage = portfolio_period_impact_coverage_summary(findings)
     transaction_summary = transaction_activity_summary(findings)
     security_evidence_breakdown = security_period_evidence_breakdown(findings)
     summaries = summarize_findings(findings)
@@ -107,6 +109,7 @@ def main() -> None:
         wide=True,
     )
     _print_table("Portfolio-period cause summary", cause_summary, wide=True)
+    _print_table("Portfolio-period impact coverage", impact_coverage, wide=True)
     _print_table("Transaction activity summary", transaction_summary, wide=True)
     _print_table("Security-period evidence breakdown", security_evidence_breakdown)
     _print_table("Compact active findings", compact_active_findings, wide=True)
