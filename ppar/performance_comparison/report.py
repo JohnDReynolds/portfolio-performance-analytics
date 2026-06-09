@@ -5,6 +5,7 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Sequence
 import datetime as dt
+import json
 from pathlib import Path
 
 # Third-party imports
@@ -173,6 +174,126 @@ def write_performance_comparison_markdown_report(
     )
     report_path.write_text(report, encoding=util.ENCODING)
     return report_path
+
+
+def write_performance_comparison_report_bundle(
+    findings: pl.DataFrame,
+    output_directory: util.PathLike,
+    *,
+    title: str = "Performance Comparison Report",
+    include_suppressed_appendix: bool = True,
+    top_evidence_limit: int = 10,
+) -> dict[str, Path]:
+    """Write a reproducible Markdown-and-CSV report bundle.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        output_directory: Destination directory. It is created when needed.
+        title: Markdown H1 text for ``report.md``.
+        include_suppressed_appendix: Whether ``report.md`` should include the
+            suppressed findings appendix section.
+        top_evidence_limit: Maximum number of top-evidence rows to include per
+            portfolio period in both ``report.md`` and ``top_evidence.csv``.
+
+    Returns:
+        Mapping from bundle artifact name to normalized written path.
+    """
+    bundle_directory = Path(output_directory)
+    bundle_directory.mkdir(parents=True, exist_ok=True)
+    active_findings = _active_findings(findings)
+    tables = _report_bundle_tables(active_findings, top_evidence_limit)
+
+    paths: dict[str, Path] = {}
+    report_path = write_performance_comparison_markdown_report(
+        findings,
+        bundle_directory / "report.md",
+        title=title,
+        include_suppressed_appendix=include_suppressed_appendix,
+        top_evidence_limit=top_evidence_limit,
+    )
+    paths["report"] = report_path
+    paths["findings"] = _write_csv(findings, bundle_directory / "findings.csv")
+    for name, table in tables.items():
+        paths[name] = _write_csv(table, bundle_directory / f"{name}.csv")
+
+    manifest_path = bundle_directory / "manifest.json"
+    paths["manifest"] = manifest_path
+    manifest = _report_bundle_manifest(
+        findings=findings,
+        active_findings=active_findings,
+        title=title,
+        include_suppressed_appendix=include_suppressed_appendix,
+        top_evidence_limit=top_evidence_limit,
+        artifact_paths=paths,
+        tables=tables,
+    )
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding=util.ENCODING,
+    )
+    return paths
+
+
+def _report_bundle_tables(
+    active_findings: pl.DataFrame,
+    top_evidence_limit: int,
+) -> dict[str, pl.DataFrame]:
+    """Return report-bundle tables keyed by artifact stem."""
+    return {
+        "portfolio_period_summary": portfolio_period_summary(active_findings),
+        "cause_summary": portfolio_period_cause_summary(active_findings),
+        "impact_estimates": _impact_estimate_summary_table(active_findings),
+        "impact_coverage": portfolio_period_impact_coverage_summary(active_findings),
+        "residual_status": _residual_status_table(active_findings),
+        "transaction_activity": transaction_activity_summary(active_findings),
+        "top_evidence": _top_evidence_table(active_findings, top_evidence_limit),
+    }
+
+
+def _write_csv(table: pl.DataFrame, output_path: Path) -> Path:
+    """Write a CSV table and return the normalized path."""
+    table.write_csv(output_path)
+    return output_path
+
+
+def _report_bundle_manifest(
+    *,
+    findings: pl.DataFrame,
+    active_findings: pl.DataFrame,
+    title: str,
+    include_suppressed_appendix: bool,
+    top_evidence_limit: int,
+    artifact_paths: dict[str, Path],
+    tables: dict[str, pl.DataFrame],
+) -> dict[str, object]:
+    """Return JSON-serializable metadata for a report bundle."""
+    suppressed_count = findings.height - active_findings.height
+    return {
+        "bundle_type": "performance_comparison_report",
+        "created_at": dt.datetime.now(dt.UTC).isoformat(),
+        "title": title,
+        "options": {
+            "include_suppressed_appendix": include_suppressed_appendix,
+            "top_evidence_limit": top_evidence_limit,
+        },
+        "counts": {
+            "findings": findings.height,
+            "active_findings": active_findings.height,
+            "suppressed_findings": suppressed_count,
+        },
+        "artifacts": {
+            name: path.name
+            for name, path in sorted(artifact_paths.items())
+        },
+        "tables": {
+            "findings": {"rows": findings.height},
+            **{
+                name: {"rows": table.height}
+                for name, table in sorted(tables.items())
+            },
+        },
+    }
 
 
 def _run_summary_section(
@@ -457,28 +578,7 @@ def _transaction_activity_section(findings: pl.DataFrame) -> str:
 
 def _residual_status_section(findings: pl.DataFrame) -> str:
     """Return a Markdown section explaining whether residuals are calculated."""
-    periods = portfolio_period_summary(findings)
-    if periods.is_empty():
-        residuals = pl.DataFrame(
-            schema={
-                PORTFOLIO_ID: pl.String,
-                FROM_DATE: pl.Date,
-                THRU_DATE: pl.Date,
-                PORTFOLIO_RETURN_DELTA: pl.Float64,
-                _ESTIMATED_IMPACT_AREAS: pl.String,
-                _RESIDUAL_STATUS: pl.String,
-                _RESIDUAL_REASON: pl.String,
-            }
-        )
-    else:
-        causes = portfolio_period_cause_summary(findings)
-        residuals = pl.DataFrame(
-            [
-                _residual_status_row(period, _period_cause_rows(causes, period))
-                for period in periods.iter_rows(named=True)
-            ]
-        )
-
+    residuals = _residual_status_table(findings)
     columns = [
         PORTFOLIO_ID,
         FROM_DATE,
@@ -498,6 +598,31 @@ def _residual_status_section(findings: pl.DataFrame) -> str:
                 columns,
                 empty_message="No portfolio return changes need residual review.",
             ),
+        ]
+    )
+
+
+def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return residual-status rows for portfolio-period return changes."""
+    periods = portfolio_period_summary(findings)
+    if periods.is_empty():
+        return pl.DataFrame(
+            schema={
+                PORTFOLIO_ID: pl.String,
+                FROM_DATE: pl.Date,
+                THRU_DATE: pl.Date,
+                PORTFOLIO_RETURN_DELTA: pl.Float64,
+                _ESTIMATED_IMPACT_AREAS: pl.String,
+                _RESIDUAL_STATUS: pl.String,
+                _RESIDUAL_REASON: pl.String,
+            }
+        )
+
+    causes = portfolio_period_cause_summary(findings)
+    return pl.DataFrame(
+        [
+            _residual_status_row(period, _period_cause_rows(causes, period))
+            for period in periods.iter_rows(named=True)
         ]
     )
 
@@ -560,12 +685,7 @@ def _impact_coverage_section(findings: pl.DataFrame) -> str:
 
 def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
     """Return a concise Markdown section for currently quantified impacts."""
-    summary = portfolio_period_cause_summary(findings)
-    if summary.is_empty():
-        estimated_summary = summary
-    else:
-        estimated_summary = summary.filter(pl.col(ESTIMATED_RETURN_IMPACT).is_not_null())
-
+    estimated_summary = _impact_estimate_summary_table(findings)
     columns = [
         PORTFOLIO_ID,
         FROM_DATE,
@@ -586,6 +706,14 @@ def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
             ),
         ]
     )
+
+
+def _impact_estimate_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return currently quantified cause-summary rows."""
+    summary = portfolio_period_cause_summary(findings)
+    if summary.is_empty():
+        return summary
+    return summary.filter(pl.col(ESTIMATED_RETURN_IMPACT).is_not_null())
 
 
 def _cause_summary_section(findings: pl.DataFrame) -> str:
@@ -618,8 +746,8 @@ def _cause_summary_section(findings: pl.DataFrame) -> str:
 
 def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> str:
     """Return the top contribution-candidate evidence Markdown section."""
-    candidates = portfolio_period_contribution_candidates(findings)
-    if candidates.is_empty():
+    table = _top_evidence_table(findings, top_evidence_limit)
+    if table.is_empty():
         return "\n".join(
             [
                 "## Top Evidence",
@@ -643,16 +771,24 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
         IMPACT_CONFIDENCE,
         MESSAGE,
     ]
-    rows = []
-    for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
-        rows.extend(group.sort("review_rank").head(top_evidence_limit).iter_rows(named=True))
-    table = pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
     return "\n".join(
         [
             "## Top Evidence",
             _markdown_table(table, columns, empty_message="No ranked evidence is available."),
         ]
     )
+
+
+def _top_evidence_table(findings: pl.DataFrame, top_evidence_limit: int) -> pl.DataFrame:
+    """Return top contribution-candidate rows per portfolio period."""
+    candidates = portfolio_period_contribution_candidates(findings)
+    if candidates.is_empty():
+        return candidates
+
+    rows = []
+    for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
+        rows.extend(group.sort("review_rank").head(top_evidence_limit).iter_rows(named=True))
+    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
 
 
 def _suppressed_appendix_section(

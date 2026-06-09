@@ -1020,6 +1020,12 @@ changes. This section should use a section-level caveat plus compact per-period
 reason labels, rather than calculating an unexplained amount from partial or
 mixed-confidence estimates.
 
+Report bundles can be written with `write_performance_comparison_report_bundle()`.
+The bundle contains the Markdown report, raw findings, current report helper
+tables as CSV files, and a JSON manifest with options, counts, artifact names,
+and row counts. This makes reviewer handoffs reproducible without coupling the
+comparison engine to a future HTML or Axys-style presentation layer.
+
 ## Near-Term Roadmap
 
 The next design work should focus on explanation quality before adding broad

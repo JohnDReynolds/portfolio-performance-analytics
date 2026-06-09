@@ -2,6 +2,7 @@
 
 # Python imports
 import datetime as dt
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,6 +20,7 @@ from ppar.performance_comparison import (
     findings_to_polars,
     performance_comparison_markdown_report,
     write_performance_comparison_markdown_report,
+    write_performance_comparison_report_bundle,
 )
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
@@ -291,6 +293,72 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             report = output_path.read_text(encoding="utf-8")
             self.assertIn("# Controlled Restatement", report)
             self.assertIn("## Top Evidence", report)
+
+    def test_write_report_bundle_creates_review_artifacts(self) -> None:
+        """Report bundles contain Markdown, CSV tables, and manifest metadata."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        expected_keys = {
+            "report",
+            "findings",
+            "portfolio_period_summary",
+            "cause_summary",
+            "impact_estimates",
+            "impact_coverage",
+            "residual_status",
+            "transaction_activity",
+            "top_evidence",
+            "manifest",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                title="Bundle Restatement",
+                top_evidence_limit=2,
+            )
+
+            self.assertEqual(set(paths), expected_keys)
+            for path in paths.values():
+                self.assertTrue(path.exists(), path)
+            self.assertIn("# Bundle Restatement", paths["report"].read_text())
+
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
+            self.assertEqual(manifest["title"], "Bundle Restatement")
+            self.assertEqual(manifest["counts"]["findings"], 21)
+            self.assertEqual(manifest["counts"]["active_findings"], 21)
+            self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
+            self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
+            self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
+
+            impact_coverage = pl.read_csv(paths["impact_coverage"])
+            self.assertEqual(impact_coverage.height, 1)
+            self.assertIn("estimated_cause_area_count", impact_coverage.columns)
+            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
+
+            top_evidence = pl.read_csv(paths["top_evidence"])
+            self.assertEqual(top_evidence.height, 2)
+            self.assertIn("review_rank", top_evidence.columns)
+
+    def test_write_report_bundle_preserves_empty_table_columns(self) -> None:
+        """Report bundles write stable CSV headers for baseline empty tables."""
+        findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(findings, directory)
+
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            self.assertEqual(manifest["counts"]["findings"], 0)
+            self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
+            self.assertIn(
+                "portfolio_id,from_date,thru_date",
+                paths["impact_coverage"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "portfolio_id,security_id,from_date",
+                paths["transaction_activity"].read_text(encoding="utf-8"),
+            )
 
 
 def _section(report: str, start: str, end: str) -> str:

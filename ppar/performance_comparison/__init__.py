@@ -34,6 +34,7 @@ from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.report import (
     performance_comparison_markdown_report,
     write_performance_comparison_markdown_report,
+    write_performance_comparison_report_bundle,
 )
 from ppar.performance_comparison.rules import SuppressionRule, apply_suppressions
 from ppar.performance_comparison.runner import (
@@ -91,4 +92,5 @@ __all__ = [
     "summarize_findings",
     "transaction_activity_summary",
     "write_performance_comparison_markdown_report",
+    "write_performance_comparison_report_bundle",
 ]

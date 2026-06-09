@@ -56,6 +56,7 @@ from ppar.performance_comparison import (
     summarize_findings,
     transaction_activity_summary,
     write_performance_comparison_markdown_report,
+    write_performance_comparison_report_bundle,
 )
 
 
@@ -151,6 +152,7 @@ class TestPackageMetadata(unittest.TestCase):
             "summarize_findings",
             "transaction_activity_summary",
             "write_performance_comparison_markdown_report",
+            "write_performance_comparison_report_bundle",
         }
 
         self.assertEqual(set(performance_comparison.__all__), expected_exports)
@@ -250,6 +252,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             write_performance_comparison_markdown_report,
             performance_comparison.write_performance_comparison_markdown_report,
+        )
+        self.assertIs(
+            write_performance_comparison_report_bundle,
+            performance_comparison.write_performance_comparison_report_bundle,
         )
 
     def test_chart_dependencies_are_optional(self) -> None:
