@@ -35,7 +35,12 @@ from ppar.performance_comparison.findings import (
     THRU_DATE,
     TRANSACTION_CATEGORY,
 )
-from ppar.performance_comparison.transactions import transaction_impact_semantics_available
+from ppar.performance_comparison.transactions import (
+    TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    transaction_impact_semantics_available,
+)
 
 PORTFOLIO_RETURN_DELTA = "portfolio_return_delta"
 SECURITY_RETURN_DELTA = "security_return_delta"
@@ -118,6 +123,7 @@ IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
 IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
+IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
 IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT = (
@@ -127,6 +133,9 @@ IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV = (
     "source_field_delta_over_begin_market_value"
 )
 IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = "vendor_contribution_delta"
+IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
+    "transaction_amount_delta_over_return_denominator"
+)
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
 ROOT_CAUSE_MARKET_VALUE_OR_POSITION = "market_value_or_position"
@@ -1090,6 +1099,21 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "deltas when available."
             ),
         }
+    if _is_transaction_performance_amount_impact_candidate(row):
+        delta_float = float(delta)
+        denominator = float(row[RETURN_DENOMINATOR])
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
+            IMPACT_BASIS: IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the source-signed transaction amount "
+                "delta divided by the return denominator. Applies only when "
+                "source-supplied semantics mark the transaction as "
+                "performance-affecting."
+            ),
+        }
     return {
         ESTIMATED_RETURN_IMPACT: None,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
@@ -1130,6 +1154,35 @@ def _is_security_return_weighted_impact_candidate(row: dict[str, object]) -> boo
         and not isinstance(weight, bool)
         and float(weight) != 0.0
     )
+
+
+def _is_transaction_performance_amount_impact_candidate(
+    row: dict[str, object],
+) -> bool:
+    """Return whether a transaction amount row supports a performance estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    denominator = row[RETURN_DENOMINATOR]
+    cash_flow_sign = row.get(CASH_FLOW_SIGN)
+    return (
+        row[DATASET] == pc_cols.TRANSACTIONS
+        and row[SOURCE_COLUMN] == pc_cols.AMOUNT
+        and row.get(PERFORMANCE_FLOW_SIGN) == TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+        and cash_flow_sign
+        in {
+            TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+            TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+        }
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(denominator, (int, float))
+        and not isinstance(denominator, bool)
+        and float(denominator) != 0.0
+    )
+
+
+def _has_transaction_impact_method_candidate(rows: list[dict[str, object]]) -> bool:
+    """Return whether any transaction row has a currently supported method."""
+    return any(_is_transaction_performance_amount_impact_candidate(row) for row in rows)
 
 
 def _is_usable_number(value: object) -> bool:
@@ -1390,6 +1443,8 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_SECURITY_RETURN_WEIGHTED
     if IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD in bases:
         return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
+    if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
+        return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
     return IMPACT_BASIS_NO_ESTIMATE
 
 
@@ -1485,6 +1540,7 @@ def _transaction_activity_summary_row(
         from_date=from_date,
         thru_date=thru_date,
     )
+    impact_message = _transaction_activity_impact_message(missing_impact_inputs)
     return {
         PORTFOLIO_ID: portfolio_id,
         SECURITY_ID: security_id,
@@ -1499,11 +1555,21 @@ def _transaction_activity_summary_row(
         MISSING_IMPACT_INPUTS: missing_impact_inputs,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-        IMPACT_MESSAGE: (
+        IMPACT_MESSAGE: impact_message,
+    }
+
+
+def _transaction_activity_impact_message(missing_impact_inputs: str) -> str:
+    """Return the transaction activity summary impact message."""
+    if missing_impact_inputs:
+        return (
             "Transaction activity summary is evidence-only. Missing impact "
             f"inputs: {missing_impact_inputs}."
-        ),
-    }
+        )
+    return (
+        "Transaction activity has modeled impact inputs; supported estimates "
+        "are available in contribution candidates and cause summaries."
+    )
 
 
 def _transaction_missing_impact_inputs_message(
@@ -1557,11 +1623,12 @@ def _transaction_missing_impact_inputs(
     if not any(_is_usable_number(row.get(RETURN_DENOMINATOR)) for row in rows):
         missing_inputs.append("return denominator")
 
-    # Sign/flow semantics must be source-supplied and normalized. Recognized
-    # semantics only remove this missing-input flag; they do not make
-    # transaction evidence estimable until a separate impact method exists.
+    # Sign/flow semantics must be source-supplied and normalized. They are an
+    # eligibility gate; only currently modeled transaction treatments estimate.
     if not any(transaction_impact_semantics_available(row) for row in rows):
         missing_inputs.append(TRANSACTION_SIGN_AND_FLOW_SEMANTICS)
+    if not missing_inputs and not _has_transaction_impact_method_candidate(rows):
+        missing_inputs.append("return-impact method")
     return missing_inputs
 
 

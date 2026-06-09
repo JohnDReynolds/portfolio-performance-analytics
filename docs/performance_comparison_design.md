@@ -343,16 +343,19 @@ guessing them would make `transaction_activity` look more precise than it is.
 - `unknown`: Source value is blank, missing, or not recognized.
 
 Both semantic fields must be present and non-`unknown` before a transaction row
-has the sign/flow inputs required for a future return-impact estimate. Until
-those sign rules are explicitly source-supplied and normalized, transaction
+has the sign/flow inputs required for a return-impact estimate. Until those
+sign rules are explicitly source-supplied and normalized, transaction
 differences should remain evidence-only and should not receive an estimated
 return impact.
 
-Transaction activity should become eligible for a future return-impact estimate
-only when the changed evidence has an affected portfolio, security, linked
-portfolio period, normalized transaction category, return denominator, and
-modeled transaction sign and flow semantics. Until then, transaction summaries
-should expose missing impact inputs instead of calculating an estimate.
+Transaction activity should become eligible for a return-impact estimate only
+when the changed evidence has an affected portfolio, security, linked portfolio
+period, normalized transaction category, return denominator, and modeled
+transaction sign and flow semantics. External-flow and neutral transaction
+treatments require separate methods because their effect depends on the
+portfolio performance formula's flow handling. Until an applicable method is
+available, transaction summaries should expose missing impact inputs instead of
+implying an estimate.
 
 Markdown reports should include a compact Transaction Activity section so
 reviewers can see changed fields, deltas, and missing impact inputs without
@@ -997,6 +1000,16 @@ Current supported impact estimates:
    - Currently applies only to return-bearing portfolio source fields such as
      `income` and `gain_loss`. It does not apply to control/output fields such
      as `end_market_value`.
+4. Performance-treated transaction amount delta:
+   - `impact_basis = transaction_performance_amount`
+   - `impact_method = transaction_amount_delta_over_return_denominator`
+   - `impact_confidence = low`
+   - Formula: `source_signed_transaction_amount_delta / return_denominator`.
+   - Applies only to changed transaction `amount` fields whose source-supplied
+     semantics mark them as performance-affecting and whose cash-flow sign is
+     positive or negative. Missing/zero denominators, out-of-period transaction
+     dates, external-flow treatment, neutral treatment, unknown semantics, and
+     cash-flow `none` remain evidence-only until separate methods are modeled.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
@@ -1017,10 +1030,14 @@ First contribution estimates should start only where the math is defensible:
   deltas in the aggregate cause summary when both are present.
 - Position, price, and transaction evidence: These should receive an estimated
   return impact only when the finding can be linked to an affected portfolio,
-  period, security, and denominator. Transaction evidence also requires a
-  normalized transaction category plus modeled transaction sign and flow
-  semantics. Otherwise these rows should remain ranked review evidence with
-  `impact_basis` set to `no_estimate`.
+  period, security, and denominator. Transaction amount evidence also requires
+  a normalized transaction category plus modeled transaction sign and flow
+  semantics, and currently estimates only `performance` flow treatment.
+  Transaction evidence uses the linked portfolio period's snapshot A beginning
+  market value as the return denominator when the transaction date maps to a
+  configured period.
+  Otherwise these rows should remain ranked review evidence with `impact_basis`
+  set to `no_estimate`.
 - FX evidence: FX rate changes should not receive a portfolio-period return
   impact unless they can be linked to affected currency exposure, valuation, or
   transactions.

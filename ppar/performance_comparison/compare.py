@@ -483,6 +483,7 @@ class PerformanceComparison:
 
         key_columns = self._transaction_key_columns(snapshot_a, snapshot_b)
         portfolio_periods = self._portfolio_periods()
+        return_denominators = self._portfolio_period_return_denominators()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -502,6 +503,7 @@ class PerformanceComparison:
                     _TRANSACTION_COMPARE_COLUMNS,
                     pc_cols.TRANSACTIONS,
                     portfolio_periods,
+                    return_denominators=return_denominators,
                 )
             )
         return findings
@@ -619,6 +621,7 @@ class PerformanceComparison:
         dataset: str = pc_cols.PORTFOLIO_PERFORMANCE,
         portfolio_periods: pl.DataFrame | None = None,
         security_periods: pl.DataFrame | None = None,
+        return_denominators: Mapping[tuple[object, object, object], float] | None = None,
     ) -> list[Finding]:
         """Return findings for material value changes on matching rows."""
         compare_columns = compare_columns or _PORTFOLIO_COMPARE_COLUMNS
@@ -685,7 +688,14 @@ class PerformanceComparison:
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
                             delta_b_minus_a=delta,
-                            return_denominator=self._return_denominator(row, dataset),
+                            return_denominator=self._return_denominator(
+                                row,
+                                dataset,
+                                portfolio_id,
+                                from_date,
+                                thru_date,
+                                return_denominators,
+                            ),
                             return_weight=self._return_weight(row, dataset),
                             message=f"{dataset} {column!r} changed.",
                         )
@@ -759,9 +769,21 @@ class PerformanceComparison:
     def _return_denominator(
         row: Mapping[str, object],
         dataset: str,
+        portfolio_id: object | None,
+        from_date: object | None,
+        thru_date: object | None,
+        return_denominators: Mapping[tuple[object, object, object], float] | None,
     ) -> float | None:
         """Return beginning market value for approximate return impacts."""
         if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
+            if (
+                dataset == pc_cols.TRANSACTIONS
+                and portfolio_id is not None
+                and from_date is not None
+                and thru_date is not None
+                and return_denominators is not None
+            ):
+                return return_denominators.get((portfolio_id, from_date, thru_date))
             return None
         value = row.get(pc_cols.BEGIN_MARKET_VALUE)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -803,6 +825,24 @@ class PerformanceComparison:
             portfolio_periods,
         )
         return [(row.get(pc_cols.PORTFOLIO_ID), period_context[0], period_context[1])]
+
+    def _portfolio_period_return_denominators(
+        self,
+    ) -> dict[tuple[object, object, object], float]:
+        """Return snapshot A beginning market value keyed by portfolio period."""
+        snapshot_a = self._portfolio_loader.load("a")
+        denominators: dict[tuple[object, object, object], float] = {}
+        for row in snapshot_a.iter_rows(named=True):
+            value = row.get(pc_cols.BEGIN_MARKET_VALUE)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            key = (
+                row.get(pc_cols.PORTFOLIO_ID),
+                row.get(pc_cols.FROM_DATE),
+                row.get(pc_cols.THRU_DATE),
+            )
+            denominators[key] = float(value)
+        return denominators
 
     def _portfolio_periods(self) -> pl.DataFrame:
         """Return portfolio period rows from both snapshots for evidence linking."""

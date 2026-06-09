@@ -47,6 +47,7 @@ from ppar.performance_comparison.findings import (
     PC_REF_CLASS,
     PC_REF_ID,
     RELATED_OUTPUT,
+    RETURN_DENOMINATOR,
     SECURITY_ID,
     SOURCE_FILE,
     SOURCE_COLUMN,
@@ -109,6 +110,39 @@ def _write_transaction_period_specification(directory: Path) -> Path:
             "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
             f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount},"
             "cash out,external\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "transactions": "transactions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_transaction_outside_period_specification(directory: Path) -> Path:
+    """Write a minimal transaction fixture whose trade date is outside period."""
+    for snapshot_name, amount in (("snapshot_a", "100.00"), ("snapshot_b", "110.00")):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,1000.00,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
+            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            f"TXN1,PORT_A,AAPL,2025-06-15,2025-06-16,BUY,1,100.00,{amount},"
+            "cash out,performance\n",
             encoding="utf-8",
         )
 
@@ -793,6 +827,28 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(amount_finding[TRANSACTION_CATEGORY], "buy")
             self.assertEqual(amount_finding[CASH_FLOW_SIGN], "negative")
             self.assertEqual(amount_finding[PERFORMANCE_FLOW_SIGN], "external")
+
+    def test_transaction_outside_period_does_not_get_denominator(self) -> None:
+        """Out-of-period transaction rows do not inherit a return denominator."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_outside_period_specification(
+                Path(temp_dir)
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            finding_dicts = [finding.to_dict() for finding in findings]
+            amount_finding = next(
+                finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertIsNone(amount_finding[FROM_DATE])
+            self.assertIsNone(amount_finding[THRU_DATE])
+            self.assertIsNone(amount_finding[RETURN_DENOMINATOR])
+            self.assertEqual(amount_finding[CASH_FLOW_SIGN], "negative")
+            self.assertEqual(amount_finding[PERFORMANCE_FLOW_SIGN], "performance")
 
     def test_transaction_fallback_key_treats_amount_change_as_add_drop(self) -> None:
         """Transaction amount changes require a stable transaction id."""

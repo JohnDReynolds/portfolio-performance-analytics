@@ -42,11 +42,13 @@ from ppar.performance_comparison.explain import (
     IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
     IMPACT_BASIS_SECURITY_CONTRIBUTION,
     IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+    IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
     IMPACT_CONFIDENCE,
     IMPACT_CONFIDENCE_LOW,
     IMPACT_CONFIDENCE_MEDIUM,
     IMPACT_MESSAGE,
     IMPACT_METHOD,
+    IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
     IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
     LOW_CONFIDENCE_ESTIMATE_COUNT,
     MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
@@ -96,6 +98,7 @@ from ppar.performance_comparison.findings import (
     PC_SEC_RET,
     PORTFOLIO_ID,
     RELATED_OUTPUT,
+    RETURN_DENOMINATOR,
     SECURITY_ID,
     SOURCE_COLUMN,
     TARGET_OUTPUT,
@@ -137,6 +140,39 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
     def _suppressed(self) -> pl.DataFrame:
         """Return suppressed fixture findings for one test."""
         return self._suppressed_findings.clone()
+
+    def _transaction_estimate_findings(
+        self,
+        *,
+        cash_flow_sign: str | None = "negative",
+        performance_flow_sign: str | None = "performance",
+        return_denominator: float | None = 1000.0,
+        from_date: date | None = date(2025, 5, 30),
+        thru_date: date | None = date(2025, 5, 30),
+    ) -> pl.DataFrame:
+        """Return restatement findings with transaction impact inputs overridden."""
+        return self._restatement().with_columns(
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(cash_flow_sign))
+            .otherwise(pl.col(pc_cols.CASH_FLOW_SIGN))
+            .alias(pc_cols.CASH_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(performance_flow_sign))
+            .otherwise(pl.col(pc_cols.PERFORMANCE_FLOW_SIGN))
+            .alias(pc_cols.PERFORMANCE_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(return_denominator).cast(pl.Float64))
+            .otherwise(pl.col(RETURN_DENOMINATOR))
+            .alias(RETURN_DENOMINATOR),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(from_date).cast(pl.Date))
+            .otherwise(pl.col(FROM_DATE))
+            .alias(FROM_DATE),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(thru_date).cast(pl.Date))
+            .otherwise(pl.col(THRU_DATE))
+            .alias(THRU_DATE),
+        )
 
     def test_explain_module_exports_public_explanation_helpers(self) -> None:
         """Explanation helpers are available directly from the explain module."""
@@ -660,6 +696,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit("external"))
             .otherwise(pl.col(pc_cols.PERFORMANCE_FLOW_SIGN))
             .alias(pc_cols.PERFORMANCE_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(None).cast(pl.Float64))
+            .otherwise(pl.col(RETURN_DENOMINATOR))
+            .alias(RETURN_DENOMINATOR),
         )
 
         summary = transaction_activity_summary(findings)
@@ -679,6 +719,135 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             "transaction sign and flow semantics",
             transaction_row[IMPACT_MESSAGE],
         )
+
+    def test_transaction_amount_candidate_estimates_performance_flow(self) -> None:
+        """Performance-treated transaction amount deltas get a low-confidence estimate."""
+        findings = self._restatement().with_columns(
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit("negative"))
+            .otherwise(pl.col(pc_cols.CASH_FLOW_SIGN))
+            .alias(pc_cols.CASH_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit("performance"))
+            .otherwise(pl.col(pc_cols.PERFORMANCE_FLOW_SIGN))
+            .alias(pc_cols.PERFORMANCE_FLOW_SIGN),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(1000.0))
+            .otherwise(pl.col(RETURN_DENOMINATOR))
+            .alias(RETURN_DENOMINATOR),
+        )
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        transaction_amount = candidates.filter(
+            (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+        ).row(0, named=True)
+
+        self.assertAlmostEqual(transaction_amount[ESTIMATED_RETURN_IMPACT], -0.1)
+        self.assertEqual(
+            transaction_amount[IMPACT_BASIS],
+            IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+        )
+        self.assertEqual(transaction_amount[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
+        self.assertEqual(
+            transaction_amount[IMPACT_METHOD],
+            IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
+        )
+        self.assertIn("source-signed transaction amount", transaction_amount[IMPACT_MESSAGE])
+
+        summary = portfolio_period_cause_summary(findings)
+        transaction_row = summary.filter(
+            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_TRANSACTION_ACTIVITY
+        ).row(0, named=True)
+        self.assertAlmostEqual(transaction_row[ESTIMATED_RETURN_IMPACT], -0.1)
+        self.assertEqual(
+            transaction_row[IMPACT_BASIS],
+            IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+        )
+
+        activity = transaction_activity_summary(findings)
+        activity_row = activity.row(0, named=True)
+        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "")
+        self.assertIn("modeled impact inputs", activity_row[IMPACT_MESSAGE])
+
+    def test_external_transaction_amount_stays_unestimated(self) -> None:
+        """External-flow transaction amounts need a separate impact method."""
+        findings = self._transaction_estimate_findings(performance_flow_sign="external")
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        transaction_amount = candidates.filter(
+            (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+        ).row(0, named=True)
+
+        self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
+        self.assertEqual(transaction_amount[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
+        self.assertIsNone(transaction_amount[IMPACT_METHOD])
+
+        activity = transaction_activity_summary(findings)
+        activity_row = activity.row(0, named=True)
+        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "return-impact method")
+        self.assertIn("return-impact method", activity_row[IMPACT_MESSAGE])
+
+    def test_transaction_amount_requires_usable_denominator(self) -> None:
+        """Missing or zero denominators keep transaction amount rows unestimated."""
+        for denominator in (None, 0.0):
+            with self.subTest(denominator=denominator):
+                findings = self._transaction_estimate_findings(
+                    return_denominator=denominator
+                )
+
+                candidates = portfolio_period_contribution_candidates(findings)
+                transaction_amount = candidates.filter(
+                    (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+                    & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+                ).row(0, named=True)
+                activity = transaction_activity_summary(findings)
+                activity_row = activity.row(0, named=True)
+
+                self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
+                self.assertEqual(
+                    transaction_amount[IMPACT_BASIS],
+                    IMPACT_BASIS_NO_ESTIMATE,
+                )
+                self.assertEqual(
+                    activity_row[MISSING_IMPACT_INPUTS],
+                    "return denominator",
+                )
+
+    def test_transaction_amount_rejects_unmodeled_semantics(self) -> None:
+        """Only performance-treated positive/negative cash signs estimate today."""
+        scenarios = [
+            ("negative", "neutral", "return-impact method"),
+            ("negative", "unknown", "transaction sign and flow semantics"),
+            ("none", "performance", "return-impact method"),
+            ("unknown", "performance", "transaction sign and flow semantics"),
+        ]
+        for cash_flow_sign, performance_flow_sign, missing_input in scenarios:
+            with self.subTest(
+                cash_flow_sign=cash_flow_sign,
+                performance_flow_sign=performance_flow_sign,
+            ):
+                findings = self._transaction_estimate_findings(
+                    cash_flow_sign=cash_flow_sign,
+                    performance_flow_sign=performance_flow_sign,
+                )
+
+                candidates = portfolio_period_contribution_candidates(findings)
+                transaction_amount = candidates.filter(
+                    (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+                    & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+                ).row(0, named=True)
+                activity = transaction_activity_summary(findings)
+                activity_row = activity.row(0, named=True)
+
+                self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
+                self.assertEqual(
+                    transaction_amount[IMPACT_BASIS],
+                    IMPACT_BASIS_NO_ESTIMATE,
+                )
+                self.assertIsNone(transaction_amount[IMPACT_METHOD])
+                self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], missing_input)
 
     def test_transaction_activity_summary_is_evidence_only(self) -> None:
         """Transaction activity summary does not estimate return impact."""

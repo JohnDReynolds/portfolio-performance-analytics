@@ -41,6 +41,47 @@ _SUPPRESSED_COMPARISON_PATH = Path(
 )
 
 
+def _write_transaction_estimate_specification(directory: Path) -> Path:
+    """Write a minimal source-loaded fixture with transaction impact semantics."""
+    for snapshot_name, portfolio_return, amount in (
+        ("snapshot_a", "0.0100", "-100.00"),
+        ("snapshot_b", "0.0110", "-110.00"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
+            "AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            f"TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount},"
+            "cash out,performance\n",
+            encoding="utf-8",
+        )
+
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(
+        "\n".join(
+            [
+                "snapshots:",
+                "  a:",
+                "    path: snapshot_a",
+                "  b:",
+                "    path: snapshot_b",
+                "files:",
+                "  portfolio_performance: portperf.csv",
+                "  transactions: transactions.csv",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return specification_path
+
+
 class TestPerformanceComparisonReport(unittest.TestCase):
     """Verify Markdown report rendering for comparison findings."""
 
@@ -126,6 +167,35 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("## Top Evidence", report)
         self.assertIn("PC-SEC-CONTR", report)
         self.assertIn("## Suppressed Findings Appendix", report)
+
+    def test_markdown_report_shows_source_loaded_transaction_estimate(self) -> None:
+        """Source transaction semantics flow through to report impact estimates."""
+        with tempfile.TemporaryDirectory() as directory:
+            specification_path = _write_transaction_estimate_specification(
+                Path(directory)
+            )
+
+            findings = compare_snapshots(specification_path)
+            report = performance_comparison_markdown_report(findings)
+
+        impact_summary = _section(
+            report,
+            "## Impact Estimate Summary",
+            "## Impact Coverage",
+        )
+        transaction_activity = _section(
+            report,
+            "## Transaction Activity",
+            "## Portfolio-Period Changes",
+        )
+
+        self.assertIn("transaction_activity", impact_summary)
+        self.assertIn("transaction_performance_amount", impact_summary)
+        self.assertIn("-0.01", impact_summary)
+        self.assertIn("performance-treated amount deltas", report)
+        self.assertIn("| PORT_A | AAPL | 2025-05-01 | 2025-05-31 | buy |", transaction_activity)
+        self.assertIn("| -10 |", transaction_activity)
+        self.assertNotIn("transaction sign and flow semantics", report)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
         """HTML reports include the same reviewer-facing sections and tables."""

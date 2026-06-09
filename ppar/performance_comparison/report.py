@@ -528,11 +528,7 @@ def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
     notes: list[str] = []
     cause_areas = {cause[ROOT_CAUSE_AREA] for cause in causes}
     if ROOT_CAUSE_TRANSACTION_ACTIVITY in cause_areas:
-        notes.append(
-            "Transaction activity is evidence-only until portfolio period, "
-            "return denominator, and transaction sign and flow semantics are "
-            "available."
-        )
+        notes.append(_transaction_activity_review_note(causes))
     if ROOT_CAUSE_MARKET_VALUE_OR_POSITION in cause_areas:
         notes.append(
             "Market value or position evidence has no return-impact estimate yet."
@@ -553,6 +549,26 @@ def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
         "estimates exist yet."
     )
     return notes
+
+
+def _transaction_activity_review_note(causes: list[dict[str, object]]) -> str:
+    """Return a review note for transaction activity estimates."""
+    has_estimate = any(
+        cause[ROOT_CAUSE_AREA] == ROOT_CAUSE_TRANSACTION_ACTIVITY
+        and cause[IMPACT_BASIS] != IMPACT_BASIS_NO_ESTIMATE
+        for cause in causes
+    )
+    if has_estimate:
+        return (
+            "Transaction activity estimates are low-confidence and limited to "
+            "source-signed performance-treated amount deltas over the return "
+            "denominator."
+        )
+    return (
+        "Transaction activity is evidence-only until portfolio period, return "
+        "denominator, transaction sign and flow semantics, and an applicable "
+        "impact method are available."
+    )
 
 
 def _portfolio_source_field_review_note(causes: list[dict[str, object]]) -> str:
