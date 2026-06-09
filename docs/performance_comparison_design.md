@@ -426,6 +426,24 @@ Proposed `modified_dietz` fields:
 This block is design-only today. It is rejected until the Modified Dietz
 formula, allowed values, and double-counting rules are implemented and tested.
 
+Design reference examples for `modified_dietz` use:
+
+```text
+weighted_flow_impact = flow_delta * flow_weight / denominator
+```
+
+For `actual_days`, the period day count is inclusive. For a January 1 through
+January 30 period, the period has 30 days. A January 11 flow has 20 remaining
+days under `beginning_of_day` treatment and 19 remaining days under
+`end_of_day` treatment. With `flow_delta = 300` and
+`denominator = 10000`, the design reference impacts are:
+
+- `beginning_of_day`: `300 * (20 / 30) / 10000 = 0.02`
+- `end_of_day`: `300 * (19 / 30) / 10000 = 0.019`
+
+These examples are not active production estimates. They are fixtures for a
+future implementation and must remain aligned with the guardrail tests.
+
 Source-supplied recognized category/sign semantics remain authoritative. YAML
 rules fill only missing or `unknown` category, `cash_flow_sign`, and
 `performance_flow_sign` values.
