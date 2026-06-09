@@ -170,9 +170,15 @@ _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
 _METHOD_KEY: Final[str] = "method"
 _EVIDENCE_ONLY_METHOD: Final[str] = "evidence_only"
+_MODIFIED_DIETZ_METHOD: Final[str] = "modified_dietz"
+_FLOW_TIMING_KEY: Final[str] = "flow_timing"
+_DAY_COUNT_KEY: Final[str] = "day_count"
+_INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
+_DENOMINATOR_SOURCE_KEY: Final[str] = "denominator_source"
+_DOUBLE_COUNT_POLICY_KEY: Final[str] = "double_count_policy"
 _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
     {
-        "modified_dietz",
+        _MODIFIED_DIETZ_METHOD,
         "subperiod_linked",
         "unweighted_flow_delta",
     }

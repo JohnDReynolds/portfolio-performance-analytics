@@ -932,6 +932,33 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn("external_flow.method", str(context.exception))
 
+    def test_transaction_modified_dietz_design_contract_remains_rejected(self) -> None:
+        """A fully shaped Modified Dietz YAML block is design-only today."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "external_flow": {
+                    "method": "modified_dietz",
+                    "flow_timing": "trade_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                }
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(PpaError) as context:
+                PerformanceComparison(
+                    PerformanceComparisonSpecification(specification_path)
+                )
+
+            self.assertIn("external_flow.method", str(context.exception))
+
     def test_transaction_impact_methods_reject_malformed_yaml(self) -> None:
         """Transaction impact method YAML must use the supported contract."""
         scenarios = [

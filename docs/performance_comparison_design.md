@@ -395,6 +395,35 @@ portfolio-level `flow` deltas or only explanatory cross-checks. This prevents
 double counting when portfolio performance rows already include the external
 flow effect.
 
+The proposed `modified_dietz` YAML contract is:
+
+```yaml
+transaction_impact_methods:
+  external_flow:
+    method: modified_dietz
+    flow_timing: trade_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
+    denominator_source: begin_market_value
+    double_count_policy: cross_check_only
+```
+
+Proposed `modified_dietz` fields:
+
+- `flow_timing`: Which transaction date anchors the flow weight, such as
+  `trade_date` or `settlement_date`.
+- `day_count`: How calendar distance is measured, starting with `actual_days`.
+- `inclusion_rule`: Whether a dated flow is treated as beginning-of-day or
+  end-of-day for weighting.
+- `denominator_source`: Which normalized field supplies the return denominator,
+  such as `begin_market_value`.
+- `double_count_policy`: Whether transaction-derived impacts are eligible for
+  aggregation or are only cross-check evidence when portfolio `flow` deltas are
+  present.
+
+This block is design-only today. It is rejected until the Modified Dietz
+formula, allowed values, and double-counting rules are implemented and tested.
+
 Source-supplied recognized category/sign semantics remain authoritative. YAML
 rules fill only missing or `unknown` category, `cash_flow_sign`, and
 `performance_flow_sign` values.
