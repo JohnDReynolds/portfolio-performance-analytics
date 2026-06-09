@@ -95,9 +95,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "## Portfolio-Period Changes",
         )
         self.assertIn("buy", transaction_activity)
+        self.assertIn(
+            "| PORT_A | AAPL | 2025-05-30 | 2025-05-30 | buy |",
+            transaction_activity,
+        )
         self.assertIn("amount, quantity, price", transaction_activity)
         self.assertIn("return denominator", transaction_activity)
         self.assertIn("transaction sign and flow semantics", transaction_activity)
+        self.assertNotIn("portfolio period, return denominator", transaction_activity)
         self.assertIn("## Portfolio-Period Changes", report)
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
         self.assertIn("## Cause Summary", report)

@@ -1,6 +1,7 @@
 """Tests for performance comparison explanation helpers."""
 
 # Python imports
+from datetime import date
 from pathlib import Path
 import unittest
 
@@ -80,6 +81,8 @@ from ppar.performance_comparison.findings import (
     DIRECT_INPUT,
     EVIDENCE_ROLE,
     FINDING_CODE,
+    FROM_DATE,
+    PC_PORT_RET,
     PC_SEC_CONTR,
     PC_SEC_RET,
     PORTFOLIO_ID,
@@ -87,6 +90,7 @@ from ppar.performance_comparison.findings import (
     SECURITY_ID,
     SOURCE_COLUMN,
     TARGET_OUTPUT,
+    THRU_DATE,
     TRANSACTION_CATEGORY,
 )
 
@@ -570,8 +574,8 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(summary.height, 1)
         self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
         self.assertEqual(row[SECURITY_ID], "AAPL")
-        self.assertIsNone(row["from_date"])
-        self.assertIsNone(row["thru_date"])
+        self.assertEqual(str(row["from_date"]), "2025-05-30")
+        self.assertEqual(str(row["thru_date"]), "2025-05-30")
         self.assertEqual(row[TRANSACTION_CATEGORY], "buy")
         self.assertEqual(row[FINDING_COUNT], 3)
         self.assertEqual(row[CHANGED_FIELDS], "amount, quantity, price")
@@ -580,8 +584,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertAlmostEqual(row[PRICE_DELTA], 0.5)
         self.assertEqual(
             row[MISSING_IMPACT_INPUTS],
-            "portfolio period, return denominator, "
-            "transaction sign and flow semantics",
+            "return denominator, transaction sign and flow semantics",
         )
 
     def test_transaction_activity_summary_is_evidence_only(self) -> None:
@@ -595,6 +598,27 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIn("evidence-only", row[IMPACT_MESSAGE])
         self.assertIn("Missing impact inputs", row[IMPACT_MESSAGE])
+
+    def test_transaction_activity_summary_does_not_infer_ambiguous_period(
+        self,
+    ) -> None:
+        """Transaction activity summary only borrows unambiguous target periods."""
+        findings = self._restatement()
+        second_target_period = (
+            findings.filter(pl.col(FINDING_CODE) == PC_PORT_RET)
+            .head(1)
+            .with_columns(
+                pl.lit(date(2025, 5, 31)).alias(FROM_DATE),
+                pl.lit(date(2025, 5, 31)).alias(THRU_DATE),
+            )
+        )
+
+        summary = transaction_activity_summary(pl.concat([findings, second_target_period]))
+        row = summary.row(0, named=True)
+
+        self.assertIsNone(row[FROM_DATE])
+        self.assertIsNone(row[THRU_DATE])
+        self.assertIn("portfolio period", row[MISSING_IMPACT_INPUTS])
 
     def test_transaction_activity_summary_returns_stable_empty_table(self) -> None:
         """No transaction findings produce an empty transaction summary."""

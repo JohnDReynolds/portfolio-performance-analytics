@@ -555,13 +555,15 @@ def transaction_activity_summary(
     if transaction_findings.is_empty():
         return _empty_transaction_activity_summary()
 
+    fallback_periods = _single_target_period_by_portfolio(active_findings)
     buckets: dict[tuple[object, ...], list[dict[str, object]]] = {}
     for row in transaction_findings.iter_rows(named=True):
+        from_date, thru_date = _transaction_activity_period(row, fallback_periods)
         key = (
             row[PORTFOLIO_ID],
             row[SECURITY_ID],
-            row[FROM_DATE],
-            row[THRU_DATE],
+            from_date,
+            thru_date,
             row[TRANSACTION_CATEGORY] or "unknown",
         )
         buckets.setdefault(key, []).append(row)
@@ -572,6 +574,41 @@ def transaction_activity_summary(
     ]
     sorted_rows = sorted(rows, key=_transaction_activity_summary_sort_key)
     return pl.DataFrame(sorted_rows).select(TRANSACTION_ACTIVITY_SUMMARY_COLUMNS)
+
+
+def _transaction_activity_period(
+    row: dict[str, object],
+    fallback_periods: dict[object, tuple[object, object]],
+) -> tuple[object | None, object | None]:
+    """Return the period context to use for transaction activity grouping."""
+    if row[FROM_DATE] is not None or row[THRU_DATE] is not None:
+        return row[FROM_DATE], row[THRU_DATE]
+    return fallback_periods.get(row[PORTFOLIO_ID], (None, None))
+
+
+def _single_target_period_by_portfolio(
+    findings: pl.DataFrame,
+) -> dict[object, tuple[object, object]]:
+    """Return unambiguous changed portfolio-return periods keyed by portfolio."""
+    target_findings = findings.filter(
+        (pl.col(FINDING_CODE) == PC_PORT_RET)
+        & (pl.col(DATASET) == pc_cols.PORTFOLIO_PERFORMANCE)
+        & (pl.col(SOURCE_COLUMN) == pc_cols.PORTFOLIO_RETURN)
+    )
+    if target_findings.is_empty():
+        return {}
+
+    periods_by_portfolio: dict[object, set[tuple[object, object]]] = {}
+    for row in target_findings.iter_rows(named=True):
+        periods_by_portfolio.setdefault(row[PORTFOLIO_ID], set()).add(
+            (row[FROM_DATE], row[THRU_DATE])
+        )
+
+    return {
+        portfolio_id: next(iter(periods))
+        for portfolio_id, periods in periods_by_portfolio.items()
+        if len(periods) == 1
+    }
 
 
 def _active_findings(findings: pl.DataFrame, include_suppressed: bool) -> pl.DataFrame:
@@ -1202,6 +1239,11 @@ def _transaction_activity_summary_row(
     """Return one transaction activity summary row."""
     portfolio_id, security_id, from_date, thru_date, transaction_category = key
     changed_fields = _changed_transaction_fields(rows)
+    missing_impact_inputs = _transaction_missing_impact_inputs_message(
+        rows,
+        from_date=from_date,
+        thru_date=thru_date,
+    )
     return {
         PORTFOLIO_ID: portfolio_id,
         SECURITY_ID: security_id,
@@ -1213,22 +1255,38 @@ def _transaction_activity_summary_row(
         AMOUNT_DELTA: _field_delta(rows, pc_cols.AMOUNT),
         QUANTITY_DELTA: _field_delta(rows, pc_cols.QUANTITY),
         PRICE_DELTA: _field_delta(rows, pc_cols.PRICE),
-        MISSING_IMPACT_INPUTS: _transaction_missing_impact_inputs_message(rows),
+        MISSING_IMPACT_INPUTS: missing_impact_inputs,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
         IMPACT_MESSAGE: (
             "Transaction activity summary is evidence-only. Missing impact "
-            f"inputs: {_transaction_missing_impact_inputs_message(rows)}."
+            f"inputs: {missing_impact_inputs}."
         ),
     }
 
 
-def _transaction_missing_impact_inputs_message(rows: list[dict[str, object]]) -> str:
+def _transaction_missing_impact_inputs_message(
+    rows: list[dict[str, object]],
+    *,
+    from_date: object | None = None,
+    thru_date: object | None = None,
+) -> str:
     """Return a readable checklist of missing transaction impact inputs."""
-    return ", ".join(_transaction_missing_impact_inputs(rows))
+    return ", ".join(
+        _transaction_missing_impact_inputs(
+            rows,
+            from_date=from_date,
+            thru_date=thru_date,
+        )
+    )
 
 
-def _transaction_missing_impact_inputs(rows: list[dict[str, object]]) -> list[str]:
+def _transaction_missing_impact_inputs(
+    rows: list[dict[str, object]],
+    *,
+    from_date: object | None = None,
+    thru_date: object | None = None,
+) -> list[str]:
     """Return transaction impact eligibility inputs not present or not modeled."""
     if not rows:
         return [
@@ -1245,10 +1303,11 @@ def _transaction_missing_impact_inputs(rows: list[dict[str, object]]) -> list[st
         missing_inputs.append("portfolio")
     if not any(row.get(SECURITY_ID) is not None for row in rows):
         missing_inputs.append("security")
-    if not any(
-        row.get(FROM_DATE) is not None and row.get(THRU_DATE) is not None
-        for row in rows
-    ):
+    has_period = from_date is not None and thru_date is not None
+    has_period = has_period or any(
+        row.get(FROM_DATE) is not None and row.get(THRU_DATE) is not None for row in rows
+    )
+    if not has_period:
         missing_inputs.append("portfolio period")
     if not any(
         row.get(TRANSACTION_CATEGORY) not in {None, "", "unknown"} for row in rows
