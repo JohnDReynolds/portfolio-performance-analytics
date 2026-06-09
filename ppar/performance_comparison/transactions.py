@@ -9,6 +9,7 @@ from collections.abc import Mapping
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison import source_loader
@@ -32,6 +33,7 @@ TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL = "external"
 TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE = "performance"
 TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL = "neutral"
 TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN = "unknown"
+_TRANSACTION_RULES_KEY = "transaction_rules"
 
 _CATEGORY_NORMALIZATION: dict[str, str] = {
     "activity": TRANSACTION_CATEGORY_UNKNOWN,
@@ -273,7 +275,37 @@ class TransactionsLoader:
         frame = frame.with_columns(
             pl.col(date_columns).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
-        return _with_transaction_semantics(_with_transaction_category(frame))
+        return _with_transaction_rules(
+            _with_transaction_semantics(_with_transaction_category(frame)),
+            self._transaction_rules(),
+        )
+
+    def _transaction_rules(self) -> dict[str, dict[str, str]]:
+        """Return normalized YAML transaction rules keyed by transaction code."""
+        rules_value = self._specification.values.get(_TRANSACTION_RULES_KEY, {})
+        if not isinstance(rules_value, dict):
+            raise PpaError(
+                f"{self._specification.path}: transaction_rules must be a mapping.",
+                504,
+            )
+
+        rules: dict[str, dict[str, str]] = {}
+        for raw_code, raw_rule in rules_value.items():
+            if not isinstance(raw_code, str) or not raw_code.strip():
+                raise PpaError(
+                    f"{self._specification.path}: transaction rule keys must be strings.",
+                    504,
+                )
+            if not isinstance(raw_rule, dict):
+                raise PpaError(
+                    (
+                        f"{self._specification.path}: transaction_rules.{raw_code} "
+                        "must be a mapping."
+                    ),
+                    504,
+                )
+            rules[raw_code.strip().upper()] = _normalized_transaction_rule(raw_rule)
+        return rules
 
 
 def _with_transaction_category(frame: pl.DataFrame) -> pl.DataFrame:
@@ -316,6 +348,69 @@ def _with_transaction_semantics(frame: pl.DataFrame) -> pl.DataFrame:
     if not expressions:
         return frame
     return frame.with_columns(*expressions)
+
+
+def _with_transaction_rules(
+    frame: pl.DataFrame,
+    rules: dict[str, dict[str, str]],
+) -> pl.DataFrame:
+    """Return transaction rows with missing semantics filled from YAML rules."""
+    if not rules or pc_cols.TRANSACTION_CODE not in frame.columns:
+        return frame
+
+    if pc_cols.CASH_FLOW_SIGN not in frame.columns:
+        frame = frame.with_columns(
+            pl.lit(TRANSACTION_CASH_FLOW_SIGN_UNKNOWN).alias(pc_cols.CASH_FLOW_SIGN)
+        )
+    if pc_cols.PERFORMANCE_FLOW_SIGN not in frame.columns:
+        frame = frame.with_columns(
+            pl.lit(TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN).alias(
+                pc_cols.PERFORMANCE_FLOW_SIGN
+            )
+        )
+
+    rows = [_row_with_transaction_rule(row, rules) for row in frame.iter_rows(named=True)]
+    return pl.DataFrame(rows, schema=frame.schema)
+
+
+def _row_with_transaction_rule(
+    row: dict[str, object],
+    rules: dict[str, dict[str, str]],
+) -> dict[str, object]:
+    """Return one transaction row with YAML rule values filling unknown fields."""
+    raw_code = row.get(pc_cols.TRANSACTION_CODE)
+    if raw_code is None:
+        return row
+    rule = rules.get(str(raw_code).strip().upper())
+    if rule is None:
+        return row
+
+    updated_row = dict(row)
+    if updated_row.get(pc_cols.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_UNKNOWN:
+        updated_row[pc_cols.TRANSACTION_CATEGORY] = rule[pc_cols.TRANSACTION_CATEGORY]
+    if updated_row.get(pc_cols.CASH_FLOW_SIGN) == TRANSACTION_CASH_FLOW_SIGN_UNKNOWN:
+        updated_row[pc_cols.CASH_FLOW_SIGN] = rule[pc_cols.CASH_FLOW_SIGN]
+    if (
+        updated_row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
+        == TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN
+    ):
+        updated_row[pc_cols.PERFORMANCE_FLOW_SIGN] = rule[pc_cols.PERFORMANCE_FLOW_SIGN]
+    return updated_row
+
+
+def _normalized_transaction_rule(rule: Mapping[str, object]) -> dict[str, str]:
+    """Return one normalized YAML transaction semantics rule."""
+    return {
+        pc_cols.TRANSACTION_CATEGORY: normalize_transaction_category(
+            rule.get(pc_cols.TRANSACTION_CATEGORY)
+        ),
+        pc_cols.CASH_FLOW_SIGN: normalize_transaction_cash_flow_sign(
+            rule.get(pc_cols.CASH_FLOW_SIGN)
+        ),
+        pc_cols.PERFORMANCE_FLOW_SIGN: normalize_transaction_performance_flow_sign(
+            rule.get(pc_cols.PERFORMANCE_FLOW_SIGN)
+        ),
+    }
 
 
 def _normalize_transaction_semantic_label(

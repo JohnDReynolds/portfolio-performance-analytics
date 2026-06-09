@@ -342,6 +342,25 @@ guessing them would make `transaction_activity` look more precise than it is.
 - `neutral`: No performance-flow effect.
 - `unknown`: Source value is blank, missing, or not recognized.
 
+When a source does not provide usable sign semantics, comparison YAML may define
+explicit transaction rules keyed by source transaction code:
+
+```yaml
+transaction_rules:
+  BUY:
+    transaction_category: buy
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  DEP:
+    transaction_category: external_flow
+    cash_flow_sign: positive
+    performance_flow_sign: external
+```
+
+Source-supplied recognized category/sign semantics remain authoritative. YAML
+rules fill only missing or `unknown` category, `cash_flow_sign`, and
+`performance_flow_sign` values.
+
 Both semantic fields must be present and non-`unknown` before a transaction row
 has the sign/flow inputs required for a return-impact estimate. Until those
 sign rules are explicitly source-supplied and normalized, transaction
@@ -1010,6 +1029,10 @@ Current supported impact estimates:
      positive or negative. Missing/zero denominators, out-of-period transaction
      dates, external-flow treatment, neutral treatment, unknown semantics, and
      cash-flow `none` remain evidence-only until separate methods are modeled.
+     Missing-input summaries name these unsupported treatments as
+     `external-flow impact method`, `neutral-flow impact method`, or
+     `no-cash transaction impact method` so reviewers can distinguish
+     semantics gaps from method gaps.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.

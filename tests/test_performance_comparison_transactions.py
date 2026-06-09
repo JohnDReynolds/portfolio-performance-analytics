@@ -256,6 +256,111 @@ class TestTransactionsLoader(unittest.TestCase):
             )
             self.assertFalse(transaction_impact_semantics_available(row))
 
+    def test_yaml_transaction_rules_fill_missing_semantics(self) -> None:
+        """YAML transaction rules fill category and sign semantics by code."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "DEP": {
+                    "transaction_category": "external_flow",
+                    "cash_flow_sign": "positive",
+                    "performance_flow_sign": "external",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["DEP"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_CATEGORY],
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+            )
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "positive")
+            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "external")
+            self.assertTrue(transaction_impact_semantics_available(row))
+
+    def test_yaml_transaction_rules_do_not_override_source_semantics(self) -> None:
+        """Recognized source semantics remain authoritative over YAML rules."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "BUY": {
+                    "transaction_category": "external_flow",
+                    "cash_flow_sign": "positive",
+                    "performance_flow_sign": "external",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["BUY"],
+                        "CASH_FLOW_SIGN": ["negative"],
+                        "PERFORMANCE_FLOW_SIGN": ["performance"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+            row = frame.row(0, named=True)
+
+            self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], TRANSACTION_CATEGORY_BUY)
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], "negative")
+            self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+
+    def test_invalid_yaml_transaction_rules_raise_error(self) -> None:
+        """Transaction rules must be a YAML mapping."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = ["BUY"]
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["BUY"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                TransactionsLoader(specification).load("a")
+
+            self.assertIn("transaction_rules must be a mapping", str(context.exception))
+
     def test_omitted_transactions_returns_none(self) -> None:
         """Transactions are optional when omitted from YAML."""
         with tempfile.TemporaryDirectory() as temp_dir:

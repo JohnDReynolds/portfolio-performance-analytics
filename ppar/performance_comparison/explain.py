@@ -37,7 +37,10 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    TRANSACTION_CASH_FLOW_SIGN_NONE,
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     transaction_impact_semantics_available,
 )
@@ -153,6 +156,10 @@ QUANTITY_DELTA = "quantity_delta"
 PRICE_DELTA = "price_delta"
 MISSING_IMPACT_INPUTS = "missing_impact_inputs"
 TRANSACTION_SIGN_AND_FLOW_SEMANTICS = "transaction sign and flow semantics"
+EXTERNAL_FLOW_IMPACT_METHOD = "external-flow impact method"
+NEUTRAL_FLOW_IMPACT_METHOD = "neutral-flow impact method"
+NO_CASH_TRANSACTION_IMPACT_METHOD = "no-cash transaction impact method"
+TRANSACTION_IMPACT_METHOD = "transaction impact method"
 PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PORTFOLIO_ID,
     FROM_DATE,
@@ -1628,8 +1635,32 @@ def _transaction_missing_impact_inputs(
     if not any(transaction_impact_semantics_available(row) for row in rows):
         missing_inputs.append(TRANSACTION_SIGN_AND_FLOW_SEMANTICS)
     if not missing_inputs and not _has_transaction_impact_method_candidate(rows):
-        missing_inputs.append("return-impact method")
+        _extend_unique(missing_inputs, _transaction_unmodeled_method_inputs(rows))
     return missing_inputs
+
+
+def _transaction_unmodeled_method_inputs(rows: list[dict[str, object]]) -> list[str]:
+    """Return missing transaction method themes for modeled-but-unsupported rows."""
+    missing_inputs: list[str] = []
+    for row in rows:
+        if _is_transaction_performance_amount_impact_candidate(row):
+            continue
+        performance_flow_sign = row.get(PERFORMANCE_FLOW_SIGN)
+        cash_flow_sign = row.get(CASH_FLOW_SIGN)
+        if performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
+            _extend_unique(missing_inputs, [EXTERNAL_FLOW_IMPACT_METHOD])
+        elif performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL:
+            _extend_unique(missing_inputs, [NEUTRAL_FLOW_IMPACT_METHOD])
+        elif (
+            performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+            and cash_flow_sign == TRANSACTION_CASH_FLOW_SIGN_NONE
+        ):
+            _extend_unique(missing_inputs, [NO_CASH_TRANSACTION_IMPACT_METHOD])
+        elif transaction_impact_semantics_available(row):
+            _extend_unique(missing_inputs, [TRANSACTION_IMPACT_METHOD])
+    if missing_inputs:
+        return missing_inputs
+    return ["return-impact method"]
 
 
 def _changed_transaction_fields(rows: list[dict[str, object]]) -> list[str]:

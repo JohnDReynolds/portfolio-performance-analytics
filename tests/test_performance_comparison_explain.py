@@ -786,8 +786,11 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
         activity = transaction_activity_summary(findings)
         activity_row = activity.row(0, named=True)
-        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "return-impact method")
-        self.assertIn("return-impact method", activity_row[IMPACT_MESSAGE])
+        self.assertEqual(
+            activity_row[MISSING_IMPACT_INPUTS],
+            "external-flow impact method",
+        )
+        self.assertIn("external-flow impact method", activity_row[IMPACT_MESSAGE])
 
     def test_transaction_amount_requires_usable_denominator(self) -> None:
         """Missing or zero denominators keep transaction amount rows unestimated."""
@@ -818,9 +821,9 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
     def test_transaction_amount_rejects_unmodeled_semantics(self) -> None:
         """Only performance-treated positive/negative cash signs estimate today."""
         scenarios = [
-            ("negative", "neutral", "return-impact method"),
+            ("negative", "neutral", "neutral-flow impact method"),
             ("negative", "unknown", "transaction sign and flow semantics"),
-            ("none", "performance", "return-impact method"),
+            ("none", "performance", "no-cash transaction impact method"),
             ("unknown", "performance", "transaction sign and flow semantics"),
         ]
         for cash_flow_sign, performance_flow_sign, missing_input in scenarios:
