@@ -784,6 +784,10 @@ shared, source-agnostic sections for files, tolerances, materiality, and
 suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
+See [Axys Common-Core Export Reference](axys_common_core_export.md) for an
+operational Axys export template and starter field-reference tables. Those
+tables are guidance only; explicit local schema mappings remain authoritative.
+
 ### YAML Locations And Path Resolution
 
 Configuration files should not be required to live inside snapshot
@@ -1284,7 +1288,11 @@ new datasets.
   estimates. A residual emitted too early would imply precision the system does
   not have.
 - Keep report/export formats separate from comparison logic. CSV, Markdown, or
-  HTML outputs can be built from the current helper tables later.
+  HTML outputs should remain presentation layers over stable helper tables.
+- Make the HTML report feel more like an Axys/Replang review report while
+  preserving the existing calculation and explanation boundaries.
+- Add user-facing charts and tables only where they clarify reviewer workflow,
+  such as prioritization, cross-checks, impact coverage, or residual status.
 - Consider a dataset comparison registry if more datasets are added. The
   current explicit comparison functions are readable; a registry becomes useful
   only when repeated dataset boilerplate starts to obscure the rules.
