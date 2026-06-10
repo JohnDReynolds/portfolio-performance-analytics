@@ -128,10 +128,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("portfolio_source_field", impact_summary)
         self.assertIn("0.00058425", impact_summary)
         self.assertIn("## Impact Coverage", report)
+        self.assertIn("## Transaction Cross-Checks", report)
         impact_coverage = _section(
             report,
             "## Impact Coverage",
-            "## Residual Status",
+            "## Transaction Cross-Checks",
         )
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 6 | 2 | 4 |", impact_coverage)
         self.assertIn("0.001084292504", impact_coverage)
@@ -183,7 +184,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         impact_coverage = _section(
             report,
             "## Impact Coverage",
-            "## Residual Status",
+            "## Transaction Cross-Checks",
         )
         transaction_activity = _section(
             report,
@@ -284,10 +285,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "## Top Evidence",
             "## Suppressed Findings Appendix",
         )
+        cross_checks = _section(
+            report,
+            "## Transaction Cross-Checks",
+            "## Residual Status",
+        )
 
         self.assertIn("modified_dietz cross-check estimate", top_evidence)
         self.assertIn("0.005483870968", top_evidence)
         self.assertIn("|  | no_estimate |", top_evidence)
+        self.assertIn("external_flow:modified_dietz", cross_checks)
+        self.assertIn("cross_check_only", cross_checks)
+        self.assertIn("0.005483870968", cross_checks)
+        self.assertIn("not included in estimated impact totals", cross_checks)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
         """HTML reports include the same reviewer-facing sections and tables."""
@@ -435,6 +445,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertIn("- Impact Estimate Summary", contents)
         self.assertIn("- Impact Coverage", contents)
+        self.assertIn("- Transaction Cross-Checks", contents)
         self.assertIn("- Residual Status", contents)
         self.assertIn("- Transaction Activity", contents)
         self.assertIn("- Top Evidence", contents)
@@ -457,6 +468,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Impact Coverage"),
+            report.index("## Transaction Cross-Checks"),
+        )
+        self.assertLess(
+            report.index("## Transaction Cross-Checks"),
             report.index("## Residual Status"),
         )
         self.assertLess(
@@ -521,6 +536,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "cause_summary",
             "impact_estimates",
             "impact_coverage",
+            "transaction_cross_checks",
             "residual_status",
             "transaction_activity",
             "top_evidence",
@@ -575,9 +591,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["counts"]["findings"], 0)
             self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
+            self.assertEqual(manifest["tables"]["transaction_cross_checks"]["rows"], 0)
             self.assertIn(
                 "portfolio_id,from_date,thru_date",
                 paths["impact_coverage"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "portfolio_id,from_date,thru_date",
+                paths["transaction_cross_checks"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "portfolio_id,security_id,from_date",

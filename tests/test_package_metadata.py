@@ -51,6 +51,7 @@ from ppar.performance_comparison import (
     portfolio_period_evidence_breakdown,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
+    portfolio_period_transaction_cross_checks,
     rank_portfolio_period_evidence,
     security_period_evidence_breakdown,
     security_period_summary,
@@ -147,6 +148,7 @@ class TestPackageMetadata(unittest.TestCase):
             "portfolio_period_evidence_breakdown",
             "portfolio_period_impact_coverage_summary",
             "portfolio_period_summary",
+            "portfolio_period_transaction_cross_checks",
             "performance_comparison_html_report",
             "performance_comparison_markdown_report",
             "rank_portfolio_period_evidence",
@@ -239,6 +241,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             portfolio_period_summary,
             performance_comparison.portfolio_period_summary,
+        )
+        self.assertIs(
+            portfolio_period_transaction_cross_checks,
+            performance_comparison.portfolio_period_transaction_cross_checks,
         )
         self.assertIs(
             rank_portfolio_period_evidence,

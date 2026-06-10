@@ -37,6 +37,7 @@ from ppar.performance_comparison.explain import (
     MISSING_IMPACT_INPUTS,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
+    PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS,
     PORTFOLIO_RETURN_DELTA,
     PRICE_DELTA,
     QUANTITY_DELTA,
@@ -54,6 +55,7 @@ from ppar.performance_comparison.explain import (
     portfolio_period_contribution_candidates,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
+    portfolio_period_transaction_cross_checks,
     transaction_activity_summary,
 )
 from ppar.performance_comparison.findings import (
@@ -136,6 +138,7 @@ def performance_comparison_markdown_report(
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
         _impact_coverage_section(active_findings),
+        _transaction_cross_checks_section(active_findings),
         _residual_status_section(active_findings),
         _transaction_activity_section(active_findings),
         _portfolio_period_section(active_findings),
@@ -178,6 +181,7 @@ def performance_comparison_html_report(
         _html_review_notes_section(active_findings),
         _html_impact_estimate_summary_section(active_findings),
         _html_impact_coverage_section(active_findings),
+        _html_transaction_cross_checks_section(active_findings),
         _html_residual_status_section(active_findings),
         _html_transaction_activity_section(active_findings),
         _html_portfolio_period_section(active_findings),
@@ -363,6 +367,9 @@ def _report_bundle_tables(
         "cause_summary": portfolio_period_cause_summary(active_findings),
         "impact_estimates": _impact_estimate_summary_table(active_findings),
         "impact_coverage": portfolio_period_impact_coverage_summary(active_findings),
+        "transaction_cross_checks": (
+            portfolio_period_transaction_cross_checks(active_findings)
+        ),
         "residual_status": _residual_status_table(active_findings),
         "transaction_activity": transaction_activity_summary(active_findings),
         "top_evidence": _top_evidence_table(active_findings, top_evidence_limit),
@@ -477,6 +484,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
         "Review Notes",
         "Impact Estimate Summary",
         "Impact Coverage",
+        "Transaction Cross-Checks",
         "Residual Status",
         "Transaction Activity",
         "Portfolio-Period Changes",
@@ -848,6 +856,20 @@ def _impact_coverage_section(findings: pl.DataFrame) -> str:
     )
 
 
+def _transaction_cross_checks_section(findings: pl.DataFrame) -> str:
+    """Return transaction cross-check diagnostics by portfolio period."""
+    return "\n".join(
+        [
+            "## Transaction Cross-Checks",
+            _markdown_table(
+                portfolio_period_transaction_cross_checks(findings),
+                list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
+                empty_message="No transaction cross-check estimates are available.",
+            ),
+        ]
+    )
+
+
 def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
     """Return a concise Markdown section for currently quantified impacts."""
     estimated_summary = _impact_estimate_summary_table(findings)
@@ -1111,6 +1133,18 @@ def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
             portfolio_period_impact_coverage_summary(findings),
             columns,
             empty_message="No portfolio return changes need impact coverage review.",
+        ),
+    )
+
+
+def _html_transaction_cross_checks_section(findings: pl.DataFrame) -> str:
+    """Return transaction cross-check diagnostics as an HTML section."""
+    return _html_section(
+        "Transaction Cross-Checks",
+        _html_table(
+            portfolio_period_transaction_cross_checks(findings),
+            list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
+            empty_message="No transaction cross-check estimates are available.",
         ),
     )
 

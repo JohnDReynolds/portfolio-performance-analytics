@@ -16,6 +16,7 @@ from ppar.performance_comparison import (
     portfolio_period_evidence_breakdown,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
+    portfolio_period_transaction_cross_checks,
     rank_portfolio_period_evidence,
     security_period_evidence_breakdown,
     security_period_summary,
@@ -27,6 +28,11 @@ from ppar.performance_comparison.explain import (
     AMOUNT_DELTA,
     CHANGED_FIELDS,
     CONTEXT_FINDING_COUNT,
+    CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL,
+    CROSS_CHECK_COUNT,
+    CROSS_CHECK_ESTIMATE_TOTAL,
+    CROSS_CHECK_ONLY,
+    CROSS_CHECK_TREATMENT,
     DIRECT_INPUT_FINDING_COUNT,
     EVIDENCE_GROUP,
     ESTIMATED_CAUSE_AREA_COUNT,
@@ -60,6 +66,7 @@ from ppar.performance_comparison.explain import (
     PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS,
     PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS,
     PORTFOLIO_PERIOD_SUMMARY_COLUMNS,
+    PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS,
     PORTFOLIO_RETURN_DELTA,
     POSITION_FINDING_COUNT,
     PRICE_DELTA,
@@ -83,6 +90,8 @@ from ppar.performance_comparison.explain import (
     SECURITY_RETURN_DELTA,
     TRANSACTION_FINDING_COUNT,
     TRANSACTION_ACTIVITY_SUMMARY_COLUMNS,
+    TRANSACTION_IMPACT_DIAGNOSTICS,
+    TRANSACTION_IMPACT_POLICIES,
     TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
 )
@@ -105,6 +114,7 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_IMPACT_DIAGNOSTIC,
+    TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
@@ -157,6 +167,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         transaction_semantics_source: str | None = "source",
         transaction_impact_policy: str | None = None,
         transaction_impact_diagnostic: str | None = None,
+        transaction_impact_diagnostic_estimate: float | None = None,
         return_denominator: float | None = 1000.0,
         from_date: date | None = date(2025, 5, 30),
         thru_date: date | None = date(2025, 5, 30),
@@ -183,6 +194,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit(transaction_impact_diagnostic))
             .otherwise(pl.col(TRANSACTION_IMPACT_DIAGNOSTIC))
             .alias(TRANSACTION_IMPACT_DIAGNOSTIC),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(transaction_impact_diagnostic_estimate).cast(pl.Float64))
+            .otherwise(pl.col(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE))
+            .alias(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE),
             pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
             .then(pl.lit(return_denominator).cast(pl.Float64))
             .otherwise(pl.col(RETURN_DENOMINATOR))
@@ -212,6 +227,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertIs(
             pc_explain.portfolio_period_impact_coverage_summary,
             portfolio_period_impact_coverage_summary,
+        )
+        self.assertIs(
+            pc_explain.portfolio_period_transaction_cross_checks,
+            portfolio_period_transaction_cross_checks,
         )
         self.assertIs(
             pc_explain.rank_portfolio_period_evidence,
@@ -978,6 +997,54 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
                 )
                 self.assertIsNone(transaction_amount[IMPACT_METHOD])
                 self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], missing_input)
+
+    def test_portfolio_period_transaction_cross_checks_summarizes_diagnostics(
+        self,
+    ) -> None:
+        """Cross-check summaries roll up diagnostic estimates by portfolio period."""
+        findings = self._transaction_estimate_findings(
+            performance_flow_sign="external",
+            transaction_impact_policy="external_flow:modified_dietz",
+            transaction_impact_diagnostic="modified_dietz cross-check estimate",
+            transaction_impact_diagnostic_estimate=0.005,
+        )
+
+        cross_checks = portfolio_period_transaction_cross_checks(findings)
+        row = cross_checks.row(0, named=True)
+
+        self.assertEqual(
+            cross_checks.columns,
+            list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
+        )
+        self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
+        self.assertEqual(
+            row[TRANSACTION_IMPACT_POLICIES],
+            "external_flow:modified_dietz",
+        )
+        self.assertEqual(row[CROSS_CHECK_TREATMENT], CROSS_CHECK_ONLY)
+        self.assertEqual(row[CROSS_CHECK_COUNT], 3)
+        self.assertAlmostEqual(row[CROSS_CHECK_ESTIMATE_TOTAL], 0.015)
+        self.assertAlmostEqual(row[CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL], 0.015)
+        self.assertEqual(row[CHANGED_FIELDS], "amount, quantity, price")
+        self.assertEqual(
+            row[TRANSACTION_IMPACT_DIAGNOSTICS],
+            "modified_dietz cross-check estimate",
+        )
+        self.assertIn("review-only", row[IMPACT_MESSAGE])
+
+    def test_portfolio_period_transaction_cross_checks_returns_stable_empty_table(
+        self,
+    ) -> None:
+        """Empty cross-check summaries preserve stable columns."""
+        findings = self._restatement()
+
+        cross_checks = portfolio_period_transaction_cross_checks(findings)
+
+        self.assertEqual(
+            cross_checks.columns,
+            list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
+        )
+        self.assertTrue(cross_checks.is_empty())
 
     def test_transaction_activity_summary_is_evidence_only(self) -> None:
         """Transaction activity summary does not estimate return impact."""

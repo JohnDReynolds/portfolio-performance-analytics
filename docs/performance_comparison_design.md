@@ -1242,6 +1242,13 @@ comparison engine to a future HTML or Axys-style presentation layer.
 The `scripts/performance_comparison_report_bundle.py` command-line script
 exposes the same bundle workflow for comparison YAML files.
 
+Transaction cross-checks are summarized separately from impact estimates. The
+`portfolio_period_transaction_cross_checks()` helper and report section group
+rows with `transaction_impact_diagnostic_estimate` by portfolio period and
+impact policy. The grouped totals are review aids only and remain excluded from
+`estimated_return_impact`, impact coverage totals, and cause-summary totals.
+Report bundles include this table as `transaction_cross_checks.csv`.
+
 HTML reports can be rendered with `performance_comparison_html_report()` or
 written with `write_performance_comparison_html_report()`. The first HTML
 version is intentionally conservative: it uses the same helper tables and

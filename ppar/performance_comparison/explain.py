@@ -173,6 +173,13 @@ EXTERNAL_FLOW_EVIDENCE_ONLY_POLICY = "external-flow evidence-only policy"
 NEUTRAL_FLOW_IMPACT_METHOD = "neutral-flow impact method"
 NO_CASH_TRANSACTION_IMPACT_METHOD = "no-cash transaction impact method"
 TRANSACTION_IMPACT_METHOD = "transaction impact method"
+CROSS_CHECK_TREATMENT = "cross_check_treatment"
+CROSS_CHECK_ONLY = "cross_check_only"
+CROSS_CHECK_COUNT = "cross_check_count"
+CROSS_CHECK_ESTIMATE_TOTAL = "cross_check_estimate_total"
+CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
+TRANSACTION_IMPACT_POLICIES = "transaction_impact_policies"
+TRANSACTION_IMPACT_DIAGNOSTICS = "transaction_impact_diagnostics"
 PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PORTFOLIO_ID,
     FROM_DATE,
@@ -257,6 +264,19 @@ TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
     MISSING_IMPACT_INPUTS,
     IMPACT_BASIS,
     IMPACT_CONFIDENCE,
+    IMPACT_MESSAGE,
+)
+PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS = (
+    PORTFOLIO_ID,
+    FROM_DATE,
+    THRU_DATE,
+    TRANSACTION_IMPACT_POLICIES,
+    CROSS_CHECK_TREATMENT,
+    CROSS_CHECK_COUNT,
+    CROSS_CHECK_ESTIMATE_TOTAL,
+    CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL,
+    CHANGED_FIELDS,
+    TRANSACTION_IMPACT_DIAGNOSTICS,
     IMPACT_MESSAGE,
 )
 
@@ -627,6 +647,55 @@ def portfolio_period_impact_coverage_summary(
         for period in periods.iter_rows(named=True)
     ]
     return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS)
+
+
+def portfolio_period_transaction_cross_checks(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return portfolio-period transaction impact cross-check diagnostics.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed transaction findings should be
+            included in the summary.
+
+    Returns:
+        One row per portfolio period and transaction impact policy group. The
+        estimates are review-only cross-checks and are intentionally separate
+        from contribution totals.
+    """
+    if findings.is_empty() or TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE not in findings.columns:
+        return _empty_portfolio_period_transaction_cross_checks()
+
+    active_findings = _active_findings(findings, include_suppressed)
+    cross_check_findings = active_findings.filter(
+        (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+        & pl.col(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE).is_not_null()
+    )
+    if cross_check_findings.is_empty():
+        return _empty_portfolio_period_transaction_cross_checks()
+
+    buckets: dict[tuple[object, object, object, object], list[dict[str, object]]] = {}
+    for row in cross_check_findings.iter_rows(named=True):
+        key = (
+            row[PORTFOLIO_ID],
+            row[FROM_DATE],
+            row[THRU_DATE],
+            row[TRANSACTION_IMPACT_POLICY],
+        )
+        buckets.setdefault(key, []).append(row)
+
+    rows = [
+        _portfolio_period_transaction_cross_check_row(key, bucket_rows)
+        for key, bucket_rows in buckets.items()
+    ]
+    sorted_rows = sorted(rows, key=_portfolio_period_transaction_cross_check_sort_key)
+    return pl.DataFrame(sorted_rows).select(
+        PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS
+    )
 
 
 def transaction_activity_summary(
@@ -1667,6 +1736,73 @@ def _transaction_activity_summary_row(
     }
 
 
+def _portfolio_period_transaction_cross_check_row(
+    key: tuple[object, object, object, object],
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one portfolio-period transaction cross-check summary row."""
+    portfolio_id, from_date, thru_date, transaction_impact_policy = key
+    estimates = [
+        float(row[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE])
+        for row in rows
+        if _is_number(row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE))
+    ]
+    diagnostics = sorted(
+        {
+            str(row[TRANSACTION_IMPACT_DIAGNOSTIC])
+            for row in rows
+            if row.get(TRANSACTION_IMPACT_DIAGNOSTIC)
+        }
+    )
+    policies = sorted(
+        {
+            str(row[TRANSACTION_IMPACT_POLICY])
+            for row in rows
+            if row.get(TRANSACTION_IMPACT_POLICY)
+        }
+    )
+    return {
+        PORTFOLIO_ID: portfolio_id,
+        FROM_DATE: from_date,
+        THRU_DATE: thru_date,
+        TRANSACTION_IMPACT_POLICIES: ", ".join(policies),
+        CROSS_CHECK_TREATMENT: CROSS_CHECK_ONLY,
+        CROSS_CHECK_COUNT: len(estimates),
+        CROSS_CHECK_ESTIMATE_TOTAL: sum(estimates),
+        CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL: sum(abs(estimate) for estimate in estimates),
+        CHANGED_FIELDS: ", ".join(_changed_transaction_fields(rows)),
+        TRANSACTION_IMPACT_DIAGNOSTICS: ", ".join(diagnostics),
+        IMPACT_MESSAGE: (
+            "Transaction impact cross-checks are review-only and are not "
+            "included in estimated impact totals."
+        ),
+    }
+
+
+def _is_number(value: object) -> bool:
+    """Return whether a value is a non-boolean number."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _portfolio_period_transaction_cross_check_sort_key(
+    row: dict[str, object],
+) -> tuple[object, ...]:
+    """Return deterministic ordering for transaction cross-check summaries."""
+    absolute_estimate = row[CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL]
+    absolute_estimate_sort = (
+        float(absolute_estimate)
+        if _is_number(absolute_estimate)
+        else 0.0
+    )
+    return (
+        str(row[PORTFOLIO_ID]),
+        str(row[FROM_DATE]),
+        str(row[THRU_DATE]),
+        -absolute_estimate_sort,
+        str(row[TRANSACTION_IMPACT_POLICIES]),
+    )
+
+
 def _transaction_activity_impact_message(missing_impact_inputs: str) -> str:
     """Return the transaction activity summary impact message."""
     if missing_impact_inputs:
@@ -2130,6 +2266,25 @@ def _empty_portfolio_period_impact_coverage_summary() -> pl.DataFrame:
             EVIDENCE_ONLY_AREAS: pl.String,
             TRANSACTION_SEMANTICS_SOURCES: pl.String,
             MISSING_IMPACT_INPUTS: pl.String,
+            IMPACT_MESSAGE: pl.String,
+        }
+    )
+
+
+def _empty_portfolio_period_transaction_cross_checks() -> pl.DataFrame:
+    """Return empty transaction cross-check summary with stable columns."""
+    return pl.DataFrame(
+        schema={
+            PORTFOLIO_ID: pl.String,
+            FROM_DATE: pl.Date,
+            THRU_DATE: pl.Date,
+            TRANSACTION_IMPACT_POLICIES: pl.String,
+            CROSS_CHECK_TREATMENT: pl.String,
+            CROSS_CHECK_COUNT: pl.UInt32,
+            CROSS_CHECK_ESTIMATE_TOTAL: pl.Float64,
+            CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL: pl.Float64,
+            CHANGED_FIELDS: pl.String,
+            TRANSACTION_IMPACT_DIAGNOSTICS: pl.String,
             IMPACT_MESSAGE: pl.String,
         }
     )
