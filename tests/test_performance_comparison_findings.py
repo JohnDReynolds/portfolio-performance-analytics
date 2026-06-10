@@ -16,6 +16,7 @@ from ppar.performance_comparison.findings import (
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
     TARGET_OUTPUT,
+    TRANSACTION_IMPACT_DIAGNOSTIC,
     Finding,
     findings_to_polars,
 )
@@ -46,6 +47,7 @@ class TestPerformanceComparisonFindings(unittest.TestCase):
         self.assertEqual(finding_dict[SNAPSHOT_A_VALUE], 0.01)
         self.assertEqual(finding_dict[SNAPSHOT_B_VALUE], 0.02)
         self.assertEqual(finding_dict[DELTA_B_MINUS_A], 0.01)
+        self.assertIsNone(finding_dict[TRANSACTION_IMPACT_DIAGNOSTIC])
         self.assertEqual(finding_dict[MESSAGE], "Portfolio return changed.")
 
     def test_empty_findings_to_polars_has_stable_columns(self) -> None:

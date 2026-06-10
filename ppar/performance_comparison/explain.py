@@ -34,6 +34,7 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     TARGET_OUTPUT,
     THRU_DATE,
+    TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
@@ -189,6 +190,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PERFORMANCE_FLOW_SIGN,
     TRANSACTION_SEMANTICS_SOURCE,
     TRANSACTION_IMPACT_POLICY,
+    TRANSACTION_IMPACT_DIAGNOSTIC,
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
@@ -1055,6 +1057,7 @@ def _ranked_evidence_row(
         PERFORMANCE_FLOW_SIGN: finding[PERFORMANCE_FLOW_SIGN],
         TRANSACTION_SEMANTICS_SOURCE: finding[TRANSACTION_SEMANTICS_SOURCE],
         TRANSACTION_IMPACT_POLICY: finding[TRANSACTION_IMPACT_POLICY],
+        TRANSACTION_IMPACT_DIAGNOSTIC: finding[TRANSACTION_IMPACT_DIAGNOSTIC],
         DELTA_B_MINUS_A: delta,
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
@@ -1805,7 +1808,12 @@ def _transaction_unmodeled_method_inputs(rows: list[dict[str, object]]) -> list[
         performance_flow_sign = row.get(PERFORMANCE_FLOW_SIGN)
         cash_flow_sign = row.get(CASH_FLOW_SIGN)
         if performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
-            if (
+            diagnostic_inputs = _transaction_impact_diagnostic_inputs(
+                row.get(TRANSACTION_IMPACT_DIAGNOSTIC)
+            )
+            if diagnostic_inputs:
+                _extend_unique(missing_inputs, diagnostic_inputs)
+            elif (
                 row.get(TRANSACTION_IMPACT_POLICY)
                 == TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
             ):
@@ -1824,6 +1832,27 @@ def _transaction_unmodeled_method_inputs(rows: list[dict[str, object]]) -> list[
     if missing_inputs:
         return missing_inputs
     return ["return-impact method"]
+
+
+def _transaction_impact_diagnostic_inputs(value: object) -> list[str]:
+    """Return missing-impact themes from a transaction diagnostic string."""
+    if not isinstance(value, str) or not value:
+        return []
+    if value == "external-flow evidence-only policy":
+        return [EXTERNAL_FLOW_EVIDENCE_ONLY_POLICY]
+    if value == "external-flow impact method missing":
+        return [EXTERNAL_FLOW_IMPACT_METHOD]
+    if value == "modified_dietz eligible but not active":
+        return ["modified_dietz not active"]
+    prefix = "modified_dietz missing inputs: "
+    if value.startswith(prefix):
+        missing = value.removeprefix(prefix)
+        return [
+            f"modified_dietz {part.strip()}"
+            for part in missing.split(",")
+            if part.strip()
+        ]
+    return []
 
 
 def _changed_transaction_fields(rows: list[dict[str, object]]) -> list[str]:
@@ -2034,6 +2063,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             PERFORMANCE_FLOW_SIGN: pl.String,
             TRANSACTION_SEMANTICS_SOURCE: pl.String,
             TRANSACTION_IMPACT_POLICY: pl.String,
+            TRANSACTION_IMPACT_DIAGNOSTIC: pl.String,
             DELTA_B_MINUS_A: pl.Float64,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,

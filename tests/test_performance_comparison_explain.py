@@ -104,6 +104,7 @@ from ppar.performance_comparison.findings import (
     SOURCE_COLUMN,
     TARGET_OUTPUT,
     THRU_DATE,
+    TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
@@ -155,6 +156,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         performance_flow_sign: str | None = "performance",
         transaction_semantics_source: str | None = "source",
         transaction_impact_policy: str | None = None,
+        transaction_impact_diagnostic: str | None = None,
         return_denominator: float | None = 1000.0,
         from_date: date | None = date(2025, 5, 30),
         thru_date: date | None = date(2025, 5, 30),
@@ -177,6 +179,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit(transaction_impact_policy))
             .otherwise(pl.col(TRANSACTION_IMPACT_POLICY))
             .alias(TRANSACTION_IMPACT_POLICY),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(transaction_impact_diagnostic))
+            .otherwise(pl.col(TRANSACTION_IMPACT_DIAGNOSTIC))
+            .alias(TRANSACTION_IMPACT_DIAGNOSTIC),
             pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
             .then(pl.lit(return_denominator).cast(pl.Float64))
             .otherwise(pl.col(RETURN_DENOMINATOR))
@@ -868,6 +874,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             transaction_impact_policy=(
                 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
             ),
+            transaction_impact_diagnostic="external-flow evidence-only policy",
         )
 
         candidates = portfolio_period_contribution_candidates(findings)
@@ -882,6 +889,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             transaction_amount[TRANSACTION_IMPACT_POLICY],
             TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
         )
+        self.assertEqual(
+            transaction_amount[TRANSACTION_IMPACT_DIAGNOSTIC],
+            "external-flow evidence-only policy",
+        )
 
         activity = transaction_activity_summary(findings)
         activity_row = activity.row(0, named=True)
@@ -890,6 +901,23 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             "external-flow evidence-only policy",
         )
         self.assertIn("evidence-only policy", activity_row[IMPACT_MESSAGE])
+
+    def test_external_transaction_diagnostic_refines_missing_inputs(self) -> None:
+        """Transaction diagnostics make external-flow method gaps reviewable."""
+        findings = self._transaction_estimate_findings(
+            performance_flow_sign="external",
+            transaction_impact_diagnostic=(
+                "modified_dietz missing inputs: flow date, in-period flow date"
+            ),
+        )
+
+        activity = transaction_activity_summary(findings)
+        activity_row = activity.row(0, named=True)
+
+        self.assertEqual(
+            activity_row[MISSING_IMPACT_INPUTS],
+            "modified_dietz flow date, modified_dietz in-period flow date",
+        )
 
     def test_transaction_amount_requires_usable_denominator(self) -> None:
         """Missing or zero denominators keep transaction amount rows unestimated."""

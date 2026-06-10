@@ -59,6 +59,7 @@ from ppar.performance_comparison.findings import (
     SOURCE_COLUMN,
     TARGET_OUTPUT,
     THRU_DATE,
+    TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
@@ -890,6 +891,10 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(
                 amount_finding[TRANSACTION_IMPACT_POLICY],
                 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+            )
+            self.assertEqual(
+                amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC],
+                "external-flow evidence-only policy",
             )
             policies = _transaction_impact_policies(specification)
             external_flow_policy = policies["external_flow"]

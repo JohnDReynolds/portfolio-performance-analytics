@@ -692,12 +692,23 @@ class PerformanceComparison:
                         transaction_semantics_source=(
                             self._transaction_semantics_source(row, dataset)
                         ),
-                        transaction_impact_policy=(
-                            self._transaction_impact_policy(row, dataset)
-                        ),
-                        snapshot_a_value=snapshot_a_value,
-                        snapshot_b_value=snapshot_b_value,
-                        message=f"{dataset} {column!r} changed.",
+                            transaction_impact_policy=(
+                                self._transaction_impact_policy(row, dataset)
+                            ),
+                            transaction_impact_diagnostic=(
+                                self._transaction_impact_diagnostic(
+                                    row,
+                                    dataset,
+                                    column,
+                                    row.get(pc_cols.PORTFOLIO_ID),
+                                    row.get(pc_cols.FROM_DATE),
+                                    row.get(pc_cols.THRU_DATE),
+                                    None,
+                                )
+                            ),
+                            snapshot_a_value=snapshot_a_value,
+                            snapshot_b_value=snapshot_b_value,
+                            message=f"{dataset} {column!r} changed.",
                     )
                 )
         return findings
@@ -747,6 +758,14 @@ class PerformanceComparison:
                 if abs(delta) <= self._tolerance(column):
                     continue
                 for portfolio_id, from_date, thru_date in finding_contexts:
+                    return_denominator = self._return_denominator(
+                        row,
+                        dataset,
+                        portfolio_id,
+                        from_date,
+                        thru_date,
+                        return_denominators,
+                    )
                     findings.append(
                         Finding(
                             code=compare_columns[column],
@@ -781,17 +800,21 @@ class PerformanceComparison:
                             transaction_impact_policy=(
                                 self._transaction_impact_policy(row, dataset)
                             ),
+                            transaction_impact_diagnostic=(
+                                self._transaction_impact_diagnostic(
+                                    row,
+                                    dataset,
+                                    column,
+                                    portfolio_id,
+                                    from_date,
+                                    thru_date,
+                                    return_denominator,
+                                )
+                            ),
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
                             delta_b_minus_a=delta,
-                            return_denominator=self._return_denominator(
-                                row,
-                                dataset,
-                                portfolio_id,
-                                from_date,
-                                thru_date,
-                                return_denominators,
-                            ),
+                            return_denominator=return_denominator,
                             return_weight=self._return_weight(row, dataset),
                             message=f"{dataset} {column!r} changed.",
                         )
@@ -885,6 +908,41 @@ class PerformanceComparison:
         if policy is None:
             return None
         return policy.finding_label
+
+    def _transaction_impact_diagnostic(
+        self,
+        row: Mapping[str, object],
+        dataset: str,
+        column: str,
+        portfolio_id: object | None,
+        from_date: object | None,
+        thru_date: object | None,
+        denominator: object | None,
+    ) -> object | None:
+        """Return review-only transaction impact eligibility diagnostics."""
+        if dataset != pc_cols.TRANSACTIONS or column != pc_cols.AMOUNT:
+            return None
+        if row.get(pc_cols.PERFORMANCE_FLOW_SIGN) != TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
+            return None
+
+        policy = self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
+        if policy is None:
+            return "external-flow impact method missing"
+        if policy.method == _EVIDENCE_ONLY_METHOD:
+            return "external-flow evidence-only policy"
+
+        eligibility = _modified_dietz_external_flow_eligibility(
+            row=row,
+            policy=policy,
+            portfolio_id=portfolio_id,
+            from_date=from_date,
+            thru_date=thru_date,
+            denominator=denominator,
+        )
+        if eligibility.eligible:
+            return "modified_dietz eligible but not active"
+        missing = ", ".join(eligibility.missing_inputs)
+        return f"modified_dietz missing inputs: {missing}"
 
     @staticmethod
     def _return_denominator(

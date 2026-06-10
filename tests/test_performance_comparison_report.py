@@ -201,7 +201,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("return denominator", transaction_activity)
         self.assertNotIn("transaction sign and flow semantics", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
-        self.assertIn("| mixed |  | -100 |", top_evidence)
+        self.assertIn("Transaction Impact Diagnostic", top_evidence)
+        self.assertIn("| mixed |  |  | -100 |", top_evidence)
 
     def test_markdown_report_shows_source_loaded_transaction_estimate(self) -> None:
         """Source transaction semantics flow through to report impact estimates."""
@@ -237,7 +238,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("source: 1", transaction_activity)
         self.assertIn("| -10 |", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
-        self.assertIn("| source |  | -10 |", top_evidence)
+        self.assertIn("Transaction Impact Diagnostic", top_evidence)
+        self.assertIn("| source |  |  | -10 |", top_evidence)
         self.assertIn("transaction_amount_delta_over_return_denominator", top_evidence)
         self.assertIn("source-signed transaction amount", top_evidence)
         self.assertNotIn("transaction sign and flow semantics", report)
