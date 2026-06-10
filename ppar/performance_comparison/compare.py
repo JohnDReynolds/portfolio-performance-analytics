@@ -254,6 +254,22 @@ class _TransactionImpactPolicy:
     double_count_policy: str | None = None
 
 
+@dataclass(frozen=True)
+class _ModifiedDietzEligibility:
+    """Describe whether one external-flow row has all Modified Dietz inputs.
+
+    Attributes:
+        eligible: Whether the row has every explicitly configured input needed
+            for a future Modified Dietz cross-check estimate.
+        missing_inputs: Human-readable missing or disqualifying inputs.
+        flow_date: YAML-selected transaction flow date, when available.
+    """
+
+    eligible: bool
+    missing_inputs: tuple[str, ...] = ()
+    flow_date: dt.date | None = None
+
+
 class PerformanceComparison:
     """Compare performance snapshots and return finding records.
 
@@ -1224,6 +1240,81 @@ def _validated_reserved_modified_dietz_policy(
         denominator_source=cast(str, external_flow_value[_DENOMINATOR_SOURCE_KEY]),
         double_count_policy=cast(str, external_flow_value[_DOUBLE_COUNT_POLICY_KEY]),
     )
+
+
+def _modified_dietz_external_flow_eligibility(
+    *,
+    row: Mapping[str, object],
+    policy: _TransactionImpactPolicy | None,
+    portfolio_id: object | None,
+    from_date: object | None,
+    thru_date: object | None,
+    denominator: object | None,
+) -> _ModifiedDietzEligibility:
+    """Return whether a transaction row has explicit Modified Dietz inputs.
+
+    This is a guardrail for future integration only. It deliberately does not
+    activate a return-impact estimate while public YAML ``modified_dietz`` is
+    still rejected.
+    """
+    missing_inputs: list[str] = []
+    flow_date = _modified_dietz_flow_date(row, policy)
+
+    if row.get(pc_cols.PERFORMANCE_FLOW_SIGN) != TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
+        missing_inputs.append("external performance-flow semantics")
+    if policy is None or policy.method != _MODIFIED_DIETZ_METHOD:
+        missing_inputs.append("modified_dietz policy")
+    elif policy.double_count_policy != "cross_check_only":
+        missing_inputs.append("cross_check_only double-count policy")
+    if flow_date is None:
+        missing_inputs.append("flow date")
+    if portfolio_id is None:
+        missing_inputs.append("portfolio")
+    if not isinstance(from_date, dt.date) or not isinstance(thru_date, dt.date):
+        missing_inputs.append("portfolio period")
+    if not _usable_modified_dietz_denominator(denominator):
+        missing_inputs.append("nonzero begin_market_value denominator")
+
+    if (
+        flow_date is not None
+        and isinstance(from_date, dt.date)
+        and isinstance(thru_date, dt.date)
+        and not from_date <= flow_date <= thru_date
+    ):
+        missing_inputs.append("in-period flow date")
+
+    return _ModifiedDietzEligibility(
+        eligible=not missing_inputs,
+        missing_inputs=tuple(missing_inputs),
+        flow_date=flow_date,
+    )
+
+
+def _modified_dietz_flow_date(
+    row: Mapping[str, object],
+    policy: _TransactionImpactPolicy | None,
+) -> dt.date | None:
+    """Return the YAML-selected transaction flow date for Modified Dietz."""
+    if policy is None:
+        return None
+    flow_date_column_by_timing = {
+        "trade_date": pc_cols.TRANSACTION_DATE,
+        "settlement_date": pc_cols.SETTLEMENT_DATE,
+    }
+    date_column = flow_date_column_by_timing.get(policy.flow_timing)
+    if date_column is None:
+        return None
+    value = row.get(date_column)
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, dt.date):
+        return value
+    return None
+
+
+def _usable_modified_dietz_denominator(value: object) -> bool:
+    """Return whether a configured Modified Dietz denominator is usable."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value != 0
 
 
 def _raise_unsupported_external_flow_method(

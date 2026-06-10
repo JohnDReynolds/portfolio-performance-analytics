@@ -1,6 +1,7 @@
 """Tests for portfolio-level performance comparison findings."""
 
 # Python imports
+import datetime as dt
 from pathlib import Path
 import tempfile
 from typing import cast
@@ -18,6 +19,7 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.compare import (
+    _modified_dietz_external_flow_eligibility,
     _transaction_impact_policies,
     _validated_reserved_modified_dietz_policy,
 )
@@ -925,6 +927,146 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(policy.inclusion_rule, "end_of_day")
             self.assertEqual(policy.denominator_source, "begin_market_value")
             self.assertEqual(policy.double_count_policy, "cross_check_only")
+
+    def test_transaction_modified_dietz_eligibility_accepts_complete_inputs(
+        self,
+    ) -> None:
+        """Modified Dietz eligibility requires explicit row, period, and policy inputs."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+            policy = _validated_reserved_modified_dietz_policy(
+                specification,
+                {
+                    "method": "modified_dietz",
+                    "flow_timing": "trade_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                },
+            )
+            row = {
+                pc_cols.PERFORMANCE_FLOW_SIGN: "external",
+                pc_cols.TRANSACTION_DATE: dt.date(2025, 5, 15),
+                pc_cols.SETTLEMENT_DATE: dt.date(2025, 5, 16),
+            }
+
+            eligibility = _modified_dietz_external_flow_eligibility(
+                row=row,
+                policy=policy,
+                portfolio_id="PORT_A",
+                from_date=dt.date(2025, 5, 1),
+                thru_date=dt.date(2025, 5, 31),
+                denominator=10000.0,
+            )
+
+            self.assertTrue(eligibility.eligible)
+            self.assertEqual(eligibility.missing_inputs, ())
+            self.assertEqual(eligibility.flow_date, dt.date(2025, 5, 15))
+
+    def test_transaction_modified_dietz_eligibility_reports_missing_inputs(
+        self,
+    ) -> None:
+        """Modified Dietz eligibility names missing inputs instead of assuming them."""
+        row = {
+            pc_cols.PERFORMANCE_FLOW_SIGN: "performance",
+            pc_cols.TRANSACTION_DATE: dt.date(2025, 6, 1),
+        }
+
+        eligibility = _modified_dietz_external_flow_eligibility(
+            row=row,
+            policy=None,
+            portfolio_id=None,
+            from_date=None,
+            thru_date=dt.date(2025, 5, 31),
+            denominator=0.0,
+        )
+
+        self.assertFalse(eligibility.eligible)
+        self.assertIn(
+            "external performance-flow semantics",
+            eligibility.missing_inputs,
+        )
+        self.assertIn("modified_dietz policy", eligibility.missing_inputs)
+        self.assertIn("flow date", eligibility.missing_inputs)
+        self.assertIn("portfolio", eligibility.missing_inputs)
+        self.assertIn("portfolio period", eligibility.missing_inputs)
+        self.assertIn(
+            "nonzero begin_market_value denominator",
+            eligibility.missing_inputs,
+        )
+
+    def test_transaction_modified_dietz_eligibility_uses_settlement_date(
+        self,
+    ) -> None:
+        """The flow date comes from the YAML-selected timing convention."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+            policy = _validated_reserved_modified_dietz_policy(
+                specification,
+                {
+                    "method": "modified_dietz",
+                    "flow_timing": "settlement_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "end_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                },
+            )
+            row = {
+                pc_cols.PERFORMANCE_FLOW_SIGN: "external",
+                pc_cols.TRANSACTION_DATE: dt.date(2025, 5, 15),
+                pc_cols.SETTLEMENT_DATE: dt.date(2025, 5, 16),
+            }
+
+            eligibility = _modified_dietz_external_flow_eligibility(
+                row=row,
+                policy=policy,
+                portfolio_id="PORT_A",
+                from_date=dt.date(2025, 5, 1),
+                thru_date=dt.date(2025, 5, 31),
+                denominator=10000.0,
+            )
+
+            self.assertTrue(eligibility.eligible)
+            self.assertEqual(eligibility.flow_date, dt.date(2025, 5, 16))
+
+    def test_transaction_modified_dietz_eligibility_rejects_out_of_period_flow(
+        self,
+    ) -> None:
+        """External-flow dates must fall inside the linked portfolio period."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+            policy = _validated_reserved_modified_dietz_policy(
+                specification,
+                {
+                    "method": "modified_dietz",
+                    "flow_timing": "trade_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                },
+            )
+            row = {
+                pc_cols.PERFORMANCE_FLOW_SIGN: "external",
+                pc_cols.TRANSACTION_DATE: dt.date(2025, 6, 1),
+            }
+
+            eligibility = _modified_dietz_external_flow_eligibility(
+                row=row,
+                policy=policy,
+                portfolio_id="PORT_A",
+                from_date=dt.date(2025, 5, 1),
+                thru_date=dt.date(2025, 5, 31),
+                denominator=10000.0,
+            )
+
+            self.assertFalse(eligibility.eligible)
+            self.assertIn("in-period flow date", eligibility.missing_inputs)
 
     def test_transaction_external_flow_policy_rejects_unsupported_method(self) -> None:
         """Unsupported external-flow methods fail instead of implying a formula."""
