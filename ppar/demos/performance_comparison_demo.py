@@ -1,25 +1,14 @@
 """Demonstrate performance comparison findings output."""
 
-# This script is meant to run directly from the repository checkout. Insert the
-# repository root before importing ppar so the local source tree is used even
-# when the package has not been installed. The ppar imports below therefore
-# intentionally sit after executable bootstrap code; `noqa: E402` suppresses
-# the "module import not at top of file" warning for those lines.
-# pylint: disable=wrong-import-order,wrong-import-position
-
 # Python imports
+from importlib.resources import as_file, files
 from pathlib import Path
-import sys
 
 # Third-party imports
 import polars as pl
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-_AXYS_DATA_ROOT = _REPO_ROOT / "tests" / "data" / "axys"
-sys.path.insert(0, str(_REPO_ROOT))
-
 # Project imports
-from ppar.performance_comparison import (  # noqa: E402
+from ppar.performance_comparison import (
     compact_findings_table,
     compare_snapshots,
     performance_comparison_markdown_report,
@@ -58,13 +47,35 @@ def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None
 
 def main() -> None:
     """Run the performance comparison demonstration."""
-    comparison_path = _AXYS_DATA_ROOT / "ppar_performance_comparison_restatement.yaml"
-    report_path = _REPO_ROOT / "_demo_output" / "performance_comparison_restatement.md"
-    html_report_path = _REPO_ROOT / "_demo_output" / "performance_comparison_restatement.html"
-    bundle_path = _REPO_ROOT / "_demo_output" / "performance_comparison_bundle"
-    suppressed_comparison_path = (
-        _AXYS_DATA_ROOT / "ppar_performance_comparison_suppressed.yaml"
-    )
+    with as_file(files("ppar.demo_data") / "axys") as axys_data_root:
+        comparison_path = axys_data_root / "ppar_performance_comparison_restatement.yaml"
+        suppressed_comparison_path = (
+            axys_data_root / "ppar_performance_comparison_suppressed.yaml"
+        )
+
+        output_root = Path.cwd() / "_demo_output"
+        report_path = output_root / "performance_comparison_restatement.md"
+        html_report_path = output_root / "performance_comparison_restatement.html"
+        bundle_path = output_root / "performance_comparison_bundle"
+
+        _run_comparison_demo(
+            comparison_path=comparison_path,
+            suppressed_comparison_path=suppressed_comparison_path,
+            report_path=report_path,
+            html_report_path=html_report_path,
+            bundle_path=bundle_path,
+        )
+
+
+def _run_comparison_demo(
+    *,
+    comparison_path: Path,
+    suppressed_comparison_path: Path,
+    report_path: Path,
+    html_report_path: Path,
+    bundle_path: Path,
+) -> None:
+    """Run the performance comparison workflow for resolved demo paths."""
     findings = compare_snapshots(comparison_path)
     active_findings = compare_snapshots(comparison_path, include_suppressed=False)
     compact_active_findings = compact_findings_table(findings)

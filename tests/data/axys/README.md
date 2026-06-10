@@ -86,5 +86,5 @@ python -m unittest discover -s tests
 Run the performance comparison demo:
 
 ```bash
-python scripts/performance_comparison_demo.py
+python -m ppar.demos.performance_comparison_demo
 ```

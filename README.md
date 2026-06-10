@@ -88,13 +88,18 @@ from_date,thru_date,identifier,weight,return,name
 Wide performance files with per-identifier columns such as `AAPL.ret` and
 `AAPL.wgt` are not supported.
 
-For sample input data sources, please refer to the ``ppar-demo`` command and the ppar/demo_data directory.  Once the input data has been provided, then the analytics may be requested using different calculation parameters, time-periods, and frequencies:
+For sample input data sources, please refer to the ``ppar-analytics-demo``
+command and the ppar/demo_data directory. Once the input data has been
+provided, then the analytics may be requested using different calculation
+parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
 2. Monthly
 3. Quarterly
 4. Yearly
 
-Typically, a user will develop their own "data source" functions that provide the data in one of the above formats.  The ``ppar-demo`` command uses sample data source functions.
+Typically, a user will develop their own "data source" functions that provide
+the data in one of the above formats. The ``ppar-analytics-demo`` command uses
+sample data source functions.
 
 ---
 
@@ -117,7 +122,7 @@ The ``to_html()`` methods return complete HTML document strings. The ``to_table(
 ## Installation
 pip install ppar
 
-For chart output, including the chart option in ``ppar-demo``:
+For chart output, including the chart option in ``ppar-analytics-demo``:
 ```
 pip install "ppar[charts]"
 ```
@@ -125,7 +130,9 @@ pip install "ppar[charts]"
 ---
 
 ## Usage
-ppar-demo
+ppar-analytics-demo
+ppar-axys-analytics-demo
+ppar-performance-comparison-demo
 
 ---
 

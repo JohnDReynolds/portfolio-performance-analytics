@@ -1,0 +1,158 @@
+# =========================
+# PPAR Axys Configuration
+# =========================
+# This file tells PPAR where to find your Axys exports and how to interpret
+# the columns in those files.
+#
+# General Rules:
+# - File paths may be absolute or relative to this file.
+# - In many cases, only the three file paths below are required.
+# - PPAR can infer common Axys/IMEX column names for performance and security
+#   master exports.
+# - Add optional column sections only when your export uses names PPAR cannot
+#   infer.
+# - Fields ending in "_column" contain Axys export column names.
+# - Unknown fields are rejected so spelling mistakes fail loudly.
+
+
+# =========================
+# Defaults
+# =========================
+# Optional defaults used when a caller does not pass these values to
+# AxysData.get_portfolio().
+defaults:
+  # Optional inclusive earliest reporting date to retain.
+  from_date: 2024-01-01
+
+  # Optional inclusive latest thru date to retain.
+  thru_date: 2024-12-31
+
+  # Optional classification loaded with each portfolio.
+  classification: Country
+
+
+# =========================
+# Portfolio Performance Export
+# =========================
+# Path to the Axys portfolio-level performance export.
+portfolio_performance_path: axys_a/portperf.csv
+
+# Optional: Portfolio Performance Column Overrides
+# Usually this section can be omitted. Add it only if your Axys export uses
+# column names PPAR cannot infer.
+#
+# portfolio_performance_columns:
+#   # First date in the portfolio performance period.
+#   from_date: FROM_DATE
+#
+#   # Last date in the portfolio performance period.
+#   thru_date: THRU_DATE
+#
+#   # Axys account code.
+#   portfolio_code: PORTFOLIO_CODE
+#
+#   # Axys account name.
+#   portfolio_name: PORTFOLIO_NAME
+#
+#   # Portfolio return for the period.
+#   portfolio_return: PORT_RETURN
+
+
+# =========================
+# Security Performance Export
+# =========================
+# Path to the Axys security-level performance export.
+security_performance_path: axys_a/secperf.csv
+
+# Optional: Security Performance Column Overrides
+# Usually this section can be omitted. Add it only if your Axys export uses
+# column names PPAR cannot infer.
+#
+# security_performance_columns:
+#   # First date in the security performance period.
+#   from_date: FROM_DATE
+#
+#   # Last date in the security performance period.
+#   thru_date: THRU_DATE
+#
+#   # Security identifier used in the security master.
+#   identifier: SECURITY_ID
+#
+#   # Axys account code.
+#   portfolio_code: PORTFOLIO_CODE
+#
+#   # Security return for the period.
+#   return: SEC_RETURN
+#
+#   # Security weight used for return/contribution analysis.
+#   weight: BEGIN_WEIGHT
+#
+#   # Security contribution for the period.
+#   contribution: CONTRIBUTION
+
+# =========================
+# Security Master
+# =========================
+# Path to the Axys security master or security reference export.
+security_master_path: axys_a/sec_ref.csv
+
+# Optional: Security Master Column Overrides
+# Usually this section can be omitted. Add it only if your Axys export uses
+# column names PPAR cannot infer.
+#
+# security_master_columns:
+#   # Security identifier matched to security performance rows.
+#   identifier_column: SECURITY_ID
+#
+#   # Security display name used in reports.
+#   name_column: SECURITY_NAME
+
+# =========================
+# Classifications
+# =========================
+# Optional: Lookup Table Classifications
+# Add entries here when your Axys grouping codes need to be translated through
+# a separate lookup export. Groupings already present on the security master
+# can usually be configured in the mappings section instead.
+classifications:
+  # Optional lookup-table-based sector classification.
+  SectorLookup:
+    file_path: axys_a/classification_lookup.csv
+    display_name: Sector
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    filter_column: CLASSIFICATION_TYPE
+    filter_value: SECTOR
+    mapping: Sector
+
+# =========================
+# Mappings
+# =========================
+# Groupings From The Security Master
+# Each mapping tells PPAR how to roll securities up to a grouping such as
+# sector, country, currency, or asset class.
+mappings:
+  # Security -> asset class.
+  AssetClass:
+    classification_column: ASSET_CLASS_CODE
+    display_name_column: ASSET_CLASS_DESC
+
+  # Security -> country.
+  Country:
+    classification_column: COUNTRY_CODE
+    display_name_column: COUNTRY_DESC
+
+  # Security -> currency.
+  Currency:
+    classification_column: CURRENCY_CODE
+    display_name_column: CURRENCY_DESC
+
+  # Security -> industry.
+  Industry:
+    classification_column: INDUSTRY_CODE
+    display_name_column: INDUSTRY_DESC
+
+  # Security -> sector.
+  Sector:
+    classification_column: SECTOR_CODE
+    display_name_column: SECTOR_DESC

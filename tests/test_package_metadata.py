@@ -1,6 +1,7 @@
 """Tests for package metadata maintained alongside runtime dependencies."""
 
 # Python Imports
+from importlib.resources import files
 import subprocess
 import sys
 import tomllib
@@ -93,10 +94,38 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject = tomllib.load(file)
 
         self.assertIn("ppar.axys", pyproject["tool"]["setuptools"]["packages"])
+        self.assertIn("ppar.demos", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn(
             "ppar.performance_comparison",
             pyproject["tool"]["setuptools"]["packages"],
         )
+
+    def test_demo_console_scripts_are_explicit(self) -> None:
+        """The installed demo commands point to the packaged demo modules."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+
+        self.assertEqual(
+            pyproject["project"]["scripts"],
+            {
+                "ppar-analytics-demo": "ppar.demos.analytics_demo:main",
+                "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
+                "ppar-performance-comparison-demo": (
+                    "ppar.demos.performance_comparison_demo:main"
+                ),
+            },
+        )
+
+    def test_axys_demo_resources_are_packaged(self) -> None:
+        """The Axys demos use packaged resources instead of test fixtures."""
+        axys_demo_data = files("ppar.demo_data") / "axys"
+
+        self.assertTrue((axys_demo_data / "axys_column_mappings.yaml").is_file())
+        self.assertTrue(
+            (axys_demo_data / "ppar_performance_comparison_restatement.yaml").is_file()
+        )
+        self.assertTrue((axys_demo_data / "axys_a" / "portperf.csv").is_file())
+        self.assertTrue((axys_demo_data / "axys_b_restatement" / "secperf.csv").is_file())
 
     def test_public_axys_import_contract(self) -> None:
         """The documented Axys package exports remain importable."""
