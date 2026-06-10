@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from collections.abc import Iterable, Mapping
+import datetime as dt
 
 # Third-party imports
 import polars as pl
@@ -1223,6 +1224,55 @@ def _readable_transaction_semantics_source(value: object) -> str:
     if value is None or value == "":
         return "not provided"
     return str(value)
+
+
+def _modified_dietz_flow_weight(
+    *,
+    from_date: dt.date,
+    thru_date: dt.date,
+    flow_date: dt.date,
+    inclusion_rule: str,
+) -> float:
+    """Return a Modified Dietz flow weight for one dated external flow.
+
+    Notes:
+        This helper is intentionally private and not wired into production
+        impact selection yet. YAML ``modified_dietz`` remains rejected until
+        the integration and double-counting policy are implemented.
+    """
+    period_days = (thru_date - from_date).days + 1
+    if period_days <= 0:
+        raise ValueError("period must include at least one day")
+    if not from_date <= flow_date <= thru_date:
+        raise ValueError("flow_date must be inside the period")
+
+    remaining_days = (thru_date - flow_date).days
+    if inclusion_rule == "beginning_of_day":
+        remaining_days += 1
+    elif inclusion_rule != "end_of_day":
+        raise ValueError("inclusion_rule must be beginning_of_day or end_of_day")
+    return remaining_days / period_days
+
+
+def _modified_dietz_external_flow_impact(
+    *,
+    flow_delta: float,
+    denominator: float,
+    from_date: dt.date,
+    thru_date: dt.date,
+    flow_date: dt.date,
+    inclusion_rule: str,
+) -> float:
+    """Return the design-reference Modified Dietz impact for one flow delta."""
+    if denominator == 0:
+        raise ValueError("denominator must be nonzero")
+    flow_weight = _modified_dietz_flow_weight(
+        from_date=from_date,
+        thru_date=thru_date,
+        flow_date=flow_date,
+        inclusion_rule=inclusion_rule,
+    )
+    return flow_delta * flow_weight / denominator
 
 
 def _has_transaction_impact_method_candidate(rows: list[dict[str, object]]) -> bool:

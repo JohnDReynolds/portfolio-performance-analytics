@@ -442,7 +442,10 @@ days under `beginning_of_day` treatment and 19 remaining days under
 - `end_of_day`: `300 * (19 / 30) / 10000 = 0.019`
 
 These examples are not active production estimates. They are fixtures for a
-future implementation and must remain aligned with the guardrail tests.
+future implementation and must remain aligned with the guardrail tests. A
+private calculation helper may exist for these examples, but YAML
+`modified_dietz` remains rejected until impact selection, reporting, and
+double-counting behavior are implemented.
 
 Source-supplied recognized category/sign semantics remain authoritative. YAML
 rules fill only missing or `unknown` category, `cash_flow_sign`, and
