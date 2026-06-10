@@ -1249,6 +1249,15 @@ impact policy. The grouped totals are review aids only and remain excluded from
 `estimated_return_impact`, impact coverage totals, and cause-summary totals.
 Report bundles include this table as `transaction_cross_checks.csv`.
 
+Flow cross-check reconciliation compares those transaction cross-check totals
+with review-only portfolio `flow` delta estimates, calculated as
+`flow_delta / return_denominator` when a usable denominator is present. The
+`portfolio_period_flow_cross_check_reconciliation()` helper and report section
+label each period as `aligned`, `different`, `missing_portfolio_flow_delta`, or
+`missing_transaction_cross_check`. These labels are double-counting review
+signals only; they do not change contribution totals. Report bundles include
+this table as `flow_cross_check_reconciliation.csv`.
+
 HTML reports can be rendered with `performance_comparison_html_report()` or
 written with `write_performance_comparison_html_report()`. The first HTML
 version is intentionally conservative: it uses the same helper tables and

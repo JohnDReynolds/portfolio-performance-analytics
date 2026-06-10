@@ -10,10 +10,13 @@ import polars as pl
 
 # Project imports
 from ppar.performance_comparison import (
+    Finding,
     compare_snapshots,
+    findings_to_polars,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
+    portfolio_period_flow_cross_check_reconciliation,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
@@ -33,6 +36,7 @@ from ppar.performance_comparison.explain import (
     CROSS_CHECK_ESTIMATE_TOTAL,
     CROSS_CHECK_ONLY,
     CROSS_CHECK_TREATMENT,
+    CROSS_CHECK_MINUS_FLOW_IMPACT,
     DIRECT_INPUT_FINDING_COUNT,
     EVIDENCE_GROUP,
     ESTIMATED_CAUSE_AREA_COUNT,
@@ -63,17 +67,24 @@ from ppar.performance_comparison.explain import (
     PORTFOLIO_FINDING_COUNT,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
     PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS,
+    PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS,
     PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS,
     PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS,
     PORTFOLIO_PERIOD_SUMMARY_COLUMNS,
     PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS,
     PORTFOLIO_RETURN_DELTA,
+    PORTFOLIO_FLOW_DELTA,
+    PORTFOLIO_FLOW_IMPACT_ESTIMATE,
     POSITION_FINDING_COUNT,
     PRICE_DELTA,
     PRICE_FINDING_COUNT,
     PRIORITY_SCORE,
     QUANTITY_DELTA,
     REFERENCE_FINDING_COUNT,
+    RECONCILIATION_STATUS,
+    RECONCILIATION_STATUS_ALIGNED,
+    RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA,
+    RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK,
     RELATED_OUTPUT_FINDING_COUNT,
     REVIEW_RANK,
     ROOT_CAUSE_AREA,
@@ -103,13 +114,17 @@ from ppar.performance_comparison.findings import (
     EVIDENCE_ROLE,
     FINDING_CODE,
     FROM_DATE,
+    CONFIDENCE_HIGH,
     PC_PORT_RET,
+    PC_PORT_FLOW,
     PC_SEC_CONTR,
     PC_SEC_RET,
+    PC_TXN_AMT,
     PORTFOLIO_ID,
     RELATED_OUTPUT,
     RETURN_DENOMINATOR,
     SECURITY_ID,
+    SEVERITY_MATERIAL,
     SOURCE_COLUMN,
     TARGET_OUTPUT,
     THRU_DATE,
@@ -223,6 +238,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertIs(
             pc_explain.portfolio_period_evidence_breakdown,
             portfolio_period_evidence_breakdown,
+        )
+        self.assertIs(
+            pc_explain.portfolio_period_flow_cross_check_reconciliation,
+            portfolio_period_flow_cross_check_reconciliation,
         )
         self.assertIs(
             pc_explain.portfolio_period_impact_coverage_summary,
@@ -1046,6 +1065,65 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertTrue(cross_checks.is_empty())
 
+    def test_portfolio_period_flow_cross_check_reconciliation_aligns_estimates(
+        self,
+    ) -> None:
+        """Flow/cross-check reconciliation compares review-only estimates."""
+        findings = findings_to_polars(
+            [
+                _portfolio_flow_finding(delta=10.0, denominator=1000.0),
+                _transaction_cross_check_finding(estimate=0.01),
+            ]
+        )
+
+        reconciliation = portfolio_period_flow_cross_check_reconciliation(findings)
+        row = reconciliation.row(0, named=True)
+
+        self.assertEqual(
+            reconciliation.columns,
+            list(PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
+        )
+        self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
+        self.assertEqual(row[PORTFOLIO_FLOW_DELTA], 10.0)
+        self.assertEqual(row[PORTFOLIO_FLOW_IMPACT_ESTIMATE], 0.01)
+        self.assertEqual(row[CROSS_CHECK_ESTIMATE_TOTAL], 0.01)
+        self.assertEqual(row[CROSS_CHECK_MINUS_FLOW_IMPACT], 0.0)
+        self.assertEqual(row[RECONCILIATION_STATUS], RECONCILIATION_STATUS_ALIGNED)
+
+    def test_portfolio_period_flow_cross_check_reconciliation_names_missing_sides(
+        self,
+    ) -> None:
+        """Reconciliation rows stay explicit when one side is unavailable."""
+        flow_only = portfolio_period_flow_cross_check_reconciliation(
+            findings_to_polars([_portfolio_flow_finding(delta=10.0, denominator=1000.0)])
+        )
+        cross_check_only = portfolio_period_flow_cross_check_reconciliation(
+            findings_to_polars([_transaction_cross_check_finding(estimate=0.01)])
+        )
+
+        self.assertEqual(
+            flow_only.row(0, named=True)[RECONCILIATION_STATUS],
+            RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK,
+        )
+        self.assertEqual(
+            cross_check_only.row(0, named=True)[RECONCILIATION_STATUS],
+            RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA,
+        )
+
+    def test_portfolio_period_flow_cross_check_reconciliation_empty_table(
+        self,
+    ) -> None:
+        """Empty reconciliation output preserves stable columns."""
+        reconciliation = portfolio_period_flow_cross_check_reconciliation(
+            findings_to_polars([])
+        )
+
+        self.assertEqual(
+            reconciliation.columns,
+            list(PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
+        )
+        self.assertTrue(reconciliation.is_empty())
+
     def test_transaction_activity_summary_is_evidence_only(self) -> None:
         """Transaction activity summary does not estimate return impact."""
         findings = self._restatement()
@@ -1266,6 +1344,46 @@ def _breakdown_count(
         (pl.col(EVIDENCE_GROUP) == evidence_group) & dataset_filter
     ).row(0, named=True)
     return int(row[FINDING_COUNT])
+
+
+def _portfolio_flow_finding(*, delta: float, denominator: float | None) -> Finding:
+    """Return a synthetic portfolio flow finding for reconciliation tests."""
+    return Finding(
+        code=PC_PORT_FLOW,
+        severity=SEVERITY_MATERIAL,
+        confidence=CONFIDENCE_HIGH,
+        dataset=pc_cols.PORTFOLIO_PERFORMANCE,
+        evidence_role=DIRECT_INPUT,
+        portfolio_id="PORT_A",
+        from_date=date(2025, 5, 1),
+        thru_date=date(2025, 5, 31),
+        source_column=pc_cols.FLOW,
+        delta_b_minus_a=delta,
+        return_denominator=denominator,
+        message="portfolio_performance 'flow' changed.",
+    )
+
+
+def _transaction_cross_check_finding(*, estimate: float) -> Finding:
+    """Return a synthetic transaction cross-check finding."""
+    return Finding(
+        code=PC_TXN_AMT,
+        severity=SEVERITY_MATERIAL,
+        confidence=CONFIDENCE_HIGH,
+        dataset=pc_cols.TRANSACTIONS,
+        evidence_role=DIRECT_INPUT,
+        portfolio_id="PORT_A",
+        security_id="AAPL",
+        from_date=date(2025, 5, 1),
+        thru_date=date(2025, 5, 31),
+        source_column=pc_cols.AMOUNT,
+        transaction_category="external_flow",
+        transaction_impact_policy="external_flow:modified_dietz",
+        transaction_impact_diagnostic="modified_dietz cross-check estimate",
+        transaction_impact_diagnostic_estimate=estimate,
+        delta_b_minus_a=10.0,
+        message="transactions 'amount' changed.",
+    )
 
 
 if __name__ == "__main__":

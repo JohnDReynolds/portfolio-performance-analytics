@@ -35,6 +35,7 @@ from ppar.performance_comparison.explain import (
     LOW_CONFIDENCE_ESTIMATE_COUNT,
     MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
     MISSING_IMPACT_INPUTS,
+    PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS,
     PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
     PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
     PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS,
@@ -53,6 +54,7 @@ from ppar.performance_comparison.explain import (
     TOP_CODES,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
+    portfolio_period_flow_cross_check_reconciliation,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
@@ -139,6 +141,7 @@ def performance_comparison_markdown_report(
         _impact_estimate_summary_section(active_findings),
         _impact_coverage_section(active_findings),
         _transaction_cross_checks_section(active_findings),
+        _flow_cross_check_reconciliation_section(active_findings),
         _residual_status_section(active_findings),
         _transaction_activity_section(active_findings),
         _portfolio_period_section(active_findings),
@@ -182,6 +185,7 @@ def performance_comparison_html_report(
         _html_impact_estimate_summary_section(active_findings),
         _html_impact_coverage_section(active_findings),
         _html_transaction_cross_checks_section(active_findings),
+        _html_flow_cross_check_reconciliation_section(active_findings),
         _html_residual_status_section(active_findings),
         _html_transaction_activity_section(active_findings),
         _html_portfolio_period_section(active_findings),
@@ -370,6 +374,9 @@ def _report_bundle_tables(
         "transaction_cross_checks": (
             portfolio_period_transaction_cross_checks(active_findings)
         ),
+        "flow_cross_check_reconciliation": (
+            portfolio_period_flow_cross_check_reconciliation(active_findings)
+        ),
         "residual_status": _residual_status_table(active_findings),
         "transaction_activity": transaction_activity_summary(active_findings),
         "top_evidence": _top_evidence_table(active_findings, top_evidence_limit),
@@ -485,6 +492,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
         "Impact Estimate Summary",
         "Impact Coverage",
         "Transaction Cross-Checks",
+        "Flow Cross-Check Reconciliation",
         "Residual Status",
         "Transaction Activity",
         "Portfolio-Period Changes",
@@ -870,6 +878,20 @@ def _transaction_cross_checks_section(findings: pl.DataFrame) -> str:
     )
 
 
+def _flow_cross_check_reconciliation_section(findings: pl.DataFrame) -> str:
+    """Return flow/cross-check reconciliation diagnostics."""
+    return "\n".join(
+        [
+            "## Flow Cross-Check Reconciliation",
+            _markdown_table(
+                portfolio_period_flow_cross_check_reconciliation(findings),
+                list(PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
+                empty_message="No flow/cross-check reconciliation rows are available.",
+            ),
+        ]
+    )
+
+
 def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
     """Return a concise Markdown section for currently quantified impacts."""
     estimated_summary = _impact_estimate_summary_table(findings)
@@ -1145,6 +1167,18 @@ def _html_transaction_cross_checks_section(findings: pl.DataFrame) -> str:
             portfolio_period_transaction_cross_checks(findings),
             list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
             empty_message="No transaction cross-check estimates are available.",
+        ),
+    )
+
+
+def _html_flow_cross_check_reconciliation_section(findings: pl.DataFrame) -> str:
+    """Return flow/cross-check reconciliation diagnostics as HTML."""
+    return _html_section(
+        "Flow Cross-Check Reconciliation",
+        _html_table(
+            portfolio_period_flow_cross_check_reconciliation(findings),
+            list(PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
+            empty_message="No flow/cross-check reconciliation rows are available.",
         ),
     )
 

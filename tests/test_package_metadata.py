@@ -49,6 +49,7 @@ from ppar.performance_comparison import (
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
+    portfolio_period_flow_cross_check_reconciliation,
     portfolio_period_impact_coverage_summary,
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
@@ -146,6 +147,7 @@ class TestPackageMetadata(unittest.TestCase):
             "portfolio_period_cause_summary",
             "portfolio_period_contribution_candidates",
             "portfolio_period_evidence_breakdown",
+            "portfolio_period_flow_cross_check_reconciliation",
             "portfolio_period_impact_coverage_summary",
             "portfolio_period_summary",
             "portfolio_period_transaction_cross_checks",
@@ -233,6 +235,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             portfolio_period_evidence_breakdown,
             performance_comparison.portfolio_period_evidence_breakdown,
+        )
+        self.assertIs(
+            portfolio_period_flow_cross_check_reconciliation,
+            performance_comparison.portfolio_period_flow_cross_check_reconciliation,
         )
         self.assertIs(
             portfolio_period_impact_coverage_summary,

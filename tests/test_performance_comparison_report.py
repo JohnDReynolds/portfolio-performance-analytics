@@ -288,6 +288,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         cross_checks = _section(
             report,
             "## Transaction Cross-Checks",
+            "## Flow Cross-Check Reconciliation",
+        )
+        reconciliation = _section(
+            report,
+            "## Flow Cross-Check Reconciliation",
             "## Residual Status",
         )
 
@@ -298,6 +303,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("cross_check_only", cross_checks)
         self.assertIn("0.005483870968", cross_checks)
         self.assertIn("not included in estimated impact totals", cross_checks)
+        self.assertIn("missing_portfolio_flow_delta", reconciliation)
+        self.assertIn("0.005483870968", reconciliation)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
         """HTML reports include the same reviewer-facing sections and tables."""
@@ -446,6 +453,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("- Impact Estimate Summary", contents)
         self.assertIn("- Impact Coverage", contents)
         self.assertIn("- Transaction Cross-Checks", contents)
+        self.assertIn("- Flow Cross-Check Reconciliation", contents)
         self.assertIn("- Residual Status", contents)
         self.assertIn("- Transaction Activity", contents)
         self.assertIn("- Top Evidence", contents)
@@ -472,6 +480,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Transaction Cross-Checks"),
+            report.index("## Flow Cross-Check Reconciliation"),
+        )
+        self.assertLess(
+            report.index("## Flow Cross-Check Reconciliation"),
             report.index("## Residual Status"),
         )
         self.assertLess(
@@ -537,6 +549,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "impact_estimates",
             "impact_coverage",
             "transaction_cross_checks",
+            "flow_cross_check_reconciliation",
             "residual_status",
             "transaction_activity",
             "top_evidence",
@@ -592,6 +605,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["counts"]["findings"], 0)
             self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
             self.assertEqual(manifest["tables"]["transaction_cross_checks"]["rows"], 0)
+            self.assertEqual(
+                manifest["tables"]["flow_cross_check_reconciliation"]["rows"],
+                0,
+            )
             self.assertIn(
                 "portfolio_id,from_date,thru_date",
                 paths["impact_coverage"].read_text(encoding="utf-8"),
@@ -599,6 +616,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "portfolio_id,from_date,thru_date",
                 paths["transaction_cross_checks"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "portfolio_id,from_date,thru_date",
+                paths["flow_cross_check_reconciliation"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "portfolio_id,security_id,from_date",

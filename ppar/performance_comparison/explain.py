@@ -180,6 +180,19 @@ CROSS_CHECK_ESTIMATE_TOTAL = "cross_check_estimate_total"
 CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
 TRANSACTION_IMPACT_POLICIES = "transaction_impact_policies"
 TRANSACTION_IMPACT_DIAGNOSTICS = "transaction_impact_diagnostics"
+PORTFOLIO_FLOW_DELTA = "portfolio_flow_delta"
+PORTFOLIO_FLOW_IMPACT_ESTIMATE = "portfolio_flow_impact_estimate"
+CROSS_CHECK_MINUS_FLOW_IMPACT = "cross_check_minus_flow_impact"
+RECONCILIATION_STATUS = "reconciliation_status"
+RECONCILIATION_STATUS_ALIGNED = "aligned"
+RECONCILIATION_STATUS_DIFFERENT = "different"
+RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA = (
+    "missing_portfolio_flow_delta"
+)
+RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK = (
+    "missing_transaction_cross_check"
+)
+_CROSS_CHECK_RECONCILIATION_TOLERANCE = 1e-12
 PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PORTFOLIO_ID,
     FROM_DATE,
@@ -277,6 +290,18 @@ PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS = (
     CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL,
     CHANGED_FIELDS,
     TRANSACTION_IMPACT_DIAGNOSTICS,
+    IMPACT_MESSAGE,
+)
+PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS = (
+    PORTFOLIO_ID,
+    FROM_DATE,
+    THRU_DATE,
+    PORTFOLIO_FLOW_DELTA,
+    PORTFOLIO_FLOW_IMPACT_ESTIMATE,
+    CROSS_CHECK_ESTIMATE_TOTAL,
+    CROSS_CHECK_MINUS_FLOW_IMPACT,
+    TRANSACTION_IMPACT_POLICIES,
+    RECONCILIATION_STATUS,
     IMPACT_MESSAGE,
 )
 
@@ -695,6 +720,57 @@ def portfolio_period_transaction_cross_checks(
     sorted_rows = sorted(rows, key=_portfolio_period_transaction_cross_check_sort_key)
     return pl.DataFrame(sorted_rows).select(
         PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS
+    )
+
+
+def portfolio_period_flow_cross_check_reconciliation(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return review-only reconciliation between flow deltas and cross-checks.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed findings should be included in
+            the reconciliation.
+
+    Returns:
+        One row per portfolio period that has either a portfolio-level flow
+        delta or transaction cross-check estimate. The comparison is a
+        diagnostic double-counting review aid and is not an impact total.
+    """
+    if findings.is_empty():
+        return _empty_portfolio_period_flow_cross_check_reconciliation()
+
+    active_findings = _active_findings(findings, include_suppressed)
+    flow_rows = _portfolio_flow_reconciliation_rows(active_findings)
+    cross_check_rows = portfolio_period_transaction_cross_checks(
+        active_findings,
+        include_suppressed=True,
+    )
+    cross_checks = {
+        (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE]): row
+        for row in cross_check_rows.iter_rows(named=True)
+    }
+    period_keys = sorted(
+        set(flow_rows) | set(cross_checks),
+        key=lambda key: tuple(str(value) for value in key),
+    )
+    if not period_keys:
+        return _empty_portfolio_period_flow_cross_check_reconciliation()
+
+    rows = [
+        _portfolio_period_flow_cross_check_reconciliation_row(
+            key,
+            flow_rows.get(key),
+            cross_checks.get(key),
+        )
+        for key in period_keys
+    ]
+    return pl.DataFrame(rows).select(
+        PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS
     )
 
 
@@ -1803,6 +1879,126 @@ def _portfolio_period_transaction_cross_check_sort_key(
     )
 
 
+def _portfolio_flow_reconciliation_rows(
+    findings: pl.DataFrame,
+) -> dict[tuple[object, object, object], dict[str, object]]:
+    """Return portfolio flow delta rows keyed by portfolio period."""
+    if SOURCE_COLUMN not in findings.columns:
+        return {}
+    flow_findings = findings.filter(
+        (pl.col(DATASET) == pc_cols.PORTFOLIO_PERFORMANCE)
+        & (pl.col(SOURCE_COLUMN) == pc_cols.FLOW)
+    )
+    rows: dict[tuple[object, object, object], dict[str, object]] = {}
+    for row in flow_findings.iter_rows(named=True):
+        key = (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE])
+        rows[key] = row
+    return rows
+
+
+def _portfolio_period_flow_cross_check_reconciliation_row(
+    key: tuple[object, object, object],
+    flow_row: dict[str, object] | None,
+    cross_check_row: dict[str, object] | None,
+) -> dict[str, object]:
+    """Return one flow/cross-check reconciliation row."""
+    portfolio_id, from_date, thru_date = key
+    flow_delta = _flow_delta(flow_row)
+    flow_impact = _flow_impact_estimate(flow_row)
+    cross_check_total = _cross_check_estimate_total(cross_check_row)
+    difference = (
+        cross_check_total - flow_impact
+        if cross_check_total is not None and flow_impact is not None
+        else None
+    )
+    status = _flow_cross_check_reconciliation_status(
+        flow_impact,
+        cross_check_total,
+        difference,
+    )
+    return {
+        PORTFOLIO_ID: portfolio_id,
+        FROM_DATE: from_date,
+        THRU_DATE: thru_date,
+        PORTFOLIO_FLOW_DELTA: flow_delta,
+        PORTFOLIO_FLOW_IMPACT_ESTIMATE: flow_impact,
+        CROSS_CHECK_ESTIMATE_TOTAL: cross_check_total,
+        CROSS_CHECK_MINUS_FLOW_IMPACT: difference,
+        TRANSACTION_IMPACT_POLICIES: (
+            None
+            if cross_check_row is None
+            else cross_check_row[TRANSACTION_IMPACT_POLICIES]
+        ),
+        RECONCILIATION_STATUS: status,
+        IMPACT_MESSAGE: _flow_cross_check_reconciliation_message(status),
+    }
+
+
+def _flow_delta(flow_row: dict[str, object] | None) -> float | None:
+    """Return portfolio flow delta from a finding row."""
+    if flow_row is None:
+        return None
+    value = flow_row.get(DELTA_B_MINUS_A)
+    if _is_number(value):
+        return float(value)
+    return None
+
+
+def _flow_impact_estimate(flow_row: dict[str, object] | None) -> float | None:
+    """Return review-only flow delta over return denominator estimate."""
+    if flow_row is None:
+        return None
+    delta = flow_row.get(DELTA_B_MINUS_A)
+    denominator = flow_row.get(RETURN_DENOMINATOR)
+    if _is_number(delta) and _is_number(denominator) and float(denominator) != 0.0:
+        return float(delta) / float(denominator)
+    return None
+
+
+def _cross_check_estimate_total(
+    cross_check_row: dict[str, object] | None,
+) -> float | None:
+    """Return transaction cross-check estimate total from a summary row."""
+    if cross_check_row is None:
+        return None
+    value = cross_check_row.get(CROSS_CHECK_ESTIMATE_TOTAL)
+    if _is_number(value):
+        return float(value)
+    return None
+
+
+def _flow_cross_check_reconciliation_status(
+    flow_impact: float | None,
+    cross_check_total: float | None,
+    difference: float | None,
+) -> str:
+    """Return reconciliation status for one portfolio period."""
+    if flow_impact is None:
+        return RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA
+    if cross_check_total is None:
+        return RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK
+    if difference is not None and abs(difference) <= _CROSS_CHECK_RECONCILIATION_TOLERANCE:
+        return RECONCILIATION_STATUS_ALIGNED
+    return RECONCILIATION_STATUS_DIFFERENT
+
+
+def _flow_cross_check_reconciliation_message(status: str) -> str:
+    """Return reviewer-facing reconciliation status text."""
+    if status == RECONCILIATION_STATUS_ALIGNED:
+        return (
+            "Transaction cross-check total aligns with the portfolio flow "
+            "delta impact estimate."
+        )
+    if status == RECONCILIATION_STATUS_DIFFERENT:
+        return (
+            "Transaction cross-check total differs from the portfolio flow "
+            "delta impact estimate; review before aggregating either value."
+        )
+    if status == RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA:
+        return "No usable portfolio flow delta impact estimate is available."
+    return "No transaction cross-check estimate is available for this period."
+
+
 def _transaction_activity_impact_message(missing_impact_inputs: str) -> str:
     """Return the transaction activity summary impact message."""
     if missing_impact_inputs:
@@ -2285,6 +2481,24 @@ def _empty_portfolio_period_transaction_cross_checks() -> pl.DataFrame:
             CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL: pl.Float64,
             CHANGED_FIELDS: pl.String,
             TRANSACTION_IMPACT_DIAGNOSTICS: pl.String,
+            IMPACT_MESSAGE: pl.String,
+        }
+    )
+
+
+def _empty_portfolio_period_flow_cross_check_reconciliation() -> pl.DataFrame:
+    """Return empty flow/cross-check reconciliation with stable columns."""
+    return pl.DataFrame(
+        schema={
+            PORTFOLIO_ID: pl.String,
+            FROM_DATE: pl.Date,
+            THRU_DATE: pl.Date,
+            PORTFOLIO_FLOW_DELTA: pl.Float64,
+            PORTFOLIO_FLOW_IMPACT_ESTIMATE: pl.Float64,
+            CROSS_CHECK_ESTIMATE_TOTAL: pl.Float64,
+            CROSS_CHECK_MINUS_FLOW_IMPACT: pl.Float64,
+            TRANSACTION_IMPACT_POLICIES: pl.String,
+            RECONCILIATION_STATUS: pl.String,
             IMPACT_MESSAGE: pl.String,
         }
     )
