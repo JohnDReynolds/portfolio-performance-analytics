@@ -102,6 +102,17 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("## Run Summary", report)
         self.assertIn("- Total findings: 21", report)
         self.assertIn("- Active findings: 21", report)
+        self.assertIn("## Needs Review Summary", report)
+        needs_review = _section(
+            report,
+            "## Needs Review Summary",
+            "## Portfolio-Period Narrative",
+        )
+        self.assertIn("needs_review", needs_review)
+        self.assertIn("4 evidence-only area(s)", needs_review)
+        self.assertIn("missing inputs: return-impact method", needs_review)
+        self.assertIn("residual withheld", needs_review)
+        self.assertIn("Resolve missing impact inputs before interpreting estimates.", needs_review)
         self.assertIn("## Portfolio-Period Narrative", report)
         self.assertIn(
             "PORT_A changed by 0.0005 for 2025-05-30 to 2025-05-30.",
@@ -300,6 +311,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("modified_dietz cross-check estimate", top_evidence)
         self.assertIn("0.005483870968", top_evidence)
         self.assertIn("|  | no_estimate |", top_evidence)
+        self.assertIn("## Needs Review Summary", report)
+        needs_review = _section(
+            report,
+            "## Needs Review Summary",
+            "## Portfolio-Period Narrative",
+        )
+        self.assertIn("1 transaction cross-check(s): external_flow:modified_dietz", needs_review)
+        self.assertIn("modified_dietz cross-check only", needs_review)
         self.assertIn("external_flow:modified_dietz", cross_checks)
         self.assertIn("cross_check_only", cross_checks)
         self.assertIn("0.005483870968", cross_checks)
@@ -319,11 +338,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self._assert_html_report_shell(report)
         self.assertIn('id="impact-coverage"', report)
+        self.assertIn('id="needs-review-summary"', report)
         self.assertIn("Impact Coverage", report)
         self.assertIn("Residual Status", report)
         self.assertIn("Transaction Activity", report)
         self.assertIn('<p class="pc-table-meta">Rows: 1</p>', report)
         self.assertIn("pc-col-portfolio-return-delta", report)
+        self.assertIn("pc-status-needs-review", report)
         self.assertIn("@media print", report)
         self.assertIn("security_contribution", report)
         self.assertIn("0.001084292504", report)
@@ -370,6 +391,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         report = performance_comparison_markdown_report(findings)
 
         self.assertIn("- Total findings: 0", report)
+        self.assertIn("_No changed portfolio periods need review._", report)
         self.assertIn("_No portfolio return changes to narrate._", report)
         self.assertIn("_No portfolio-period review notes._", report)
         self.assertIn("_No impact estimates are currently available._", report)
@@ -386,6 +408,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         report = performance_comparison_html_report(findings)
 
         self.assertIn("No portfolio return changes to narrate.", report)
+        self.assertIn("No changed portfolio periods need review.", report)
         self.assertIn("No impact estimates are currently available.", report)
         self.assertIn("No changed transaction activity.", report)
         self.assertIn("No cause summary available.", report)
@@ -462,6 +485,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         contents = _section(report, "## Report Contents", "## Run Summary")
 
         self.assertIn("- Impact Estimate Summary", contents)
+        self.assertIn("- Needs Review Summary", contents)
         self.assertIn("- Impact Coverage", contents)
         self.assertIn("- Transaction Cross-Checks", contents)
         self.assertIn("- Flow Cross-Check Reconciliation", contents)
@@ -480,6 +504,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertLess(
             report.index("## Review Notes"),
             report.index("## Impact Estimate Summary"),
+        )
+        self.assertLess(
+            report.index("## Run Summary"),
+            report.index("## Needs Review Summary"),
+        )
+        self.assertLess(
+            report.index("## Needs Review Summary"),
+            report.index("## Portfolio-Period Narrative"),
         )
         self.assertLess(
             report.index("## Impact Estimate Summary"),

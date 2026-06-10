@@ -17,6 +17,7 @@ import ppar.utilities as util
 from ppar.performance_comparison.explain import (
     AMOUNT_DELTA,
     CHANGED_FIELDS,
+    CROSS_CHECK_COUNT,
     ESTIMATED_CAUSE_AREA_COUNT,
     ESTIMATED_RETURN_IMPACT,
     ESTIMATED_RETURN_IMPACT_TOTAL,
@@ -49,6 +50,7 @@ from ppar.performance_comparison.explain import (
     ROOT_CAUSE_AREA_COUNT,
     ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
+    TRANSACTION_IMPACT_POLICIES,
     TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
     portfolio_period_cause_summary,
@@ -101,6 +103,21 @@ _RESIDUAL_STATUS_NOTE = (
 )
 _HTML_REPORT_KICKER = "Performance Comparison Review"
 _HTML_REPORT_SUBTITLE = "Exception Review Worksheet"
+_REVIEW_STATUS = "review_status"
+_REVIEW_CUES = "review_cues"
+_SUGGESTED_NEXT_STEP = "suggested_next_step"
+_REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
+_REVIEW_STATUS_MONITOR = "monitor"
+_REVIEW_STATUS_CLEAR = "clear"
+_NEEDS_REVIEW_COLUMNS = (
+    PORTFOLIO_ID,
+    FROM_DATE,
+    THRU_DATE,
+    PORTFOLIO_RETURN_DELTA,
+    _REVIEW_STATUS,
+    _REVIEW_CUES,
+    _SUGGESTED_NEXT_STEP,
+)
 
 
 def performance_comparison_markdown_report(
@@ -137,6 +154,7 @@ def performance_comparison_markdown_report(
             include_suppressed_appendix=include_suppressed_appendix,
         ),
         _run_summary_section(findings, active_findings, summaries, active_summaries),
+        _needs_review_summary_section(active_findings),
         _portfolio_period_narrative_section(active_findings),
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
@@ -181,6 +199,7 @@ def performance_comparison_html_report(
     active_summaries = summarize_findings(active_findings)
     sections = [
         _html_run_summary_section(findings, active_findings, summaries, active_summaries),
+        _html_needs_review_summary_section(active_findings),
         _html_portfolio_period_narrative_section(active_findings),
         _html_review_notes_section(active_findings),
         _html_impact_estimate_summary_section(active_findings),
@@ -458,6 +477,187 @@ def _run_summary_section(
     return "\n".join(lines)
 
 
+def _needs_review_summary_section(findings: pl.DataFrame) -> str:
+    """Return a Markdown triage summary for changed portfolio periods."""
+    return "\n".join(
+        [
+            "## Needs Review Summary",
+            _markdown_table(
+                _needs_review_summary_table(findings),
+                _NEEDS_REVIEW_COLUMNS,
+                empty_message="No changed portfolio periods need review.",
+            ),
+        ]
+    )
+
+
+def _needs_review_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return reviewer-facing period cues derived from existing summary tables."""
+    periods = portfolio_period_summary(findings)
+    if periods.is_empty():
+        return _empty_needs_review_summary()
+
+    coverage_by_period = _period_rows_by_key(
+        portfolio_period_impact_coverage_summary(findings)
+    )
+    residual_by_period = _period_rows_by_key(_residual_status_table(findings))
+    cross_checks_by_period = _period_rows_by_key(
+        portfolio_period_transaction_cross_checks(findings)
+    )
+    rows = [
+        _needs_review_summary_row(
+            period=period,
+            coverage=coverage_by_period.get(_period_key(period), []),
+            residual=residual_by_period.get(_period_key(period), []),
+            cross_checks=cross_checks_by_period.get(_period_key(period), []),
+        )
+        for period in periods.iter_rows(named=True)
+    ]
+    return pl.DataFrame(rows).select(_NEEDS_REVIEW_COLUMNS)
+
+
+def _empty_needs_review_summary() -> pl.DataFrame:
+    """Return an empty needs-review summary with stable columns."""
+    return pl.DataFrame(
+        schema={
+            PORTFOLIO_ID: pl.String,
+            FROM_DATE: pl.Date,
+            THRU_DATE: pl.Date,
+            PORTFOLIO_RETURN_DELTA: pl.Float64,
+            _REVIEW_STATUS: pl.String,
+            _REVIEW_CUES: pl.String,
+            _SUGGESTED_NEXT_STEP: pl.String,
+        }
+    )
+
+
+def _needs_review_summary_row(
+    *,
+    period: dict[str, object],
+    coverage: list[dict[str, object]],
+    residual: list[dict[str, object]],
+    cross_checks: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one reviewer-cue row for a changed portfolio period."""
+    cues = _needs_review_cues(
+        coverage=coverage,
+        residual=residual,
+        cross_checks=cross_checks,
+    )
+    return {
+        PORTFOLIO_ID: period[PORTFOLIO_ID],
+        FROM_DATE: period[FROM_DATE],
+        THRU_DATE: period[THRU_DATE],
+        PORTFOLIO_RETURN_DELTA: period[PORTFOLIO_RETURN_DELTA],
+        _REVIEW_STATUS: _needs_review_status(cues),
+        _REVIEW_CUES: _comma_separated(cues),
+        _SUGGESTED_NEXT_STEP: _suggested_next_step(cues),
+    }
+
+
+def _needs_review_cues(
+    *,
+    coverage: list[dict[str, object]],
+    residual: list[dict[str, object]],
+    cross_checks: list[dict[str, object]],
+) -> list[str]:
+    """Return deterministic reviewer cues for a portfolio period."""
+    cues: list[str] = []
+    coverage_row = coverage[0] if coverage else {}
+    residual_row = residual[0] if residual else {}
+
+    if _positive_count(coverage_row.get(EVIDENCE_ONLY_CAUSE_AREA_COUNT)):
+        cues.append(
+            f"{_format_value(coverage_row[EVIDENCE_ONLY_CAUSE_AREA_COUNT])} "
+            "evidence-only area(s)"
+        )
+    if _has_text(coverage_row.get(MISSING_IMPACT_INPUTS)):
+        cues.append(f"missing inputs: {_format_value(coverage_row[MISSING_IMPACT_INPUTS])}")
+    if _positive_count(coverage_row.get(LOW_CONFIDENCE_ESTIMATE_COUNT)):
+        cues.append(
+            f"{_format_value(coverage_row[LOW_CONFIDENCE_ESTIMATE_COUNT])} "
+            "low-confidence estimate(s)"
+        )
+    if cross_checks:
+        total_count = sum(_count_value(row.get(CROSS_CHECK_COUNT)) for row in cross_checks)
+        policies = _comma_separated(
+            [
+                str(row[TRANSACTION_IMPACT_POLICIES])
+                for row in cross_checks
+                if _has_text(row.get(TRANSACTION_IMPACT_POLICIES))
+            ]
+        )
+        cross_check_cue = f"{_format_value(total_count)} transaction cross-check(s)"
+        if policies:
+            cross_check_cue = f"{cross_check_cue}: {policies}"
+        cues.append(cross_check_cue)
+    if residual_row.get(_RESIDUAL_STATUS) == _RESIDUAL_WITHHELD:
+        cues.append(f"residual {_RESIDUAL_WITHHELD}")
+    return cues
+
+
+def _needs_review_status(cues: Sequence[str]) -> str:
+    """Return the triage status for a period's reviewer cues."""
+    if not cues:
+        return _REVIEW_STATUS_CLEAR
+    if any(
+        cue.startswith(("missing inputs:", "residual withheld"))
+        or "evidence-only" in cue
+        for cue in cues
+    ):
+        return _REVIEW_STATUS_NEEDS_REVIEW
+    return _REVIEW_STATUS_MONITOR
+
+
+def _suggested_next_step(cues: Sequence[str]) -> str:
+    """Return a conservative next action for a period's reviewer cues."""
+    if any(cue.startswith("missing inputs:") for cue in cues):
+        return "Resolve missing impact inputs before interpreting estimates."
+    if any("evidence-only" in cue for cue in cues):
+        return "Review evidence-only areas before relying on impact totals."
+    if any("transaction cross-check" in cue for cue in cues):
+        return "Review transaction cross-checks separately from impact totals."
+    if any("low-confidence" in cue for cue in cues):
+        return "Review low-confidence estimates and supporting evidence."
+    if any(cue == "residual withheld" for cue in cues):
+        return "Keep residual caveat visible until estimates are complete."
+    return "No changed portfolio-period review cue."
+
+
+def _period_rows_by_key(
+    table: pl.DataFrame,
+) -> dict[tuple[object, object, object], list[dict[str, object]]]:
+    """Return table rows keyed by portfolio period."""
+    rows_by_key: dict[tuple[object, object, object], list[dict[str, object]]] = {}
+    if table.is_empty():
+        return rows_by_key
+    for row in table.iter_rows(named=True):
+        rows_by_key.setdefault(_period_key(row), []).append(row)
+    return rows_by_key
+
+
+def _period_key(row: Mapping[str, object]) -> tuple[object, object, object]:
+    """Return the portfolio-period grouping key for a report row."""
+    return (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE])
+
+
+def _positive_count(value: object) -> bool:
+    """Return whether a value is a positive non-boolean number."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+
+
+def _count_value(value: object) -> int:
+    """Return a positive integer count for numeric report values."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0:
+        return int(value)
+    return 0
+
+
+def _has_text(value: object) -> bool:
+    """Return whether a value has non-empty display text."""
+    return bool(value is not None and str(value).strip())
+
+
 def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
     """Return the report contents section."""
     section_names = _report_section_names(
@@ -492,6 +692,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
     """Return report section names in display order."""
     section_names = [
         "Run Summary",
+        "Needs Review Summary",
         "Portfolio-Period Narrative",
         "Review Notes",
         "Impact Estimate Summary",
@@ -1086,6 +1287,18 @@ def _html_run_summary_section(
     return _html_section("Run Summary", content)
 
 
+def _html_needs_review_summary_section(findings: pl.DataFrame) -> str:
+    """Return changed-period reviewer cues as an HTML section."""
+    return _html_section(
+        "Needs Review Summary",
+        _html_table(
+            _needs_review_summary_table(findings),
+            _NEEDS_REVIEW_COLUMNS,
+            empty_message="No changed portfolio periods need review.",
+        ),
+    )
+
+
 def _html_portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
     """Return conservative narrative summaries as HTML."""
     summary = portfolio_period_summary(findings)
@@ -1476,6 +1689,7 @@ def _html_table_cell(value: object, column: str) -> str:
         [
             _html_cell_alignment(value),
             _html_column_class(column),
+            *_html_value_classes(column, value),
         ]
     )
     return f'<td class="{classes}">{_escape_html(_format_value(value))}</td>'
@@ -1494,6 +1708,20 @@ def _html_column_class(column: str) -> str:
     """Return a stable CSS class for a report table column."""
     normalized = column.replace("_", "-")
     return f"pc-col-{normalized}"
+
+
+def _html_value_classes(column: str, value: object) -> list[str]:
+    """Return CSS classes derived from stable report status values."""
+    if column == _REVIEW_STATUS:
+        return [f"pc-status-{_css_token(_format_value(value))}"]
+    if column == _RESIDUAL_STATUS and value == _RESIDUAL_WITHHELD:
+        return ["pc-status-withheld"]
+    return []
+
+
+def _css_token(value: str) -> str:
+    """Return a simple CSS token for controlled status strings."""
+    return value.replace("_", "-").lower()
 
 
 def _html_empty(message: str) -> str:
@@ -1567,6 +1795,9 @@ def _html_style_block() -> str:
   --pc-accent: #245f70;
   --pc-table-stripe: #f7f8f7;
   --pc-table-head: #e5eaeb;
+  --pc-status-review: #8a3f10;
+  --pc-status-monitor: #51610f;
+  --pc-status-clear: #24613d;
 }
 body {
   margin: 0;
@@ -1710,6 +1941,22 @@ tbody tr:nth-child(even) {
 .pc-col-quantity-delta,
 .pc-col-price-delta {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+.pc-col-review-status,
+.pc-status-withheld {
+  font-weight: 700;
+}
+.pc-status-needs-review {
+  color: var(--pc-status-review);
+}
+.pc-status-monitor {
+  color: var(--pc-status-monitor);
+}
+.pc-status-clear {
+  color: var(--pc-status-clear);
+}
+#needs-review-summary {
+  border-left: 4px solid var(--pc-status-review);
 }
 @media (max-width: 760px) {
   .pc-report {
