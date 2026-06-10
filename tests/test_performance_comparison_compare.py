@@ -17,6 +17,10 @@ from ppar.performance_comparison import (
     findings_to_polars,
 )
 from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison.compare import (
+    _transaction_impact_policies,
+    _validated_reserved_modified_dietz_policy,
+)
 from ppar.performance_comparison.findings import (
     CASH_FLOW_SIGN,
     CONTEXT,
@@ -885,6 +889,42 @@ class TestPerformanceComparison(unittest.TestCase):
                 amount_finding[TRANSACTION_IMPACT_POLICY],
                 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
             )
+            policies = _transaction_impact_policies(specification)
+            external_flow_policy = policies["external_flow"]
+            self.assertEqual(external_flow_policy.method, "evidence_only")
+            self.assertEqual(
+                external_flow_policy.finding_label,
+                TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+            )
+            self.assertIsNone(external_flow_policy.flow_timing)
+
+    def test_transaction_modified_dietz_policy_preserves_explicit_yaml_fields(
+        self,
+    ) -> None:
+        """Reserved Modified Dietz policy keeps every explicit YAML convention."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(specification_path)
+            external_flow_value = {
+                "method": "modified_dietz",
+                "flow_timing": "settlement_date",
+                "day_count": "actual_days",
+                "inclusion_rule": "end_of_day",
+                "denominator_source": "begin_market_value",
+                "double_count_policy": "cross_check_only",
+            }
+
+            policy = _validated_reserved_modified_dietz_policy(
+                specification,
+                external_flow_value,
+            )
+
+            self.assertEqual(policy.method, "modified_dietz")
+            self.assertEqual(policy.flow_timing, "settlement_date")
+            self.assertEqual(policy.day_count, "actual_days")
+            self.assertEqual(policy.inclusion_rule, "end_of_day")
+            self.assertEqual(policy.denominator_source, "begin_market_value")
+            self.assertEqual(policy.double_count_policy, "cross_check_only")
 
     def test_transaction_external_flow_policy_rejects_unsupported_method(self) -> None:
         """Unsupported external-flow methods fail instead of implying a formula."""
@@ -912,7 +952,10 @@ class TestPerformanceComparison(unittest.TestCase):
             ({"flow_timing": "activity_date"}, "external_flow.flow_timing"),
             ({"day_count": "business_days"}, "external_flow.day_count"),
             ({"inclusion_rule": "midday"}, "external_flow.inclusion_rule"),
-            ({"denominator_source": "average_market_value"}, "external_flow.denominator_source"),
+            (
+                {"denominator_source": "average_market_value"},
+                "external_flow.denominator_source",
+            ),
             ({"double_count_policy": "aggregate"}, "external_flow.double_count_policy"),
             ({"unsupported_key": "value"}, "unsupported modified_dietz keys"),
         ]

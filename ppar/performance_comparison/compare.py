@@ -5,6 +5,7 @@ from __future__ import annotations
 # Python imports
 import datetime as dt
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Final, cast
 
 # Third-party imports
@@ -227,6 +228,30 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.FX_RATE: "fx_rate",
     pc_cols.AMOUNT: "market_value",
 }
+
+
+@dataclass(frozen=True)
+class _TransactionImpactPolicy:
+    """Carry explicitly configured transaction impact-method settings.
+
+    Attributes:
+        method: YAML method name.
+        finding_label: Stable finding-table label exposed to reports.
+        flow_timing: Date field used to time external flows.
+        day_count: Day-count convention for timing weights.
+        inclusion_rule: Beginning/end-of-day flow inclusion convention.
+        denominator_source: YAML-selected return denominator source.
+        double_count_policy: Rule for handling overlap with portfolio-level
+            flow deltas.
+    """
+
+    method: str
+    finding_label: str
+    flow_timing: str | None = None
+    day_count: str | None = None
+    inclusion_rule: str | None = None
+    denominator_source: str | None = None
+    double_count_policy: str | None = None
 
 
 class PerformanceComparison:
@@ -840,7 +865,10 @@ class PerformanceComparison:
             return None
         if row.get(pc_cols.PERFORMANCE_FLOW_SIGN) != TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
             return None
-        return self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
+        policy = self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
+        if policy is None:
+            return None
+        return policy.finding_label
 
     @staticmethod
     def _return_denominator(
@@ -1064,7 +1092,7 @@ class PerformanceComparison:
 
 def _transaction_impact_policies(
     specification: PerformanceComparisonSpecification,
-) -> dict[str, str]:
+) -> dict[str, _TransactionImpactPolicy]:
     """Return validated YAML-configured transaction impact policies.
 
     Args:
@@ -1101,7 +1129,7 @@ def _transaction_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {}
+    policies: dict[str, _TransactionImpactPolicy] = {}
     external_flow_value = methods_value.get(_EXTERNAL_FLOW_KEY)
     if external_flow_value is None:
         return policies
@@ -1128,20 +1156,28 @@ def _transaction_impact_policies(
             504,
         )
     if method == _MODIFIED_DIETZ_METHOD:
-        _validate_reserved_modified_dietz_method(specification, external_flow_value)
+        _validated_reserved_modified_dietz_policy(specification, external_flow_value)
         _raise_unsupported_external_flow_method(specification, method)
     if method != _EVIDENCE_ONLY_METHOD:
         _raise_unsupported_external_flow_method(specification, method)
 
-    policies[_EXTERNAL_FLOW_KEY] = TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY
+    policies[_EXTERNAL_FLOW_KEY] = _TransactionImpactPolicy(
+        method=_EVIDENCE_ONLY_METHOD,
+        finding_label=TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+    )
     return policies
 
 
-def _validate_reserved_modified_dietz_method(
+def _validated_reserved_modified_dietz_policy(
     specification: PerformanceComparisonSpecification,
     external_flow_value: Mapping[str, object],
-) -> None:
-    """Validate the proposed Modified Dietz YAML contract before rejection."""
+) -> _TransactionImpactPolicy:
+    """Validate and preserve the proposed Modified Dietz YAML policy shape.
+
+    The returned object is not yet used for impact selection. Validation occurs
+    before rejection so the reserved YAML contract stays precise and ready for
+    future wiring without inferring omitted financial conventions.
+    """
     unsupported_keys = set(external_flow_value) - _MODIFIED_DIETZ_REQUIRED_KEYS
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
@@ -1178,6 +1214,16 @@ def _validate_reserved_modified_dietz_method(
                 ),
                 504,
             )
+
+    return _TransactionImpactPolicy(
+        method=_MODIFIED_DIETZ_METHOD,
+        finding_label="external_flow:modified_dietz",
+        flow_timing=cast(str, external_flow_value[_FLOW_TIMING_KEY]),
+        day_count=cast(str, external_flow_value[_DAY_COUNT_KEY]),
+        inclusion_rule=cast(str, external_flow_value[_INCLUSION_RULE_KEY]),
+        denominator_source=cast(str, external_flow_value[_DENOMINATOR_SOURCE_KEY]),
+        double_count_policy=cast(str, external_flow_value[_DOUBLE_COUNT_POLICY_KEY]),
+    )
 
 
 def _raise_unsupported_external_flow_method(
