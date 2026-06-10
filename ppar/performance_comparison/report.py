@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import datetime as dt
 import html as html_lib
 import json
@@ -28,7 +28,6 @@ from ppar.performance_comparison.explain import (
     IMPACT_BASIS_NO_ESTIMATE,
     IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
     IMPACT_BASIS_SECURITY_CONTRIBUTION,
-    IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
     IMPACT_METHOD,
@@ -655,7 +654,7 @@ def _portfolio_period_narrative(
     if estimated_causes:
         strongest = max(
             estimated_causes,
-            key=lambda cause: abs(float(cause[ESTIMATED_RETURN_IMPACT])),
+            key=_absolute_estimated_return_impact,
         )
         sentences.append(_estimated_impact_sentence(strongest))
     else:
@@ -679,6 +678,14 @@ def _portfolio_period_narrative(
         sentences.append("Suppressed findings exist for this portfolio period.")
 
     return " ".join(_escape_markdown_text(sentence) for sentence in sentences)
+
+
+def _absolute_estimated_return_impact(cause: Mapping[str, object]) -> float:
+    """Return the absolute estimated impact for sorting narrative causes."""
+    value = cause.get(ESTIMATED_RETURN_IMPACT)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return abs(float(value))
+    return 0.0
 
 
 def _estimated_impact_sentence(cause: dict[str, object]) -> str:
@@ -1000,7 +1007,7 @@ def _top_evidence_table(findings: pl.DataFrame, top_evidence_limit: int) -> pl.D
     if candidates.is_empty():
         return candidates
 
-    rows = []
+    rows: list[dict[str, object]] = []
     for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
         rows.extend(group.sort("review_rank").head(top_evidence_limit).iter_rows(named=True))
     return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)

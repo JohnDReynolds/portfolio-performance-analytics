@@ -980,9 +980,9 @@ class PerformanceComparison:
         delta: object | None,
     ) -> float | None:
         """Return a review-only Modified Dietz cross-check estimate."""
-        if dataset != pc_cols.TRANSACTIONS or column != pc_cols.AMOUNT:
-            return None
         policy = self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
+        delta_float = _modified_dietz_float(delta)
+        denominator_float = _modified_dietz_float(denominator)
         eligibility = _modified_dietz_external_flow_eligibility(
             row=row,
             policy=policy,
@@ -991,22 +991,32 @@ class PerformanceComparison:
             thru_date=thru_date,
             denominator=denominator,
         )
-        if not eligibility.eligible or eligibility.flow_date is None:
+        required_inputs_available = all(
+            [
+                dataset == pc_cols.TRANSACTIONS,
+                column == pc_cols.AMOUNT,
+                eligibility.eligible,
+                eligibility.flow_date is not None,
+                delta_float is not None,
+                denominator_float is not None,
+                isinstance(from_date, dt.date),
+                isinstance(thru_date, dt.date),
+                policy is not None,
+                policy is not None and policy.inclusion_rule is not None,
+            ]
+        )
+        if not required_inputs_available:
             return None
-        if (
-            not isinstance(delta, (int, float))
-            or isinstance(delta, bool)
-            or not isinstance(denominator, (int, float))
-            or isinstance(denominator, bool)
-            or not isinstance(from_date, dt.date)
-            or not isinstance(thru_date, dt.date)
-            or policy is None
-            or policy.inclusion_rule is None
-        ):
-            return None
+        assert eligibility.flow_date is not None
+        assert isinstance(from_date, dt.date)
+        assert isinstance(thru_date, dt.date)
+        assert policy is not None
+        assert policy.inclusion_rule is not None
+        assert delta_float is not None
+        assert denominator_float is not None
         return _modified_dietz_external_flow_impact(
-            flow_delta=float(delta),
-            denominator=float(denominator),
+            flow_delta=delta_float,
+            denominator=denominator_float,
             from_date=from_date,
             thru_date=thru_date,
             flow_date=eligibility.flow_date,
@@ -1465,6 +1475,8 @@ def _modified_dietz_flow_date(
         "trade_date": pc_cols.TRANSACTION_DATE,
         "settlement_date": pc_cols.SETTLEMENT_DATE,
     }
+    if policy.flow_timing is None:
+        return None
     date_column = flow_date_column_by_timing.get(policy.flow_timing)
     if date_column is None:
         return None
@@ -1478,7 +1490,20 @@ def _modified_dietz_flow_date(
 
 def _usable_modified_dietz_denominator(value: object) -> bool:
     """Return whether a configured Modified Dietz denominator is usable."""
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and value != 0
+    number = _modified_dietz_float(value)
+    return number is not None and number != 0
+
+
+def _usable_modified_dietz_number(value: object) -> bool:
+    """Return whether a value can be used in Modified Dietz arithmetic."""
+    return _modified_dietz_float(value) is not None
+
+
+def _modified_dietz_float(value: object) -> float | None:
+    """Return a float for non-boolean numeric Modified Dietz values."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    return None
 
 
 def _raise_unsupported_external_flow_method(

@@ -1247,10 +1247,12 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "Uses the vendor-provided security contribution delta as a "
                 "related-output impact estimate, not as root-cause attribution."
             ),
-        }
+    }
     if _is_portfolio_source_field_impact_candidate(row):
-        delta_float = float(delta)
-        denominator = float(row[RETURN_DENOMINATOR])
+        delta_float = _number_value(delta)
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        assert delta_float is not None
+        assert denominator is not None
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
             IMPACT_BASIS: IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
@@ -1263,8 +1265,10 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_security_return_weighted_impact_candidate(row):
-        delta_float = float(delta)
-        weight = float(row[RETURN_WEIGHT])
+        delta_float = _number_value(delta)
+        weight = _number_value(row[RETURN_WEIGHT])
+        assert delta_float is not None
+        assert weight is not None
         return {
             ESTIMATED_RETURN_IMPACT: delta_float * weight,
             IMPACT_BASIS: IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
@@ -1277,8 +1281,10 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_transaction_performance_amount_impact_candidate(row):
-        delta_float = float(delta)
-        denominator = float(row[RETURN_DENOMINATOR])
+        delta_float = _number_value(delta)
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        assert delta_float is not None
+        assert denominator is not None
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
             IMPACT_BASIS: IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
@@ -1441,24 +1447,20 @@ def _is_usable_number(value: object) -> bool:
 
 def _root_cause_area(row: dict[str, object]) -> str:
     """Return the coarse explanation bucket for a contribution candidate."""
+    root_cause_area_by_dataset = {
+        pc_cols.SECURITY_PERFORMANCE: ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
+        pc_cols.POSITIONS: ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+        pc_cols.TRANSACTIONS: ROOT_CAUSE_TRANSACTION_ACTIVITY,
+        pc_cols.PRICES: ROOT_CAUSE_PRICE,
+        pc_cols.FX_RATES: ROOT_CAUSE_FX_RATE,
+        pc_cols.CASH: ROOT_CAUSE_CASH,
+        pc_cols.PORTFOLIO_PERFORMANCE: ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
+        pc_cols.SECURITY_MASTER: ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
+    }
     dataset = row[DATASET]
-    if dataset == pc_cols.SECURITY_PERFORMANCE:
-        return ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
-    if dataset == pc_cols.POSITIONS:
-        return ROOT_CAUSE_MARKET_VALUE_OR_POSITION
-    if dataset == pc_cols.TRANSACTIONS:
-        return ROOT_CAUSE_TRANSACTION_ACTIVITY
-    if dataset == pc_cols.PRICES:
-        return ROOT_CAUSE_PRICE
-    if dataset == pc_cols.FX_RATES:
-        return ROOT_CAUSE_FX_RATE
-    if dataset == pc_cols.CASH:
-        return ROOT_CAUSE_CASH
-    if dataset == pc_cols.PORTFOLIO_PERFORMANCE:
-        return ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT
-    if dataset == pc_cols.SECURITY_MASTER:
-        return ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE
-    return ROOT_CAUSE_UNEXPLAINED
+    if not isinstance(dataset, str):
+        return ROOT_CAUSE_UNEXPLAINED
+    return root_cause_area_by_dataset.get(dataset, ROOT_CAUSE_UNEXPLAINED)
 
 
 def _portfolio_period_cause_summary_row(
@@ -1817,11 +1819,12 @@ def _portfolio_period_transaction_cross_check_row(
     rows: list[dict[str, object]],
 ) -> dict[str, object]:
     """Return one portfolio-period transaction cross-check summary row."""
-    portfolio_id, from_date, thru_date, transaction_impact_policy = key
+    portfolio_id, from_date, thru_date, _transaction_impact_policy = key
     estimates = [
-        float(row[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE])
+        value
         for row in rows
-        if _is_number(row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE))
+        if (value := _number_value(row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE)))
+        is not None
     ]
     diagnostics = sorted(
         {
@@ -1860,16 +1863,19 @@ def _is_number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+def _number_value(value: object) -> float | None:
+    """Return a float for non-boolean numeric values."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    return None
+
+
 def _portfolio_period_transaction_cross_check_sort_key(
     row: dict[str, object],
 ) -> tuple[object, ...]:
     """Return deterministic ordering for transaction cross-check summaries."""
     absolute_estimate = row[CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL]
-    absolute_estimate_sort = (
-        float(absolute_estimate)
-        if _is_number(absolute_estimate)
-        else 0.0
-    )
+    absolute_estimate_sort = _number_value(absolute_estimate) or 0.0
     return (
         str(row[PORTFOLIO_ID]),
         str(row[FROM_DATE]),
@@ -1939,9 +1945,7 @@ def _flow_delta(flow_row: dict[str, object] | None) -> float | None:
     if flow_row is None:
         return None
     value = flow_row.get(DELTA_B_MINUS_A)
-    if _is_number(value):
-        return float(value)
-    return None
+    return _number_value(value)
 
 
 def _flow_impact_estimate(flow_row: dict[str, object] | None) -> float | None:
@@ -1950,8 +1954,14 @@ def _flow_impact_estimate(flow_row: dict[str, object] | None) -> float | None:
         return None
     delta = flow_row.get(DELTA_B_MINUS_A)
     denominator = flow_row.get(RETURN_DENOMINATOR)
-    if _is_number(delta) and _is_number(denominator) and float(denominator) != 0.0:
-        return float(delta) / float(denominator)
+    delta_float = _number_value(delta)
+    denominator_float = _number_value(denominator)
+    if (
+        delta_float is not None
+        and denominator_float is not None
+        and denominator_float != 0.0
+    ):
+        return delta_float / denominator_float
     return None
 
 
@@ -1962,9 +1972,7 @@ def _cross_check_estimate_total(
     if cross_check_row is None:
         return None
     value = cross_check_row.get(CROSS_CHECK_ESTIMATE_TOTAL)
-    if _is_number(value):
-        return float(value)
-    return None
+    return _number_value(value)
 
 
 def _flow_cross_check_reconciliation_status(
