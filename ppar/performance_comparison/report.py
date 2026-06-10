@@ -99,6 +99,8 @@ _RESIDUAL_STATUS_NOTE = (
     "Residual amounts are intentionally withheld until the attribution model has "
     "enough defensible, non-overlapping impact estimates."
 )
+_HTML_REPORT_KICKER = "Performance Comparison Review"
+_HTML_REPORT_SUBTITLE = "Exception Review Worksheet"
 
 
 def performance_comparison_markdown_report(
@@ -207,9 +209,13 @@ def performance_comparison_html_report(
             "<body>",
             '<main class="pc-report">',
             '<header class="pc-header">',
+            f'<p class="pc-kicker">{_escape_html(_HTML_REPORT_KICKER)}</p>',
             f"<h1>{_escape_html(title)}</h1>",
+            f'<p class="pc-subtitle">{_escape_html(_HTML_REPORT_SUBTITLE)}</p>',
+            '<div class="pc-header-notes">',
             f"<p>{_escape_html(_ACTIVE_ONLY_NOTE)}</p>",
             f"<p>{_escape_html(_NO_ESTIMATE_NOTE)}</p>",
+            "</div>",
             "</header>",
             _html_contents_section(include_suppressed_appendix=include_suppressed_appendix),
             *sections,
@@ -474,9 +480,9 @@ def _html_contents_section(*, include_suppressed_appendix: bool) -> str:
         [
             '<nav class="pc-section" aria-labelledby="report-contents">',
             '<h2 id="report-contents">Report Contents</h2>',
-            "<ul>",
+            '<ol class="pc-contents-list">',
             *links,
-            "</ul>",
+            "</ol>",
             "</nav>",
         ]
     )
@@ -1445,15 +1451,13 @@ def _html_table(
     ]
     body_rows = []
     for row in table.select(available_columns).iter_rows(named=True):
-        cells = [
-            _html_table_cell(row[column], _html_cell_alignment(row[column]))
-            for column in available_columns
-        ]
+        cells = [_html_table_cell(row[column], column) for column in available_columns]
         body_rows.append("<tr>" + "".join(cells) + "</tr>")
     return "\n".join(
         [
             '<div class="pc-table-wrap">',
-            "<table>",
+            f'<p class="pc-table-meta">Rows: {_escape_html(table.height)}</p>',
+            '<table class="pc-table">',
             "<thead>",
             "<tr>" + "".join(header_cells) + "</tr>",
             "</thead>",
@@ -1466,9 +1470,15 @@ def _html_table(
     )
 
 
-def _html_table_cell(value: object, alignment: str) -> str:
+def _html_table_cell(value: object, column: str) -> str:
     """Return one escaped HTML table cell."""
-    return f'<td class="{alignment}">{_escape_html(_format_value(value))}</td>'
+    classes = " ".join(
+        [
+            _html_cell_alignment(value),
+            _html_column_class(column),
+        ]
+    )
+    return f'<td class="{classes}">{_escape_html(_format_value(value))}</td>'
 
 
 def _html_cell_alignment(value: object) -> str:
@@ -1478,6 +1488,12 @@ def _html_cell_alignment(value: object) -> str:
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return "pc-right"
     return "pc-left"
+
+
+def _html_column_class(column: str) -> str:
+    """Return a stable CSS class for a report table column."""
+    normalized = column.replace("_", "-")
+    return f"pc-col-{normalized}"
 
 
 def _html_empty(message: str) -> str:
@@ -1542,13 +1558,15 @@ def _html_style_block() -> str:
 <style>
 :root {
   color-scheme: light;
-  --pc-bg: #f6f7f9;
+  --pc-bg: #f3f4f2;
   --pc-panel: #ffffff;
-  --pc-border: #d7dce2;
-  --pc-text: #1e2329;
-  --pc-muted: #5d6978;
-  --pc-accent: #276f86;
-  --pc-table-stripe: #f1f5f8;
+  --pc-border: #bfc7c9;
+  --pc-border-strong: #687477;
+  --pc-text: #202426;
+  --pc-muted: #5c6669;
+  --pc-accent: #245f70;
+  --pc-table-stripe: #f7f8f7;
+  --pc-table-head: #e5eaeb;
 }
 body {
   margin: 0;
@@ -1556,20 +1574,23 @@ body {
   color: var(--pc-text);
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 .pc-report {
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px 24px 28px;
 }
 .pc-header,
 .pc-section {
   background: var(--pc-panel);
   border: 1px solid var(--pc-border);
-  border-radius: 6px;
+  border-radius: 2px;
   margin: 0 0 16px;
-  padding: 16px;
+  padding: 14px 16px;
+}
+.pc-header {
+  border-top: 4px solid var(--pc-border-strong);
 }
 .pc-header h1,
 .pc-section h2,
@@ -1580,8 +1601,36 @@ body {
 .pc-section p {
   margin: 6px 0;
 }
+.pc-kicker {
+  color: var(--pc-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+.pc-subtitle {
+  color: var(--pc-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pc-header-notes {
+  border-top: 1px solid var(--pc-border);
+  margin-top: 12px;
+  padding-top: 8px;
+}
 .pc-section a {
   color: var(--pc-accent);
+}
+.pc-contents-list {
+  column-gap: 28px;
+  columns: 2;
+  margin: 0;
+  padding-left: 20px;
+}
+.pc-contents-list li {
+  break-inside: avoid;
+  margin: 0 0 4px;
 }
 .pc-card-row {
   display: grid;
@@ -1591,8 +1640,8 @@ body {
 }
 .pc-card {
   border: 1px solid var(--pc-border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 2px;
+  padding: 8px 10px;
 }
 .pc-card span {
   color: var(--pc-muted);
@@ -1610,19 +1659,32 @@ body {
 }
 .pc-table-wrap {
   overflow-x: auto;
+  margin-top: 8px;
+}
+.pc-table-meta {
+  color: var(--pc-muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  text-transform: uppercase;
 }
 table {
   border-collapse: collapse;
   min-width: 100%;
+  width: 100%;
 }
 th,
 td {
   border: 1px solid var(--pc-border);
-  padding: 6px 8px;
+  padding: 5px 7px;
   vertical-align: top;
 }
 th {
-  background: #e9eef2;
+  background: var(--pc-table-head);
+  border-top: 2px solid var(--pc-border-strong);
+  color: #263033;
+  font-size: 12px;
+  font-weight: 700;
   text-align: left;
   white-space: nowrap;
 }
@@ -1638,5 +1700,46 @@ tbody tr:nth-child(even) {
 .pc-right {
   text-align: right;
   white-space: nowrap;
+}
+.pc-col-portfolio-return-delta,
+.pc-col-estimated-return-impact,
+.pc-col-estimated-return-impact-total,
+.pc-col-transaction-impact-diagnostic-estimate,
+.pc-col-delta-b-minus-a,
+.pc-col-amount-delta,
+.pc-col-quantity-delta,
+.pc-col-price-delta {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+@media (max-width: 760px) {
+  .pc-report {
+    padding: 12px;
+  }
+  .pc-contents-list {
+    columns: 1;
+  }
+}
+@media print {
+  body {
+    background: #ffffff;
+    font-size: 11px;
+  }
+  .pc-report {
+    max-width: none;
+    padding: 0;
+  }
+  .pc-header,
+  .pc-section {
+    border-color: #888888;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .pc-section {
+    margin-bottom: 10px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 </style>""".strip()

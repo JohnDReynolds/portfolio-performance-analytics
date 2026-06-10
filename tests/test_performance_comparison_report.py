@@ -88,6 +88,7 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
 class TestPerformanceComparisonReport(unittest.TestCase):
     """Verify Markdown report rendering for comparison findings."""
 
+    # pylint: disable-next=too-many-statements
     def test_markdown_report_summarizes_restatement_findings(self) -> None:
         """Restatement reports include run, period, cause, and evidence sections."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
@@ -316,17 +317,27 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             top_evidence_limit=2,
         )
 
-        self.assertTrue(report.startswith("<!DOCTYPE html>"))
-        self.assertIn("<title>HTML &lt;Restatement&gt;</title>", report)
-        self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
+        self._assert_html_report_shell(report)
         self.assertIn('id="impact-coverage"', report)
         self.assertIn("Impact Coverage", report)
         self.assertIn("Residual Status", report)
         self.assertIn("Transaction Activity", report)
+        self.assertIn('<p class="pc-table-meta">Rows: 1</p>', report)
+        self.assertIn("pc-col-portfolio-return-delta", report)
+        self.assertIn("@media print", report)
         self.assertIn("security_contribution", report)
         self.assertIn("0.001084292504", report)
         self.assertIn("PC-PORT-MV", report)
         self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
+
+    def _assert_html_report_shell(self, report: str) -> None:
+        """Verify stable HTML report framing and review-oriented polish."""
+        self.assertTrue(report.startswith("<!DOCTYPE html>"))
+        self.assertIn("<title>HTML &lt;Restatement&gt;</title>", report)
+        self.assertIn("Performance Comparison Review", report)
+        self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
+        self.assertIn("Exception Review Worksheet", report)
+        self.assertIn('<ol class="pc-contents-list">', report)
 
     def test_markdown_report_limits_top_evidence_per_portfolio_period(self) -> None:
         """Top evidence limit controls displayed contribution candidate rows."""
