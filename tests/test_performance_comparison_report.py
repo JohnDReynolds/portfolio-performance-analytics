@@ -586,7 +586,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         expected_keys = {
             "report",
             "html_report",
+            "readme",
             "findings",
+            "needs_review_summary",
             "portfolio_period_summary",
             "cause_summary",
             "impact_estimates",
@@ -613,6 +615,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 self.assertTrue(path.exists(), path)
             self.assertIn("# Bundle Restatement", paths["report"].read_text())
             self.assertIn("<h1>Bundle Restatement</h1>", paths["html_report"].read_text())
+            readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertIn("# Bundle Restatement", readme)
+            self.assertIn("`report.html`: standalone browser report", readme)
+            self.assertIn("`needs_review_summary.csv`: top triage table", readme)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
@@ -622,7 +628,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
+            self.assertEqual(manifest["artifacts"]["readme"], "README.md")
+            self.assertEqual(
+                manifest["artifacts"]["needs_review_summary"],
+                "needs_review_summary.csv",
+            )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
+            self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
+
+            needs_review = pl.read_csv(paths["needs_review_summary"])
+            self.assertEqual(needs_review.height, 1)
+            self.assertIn("review_status", needs_review.columns)
+            self.assertEqual(needs_review["review_status"][0], "needs_review")
 
             impact_coverage = pl.read_csv(paths["impact_coverage"])
             self.assertEqual(impact_coverage.height, 1)
@@ -646,11 +663,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["counts"]["findings"], 0)
+            self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 0)
             self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
             self.assertEqual(manifest["tables"]["transaction_cross_checks"]["rows"], 0)
             self.assertEqual(
                 manifest["tables"]["flow_cross_check_reconciliation"]["rows"],
                 0,
+            )
+            self.assertIn(
+                "portfolio_id,from_date,thru_date",
+                paths["needs_review_summary"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "portfolio_id,from_date,thru_date",

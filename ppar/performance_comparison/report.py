@@ -326,7 +326,7 @@ def write_performance_comparison_report_bundle(
     include_suppressed_appendix: bool = True,
     top_evidence_limit: int = 10,
 ) -> dict[str, Path]:
-    """Write a reproducible Markdown-and-CSV report bundle.
+    """Write a reproducible report bundle.
 
     Args:
         findings: Findings table returned by ``compare_snapshots`` or
@@ -366,6 +366,11 @@ def write_performance_comparison_report_bundle(
     paths["findings"] = _write_csv(findings, bundle_directory / "findings.csv")
     for name, table in tables.items():
         paths[name] = _write_csv(table, bundle_directory / f"{name}.csv")
+    paths["readme"] = _write_report_bundle_readme(
+        bundle_directory / "README.md",
+        title=title,
+        tables=tables,
+    )
 
     manifest_path = bundle_directory / "manifest.json"
     paths["manifest"] = manifest_path
@@ -391,6 +396,7 @@ def _report_bundle_tables(
 ) -> dict[str, pl.DataFrame]:
     """Return report-bundle tables keyed by artifact stem."""
     return {
+        "needs_review_summary": _needs_review_summary_table(active_findings),
         "portfolio_period_summary": portfolio_period_summary(active_findings),
         "cause_summary": portfolio_period_cause_summary(active_findings),
         "impact_estimates": _impact_estimate_summary_table(active_findings),
@@ -411,6 +417,57 @@ def _write_csv(table: pl.DataFrame, output_path: Path) -> Path:
     """Write a CSV table and return the normalized path."""
     table.write_csv(output_path)
     return output_path
+
+
+def _write_report_bundle_readme(
+    output_path: Path,
+    *,
+    title: str,
+    tables: Mapping[str, pl.DataFrame],
+) -> Path:
+    """Write a short bundle README and return the normalized path."""
+    lines = [
+        f"# {_escape_markdown_text(title)}",
+        "",
+        "This directory is a portable performance-comparison review bundle.",
+        "Open `report.html` for the browser report, or `report.md` for a plain-text review.",
+        "",
+        "## Primary Artifacts",
+        "",
+        "- `report.html`: standalone browser report with reviewer cues and tables.",
+        "- `report.md`: Markdown version of the same review narrative.",
+        "- `manifest.json`: machine-readable artifact and row-count metadata.",
+        "- `findings.csv`: complete finding-level comparison output.",
+        "",
+        "## Review Tables",
+        "",
+        *_report_bundle_readme_table_lines(tables),
+    ]
+    output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
+    return output_path
+
+
+def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> list[str]:
+    """Return README bullets for report-bundle table artifacts."""
+    descriptions = {
+        "needs_review_summary": (
+            "top triage table for changed portfolio periods and suggested next steps"
+        ),
+        "portfolio_period_summary": "portfolio-period return-change summary",
+        "cause_summary": "cause-area summary with selected impact estimates",
+        "impact_estimates": "currently quantified impact estimates",
+        "impact_coverage": "period-level estimate coverage and missing inputs",
+        "transaction_cross_checks": "review-only transaction impact cross-checks",
+        "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
+        "residual_status": "residual caveat status by changed portfolio period",
+        "transaction_activity": "changed transaction activity and missing inputs",
+        "top_evidence": "ranked evidence rows shown in the report",
+    }
+    return [
+        f"- `{name}.csv`: {descriptions.get(name, 'report helper table')} "
+        f"({table.height} row(s))."
+        for name, table in sorted(tables.items())
+    ]
 
 
 def _report_bundle_manifest(
