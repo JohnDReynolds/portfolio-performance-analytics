@@ -60,9 +60,12 @@ charts = [
 # Developer tooling used for local checks and editor feedback.
 dev = [
     "mypy>=1.10",
+    "pandas-stubs",
     "pylint>=4.0",
     "pyright>=1.1.409",
+    "scipy-stubs",
     "types-PyYAML",
+    "types-seaborn",
 ]
 
 [project.scripts]
@@ -72,13 +75,9 @@ ppar-demo = "ppar.demo:main"
 [tool.mypy]
 python_version = "3.12"
 files = ["ppar"]
-ignore_missing_imports = true
-follow_imports = "skip"
-check_untyped_defs = true
-no_implicit_optional = true
+strict = true
 show_error_codes = true
 warn_unused_configs = true
-warn_unused_ignores = true
 
 [tool.pyright]
 include = ["ppar", "tests"]
@@ -86,7 +85,7 @@ extraPaths = ["tests"]
 pythonVersion = "3.12"
 venvPath = "."
 venv = ".venv"
-typeCheckingMode = "basic"
+typeCheckingMode = "standard"
 
 [tool.pylint.main]
 persistent = false

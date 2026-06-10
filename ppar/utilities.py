@@ -235,6 +235,7 @@ def load_datasource(
             columns.
     """
     # Get the 2-column dataframe.
+    is_file_source = isinstance(data_source, str | Path)
     if isinstance(data_source, str | Path):
         data_source = Path(data_source)
         # Assert that the data file path exists.
@@ -268,7 +269,7 @@ def load_datasource(
     df = df.unique(subset=[df.columns[0]], keep="last")
 
     # Cast to strings and filter on needed_items.  Note that this was done above in pl.scan_scv
-    if not isinstance(data_source, str):
+    if not is_file_source:
         # All identifiers need to be strings for classifications, mappings, performances, etc.
         for column_name in df.columns:
             if not isinstance(df.schema[column_name], pl.String):

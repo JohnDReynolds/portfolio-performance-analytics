@@ -17,7 +17,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import polars as pl
-from scipy.stats import norm  # pyright: ignore[reportMissingTypeStubs]
+from scipy.stats import norm
 
 # Project Imports
 import ppar.columns as cols
@@ -569,7 +569,7 @@ class RiskStatistics:
 
         # This package uses the common positive-loss convention; callers do not
         # need to negate the result for presentation.
-        return cast(float, var)
+        return var
 
     def to_html(self) -> str:
         """Return the statistics table as an HTML page string.

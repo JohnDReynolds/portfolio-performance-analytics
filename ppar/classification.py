@@ -80,9 +80,11 @@ class Classification:
             self.name, self.df = Classification._load_from_performances(performances)
         else:
             # Use the data_source.
+            if performances is None:
+                raise TypeError("performances is required when data_source is supplied.")
             self.name = name
             needed_items = list(
-                set(performances[0].identifiers) | set(performances[1].identifiers)  # type: ignore
+                set(performances[0].identifiers) | set(performances[1].identifiers)
             )  # unique list of the union of portfolio and benchmark
             self.df = util.load_datasource(
                 data_source,

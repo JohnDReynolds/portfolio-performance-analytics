@@ -6,7 +6,7 @@ expose Polars results as pandas, JSON, XML, or CSV output.
 
 # Python Imports
 from pathlib import Path
-from typing import cast, Literal
+from typing import Literal
 
 # Third-Party Imports
 import pandas as pd
@@ -34,14 +34,8 @@ def to_json(
     """
     pandas_df = to_pandas(df)
     if date_format is None:
-        return cast(  # pyright: ignore[reportUnnecessaryCast]
-            str,
-            pandas_df.to_json(double_precision=float_precision),
-        )
-    return cast(  # pyright: ignore[reportUnnecessaryCast]
-        str,
-        pandas_df.to_json(double_precision=float_precision, date_format=date_format),
-    )
+        return pandas_df.to_json(double_precision=float_precision)
+    return pandas_df.to_json(double_precision=float_precision, date_format=date_format)
 
 
 def to_pandas(df: pl.DataFrame) -> pd.DataFrame:

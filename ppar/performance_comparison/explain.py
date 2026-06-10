@@ -938,7 +938,7 @@ def _dataset_count(findings: pl.DataFrame, dataset: str) -> int:
     """Return the number of findings for a normalized dataset."""
     if findings.is_empty():
         return 0
-    return findings.filter(pl.col(DATASET) == dataset).height
+    return int(findings.filter(pl.col(DATASET) == dataset).height)
 
 
 def _direct_input_count(findings: pl.DataFrame) -> int:
@@ -955,7 +955,7 @@ def _role_count(findings: pl.DataFrame, evidence_role: str) -> int:
     """Return the number of findings for an evidence role."""
     if findings.is_empty():
         return 0
-    return findings.filter(pl.col(EVIDENCE_ROLE) == evidence_role).height
+    return int(findings.filter(pl.col(EVIDENCE_ROLE) == evidence_role).height)
 
 
 def _role_dataset_count(
@@ -966,9 +966,11 @@ def _role_dataset_count(
     """Return the number of findings for an evidence role and dataset."""
     if findings.is_empty():
         return 0
-    return findings.filter(
-        (pl.col(EVIDENCE_ROLE) == evidence_role) & (pl.col(DATASET) == dataset)
-    ).height
+    return int(
+        findings.filter(
+            (pl.col(EVIDENCE_ROLE) == evidence_role) & (pl.col(DATASET) == dataset)
+        ).height
+    )
 
 
 def _evidence_breakdown_rows(
