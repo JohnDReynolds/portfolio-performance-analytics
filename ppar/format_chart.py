@@ -294,7 +294,7 @@ def overall_attribution(
         ax.invert_yaxis()
 
         # Set the x-axis ticks min/max, and format them to 2 decimals.
-        ax.set_xticks(np.linspace(overall_min, overall_max, num=7))  # type: ignore
+        ax.set_xticks(np.linspace(overall_min, overall_max, num=7))
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
 
         # Add vertical grid line at x == 0

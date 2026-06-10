@@ -16,9 +16,10 @@ import ppar.utilities as util
 
 ErrorMessage = Callable[[str], str]
 SourceType = Literal["classification", "mapping"]
+_DefaultDateKey = Literal["from_date", "thru_date"]
 _DEFAULTS_KEY = "defaults"
-_DEFAULT_FROM_DATE_KEY = "from_date"
-_DEFAULT_THRU_DATE_KEY = "thru_date"
+_DEFAULT_FROM_DATE_KEY: _DefaultDateKey = "from_date"
+_DEFAULT_THRU_DATE_KEY: _DefaultDateKey = "thru_date"
 _DEFAULT_CLASSIFICATION_KEY = "classification"
 _AXYS_PORTFOLIO_NAME_SEPARATOR = " - "
 

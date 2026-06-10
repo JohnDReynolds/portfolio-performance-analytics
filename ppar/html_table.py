@@ -366,7 +366,7 @@ def riskstatistics_table(
 
 def _attribution_layout(
     view_name: str, classification_label: str | None
-) -> tuple[tuple[ColumnSpec, ...], tuple[SpannerSpec, ...]]:
+) -> tuple[tuple[ColumnSpec, ...], Sequence[SpannerSpec]]:
     """Return column and spanner specifications for an attribution view.
 
     Args:
@@ -410,7 +410,7 @@ def _attribution_layout(
         columns = date_columns + _number_columns(
             cols.VIEW_CUMULATIVE_ATTRIBUTION_COLUMNS, entity_labels
         )
-        spanners = (
+        spanners: Sequence[SpannerSpec] = (
             time_period_spanner,
             SpannerSpec("Returns", cols.RETURN_COLUMNS),
             SpannerSpec("Cumulative Returns", cols.CUMULATIVE_RETURN_COLUMNS),

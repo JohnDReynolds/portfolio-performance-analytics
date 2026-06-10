@@ -335,6 +335,10 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
         if portfolio_performance.is_empty():
             return None
 
+        def portfolio_error_message(message: str) -> str:
+            """Return an error message scoped to the current portfolio code."""
+            return self._error_message(message, portfolio_code)
+
         security_performance = self._loader.load(
             self._security_performance_path,
             "security_performance_columns",
@@ -343,7 +347,7 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
         portfolio_performance, security_performance = reconciliation.filter_to_common_periods(
             portfolio_performance,
             security_performance,
-            lambda message, code=portfolio_code: self._error_message(message, code),
+            portfolio_error_message,
         )
         (
             security_performance,
@@ -351,7 +355,7 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
         ) = reconciliation.derive_security_performance_for_all_periods(
             portfolio_performance,
             security_performance,
-            lambda message, code=portfolio_code: self._error_message(message, code),
+            portfolio_error_message,
         )
         difference = reconciliation.unreconciled_difference(unreconciled_periods)
         if reconciliation.exceeds_fatal_tolerance(difference):
