@@ -385,29 +385,35 @@ Transaction impact output separates configured policy from review diagnostics:
 - `transaction_impact_policy`: The YAML-selected policy label that applies to
   the row, such as `external_flow:evidence_only`.
 - `transaction_impact_diagnostic`: A review-only explanation of why a
-  transaction row is not estimated or why a future method is eligible but not
-  active.
+  transaction row is not estimated or why a cross-check-only method has a
+  separate diagnostic estimate.
+- `transaction_impact_diagnostic_estimate`: A review-only return-impact
+  estimate that is shown beside transaction evidence but excluded from
+  contribution totals.
 
-Diagnostics do not activate an estimate and must not be interpreted as an
-aggregation instruction. They are intended to make reviewer output auditable
-while impact formulas remain gated. Current diagnostic messages include:
+Diagnostics must not be interpreted as an aggregation instruction. They are
+intended to make reviewer output auditable while full impact formulas remain
+gated. Current diagnostic messages include:
 
 - `external-flow evidence-only policy`: YAML explicitly says external-flow
   transaction rows remain review evidence.
 - `external-flow impact method missing`: The row has external-flow semantics,
   but no supported external-flow impact method is configured.
-- `modified_dietz eligible but not active`: Internal checks have all required
-  Modified Dietz inputs, but the method is still not active.
+- `modified_dietz cross-check estimate`: Internal checks have all required
+  Modified Dietz inputs and the row has a diagnostic estimate excluded from
+  contribution totals.
 - `modified_dietz missing inputs: ...`: Internal checks found missing or
   disqualifying Modified Dietz inputs such as `flow date`,
   `portfolio period`, `nonzero begin_market_value denominator`, or
   `in-period flow date`.
 
-Planned external-flow method names are reserved and rejected until their formulas
-and YAML inputs are implemented:
+Planned external-flow method names are reserved and rejected until their
+formulas and YAML inputs are implemented, except for the narrow
+cross-check-only Modified Dietz method:
 
 - `modified_dietz`: Requires flow timing convention, day-count convention,
-  beginning/end inclusion rule, and denominator source.
+  beginning/end inclusion rule, denominator source, and
+  `double_count_policy: cross_check_only`.
 - `subperiod_linked`: Requires subperiod boundary rule, linking formula, and
   large-flow threshold or explicit breakpoints.
 - `unweighted_flow_delta`: Requires explicit reviewer acknowledgement that no
@@ -446,8 +452,11 @@ Proposed `modified_dietz` fields:
   aggregation or are only cross-check evidence when portfolio `flow` deltas are
   present. Allowed value: `cross_check_only`.
 
-This block is design-only today. It is rejected until the Modified Dietz
-formula, allowed values, and double-counting rules are implemented and tested.
+This block is supported only for cross-check-only diagnostics. Eligible
+external-flow transaction amount rows receive
+`transaction_impact_diagnostic_estimate`; they do not receive
+`estimated_return_impact`, and they are not summed into impact coverage or
+cause-summary totals.
 
 Design reference examples for `modified_dietz` use:
 
@@ -464,19 +473,18 @@ days under `beginning_of_day` treatment and 19 remaining days under
 - `beginning_of_day`: `300 * (20 / 30) / 10000 = 0.02`
 - `end_of_day`: `300 * (19 / 30) / 10000 = 0.019`
 
-These examples are not active production estimates. They are fixtures for a
-future implementation and must remain aligned with the guardrail tests. A
-private calculation helper may exist for these examples, but YAML
-`modified_dietz` remains rejected until impact selection, reporting, and
-double-counting behavior are implemented.
+These examples define the active cross-check-only calculation and must remain
+aligned with the guardrail tests. The result is diagnostic evidence only until
+impact selection, reporting, and double-counting behavior explicitly allow an
+aggregate treatment.
 
 The staged activation path for external-flow estimates is:
 
 1. Validate YAML strictly so every method variability is explicit.
 2. Carry the YAML method as a typed internal policy.
 3. Surface eligibility diagnostics in review output without estimating.
-4. Enable a cross-check-only Modified Dietz estimate, with no aggregation into
-   root-cause totals while double-counting risk remains.
+4. Enable a cross-check-only Modified Dietz diagnostic estimate, with no
+   aggregation into root-cause totals while double-counting risk remains.
 5. Add any aggregate treatment only after linkage to portfolio-level flow
    deltas is explicitly modeled and tested.
 
@@ -1178,9 +1186,9 @@ Current supported impact estimates:
      than implying a missing formula.
    - External-flow rows may carry `transaction_impact_diagnostic` values that
      distinguish evidence-only policy, missing method configuration, and
-     inactive Modified Dietz eligibility checks. These diagnostics are
-     reviewer-facing explanations only; they do not populate
-     `estimated_return_impact`.
+     Modified Dietz cross-check estimates. Eligible Modified Dietz rows may
+     also carry `transaction_impact_diagnostic_estimate`. These diagnostics are
+     reviewer-facing only; they do not populate `estimated_return_impact`.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
@@ -1249,9 +1257,10 @@ new datasets.
 
 - Strengthen the contribution-candidate helper only where the math is
   defensible.
-- Keep external-flow diagnostics visible until Modified Dietz is activated.
-  Diagnostics should name missing inputs and inactive methods without implying
-  that an estimate has been accepted into contribution totals.
+- Keep external-flow diagnostics visible while Modified Dietz is limited to
+  cross-check-only estimates. Diagnostics should name missing inputs and
+  inactive methods without implying that an estimate has been accepted into
+  contribution totals.
 - When enabling Modified Dietz, start with `double_count_policy:
   cross_check_only` so the estimate can be reviewed beside portfolio-level
   flow deltas before any aggregate treatment is considered.

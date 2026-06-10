@@ -35,6 +35,7 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_IMPACT_DIAGNOSTIC,
+    TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
@@ -191,6 +192,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     TRANSACTION_SEMANTICS_SOURCE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_DIAGNOSTIC,
+    TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
@@ -1058,6 +1060,9 @@ def _ranked_evidence_row(
         TRANSACTION_SEMANTICS_SOURCE: finding[TRANSACTION_SEMANTICS_SOURCE],
         TRANSACTION_IMPACT_POLICY: finding[TRANSACTION_IMPACT_POLICY],
         TRANSACTION_IMPACT_DIAGNOSTIC: finding[TRANSACTION_IMPACT_DIAGNOSTIC],
+        TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (
+            finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
+        ),
         DELTA_B_MINUS_A: delta,
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
@@ -1239,9 +1244,10 @@ def _modified_dietz_flow_weight(
     """Return a Modified Dietz flow weight for one dated external flow.
 
     Notes:
-        This helper is intentionally private and not wired into production
-        impact selection yet. YAML ``modified_dietz`` remains rejected until
-        the integration and double-counting policy are implemented.
+        This helper is intentionally private and supports the
+        cross-check-only Modified Dietz diagnostic path. It must not be used
+        for aggregate contribution totals unless double-counting behavior is
+        explicitly modeled.
     """
     period_days = (thru_date - from_date).days + 1
     if period_days <= 0:
@@ -1842,8 +1848,8 @@ def _transaction_impact_diagnostic_inputs(value: object) -> list[str]:
         return [EXTERNAL_FLOW_EVIDENCE_ONLY_POLICY]
     if value == "external-flow impact method missing":
         return [EXTERNAL_FLOW_IMPACT_METHOD]
-    if value == "modified_dietz eligible but not active":
-        return ["modified_dietz not active"]
+    if value == "modified_dietz cross-check estimate":
+        return ["modified_dietz cross-check only"]
     prefix = "modified_dietz missing inputs: "
     if value.startswith(prefix):
         missing = value.removeprefix(prefix)
@@ -2064,6 +2070,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             TRANSACTION_SEMANTICS_SOURCE: pl.String,
             TRANSACTION_IMPACT_POLICY: pl.String,
             TRANSACTION_IMPACT_DIAGNOSTIC: pl.String,
+            TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: pl.Float64,
             DELTA_B_MINUS_A: pl.Float64,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,

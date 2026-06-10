@@ -202,7 +202,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertNotIn("transaction sign and flow semantics", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
         self.assertIn("Transaction Impact Diagnostic", top_evidence)
-        self.assertIn("| mixed |  |  | -100 |", top_evidence)
+        self.assertIn("| mixed |  |  |  | -100 |", top_evidence)
 
     def test_markdown_report_shows_source_loaded_transaction_estimate(self) -> None:
         """Source transaction semantics flow through to report impact estimates."""
@@ -239,10 +239,55 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("| -10 |", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
         self.assertIn("Transaction Impact Diagnostic", top_evidence)
-        self.assertIn("| source |  |  | -10 |", top_evidence)
+        self.assertIn("| source |  |  |  | -10 |", top_evidence)
         self.assertIn("transaction_amount_delta_over_return_denominator", top_evidence)
         self.assertIn("source-signed transaction amount", top_evidence)
         self.assertNotIn("transaction sign and flow semantics", report)
+
+    def test_markdown_report_shows_modified_dietz_cross_check_estimate(self) -> None:
+        """Modified Dietz estimates appear only as diagnostic cross-checks."""
+        with tempfile.TemporaryDirectory() as directory:
+            specification_path = _write_transaction_estimate_specification(
+                Path(directory)
+            )
+            for snapshot_name, amount in (
+                ("snapshot_a", "100.00"),
+                ("snapshot_b", "110.00"),
+            ):
+                transaction_path = Path(directory) / snapshot_name / "transactions.csv"
+                transaction_path.write_text(
+                    "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
+                    "PRICE,AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,DEP,1,100.00,"
+                    f"{amount},cash in,external\n",
+                    encoding="utf-8",
+                )
+            specification_path.write_text(
+                specification_path.read_text(encoding="utf-8")
+                + "\n"
+                + "transaction_impact_methods:\n"
+                + "  external_flow:\n"
+                + "    method: modified_dietz\n"
+                + "    flow_timing: trade_date\n"
+                + "    day_count: actual_days\n"
+                + "    inclusion_rule: beginning_of_day\n"
+                + "    denominator_source: begin_market_value\n"
+                + "    double_count_policy: cross_check_only\n",
+                encoding="utf-8",
+            )
+
+            findings = compare_snapshots(specification_path)
+            report = performance_comparison_markdown_report(findings)
+
+        top_evidence = _section(
+            report,
+            "## Top Evidence",
+            "## Suppressed Findings Appendix",
+        )
+
+        self.assertIn("modified_dietz cross-check estimate", top_evidence)
+        self.assertIn("0.005483870968", top_evidence)
+        self.assertIn("|  | no_estimate |", top_evidence)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
         """HTML reports include the same reviewer-facing sections and tables."""

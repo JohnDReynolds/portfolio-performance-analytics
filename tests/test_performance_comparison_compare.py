@@ -8,6 +8,7 @@ from typing import cast
 import unittest
 
 # Third-party imports
+import polars as pl
 import yaml
 
 # Project imports
@@ -21,7 +22,11 @@ from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.compare import (
     _modified_dietz_external_flow_eligibility,
     _transaction_impact_policies,
-    _validated_reserved_modified_dietz_policy,
+    _validated_modified_dietz_policy,
+)
+from ppar.performance_comparison.explain import (
+    ESTIMATED_RETURN_IMPACT,
+    portfolio_period_contribution_candidates,
 )
 from ppar.performance_comparison.findings import (
     CASH_FLOW_SIGN,
@@ -60,6 +65,7 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_IMPACT_DIAGNOSTIC,
+    TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
@@ -83,8 +89,8 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
         snapshot_path = directory / snapshot_name
         snapshot_path.mkdir()
         (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
-            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,1000.00,0.01\n",
             encoding="utf-8",
         )
         (snapshot_path / "transactions.csv").write_text(
@@ -114,8 +120,8 @@ def _write_transaction_period_specification(directory: Path) -> Path:
         snapshot_path = directory / snapshot_name
         snapshot_path.mkdir()
         (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
-            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,1000.00,0.01\n",
             encoding="utf-8",
         )
         (snapshot_path / "transactions.csv").write_text(
@@ -908,7 +914,7 @@ class TestPerformanceComparison(unittest.TestCase):
     def test_transaction_modified_dietz_policy_preserves_explicit_yaml_fields(
         self,
     ) -> None:
-        """Reserved Modified Dietz policy keeps every explicit YAML convention."""
+        """Modified Dietz policy keeps every explicit YAML convention."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
@@ -921,7 +927,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 "double_count_policy": "cross_check_only",
             }
 
-            policy = _validated_reserved_modified_dietz_policy(
+            policy = _validated_modified_dietz_policy(
                 specification,
                 external_flow_value,
             )
@@ -940,7 +946,7 @@ class TestPerformanceComparison(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
-            policy = _validated_reserved_modified_dietz_policy(
+            policy = _validated_modified_dietz_policy(
                 specification,
                 {
                     "method": "modified_dietz",
@@ -1009,7 +1015,7 @@ class TestPerformanceComparison(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
-            policy = _validated_reserved_modified_dietz_policy(
+            policy = _validated_modified_dietz_policy(
                 specification,
                 {
                     "method": "modified_dietz",
@@ -1045,7 +1051,7 @@ class TestPerformanceComparison(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
-            policy = _validated_reserved_modified_dietz_policy(
+            policy = _validated_modified_dietz_policy(
                 specification,
                 {
                     "method": "modified_dietz",
@@ -1166,8 +1172,8 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn("external_flow.method", str(context.exception))
 
-    def test_transaction_modified_dietz_design_contract_remains_rejected(self) -> None:
-        """A fully shaped Modified Dietz YAML block is design-only today."""
+    def test_transaction_modified_dietz_cross_check_estimate_is_loaded(self) -> None:
+        """A fully shaped Modified Dietz policy emits review-only estimates."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
@@ -1186,12 +1192,166 @@ class TestPerformanceComparison(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaises(PpaError) as context:
+            specification = PerformanceComparisonSpecification(specification_path)
+            findings = PerformanceComparison(specification).compare_transactions()
+            amount_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertEqual(
+                amount_finding[TRANSACTION_IMPACT_POLICY],
+                "external_flow:modified_dietz",
+            )
+            self.assertEqual(
+                amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC],
+                "modified_dietz cross-check estimate",
+            )
+            self.assertAlmostEqual(
+                cast(float, amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
+                10.0 * (17.0 / 31.0) / 1000.0,
+            )
+            policies = _transaction_impact_policies(specification)
+            self.assertEqual(
+                policies["external_flow"].finding_label,
+                "external_flow:modified_dietz",
+            )
+
+    def test_transaction_modified_dietz_cross_check_missing_inputs_are_reported(
+        self,
+    ) -> None:
+        """Modified Dietz stays diagnostic-only when row-level inputs are missing."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "external_flow": {
+                    "method": "modified_dietz",
+                    "flow_timing": "settlement_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                }
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            findings = PerformanceComparison(
+                PerformanceComparisonSpecification(specification_path)
+            ).compare_transactions()
+            amount_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertEqual(
+                amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC],
+                "modified_dietz cross-check estimate",
+            )
+            self.assertAlmostEqual(
+                cast(float, amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
+                10.0 * (16.0 / 31.0) / 1000.0,
+            )
+
+    def test_transaction_modified_dietz_out_of_period_stays_unestimated(self) -> None:
+        """Modified Dietz cross-check estimates require in-period flow dates."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_outside_period_specification(
+                Path(temp_dir)
+            )
+            for snapshot_name, amount in (
+                ("snapshot_a", "100.00"),
+                ("snapshot_b", "110.00"),
+            ):
+                transaction_path = (
+                    Path(temp_dir) / snapshot_name / "transactions.csv"
+                )
+                transaction_path.write_text(
+                    "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
+                    "PRICE,AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "TXN1,PORT_A,AAPL,2025-06-15,2025-06-16,BUY,1,100.00,"
+                    f"{amount},cash out,external\n",
+                    encoding="utf-8",
+                )
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "external_flow": {
+                    "method": "modified_dietz",
+                    "flow_timing": "trade_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                }
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            findings = PerformanceComparison(
+                PerformanceComparisonSpecification(specification_path)
+            ).compare_transactions()
+            amount_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertIn(
+                "modified_dietz missing inputs",
+                cast(str, amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC]),
+            )
+            self.assertIsNone(
+                amount_finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
+            )
+
+    def test_transaction_modified_dietz_cross_check_is_not_contribution_estimate(
+        self,
+    ) -> None:
+        """Modified Dietz diagnostics do not populate regular impact totals."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            (Path(temp_dir) / "snapshot_b" / "portperf.csv").write_text(
+                "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+                "PORT_A,2025-05-01,2025-05-31,1000.00,0.02\n",
+                encoding="utf-8",
+            )
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "external_flow": {
+                    "method": "modified_dietz",
+                    "flow_timing": "trade_date",
+                    "day_count": "actual_days",
+                    "inclusion_rule": "beginning_of_day",
+                    "denominator_source": "begin_market_value",
+                    "double_count_policy": "cross_check_only",
+                }
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            findings = findings_to_polars(
                 PerformanceComparison(
                     PerformanceComparisonSpecification(specification_path)
-                )
+                ).compare()
+            )
+            candidates = portfolio_period_contribution_candidates(findings)
+            transaction_amount = candidates.filter(
+                (pl.col(FINDING_CODE) == PC_TXN_AMT)
+            ).row(0, named=True)
 
-            self.assertIn("external_flow.method", str(context.exception))
+            self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
+            self.assertIsNotNone(
+                transaction_amount[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
+            )
 
     def test_transaction_impact_methods_reject_malformed_yaml(self) -> None:
         """Transaction impact method YAML must use the supported contract."""

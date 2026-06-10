@@ -32,6 +32,7 @@ TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 TRANSACTION_IMPACT_POLICY = "transaction_impact_policy"
 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = "external_flow:evidence_only"
 TRANSACTION_IMPACT_DIAGNOSTIC = "transaction_impact_diagnostic"
+TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE = "transaction_impact_diagnostic_estimate"
 MESSAGE = "message"
 SUPPRESSED = "suppressed"
 
@@ -85,6 +86,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     TRANSACTION_SEMANTICS_SOURCE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_DIAGNOSTIC,
+    TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
     DELTA_B_MINUS_A,
@@ -124,6 +126,8 @@ class Finding:
             transaction impact treatment.
         transaction_impact_diagnostic: Optional review diagnostic explaining
             inactive or ineligible transaction impact treatment.
+        transaction_impact_diagnostic_estimate: Optional review-only impact
+            estimate excluded from contribution totals.
         snapshot_a_value: Value from snapshot A.
         snapshot_b_value: Value from snapshot B.
         delta_b_minus_a: Numeric difference calculated as B minus A.
@@ -152,6 +156,7 @@ class Finding:
     transaction_semantics_source: object | None = None
     transaction_impact_policy: object | None = None
     transaction_impact_diagnostic: object | None = None
+    transaction_impact_diagnostic_estimate: float | None = None
     snapshot_a_value: object | None = None
     snapshot_b_value: object | None = None
     delta_b_minus_a: float | None = None
@@ -180,6 +185,9 @@ class Finding:
             TRANSACTION_SEMANTICS_SOURCE: self.transaction_semantics_source,
             TRANSACTION_IMPACT_POLICY: self.transaction_impact_policy,
             TRANSACTION_IMPACT_DIAGNOSTIC: self.transaction_impact_diagnostic,
+            TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (
+                self.transaction_impact_diagnostic_estimate
+            ),
             SNAPSHOT_A_VALUE: self.snapshot_a_value,
             SNAPSHOT_B_VALUE: self.snapshot_b_value,
             DELTA_B_MINUS_A: self.delta_b_minus_a,

@@ -706,6 +706,18 @@ class PerformanceComparison:
                                     None,
                                 )
                             ),
+                            transaction_impact_diagnostic_estimate=(
+                                self._transaction_impact_diagnostic_estimate(
+                                    row,
+                                    dataset,
+                                    column,
+                                    row.get(pc_cols.PORTFOLIO_ID),
+                                    row.get(pc_cols.FROM_DATE),
+                                    row.get(pc_cols.THRU_DATE),
+                                    None,
+                                    None,
+                                )
+                            ),
                             snapshot_a_value=snapshot_a_value,
                             snapshot_b_value=snapshot_b_value,
                             message=f"{dataset} {column!r} changed.",
@@ -809,6 +821,18 @@ class PerformanceComparison:
                                     from_date,
                                     thru_date,
                                     return_denominator,
+                                )
+                            ),
+                            transaction_impact_diagnostic_estimate=(
+                                self._transaction_impact_diagnostic_estimate(
+                                    row,
+                                    dataset,
+                                    column,
+                                    portfolio_id,
+                                    from_date,
+                                    thru_date,
+                                    return_denominator,
+                                    delta,
                                 )
                             ),
                             snapshot_a_value=snapshot_a_value,
@@ -940,9 +964,54 @@ class PerformanceComparison:
             denominator=denominator,
         )
         if eligibility.eligible:
-            return "modified_dietz eligible but not active"
+            return "modified_dietz cross-check estimate"
         missing = ", ".join(eligibility.missing_inputs)
         return f"modified_dietz missing inputs: {missing}"
+
+    def _transaction_impact_diagnostic_estimate(
+        self,
+        row: Mapping[str, object],
+        dataset: str,
+        column: str,
+        portfolio_id: object | None,
+        from_date: object | None,
+        thru_date: object | None,
+        denominator: object | None,
+        delta: object | None,
+    ) -> float | None:
+        """Return a review-only Modified Dietz cross-check estimate."""
+        if dataset != pc_cols.TRANSACTIONS or column != pc_cols.AMOUNT:
+            return None
+        policy = self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
+        eligibility = _modified_dietz_external_flow_eligibility(
+            row=row,
+            policy=policy,
+            portfolio_id=portfolio_id,
+            from_date=from_date,
+            thru_date=thru_date,
+            denominator=denominator,
+        )
+        if not eligibility.eligible or eligibility.flow_date is None:
+            return None
+        if (
+            not isinstance(delta, (int, float))
+            or isinstance(delta, bool)
+            or not isinstance(denominator, (int, float))
+            or isinstance(denominator, bool)
+            or not isinstance(from_date, dt.date)
+            or not isinstance(thru_date, dt.date)
+            or policy is None
+            or policy.inclusion_rule is None
+        ):
+            return None
+        return _modified_dietz_external_flow_impact(
+            flow_delta=float(delta),
+            denominator=float(denominator),
+            from_date=from_date,
+            thru_date=thru_date,
+            flow_date=eligibility.flow_date,
+            inclusion_rule=policy.inclusion_rule,
+        )
 
     @staticmethod
     def _return_denominator(
@@ -1223,15 +1292,16 @@ def _transaction_impact_policies(
             (
                 f"{specification.path}: "
                 f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_EXTERNAL_FLOW_KEY}."
-                f"{_METHOD_KEY} is required and must be "
-                f"{_EVIDENCE_ONLY_METHOD!r} until an external-flow impact "
-                "formula is explicitly supported."
+                f"{_METHOD_KEY} is required."
             ),
             504,
         )
     if method == _MODIFIED_DIETZ_METHOD:
-        _validated_reserved_modified_dietz_policy(specification, external_flow_value)
-        _raise_unsupported_external_flow_method(specification, method)
+        policies[_EXTERNAL_FLOW_KEY] = _validated_modified_dietz_policy(
+            specification,
+            external_flow_value,
+        )
+        return policies
     if method != _EVIDENCE_ONLY_METHOD:
         _raise_unsupported_external_flow_method(specification, method)
 
@@ -1242,16 +1312,11 @@ def _transaction_impact_policies(
     return policies
 
 
-def _validated_reserved_modified_dietz_policy(
+def _validated_modified_dietz_policy(
     specification: PerformanceComparisonSpecification,
     external_flow_value: Mapping[str, object],
 ) -> _TransactionImpactPolicy:
-    """Validate and preserve the proposed Modified Dietz YAML policy shape.
-
-    The returned object is not yet used for impact selection. Validation occurs
-    before rejection so the reserved YAML contract stays precise and ready for
-    future wiring without inferring omitted financial conventions.
-    """
+    """Validate and preserve the Modified Dietz YAML policy shape."""
     unsupported_keys = set(external_flow_value) - _MODIFIED_DIETZ_REQUIRED_KEYS
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
@@ -1346,6 +1411,47 @@ def _modified_dietz_external_flow_eligibility(
         missing_inputs=tuple(missing_inputs),
         flow_date=flow_date,
     )
+
+
+def _modified_dietz_external_flow_impact(
+    *,
+    flow_delta: float,
+    denominator: float,
+    from_date: dt.date,
+    thru_date: dt.date,
+    flow_date: dt.date,
+    inclusion_rule: str,
+) -> float:
+    """Return a Modified Dietz cross-check estimate for one external flow."""
+    flow_weight = _modified_dietz_flow_weight(
+        from_date=from_date,
+        thru_date=thru_date,
+        flow_date=flow_date,
+        inclusion_rule=inclusion_rule,
+    )
+    return flow_delta * flow_weight / denominator
+
+
+def _modified_dietz_flow_weight(
+    *,
+    from_date: dt.date,
+    thru_date: dt.date,
+    flow_date: dt.date,
+    inclusion_rule: str,
+) -> float:
+    """Return the actual-days Modified Dietz flow weight."""
+    period_days = (thru_date - from_date).days + 1
+    if period_days <= 0:
+        raise ValueError("period must include at least one day")
+    if not from_date <= flow_date <= thru_date:
+        raise ValueError("flow_date must be inside the period")
+
+    remaining_days = (thru_date - flow_date).days
+    if inclusion_rule == "beginning_of_day":
+        remaining_days += 1
+    elif inclusion_rule != "end_of_day":
+        raise ValueError("inclusion_rule must be beginning_of_day or end_of_day")
+    return remaining_days / period_days
 
 
 def _modified_dietz_flow_date(
