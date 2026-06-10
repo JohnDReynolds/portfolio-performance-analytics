@@ -57,10 +57,54 @@ charts = [
     "matplotlib>=3.8.2",
     "seaborn>=0.13.2",
 ]
+# Developer tooling used for local checks and editor feedback.
+dev = [
+    "mypy>=1.10",
+    "pylint>=4.0",
+    "pyright>=1.1.409",
+    "types-PyYAML",
+]
 
 [project.scripts]
 # Console entry points installed with the package.
 ppar-demo = "ppar.demo:main"
+
+[tool.mypy]
+python_version = "3.12"
+files = ["ppar"]
+ignore_missing_imports = true
+follow_imports = "skip"
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[tool.pyright]
+include = ["ppar", "tests"]
+extraPaths = ["tests"]
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+
+[tool.pylint.main]
+persistent = false
+py-version = "3.12"
+
+[tool.pylint.format]
+max-line-length = 99
+
+[tool.pylint."messages control"]
+enable = [
+    "duplicate-code",
+    "too-many-public-methods",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "unused-argument",
+    "redefined-outer-name",
+    "broad-exception-caught",
+]
 
 [tool.pylint.design]
 max-args = 8
