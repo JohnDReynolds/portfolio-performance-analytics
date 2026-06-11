@@ -260,7 +260,7 @@ class _ModifiedDietzEligibility:
 
     Attributes:
         eligible: Whether the row has every explicitly configured input needed
-            for a future Modified Dietz cross-check estimate.
+            for a Modified Dietz cross-check estimate.
         missing_inputs: Human-readable missing or disqualifying inputs.
         flow_date: YAML-selected transaction flow date, when available.
     """
@@ -1386,9 +1386,9 @@ def _modified_dietz_external_flow_eligibility(
 ) -> _ModifiedDietzEligibility:
     """Return whether a transaction row has explicit Modified Dietz inputs.
 
-    This is a guardrail for future integration only. It deliberately does not
-    activate a return-impact estimate while public YAML ``modified_dietz`` is
-    still rejected.
+    This is a guardrail for the diagnostic-only Modified Dietz path. It
+    deliberately does not make the estimate part of regular contribution
+    totals.
     """
     missing_inputs: list[str] = []
     flow_date = _modified_dietz_flow_date(row, policy)

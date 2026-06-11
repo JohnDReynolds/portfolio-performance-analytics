@@ -388,14 +388,15 @@ The supported `transaction_impact_methods` contract is intentionally narrow:
 - Top-level value must be a mapping.
 - Supported key: `external_flow`.
 - `external_flow` must be a mapping.
-- Required `external_flow.method` value: `evidence_only`.
+- Supported `external_flow.method` values: `evidence_only` and
+  `modified_dietz`.
 
 This policy documents that external-flow transaction differences should remain
-review evidence rather than receive a formula-driven impact estimate. Missing
-or unsupported method names are rejected so the comparison never silently
-chooses a return convention. Other external-flow methods, such as Modified
-Dietz day-weighting or subperiod linking, must be added as explicit supported
-YAML methods before they can be used.
+review evidence unless YAML explicitly selects a supported diagnostic
+cross-check. Missing or unsupported method names are rejected so the comparison
+never silently chooses a return convention. `modified_dietz` is supported only
+as a cross-check diagnostic: its estimate is reported beside transaction
+evidence and is excluded from regular contribution totals.
 
 Transaction impact output separates configured policy from review diagnostics:
 
@@ -424,9 +425,9 @@ gated. Current diagnostic messages include:
   `portfolio period`, `nonzero begin_market_value denominator`, or
   `in-period flow date`.
 
-Planned external-flow method names are reserved and rejected until their
+Planned external-flow method names remain reserved and rejected until their
 formulas and YAML inputs are implemented, except for the narrow
-cross-check-only Modified Dietz method:
+cross-check-only `modified_dietz` diagnostic method:
 
 - `modified_dietz`: Requires flow timing convention, day-count convention,
   beginning/end inclusion rule, denominator source, and
@@ -441,7 +442,7 @@ portfolio-level `flow` deltas or only explanatory cross-checks. This prevents
 double counting when portfolio performance rows already include the external
 flow effect.
 
-The proposed `modified_dietz` YAML contract is:
+The cross-check-only `modified_dietz` YAML contract is:
 
 ```yaml
 transaction_impact_methods:
@@ -454,7 +455,7 @@ transaction_impact_methods:
     double_count_policy: cross_check_only
 ```
 
-Proposed `modified_dietz` fields:
+Supported `modified_dietz` fields:
 
 - `flow_timing`: Which transaction date anchors the flow weight, such as
   `trade_date` or `settlement_date`. Allowed values: `trade_date`,

@@ -1,4 +1,4 @@
-"""Design-only examples for future Modified Dietz transaction impact support."""
+"""Reference examples for Modified Dietz transaction impact diagnostics."""
 
 # Python imports
 from datetime import date
@@ -12,7 +12,7 @@ from ppar.performance_comparison.explain import (
 
 
 class TestModifiedDietzDesign(unittest.TestCase):
-    """Document expected examples for future Modified Dietz implementation."""
+    """Document expected examples for Modified Dietz cross-check diagnostics."""
 
     def test_beginning_of_day_flow_uses_inclusive_remaining_days(self) -> None:
         """A mid-period flow uses inclusive remaining days by default."""

@@ -1100,7 +1100,7 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertIn("external_flow.method", str(context.exception))
 
     def test_transaction_modified_dietz_design_contract_validates_fields(self) -> None:
-        """Modified Dietz YAML fields have explicit allowed values before support."""
+        """Modified Dietz YAML fields have explicit allowed cross-check values."""
         scenarios = [
             ({"flow_timing": "activity_date"}, "external_flow.flow_timing"),
             ({"day_count": "business_days"}, "external_flow.day_count"),
@@ -1171,6 +1171,10 @@ class TestPerformanceComparison(unittest.TestCase):
                         )
 
                     self.assertIn("external_flow.method", str(context.exception))
+                    self.assertIn(
+                        "reserved but not implemented",
+                        str(context.exception),
+                    )
 
     def test_transaction_modified_dietz_cross_check_estimate_is_loaded(self) -> None:
         """A fully shaped Modified Dietz policy emits review-only estimates."""
