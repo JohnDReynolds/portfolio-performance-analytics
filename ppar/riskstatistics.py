@@ -44,7 +44,7 @@ class _Statistic(Enum):
     MEAN_RETURN_ANNUALIZED = "Annualized Mean Return"
     STANDARD_DEVIATION = "Standard Deviation"
     STANDARD_DEVIATION_ANNUALIZED = "Annualized Standard Deviation"
-    # Downside Rirk
+    # Downside Risk
     DOWNSIDE_PROBABILITY = "Downside Probability"  # aka "Shortfall Risk"
     EXPECTED_DOWNSIDE_VALUE = "Expected Downside Value"
     DOWNSIDE_DEVIATION = "Downside Deviation"
@@ -143,7 +143,7 @@ class RiskStatistics:
         # Set the currency symbol used when presenting the VaR.
         self._currency_symbol = portfolio_value[1]
 
-        # Set the dates, names and returns depthru on the input parameters.
+        # Set dates, names, and returns from the input parameters.
         if isinstance(returns[0], Performance) and isinstance(returns[1], Performance):
             portfolio_totals = returns[0].period_totals()
             benchmark_totals = returns[1].period_totals()

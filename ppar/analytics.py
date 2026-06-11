@@ -163,7 +163,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         self._attributions: dict[str | None, Attribution] = {}  # key = classification_name
         self._riskstatistics: RiskStatistics | None = None
 
-        # Get a tuple of the 2 Performance classes.  portfolio == 0, benchmark == 1.
+        # Get a tuple of the two Performance objects. 0 = portfolio, 1 = benchmark.
         self._performances = (
             # Portfolio
             Performance(
@@ -183,14 +183,14 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             ),
         )
 
-        # Get the from_dates and thru_dates for all subperiods that are common between the
-        # two Performances.
+        # Get the from dates and thru dates for all subperiods that are common between the
+        # two Performance objects.
         self._subperiod_dates = self._calculate_subperiod_dates(
             f"from {util.date_str(from_date)} to {util.date_str(thru_date)}"
         )
 
-        # Now that the dates have been firmly established, remove the extraneous rows (dates) from
-        # the Performances.
+        # Now that the dates have been firmly established, remove extraneous dates from
+        # the Performance objects.
         for perf in self._performances:
             perf.reset_narrow_df(
                 perf.narrow_df.lazy()
@@ -338,7 +338,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             PpaError: If a Performance has fewer rows than the calculated subperiod
                 date list.
         """
-        # Iterate through the portfolio and benchmark Performances.
+        # Iterate through the portfolio and benchmark Performance objects.
         for performance in self._performances:
             quantity_of_periods = performance.narrow_df.select(cols.DATE_COLUMNS).unique().height
             if quantity_of_periods < len(self._subperiod_dates):
@@ -555,9 +555,8 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
                 for source in mapping_data_sources
             )
 
-        # If the classification_name is empty, and the portflio and benchmark have common
-        # non-empty classification_names, then set the classificcation_name to that common
-        # classification_name.
+        # If the classification name is omitted and the portfolio and benchmark share a
+        # non-empty classification name, use that common classification.
         if (
             classification_name is None
             and self._performances[0].classification_name is not None
@@ -566,9 +565,9 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         ):
             classification_name = self._performances[0].classification_name
 
-        # If the classification_name is unknown, and either the portfolio or benchmark have known
-        # classificiation names, then mandate that the classification_name is specified.  Note
-        # that this wll still allow for all 3 of the classifications to be unknown.
+        # If the target classification is unknown but either source Performance has a
+        # known classification, require an explicit target. This still allows all
+        # classifications to be unknown for identifier-level attribution.
         if classification_name is None and (
             (self._performances[0].classification_name is not None)
             or (self._performances[1].classification_name is not None)
@@ -604,7 +603,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             classification_label,
         )
 
-        # Return the Attribution coresponding to classification_name.
+        # Return the Attribution corresponding to classification_name.
         return self._attributions[classification_name]
 
     def get_attribution_for(

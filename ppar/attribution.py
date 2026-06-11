@@ -182,8 +182,8 @@ class Attribution:
             df: DataFrame to summarize.
 
         Returns:
-            DataFrame with one additional bottom row containing totals or linked return
-            values, depthru on the available columns.
+            DataFrame with one additional bottom row containing totals or
+            linked return values, depending on the available columns.
         """
         # Start the total_row as a sum of df.
         total_row = df.sum()

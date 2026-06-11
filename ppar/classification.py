@@ -117,19 +117,17 @@ class Classification:
             ``None`` and an empty typed DataFrame when no matching classification
             data is available.
         """
-        # Return empty if there are no performances or the portfolio and benchmark are not of the
-        # same classifiation_name.
+        # Return empty if there are no performances or the portfolio and benchmark do not share
+        # the same classification name.
         if (not performances) or (
             performances[0].classification_name != performances[1].classification_name
         ):
             return None, _EMPTY_DF
 
-        # Get the classification items from the portfolio Performance and benchmark Performance.
-        # The "reversed" will process the portfolio after the benchmark.  This is so that when we
-        # eventually "uniqueify" the dataframe, it will "keep" the last portfolio item instead of
-        # the benchmark item.  This assumes that the user prefers the portfolio data over the
-        # benchmark data.  Chances are the portfolio data came from their accounting system and the
-        # benchmark data came from an external source.
+        # Get the classification items from the portfolio and benchmark Performance objects.
+        # Reversing the sequence processes the portfolio after the benchmark so duplicate
+        # identifiers keep the portfolio item. That favors the user's accounting-system data over
+        # benchmark metadata when both sources provide a display name.
         dfs = [
             performance.classification_items
             for performance in reversed(performances)
@@ -140,10 +138,9 @@ class Classification:
         if not dfs:
             return None, _EMPTY_DF
 
-        # Concatenate the portfolio and benchmark classification itemms, and remove duplicates.
+        # Concatenate the portfolio and benchmark classification items, and remove duplicates.
         df = pl.concat(dfs, how="vertical")
         df = df.unique(subset=[df.columns[0]], keep="last")
 
-        # Return the classification_name that is common to both the portfolio and the benchmark.
-        # Return the dataframe with the classification_items.
+        # Return the classification name common to both streams and the combined items.
         return performances[0].classification_name, df
