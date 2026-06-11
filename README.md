@@ -162,6 +162,12 @@ environment:
 ./.venv/bin/python scripts/check_project.py
 ```
 
+For faster routine feedback during small changes:
+
+```bash
+./.venv/bin/python scripts/check_project.py --quick
+```
+
 To include a temporary wheel and source-distribution build check:
 
 ```bash

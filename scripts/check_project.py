@@ -8,6 +8,7 @@ same dependency environment that VS Code and the project documentation expect.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,8 @@ from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python"
+_CHECK_CACHE_DIR = _PROJECT_ROOT / ".cache" / "check_project"
+_MPLCONFIGDIR = _CHECK_CACHE_DIR / "matplotlib"
 
 
 def _format_command(command: Sequence[str | Path]) -> str:
@@ -55,7 +58,16 @@ def _run(command: Sequence[str | Path]) -> None:
         subprocess.CalledProcessError: If the command exits with a non-zero status.
     """
     print(f"\n==> {_format_command(command)}", flush=True)
-    subprocess.run([str(part) for part in command], cwd=_PROJECT_ROOT, check=True)
+    _MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env.setdefault("XDG_CACHE_HOME", str(_CHECK_CACHE_DIR))
+    env.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+    subprocess.run(
+        [str(part) for part in command],
+        cwd=_PROJECT_ROOT,
+        check=True,
+        env=env,
+    )
 
 
 def _run_build_check() -> None:
@@ -94,6 +106,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Also build wheel and sdist into a temporary directory.",
     )
     parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Run the faster routine check set: tests, pyright errors, and pylint errors.",
+    )
+    parser.add_argument(
         "--skip-tests",
         action="store_true",
         help="Skip the unit test suite.",
@@ -127,7 +144,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         _run([_VENV_PYTHON, "-m", "unittest", "discover", "tests"])
 
     if not args.skip_types:
-        _run([_VENV_PYTHON, "-m", "mypy"])
+        if not args.quick:
+            _run([_VENV_PYTHON, "-m", "mypy"])
         _run([_VENV_PYTHON, "-m", "pyright", "--level", "error"])
 
     if not args.skip_pylint:
