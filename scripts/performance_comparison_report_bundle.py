@@ -69,11 +69,11 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--title",
         default="Performance Comparison Report",
-        help="Markdown H1 title for report.md.",
+        help="Report title for report.md and report.html.",
     )
     parser.add_argument(
         "--top-evidence-limit",
-        type=int,
+        type=_non_negative_int,
         default=10,
         help="Maximum top-evidence rows to include per portfolio period.",
     )
@@ -88,6 +88,17 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Omit the suppressed findings appendix from report.md.",
     )
     return parser
+
+
+def _non_negative_int(value: str) -> int:
+    """Parse a non-negative integer command-line argument."""
+    try:
+        parsed_value = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("must be an integer") from error
+    if parsed_value < 0:
+        raise argparse.ArgumentTypeError("must be greater than or equal to 0")
+    return parsed_value
 
 
 if __name__ == "__main__":

@@ -23,6 +23,82 @@ _VALIDATE_BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_validate_bun
 class TestPerformanceComparisonReportScript(unittest.TestCase):
     """Verify command-line Markdown report generation."""
 
+    def test_report_scripts_expose_help(self) -> None:
+        """Report scripts expose consistent command-line help."""
+        script_expectations = {
+            _SCRIPT_PATH: "Write a Markdown performance comparison report.",
+            _HTML_SCRIPT_PATH: "Write an HTML performance comparison report.",
+            _BUNDLE_SCRIPT_PATH: (
+                "Write a performance comparison review artifact bundle."
+            ),
+            _VALIDATE_BUNDLE_SCRIPT_PATH: (
+                "Validate a performance comparison report bundle."
+            ),
+        }
+
+        for script_path, expected_description in script_expectations.items():
+            with self.subTest(script_path=script_path):
+                result = subprocess.run(
+                    [sys.executable, str(script_path), "--help"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+                self.assertIn(expected_description, result.stdout)
+                self.assertIn("-h, --help", result.stdout)
+                self.assertEqual(result.stderr, "")
+
+    def test_report_scripts_reject_negative_top_evidence_limit(self) -> None:
+        """Report scripts reject surprising negative evidence-row limits."""
+        script_output_args = {
+            _SCRIPT_PATH: ("comparison.md",),
+            _HTML_SCRIPT_PATH: ("comparison.html",),
+            _BUNDLE_SCRIPT_PATH: ("bundle",),
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            for script_path, output_args in script_output_args.items():
+                with self.subTest(script_path=script_path):
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            str(script_path),
+                            str(_RESTATEMENT_COMPARISON_PATH),
+                            *[str(Path(directory) / value) for value in output_args],
+                            "--top-evidence-limit",
+                            "-1",
+                        ],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("--top-evidence-limit", result.stderr)
+                    self.assertIn("must be greater than or equal to 0", result.stderr)
+
+    def test_report_scripts_reject_non_integer_top_evidence_limit(self) -> None:
+        """Report scripts reject non-integer evidence-row limits."""
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_SCRIPT_PATH),
+                    str(_RESTATEMENT_COMPARISON_PATH),
+                    str(Path(directory) / "comparison.md"),
+                    "--top-evidence-limit",
+                    "many",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--top-evidence-limit", result.stderr)
+        self.assertIn("must be an integer", result.stderr)
+
     def test_script_writes_markdown_report(self) -> None:
         """The script writes a report for a comparison YAML file."""
         with tempfile.TemporaryDirectory() as directory:
