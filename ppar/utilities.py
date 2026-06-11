@@ -1,4 +1,8 @@
-"""Utility functions, type aliases, and constants used across the package."""
+"""Utility functions, type aliases, and constants used across the package.
+
+Public helpers in this module support package users that need the same date,
+path, tolerance, data-source, and linking semantics used internally.
+"""
 
 # Python Imports
 import datetime as dt
@@ -19,6 +23,38 @@ import polars as pl
 # Project Imports
 import ppar.errors as errs
 from ppar.errors import PpaError
+
+__all__ = [
+    "PathLike",
+    "AllDataSources",
+    "ClassificationDataSource",
+    "MappingDataSource",
+    "PerformanceDataSource",
+    "DATE_FORMAT_STRING",
+    "DEFAULT_ANNUAL_MINIMUM_ACCEPTABLE_RETURN",
+    "DEFAULT_ANNUAL_RISK_FREE_RATE",
+    "DEFAULT_CONFIDENCE_LEVEL",
+    "DEFAULT_CURRENCY_SYMBOL",
+    "DEFAULT_PORTFOLIO_VALUE",
+    "ENCODING",
+    "Tolerance",
+    "are_near",
+    "carino_linking_coefficient",
+    "convert_to_date",
+    "date_str",
+    "file_basename_without_extension",
+    "file_path_error",
+    "file_path_exists",
+    "has_directory",
+    "normalize_optional_string",
+    "load_datasource",
+    "logarithmic_linking_coefficients",
+    "logarithmic_linking_coefficient_series",
+    "logarithmic_smoothing_coefficients",
+    "near_zero",
+    "open_in_browser",
+    "to_tuple_or_none",
+]
 
 # Types for type-checking.
 PathLike: TypeAlias = str | Path

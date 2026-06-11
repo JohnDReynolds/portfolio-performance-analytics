@@ -1,4 +1,13 @@
-"""Define numbered package errors and the package-specific exception type."""
+"""Define numbered package errors and the package-specific exception type.
+
+The error registry and ``PpaError`` are intentionally public so callers can
+recognize package-specific failures and map numeric diagnostics to messages.
+"""
+
+__all__ = [
+    "ERRORS",
+    "PpaError",
+]
 
 ERRORS = {
     # Performance Class Error Messages

@@ -10,6 +10,8 @@ import tomllib
 import unittest
 
 # Project Imports
+import ppar.columns as core_columns
+import ppar.errors as core_errors
 import ppar.utilities as util
 from ppar import axys, performance_comparison
 from ppar.axys import (
@@ -73,19 +75,29 @@ from ppar.performance_comparison import (
 )
 
 
+def _is_type_alias_assignment(node: ast.AnnAssign) -> bool:
+    """Return whether an annotated assignment declares a public type alias."""
+    annotation = node.annotation
+    if isinstance(annotation, ast.Name):
+        return annotation.id == "TypeAlias"
+    return isinstance(annotation, ast.Attribute) and annotation.attr == "TypeAlias"
+
+
 def _declared_public_module_names(path: Path) -> set[str]:
-    """Return public constants, functions, and classes declared in a module."""
+    """Return public constants, type aliases, functions, and classes in a module."""
     tree = ast.parse(path.read_text(encoding=util.ENCODING))
     names: set[str] = set()
     for node in tree.body:
         if isinstance(node, (ast.Assign, ast.AnnAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for target in targets:
-                if (
-                    isinstance(target, ast.Name)
-                    and target.id.isupper()
-                    and not target.id.startswith("_")
-                ):
+                if not isinstance(target, ast.Name) or target.id.startswith("_"):
+                    continue
+                is_public_constant = target.id.isupper()
+                is_public_type_alias = (
+                    isinstance(node, ast.AnnAssign) and _is_type_alias_assignment(node)
+                )
+                if is_public_constant or is_public_type_alias:
                     names.add(target.id)
         elif (
             isinstance(node, (ast.ClassDef, ast.FunctionDef))
@@ -420,6 +432,21 @@ class TestPackageMetadata(unittest.TestCase):
             performance_comparison_transactions: Path(
                 "ppar/performance_comparison/transactions.py"
             ),
+        }
+
+        for module, path in module_paths.items():
+            with self.subTest(module=module.__name__):
+                self.assertEqual(
+                    set(module.__all__),
+                    _declared_public_module_names(path),
+                )
+
+    def test_core_public_exports_are_explicit(self) -> None:
+        """Core helper modules export every intentional public module name."""
+        module_paths = {
+            core_columns: Path("ppar/columns.py"),
+            core_errors: Path("ppar/errors.py"),
+            util: Path("ppar/utilities.py"),
         }
 
         for module, path in module_paths.items():
