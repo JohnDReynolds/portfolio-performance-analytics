@@ -4,6 +4,10 @@ This note sketches a common-core Axys export shape for analytics and
 performance-comparison demos. It is a starter reference, not a generic Axys
 implementation contract.
 
+See [Performance Comparison Design Notes](performance_comparison_design.md) for
+the broader comparison model, implemented checkpoint, YAML semantics, and report
+bundle workflow that can consume these normalized export shapes.
+
 Axys installations vary by site. Treat the IMEX profile names, dataset names,
 field mnemonics, date syntax, and portfolio-list syntax below as placeholders
 that must be adapted to the local installation. Some firms may export these

@@ -59,6 +59,16 @@ Implemented output helpers:
 - Markdown and HTML review reports
 - reproducible report bundles with manifest and validation helpers
 
+User-facing entry points:
+
+- `ppar-performance-comparison-demo`: installed demo command.
+- `scripts/performance_comparison_report_bundle.py`: source-checkout command
+  for writing a report bundle from a comparison YAML file.
+- `scripts/performance_comparison_validate_bundle.py`: source-checkout command
+  for validating an existing report bundle.
+- [Axys Common-Core Export Reference](axys_common_core_export.md): starter
+  export shape for Axys-oriented source data.
+
 This checkpoint is still a comparison and evidence organization layer. It is
 not yet a causal attribution engine or a full return calculator. The report
 layer is intentionally conservative: it presents evidence, review cues, and

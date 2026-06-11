@@ -11,6 +11,7 @@ portfolio-performance-analytics (ppar) is a python package that produces holding
 - [Outputs](#outputs)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Performance Comparison](#performance-comparison)
 - [Technical](#technical)
 - [Enhancements](#enhancements)
 - [Support](#support)
@@ -137,6 +138,26 @@ ppar-analytics-demo
 ppar-axys-analytics-demo
 ppar-performance-comparison-demo
 ```
+
+---
+
+## Performance Comparison
+
+The performance comparison feature compares two source-data snapshots and helps
+explain why reported portfolio performance changed between extraction dates. It
+loads normalized portfolio performance, security performance, transactions,
+positions, prices, FX rates, cash, and security-reference data; emits stable
+findings; and writes reviewer-oriented Markdown, HTML, CSV, and bundle outputs.
+
+Start with these references:
+
+- [Performance Comparison Design Notes](docs/performance_comparison_design.md)
+  for the feature model, current implementation checkpoint, YAML semantics, and
+  report bundle shape.
+- [Axys Common-Core Export Reference](docs/axys_common_core_export.md) for a
+  starter Axys export template and field-reference tables.
+- [Axys test data notes](tests/data/axys/README.md) for the synthetic fixture
+  layouts used by demos and tests.
 
 The performance comparison demo writes a review bundle under `_demo_output`.
 Start with `_demo_output/performance_comparison_bundle/report.html`, then
