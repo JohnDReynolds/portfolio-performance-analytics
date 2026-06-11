@@ -1328,11 +1328,12 @@ new datasets.
 - Avoid adding new datasets unless real source files expose evidence that is
   not adequately represented by the current normalized datasets.
 
-## Suggested Milestones
+## Implementation Status
 
-### Milestone 1: Portfolio Performance Difference Engine
+### Milestone 1: Portfolio Performance Difference Engine - Implemented
 
-Status: mostly implemented for the current fixture set.
+The core difference engine is implemented for the current normalized dataset
+surface.
 
 - Read comparison YAML.
 - Load two snapshot directories.
@@ -1345,33 +1346,38 @@ Status: mostly implemented for the current fixture set.
 - Return findings as a Polars DataFrame.
 - Provide compact findings and summary helper tables.
 
-### Milestone 2: Human Report
+### Milestone 2: Human Report - Implemented
 
-Status: intentionally deferred.
+The first reviewer-facing report layer is implemented.
 
-- Add CSV, Markdown, or HTML output using the current findings helpers.
+- Add Markdown and HTML output using the current findings helpers.
 - Group by portfolio and period.
 - Rank largest return and contribution deltas.
-- Include suppressed findings appendix.
+- Include impact summaries, cross-check summaries, evidence sections, and
+  suppressed findings appendices.
+- Write reproducible report bundles with manifest and validation helpers.
 
-### Milestone 3: Supporting-File Explanations
+### Milestone 3: Supporting-File Explanations - Implemented Evidence Layer
 
-Status: implemented at the comparison/evidence-linking level for current
-datasets; causal impact estimates remain limited.
+Supporting-file comparisons are implemented at the evidence-linking level for
+the current datasets. Causal attribution and contribution-ranking estimates
+remain intentionally conservative.
 
 - Compare prices for securities with changed returns.
 - Compare transactions for affected portfolio/security/period rows.
 - Compare positions and cash balances.
 - Compare security master fields and classifications.
-- Add confidence levels and residual findings.
+- Compare FX rates when present.
+- Add confidence, residual, and needs-review findings where the evidence is
+  incomplete or method-dependent.
 
-### Milestone 4: Public API And Demo
+### Milestone 4: Public API And Demo - Implemented
 
-Status: partially implemented.
+The public command and demo surface is implemented for the current checkpoint.
 
 - Add stable public entry points.
 - Add sample comparison fixture directories.
-- Add script or demo command.
+- Add installed demo command and source-checkout report/bundle commands.
 - Document configuration and finding codes.
 
 ## Long-Term Dataset Watchlist
@@ -1408,26 +1414,34 @@ transaction quantity, price, and commission.
 
 1. What is the minimum set of fields required to match transactions reliably
    when `transaction_id` is unavailable?
-2. Should suppressions require a `reason` field, or remain optional for terse
-   operational configs?
+2. Should suppression reasons remain optional, or should production-style
+   workflows require them for audit discipline?
 3. Should row matching allow fuzzy keys, such as ticker fallback when security
    id changes?
-4. Should numeric tolerances be absolute only at first, or support relative
-   tolerances too?
+4. Should row-level tolerances stay simple, or should more finding types support
+   relative/materiality-aware tolerances?
 5. What is the simplest defensible contribution-ranking model for
    portfolio-period deltas?
 6. When contribution ranking exists, when should an unexplained residual be
    emitted?
-7. Should this package reuse `PpaError` codes or introduce comparison-specific
-   finding codes only?
-8. How much of the existing `ppar.axys` inference code should be shared with
+7. How much of the existing `ppar.axys` inference code should be shared with
    future vendor adapters, and how much should remain Axys-specific?
+8. Which additional supporting-file columns, if any, provide enough explanatory
+   value to justify expanding the current normalized comparison surface?
 
-## Recommended Starting Point
+## Current Recommended Next Work
 
-Start with Milestone 1 and keep it boring. The first useful feature is a
-trustworthy diff of required `portfolio_performance` rows, enriched by
-`security_performance` when it is present, with stable finding codes,
-tolerances, and suppressions. Once that foundation is solid, each supporting
-file can become an explanation plugin rather than a one-off branch in a large
-comparison function.
+Treat the current comparison engine, evidence layer, and report bundle as the
+baseline. The next useful work should stay narrow and auditable: strengthen one
+evidence bridge at a time, especially contribution-ranking and residual
+explanation, while keeping all source-specific rules explicit in YAML and
+avoiding hidden vendor assumptions.
+
+Good next candidates are:
+
+- Improve transaction matching diagnostics when no stable `transaction_id` is
+  present.
+- Add carefully documented contribution-ranking estimates only where the YAML
+  provides the required sign, flow, and timing rules.
+- Expand supporting-file comparisons for already-normalized columns before
+  adding new datasets.
