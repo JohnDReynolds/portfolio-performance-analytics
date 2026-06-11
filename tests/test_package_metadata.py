@@ -1,6 +1,7 @@
 """Tests for package metadata maintained alongside runtime dependencies."""
 
 # Python Imports
+import ast
 from importlib.resources import files
 from pathlib import Path
 import subprocess
@@ -19,6 +20,10 @@ from ppar.axys import (
 )
 from ppar.performance_comparison import runner as performance_comparison_runner
 from ppar.performance_comparison import report as performance_comparison_report
+from ppar.performance_comparison import findings as performance_comparison_findings
+from ppar.performance_comparison import (
+    transactions as performance_comparison_transactions,
+)
 from ppar.performance_comparison import (
     CashLoader,
     ComparisonFile,
@@ -66,6 +71,28 @@ from ppar.performance_comparison import (
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
 )
+
+
+def _declared_public_module_names(path: Path) -> set[str]:
+    """Return public constants, functions, and classes declared in a module."""
+    tree = ast.parse(path.read_text(encoding=util.ENCODING))
+    names: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if (
+                    isinstance(target, ast.Name)
+                    and target.id.isupper()
+                    and not target.id.startswith("_")
+                ):
+                    names.add(target.id)
+        elif (
+            isinstance(node, (ast.ClassDef, ast.FunctionDef))
+            and not node.name.startswith("_")
+        ):
+            names.add(node.name)
+    return names
 
 
 class TestPackageMetadata(unittest.TestCase):
@@ -378,7 +405,29 @@ class TestPackageMetadata(unittest.TestCase):
             write_performance_comparison_report_bundle,
             performance_comparison_report.write_performance_comparison_report_bundle,
         )
-        self.assertNotIn("_report_bundle_validation_issues", performance_comparison_report.__all__)
+        self.assertNotIn(
+            "_report_bundle_validation_issues",
+            performance_comparison_report.__all__,
+        )
+
+    def test_performance_comparison_vocabulary_exports_are_explicit(self) -> None:
+        """Vocabulary modules export every declared public schema/code name."""
+        module_paths = {
+            columns: Path("ppar/performance_comparison/columns.py"),
+            performance_comparison_findings: Path(
+                "ppar/performance_comparison/findings.py"
+            ),
+            performance_comparison_transactions: Path(
+                "ppar/performance_comparison/transactions.py"
+            ),
+        }
+
+        for module, path in module_paths.items():
+            with self.subTest(module=module.__name__):
+                self.assertEqual(
+                    set(module.__all__),
+                    _declared_public_module_names(path),
+                )
 
     def test_chart_dependencies_are_optional(self) -> None:
         """Normal package imports do not load optional chart rendering code."""

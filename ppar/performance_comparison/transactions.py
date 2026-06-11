@@ -1,4 +1,9 @@
-"""Load normalized transaction comparison sources."""
+"""Load normalized transaction comparison sources.
+
+The transaction category, sign, and semantics constants are intentionally
+public. They define the YAML/source vocabulary used to avoid inferred
+performance-flow assumptions.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +21,35 @@ from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.portfolio_performance import SnapshotKey
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 import ppar.utilities as util
+
+__all__ = [
+    "TRANSACTION_CATEGORY_EXTERNAL_FLOW",
+    "TRANSACTION_CATEGORY_INCOME",
+    "TRANSACTION_CATEGORY_FEE_EXPENSE",
+    "TRANSACTION_CATEGORY_BUY",
+    "TRANSACTION_CATEGORY_SELL",
+    "TRANSACTION_CATEGORY_TRANSFER",
+    "TRANSACTION_CATEGORY_CORPORATE_ACTION",
+    "TRANSACTION_CATEGORY_UNKNOWN",
+    "TRANSACTION_CASH_FLOW_SIGN_POSITIVE",
+    "TRANSACTION_CASH_FLOW_SIGN_NEGATIVE",
+    "TRANSACTION_CASH_FLOW_SIGN_NONE",
+    "TRANSACTION_CASH_FLOW_SIGN_UNKNOWN",
+    "TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL",
+    "TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE",
+    "TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL",
+    "TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN",
+    "TRANSACTION_SEMANTICS_SOURCE_SOURCE",
+    "TRANSACTION_SEMANTICS_SOURCE_YAML_RULE",
+    "TRANSACTION_SEMANTICS_SOURCE_MIXED",
+    "TRANSACTION_SEMANTICS_SOURCE_UNKNOWN",
+    "normalize_transaction_category",
+    "transaction_category_from_code",
+    "normalize_transaction_cash_flow_sign",
+    "normalize_transaction_performance_flow_sign",
+    "transaction_impact_semantics_available",
+    "TransactionsLoader",
+]
 
 TRANSACTION_CATEGORY_EXTERNAL_FLOW = "external_flow"
 TRANSACTION_CATEGORY_INCOME = "income"

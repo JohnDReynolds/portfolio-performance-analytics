@@ -1,4 +1,9 @@
-"""Define performance comparison finding records and codes."""
+"""Define public performance comparison finding records and codes.
+
+These constants are intentionally public. They describe stable finding-table
+columns, evidence roles, severities, and finding codes used in audit outputs
+and report helper tables.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +13,68 @@ from typing import Final, Sequence
 
 # Third-party imports
 import polars as pl
+
+__all__ = [
+    "FINDING_CODE",
+    "SEVERITY",
+    "CONFIDENCE",
+    "DATASET",
+    "EVIDENCE_ROLE",
+    "SNAPSHOT_A_VALUE",
+    "SNAPSHOT_B_VALUE",
+    "DELTA_B_MINUS_A",
+    "RETURN_DENOMINATOR",
+    "RETURN_WEIGHT",
+    "PORTFOLIO_ID",
+    "SECURITY_ID",
+    "FROM_DATE",
+    "THRU_DATE",
+    "SOURCE_FILE",
+    "SOURCE_COLUMN",
+    "TRANSACTION_CATEGORY",
+    "CASH_FLOW_SIGN",
+    "PERFORMANCE_FLOW_SIGN",
+    "TRANSACTION_SEMANTICS_SOURCE",
+    "TRANSACTION_IMPACT_POLICY",
+    "TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY",
+    "TRANSACTION_IMPACT_DIAGNOSTIC",
+    "TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE",
+    "MESSAGE",
+    "SUPPRESSED",
+    "PC_ROW_ADD",
+    "PC_ROW_DROP",
+    "PC_PORT_RET",
+    "PC_PORT_MV",
+    "PC_PORT_FLOW",
+    "PC_SEC_RET",
+    "PC_SEC_WGT",
+    "PC_SEC_CONTR",
+    "PC_SEC_ADD",
+    "PC_SEC_DROP",
+    "PC_REF_ID",
+    "PC_REF_CLASS",
+    "PC_POS_QTY",
+    "PC_POS_MV",
+    "PC_POS_ACCR",
+    "PC_CASH_MV",
+    "PC_PRICE",
+    "PC_FX_RATE",
+    "PC_TXN_ADD",
+    "PC_TXN_DROP",
+    "PC_TXN_AMT",
+    "PC_TXN_QTY",
+    "PC_TXN_PRICE",
+    "SEVERITY_INFORMATIONAL",
+    "SEVERITY_MATERIAL",
+    "CONFIDENCE_HIGH",
+    "TARGET_OUTPUT",
+    "DIRECT_INPUT",
+    "RELATED_OUTPUT",
+    "CONTEXT",
+    "FINDING_COLUMNS",
+    "Finding",
+    "findings_to_polars",
+]
 
 FINDING_CODE = "code"
 SEVERITY = "severity"
