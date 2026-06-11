@@ -130,9 +130,19 @@ pip install "ppar[charts]"
 ---
 
 ## Usage
+Run the bundled demos from an installed checkout:
+
+```bash
 ppar-analytics-demo
 ppar-axys-analytics-demo
 ppar-performance-comparison-demo
+```
+
+The performance comparison demo writes a review bundle under `_demo_output`.
+Start with `_demo_output/performance_comparison_bundle/report.html`, then
+inspect `needs_review_summary.csv` for the periods and issues that need review
+first. The bundle `README.md` and `manifest.json` describe the generated
+reports and CSV tables.
 
 ---
 

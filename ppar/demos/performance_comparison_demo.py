@@ -27,6 +27,8 @@ from ppar.performance_comparison import (
     write_performance_comparison_report_bundle,
 )
 
+_DemoTable = tuple[str, pl.DataFrame, bool]
+
 
 def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None:
     """Print a titled table using demo-friendly Polars display settings."""
@@ -115,31 +117,90 @@ def _run_comparison_demo(
     print(f"Markdown report written to: {written_report_path}")
     print(f"HTML report written to: {written_html_report_path}")
     print(f"Report bundle written to: {written_bundle_paths['manifest'].parent}")
-    print()
+    _print_bundle_handoff(written_bundle_paths)
     print(markdown_report)
     print()
-    _print_table("Finding count by code", summaries["by_code"])
-    _print_table("Finding count by dataset", summaries["by_dataset"])
-    _print_table("Finding count by evidence role", summaries["by_evidence_role"])
-    _print_table("Finding count by suppression state", summaries["by_suppressed"])
-    _print_table("Finding count by code and suppression state", summaries["by_code_suppressed"])
-    _print_table("Active finding count by code", active_summaries["by_code"])
-    _print_table("Portfolio-period summary", period_summary)
-    _print_table("Security-period summary", security_summary)
-    _print_table("Portfolio-period evidence breakdown", evidence_breakdown)
-    _print_table("Portfolio-period evidence ranking", evidence_ranking, wide=True)
-    _print_table(
-        "Portfolio-period contribution candidates",
-        contribution_candidates,
-        wide=True,
+    _print_restatement_tables(
+        _restatement_demo_tables(
+            summaries=summaries,
+            active_summaries=active_summaries,
+            detail_tables={
+                "period_summary": period_summary,
+                "security_summary": security_summary,
+                "evidence_breakdown": evidence_breakdown,
+                "evidence_ranking": evidence_ranking,
+                "contribution_candidates": contribution_candidates,
+                "cause_summary": cause_summary,
+                "impact_coverage": impact_coverage,
+                "transaction_summary": transaction_summary,
+                "security_evidence_breakdown": security_evidence_breakdown,
+                "compact_active_findings": compact_active_findings,
+                "findings": findings,
+            },
+        )
     )
-    _print_table("Portfolio-period cause summary", cause_summary, wide=True)
-    _print_table("Portfolio-period impact coverage", impact_coverage, wide=True)
-    _print_table("Transaction activity summary", transaction_summary, wide=True)
-    _print_table("Security-period evidence breakdown", security_evidence_breakdown)
-    _print_table("Compact active findings", compact_active_findings, wide=True)
-    _print_table("Full audit findings", findings, wide=True)
+    _print_suppressed_summary(
+        suppressed_findings=suppressed_findings,
+        suppressed_active_findings=suppressed_active_findings,
+        suppressed_summaries=suppressed_summaries,
+        suppressed_active_summaries=suppressed_active_summaries,
+    )
 
+
+def _restatement_demo_tables(
+    *,
+    summaries: dict[str, pl.DataFrame],
+    active_summaries: dict[str, pl.DataFrame],
+    detail_tables: dict[str, pl.DataFrame],
+) -> list[_DemoTable]:
+    """Return the detailed restatement comparison tables for printing."""
+    return [
+        ("Finding count by code", summaries["by_code"], False),
+        ("Finding count by dataset", summaries["by_dataset"], False),
+        ("Finding count by evidence role", summaries["by_evidence_role"], False),
+        ("Finding count by suppression state", summaries["by_suppressed"], False),
+        (
+            "Finding count by code and suppression state",
+            summaries["by_code_suppressed"],
+            False,
+        ),
+        ("Active finding count by code", active_summaries["by_code"], False),
+        ("Portfolio-period summary", detail_tables["period_summary"], False),
+        ("Security-period summary", detail_tables["security_summary"], False),
+        ("Portfolio-period evidence breakdown", detail_tables["evidence_breakdown"], False),
+        ("Portfolio-period evidence ranking", detail_tables["evidence_ranking"], True),
+        (
+            "Portfolio-period contribution candidates",
+            detail_tables["contribution_candidates"],
+            True,
+        ),
+        ("Portfolio-period cause summary", detail_tables["cause_summary"], True),
+        ("Portfolio-period impact coverage", detail_tables["impact_coverage"], True),
+        ("Transaction activity summary", detail_tables["transaction_summary"], True),
+        (
+            "Security-period evidence breakdown",
+            detail_tables["security_evidence_breakdown"],
+            False,
+        ),
+        ("Compact active findings", detail_tables["compact_active_findings"], True),
+        ("Full audit findings", detail_tables["findings"], True),
+    ]
+
+
+def _print_restatement_tables(tables: list[_DemoTable]) -> None:
+    """Print the detailed restatement comparison tables."""
+    for title, table, wide in tables:
+        _print_table(title, table, wide=wide)
+
+
+def _print_suppressed_summary(
+    *,
+    suppressed_findings: pl.DataFrame,
+    suppressed_active_findings: pl.DataFrame,
+    suppressed_summaries: dict[str, pl.DataFrame],
+    suppressed_active_summaries: dict[str, pl.DataFrame],
+) -> None:
+    """Print suppression-focused demo output."""
     print("Suppressed restatement comparison")
     print()
     print(f"All findings: {suppressed_findings.height}")
@@ -151,6 +212,21 @@ def _run_comparison_demo(
         suppressed_summaries["by_code_suppressed"],
     )
     _print_table("Active finding count by code", suppressed_active_summaries["by_code"])
+
+
+def _print_bundle_handoff(bundle_paths: dict[str, Path]) -> None:
+    """Print generated bundle artifacts and the recommended review path."""
+    print("Bundle artifacts:")
+    for artifact_name, artifact_path in sorted(bundle_paths.items()):
+        print(f"- {artifact_name}: {artifact_path.name}")
+    print()
+    needs_review_summary = pl.read_csv(bundle_paths["needs_review_summary"])
+    _print_table("Needs review summary", needs_review_summary, wide=True)
+    print("Recommended review path")
+    print(f"1. Open {bundle_paths['html_report']}")
+    print(f"2. Inspect {bundle_paths['needs_review_summary']}")
+    print(f"3. Use {bundle_paths['manifest']} to audit generated artifacts")
+    print()
 
 
 if __name__ == "__main__":

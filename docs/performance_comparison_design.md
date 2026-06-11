@@ -1239,12 +1239,20 @@ reason labels, rather than calculating an unexplained amount from partial or
 mixed-confidence estimates.
 
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
-The bundle contains the Markdown report, raw findings, current report helper
-tables as CSV files, and a JSON manifest with options, counts, artifact names,
-and row counts. This makes reviewer handoffs reproducible without coupling the
-comparison engine to a future HTML or Axys-style presentation layer.
+The bundle contains the HTML report, Markdown report, raw findings, current
+report helper tables as CSV files, a short `README.md`, and a JSON manifest
+with options, counts, artifact names, and row counts. This makes reviewer
+handoffs reproducible without coupling the comparison engine to a future
+Axys-specific presentation layer.
 The `scripts/performance_comparison_report_bundle.py` command-line script
 exposes the same bundle workflow for comparison YAML files.
+
+The report workflow starts with a `Needs Review Summary` section and matching
+`needs_review_summary.csv` bundle artifact. This table is a derived triage aid:
+it highlights changed portfolio periods with evidence-only areas, missing
+impact inputs, low-confidence estimates, transaction cross-checks, or withheld
+residuals. It does not add new calculation rules; it only summarizes existing
+report helper tables into reviewer cues and suggested next steps.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group

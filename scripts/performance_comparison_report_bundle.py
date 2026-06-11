@@ -1,4 +1,4 @@
-"""Write a Markdown-and-CSV report bundle for a performance comparison."""
+"""Write a review artifact bundle for a performance comparison."""
 
 # This script is meant to run directly from the repository checkout. Insert the
 # repository root before importing ppar so the local source tree is used even
@@ -44,6 +44,9 @@ def main(argv: list[str] | None = None) -> int:
         top_evidence_limit=args.top_evidence_limit,
     )
     print(f"Report bundle written to: {bundle_paths['manifest'].parent}")
+    print(f"README written to: {bundle_paths['readme']}")
+    print(f"HTML report written to: {bundle_paths['html_report']}")
+    print(f"Needs review summary written to: {bundle_paths['needs_review_summary']}")
     print(f"Manifest written to: {bundle_paths['manifest']}")
     return 0
 
@@ -51,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Write a Markdown-and-CSV performance comparison report bundle.",
+        description="Write a performance comparison review artifact bundle.",
     )
     parser.add_argument(
         "comparison_path",
