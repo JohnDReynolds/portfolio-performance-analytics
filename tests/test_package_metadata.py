@@ -2,6 +2,7 @@
 
 # Python Imports
 import ast
+from fnmatch import fnmatch
 from importlib.resources import files
 from pathlib import Path
 import subprocess
@@ -146,6 +147,34 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("include scripts/*.py", manifest)
         self.assertIn("recursive-include ppar/demo_data *.csv *.yaml *.md", manifest)
         self.assertNotIn("prune scripts", manifest)
+
+    def test_checkout_scripts_are_sdist_only(self) -> None:
+        """Checkout utility scripts are shipped in sdist but not as wheel packages."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+        manifest = Path("MANIFEST.in").read_text(encoding=util.ENCODING)
+
+        self.assertIn("include scripts/*.py", manifest)
+        self.assertNotIn("scripts", pyproject["tool"]["setuptools"]["packages"])
+
+    def test_package_data_patterns_cover_demo_resources(self) -> None:
+        """Every packaged demo resource is covered by explicit package-data globs."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+        package_data_patterns = pyproject["tool"]["setuptools"]["package-data"]["ppar"]
+        demo_resource_paths = [
+            path.relative_to("ppar").as_posix()
+            for path in Path("ppar/demo_data").rglob("*")
+            if path.is_file()
+        ]
+
+        self.assertGreater(len(demo_resource_paths), 0)
+        for resource_path in demo_resource_paths:
+            with self.subTest(resource_path=resource_path):
+                self.assertTrue(
+                    any(fnmatch(resource_path, pattern) for pattern in package_data_patterns),
+                    f"{resource_path} is not covered by package-data patterns.",
+                )
 
     def test_axys_package_is_included(self) -> None:
         """The Axys subpackage is included in distribution metadata."""
