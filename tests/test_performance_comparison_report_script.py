@@ -17,6 +17,7 @@ _SUPPRESSED_COMPARISON_PATH = Path(
 _SCRIPT_PATH = Path("scripts/performance_comparison_report.py")
 _HTML_SCRIPT_PATH = Path("scripts/performance_comparison_html_report.py")
 _BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_report_bundle.py")
+_VALIDATE_BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_validate_bundle.py")
 
 
 class TestPerformanceComparisonReportScript(unittest.TestCase):
@@ -191,6 +192,66 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertNotIn("## Suppressed Findings Appendix", report)
             self.assertEqual(manifest["counts"]["findings"], 20)
             self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
+
+    def test_validate_bundle_script_accepts_valid_bundle(self) -> None:
+        """The bundle validator script accepts a generated bundle."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+            self._write_bundle(output_directory)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_VALIDATE_BUNDLE_SCRIPT_PATH),
+                    str(output_directory),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Bundle validation passed:", result.stdout)
+            self.assertIn(str(output_directory), result.stdout)
+            self.assertEqual(result.stderr, "")
+
+    def test_validate_bundle_script_reports_invalid_bundle(self) -> None:
+        """The bundle validator script exits nonzero for a broken bundle."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+            self._write_bundle(output_directory)
+            top_evidence_path = output_directory / "top_evidence.csv"
+            header = top_evidence_path.read_text(encoding="utf-8").splitlines()[0]
+            top_evidence_path.write_text(header + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_VALIDATE_BUNDLE_SCRIPT_PATH),
+                    str(output_directory),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("Bundle validation failed:", result.stderr)
+            self.assertIn("table 'top_evidence' row count is 0, expected 10", result.stderr)
+
+    def _write_bundle(self, output_directory: Path) -> None:
+        """Write a standard report bundle for script validation tests."""
+        subprocess.run(
+            [
+                sys.executable,
+                str(_BUNDLE_SCRIPT_PATH),
+                str(_RESTATEMENT_COMPARISON_PATH),
+                str(output_directory),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
 
 def _html_section(report: str, section_id: str) -> str:

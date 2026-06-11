@@ -144,6 +144,12 @@ inspect `needs_review_summary.csv` for the periods and issues that need review
 first. The bundle `README.md` and `manifest.json` describe the generated
 reports and CSV tables.
 
+To validate an existing performance comparison bundle from a source checkout:
+
+```bash
+python scripts/performance_comparison_validate_bundle.py _demo_output/performance_comparison_bundle
+```
+
 ---
 
 ## Technical

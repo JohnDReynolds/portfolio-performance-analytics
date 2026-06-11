@@ -1246,6 +1246,9 @@ handoffs reproducible without coupling the comparison engine to a future
 Axys-specific presentation layer.
 The `scripts/performance_comparison_report_bundle.py` command-line script
 exposes the same bundle workflow for comparison YAML files.
+Existing bundles can be checked with
+`scripts/performance_comparison_validate_bundle.py`, which verifies required
+artifacts, manifest artifact names, CSV row counts, and empty-table headers.
 
 The report workflow starts with a `Needs Review Summary` section and matching
 `needs_review_summary.csv` bundle artifact. This table is a derived triage aid:
