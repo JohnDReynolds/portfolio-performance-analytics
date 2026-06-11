@@ -155,6 +155,19 @@ python scripts/performance_comparison_validate_bundle.py _demo_output/performanc
 ## Technical
 Being built on top of Polars dataframes, ppar is able to efficiently process large datasets through parallel processing, vectorization, lazy evaluation, and using Apache Arrow as its underlying data format.
 
+Run local project checks from a source checkout with the repository virtual
+environment:
+
+```bash
+./.venv/bin/python scripts/check_project.py
+```
+
+To include a temporary wheel and source-distribution build check:
+
+```bash
+./.venv/bin/python scripts/check_project.py --build
+```
+
 ---
 
 ## Enhancements
