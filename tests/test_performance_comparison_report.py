@@ -6,11 +6,13 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 # Third-party imports
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import (
     DIRECT_INPUT,
     Finding,
@@ -30,7 +32,11 @@ from ppar.performance_comparison.findings import (
     PC_PORT_RET,
     SEVERITY_MATERIAL,
 )
-from ppar.performance_comparison.report import _markdown_table
+from ppar.performance_comparison.report import (
+    _REPORT_BUNDLE_REQUIRED_ARTIFACTS,
+    _markdown_table,
+    _report_bundle_validation_issues,
+)
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
@@ -583,23 +589,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
         """Report bundles contain Markdown, CSV tables, and manifest metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        expected_keys = {
-            "report",
-            "html_report",
-            "readme",
-            "findings",
-            "needs_review_summary",
-            "portfolio_period_summary",
-            "cause_summary",
-            "impact_estimates",
-            "impact_coverage",
-            "transaction_cross_checks",
-            "flow_cross_check_reconciliation",
-            "residual_status",
-            "transaction_activity",
-            "top_evidence",
-            "manifest",
-        }
+        expected_keys = set(_REPORT_BUNDLE_REQUIRED_ARTIFACTS)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -654,6 +644,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_impact_policy", top_evidence.columns)
             self.assertIn("impact_method", top_evidence.columns)
             self.assertIn("impact_message", top_evidence.columns)
+            self.assertEqual(_report_bundle_validation_issues(output_directory), [])
 
     def test_write_report_bundle_preserves_empty_table_columns(self) -> None:
         """Report bundles write stable CSV headers for baseline empty tables."""
@@ -690,6 +681,41 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "portfolio_id,security_id,from_date",
                 paths["transaction_activity"].read_text(encoding="utf-8"),
             )
+
+    def test_report_bundle_validation_catches_missing_artifact(self) -> None:
+        """Bundle validation reports required artifact files that are absent."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(findings, directory)
+
+            paths["needs_review_summary"].unlink()
+            issues = _report_bundle_validation_issues(directory)
+
+        self.assertIn("artifact file 'needs_review_summary.csv' is missing", issues)
+
+    def test_report_bundle_validation_catches_csv_row_count_drift(self) -> None:
+        """Bundle validation compares manifest row counts to CSV row counts."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(findings, directory)
+            header = paths["top_evidence"].read_text(encoding="utf-8").splitlines()[0]
+            paths["top_evidence"].write_text(header + "\n", encoding="utf-8")
+
+            issues = _report_bundle_validation_issues(directory)
+
+        self.assertIn("table 'top_evidence' row count is 0, expected 10", issues)
+
+    def test_report_bundle_write_fails_if_validation_fails(self) -> None:
+        """Bundle writing raises if post-write validation detects corruption."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        with mock.patch(
+            "ppar.performance_comparison.report._report_bundle_validation_issues",
+            return_value=["simulated validation issue"],
+        ):
+            with tempfile.TemporaryDirectory() as directory:
+                with self.assertRaisesRegex(PpaError, "simulated validation issue"):
+                    write_performance_comparison_report_bundle(findings, directory)
 
 
 def _section(report: str, start: str, end: str) -> str:
