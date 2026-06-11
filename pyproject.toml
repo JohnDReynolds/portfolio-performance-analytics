@@ -4,7 +4,7 @@
 #   lower bounds that are known to support this configuration.
 # - `build-backend`: setuptools entrypoint used by the build frontend (e.g., pip).
 # Build-time requirements for setuptools-based builds.
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.0"]
 # The build backend used by pip when building wheels/sdist.
 build-backend = "setuptools.build_meta"
 
@@ -23,8 +23,9 @@ description = "Portfolio attribution, contribution, and ex-post risk statistics.
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
 # README file included in the distribution and displayed on PyPI.
 readme = "README.md"
-# Use a local license file for clarity and packaging.
-license = { file = "LICENSE" }
+# Use an SPDX custom license reference plus a local license file.
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
 # Helpful search keywords — concise, comma-separated.
 keywords = [
     "portfolio",

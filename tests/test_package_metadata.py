@@ -2,6 +2,7 @@
 
 # Python Imports
 from importlib.resources import files
+from pathlib import Path
 import subprocess
 import sys
 import tomllib
@@ -87,6 +88,23 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("great_tables", requirements_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
         self.assertTrue(pyproject_dependencies.issubset(requirements_dependencies))
+
+    def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
+        """Build metadata uses current setuptools license fields."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+
+        self.assertEqual(pyproject["build-system"]["requires"], ["setuptools>=77.0.0"])
+        self.assertEqual(pyproject["project"]["license"], "LicenseRef-Proprietary")
+        self.assertEqual(pyproject["project"]["license-files"], ["LICENSE"])
+
+    def test_manifest_keeps_source_distribution_resources(self) -> None:
+        """The source distribution manifest includes checkout scripts and demo data."""
+        manifest = Path("MANIFEST.in").read_text(encoding=util.ENCODING)
+
+        self.assertIn("include scripts/*.py", manifest)
+        self.assertIn("recursive-include ppar/demo_data *.csv *.yaml *.md", manifest)
+        self.assertNotIn("prune scripts", manifest)
 
     def test_axys_package_is_included(self) -> None:
         """The Axys subpackage is included in distribution metadata."""
