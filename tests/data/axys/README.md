@@ -74,17 +74,17 @@ changes.
 Run the focused performance comparison runner tests:
 
 ```bash
-python -m unittest tests.test_performance_comparison_runner
+./.venv/bin/python -m unittest tests.test_performance_comparison_runner
 ```
 
 Run the full test suite:
 
 ```bash
-python -m unittest discover -s tests
+./.venv/bin/python -m unittest discover -s tests
 ```
 
 Run the performance comparison demo:
 
 ```bash
-python -m ppar.demos.performance_comparison_demo
+ppar-performance-comparison-demo
 ```

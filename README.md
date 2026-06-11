@@ -130,7 +130,7 @@ pip install "ppar[charts]"
 ---
 
 ## Usage
-Run the bundled demos from an installed checkout:
+Run the bundled demos from an installed environment:
 
 ```bash
 ppar-analytics-demo
@@ -147,7 +147,7 @@ reports and CSV tables.
 To validate an existing performance comparison bundle from a source checkout:
 
 ```bash
-python scripts/performance_comparison_validate_bundle.py _demo_output/performance_comparison_bundle
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py _demo_output/performance_comparison_bundle
 ```
 
 ---
