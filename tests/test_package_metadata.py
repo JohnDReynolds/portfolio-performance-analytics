@@ -17,6 +17,7 @@ from ppar.axys import (
     AxysPortfolio,
     AxysSpecification,
 )
+from ppar.performance_comparison import runner as performance_comparison_runner
 from ppar.performance_comparison import (
     CashLoader,
     ComparisonFile,
@@ -328,6 +329,22 @@ class TestPackageMetadata(unittest.TestCase):
             write_performance_comparison_report_bundle,
             performance_comparison.write_performance_comparison_report_bundle,
         )
+
+    def test_public_performance_comparison_runner_import_contract(self) -> None:
+        """The runner module exposes only the compact workflow helper surface."""
+        expected_exports = {
+            "compact_findings_table",
+            "compare_snapshots",
+            "summarize_findings",
+        }
+
+        self.assertEqual(set(performance_comparison_runner.__all__), expected_exports)
+        self.assertIs(
+            compact_findings_table,
+            performance_comparison_runner.compact_findings_table,
+        )
+        self.assertIs(compare_snapshots, performance_comparison_runner.compare_snapshots)
+        self.assertIs(summarize_findings, performance_comparison_runner.summarize_findings)
 
     def test_chart_dependencies_are_optional(self) -> None:
         """Normal package imports do not load optional chart rendering code."""
