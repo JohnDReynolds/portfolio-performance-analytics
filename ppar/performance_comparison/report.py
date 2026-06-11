@@ -99,8 +99,8 @@ def performance_comparison_markdown_report(
             rows to show per portfolio period.
 
     Returns:
-        Markdown string suitable for console output, files, notebooks, or a
-        future HTML rendering layer.
+        Markdown string suitable for console output, files, notebooks, or
+        generated review bundles.
     """
     active_findings = _active_findings(findings)
     summaries = _pc_runner.summarize_findings(findings)

@@ -27,9 +27,10 @@ model is stable.
 ## Current Checkpoint
 
 The current implementation has crossed from pure design into a usable
-data-loading and comparison checkpoint. It can load two snapshot directories,
-compare the first set of normalized datasets, emit stable finding records, apply
-explicit suppressions, and produce small summary tables for review.
+comparison, explanation, and report checkpoint. It can load two snapshot
+directories, compare the first set of normalized datasets, emit stable finding
+records, apply explicit suppressions, and produce reviewer-oriented tables,
+Markdown, HTML, and handoff bundles.
 
 Implemented normalized comparison datasets:
 
@@ -55,10 +56,14 @@ Implemented output helpers:
 - transaction activity summaries
 - security-period summaries
 - security-period evidence breakdowns
+- Markdown and HTML review reports
+- reproducible report bundles with manifest and validation helpers
 
 This checkpoint is still a comparison and evidence organization layer. It is
-not yet a causal attribution engine, a return calculator, or a final report
-writer.
+not yet a causal attribution engine or a full return calculator. The report
+layer is intentionally conservative: it presents evidence, review cues, and
+documented estimates without claiming more precision than the current model
+supports.
 
 ## Non-Goals For The First Pass
 
@@ -123,10 +128,12 @@ Current responsibilities:
   breakdowns, rankings, contribution candidates, and cause summaries.
 - `runner.py`: Public execution helpers, compact output tables, and summary
   tables.
+- `report.py`: Markdown, HTML, and bundle report rendering over stable helper
+  tables.
 
-Report rendering remains deliberately outside the package for now. The current
-helpers return stable Polars tables that can later feed CSV, Markdown, HTML, or
-other report formats.
+Report rendering is now inside the package, but remains a presentation layer
+over stable Polars helper tables. The report module should avoid introducing
+separate analytics logic.
 
 ## Core Concepts
 

@@ -16,8 +16,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VENV_PYTHON = PROJECT_ROOT / ".venv" / "bin" / "python"
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python"
 
 
 def _format_command(command: Sequence[str | Path]) -> str:
@@ -32,13 +32,13 @@ def _require_venv_python() -> None:
         SystemExit: If ``./.venv/bin/python`` is missing or the current interpreter is
             not the project virtual-environment interpreter.
     """
-    if not VENV_PYTHON.exists():
+    if not _VENV_PYTHON.exists():
         raise SystemExit(
             "Missing .venv/bin/python. Create the project virtual environment before "
             "running scripts/check_project.py."
         )
 
-    if Path(sys.executable).resolve() != VENV_PYTHON.resolve():
+    if Path(sys.executable).resolve() != _VENV_PYTHON.resolve():
         raise SystemExit(
             "Run this check with the project virtual environment:\n"
             "  ./.venv/bin/python scripts/check_project.py"
@@ -55,7 +55,7 @@ def _run(command: Sequence[str | Path]) -> None:
         subprocess.CalledProcessError: If the command exits with a non-zero status.
     """
     print(f"\n==> {_format_command(command)}", flush=True)
-    subprocess.run([str(part) for part in command], cwd=PROJECT_ROOT, check=True)
+    subprocess.run([str(part) for part in command], cwd=_PROJECT_ROOT, check=True)
 
 
 def _run_build_check() -> None:
@@ -64,7 +64,7 @@ def _run_build_check() -> None:
         with tempfile.TemporaryDirectory(prefix="ppar-build-check-") as temp_dir:
             _run(
                 [
-                    VENV_PYTHON,
+                    _VENV_PYTHON,
                     "-m",
                     "build",
                     "--wheel",
@@ -77,7 +77,7 @@ def _run_build_check() -> None:
     finally:
         # setuptools creates these intermediate directories in the project checkout
         # even when the final artifacts are written to a temporary output directory.
-        for generated_path in (PROJECT_ROOT / "build", PROJECT_ROOT / "ppar.egg-info"):
+        for generated_path in (_PROJECT_ROOT / "build", _PROJECT_ROOT / "ppar.egg-info"):
             shutil.rmtree(generated_path, ignore_errors=True)
 
 
@@ -124,16 +124,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
 
     if not args.skip_tests:
-        _run([VENV_PYTHON, "-m", "unittest", "discover", "tests"])
+        _run([_VENV_PYTHON, "-m", "unittest", "discover", "tests"])
 
     if not args.skip_types:
-        _run([VENV_PYTHON, "-m", "mypy"])
-        _run([VENV_PYTHON, "-m", "pyright", "--level", "error"])
+        _run([_VENV_PYTHON, "-m", "mypy"])
+        _run([_VENV_PYTHON, "-m", "pyright", "--level", "error"])
 
     if not args.skip_pylint:
         # Existing design/refactor warnings are handled separately; this gate catches
         # pylint error-level regressions without requiring unrelated cleanup first.
-        _run([VENV_PYTHON, "-m", "pylint", "--errors-only", "ppar", "scripts", "tests"])
+        _run([_VENV_PYTHON, "-m", "pylint", "--errors-only", "ppar", "scripts", "tests"])
 
     if args.build:
         _run_build_check()

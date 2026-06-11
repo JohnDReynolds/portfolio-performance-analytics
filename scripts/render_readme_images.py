@@ -23,8 +23,8 @@ from typing import Sequence
 # Third-Party Imports
 from PIL import Image, ImageChops
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_REPO_ROOT))
 Image.MAX_IMAGE_PIXELS = None
 
 # Project Imports
@@ -34,14 +34,14 @@ import ppar.demo_data_sources as demo_data  # noqa: E402
 from ppar.frequency import Frequency  # noqa: E402
 import ppar.utilities as util  # noqa: E402
 
-IMAGE_DIR = REPO_ROOT / "images"
-CHROME_CANDIDATES = (
+_IMAGE_DIR = _REPO_ROOT / "images"
+_CHROME_CANDIDATES = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "google-chrome",
     "chromium",
     "chrome",
 )
-RENDER_CONFIG = {
+_RENDER_CONFIG = {
     "OverallAttributionBySecurity": (5200, 7600),
     "CumulativeAttributionByEconomicSector": (5200, 3600),
     "OverallAttributionByEconomicSector": (5200, 3200),
@@ -64,8 +64,8 @@ def main() -> None:
         html_paths = _write_html_inputs(temp_dir)
         for name, html_path in html_paths.items():
             png_path = temp_dir / f"{name}.png"
-            _render_png(chrome_path, html_path, png_path, RENDER_CONFIG[name])
-            _crop_and_save_jpg(png_path, IMAGE_DIR / f"{name}.jpg")
+            _render_png(chrome_path, html_path, png_path, _RENDER_CONFIG[name])
+            _crop_and_save_jpg(png_path, _IMAGE_DIR / f"{name}.jpg")
 
 
 def _write_html_inputs(temp_dir: Path) -> dict[str, Path]:
@@ -170,7 +170,7 @@ def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
         )
 
     cropped.save(jpg_path, quality=95, optimize=True)
-    print(f"{jpg_path.relative_to(REPO_ROOT)} {cropped.width}x{cropped.height}")
+    print(f"{jpg_path.relative_to(_REPO_ROOT)} {cropped.width}x{cropped.height}")
 
 
 def _find_chrome() -> str:
@@ -182,7 +182,7 @@ def _find_chrome() -> str:
     Raises:
         RuntimeError: If no configured Chrome or Chromium executable exists.
     """
-    for candidate in CHROME_CANDIDATES:
+    for candidate in _CHROME_CANDIDATES:
         path = shutil.which(candidate) if "/" not in candidate else candidate
         if path and Path(path).exists():
             return path
