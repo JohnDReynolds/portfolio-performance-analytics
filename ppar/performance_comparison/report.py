@@ -15,75 +15,17 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.errors import PpaError
-from ppar.performance_comparison.explain import (
-    AMOUNT_DELTA,
-    CHANGED_FIELDS,
-    CROSS_CHECK_COUNT,
-    ESTIMATED_CAUSE_AREA_COUNT,
-    ESTIMATED_RETURN_IMPACT,
-    ESTIMATED_RETURN_IMPACT_TOTAL,
-    EVIDENCE_ONLY_AREAS,
-    EVIDENCE_ONLY_CAUSE_AREA_COUNT,
-    FINDING_COUNT,
-    HAS_SUPPRESSED_FINDINGS,
-    IMPACT_BASIS,
-    IMPACT_BASIS_NO_ESTIMATE,
-    IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-    IMPACT_BASIS_SECURITY_CONTRIBUTION,
-    IMPACT_CONFIDENCE,
-    IMPACT_MESSAGE,
-    IMPACT_METHOD,
-    LOW_CONFIDENCE_ESTIMATE_COUNT,
-    MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
-    MISSING_IMPACT_INPUTS,
-    PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS,
-    PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS,
-    PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS,
-    PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS,
-    PORTFOLIO_RETURN_DELTA,
-    PRICE_DELTA,
-    QUANTITY_DELTA,
-    ROOT_CAUSE_AREA,
-    ROOT_CAUSE_CASH,
-    ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
-    ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
-    ROOT_CAUSE_PRICE,
-    ROOT_CAUSE_AREA_COUNT,
-    ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
-    ROOT_CAUSE_TRANSACTION_ACTIVITY,
-    TRANSACTION_IMPACT_POLICIES,
-    TRANSACTION_SEMANTICS_SOURCES,
-    TOP_CODES,
-    portfolio_period_cause_summary,
-    portfolio_period_contribution_candidates,
-    portfolio_period_flow_cross_check_reconciliation,
-    portfolio_period_impact_coverage_summary,
-    portfolio_period_summary,
-    portfolio_period_transaction_cross_checks,
-    transaction_activity_summary,
-)
-from ppar.performance_comparison.findings import (
-    DATASET,
-    DELTA_B_MINUS_A,
-    EVIDENCE_ROLE,
-    FINDING_CODE,
-    FROM_DATE,
-    MESSAGE,
-    PORTFOLIO_ID,
-    SECURITY_ID,
-    SOURCE_COLUMN,
-    SUPPRESSED,
-    THRU_DATE,
-    TRANSACTION_IMPACT_DIAGNOSTIC,
-    TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
-    TRANSACTION_IMPACT_POLICY,
-    TRANSACTION_CATEGORY,
-    TRANSACTION_SEMANTICS_SOURCE,
-)
-from ppar.performance_comparison.runner import (
-    compact_findings_table,
-    summarize_findings,
-)
+from ppar.performance_comparison import explain as _pc_explain
+from ppar.performance_comparison import findings as _pc_findings
+from ppar.performance_comparison import runner as _pc_runner
+
+__all__ = [
+    "performance_comparison_html_report",
+    "performance_comparison_markdown_report",
+    "write_performance_comparison_html_report",
+    "write_performance_comparison_markdown_report",
+    "write_performance_comparison_report_bundle",
+]
 
 _COUNT = "count"
 _ACTIVE_ONLY_NOTE = (
@@ -111,10 +53,10 @@ _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
 _NEEDS_REVIEW_COLUMNS = (
-    PORTFOLIO_ID,
-    FROM_DATE,
-    THRU_DATE,
-    PORTFOLIO_RETURN_DELTA,
+    _pc_findings.PORTFOLIO_ID,
+    _pc_findings.FROM_DATE,
+    _pc_findings.THRU_DATE,
+    _pc_explain.PORTFOLIO_RETURN_DELTA,
     _REVIEW_STATUS,
     _REVIEW_CUES,
     _SUGGESTED_NEXT_STEP,
@@ -161,8 +103,8 @@ def performance_comparison_markdown_report(
         future HTML rendering layer.
     """
     active_findings = _active_findings(findings)
-    summaries = summarize_findings(findings)
-    active_summaries = summarize_findings(active_findings)
+    summaries = _pc_runner.summarize_findings(findings)
+    active_summaries = _pc_runner.summarize_findings(active_findings)
 
     sections = [
         f"# {_escape_markdown_text(title)}",
@@ -213,8 +155,8 @@ def performance_comparison_html_report(
         in a browser.
     """
     active_findings = _active_findings(findings)
-    summaries = summarize_findings(findings)
-    active_summaries = summarize_findings(active_findings)
+    summaries = _pc_runner.summarize_findings(findings)
+    active_summaries = _pc_runner.summarize_findings(active_findings)
     sections = [
         _html_run_summary_section(findings, active_findings, summaries, active_summaries),
         _html_needs_review_summary_section(active_findings),
@@ -421,18 +363,22 @@ def _report_bundle_tables(
     """Return report-bundle tables keyed by artifact stem."""
     return {
         "needs_review_summary": _needs_review_summary_table(active_findings),
-        "portfolio_period_summary": portfolio_period_summary(active_findings),
-        "cause_summary": portfolio_period_cause_summary(active_findings),
+        "portfolio_period_summary": _pc_explain.portfolio_period_summary(
+            active_findings
+        ),
+        "cause_summary": _pc_explain.portfolio_period_cause_summary(active_findings),
         "impact_estimates": _impact_estimate_summary_table(active_findings),
-        "impact_coverage": portfolio_period_impact_coverage_summary(active_findings),
+        "impact_coverage": _pc_explain.portfolio_period_impact_coverage_summary(
+            active_findings
+        ),
         "transaction_cross_checks": (
-            portfolio_period_transaction_cross_checks(active_findings)
+            _pc_explain.portfolio_period_transaction_cross_checks(active_findings)
         ),
         "flow_cross_check_reconciliation": (
-            portfolio_period_flow_cross_check_reconciliation(active_findings)
+            _pc_explain.portfolio_period_flow_cross_check_reconciliation(active_findings)
         ),
         "residual_status": _residual_status_table(active_findings),
-        "transaction_activity": transaction_activity_summary(active_findings),
+        "transaction_activity": _pc_explain.transaction_activity_summary(active_findings),
         "top_evidence": _top_evidence_table(active_findings, top_evidence_limit),
     }
 
@@ -670,13 +616,13 @@ def _run_summary_section(
         f"- Suppressed findings: {_format_value(findings.height - active_findings.height)}",
         "",
         "### Active Findings By Code",
-        _markdown_table(active_summaries["by_code"], [FINDING_CODE, _COUNT]),
+        _markdown_table(active_summaries["by_code"], [_pc_findings.FINDING_CODE, _COUNT]),
         "",
         "### Active Findings By Dataset",
-        _markdown_table(active_summaries["by_dataset"], [DATASET, _COUNT]),
+        _markdown_table(active_summaries["by_dataset"], [_pc_findings.DATASET, _COUNT]),
         "",
         "### Findings By Suppression State",
-        _markdown_table(summaries["by_suppressed"], [SUPPRESSED, _COUNT]),
+        _markdown_table(summaries["by_suppressed"], [_pc_findings.SUPPRESSED, _COUNT]),
     ]
     return "\n".join(lines)
 
@@ -697,16 +643,16 @@ def _needs_review_summary_section(findings: pl.DataFrame) -> str:
 
 def _needs_review_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return reviewer-facing period cues derived from existing summary tables."""
-    periods = portfolio_period_summary(findings)
+    periods = _pc_explain.portfolio_period_summary(findings)
     if periods.is_empty():
         return _empty_needs_review_summary()
 
     coverage_by_period = _period_rows_by_key(
-        portfolio_period_impact_coverage_summary(findings)
+        _pc_explain.portfolio_period_impact_coverage_summary(findings)
     )
     residual_by_period = _period_rows_by_key(_residual_status_table(findings))
     cross_checks_by_period = _period_rows_by_key(
-        portfolio_period_transaction_cross_checks(findings)
+        _pc_explain.portfolio_period_transaction_cross_checks(findings)
     )
     rows = [
         _needs_review_summary_row(
@@ -724,10 +670,10 @@ def _empty_needs_review_summary() -> pl.DataFrame:
     """Return an empty needs-review summary with stable columns."""
     return pl.DataFrame(
         schema={
-            PORTFOLIO_ID: pl.String,
-            FROM_DATE: pl.Date,
-            THRU_DATE: pl.Date,
-            PORTFOLIO_RETURN_DELTA: pl.Float64,
+            _pc_findings.PORTFOLIO_ID: pl.String,
+            _pc_findings.FROM_DATE: pl.Date,
+            _pc_findings.THRU_DATE: pl.Date,
+            _pc_explain.PORTFOLIO_RETURN_DELTA: pl.Float64,
             _REVIEW_STATUS: pl.String,
             _REVIEW_CUES: pl.String,
             _SUGGESTED_NEXT_STEP: pl.String,
@@ -749,10 +695,10 @@ def _needs_review_summary_row(
         cross_checks=cross_checks,
     )
     return {
-        PORTFOLIO_ID: period[PORTFOLIO_ID],
-        FROM_DATE: period[FROM_DATE],
-        THRU_DATE: period[THRU_DATE],
-        PORTFOLIO_RETURN_DELTA: period[PORTFOLIO_RETURN_DELTA],
+        _pc_findings.PORTFOLIO_ID: period[_pc_findings.PORTFOLIO_ID],
+        _pc_findings.FROM_DATE: period[_pc_findings.FROM_DATE],
+        _pc_findings.THRU_DATE: period[_pc_findings.THRU_DATE],
+        _pc_explain.PORTFOLIO_RETURN_DELTA: period[_pc_explain.PORTFOLIO_RETURN_DELTA],
         _REVIEW_STATUS: _needs_review_status(cues),
         _REVIEW_CUES: _comma_separated(cues),
         _SUGGESTED_NEXT_STEP: _suggested_next_step(cues),
@@ -770,25 +716,31 @@ def _needs_review_cues(
     coverage_row = coverage[0] if coverage else {}
     residual_row = residual[0] if residual else {}
 
-    if _positive_count(coverage_row.get(EVIDENCE_ONLY_CAUSE_AREA_COUNT)):
+    if _positive_count(coverage_row.get(_pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT)):
         cues.append(
-            f"{_format_value(coverage_row[EVIDENCE_ONLY_CAUSE_AREA_COUNT])} "
+            f"{_format_value(coverage_row[_pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT])} "
             "evidence-only area(s)"
         )
-    if _has_text(coverage_row.get(MISSING_IMPACT_INPUTS)):
-        cues.append(f"missing inputs: {_format_value(coverage_row[MISSING_IMPACT_INPUTS])}")
-    if _positive_count(coverage_row.get(LOW_CONFIDENCE_ESTIMATE_COUNT)):
+    if _has_text(coverage_row.get(_pc_explain.MISSING_IMPACT_INPUTS)):
         cues.append(
-            f"{_format_value(coverage_row[LOW_CONFIDENCE_ESTIMATE_COUNT])} "
+            f"missing inputs: "
+            f"{_format_value(coverage_row[_pc_explain.MISSING_IMPACT_INPUTS])}"
+        )
+    if _positive_count(coverage_row.get(_pc_explain.LOW_CONFIDENCE_ESTIMATE_COUNT)):
+        cues.append(
+            f"{_format_value(coverage_row[_pc_explain.LOW_CONFIDENCE_ESTIMATE_COUNT])} "
             "low-confidence estimate(s)"
         )
     if cross_checks:
-        total_count = sum(_count_value(row.get(CROSS_CHECK_COUNT)) for row in cross_checks)
+        total_count = sum(
+            _count_value(row.get(_pc_explain.CROSS_CHECK_COUNT))
+            for row in cross_checks
+        )
         policies = _comma_separated(
             [
-                str(row[TRANSACTION_IMPACT_POLICIES])
+                str(row[_pc_explain.TRANSACTION_IMPACT_POLICIES])
                 for row in cross_checks
-                if _has_text(row.get(TRANSACTION_IMPACT_POLICIES))
+                if _has_text(row.get(_pc_explain.TRANSACTION_IMPACT_POLICIES))
             ]
         )
         cross_check_cue = f"{_format_value(total_count)} transaction cross-check(s)"
@@ -842,7 +794,11 @@ def _period_rows_by_key(
 
 def _period_key(row: Mapping[str, object]) -> tuple[object, object, object]:
     """Return the portfolio-period grouping key for a report row."""
-    return (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE])
+    return (
+        row[_pc_findings.PORTFOLIO_ID],
+        row[_pc_findings.FROM_DATE],
+        row[_pc_findings.THRU_DATE],
+    )
 
 
 def _positive_count(value: object) -> bool:
@@ -916,7 +872,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
 
 def _portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
     """Return conservative narrative summaries for portfolio-period changes."""
-    summary = portfolio_period_summary(findings)
+    summary = _pc_explain.portfolio_period_summary(findings)
     if summary.is_empty():
         return "\n".join(
             [
@@ -925,7 +881,7 @@ def _portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
             ]
         )
 
-    causes = portfolio_period_cause_summary(findings)
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
     paragraphs = ["## Portfolio-Period Narrative"]
     for period in summary.iter_rows(named=True):
         period_causes = _period_cause_rows(causes, period)
@@ -935,7 +891,7 @@ def _portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
 
 def _review_notes_section(findings: pl.DataFrame) -> str:
     """Return review notes for current model limits visible in the report."""
-    causes = portfolio_period_cause_summary(findings)
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
     if causes.is_empty():
         return "\n".join(
             [
@@ -958,23 +914,23 @@ def _review_notes_section(findings: pl.DataFrame) -> str:
 def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
     """Return deterministic review notes for cause areas present in a report."""
     notes: list[str] = []
-    cause_areas = {cause[ROOT_CAUSE_AREA] for cause in causes}
-    if ROOT_CAUSE_TRANSACTION_ACTIVITY in cause_areas:
+    cause_areas = {cause[_pc_explain.ROOT_CAUSE_AREA] for cause in causes}
+    if _pc_explain.ROOT_CAUSE_TRANSACTION_ACTIVITY in cause_areas:
         notes.append(_transaction_activity_review_note(causes))
-    if ROOT_CAUSE_MARKET_VALUE_OR_POSITION in cause_areas:
+    if _pc_explain.ROOT_CAUSE_MARKET_VALUE_OR_POSITION in cause_areas:
         notes.append(
             "Market value or position evidence has no return-impact estimate yet."
         )
-    if ROOT_CAUSE_PRICE in cause_areas:
+    if _pc_explain.ROOT_CAUSE_PRICE in cause_areas:
         notes.append(
             "Price evidence is linked to affected portfolio periods, but no "
             "portfolio-period impact estimate is calculated yet."
         )
-    if ROOT_CAUSE_CASH in cause_areas:
+    if _pc_explain.ROOT_CAUSE_CASH in cause_areas:
         notes.append("Cash evidence has no return-impact estimate yet.")
-    if ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT in cause_areas:
+    if _pc_explain.ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT in cause_areas:
         notes.append(_portfolio_source_field_review_note(causes))
-    if ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION in cause_areas:
+    if _pc_explain.ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION in cause_areas:
         notes.append(_security_return_weighted_review_note(causes))
     notes.append(
         "No residual amount is calculated because not enough defensible impact "
@@ -986,8 +942,8 @@ def _review_notes_for_cause_rows(causes: list[dict[str, object]]) -> list[str]:
 def _transaction_activity_review_note(causes: list[dict[str, object]]) -> str:
     """Return a review note for transaction activity estimates."""
     has_estimate = any(
-        cause[ROOT_CAUSE_AREA] == ROOT_CAUSE_TRANSACTION_ACTIVITY
-        and cause[IMPACT_BASIS] != IMPACT_BASIS_NO_ESTIMATE
+        cause[_pc_explain.ROOT_CAUSE_AREA] == _pc_explain.ROOT_CAUSE_TRANSACTION_ACTIVITY
+        and cause[_pc_explain.IMPACT_BASIS] != _pc_explain.IMPACT_BASIS_NO_ESTIMATE
         for cause in causes
     )
     if has_estimate:
@@ -1006,8 +962,8 @@ def _transaction_activity_review_note(causes: list[dict[str, object]]) -> str:
 def _portfolio_source_field_review_note(causes: list[dict[str, object]]) -> str:
     """Return a review note for portfolio performance source-field estimates."""
     has_estimate = any(
-        cause[ROOT_CAUSE_AREA] == ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT
-        and cause[IMPACT_BASIS] == IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
+        cause[_pc_explain.ROOT_CAUSE_AREA] == _pc_explain.ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT
+        and cause[_pc_explain.IMPACT_BASIS] == _pc_explain.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
         for cause in causes
     )
     if has_estimate:
@@ -1025,8 +981,9 @@ def _portfolio_source_field_review_note(causes: list[dict[str, object]]) -> str:
 def _security_return_weighted_review_note(causes: list[dict[str, object]]) -> str:
     """Return a review note for weighted security return estimates."""
     has_vendor_contribution = any(
-        cause[ROOT_CAUSE_AREA] == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
-        and cause[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION
+        cause[_pc_explain.ROOT_CAUSE_AREA]
+        == _pc_explain.ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
+        and cause[_pc_explain.IMPACT_BASIS] == _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION
         for cause in causes
     )
     if has_vendor_contribution:
@@ -1046,10 +1003,10 @@ def _portfolio_period_narrative(
     causes: list[dict[str, object]],
 ) -> str:
     """Return one portfolio-period narrative paragraph."""
-    portfolio_id = _format_value(period[PORTFOLIO_ID])
-    from_date = _format_value(period[FROM_DATE])
-    thru_date = _format_value(period[THRU_DATE])
-    return_delta = _format_value(period[PORTFOLIO_RETURN_DELTA])
+    portfolio_id = _format_value(period[_pc_findings.PORTFOLIO_ID])
+    from_date = _format_value(period[_pc_findings.FROM_DATE])
+    thru_date = _format_value(period[_pc_findings.THRU_DATE])
+    return_delta = _format_value(period[_pc_explain.PORTFOLIO_RETURN_DELTA])
     sentences = [
         (
             f"{portfolio_id} changed by {return_delta} for {from_date} to "
@@ -1060,7 +1017,7 @@ def _portfolio_period_narrative(
     estimated_causes = [
         cause
         for cause in causes
-        if cause.get(ESTIMATED_RETURN_IMPACT) is not None
+        if cause.get(_pc_explain.ESTIMATED_RETURN_IMPACT) is not None
     ]
     if estimated_causes:
         strongest = max(
@@ -1074,18 +1031,18 @@ def _portfolio_period_narrative(
         )
 
     evidence_only_areas = [
-        str(cause[ROOT_CAUSE_AREA])
+        str(cause[_pc_explain.ROOT_CAUSE_AREA])
         for cause in causes
-        if cause.get(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE
+        if cause.get(_pc_explain.IMPACT_BASIS) == _pc_explain.IMPACT_BASIS_NO_ESTIMATE
     ]
     if evidence_only_areas:
         sentences.append(
             "Evidence-only areas are "
             f"{_comma_separated(evidence_only_areas)}; these rows remain "
-            f"{IMPACT_BASIS_NO_ESTIMATE}."
+            f"{_pc_explain.IMPACT_BASIS_NO_ESTIMATE}."
         )
 
-    if period[HAS_SUPPRESSED_FINDINGS]:
+    if period[_pc_explain.HAS_SUPPRESSED_FINDINGS]:
         sentences.append("Suppressed findings exist for this portfolio period.")
 
     return " ".join(_escape_markdown_text(sentence) for sentence in sentences)
@@ -1093,7 +1050,7 @@ def _portfolio_period_narrative(
 
 def _absolute_estimated_return_impact(cause: Mapping[str, object]) -> float:
     """Return the absolute estimated impact for sorting narrative causes."""
-    value = cause.get(ESTIMATED_RETURN_IMPACT)
+    value = cause.get(_pc_explain.ESTIMATED_RETURN_IMPACT)
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return abs(float(value))
     return 0.0
@@ -1101,10 +1058,10 @@ def _absolute_estimated_return_impact(cause: Mapping[str, object]) -> float:
 
 def _estimated_impact_sentence(cause: dict[str, object]) -> str:
     """Return a conservative sentence for the strongest estimated impact."""
-    cause_area = _format_value(cause[ROOT_CAUSE_AREA])
-    estimated_impact = _format_value(cause[ESTIMATED_RETURN_IMPACT])
-    impact_basis = _format_value(cause[IMPACT_BASIS])
-    confidence = _format_value(cause[IMPACT_CONFIDENCE])
+    cause_area = _format_value(cause[_pc_explain.ROOT_CAUSE_AREA])
+    estimated_impact = _format_value(cause[_pc_explain.ESTIMATED_RETURN_IMPACT])
+    impact_basis = _format_value(cause[_pc_explain.IMPACT_BASIS])
+    confidence = _format_value(cause[_pc_explain.IMPACT_CONFIDENCE])
     return (
         "The strongest currently estimated impact is "
         f"{cause_area} at {estimated_impact}, based on {impact_basis} "
@@ -1120,23 +1077,23 @@ def _period_cause_rows(
     if causes.is_empty():
         return []
     period_causes = causes.filter(
-        (pl.col(PORTFOLIO_ID) == period[PORTFOLIO_ID])
-        & (pl.col(FROM_DATE) == period[FROM_DATE])
-        & (pl.col(THRU_DATE) == period[THRU_DATE])
+        (pl.col(_pc_findings.PORTFOLIO_ID) == period[_pc_findings.PORTFOLIO_ID])
+        & (pl.col(_pc_findings.FROM_DATE) == period[_pc_findings.FROM_DATE])
+        & (pl.col(_pc_findings.THRU_DATE) == period[_pc_findings.THRU_DATE])
     )
     return list(period_causes.iter_rows(named=True))
 
 
 def _portfolio_period_section(findings: pl.DataFrame) -> str:
     """Return the portfolio-period return changes Markdown section."""
-    summary = portfolio_period_summary(findings)
+    summary = _pc_explain.portfolio_period_summary(findings)
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        PORTFOLIO_RETURN_DELTA,
-        FINDING_COUNT,
-        HAS_SUPPRESSED_FINDINGS,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
+        _pc_explain.FINDING_COUNT,
+        _pc_explain.HAS_SUPPRESSED_FINDINGS,
     ]
     return "\n".join(
         [
@@ -1148,19 +1105,19 @@ def _portfolio_period_section(findings: pl.DataFrame) -> str:
 
 def _transaction_activity_section(findings: pl.DataFrame) -> str:
     """Return changed transaction activity and impact-eligibility gaps."""
-    summary = transaction_activity_summary(findings)
+    summary = _pc_explain.transaction_activity_summary(findings)
     columns = [
-        PORTFOLIO_ID,
-        SECURITY_ID,
-        FROM_DATE,
-        THRU_DATE,
-        TRANSACTION_CATEGORY,
-        CHANGED_FIELDS,
-        AMOUNT_DELTA,
-        QUANTITY_DELTA,
-        PRICE_DELTA,
-        TRANSACTION_SEMANTICS_SOURCES,
-        MISSING_IMPACT_INPUTS,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_findings.TRANSACTION_CATEGORY,
+        _pc_explain.CHANGED_FIELDS,
+        _pc_explain.AMOUNT_DELTA,
+        _pc_explain.QUANTITY_DELTA,
+        _pc_explain.PRICE_DELTA,
+        _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
+        _pc_explain.MISSING_IMPACT_INPUTS,
     ]
     return "\n".join(
         [
@@ -1178,10 +1135,10 @@ def _residual_status_section(findings: pl.DataFrame) -> str:
     """Return a Markdown section explaining whether residuals are calculated."""
     residuals = _residual_status_table(findings)
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        PORTFOLIO_RETURN_DELTA,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
         _ESTIMATED_IMPACT_AREAS,
         _RESIDUAL_STATUS,
         _RESIDUAL_REASON,
@@ -1202,21 +1159,21 @@ def _residual_status_section(findings: pl.DataFrame) -> str:
 
 def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return residual-status rows for portfolio-period return changes."""
-    periods = portfolio_period_summary(findings)
+    periods = _pc_explain.portfolio_period_summary(findings)
     if periods.is_empty():
         return pl.DataFrame(
             schema={
-                PORTFOLIO_ID: pl.String,
-                FROM_DATE: pl.Date,
-                THRU_DATE: pl.Date,
-                PORTFOLIO_RETURN_DELTA: pl.Float64,
+                _pc_findings.PORTFOLIO_ID: pl.String,
+                _pc_findings.FROM_DATE: pl.Date,
+                _pc_findings.THRU_DATE: pl.Date,
+                _pc_explain.PORTFOLIO_RETURN_DELTA: pl.Float64,
                 _ESTIMATED_IMPACT_AREAS: pl.String,
                 _RESIDUAL_STATUS: pl.String,
                 _RESIDUAL_REASON: pl.String,
             }
         )
 
-    causes = portfolio_period_cause_summary(findings)
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
     return pl.DataFrame(
         [
             _residual_status_row(period, _period_cause_rows(causes, period))
@@ -1231,9 +1188,9 @@ def _residual_status_row(
 ) -> dict[str, object]:
     """Return one residual-status row for a portfolio period."""
     estimated_areas = [
-        str(cause[ROOT_CAUSE_AREA])
+        str(cause[_pc_explain.ROOT_CAUSE_AREA])
         for cause in causes
-        if cause.get(ESTIMATED_RETURN_IMPACT) is not None
+        if cause.get(_pc_explain.ESTIMATED_RETURN_IMPACT) is not None
     ]
     if estimated_areas:
         reason = "partial or overlapping estimates"
@@ -1241,10 +1198,10 @@ def _residual_status_row(
         reason = "no defensible impact estimates"
 
     return {
-        PORTFOLIO_ID: period[PORTFOLIO_ID],
-        FROM_DATE: period[FROM_DATE],
-        THRU_DATE: period[THRU_DATE],
-        PORTFOLIO_RETURN_DELTA: period[PORTFOLIO_RETURN_DELTA],
+        _pc_findings.PORTFOLIO_ID: period[_pc_findings.PORTFOLIO_ID],
+        _pc_findings.FROM_DATE: period[_pc_findings.FROM_DATE],
+        _pc_findings.THRU_DATE: period[_pc_findings.THRU_DATE],
+        _pc_explain.PORTFOLIO_RETURN_DELTA: period[_pc_explain.PORTFOLIO_RETURN_DELTA],
         _ESTIMATED_IMPACT_AREAS: _comma_separated(estimated_areas),
         _RESIDUAL_STATUS: _RESIDUAL_WITHHELD,
         _RESIDUAL_REASON: reason,
@@ -1253,22 +1210,22 @@ def _residual_status_row(
 
 def _impact_coverage_section(findings: pl.DataFrame) -> str:
     """Return estimate-coverage status by portfolio period."""
-    coverage = portfolio_period_impact_coverage_summary(findings)
+    coverage = _pc_explain.portfolio_period_impact_coverage_summary(findings)
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        PORTFOLIO_RETURN_DELTA,
-        ROOT_CAUSE_AREA_COUNT,
-        ESTIMATED_CAUSE_AREA_COUNT,
-        EVIDENCE_ONLY_CAUSE_AREA_COUNT,
-        LOW_CONFIDENCE_ESTIMATE_COUNT,
-        MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
-        ESTIMATED_RETURN_IMPACT_TOTAL,
-        EVIDENCE_ONLY_AREAS,
-        TRANSACTION_SEMANTICS_SOURCES,
-        MISSING_IMPACT_INPUTS,
-        IMPACT_MESSAGE,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
+        _pc_explain.ROOT_CAUSE_AREA_COUNT,
+        _pc_explain.ESTIMATED_CAUSE_AREA_COUNT,
+        _pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT,
+        _pc_explain.LOW_CONFIDENCE_ESTIMATE_COUNT,
+        _pc_explain.MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
+        _pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL,
+        _pc_explain.EVIDENCE_ONLY_AREAS,
+        _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
+        _pc_explain.MISSING_IMPACT_INPUTS,
+        _pc_explain.IMPACT_MESSAGE,
     ]
     return "\n".join(
         [
@@ -1288,8 +1245,8 @@ def _transaction_cross_checks_section(findings: pl.DataFrame) -> str:
         [
             "## Transaction Cross-Checks",
             _markdown_table(
-                portfolio_period_transaction_cross_checks(findings),
-                list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
+                _pc_explain.portfolio_period_transaction_cross_checks(findings),
+                list(_pc_explain.PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
                 empty_message="No transaction cross-check estimates are available.",
             ),
         ]
@@ -1302,8 +1259,8 @@ def _flow_cross_check_reconciliation_section(findings: pl.DataFrame) -> str:
         [
             "## Flow Cross-Check Reconciliation",
             _markdown_table(
-                portfolio_period_flow_cross_check_reconciliation(findings),
-                list(PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
+                _pc_explain.portfolio_period_flow_cross_check_reconciliation(findings),
+                list(_pc_explain.PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
                 empty_message="No flow/cross-check reconciliation rows are available.",
             ),
         ]
@@ -1314,14 +1271,14 @@ def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
     """Return a concise Markdown section for currently quantified impacts."""
     estimated_summary = _impact_estimate_summary_table(findings)
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        ROOT_CAUSE_AREA,
-        ESTIMATED_RETURN_IMPACT,
-        IMPACT_BASIS,
-        IMPACT_CONFIDENCE,
-        IMPACT_MESSAGE,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.ROOT_CAUSE_AREA,
+        _pc_explain.ESTIMATED_RETURN_IMPACT,
+        _pc_explain.IMPACT_BASIS,
+        _pc_explain.IMPACT_CONFIDENCE,
+        _pc_explain.IMPACT_MESSAGE,
     ]
     return "\n".join(
         [
@@ -1337,30 +1294,30 @@ def _impact_estimate_summary_section(findings: pl.DataFrame) -> str:
 
 def _impact_estimate_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return currently quantified cause-summary rows."""
-    summary = portfolio_period_cause_summary(findings)
+    summary = _pc_explain.portfolio_period_cause_summary(findings)
     if summary.is_empty():
         return summary
-    return summary.filter(pl.col(ESTIMATED_RETURN_IMPACT).is_not_null())
+    return summary.filter(pl.col(_pc_explain.ESTIMATED_RETURN_IMPACT).is_not_null())
 
 
 def _cause_summary_section(findings: pl.DataFrame) -> str:
     """Return the cause summary Markdown section."""
-    summary = portfolio_period_cause_summary(findings)
+    summary = _pc_explain.portfolio_period_cause_summary(findings)
     columns = [
         column
-        for column in PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS
+        for column in _pc_explain.PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS
         if column
         in {
-            PORTFOLIO_ID,
-            FROM_DATE,
-            THRU_DATE,
-            ROOT_CAUSE_AREA,
-            FINDING_COUNT,
-            ESTIMATED_RETURN_IMPACT,
-            IMPACT_BASIS,
-            IMPACT_CONFIDENCE,
-            TOP_CODES,
-            IMPACT_MESSAGE,
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+            _pc_explain.ROOT_CAUSE_AREA,
+            _pc_explain.FINDING_COUNT,
+            _pc_explain.ESTIMATED_RETURN_IMPACT,
+            _pc_explain.IMPACT_BASIS,
+            _pc_explain.IMPACT_CONFIDENCE,
+            _pc_explain.TOP_CODES,
+            _pc_explain.IMPACT_MESSAGE,
         }
     ]
     return "\n".join(
@@ -1383,26 +1340,26 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
         )
 
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
         "review_rank",
-        FINDING_CODE,
-        DATASET,
-        EVIDENCE_ROLE,
-        SECURITY_ID,
-        SOURCE_COLUMN,
-        TRANSACTION_SEMANTICS_SOURCE,
-        TRANSACTION_IMPACT_POLICY,
-        TRANSACTION_IMPACT_DIAGNOSTIC,
-        TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
-        DELTA_B_MINUS_A,
-        ESTIMATED_RETURN_IMPACT,
-        IMPACT_BASIS,
-        IMPACT_CONFIDENCE,
-        IMPACT_METHOD,
-        IMPACT_MESSAGE,
-        MESSAGE,
+        _pc_findings.FINDING_CODE,
+        _pc_findings.DATASET,
+        _pc_findings.EVIDENCE_ROLE,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.SOURCE_COLUMN,
+        _pc_findings.TRANSACTION_SEMANTICS_SOURCE,
+        _pc_findings.TRANSACTION_IMPACT_POLICY,
+        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC,
+        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
+        _pc_findings.DELTA_B_MINUS_A,
+        _pc_explain.ESTIMATED_RETURN_IMPACT,
+        _pc_explain.IMPACT_BASIS,
+        _pc_explain.IMPACT_CONFIDENCE,
+        _pc_explain.IMPACT_METHOD,
+        _pc_explain.IMPACT_MESSAGE,
+        _pc_findings.MESSAGE,
     ]
     return "\n".join(
         [
@@ -1414,14 +1371,22 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
 
 def _top_evidence_table(findings: pl.DataFrame, top_evidence_limit: int) -> pl.DataFrame:
     """Return top contribution-candidate rows per portfolio period."""
-    candidates = portfolio_period_contribution_candidates(findings)
+    candidates = _pc_explain.portfolio_period_contribution_candidates(findings)
     if candidates.is_empty():
         return candidates
 
     rows: list[dict[str, object]] = []
-    for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
+    for _, group in candidates.group_by(
+        [
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+        ]
+    ):
         rows.extend(group.sort("review_rank").head(top_evidence_limit).iter_rows(named=True))
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+    return pl.DataFrame(rows).select(
+        _pc_explain.PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
+    )
 
 
 def _suppressed_appendix_section(
@@ -1429,32 +1394,36 @@ def _suppressed_appendix_section(
     summaries: dict[str, pl.DataFrame],
 ) -> str:
     """Return the suppressed findings audit appendix."""
-    suppressed = findings.filter(pl.col(SUPPRESSED)) if not findings.is_empty() else findings
+    suppressed = (
+        findings.filter(pl.col(_pc_findings.SUPPRESSED))
+        if not findings.is_empty()
+        else findings
+    )
     lines = [
         "## Suppressed Findings Appendix",
         "### Suppressed Counts By Code",
         _markdown_table(
-            summaries["by_code_suppressed"].filter(pl.col(SUPPRESSED))
+            summaries["by_code_suppressed"].filter(pl.col(_pc_findings.SUPPRESSED))
             if not summaries["by_code_suppressed"].is_empty()
             else summaries["by_code_suppressed"],
-            [FINDING_CODE, SUPPRESSED, _COUNT],
+            [_pc_findings.FINDING_CODE, _pc_findings.SUPPRESSED, _COUNT],
             empty_message="No suppressed findings.",
         ),
         "",
         "### Suppressed Finding Detail",
         _markdown_table(
-            compact_findings_table(suppressed, include_suppressed=True),
+            _pc_runner.compact_findings_table(suppressed, include_suppressed=True),
             [
-                FINDING_CODE,
-                DATASET,
-                EVIDENCE_ROLE,
-                PORTFOLIO_ID,
-                SECURITY_ID,
-                FROM_DATE,
-                THRU_DATE,
-                SOURCE_COLUMN,
-                DELTA_B_MINUS_A,
-                MESSAGE,
+                _pc_findings.FINDING_CODE,
+                _pc_findings.DATASET,
+                _pc_findings.EVIDENCE_ROLE,
+                _pc_findings.PORTFOLIO_ID,
+                _pc_findings.SECURITY_ID,
+                _pc_findings.FROM_DATE,
+                _pc_findings.THRU_DATE,
+                _pc_findings.SOURCE_COLUMN,
+                _pc_findings.DELTA_B_MINUS_A,
+                _pc_findings.MESSAGE,
             ],
             empty_message="No suppressed finding detail.",
         ),
@@ -1481,11 +1450,11 @@ def _html_run_summary_section(
             card_html,
             "</div>",
             "<h3>Active Findings By Code</h3>",
-            _html_table(active_summaries["by_code"], [FINDING_CODE, _COUNT]),
+            _html_table(active_summaries["by_code"], [_pc_findings.FINDING_CODE, _COUNT]),
             "<h3>Active Findings By Dataset</h3>",
-            _html_table(active_summaries["by_dataset"], [DATASET, _COUNT]),
+            _html_table(active_summaries["by_dataset"], [_pc_findings.DATASET, _COUNT]),
             "<h3>Findings By Suppression State</h3>",
-            _html_table(summaries["by_suppressed"], [SUPPRESSED, _COUNT]),
+            _html_table(summaries["by_suppressed"], [_pc_findings.SUPPRESSED, _COUNT]),
         ]
     )
     return _html_section("Run Summary", content)
@@ -1505,14 +1474,14 @@ def _html_needs_review_summary_section(findings: pl.DataFrame) -> str:
 
 def _html_portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
     """Return conservative narrative summaries as HTML."""
-    summary = portfolio_period_summary(findings)
+    summary = _pc_explain.portfolio_period_summary(findings)
     if summary.is_empty():
         return _html_section(
             "Portfolio-Period Narrative",
             _html_empty("No portfolio return changes to narrate."),
         )
 
-    causes = portfolio_period_cause_summary(findings)
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
     paragraphs = [
         _html_paragraph(
             _portfolio_period_narrative(period, _period_cause_rows(causes, period))
@@ -1524,7 +1493,7 @@ def _html_portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
 
 def _html_review_notes_section(findings: pl.DataFrame) -> str:
     """Return current model-limit review notes as HTML."""
-    causes = portfolio_period_cause_summary(findings)
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
     if causes.is_empty():
         return _html_section(
             "Review Notes",
@@ -1542,14 +1511,14 @@ def _html_review_notes_section(findings: pl.DataFrame) -> str:
 def _html_impact_estimate_summary_section(findings: pl.DataFrame) -> str:
     """Return quantified impact estimates as an HTML section."""
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        ROOT_CAUSE_AREA,
-        ESTIMATED_RETURN_IMPACT,
-        IMPACT_BASIS,
-        IMPACT_CONFIDENCE,
-        IMPACT_MESSAGE,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.ROOT_CAUSE_AREA,
+        _pc_explain.ESTIMATED_RETURN_IMPACT,
+        _pc_explain.IMPACT_BASIS,
+        _pc_explain.IMPACT_CONFIDENCE,
+        _pc_explain.IMPACT_MESSAGE,
     ]
     return _html_section(
         "Impact Estimate Summary",
@@ -1564,25 +1533,25 @@ def _html_impact_estimate_summary_section(findings: pl.DataFrame) -> str:
 def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
     """Return estimate-coverage status as an HTML section."""
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        PORTFOLIO_RETURN_DELTA,
-        ROOT_CAUSE_AREA_COUNT,
-        ESTIMATED_CAUSE_AREA_COUNT,
-        EVIDENCE_ONLY_CAUSE_AREA_COUNT,
-        LOW_CONFIDENCE_ESTIMATE_COUNT,
-        MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
-        ESTIMATED_RETURN_IMPACT_TOTAL,
-        EVIDENCE_ONLY_AREAS,
-        TRANSACTION_SEMANTICS_SOURCES,
-        MISSING_IMPACT_INPUTS,
-        IMPACT_MESSAGE,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
+        _pc_explain.ROOT_CAUSE_AREA_COUNT,
+        _pc_explain.ESTIMATED_CAUSE_AREA_COUNT,
+        _pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT,
+        _pc_explain.LOW_CONFIDENCE_ESTIMATE_COUNT,
+        _pc_explain.MEDIUM_CONFIDENCE_ESTIMATE_COUNT,
+        _pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL,
+        _pc_explain.EVIDENCE_ONLY_AREAS,
+        _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
+        _pc_explain.MISSING_IMPACT_INPUTS,
+        _pc_explain.IMPACT_MESSAGE,
     ]
     return _html_section(
         "Impact Coverage",
         _html_table(
-            portfolio_period_impact_coverage_summary(findings),
+            _pc_explain.portfolio_period_impact_coverage_summary(findings),
             columns,
             empty_message="No portfolio return changes need impact coverage review.",
         ),
@@ -1594,8 +1563,8 @@ def _html_transaction_cross_checks_section(findings: pl.DataFrame) -> str:
     return _html_section(
         "Transaction Cross-Checks",
         _html_table(
-            portfolio_period_transaction_cross_checks(findings),
-            list(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
+            _pc_explain.portfolio_period_transaction_cross_checks(findings),
+            list(_pc_explain.PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
             empty_message="No transaction cross-check estimates are available.",
         ),
     )
@@ -1606,8 +1575,8 @@ def _html_flow_cross_check_reconciliation_section(findings: pl.DataFrame) -> str
     return _html_section(
         "Flow Cross-Check Reconciliation",
         _html_table(
-            portfolio_period_flow_cross_check_reconciliation(findings),
-            list(PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
+            _pc_explain.portfolio_period_flow_cross_check_reconciliation(findings),
+            list(_pc_explain.PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
             empty_message="No flow/cross-check reconciliation rows are available.",
         ),
     )
@@ -1616,10 +1585,10 @@ def _html_flow_cross_check_reconciliation_section(findings: pl.DataFrame) -> str
 def _html_residual_status_section(findings: pl.DataFrame) -> str:
     """Return residual-status caveats and rows as an HTML section."""
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        PORTFOLIO_RETURN_DELTA,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
         _ESTIMATED_IMPACT_AREAS,
         _RESIDUAL_STATUS,
         _RESIDUAL_REASON,
@@ -1640,22 +1609,22 @@ def _html_residual_status_section(findings: pl.DataFrame) -> str:
 def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
     """Return changed transaction activity as an HTML section."""
     columns = [
-        PORTFOLIO_ID,
-        SECURITY_ID,
-        FROM_DATE,
-        THRU_DATE,
-        TRANSACTION_CATEGORY,
-        CHANGED_FIELDS,
-        AMOUNT_DELTA,
-        QUANTITY_DELTA,
-        PRICE_DELTA,
-        TRANSACTION_SEMANTICS_SOURCES,
-        MISSING_IMPACT_INPUTS,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_findings.TRANSACTION_CATEGORY,
+        _pc_explain.CHANGED_FIELDS,
+        _pc_explain.AMOUNT_DELTA,
+        _pc_explain.QUANTITY_DELTA,
+        _pc_explain.PRICE_DELTA,
+        _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
+        _pc_explain.MISSING_IMPACT_INPUTS,
     ]
     return _html_section(
         "Transaction Activity",
         _html_table(
-            transaction_activity_summary(findings),
+            _pc_explain.transaction_activity_summary(findings),
             columns,
             empty_message="No changed transaction activity.",
         ),
@@ -1665,17 +1634,17 @@ def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
 def _html_portfolio_period_section(findings: pl.DataFrame) -> str:
     """Return portfolio-period return changes as an HTML section."""
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
-        PORTFOLIO_RETURN_DELTA,
-        FINDING_COUNT,
-        HAS_SUPPRESSED_FINDINGS,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
+        _pc_explain.FINDING_COUNT,
+        _pc_explain.HAS_SUPPRESSED_FINDINGS,
     ]
     return _html_section(
         "Portfolio-Period Changes",
         _html_table(
-            portfolio_period_summary(findings),
+            _pc_explain.portfolio_period_summary(findings),
             columns,
             empty_message="No portfolio return changes.",
         ),
@@ -1686,25 +1655,25 @@ def _html_cause_summary_section(findings: pl.DataFrame) -> str:
     """Return cause-area summaries as an HTML section."""
     columns = [
         column
-        for column in PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS
+        for column in _pc_explain.PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS
         if column
         in {
-            PORTFOLIO_ID,
-            FROM_DATE,
-            THRU_DATE,
-            ROOT_CAUSE_AREA,
-            FINDING_COUNT,
-            ESTIMATED_RETURN_IMPACT,
-            IMPACT_BASIS,
-            IMPACT_CONFIDENCE,
-            TOP_CODES,
-            IMPACT_MESSAGE,
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+            _pc_explain.ROOT_CAUSE_AREA,
+            _pc_explain.FINDING_COUNT,
+            _pc_explain.ESTIMATED_RETURN_IMPACT,
+            _pc_explain.IMPACT_BASIS,
+            _pc_explain.IMPACT_CONFIDENCE,
+            _pc_explain.TOP_CODES,
+            _pc_explain.IMPACT_MESSAGE,
         }
     ]
     return _html_section(
         "Cause Summary",
         _html_table(
-            portfolio_period_cause_summary(findings),
+            _pc_explain.portfolio_period_cause_summary(findings),
             columns,
             empty_message="No cause summary available.",
         ),
@@ -1717,26 +1686,26 @@ def _html_top_evidence_section(
 ) -> str:
     """Return top contribution-candidate evidence as an HTML section."""
     columns = [
-        PORTFOLIO_ID,
-        FROM_DATE,
-        THRU_DATE,
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
         "review_rank",
-        FINDING_CODE,
-        DATASET,
-        EVIDENCE_ROLE,
-        SECURITY_ID,
-        SOURCE_COLUMN,
-        TRANSACTION_SEMANTICS_SOURCE,
-        TRANSACTION_IMPACT_POLICY,
-        TRANSACTION_IMPACT_DIAGNOSTIC,
-        TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
-        DELTA_B_MINUS_A,
-        ESTIMATED_RETURN_IMPACT,
-        IMPACT_BASIS,
-        IMPACT_CONFIDENCE,
-        IMPACT_METHOD,
-        IMPACT_MESSAGE,
-        MESSAGE,
+        _pc_findings.FINDING_CODE,
+        _pc_findings.DATASET,
+        _pc_findings.EVIDENCE_ROLE,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.SOURCE_COLUMN,
+        _pc_findings.TRANSACTION_SEMANTICS_SOURCE,
+        _pc_findings.TRANSACTION_IMPACT_POLICY,
+        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC,
+        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
+        _pc_findings.DELTA_B_MINUS_A,
+        _pc_explain.ESTIMATED_RETURN_IMPACT,
+        _pc_explain.IMPACT_BASIS,
+        _pc_explain.IMPACT_CONFIDENCE,
+        _pc_explain.IMPACT_METHOD,
+        _pc_explain.IMPACT_MESSAGE,
+        _pc_findings.MESSAGE,
     ]
     return _html_section(
         "Top Evidence",
@@ -1753,31 +1722,35 @@ def _html_suppressed_appendix_section(
     summaries: dict[str, pl.DataFrame],
 ) -> str:
     """Return suppressed findings audit appendix as HTML."""
-    suppressed = findings.filter(pl.col(SUPPRESSED)) if not findings.is_empty() else findings
+    suppressed = (
+        findings.filter(pl.col(_pc_findings.SUPPRESSED))
+        if not findings.is_empty()
+        else findings
+    )
     content = "\n".join(
         [
             "<h3>Suppressed Counts By Code</h3>",
             _html_table(
-                summaries["by_code_suppressed"].filter(pl.col(SUPPRESSED))
+                summaries["by_code_suppressed"].filter(pl.col(_pc_findings.SUPPRESSED))
                 if not summaries["by_code_suppressed"].is_empty()
                 else summaries["by_code_suppressed"],
-                [FINDING_CODE, SUPPRESSED, _COUNT],
+                [_pc_findings.FINDING_CODE, _pc_findings.SUPPRESSED, _COUNT],
                 empty_message="No suppressed findings.",
             ),
             "<h3>Suppressed Finding Detail</h3>",
             _html_table(
-                compact_findings_table(suppressed, include_suppressed=True),
+                _pc_runner.compact_findings_table(suppressed, include_suppressed=True),
                 [
-                    FINDING_CODE,
-                    DATASET,
-                    EVIDENCE_ROLE,
-                    PORTFOLIO_ID,
-                    SECURITY_ID,
-                    FROM_DATE,
-                    THRU_DATE,
-                    SOURCE_COLUMN,
-                    DELTA_B_MINUS_A,
-                    MESSAGE,
+                    _pc_findings.FINDING_CODE,
+                    _pc_findings.DATASET,
+                    _pc_findings.EVIDENCE_ROLE,
+                    _pc_findings.PORTFOLIO_ID,
+                    _pc_findings.SECURITY_ID,
+                    _pc_findings.FROM_DATE,
+                    _pc_findings.THRU_DATE,
+                    _pc_findings.SOURCE_COLUMN,
+                    _pc_findings.DELTA_B_MINUS_A,
+                    _pc_findings.MESSAGE,
                 ],
                 empty_message="No suppressed finding detail.",
             ),
@@ -1788,9 +1761,9 @@ def _html_suppressed_appendix_section(
 
 def _active_findings(findings: pl.DataFrame) -> pl.DataFrame:
     """Return unsuppressed findings, preserving empty-table behavior."""
-    if findings.is_empty() or SUPPRESSED not in findings.columns:
+    if findings.is_empty() or _pc_findings.SUPPRESSED not in findings.columns:
         return findings
-    return findings.filter(~pl.col(SUPPRESSED))
+    return findings.filter(~pl.col(_pc_findings.SUPPRESSED))
 
 
 def _markdown_table(

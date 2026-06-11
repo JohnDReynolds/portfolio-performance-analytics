@@ -18,6 +18,7 @@ from ppar.axys import (
     AxysSpecification,
 )
 from ppar.performance_comparison import runner as performance_comparison_runner
+from ppar.performance_comparison import report as performance_comparison_report
 from ppar.performance_comparison import (
     CashLoader,
     ComparisonFile,
@@ -345,6 +346,39 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIs(compare_snapshots, performance_comparison_runner.compare_snapshots)
         self.assertIs(summarize_findings, performance_comparison_runner.summarize_findings)
+
+    def test_public_performance_comparison_report_import_contract(self) -> None:
+        """The report module exposes only report rendering and writing helpers."""
+        expected_exports = {
+            "performance_comparison_html_report",
+            "performance_comparison_markdown_report",
+            "write_performance_comparison_html_report",
+            "write_performance_comparison_markdown_report",
+            "write_performance_comparison_report_bundle",
+        }
+
+        self.assertEqual(set(performance_comparison_report.__all__), expected_exports)
+        self.assertIs(
+            performance_comparison_html_report,
+            performance_comparison_report.performance_comparison_html_report,
+        )
+        self.assertIs(
+            performance_comparison_markdown_report,
+            performance_comparison_report.performance_comparison_markdown_report,
+        )
+        self.assertIs(
+            write_performance_comparison_html_report,
+            performance_comparison_report.write_performance_comparison_html_report,
+        )
+        self.assertIs(
+            write_performance_comparison_markdown_report,
+            performance_comparison_report.write_performance_comparison_markdown_report,
+        )
+        self.assertIs(
+            write_performance_comparison_report_bundle,
+            performance_comparison_report.write_performance_comparison_report_bundle,
+        )
+        self.assertNotIn("_report_bundle_validation_issues", performance_comparison_report.__all__)
 
     def test_chart_dependencies_are_optional(self) -> None:
         """Normal package imports do not load optional chart rendering code."""
