@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from typing import cast
 import unittest
 
 # Third-party imports
@@ -337,26 +338,44 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
 
         self.assertIn("Config validation passed:", result.stdout)
         self.assertIn("Configured datasets:", result.stdout)
+        self.assertIn("Missing optional files: none", result.stdout)
+        self.assertIn("Transaction rules configured: 0", result.stdout)
+        self.assertIn("Transaction impact methods: none", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
+        self.assertIn("Transaction semantics sources:", result.stdout)
+        self.assertEqual(result.stderr, "")
+
+    def test_validate_config_script_reports_missing_optional_files(self) -> None:
+        """The config validator previews absent optional files without failing."""
+        with tempfile.TemporaryDirectory() as directory:
+            configuration = _absolute_restatement_configuration()
+            files = cast(dict[str, object], configuration["files"])
+            files["prices"] = "missing_prices.csv"
+            comparison_path = Path(directory) / "comparison.yaml"
+            comparison_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_VALIDATE_CONFIG_SCRIPT_PATH),
+                    str(comparison_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("Config validation passed:", result.stdout)
+        self.assertIn("Missing optional files: prices:a, prices:b", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_validate_config_script_reports_invalid_yaml_contract(self) -> None:
         """The config validator exits nonzero for malformed YAML contracts."""
         with tempfile.TemporaryDirectory() as directory:
-            configuration = yaml.safe_load(
-                _RESTATEMENT_COMPARISON_PATH.read_text(encoding="utf-8")
-            )
-            fixture_directory = _RESTATEMENT_COMPARISON_PATH.parent.resolve()
-            configuration["snapshots"]["a"]["path"] = str(fixture_directory / "axys_a")
-            configuration["snapshots"]["b"]["path"] = str(
-                fixture_directory / "axys_b_restatement"
-            )
-            configuration["snapshots"]["a"]["schema"] = str(
-                fixture_directory / "axys_column_mappings.yaml"
-            )
-            configuration["snapshots"]["b"]["schema"] = str(
-                fixture_directory / "axys_column_mappings.yaml"
-            )
+            configuration = _absolute_restatement_configuration()
             configuration["transaction_impact_methods"] = {
                 "performance": {
                     "method": "unsupported",
@@ -398,6 +417,23 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+
+
+def _absolute_restatement_configuration() -> dict[str, object]:
+    """Return restatement YAML values with absolute fixture paths."""
+    configuration = yaml.safe_load(_RESTATEMENT_COMPARISON_PATH.read_text(encoding="utf-8"))
+    fixture_directory = _RESTATEMENT_COMPARISON_PATH.parent.resolve()
+    configuration["snapshots"]["a"]["path"] = str(fixture_directory / "axys_a")
+    configuration["snapshots"]["b"]["path"] = str(
+        fixture_directory / "axys_b_restatement"
+    )
+    configuration["snapshots"]["a"]["schema"] = str(
+        fixture_directory / "axys_column_mappings.yaml"
+    )
+    configuration["snapshots"]["b"]["schema"] = str(
+        fixture_directory / "axys_column_mappings.yaml"
+    )
+    return configuration
 
 
 def _html_section(report: str, section_id: str) -> str:
