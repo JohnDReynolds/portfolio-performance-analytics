@@ -213,6 +213,12 @@ To validate an existing performance comparison bundle from a source checkout:
 ./.venv/bin/python scripts/performance_comparison_validate_bundle.py _demo_output/performance_comparison_bundle
 ```
 
+To validate a comparison YAML file before running a report:
+
+```bash
+./.venv/bin/python scripts/performance_comparison_validate_config.py tests/data/axys/ppar_performance_comparison_restatement.yaml
+```
+
 ---
 
 ## Technical

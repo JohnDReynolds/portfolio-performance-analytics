@@ -8,6 +8,9 @@ import sys
 import tempfile
 import unittest
 
+# Third-party imports
+import yaml
+
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
 )
@@ -18,6 +21,7 @@ _SCRIPT_PATH = Path("scripts/performance_comparison_report.py")
 _HTML_SCRIPT_PATH = Path("scripts/performance_comparison_html_report.py")
 _BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_report_bundle.py")
 _VALIDATE_BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_validate_bundle.py")
+_VALIDATE_CONFIG_SCRIPT_PATH = Path("scripts/performance_comparison_validate_config.py")
 
 
 class TestPerformanceComparisonReportScript(unittest.TestCase):
@@ -33,6 +37,9 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             ),
             _VALIDATE_BUNDLE_SCRIPT_PATH: (
                 "Validate a performance comparison report bundle."
+            ),
+            _VALIDATE_CONFIG_SCRIPT_PATH: (
+                "Validate a performance comparison YAML configuration."
             ),
         }
 
@@ -314,6 +321,69 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertEqual(result.stdout, "")
             self.assertIn("Bundle validation failed:", result.stderr)
             self.assertIn("table 'top_evidence' row count is 0, expected 10", result.stderr)
+
+    def test_validate_config_script_accepts_valid_yaml(self) -> None:
+        """The config validator accepts a valid comparison YAML file."""
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(_VALIDATE_CONFIG_SCRIPT_PATH),
+                str(_RESTATEMENT_COMPARISON_PATH),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Config validation passed:", result.stdout)
+        self.assertIn("Configured datasets:", result.stdout)
+        self.assertIn("Transaction files checked: 2", result.stdout)
+        self.assertEqual(result.stderr, "")
+
+    def test_validate_config_script_reports_invalid_yaml_contract(self) -> None:
+        """The config validator exits nonzero for malformed YAML contracts."""
+        with tempfile.TemporaryDirectory() as directory:
+            configuration = yaml.safe_load(
+                _RESTATEMENT_COMPARISON_PATH.read_text(encoding="utf-8")
+            )
+            fixture_directory = _RESTATEMENT_COMPARISON_PATH.parent.resolve()
+            configuration["snapshots"]["a"]["path"] = str(fixture_directory / "axys_a")
+            configuration["snapshots"]["b"]["path"] = str(
+                fixture_directory / "axys_b_restatement"
+            )
+            configuration["snapshots"]["a"]["schema"] = str(
+                fixture_directory / "axys_column_mappings.yaml"
+            )
+            configuration["snapshots"]["b"]["schema"] = str(
+                fixture_directory / "axys_column_mappings.yaml"
+            )
+            configuration["transaction_impact_methods"] = {
+                "performance": {
+                    "method": "unsupported",
+                    "denominator_source": "begin_market_value",
+                },
+            }
+            comparison_path = Path(directory) / "comparison.yaml"
+            comparison_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_VALIDATE_CONFIG_SCRIPT_PATH),
+                    str(comparison_path),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("Config validation failed:", result.stderr)
+        self.assertIn("performance.method must be", result.stderr)
 
     def _write_bundle(self, output_directory: Path) -> None:
         """Write a standard report bundle for script validation tests."""
