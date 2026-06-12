@@ -68,6 +68,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+    TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_CATEGORY,
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
@@ -918,6 +919,55 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             self.assertIsNone(external_flow_policy.flow_timing)
 
+    def test_transaction_performance_policy_is_loaded_from_yaml(self) -> None:
+        """Explicit performance amount impact policy is carried into findings."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                transaction_path = Path(temp_dir) / snapshot_name / "transactions.csv"
+                transaction_path.write_text(
+                    transaction_path.read_text(encoding="utf-8").replace(
+                        "cash out,external",
+                        "cash out,performance",
+                    ),
+                    encoding="utf-8",
+                )
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "performance": {
+                    "method": "transaction_amount_delta_over_return_denominator",
+                    "denominator_source": "begin_market_value",
+                },
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            amount_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_AMT
+            )
+
+            self.assertEqual(
+                amount_finding[TRANSACTION_IMPACT_POLICY],
+                TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+            )
+            policies = _transaction_impact_policies(specification)
+            performance_policy = policies["performance"]
+            self.assertEqual(
+                performance_policy.method,
+                "transaction_amount_delta_over_return_denominator",
+            )
+            self.assertEqual(
+                performance_policy.finding_label,
+                TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+            )
+            self.assertEqual(performance_policy.denominator_source, "begin_market_value")
+
     def test_transaction_modified_dietz_policy_preserves_explicit_yaml_fields(
         self,
     ) -> None:
@@ -1374,6 +1424,26 @@ class TestPerformanceComparison(unittest.TestCase):
             (
                 {"external_flow": {"method": "modified_dietz"}},
                 "missing required modified_dietz keys",
+            ),
+            ({"performance": "estimate"}, "performance must be a mapping"),
+            ({"performance": {}}, "performance is missing required keys"),
+            (
+                {
+                    "performance": {
+                        "method": "unsupported",
+                        "denominator_source": "begin_market_value",
+                    }
+                },
+                "performance.method must be",
+            ),
+            (
+                {
+                    "performance": {
+                        "method": "transaction_amount_delta_over_return_denominator",
+                        "denominator_source": "ending_market_value",
+                    }
+                },
+                "performance.denominator_source must be one of",
             ),
         ]
 

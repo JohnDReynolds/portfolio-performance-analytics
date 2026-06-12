@@ -22,6 +22,7 @@ from ppar.performance_comparison.findings import (
     RELATED_OUTPUT,
     TARGET_OUTPUT,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+    TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
@@ -68,6 +69,7 @@ from ppar.performance_comparison.security_master import SecurityMasterLoader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     TransactionsLoader,
 )
 
@@ -172,9 +174,13 @@ _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
 )
 _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
+_PERFORMANCE_KEY: Final[str] = "performance"
 _METHOD_KEY: Final[str] = "method"
 _EVIDENCE_ONLY_METHOD: Final[str] = "evidence_only"
 _MODIFIED_DIETZ_METHOD: Final[str] = "modified_dietz"
+_TRANSACTION_AMOUNT_DELTA_METHOD: Final[str] = (
+    "transaction_amount_delta_over_return_denominator"
+)
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
 _INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
@@ -188,6 +194,12 @@ _MODIFIED_DIETZ_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _INCLUSION_RULE_KEY,
         _DENOMINATOR_SOURCE_KEY,
         _DOUBLE_COUNT_POLICY_KEY,
+    }
+)
+_PERFORMANCE_AMOUNT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
     }
 )
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
@@ -204,6 +216,9 @@ _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
         "unweighted_flow_delta",
     }
 )
+_PERFORMANCE_AMOUNT_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+}
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
@@ -936,9 +951,14 @@ class PerformanceComparison:
         """Return YAML-configured transaction impact policy for a row."""
         if dataset != pc_cols.TRANSACTIONS:
             return None
-        if row.get(pc_cols.PERFORMANCE_FLOW_SIGN) != TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
+        performance_flow_sign = row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
+        if performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
+            policy_key = _EXTERNAL_FLOW_KEY
+        elif performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE:
+            policy_key = _PERFORMANCE_KEY
+        else:
             return None
-        policy = self._transaction_impact_policies.get(_EXTERNAL_FLOW_KEY)
+        policy = self._transaction_impact_policies.get(policy_key)
         if policy is None:
             return None
         return policy.finding_label
@@ -1290,7 +1310,7 @@ def _transaction_impact_policies(
             504,
         )
 
-    unsupported_keys = set(methods_value) - {_EXTERNAL_FLOW_KEY}
+    unsupported_keys = set(methods_value) - {_EXTERNAL_FLOW_KEY, _PERFORMANCE_KEY}
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
@@ -1303,9 +1323,7 @@ def _transaction_impact_policies(
 
     policies: dict[str, _TransactionImpactPolicy] = {}
     external_flow_value = methods_value.get(_EXTERNAL_FLOW_KEY)
-    if external_flow_value is None:
-        return policies
-    if not isinstance(external_flow_value, dict):
+    if external_flow_value is not None and not isinstance(external_flow_value, dict):
         raise PpaError(
             (
                 f"{specification.path}: "
@@ -1314,7 +1332,35 @@ def _transaction_impact_policies(
             ),
             504,
         )
+    if isinstance(external_flow_value, dict):
+        policies[_EXTERNAL_FLOW_KEY] = _validated_external_flow_policy(
+            specification,
+            external_flow_value,
+        )
 
+    performance_value = methods_value.get(_PERFORMANCE_KEY)
+    if performance_value is not None and not isinstance(performance_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_PERFORMANCE_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+    if isinstance(performance_value, dict):
+        policies[_PERFORMANCE_KEY] = _validated_performance_amount_policy(
+            specification,
+            performance_value,
+        )
+    return policies
+
+
+def _validated_external_flow_policy(
+    specification: PerformanceComparisonSpecification,
+    external_flow_value: Mapping[str, object],
+) -> _TransactionImpactPolicy:
+    """Validate and preserve the external-flow YAML policy."""
     method = external_flow_value.get(_METHOD_KEY)
     if method is None:
         raise PpaError(
@@ -1326,19 +1372,75 @@ def _transaction_impact_policies(
             504,
         )
     if method == _MODIFIED_DIETZ_METHOD:
-        policies[_EXTERNAL_FLOW_KEY] = _validated_modified_dietz_policy(
+        return _validated_modified_dietz_policy(
             specification,
             external_flow_value,
         )
-        return policies
     if method != _EVIDENCE_ONLY_METHOD:
         _raise_unsupported_external_flow_method(specification, method)
 
-    policies[_EXTERNAL_FLOW_KEY] = _TransactionImpactPolicy(
+    return _TransactionImpactPolicy(
         method=_EVIDENCE_ONLY_METHOD,
         finding_label=TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     )
-    return policies
+
+
+def _validated_performance_amount_policy(
+    specification: PerformanceComparisonSpecification,
+    performance_value: Mapping[str, object],
+) -> _TransactionImpactPolicy:
+    """Validate the performance transaction-amount impact YAML policy."""
+    unsupported_keys = set(performance_value) - _PERFORMANCE_AMOUNT_REQUIRED_KEYS
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_PERFORMANCE_KEY} "
+                f"has unsupported keys: {unsupported}."
+            ),
+            504,
+        )
+
+    missing_keys = _PERFORMANCE_AMOUNT_REQUIRED_KEYS - set(performance_value)
+    if missing_keys:
+        missing = ", ".join(sorted(str(key) for key in missing_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_PERFORMANCE_KEY} "
+                f"is missing required keys: {missing}."
+            ),
+            504,
+        )
+
+    method = performance_value.get(_METHOD_KEY)
+    if method != _TRANSACTION_AMOUNT_DELTA_METHOD:
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_PERFORMANCE_KEY}."
+                f"{_METHOD_KEY} must be {_TRANSACTION_AMOUNT_DELTA_METHOD!r}."
+            ),
+            504,
+        )
+    for key, allowed_values in _PERFORMANCE_AMOUNT_ALLOWED_VALUES.items():
+        value = performance_value.get(key)
+        if value not in allowed_values:
+            allowed = ", ".join(sorted(allowed_values))
+            raise PpaError(
+                (
+                    f"{specification.path}: "
+                    f"{_TRANSACTION_IMPACT_METHODS_KEY}.{_PERFORMANCE_KEY}."
+                    f"{key} must be one of: {allowed}."
+                ),
+                504,
+            )
+    return _TransactionImpactPolicy(
+        method=_TRANSACTION_AMOUNT_DELTA_METHOD,
+        finding_label=TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+        denominator_source=str(performance_value[_DENOMINATOR_SOURCE_KEY]),
+    )
 
 
 def _validated_modified_dietz_policy(

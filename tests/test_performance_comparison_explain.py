@@ -132,6 +132,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+    TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_CATEGORY,
     TRANSACTION_SEMANTICS_SOURCE,
 )
@@ -180,7 +181,9 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         cash_flow_sign: str | None = "negative",
         performance_flow_sign: str | None = "performance",
         transaction_semantics_source: str | None = "source",
-        transaction_impact_policy: str | None = None,
+        transaction_impact_policy: str | None = (
+            TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA
+        ),
         transaction_impact_diagnostic: str | None = None,
         transaction_impact_diagnostic_estimate: float | None = None,
         return_denominator: float | None = 1000.0,
@@ -789,6 +792,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit("source"))
             .otherwise(pl.col(TRANSACTION_SEMANTICS_SOURCE))
             .alias(TRANSACTION_SEMANTICS_SOURCE),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA))
+            .otherwise(pl.col(TRANSACTION_IMPACT_POLICY))
+            .alias(TRANSACTION_IMPACT_POLICY),
         )
 
         summary = transaction_activity_summary(findings)
@@ -829,6 +836,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             .then(pl.lit("source"))
             .otherwise(pl.col(TRANSACTION_SEMANTICS_SOURCE))
             .alias(TRANSACTION_SEMANTICS_SOURCE),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA))
+            .otherwise(pl.col(TRANSACTION_IMPACT_POLICY))
+            .alias(TRANSACTION_IMPACT_POLICY),
         )
 
         candidates = portfolio_period_contribution_candidates(findings)
@@ -865,6 +876,22 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(activity_row[TRANSACTION_SEMANTICS_SOURCES], "source: 3")
         self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "")
         self.assertIn("modeled impact inputs", activity_row[IMPACT_MESSAGE])
+
+    def test_transaction_amount_requires_explicit_performance_policy(self) -> None:
+        """Performance transaction amounts need a YAML-selected impact method."""
+        findings = self._transaction_estimate_findings(transaction_impact_policy=None)
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        transaction_amount = candidates.filter(
+            (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            & (pl.col(SOURCE_COLUMN) == pc_cols.AMOUNT)
+        ).row(0, named=True)
+        activity = transaction_activity_summary(findings)
+        activity_row = activity.row(0, named=True)
+
+        self.assertIsNone(transaction_amount[ESTIMATED_RETURN_IMPACT])
+        self.assertEqual(transaction_amount[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
+        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "transaction impact method")
 
     def test_transaction_amount_candidate_reports_mixed_semantics_source(self) -> None:
         """Transaction estimates disclose when YAML rules helped supply semantics."""

@@ -83,6 +83,10 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
                 "files:",
                 "  portfolio_performance: portperf.csv",
                 "  transactions: transactions.csv",
+                "transaction_impact_methods:",
+                "  performance:",
+                "    method: transaction_amount_delta_over_return_denominator",
+                "    denominator_source: begin_market_value",
                 "",
             ]
         ),
@@ -221,7 +225,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertNotIn("transaction sign and flow semantics", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
         self.assertIn("Transaction Impact Diagnostic", top_evidence)
-        self.assertIn("| mixed |  |  |  | -100 |", top_evidence)
+        self.assertIn(
+            "| mixed | performance:transaction_amount_delta_over_return_denominator |"
+            "  |  | -100 |",
+            top_evidence,
+        )
 
     def test_markdown_report_shows_source_loaded_transaction_estimate(self) -> None:
         """Source transaction semantics flow through to report impact estimates."""
@@ -258,7 +266,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("| -10 |", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
         self.assertIn("Transaction Impact Diagnostic", top_evidence)
-        self.assertIn("| source |  |  |  | -10 |", top_evidence)
+        self.assertIn(
+            "| source | performance:transaction_amount_delta_over_return_denominator |"
+            "  |  | -10 |",
+            top_evidence,
+        )
         self.assertIn("transaction_amount_delta_over_return_denominator", top_evidence)
         self.assertIn("source-signed transaction amount", top_evidence)
         self.assertNotIn("transaction sign and flow semantics", report)

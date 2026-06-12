@@ -374,25 +374,33 @@ transaction_rules:
     performance_flow_sign: external
 ```
 
-External-flow impact treatment must also be explicit. The only supported
-external-flow policy today is evidence-only:
+Transaction impact treatment must also be explicit. External-flow rows can be
+marked evidence-only or cross-check-only, and performance-treated amount rows
+can opt into the only currently modeled amount-delta estimate:
 
 ```yaml
 transaction_impact_methods:
   external_flow:
     method: evidence_only
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+    denominator_source: begin_market_value
 ```
 
 The supported `transaction_impact_methods` contract is intentionally narrow:
 
 - Top-level value must be a mapping.
-- Supported key: `external_flow`.
+- Supported keys: `external_flow` and `performance`.
 - `external_flow` must be a mapping.
 - Supported `external_flow.method` values: `evidence_only` and
   `modified_dietz`.
+- `performance` must be a mapping.
+- Supported `performance.method` value:
+  `transaction_amount_delta_over_return_denominator`.
+- Supported `performance.denominator_source` value: `begin_market_value`.
 
-This policy documents that external-flow transaction differences should remain
-review evidence unless YAML explicitly selects a supported diagnostic
+This policy documents that transaction differences should remain review
+evidence unless YAML explicitly selects a supported estimate or diagnostic
 cross-check. Missing or unsupported method names are rejected so the comparison
 never silently chooses a return convention. `modified_dietz` is supported only
 as a cross-check diagnostic: its estimate is reported beside transaction
@@ -401,7 +409,8 @@ evidence and is excluded from regular contribution totals.
 Transaction impact output separates configured policy from review diagnostics:
 
 - `transaction_impact_policy`: The YAML-selected policy label that applies to
-  the row, such as `external_flow:evidence_only`.
+  the row, such as `external_flow:evidence_only` or
+  `performance:transaction_amount_delta_over_return_denominator`.
 - `transaction_impact_diagnostic`: A review-only explanation of why a
   transaction row is not estimated or why a cross-check-only method has a
   separate diagnostic estimate.
@@ -1195,15 +1204,18 @@ Current supported impact estimates:
    - `impact_method = transaction_amount_delta_over_return_denominator`
    - `impact_confidence = low`
    - Formula: `source_signed_transaction_amount_delta / return_denominator`.
-   - Applies only to changed transaction `amount` fields whose source-supplied
-     semantics mark them as performance-affecting and whose cash-flow sign is
-     positive or negative. Missing/zero denominators, out-of-period transaction
-     dates, external-flow treatment, neutral treatment, unknown semantics, and
-     cash-flow `none` remain evidence-only until separate methods are modeled.
-     Missing-input summaries name these unsupported treatments as
-     `external-flow impact method`, `neutral-flow impact method`, or
-     `no-cash transaction impact method` so reviewers can distinguish
-     semantics gaps from method gaps.
+   - Applies only when YAML explicitly configures
+     `transaction_impact_methods.performance.method` as
+     `transaction_amount_delta_over_return_denominator`.
+   - Also requires changed transaction `amount` fields whose source-supplied or
+     YAML-rule semantics mark them as performance-affecting and whose cash-flow
+     sign is positive or negative. Missing/zero denominators, out-of-period
+     transaction dates, external-flow treatment, neutral treatment, unknown
+     semantics, and cash-flow `none` remain evidence-only until separate
+     methods are modeled. Missing-input summaries name these unsupported
+     treatments as `transaction impact method`, `external-flow impact method`,
+     `neutral-flow impact method`, or `no-cash transaction impact method` so
+     reviewers can distinguish semantics gaps from method gaps.
    - If YAML sets `transaction_impact_methods.external_flow.method` to
      `evidence_only`, external-flow transaction rows still receive no estimate,
      but review summaries identify the explicit evidence-only policy rather
