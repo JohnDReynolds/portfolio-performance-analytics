@@ -193,8 +193,8 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject["tool"]["setuptools"]["packages"],
         )
 
-    def test_demo_console_scripts_are_explicit(self) -> None:
-        """The installed demo commands point to the packaged demo modules."""
+    def test_console_scripts_are_explicit(self) -> None:
+        """Installed commands point to packaged modules."""
         with open("pyproject.toml", "rb") as file:
             pyproject = tomllib.load(file)
 
@@ -205,6 +205,9 @@ class TestPackageMetadata(unittest.TestCase):
                 "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
                 "ppar-performance-comparison-demo": (
                     "ppar.demos.performance_comparison_demo:main"
+                ),
+                "ppar-performance-comparison-validate-config": (
+                    "ppar.performance_comparison.config_validation:main"
                 ),
             },
         )

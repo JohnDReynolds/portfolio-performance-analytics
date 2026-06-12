@@ -137,6 +137,7 @@ Run the bundled demos from an installed environment:
 ppar-analytics-demo
 ppar-axys-analytics-demo
 ppar-performance-comparison-demo
+ppar-performance-comparison-validate-config
 ```
 
 ---
@@ -214,6 +215,12 @@ To validate an existing performance comparison bundle from a source checkout:
 ```
 
 To validate a comparison YAML file before running a report:
+
+```bash
+ppar-performance-comparison-validate-config tests/data/axys/ppar_performance_comparison_restatement.yaml
+```
+
+From a source checkout, the same validator is also available as:
 
 ```bash
 ./.venv/bin/python scripts/performance_comparison_validate_config.py tests/data/axys/ppar_performance_comparison_restatement.yaml

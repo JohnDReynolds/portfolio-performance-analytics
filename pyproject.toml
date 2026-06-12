@@ -77,6 +77,7 @@ dev = [
 ppar-analytics-demo = "ppar.demos.analytics_demo:main"
 ppar-axys-analytics-demo = "ppar.demos.axys_analytics_demo:main"
 ppar-performance-comparison-demo = "ppar.demos.performance_comparison_demo:main"
+ppar-performance-comparison-validate-config = "ppar.performance_comparison.config_validation:main"
 
 [tool.mypy]
 python_version = "3.12"
