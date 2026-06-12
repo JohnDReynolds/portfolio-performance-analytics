@@ -109,27 +109,32 @@ def _declared_public_module_names(path: Path) -> set[str]:
 
 
 class TestPackageMetadata(unittest.TestCase):
-    """Verify package dependency metadata agrees with development requirements."""
+    """Verify package dependency metadata is complete and intentionally scoped."""
 
     def test_dependency_metadata(self) -> None:
-        """Runtime dependencies are represented by the requirements file."""
+        """Runtime dependencies and optional tooling stay in their metadata groups."""
         with open("pyproject.toml", "rb") as file:
             pyproject = tomllib.load(file)
         pyproject_dependencies = {
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in pyproject["project"]["dependencies"]
         }
-        with open("requirements.txt", "r", encoding=util.ENCODING) as file:
-            requirements_dependencies = {
-                line.split(">=", maxsplit=1)[0].strip().lower()
-                for line in file
-                if line.strip()
-            }
+        optional_dependencies = pyproject["project"]["optional-dependencies"]
+        chart_dependencies = {
+            dependency.split(">=", maxsplit=1)[0].lower()
+            for dependency in optional_dependencies["charts"]
+        }
+        dev_dependencies = {
+            dependency.split(">=", maxsplit=1)[0].lower()
+            for dependency in optional_dependencies["dev"]
+        }
 
         self.assertNotIn("great_tables", pyproject_dependencies)
-        self.assertNotIn("great_tables", requirements_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
-        self.assertTrue(pyproject_dependencies.issubset(requirements_dependencies))
+        self.assertNotIn("matplotlib", pyproject_dependencies)
+        self.assertIn("matplotlib", chart_dependencies)
+        self.assertIn("seaborn", chart_dependencies)
+        self.assertIn("pytest", dev_dependencies)
 
     def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
         """Build metadata uses current setuptools license fields."""
