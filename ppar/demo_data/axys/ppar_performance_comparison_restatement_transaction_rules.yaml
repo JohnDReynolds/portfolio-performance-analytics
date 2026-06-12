@@ -50,8 +50,12 @@ transaction_rules:
     performance_flow_sign: performance
 
 transaction_impact_methods:
+  # External-flow rows remain review evidence unless a supported diagnostic
+  # cross-check such as modified_dietz is explicitly configured.
   external_flow:
     method: evidence_only
+  # Performance-treated amount deltas are estimated only when this method and
+  # denominator source are explicitly selected.
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value

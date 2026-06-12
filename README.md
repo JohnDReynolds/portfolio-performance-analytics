@@ -165,6 +165,48 @@ inspect `needs_review_summary.csv` for the periods and issues that need review
 first. The bundle `README.md` and `manifest.json` describe the generated
 reports and CSV tables.
 
+Transaction impact estimates are never inferred from transaction codes alone.
+When a source does not provide category/sign/flow semantics, supply explicit
+rules in the comparison YAML:
+
+```yaml
+transaction_rules:
+  BUY:
+    transaction_category: buy
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  DEP:
+    transaction_category: external_flow
+    cash_flow_sign: positive
+    performance_flow_sign: external
+```
+
+Impact methods are also explicit. Omitted methods leave transaction activity as
+review evidence and produce missing-input diagnostics rather than estimates.
+
+```yaml
+transaction_impact_methods:
+  external_flow:
+    method: evidence_only
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+    denominator_source: begin_market_value
+```
+
+For external-flow review cross-checks, the supported Modified Dietz diagnostic
+requires every convention to be named:
+
+```yaml
+transaction_impact_methods:
+  external_flow:
+    method: modified_dietz
+    flow_timing: trade_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
+    denominator_source: begin_market_value
+    double_count_policy: cross_check_only
+```
+
 To validate an existing performance comparison bundle from a source checkout:
 
 ```bash
