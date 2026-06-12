@@ -22,6 +22,9 @@ from ppar.performance_comparison.findings import (
     RELATED_OUTPUT,
     TARGET_OUTPUT,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+    TRANSACTION_MATCH_STATUS_ID_MATCH,
+    TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
+    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_FLOW,
@@ -577,6 +580,7 @@ class PerformanceComparison:
             pc_cols.TRANSACTIONS,
             "Transaction row appears only in snapshot B.",
             "Transaction row appears only in snapshot A.",
+            self._transaction_unmatched_status(key_columns),
         )
         if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
             findings.extend(
@@ -588,6 +592,7 @@ class PerformanceComparison:
                     pc_cols.TRANSACTIONS,
                     portfolio_periods,
                     return_denominators=return_denominators,
+                    transaction_match_status=TRANSACTION_MATCH_STATUS_ID_MATCH,
                 )
             )
         return findings
@@ -602,6 +607,7 @@ class PerformanceComparison:
         dataset: str = pc_cols.PORTFOLIO_PERFORMANCE,
         add_message: str = "Portfolio performance row appears only in snapshot B.",
         drop_message: str = "Portfolio performance row appears only in snapshot A.",
+        transaction_match_status: object | None = None,
     ) -> list[Finding]:
         """Return findings for portfolio rows present in only one snapshot."""
         self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
@@ -620,6 +626,7 @@ class PerformanceComparison:
                     dataset,
                     source_file,
                     add_message,
+                    transaction_match_status,
                 )
             )
         for row_key in sorted(rows_a - rows_b, key=self._sortable_key):
@@ -631,6 +638,7 @@ class PerformanceComparison:
                     dataset,
                     source_file,
                     drop_message,
+                    transaction_match_status,
                 )
             )
         return findings
@@ -735,6 +743,7 @@ class PerformanceComparison:
         portfolio_periods: pl.DataFrame | None = None,
         security_periods: pl.DataFrame | None = None,
         return_denominators: Mapping[tuple[object, object, object], float] | None = None,
+        transaction_match_status: object | None = None,
     ) -> list[Finding]:
         """Return findings for material value changes on matching rows."""
         compare_columns = compare_columns or _PORTFOLIO_COMPARE_COLUMNS
@@ -809,6 +818,7 @@ class PerformanceComparison:
                             transaction_semantics_source=(
                                 self._transaction_semantics_source(row, dataset)
                             ),
+                            transaction_match_status=transaction_match_status,
                             transaction_impact_policy=(
                                 self._transaction_impact_policy(row, dataset)
                             ),
@@ -1160,6 +1170,13 @@ class PerformanceComparison:
         )
 
     @staticmethod
+    def _transaction_unmatched_status(key_columns: tuple[str, ...]) -> str:
+        """Return the unmatched transaction diagnostic for a comparison key."""
+        if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
+            return TRANSACTION_MATCH_STATUS_ID_UNMATCHED
+        return TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED
+
+    @staticmethod
     def _key_finding(
         code: str,
         row_key: tuple[object, ...],
@@ -1167,6 +1184,7 @@ class PerformanceComparison:
         dataset: str,
         source_file: str | None,
         message: str,
+        transaction_match_status: object | None = None,
     ) -> Finding:
         """Return a row-presence finding from a portfolio key tuple."""
         portfolio_id: object | None = None
@@ -1190,6 +1208,7 @@ class PerformanceComparison:
             from_date=from_date,
             thru_date=thru_date,
             source_file=source_file,
+            transaction_match_status=transaction_match_status,
             message=message,
         )
 

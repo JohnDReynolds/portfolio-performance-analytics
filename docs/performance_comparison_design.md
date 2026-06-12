@@ -615,7 +615,9 @@ available, the fallback key includes portfolio, security, trade date, settlement
 date if present, transaction code, quantity, price, and amount. This avoids
 guessing that two similar rows are the same transaction. In that fallback mode,
 an amount restatement is expected to appear as one `PC-TXN-DROP` and one
-`PC-TXN-ADD`, not as `PC-TXN-AMT`.
+`PC-TXN-ADD`, not as `PC-TXN-AMT`. Transaction findings expose
+`transaction_match_status` so reviewers can distinguish `transaction_id_match`,
+`transaction_id_unmatched`, and `strict_fallback_unmatched` evidence.
 
 Duplicate comparison keys should fail loudly before row-presence checks or
 value comparisons run. Silent duplicate handling can collapse rows into a set

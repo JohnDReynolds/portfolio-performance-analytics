@@ -39,6 +39,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
+    TRANSACTION_MATCH_STATUS,
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.transactions import (
@@ -180,6 +181,7 @@ CROSS_CHECK_ESTIMATE_TOTAL = "cross_check_estimate_total"
 CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
 TRANSACTION_IMPACT_POLICIES = "transaction_impact_policies"
 TRANSACTION_IMPACT_DIAGNOSTICS = "transaction_impact_diagnostics"
+TRANSACTION_MATCH_STATUSES = "transaction_match_statuses"
 PORTFOLIO_FLOW_DELTA = "portfolio_flow_delta"
 PORTFOLIO_FLOW_IMPACT_ESTIMATE = "portfolio_flow_impact_estimate"
 CROSS_CHECK_MINUS_FLOW_IMPACT = "cross_check_minus_flow_impact"
@@ -274,6 +276,7 @@ TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
     QUANTITY_DELTA,
     PRICE_DELTA,
     TRANSACTION_SEMANTICS_SOURCES,
+    TRANSACTION_MATCH_STATUSES,
     MISSING_IMPACT_INPUTS,
     IMPACT_BASIS,
     IMPACT_CONFIDENCE,
@@ -1809,6 +1812,7 @@ def _transaction_activity_summary_row(
         QUANTITY_DELTA: _field_delta(rows, pc_cols.QUANTITY),
         PRICE_DELTA: _field_delta(rows, pc_cols.PRICE),
         TRANSACTION_SEMANTICS_SOURCES: _transaction_semantics_source_counts(rows),
+        TRANSACTION_MATCH_STATUSES: _transaction_match_status_counts(rows),
         MISSING_IMPACT_INPUTS: missing_impact_inputs,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
@@ -2044,6 +2048,26 @@ def _transaction_semantics_source_counts(rows: list[dict[str, object]]) -> str:
             continue
         counts[source] = counts.get(source, 0) + 1
     return _format_transaction_semantics_source_counts(counts)
+
+
+def _transaction_match_status_counts(rows: list[dict[str, object]]) -> str:
+    """Return compact transaction match-status counts for evidence rows."""
+    counts: dict[str, int] = {}
+    for row in rows:
+        status = row.get(TRANSACTION_MATCH_STATUS)
+        if not isinstance(status, str) or not status:
+            continue
+        counts[status] = counts.get(status, 0) + 1
+    return _format_label_counts(counts)
+
+
+def _format_label_counts(counts: Mapping[str, int]) -> str:
+    """Return stable readable counts for free-form labels."""
+    return ", ".join(
+        f"{label}: {counts[label]}"
+        for label in sorted(counts)
+        if counts.get(label, 0) > 0
+    )
 
 
 def _parse_transaction_semantics_sources(value: object) -> dict[str, int]:
@@ -2529,6 +2553,7 @@ def _empty_transaction_activity_summary() -> pl.DataFrame:
             QUANTITY_DELTA: pl.Float64,
             PRICE_DELTA: pl.Float64,
             TRANSACTION_SEMANTICS_SOURCES: pl.String,
+            TRANSACTION_MATCH_STATUSES: pl.String,
             MISSING_IMPACT_INPUTS: pl.String,
             IMPACT_BASIS: pl.String,
             IMPACT_CONFIDENCE: pl.String,

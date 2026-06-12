@@ -35,6 +35,10 @@ __all__ = [
     "CASH_FLOW_SIGN",
     "PERFORMANCE_FLOW_SIGN",
     "TRANSACTION_SEMANTICS_SOURCE",
+    "TRANSACTION_MATCH_STATUS",
+    "TRANSACTION_MATCH_STATUS_ID_MATCH",
+    "TRANSACTION_MATCH_STATUS_ID_UNMATCHED",
+    "TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED",
     "TRANSACTION_IMPACT_POLICY",
     "TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY",
     "TRANSACTION_IMPACT_DIAGNOSTIC",
@@ -96,6 +100,7 @@ TRANSACTION_CATEGORY = "transaction_category"
 CASH_FLOW_SIGN = "cash_flow_sign"
 PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
 TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
+TRANSACTION_MATCH_STATUS = "transaction_match_status"
 TRANSACTION_IMPACT_POLICY = "transaction_impact_policy"
 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = "external_flow:evidence_only"
 TRANSACTION_IMPACT_DIAGNOSTIC = "transaction_impact_diagnostic"
@@ -126,6 +131,11 @@ PC_TXN_DROP: Final[str] = "PC-TXN-DROP"
 PC_TXN_AMT: Final[str] = "PC-TXN-AMT"
 PC_TXN_QTY: Final[str] = "PC-TXN-QTY"
 PC_TXN_PRICE: Final[str] = "PC-TXN-PRICE"
+TRANSACTION_MATCH_STATUS_ID_MATCH: Final[str] = "transaction_id_match"
+TRANSACTION_MATCH_STATUS_ID_UNMATCHED: Final[str] = "transaction_id_unmatched"
+TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: Final[str] = (
+    "strict_fallback_unmatched"
+)
 
 SEVERITY_INFORMATIONAL: Final[str] = "informational"
 SEVERITY_MATERIAL: Final[str] = "material"
@@ -151,6 +161,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
     TRANSACTION_SEMANTICS_SOURCE,
+    TRANSACTION_MATCH_STATUS,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
@@ -189,6 +200,8 @@ class Finding:
             flow treatment for transaction findings.
         transaction_semantics_source: Optional provenance label for normalized
             transaction category/sign/flow semantics.
+        transaction_match_status: Optional diagnostic label describing how a
+            transaction finding was matched or why it remains unmatched.
         transaction_impact_policy: Optional YAML-configured policy controlling
             transaction impact treatment.
         transaction_impact_diagnostic: Optional review diagnostic explaining
@@ -221,6 +234,7 @@ class Finding:
     cash_flow_sign: object | None = None
     performance_flow_sign: object | None = None
     transaction_semantics_source: object | None = None
+    transaction_match_status: object | None = None
     transaction_impact_policy: object | None = None
     transaction_impact_diagnostic: object | None = None
     transaction_impact_diagnostic_estimate: float | None = None
@@ -250,6 +264,7 @@ class Finding:
             CASH_FLOW_SIGN: self.cash_flow_sign,
             PERFORMANCE_FLOW_SIGN: self.performance_flow_sign,
             TRANSACTION_SEMANTICS_SOURCE: self.transaction_semantics_source,
+            TRANSACTION_MATCH_STATUS: self.transaction_match_status,
             TRANSACTION_IMPACT_POLICY: self.transaction_impact_policy,
             TRANSACTION_IMPACT_DIAGNOSTIC: self.transaction_impact_diagnostic,
             TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (

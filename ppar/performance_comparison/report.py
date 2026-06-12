@@ -1117,6 +1117,7 @@ def _transaction_activity_section(findings: pl.DataFrame) -> str:
         _pc_explain.QUANTITY_DELTA,
         _pc_explain.PRICE_DELTA,
         _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
+        _pc_explain.TRANSACTION_MATCH_STATUSES,
         _pc_explain.MISSING_IMPACT_INPUTS,
     ]
     return "\n".join(
@@ -1350,6 +1351,7 @@ def _top_evidence_section(findings: pl.DataFrame, top_evidence_limit: int) -> st
         _pc_findings.SECURITY_ID,
         _pc_findings.SOURCE_COLUMN,
         _pc_findings.TRANSACTION_SEMANTICS_SOURCE,
+        _pc_findings.TRANSACTION_MATCH_STATUS,
         _pc_findings.TRANSACTION_IMPACT_POLICY,
         _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC,
         _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
@@ -1619,6 +1621,7 @@ def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
         _pc_explain.QUANTITY_DELTA,
         _pc_explain.PRICE_DELTA,
         _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
+        _pc_explain.TRANSACTION_MATCH_STATUSES,
         _pc_explain.MISSING_IMPACT_INPUTS,
     ]
     return _html_section(
@@ -1696,6 +1699,7 @@ def _html_top_evidence_section(
         _pc_findings.SECURITY_ID,
         _pc_findings.SOURCE_COLUMN,
         _pc_findings.TRANSACTION_SEMANTICS_SOURCE,
+        _pc_findings.TRANSACTION_MATCH_STATUS,
         _pc_findings.TRANSACTION_IMPACT_POLICY,
         _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC,
         _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,

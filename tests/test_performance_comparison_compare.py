@@ -69,6 +69,9 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_CATEGORY,
+    TRANSACTION_MATCH_STATUS,
+    TRANSACTION_MATCH_STATUS_ID_MATCH,
+    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
     PERFORMANCE_FLOW_SIGN,
     Finding,
@@ -808,6 +811,10 @@ class TestPerformanceComparison(unittest.TestCase):
 
         self.assertEqual(len(amount_findings), 1)
         self.assertEqual(amount_findings[0][TRANSACTION_CATEGORY], "buy")
+        self.assertEqual(
+            amount_findings[0][TRANSACTION_MATCH_STATUS],
+            TRANSACTION_MATCH_STATUS_ID_MATCH,
+        )
         self.assertIsNone(amount_findings[0][FROM_DATE])
         self.assertIsNone(amount_findings[0][THRU_DATE])
         self.assertAlmostEqual(
@@ -1424,11 +1431,20 @@ class TestPerformanceComparison(unittest.TestCase):
             specification = PerformanceComparisonSpecification(specification_path)
 
             findings = PerformanceComparison(specification).compare_transactions()
-            finding_codes = [finding.to_dict()[FINDING_CODE] for finding in findings]
+            finding_dicts = [finding.to_dict() for finding in findings]
+            finding_codes = [finding[FINDING_CODE] for finding in finding_dicts]
 
             self.assertEqual(finding_codes.count(PC_TXN_ADD), 1)
             self.assertEqual(finding_codes.count(PC_TXN_DROP), 1)
             self.assertNotIn(PC_TXN_AMT, finding_codes)
+            self.assertEqual(
+                {
+                    finding[TRANSACTION_MATCH_STATUS]
+                    for finding in finding_dicts
+                    if finding[FINDING_CODE] in {PC_TXN_ADD, PC_TXN_DROP}
+                },
+                {TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED},
+            )
 
 
 if __name__ == "__main__":
