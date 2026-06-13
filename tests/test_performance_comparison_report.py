@@ -516,6 +516,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("security_contribution", report)
         self.assertIn("0.001084292504", report)
         self.assertIn("PC-PORT-MV", report)
+        review_notes = _html_section(report, "review-notes")
+        self.assertIn("Unless noted otherwise", review_notes)
+        self.assertIn("Impact estimates are intentionally conservative", review_notes)
         self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
 
     def test_review_dashboard_prioritizes_missing_inputs_across_portfolios(self) -> None:
@@ -651,9 +654,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Verify stable HTML report framing and review-oriented polish."""
         self.assertTrue(report.startswith("<!DOCTYPE html>"))
         self.assertIn("<title>HTML &lt;Restatement&gt;</title>", report)
-        self.assertIn("Performance Comparison Review", report)
         self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
-        self.assertIn("Exception Review Worksheet", report)
+        self.assertNotIn("Performance Comparison Review", report)
+        self.assertNotIn("Exception Review Worksheet", report)
+        self.assertNotIn('class="pc-kicker"', report)
+        self.assertNotIn('class="pc-subtitle"', report)
+        self.assertNotIn('class="pc-header-notes"', report)
         self.assertIn('id="review-dashboard"', report)
         self.assertIn('id="supporting-detail"', report)
         self.assertIn("Review table with", report)

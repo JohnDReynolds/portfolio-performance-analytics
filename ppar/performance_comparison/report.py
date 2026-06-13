@@ -49,8 +49,6 @@ _RESIDUAL_STATUS_NOTE = (
     "Residual amounts are intentionally withheld until the attribution model has "
     "enough defensible, non-overlapping impact estimates."
 )
-_HTML_REPORT_KICKER = "Performance Comparison Review"
-_HTML_REPORT_SUBTITLE = "Exception Review Worksheet"
 _REVIEW_STATUS = "review_status"
 _REVIEW_CUES = "review_cues"
 _SUGGESTED_NEXT_STEP = "suggested_next_step"
@@ -282,13 +280,7 @@ def performance_comparison_html_report(
             "<body>",
             '<main class="pc-report">',
             '<header class="pc-header">',
-            f'<p class="pc-kicker">{_escape_html(_HTML_REPORT_KICKER)}</p>',
             f"<h1>{_escape_html(title)}</h1>",
-            f'<p class="pc-subtitle">{_escape_html(_HTML_REPORT_SUBTITLE)}</p>',
-            '<div class="pc-header-notes">',
-            f"<p>{_escape_html(_ACTIVE_ONLY_NOTE)}</p>",
-            f"<p>{_escape_html(_NO_ESTIMATE_NOTE)}</p>",
-            "</div>",
             "</header>",
             _html_review_dashboard_section(active_findings),
             narrative_section,
@@ -2578,18 +2570,17 @@ def _html_portfolio_period_narrative_section(findings: pl.DataFrame) -> str:
 
 def _html_review_notes_section(findings: pl.DataFrame) -> str:
     """Return current model-limit review notes as HTML."""
+    notes = [_ACTIVE_ONLY_NOTE, _NO_ESTIMATE_NOTE]
     causes = _pc_explain.portfolio_period_cause_summary(findings)
     if causes.is_empty():
-        return _html_section(
-            "Review Notes",
-            _html_empty("No portfolio-period review notes."),
-        )
+        return _html_section("Review Notes", _html_list(notes))
 
-    notes = _review_notes_for_cause_rows(list(causes.iter_rows(named=True)))
-    if not notes:
-        notes = [
+    model_notes = _review_notes_for_cause_rows(list(causes.iter_rows(named=True)))
+    if not model_notes:
+        model_notes = [
             "No model-limit review notes were generated for the current evidence mix.",
         ]
+    notes.extend(model_notes)
     return _html_section("Review Notes", _html_list(notes))
 
 
@@ -3274,24 +3265,6 @@ body {
 .pc-header p,
 .pc-section p {
   margin: 5px 0;
-}
-.pc-kicker {
-  color: var(--pc-title-rule);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  margin: 0 0 3px;
-  text-transform: uppercase;
-}
-.pc-subtitle {
-  color: var(--pc-muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-.pc-header-notes {
-  border-top: 1px solid var(--pc-border);
-  margin-top: 10px;
-  padding-top: 7px;
 }
 .pc-review-basis {
   background: var(--pc-panel);
