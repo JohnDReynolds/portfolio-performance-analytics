@@ -1,11 +1,4 @@
-# My Stuff
-!**/__init__.py
-delete_me.csv
-junk*/
-.pylintrc
-!tests/__init__.py
-
-# Generated project outputs
+# MyStuff: generated project outputs
 /_demo_output/
 /.cache/
 
