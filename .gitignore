@@ -1,11 +1,13 @@
 # My Stuff
-/_*
 !**/__init__.py
 delete_me.csv
 junk*/
 .pylintrc
 !tests/__init__.py
 
+# Generated project outputs
+/_demo_output/
+/.cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -41,7 +43,6 @@ htmlcov/
 .coverage
 *.cover
 *.py,cover
-.cache
 nosetests.xml
 coverage.xml
 *.prof
