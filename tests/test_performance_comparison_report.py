@@ -418,11 +418,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self._assert_html_report_shell(report)
-        self.assertIn('id="at-a-glance"', report)
-        self.assertLess(
-            report.index('id="at-a-glance"'),
-            report.index('id="review-dashboard"'),
-        )
         self.assertIn('id="review-dashboard"', report)
         self.assertLess(
             report.index('id="review-dashboard"'),
@@ -439,19 +434,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             report.index('id="supporting-detail"'),
             report.index('id="needs-review-summary"'),
         )
-        at_a_glance = _html_section(report, "at-a-glance")
-        self.assertIn("Start with PORT_A", at_a_glance)
-        self.assertIn(
-            'href="#review-dashboard--port-a--2025-05-30--2025-05-30"',
-            at_a_glance,
-        )
-        self.assertIn("<dt>Portfolios</dt>", at_a_glance)
-        self.assertIn("<dt>Need Review</dt>", at_a_glance)
-        self.assertIn("<dt>Largest Return Delta</dt>", at_a_glance)
-        self.assertIn("<dt>Largest Unresolved Delta</dt>", at_a_glance)
-        self.assertIn("<dt>Missing Inputs</dt>", at_a_glance)
-        self.assertIn("<dt>Top Cause</dt>", at_a_glance)
-        self.assertIn("security_return_or_contribution", at_a_glance)
+        self.assertNotIn('id="at-a-glance"', report)
         dashboard = _html_section(report, "review-dashboard")
         self.assertIn("Start here", dashboard)
         self.assertIn(
@@ -658,11 +641,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "2 estimated / 0 evidence-only",
             ],
         )
-        at_a_glance = _html_section(report, "at-a-glance")
-        self.assertIn("Start with PORT_C", at_a_glance)
-        self.assertIn("<dt>Portfolios</dt>", at_a_glance)
-        self.assertIn("<dd>3</dd>", at_a_glance)
-        self.assertIn("<dt>Missing Inputs</dt>", at_a_glance)
         dashboard_section = _html_section(report, "review-dashboard")
         self.assertEqual(dashboard_section.count('data-dashboard-card'), 3)
         self.assertIn("PORT_A", dashboard_section)
@@ -676,7 +654,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Performance Comparison Review", report)
         self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
         self.assertIn("Exception Review Worksheet", report)
-        self.assertIn('id="at-a-glance"', report)
         self.assertIn('id="review-dashboard"', report)
         self.assertIn('id="supporting-detail"', report)
         self.assertIn("Review table with", report)

@@ -290,7 +290,6 @@ def performance_comparison_html_report(
             f"<p>{_escape_html(_NO_ESTIMATE_NOTE)}</p>",
             "</div>",
             "</header>",
-            _html_at_a_glance_section(active_findings),
             _html_review_dashboard_section(active_findings),
             narrative_section,
             _html_supporting_detail_section(detail_sections),
@@ -2187,137 +2186,6 @@ def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
     return _html_section("Review Dashboard", content)
 
 
-def _html_at_a_glance_section(findings: pl.DataFrame) -> str:
-    """Return a one-glance HTML triage card for the report entry point."""
-    dashboard = _review_dashboard_table(findings)
-    if dashboard.is_empty():
-        return _html_section(
-            "At A Glance",
-            _html_empty("No changed portfolio periods need review."),
-        )
-
-    content = "\n".join(
-        [
-            '<div class="pc-glance">',
-            _html_glance_start(dashboard),
-            '<dl class="pc-glance-grid">',
-            _html_glance_fact("Portfolios", _glance_portfolio_count(dashboard)),
-            _html_glance_fact("Periods", dashboard.height),
-            _html_glance_fact("Need Review", _glance_needs_review_count(dashboard)),
-            _html_glance_fact(
-                "Largest Return Delta",
-                _glance_largest_return_delta(dashboard),
-            ),
-            _html_glance_fact(
-                "Largest Unresolved Delta",
-                _glance_largest_unresolved_delta(findings),
-            ),
-            _html_glance_fact("Missing Inputs", _glance_missing_input_count(dashboard)),
-            _html_glance_fact("Top Cause", _glance_top_cause(findings)),
-            "</dl>",
-            "</div>",
-        ]
-    )
-    return _html_section("At A Glance", content)
-
-
-def _html_glance_start(dashboard: pl.DataFrame) -> str:
-    """Return the primary reviewer start link for the one-glance card."""
-    first_row = dashboard.row(0, named=True)
-    review_key = _format_value(first_row.get(_REVIEW_KEY))
-    portfolio_id = _format_value(first_row.get(_pc_findings.PORTFOLIO_ID))
-    period = (
-        f"{_format_value(first_row.get(_pc_findings.FROM_DATE))} to "
-        f"{_format_value(first_row.get(_pc_findings.THRU_DATE))}"
-    )
-    target = _html_dashboard_link_target("review-dashboard", review_key)
-    return "\n".join(
-        [
-            '<p class="pc-glance-start">',
-            f'<a href="#{target}">Start with {_escape_html(portfolio_id)} '
-            f"({_escape_html(period)})</a>",
-            "</p>",
-        ]
-    )
-
-
-def _html_glance_fact(label: str, value: object) -> str:
-    """Return one fact cell for the one-glance report card."""
-    return "\n".join(
-        [
-            "<div>",
-            f"<dt>{_escape_html(label)}</dt>",
-            f"<dd>{_escape_html(_format_value(value))}</dd>",
-            "</div>",
-        ]
-    )
-
-
-def _glance_portfolio_count(dashboard: pl.DataFrame) -> int:
-    """Return number of portfolios represented in dashboard rows."""
-    return dashboard.select(pl.col(_pc_findings.PORTFOLIO_ID).n_unique()).item()
-
-
-def _glance_needs_review_count(dashboard: pl.DataFrame) -> int:
-    """Return number of dashboard rows whose status requires review."""
-    return dashboard.filter(pl.col(_REVIEW_STATUS) == _REVIEW_STATUS_NEEDS_REVIEW).height
-
-
-def _glance_missing_input_count(dashboard: pl.DataFrame) -> int:
-    """Return number of dashboard rows with missing impact inputs."""
-    if dashboard.is_empty():
-        return 0
-    return dashboard.filter(
-        pl.col(_DASHBOARD_MISSING_INPUTS).fill_null("").str.strip_chars() != ""
-    ).height
-
-
-def _glance_largest_return_delta(dashboard: pl.DataFrame) -> object:
-    """Return the largest absolute portfolio return delta in dashboard rows."""
-    return _largest_absolute_column_value(dashboard, _pc_explain.PORTFOLIO_RETURN_DELTA)
-
-
-def _glance_largest_unresolved_delta(findings: pl.DataFrame) -> object:
-    """Return the largest return delta whose residual status is still withheld."""
-    residuals = _residual_status_table(findings)
-    if residuals.is_empty():
-        return ""
-    unresolved = residuals.filter(
-        pl.col(_RESIDUAL_STATUS).str.starts_with(_RESIDUAL_WITHHELD_PREFIX)
-    )
-    return _largest_absolute_column_value(unresolved, _pc_explain.PORTFOLIO_RETURN_DELTA)
-
-
-def _glance_top_cause(findings: pl.DataFrame) -> str:
-    """Return the highest-signal cause area for a compact report headline."""
-    causes = _pc_explain.portfolio_period_cause_summary(findings)
-    if causes.is_empty():
-        return ""
-
-    estimated = causes.filter(pl.col(_pc_explain.ESTIMATED_RETURN_IMPACT).is_not_null())
-    if not estimated.is_empty():
-        top_estimated = estimated.with_columns(
-            pl.col(_pc_explain.ESTIMATED_RETURN_IMPACT).abs().alias("_absolute_impact")
-        ).sort("_absolute_impact", descending=True)
-        return _format_value(top_estimated[_pc_explain.ROOT_CAUSE_AREA][0])
-
-    if _pc_explain.FINDING_COUNT not in causes.columns:
-        return _format_value(causes[_pc_explain.ROOT_CAUSE_AREA][0])
-    top_count = causes.sort(_pc_explain.FINDING_COUNT, descending=True)
-    return _format_value(top_count[_pc_explain.ROOT_CAUSE_AREA][0])
-
-
-def _largest_absolute_column_value(table: pl.DataFrame, column: str) -> object:
-    """Return the value with largest absolute magnitude from a numeric column."""
-    if table.is_empty() or column not in table.columns:
-        return ""
-    ranked = table.with_columns(pl.col(column).abs().alias("_absolute_value")).sort(
-        "_absolute_value",
-        descending=True,
-    )
-    return ranked[column][0]
-
-
 def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return compact portfolio-period rows for the HTML review dashboard."""
     needs_review = _needs_review_summary_table(findings)
@@ -3488,37 +3356,6 @@ body {
 }
 .pc-triage-row .pc-card {
   border-left-color: var(--pc-accent);
-}
-.pc-glance {
-  border-left: 5px solid var(--pc-accent);
-  padding-left: 10px;
-}
-.pc-glance-start {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 9px;
-}
-.pc-glance-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  margin: 0;
-}
-.pc-glance-grid div {
-  border: 1px solid var(--pc-border-light);
-  padding: 6px 8px;
-}
-.pc-glance-grid dt {
-  color: var(--pc-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.pc-glance-grid dd {
-  font-size: 15px;
-  font-weight: 700;
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
 }
 .pc-dashboard-grid {
   display: grid;
