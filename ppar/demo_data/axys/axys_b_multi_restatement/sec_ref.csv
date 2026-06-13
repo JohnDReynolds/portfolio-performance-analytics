@@ -1,0 +1,140 @@
+CUSIP,TYPE,MATURITY,COUPON,SECURITY_ID,TICKER,SECURITY_NAME,ISIN,INDUSTRY_CODE,INDUSTRY_DESC,SECTOR_CODE,SECTOR_DESC,COUNTRY_CODE,COUNTRY_DESC,ASSET_CLASS_CODE,ASSET_CLASS_DESC,CURRENCY_CODE,CURRENCY_DESC,USER_CLASS_1_CODE,USER_CLASS_1_DESC,USER_CLASS_2_CODE,USER_CLASS_2_DESC,USER_CLASS_3_CODE,USER_CLASS_3_DESC
+037833100,EQUITY,,,AAPL,AAPL,Apple Inc Restated Name,,,Technology,TECH_RESTATED,Technology Restated,US,,EQUITY,,USD,,,,,,,
+594918104,EQUITY,,,MSFT,MSFT,Microsoft Corp,,,Technology,,,US,,EQUITY,,USD,,,,,,,
+67066G104,EQUITY,,,NVDA,NVDA,NVIDIA Corp,,,Technology,,,US,,EQUITY,,USD,,,,,,,
+023135106,EQUITY,,,AMZN,AMZN,Amazon.com Inc,,,Consumer Discretionary,,,US,,EQUITY,,USD,,,,,,,
+02079K305,EQUITY,,,GOOGL,GOOGL,Alphabet Inc Class A,,,Communication Services,,,US,,EQUITY,,USD,,,,,,,
+30303M102,EQUITY,,,META,META,Meta Platforms Inc,,,Communication Services,,,US,,EQUITY,,USD,,,,,,,
+46625H100,EQUITY,,,JPM,JPM,JPMorgan Chase & Co,,,Financials,,,US,,EQUITY,,USD,,,,,,,
+478160104,EQUITY,,,JNJ,JNJ,Johnson & Johnson,,,Health Care,,,US,,EQUITY,,USD,,,,,,,
+30231G102,EQUITY,,,XOM,XOM,Exxon Mobil Corp,,,Energy,,,US,,EQUITY,,USD,,,,,,,
+742718109,EQUITY,,,PG,PG,Procter & Gamble Co,,,Consumer Staples,,,US,,EQUITY,,USD,,,,,,,
+437076102,EQUITY,,,HD,HD,Home Depot Inc,,,Consumer Discretionary,,,US,,EQUITY,,USD,,,,,,,
+060505104,EQUITY,,,BAC,BAC,Bank of America Corp,,,Financials,,,US,,EQUITY,,USD,,,,,,,
+191216100,EQUITY,,,KO,KO,Coca-Cola Co,,,Consumer Staples,,,US,,EQUITY,,USD,,,,,,,
+713448108,EQUITY,,,PEP,PEP,PepsiCo Inc,,,Consumer Staples,,,US,,EQUITY,,USD,,,,,,,
+17275R102,EQUITY,,,CSCO,CSCO,Cisco Systems Inc,,,Technology,,,US,,EQUITY,,USD,,,,,,,
+717081103,EQUITY,,,PFE,PFE,Pfizer Inc,,,Health Care,,,US,,EQUITY,,USD,,,,,,,
+92343V104,EQUITY,,,VZ,VZ,Verizon Communications Inc,,,Communication Services,,,US,,EQUITY,,USD,,,,,,,
+00206R102,EQUITY,,,T,T,AT&T Inc,,,Communication Services,,,US,,EQUITY,,USD,,,,,,,
+931142103,EQUITY,,,WMT,WMT,Walmart Inc,,,Consumer Staples,,,US,,EQUITY,,USD,,,,,,,
+254687106,EQUITY,,,DIS,DIS,Walt Disney Co,,,Communication Services,,,US,,EQUITY,,USD,,,,,,,
+79466L302,EQUITY,,,CRM,CRM,Salesforce Inc,,,Technology,,,US,,EQUITY,,USD,,,,,,,
+68389X105,EQUITY,,,ORCL,ORCL,Oracle Corp,,,Technology,,,US,,EQUITY,,USD,,,,,,,
+58933Y105,EQUITY,,,MRK,MRK,Merck & Co Inc,,,Health Care,,,US,,EQUITY,,USD,,,,,,,
+166764100,EQUITY,,,CVX,CVX,Chevron Corp,,,Energy,,,US,,EQUITY,,USD,,,,,,,
+459200101,EQUITY,,,IBM,IBM,International Business Machines Corp,,,Technology,,,US,,EQUITY,,USD,,,,,,,
+91282CQQ7,TREASURY,2036-05-15,4.125,91282CQQ7,,US Treasury Note 10Y 4.125% 05/15/2036,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+91282CQH7,TREASURY,2028-03-31,3.875,91282CQH7,,US Treasury Note 2Y 3.875% 03/31/2028,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+91282CNC1,TREASURY,2035-05-15,4.25,91282CNC1,,US Treasury Note 10Y 4.25% 05/15/2035,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+91282CPH8,TREASURY,2030-10-15,1.125,91282CPH8,,US Treasury Note 5Y 1.125% 10/15/2030,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+912810UN6,TREASURY,2045-08-15,4.875,912810UN6,,US Treasury Bond 4.875% 08/15/2045,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+91282CQU8,TREASURY,2031-05-31,3.75,91282CQU8,,US Treasury Note 5Y 05/31/2031,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+91282CQM6,TREASURY,2028-05-31,3.875,91282CQM6,,US Treasury Note 2Y 05/31/2028,,,Government Bond,,,US,,TREASURY,,USD,,,,,,,
+,CASH,,,CASH_USD,,US Dollar Cash,,,Cash,,,US,,CASH,,USD,,,,,,,
+00000001A,EQ,,,S001,S001,Synthetic Security S001,US0000000001,SEMI,Semiconductors,TECH,Technology,CA,Canada,EQ,Equity,CAD,Canadian Dollar,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000002A,EQ,,,S002,S002,Synthetic Security S002,US0000000002,PHAR,Pharmaceuticals,HLTH,Health Care,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000003A,EQ,,,S003,S003,Synthetic Security S003,US0000000003,MEDD,Medical Devices,HLTH,Health Care,JP,Japan,EQ,Equity,JPY,Japanese Yen,INC,Income,INT,Internal Research,A,Model Bucket A
+00000004A,EQ,,,S004,S004,Synthetic Security S004,US0000000004,BANK,Banks,FIN,Financials,DE,Germany,EQ,Equity,EUR,Euro,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000005A,EQ,,,S005,S005,Synthetic Security S005,US0000000005,INSR,Insurance,FIN,Financials,FR,France,EQ,Equity,EUR,Euro,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000006A,EQ,,,L001,L001,Synthetic Security L001,US0000000006,RETL,Retail,CONS,Consumer,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000007A,EQ,,,L002,L002,Synthetic Security L002,US0000000007,AUTO,Automotive,CONS,Consumer,US,United States,EQ,Equity,USD,US Dollar,INC,Income,EXT,External Manager,B,Model Bucket B
+00000008A,EQ,,,L003,L003,Synthetic Security L003,US0000000008,MACH,Machinery,INDU,Industrials,CA,Canada,EQ,Equity,CAD,Canadian Dollar,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000009A,EQ,,,L004,L004,Synthetic Security L004,US0000000009,TRAN,Transportation,INDU,Industrials,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000010A,EQ,,,L005,L005,Synthetic Security L005,US0000000010,OILG,Oil & Gas,ENER,Energy,JP,Japan,EQ,Equity,JPY,Japanese Yen,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000011A,EQ,,,L006,L006,Synthetic Security L006,US0000000011,POWR,Power Producers,UTIL,Utilities,DE,Germany,EQ,Equity,EUR,Euro,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000012A,EQ,,,L007,L007,Synthetic Security L007,US0000000012,SOFT,Software,TECH,Technology,FR,France,EQ,Equity,EUR,Euro,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000013A,EQ,,,L008,L008,Synthetic Security L008,US0000000013,SEMI,Semiconductors,TECH,Technology,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000014A,EQ,,,L009,L009,Synthetic Security L009,US0000000014,PHAR,Pharmaceuticals,HLTH,Health Care,US,United States,EQ,Equity,USD,US Dollar,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000015A,EQ,,,L010,L010,Synthetic Security L010,US0000000015,MEDD,Medical Devices,HLTH,Health Care,CA,Canada,EQ,Equity,CAD,Canadian Dollar,INC,Income,INT,Internal Research,A,Model Bucket A
+00000016A,EQ,,,L011,L011,Synthetic Security L011,US0000000016,BANK,Banks,FIN,Financials,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000017A,EQ,,,L012,L012,Synthetic Security L012,US0000000017,INSR,Insurance,FIN,Financials,JP,Japan,EQ,Equity,JPY,Japanese Yen,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000018A,EQ,,,L013,L013,Synthetic Security L013,US0000000018,RETL,Retail,CONS,Consumer,DE,Germany,EQ,Equity,EUR,Euro,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000019A,EQ,,,L014,L014,Synthetic Security L014,US0000000019,AUTO,Automotive,CONS,Consumer,FR,France,EQ,Equity,EUR,Euro,INC,Income,EXT,External Manager,B,Model Bucket B
+00000020A,EQ,,,L015,L015,Synthetic Security L015,US0000000020,MACH,Machinery,INDU,Industrials,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000021A,EQ,,,L016,L016,Synthetic Security L016,US0000000021,TRAN,Transportation,INDU,Industrials,US,United States,EQ,Equity,USD,US Dollar,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000022A,EQ,,,L017,L017,Synthetic Security L017,US0000000022,OILG,Oil & Gas,ENER,Energy,CA,Canada,EQ,Equity,CAD,Canadian Dollar,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000023A,EQ,,,L018,L018,Synthetic Security L018,US0000000023,POWR,Power Producers,UTIL,Utilities,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000024A,EQ,,,L019,L019,Synthetic Security L019,US0000000024,SOFT,Software,TECH,Technology,JP,Japan,EQ,Equity,JPY,Japanese Yen,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000025A,ETF,,,L020,L020,Synthetic Security L020,US0000000025,SEMI,Semiconductors,TECH,Technology,DE,Germany,ETF,Exchange Traded Fund,EUR,Euro,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000026A,EQ,,,L021,L021,Synthetic Security L021,US0000000026,PHAR,Pharmaceuticals,HLTH,Health Care,FR,France,EQ,Equity,EUR,Euro,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000027A,EQ,,,L022,L022,Synthetic Security L022,US0000000027,MEDD,Medical Devices,HLTH,Health Care,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,INC,Income,INT,Internal Research,A,Model Bucket A
+00000028A,EQ,,,L023,L023,Synthetic Security L023,US0000000028,BANK,Banks,FIN,Financials,US,United States,EQ,Equity,USD,US Dollar,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000029A,EQ,,,L024,L024,Synthetic Security L024,US0000000029,INSR,Insurance,FIN,Financials,CA,Canada,EQ,Equity,CAD,Canadian Dollar,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000030A,EQ,,,L025,L025,Synthetic Security L025,US0000000030,RETL,Retail,CONS,Consumer,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000031A,EQ,,,L026,L026,Synthetic Security L026,US0000000031,AUTO,Automotive,CONS,Consumer,JP,Japan,EQ,Equity,JPY,Japanese Yen,INC,Income,EXT,External Manager,B,Model Bucket B
+00000032A,EQ,,,L027,L027,Synthetic Security L027,US0000000032,MACH,Machinery,INDU,Industrials,DE,Germany,EQ,Equity,EUR,Euro,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000033A,EQ,,,L028,L028,Synthetic Security L028,US0000000033,TRAN,Transportation,INDU,Industrials,FR,France,EQ,Equity,EUR,Euro,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000034A,EQ,,,L029,L029,Synthetic Security L029,US0000000034,OILG,Oil & Gas,ENER,Energy,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000035A,EQ,,,L030,L030,Synthetic Security L030,US0000000035,POWR,Power Producers,UTIL,Utilities,US,United States,EQ,Equity,USD,US Dollar,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000036A,EQ,,,L031,L031,Synthetic Security L031,US0000000036,SOFT,Software,TECH,Technology,CA,Canada,EQ,Equity,CAD,Canadian Dollar,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000037A,EQ,,,L032,L032,Synthetic Security L032,US0000000037,SEMI,Semiconductors,TECH,Technology,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000038A,EQ,,,L033,L033,Synthetic Security L033,US0000000038,PHAR,Pharmaceuticals,HLTH,Health Care,JP,Japan,EQ,Equity,JPY,Japanese Yen,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000039A,EQ,,,L034,L034,Synthetic Security L034,US0000000039,MEDD,Medical Devices,HLTH,Health Care,DE,Germany,EQ,Equity,EUR,Euro,INC,Income,INT,Internal Research,A,Model Bucket A
+00000040A,FI,,,L035,L035,Synthetic Security L035,US0000000040,BANK,Banks,FIN,Financials,FR,France,FI,Fixed Income,EUR,Euro,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000041A,EQ,,,L036,L036,Synthetic Security L036,US0000000041,INSR,Insurance,FIN,Financials,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000042A,EQ,,,L037,L037,Synthetic Security L037,US0000000042,RETL,Retail,CONS,Consumer,US,United States,EQ,Equity,USD,US Dollar,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000043A,EQ,,,L038,L038,Synthetic Security L038,US0000000043,AUTO,Automotive,CONS,Consumer,CA,Canada,EQ,Equity,CAD,Canadian Dollar,INC,Income,EXT,External Manager,B,Model Bucket B
+00000044A,EQ,,,L039,L039,Synthetic Security L039,US0000000044,MACH,Machinery,INDU,Industrials,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000045A,EQ,,,L040,L040,Synthetic Security L040,US0000000045,TRAN,Transportation,INDU,Industrials,JP,Japan,EQ,Equity,JPY,Japanese Yen,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000046A,EQ,,,L041,L041,Synthetic Security L041,US0000000046,OILG,Oil & Gas,ENER,Energy,DE,Germany,EQ,Equity,EUR,Euro,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000047A,EQ,,,L042,L042,Synthetic Security L042,US0000000047,POWR,Power Producers,UTIL,Utilities,FR,France,EQ,Equity,EUR,Euro,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000048A,EQ,,,L043,L043,Synthetic Security L043,US0000000048,SOFT,Software,TECH,Technology,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000049A,EQ,,,L044,L044,Synthetic Security L044,US0000000049,SEMI,Semiconductors,TECH,Technology,US,United States,EQ,Equity,USD,US Dollar,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000050A,ETF,,,L045,L045,Synthetic Security L045,US0000000050,PHAR,Pharmaceuticals,HLTH,Health Care,CA,Canada,ETF,Exchange Traded Fund,CAD,Canadian Dollar,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000051A,EQ,,,L046,L046,Synthetic Security L046,US0000000051,MEDD,Medical Devices,HLTH,Health Care,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,INC,Income,INT,Internal Research,A,Model Bucket A
+00000052A,EQ,,,L047,L047,Synthetic Security L047,US0000000052,BANK,Banks,FIN,Financials,JP,Japan,EQ,Equity,JPY,Japanese Yen,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000053A,EQ,,,L048,L048,Synthetic Security L048,US0000000053,INSR,Insurance,FIN,Financials,DE,Germany,EQ,Equity,EUR,Euro,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000054A,EQ,,,L049,L049,Synthetic Security L049,US0000000054,RETL,Retail,CONS,Consumer,FR,France,EQ,Equity,EUR,Euro,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000055A,EQ,,,L050,L050,Synthetic Security L050,US0000000055,AUTO,Automotive,CONS,Consumer,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,INC,Income,EXT,External Manager,B,Model Bucket B
+00000056A,EQ,,,L051,L051,Synthetic Security L051,US0000000056,MACH,Machinery,INDU,Industrials,US,United States,EQ,Equity,USD,US Dollar,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000057A,EQ,,,L052,L052,Synthetic Security L052,US0000000057,TRAN,Transportation,INDU,Industrials,CA,Canada,EQ,Equity,CAD,Canadian Dollar,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000058A,EQ,,,L053,L053,Synthetic Security L053,US0000000058,OILG,Oil & Gas,ENER,Energy,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000059A,EQ,,,L054,L054,Synthetic Security L054,US0000000059,POWR,Power Producers,UTIL,Utilities,JP,Japan,EQ,Equity,JPY,Japanese Yen,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000060A,CASH,,,L055,L055,Synthetic Security L055,US0000000060,SOFT,Software,TECH,Technology,DE,Germany,CASH,Cash & Cash Equivalents,EUR,Euro,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000061A,EQ,,,L056,L056,Synthetic Security L056,US0000000061,SEMI,Semiconductors,TECH,Technology,FR,France,EQ,Equity,EUR,Euro,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000062A,EQ,,,L057,L057,Synthetic Security L057,US0000000062,PHAR,Pharmaceuticals,HLTH,Health Care,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000063A,EQ,,,L058,L058,Synthetic Security L058,US0000000063,MEDD,Medical Devices,HLTH,Health Care,US,United States,EQ,Equity,USD,US Dollar,INC,Income,INT,Internal Research,A,Model Bucket A
+00000064A,EQ,,,L059,L059,Synthetic Security L059,US0000000064,BANK,Banks,FIN,Financials,CA,Canada,EQ,Equity,CAD,Canadian Dollar,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000065A,EQ,,,L060,L060,Synthetic Security L060,US0000000065,INSR,Insurance,FIN,Financials,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000066A,EQ,,,L061,L061,Synthetic Security L061,US0000000066,RETL,Retail,CONS,Consumer,JP,Japan,EQ,Equity,JPY,Japanese Yen,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000067A,EQ,,,L062,L062,Synthetic Security L062,US0000000067,AUTO,Automotive,CONS,Consumer,DE,Germany,EQ,Equity,EUR,Euro,INC,Income,EXT,External Manager,B,Model Bucket B
+00000068A,EQ,,,L063,L063,Synthetic Security L063,US0000000068,MACH,Machinery,INDU,Industrials,FR,France,EQ,Equity,EUR,Euro,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000069A,EQ,,,L064,L064,Synthetic Security L064,US0000000069,TRAN,Transportation,INDU,Industrials,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000070A,EQ,,,L065,L065,Synthetic Security L065,US0000000070,OILG,Oil & Gas,ENER,Energy,US,United States,EQ,Equity,USD,US Dollar,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000071A,EQ,,,L066,L066,Synthetic Security L066,US0000000071,POWR,Power Producers,UTIL,Utilities,CA,Canada,EQ,Equity,CAD,Canadian Dollar,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000072A,EQ,,,L067,L067,Synthetic Security L067,US0000000072,SOFT,Software,TECH,Technology,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000073A,EQ,,,L068,L068,Synthetic Security L068,US0000000073,SEMI,Semiconductors,TECH,Technology,JP,Japan,EQ,Equity,JPY,Japanese Yen,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000074A,EQ,,,L069,L069,Synthetic Security L069,US0000000074,PHAR,Pharmaceuticals,HLTH,Health Care,DE,Germany,EQ,Equity,EUR,Euro,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000075A,ETF,,,L070,L070,Synthetic Security L070,US0000000075,MEDD,Medical Devices,HLTH,Health Care,FR,France,ETF,Exchange Traded Fund,EUR,Euro,INC,Income,INT,Internal Research,A,Model Bucket A
+00000076A,EQ,,,L071,L071,Synthetic Security L071,US0000000076,BANK,Banks,FIN,Financials,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000077A,EQ,,,L072,L072,Synthetic Security L072,US0000000077,INSR,Insurance,FIN,Financials,US,United States,EQ,Equity,USD,US Dollar,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000078A,EQ,,,L073,L073,Synthetic Security L073,US0000000078,RETL,Retail,CONS,Consumer,CA,Canada,EQ,Equity,CAD,Canadian Dollar,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000079A,EQ,,,L074,L074,Synthetic Security L074,US0000000079,AUTO,Automotive,CONS,Consumer,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,INC,Income,EXT,External Manager,B,Model Bucket B
+00000080A,FI,,,L075,L075,Synthetic Security L075,US0000000080,MACH,Machinery,INDU,Industrials,JP,Japan,FI,Fixed Income,JPY,Japanese Yen,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000081A,EQ,,,L076,L076,Synthetic Security L076,US0000000081,TRAN,Transportation,INDU,Industrials,DE,Germany,EQ,Equity,EUR,Euro,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000082A,EQ,,,L077,L077,Synthetic Security L077,US0000000082,OILG,Oil & Gas,ENER,Energy,FR,France,EQ,Equity,EUR,Euro,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000083A,EQ,,,L078,L078,Synthetic Security L078,US0000000083,POWR,Power Producers,UTIL,Utilities,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000084A,EQ,,,L079,L079,Synthetic Security L079,US0000000084,SOFT,Software,TECH,Technology,US,United States,EQ,Equity,USD,US Dollar,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000085A,EQ,,,L080,L080,Synthetic Security L080,US0000000085,SEMI,Semiconductors,TECH,Technology,CA,Canada,EQ,Equity,CAD,Canadian Dollar,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000086A,EQ,,,L081,L081,Synthetic Security L081,US0000000086,PHAR,Pharmaceuticals,HLTH,Health Care,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000087A,EQ,,,L082,L082,Synthetic Security L082,US0000000087,MEDD,Medical Devices,HLTH,Health Care,JP,Japan,EQ,Equity,JPY,Japanese Yen,INC,Income,INT,Internal Research,A,Model Bucket A
+00000088A,EQ,,,L083,L083,Synthetic Security L083,US0000000088,BANK,Banks,FIN,Financials,DE,Germany,EQ,Equity,EUR,Euro,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000089A,EQ,,,L084,L084,Synthetic Security L084,US0000000089,INSR,Insurance,FIN,Financials,FR,France,EQ,Equity,EUR,Euro,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000090A,EQ,,,L085,L085,Synthetic Security L085,US0000000090,RETL,Retail,CONS,Consumer,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000091A,EQ,,,L086,L086,Synthetic Security L086,US0000000091,AUTO,Automotive,CONS,Consumer,US,United States,EQ,Equity,USD,US Dollar,INC,Income,EXT,External Manager,B,Model Bucket B
+00000092A,EQ,,,L087,L087,Synthetic Security L087,US0000000092,MACH,Machinery,INDU,Industrials,CA,Canada,EQ,Equity,CAD,Canadian Dollar,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000093A,EQ,,,L088,L088,Synthetic Security L088,US0000000093,TRAN,Transportation,INDU,Industrials,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling,VAL,Value,INT,Internal Research,A,Model Bucket A
+00000094A,EQ,,,L089,L089,Synthetic Security L089,US0000000094,OILG,Oil & Gas,ENER,Energy,JP,Japan,EQ,Equity,JPY,Japanese Yen,GRW,Growth,EXT,External Manager,B,Model Bucket B
+00000095A,EQ,,,L090,L090,Synthetic Security L090,US0000000095,POWR,Power Producers,UTIL,Utilities,DE,Germany,EQ,Equity,EUR,Euro,INC,Income,IDX,Index / Passive,C,Model Bucket C
+00000096A,EQ,,,L091,L091,Synthetic Security L091,US0000000096,SOFT,Software,TECH,Technology,FR,France,EQ,Equity,EUR,Euro,CORE,Core,INT,Internal Research,A,Model Bucket A
+00000097A,EQ,,,L092,L092,Synthetic Security L092,US0000000097,SEMI,Semiconductors,TECH,Technology,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,VAL,Value,EXT,External Manager,B,Model Bucket B
+00000098A,EQ,,,L093,L093,Synthetic Security L093,US0000000098,PHAR,Pharmaceuticals,HLTH,Health Care,US,United States,EQ,Equity,USD,US Dollar,GRW,Growth,IDX,Index / Passive,C,Model Bucket C
+00000099A,EQ,,,L094,L094,Synthetic Security L094,US0000000099,MEDD,Medical Devices,HLTH,Health Care,CA,Canada,EQ,Equity,CAD,Canadian Dollar,INC,Income,INT,Internal Research,A,Model Bucket A
+00000100A,ETF,,,L095,L095,Synthetic Security L095,US0000000100,BANK,Banks,FIN,Financials,GB,United Kingdom,ETF,Exchange Traded Fund,GBP,Pound Sterling,CORE,Core,EXT,External Manager,B,Model Bucket B
+00000101A,EQ,,,L096,L096,Synthetic Security L096,US0000000101,INSR,Insurance,FIN,Financials,JP,Japan,EQ,Equity,JPY,Japanese Yen,VAL,Value,IDX,Index / Passive,C,Model Bucket C
+00000102A,EQ,,,L097,L097,Synthetic Security L097,US0000000102,RETL,Retail,CONS,Consumer,DE,Germany,EQ,Equity,EUR,Euro,GRW,Growth,INT,Internal Research,A,Model Bucket A
+00000103A,EQ,,,L098,L098,Synthetic Security L098,US0000000103,AUTO,Automotive,CONS,Consumer,FR,France,EQ,Equity,EUR,Euro,INC,Income,EXT,External Manager,B,Model Bucket B
+00000104A,EQ,,,L099,L099,Synthetic Security L099,US0000000104,MACH,Machinery,INDU,Industrials,CH,Switzerland,EQ,Equity,CHF,Swiss Franc,CORE,Core,IDX,Index / Passive,C,Model Bucket C
+00000105A,EQ,,,L100,L100,Synthetic Security L100,US0000000105,TRAN,Transportation,INDU,Industrials,US,United States,EQ,Equity,USD,US Dollar,VAL,Value,INT,Internal Research,A,Model Bucket A
+999999999,EQUITY,,,RESTATED_SEC,RESTATED_SEC,Restatement Test Security,US9999999999,,Technology,,,US,,EQUITY,,USD,,,,,,,

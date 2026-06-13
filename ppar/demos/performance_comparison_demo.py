@@ -41,7 +41,9 @@ def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None
 def main() -> None:
     """Run the performance comparison demonstration."""
     with as_file(files("ppar.demo_data") / "axys") as axys_data_root:
-        comparison_path = axys_data_root / "ppar_performance_comparison_restatement.yaml"
+        comparison_path = (
+            axys_data_root / "ppar_performance_comparison_multi_restatement.yaml"
+        )
         suppressed_comparison_path = (
             axys_data_root / "ppar_performance_comparison_suppressed.yaml"
         )
@@ -82,7 +84,7 @@ def _run_comparison_demo(
         findings,
         bundle_path,
     )
-    print("Restatement comparison")
+    print("Multi-portfolio restatement comparison")
     print()
     print(f"Report bundle written to: {written_bundle_paths['manifest'].parent}")
     _print_bundle_handoff(written_bundle_paths)

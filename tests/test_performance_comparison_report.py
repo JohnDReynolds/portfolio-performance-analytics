@@ -46,6 +46,9 @@ _RESTATEMENT_COMPARISON_PATH = Path(
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
+_MULTI_RESTATEMENT_COMPARISON_PATH = Path(
+    "ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml"
+)
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
@@ -627,6 +630,44 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             dashboard["dashboard_coverage_counts"][0],
             "1 estimated / 2 evidence-only",
         )
+
+    def test_multi_portfolio_fixture_renders_dashboard_variety(self) -> None:
+        """The demo fixture gives the HTML report multiple issue shapes."""
+        findings = compare_snapshots(_MULTI_RESTATEMENT_COMPARISON_PATH)
+
+        dashboard = _review_dashboard_table(findings)
+        report = performance_comparison_html_report(
+            findings,
+            title="Multi-Portfolio HTML",
+            top_evidence_limit=2,
+        )
+
+        self.assertEqual(
+            dashboard["portfolio_id"].to_list(),
+            ["PORT_C", "PORT_A", "PORT_B"],
+        )
+        self.assertEqual(
+            dashboard["impact_coverage_status"].to_list(),
+            ["missing_inputs", "missing_inputs", "complete_estimates"],
+        )
+        self.assertEqual(
+            dashboard["dashboard_coverage_counts"].to_list(),
+            [
+                "0 estimated / 2 evidence-only",
+                "2 estimated / 4 evidence-only",
+                "2 estimated / 0 evidence-only",
+            ],
+        )
+        at_a_glance = _html_section(report, "at-a-glance")
+        self.assertIn("Start with PORT_C", at_a_glance)
+        self.assertIn("<dt>Portfolios</dt>", at_a_glance)
+        self.assertIn("<dd>3</dd>", at_a_glance)
+        self.assertIn("<dt>Missing Inputs</dt>", at_a_glance)
+        dashboard_section = _html_section(report, "review-dashboard")
+        self.assertEqual(dashboard_section.count('data-dashboard-card'), 3)
+        self.assertIn("PORT_A", dashboard_section)
+        self.assertIn("PORT_B", dashboard_section)
+        self.assertIn("PORT_C", dashboard_section)
 
     def _assert_html_report_shell(self, report: str) -> None:
         """Verify stable HTML report framing and review-oriented polish."""

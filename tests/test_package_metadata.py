@@ -221,8 +221,16 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertTrue(
             (axys_demo_data / "ppar_performance_comparison_restatement.yaml").is_file()
         )
+        self.assertTrue(
+            (
+                axys_demo_data / "ppar_performance_comparison_multi_restatement.yaml"
+            ).is_file()
+        )
         self.assertTrue((axys_demo_data / "axys_a" / "portperf.csv").is_file())
         self.assertTrue((axys_demo_data / "axys_b_restatement" / "secperf.csv").is_file())
+        self.assertTrue(
+            (axys_demo_data / "axys_b_multi_restatement" / "secperf.csv").is_file()
+        )
 
     def test_public_axys_import_contract(self) -> None:
         """The documented Axys package exports remain importable."""

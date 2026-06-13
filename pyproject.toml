@@ -131,6 +131,7 @@ packages = [
     "ppar.demo_data.axys",
     "ppar.demo_data.axys.axys_a",
     "ppar.demo_data.axys.axys_b",
+    "ppar.demo_data.axys.axys_b_multi_restatement",
     "ppar.demo_data.axys.axys_b_restatement",
     "ppar.demo_data.classifications",
     "ppar.demo_data.mappings",
