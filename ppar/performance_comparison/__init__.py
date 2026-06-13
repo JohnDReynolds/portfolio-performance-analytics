@@ -19,6 +19,7 @@ from ppar.performance_comparison.explain import (
     security_period_evidence_breakdown,
     security_period_summary,
     transaction_activity_summary,
+    transaction_matching_diagnostics,
 )
 from ppar.performance_comparison.findings import (
     CONTEXT,
@@ -98,6 +99,7 @@ __all__ = [
     "security_period_summary",
     "summarize_findings",
     "transaction_activity_summary",
+    "transaction_matching_diagnostics",
     "write_performance_comparison_html_report",
     "write_performance_comparison_markdown_report",
     "write_performance_comparison_report_bundle",

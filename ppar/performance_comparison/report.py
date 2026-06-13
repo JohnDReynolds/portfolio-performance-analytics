@@ -76,6 +76,7 @@ _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "flow_cross_check_reconciliation",
     "residual_status",
     "transaction_activity",
+    "transaction_matching_diagnostics",
     "top_evidence",
 )
 
@@ -123,6 +124,7 @@ def performance_comparison_markdown_report(
         _flow_cross_check_reconciliation_section(active_findings),
         _residual_status_section(active_findings),
         _transaction_activity_section(active_findings),
+        _transaction_matching_diagnostics_section(active_findings),
         _portfolio_period_section(active_findings),
         _cause_summary_section(active_findings),
         _top_evidence_section(active_findings, top_evidence_limit),
@@ -168,6 +170,7 @@ def performance_comparison_html_report(
         _html_flow_cross_check_reconciliation_section(active_findings),
         _html_residual_status_section(active_findings),
         _html_transaction_activity_section(active_findings),
+        _html_transaction_matching_diagnostics_section(active_findings),
         _html_portfolio_period_section(active_findings),
         _html_cause_summary_section(active_findings),
         _html_top_evidence_section(active_findings, top_evidence_limit),
@@ -379,6 +382,9 @@ def _report_bundle_tables(
         ),
         "residual_status": _residual_status_table(active_findings),
         "transaction_activity": _pc_explain.transaction_activity_summary(active_findings),
+        "transaction_matching_diagnostics": (
+            _pc_explain.transaction_matching_diagnostics(active_findings)
+        ),
         "top_evidence": _top_evidence_table(active_findings, top_evidence_limit),
     }
 
@@ -431,6 +437,9 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
         "residual_status": "residual caveat status by changed portfolio period",
         "transaction_activity": "changed transaction activity and missing inputs",
+        "transaction_matching_diagnostics": (
+            "transaction matching status counts and review notes"
+        ),
         "top_evidence": "ranked evidence rows shown in the report",
     }
     return [
@@ -861,6 +870,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
         "Flow Cross-Check Reconciliation",
         "Residual Status",
         "Transaction Activity",
+        "Transaction Matching Diagnostics",
         "Portfolio-Period Changes",
         "Cause Summary",
         "Top Evidence",
@@ -1127,6 +1137,25 @@ def _transaction_activity_section(findings: pl.DataFrame) -> str:
                 summary,
                 columns,
                 empty_message="No changed transaction activity.",
+            ),
+        ]
+    )
+
+
+def _transaction_matching_diagnostics_section(findings: pl.DataFrame) -> str:
+    """Return transaction matching status diagnostics."""
+    columns = [
+        _pc_findings.TRANSACTION_MATCH_STATUS,
+        _pc_explain.FINDING_COUNT,
+        _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE,
+    ]
+    return "\n".join(
+        [
+            "## Transaction Matching Diagnostics",
+            _markdown_table(
+                _pc_explain.transaction_matching_diagnostics(findings),
+                columns,
+                empty_message="No transaction matching diagnostics.",
             ),
         ]
     )
@@ -1630,6 +1659,23 @@ def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
             _pc_explain.transaction_activity_summary(findings),
             columns,
             empty_message="No changed transaction activity.",
+        ),
+    )
+
+
+def _html_transaction_matching_diagnostics_section(findings: pl.DataFrame) -> str:
+    """Return transaction matching status diagnostics as an HTML section."""
+    columns = [
+        _pc_findings.TRANSACTION_MATCH_STATUS,
+        _pc_explain.FINDING_COUNT,
+        _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE,
+    ]
+    return _html_section(
+        "Transaction Matching Diagnostics",
+        _html_table(
+            _pc_explain.transaction_matching_diagnostics(findings),
+            columns,
+            empty_message="No transaction matching diagnostics.",
         ),
     )
 

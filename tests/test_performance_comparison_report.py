@@ -176,7 +176,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         transaction_activity = _section(
             report,
             "## Transaction Activity",
-            "## Portfolio-Period Changes",
+            "## Transaction Matching Diagnostics",
         )
         self.assertIn("buy", transaction_activity)
         self.assertIn("Transaction Semantics Sources", transaction_activity)
@@ -189,6 +189,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("return denominator", transaction_activity)
         self.assertIn("transaction sign and flow semantics", transaction_activity)
         self.assertNotIn("portfolio period, return denominator", transaction_activity)
+        self.assertIn("## Transaction Matching Diagnostics", report)
+        transaction_matching = _section(
+            report,
+            "## Transaction Matching Diagnostics",
+            "## Portfolio-Period Changes",
+        )
+        self.assertIn("transaction_id_match", transaction_matching)
+        self.assertIn("Changed fields were compared", transaction_matching)
         self.assertIn("## Portfolio-Period Changes", report)
         self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
         self.assertIn("## Cause Summary", report)
@@ -211,7 +219,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         transaction_activity = _section(
             report,
             "## Transaction Activity",
-            "## Portfolio-Period Changes",
+            "## Transaction Matching Diagnostics",
         )
         top_evidence = _section(
             report,
@@ -249,7 +257,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         transaction_activity = _section(
             report,
             "## Transaction Activity",
-            "## Portfolio-Period Changes",
+            "## Transaction Matching Diagnostics",
         )
         top_evidence = _section(
             report,
@@ -509,6 +517,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("- Flow Cross-Check Reconciliation", contents)
         self.assertIn("- Residual Status", contents)
         self.assertIn("- Transaction Activity", contents)
+        self.assertIn("- Transaction Matching Diagnostics", contents)
         self.assertIn("- Top Evidence", contents)
         self.assertNotIn("Suppressed Findings Appendix", contents)
         self.assertNotIn("## Suppressed Findings Appendix", report)
@@ -553,6 +562,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Transaction Activity"),
+            report.index("## Transaction Matching Diagnostics"),
+        )
+        self.assertLess(
+            report.index("## Transaction Matching Diagnostics"),
             report.index("## Portfolio-Period Changes"),
         )
         self.assertLess(
@@ -649,6 +662,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
 
+            transaction_matching = pl.read_csv(paths["transaction_matching_diagnostics"])
+            self.assertEqual(transaction_matching.height, 1)
+            self.assertIn("transaction_match_status", transaction_matching.columns)
+            self.assertEqual(
+                transaction_matching["transaction_match_status"][0],
+                "transaction_id_match",
+            )
+            self.assertIn(
+                "transaction matching status counts",
+                readme,
+            )
+
             top_evidence = pl.read_csv(paths["top_evidence"])
             self.assertEqual(top_evidence.height, 2)
             self.assertIn("review_rank", top_evidence.columns)
@@ -669,6 +694,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 0)
             self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
             self.assertEqual(manifest["tables"]["transaction_cross_checks"]["rows"], 0)
+            self.assertEqual(
+                manifest["tables"]["transaction_matching_diagnostics"]["rows"],
+                0,
+            )
             self.assertEqual(
                 manifest["tables"]["flow_cross_check_reconciliation"]["rows"],
                 0,
@@ -692,6 +721,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "portfolio_id,security_id,from_date",
                 paths["transaction_activity"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "transaction_match_status,finding_count,transaction_match_review_note",
+                paths["transaction_matching_diagnostics"].read_text(encoding="utf-8"),
             )
 
     def test_report_bundle_validation_catches_missing_artifact(self) -> None:

@@ -41,6 +41,9 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_CATEGORY,
     TRANSACTION_MATCH_STATUS,
+    TRANSACTION_MATCH_STATUS_ID_MATCH,
+    TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
+    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.transactions import (
@@ -183,6 +186,7 @@ CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
 TRANSACTION_IMPACT_POLICIES = "transaction_impact_policies"
 TRANSACTION_IMPACT_DIAGNOSTICS = "transaction_impact_diagnostics"
 TRANSACTION_MATCH_STATUSES = "transaction_match_statuses"
+TRANSACTION_MATCH_REVIEW_NOTE = "transaction_match_review_note"
 PORTFOLIO_FLOW_DELTA = "portfolio_flow_delta"
 PORTFOLIO_FLOW_IMPACT_ESTIMATE = "portfolio_flow_impact_estimate"
 CROSS_CHECK_MINUS_FLOW_IMPACT = "cross_check_minus_flow_impact"
@@ -282,6 +286,11 @@ TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
     IMPACT_BASIS,
     IMPACT_CONFIDENCE,
     IMPACT_MESSAGE,
+)
+TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS = (
+    TRANSACTION_MATCH_STATUS,
+    FINDING_COUNT,
+    TRANSACTION_MATCH_REVIEW_NOTE,
 )
 PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS = (
     PORTFOLIO_ID,
@@ -833,6 +842,53 @@ def transaction_activity_summary(
     ]
     sorted_rows = sorted(rows, key=_transaction_activity_summary_sort_key)
     return pl.DataFrame(sorted_rows).select(TRANSACTION_ACTIVITY_SUMMARY_COLUMNS)
+
+
+def transaction_matching_diagnostics(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return transaction matching status counts with reviewer notes.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed transaction findings should be
+            included in the diagnostic counts.
+
+    Returns:
+        One row per transaction match-status label. The helper only reports how
+        transaction rows were paired or left unpaired; it does not change
+        matching behavior or infer edits from strict fallback keys.
+    """
+    if findings.is_empty() or TRANSACTION_MATCH_STATUS not in findings.columns:
+        return _empty_transaction_matching_diagnostics()
+
+    transaction_findings = _active_findings(findings, include_suppressed).filter(
+        (pl.col(DATASET) == pc_cols.TRANSACTIONS)
+        & pl.col(TRANSACTION_MATCH_STATUS).is_not_null()
+        & (pl.col(TRANSACTION_MATCH_STATUS).cast(pl.String).str.len_chars() > 0)
+    )
+    if transaction_findings.is_empty():
+        return _empty_transaction_matching_diagnostics()
+
+    rows = []
+    for row in transaction_findings.group_by(TRANSACTION_MATCH_STATUS).len(
+        name=FINDING_COUNT
+    ).iter_rows(named=True):
+        match_status = row[TRANSACTION_MATCH_STATUS]
+        rows.append(
+            {
+                TRANSACTION_MATCH_STATUS: match_status,
+                FINDING_COUNT: row[FINDING_COUNT],
+                TRANSACTION_MATCH_REVIEW_NOTE: _transaction_match_review_note(
+                    match_status
+                ),
+            }
+        )
+    sorted_rows = sorted(rows, key=_transaction_matching_diagnostic_sort_key)
+    return pl.DataFrame(sorted_rows).select(TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS)
 
 
 def _transaction_activity_period(
@@ -2064,6 +2120,33 @@ def _transaction_match_status_counts(rows: list[dict[str, object]]) -> str:
     return _format_label_counts(counts)
 
 
+def _transaction_match_review_note(match_status: object) -> str:
+    """Return a reviewer-facing explanation for one transaction match status."""
+    if match_status == TRANSACTION_MATCH_STATUS_ID_MATCH:
+        return "Changed fields were compared on rows matched by transaction_id."
+    if match_status == TRANSACTION_MATCH_STATUS_ID_UNMATCHED:
+        return "Rows were not paired by transaction_id; review as adds/drops."
+    if match_status == TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED:
+        return (
+            "No stable transaction_id was available; strict fallback keys left "
+            "rows unmatched rather than inferring an edit."
+        )
+    return "Review this transaction matching status before interpreting activity."
+
+
+def _transaction_matching_diagnostic_sort_key(
+    row: Mapping[str, object],
+) -> tuple[int, str]:
+    """Return stable ordering for transaction matching diagnostic rows."""
+    order = {
+        TRANSACTION_MATCH_STATUS_ID_MATCH: 0,
+        TRANSACTION_MATCH_STATUS_ID_UNMATCHED: 1,
+        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: 2,
+    }
+    match_status = str(row[TRANSACTION_MATCH_STATUS])
+    return order.get(match_status, len(order)), str(match_status)
+
+
 def _format_label_counts(counts: Mapping[str, int]) -> str:
     """Return stable readable counts for free-form labels."""
     return ", ".join(
@@ -2561,5 +2644,16 @@ def _empty_transaction_activity_summary() -> pl.DataFrame:
             IMPACT_BASIS: pl.String,
             IMPACT_CONFIDENCE: pl.String,
             IMPACT_MESSAGE: pl.String,
+        }
+    )
+
+
+def _empty_transaction_matching_diagnostics() -> pl.DataFrame:
+    """Return empty transaction matching diagnostics with stable columns."""
+    return pl.DataFrame(
+        schema={
+            TRANSACTION_MATCH_STATUS: pl.String,
+            FINDING_COUNT: pl.UInt32,
+            TRANSACTION_MATCH_REVIEW_NOTE: pl.String,
         }
     )

@@ -1305,6 +1305,14 @@ label each period as `aligned`, `different`, `missing_portfolio_flow_delta`, or
 signals only; they do not change contribution totals. Report bundles include
 this table as `flow_cross_check_reconciliation.csv`.
 
+Transaction matching diagnostics are summarized separately from transaction
+activity. The `transaction_matching_diagnostics()` helper and report section
+count existing transaction matching labels such as `transaction_id_match`,
+`transaction_id_unmatched`, and `strict_fallback_unmatched`, with reviewer
+notes explaining whether rows were paired by stable transaction ID or left
+unmatched by conservative strict fallback keys. Report bundles include this
+table as `transaction_matching_diagnostics.csv`.
+
 HTML reports can be rendered with `performance_comparison_html_report()` or
 written with `write_performance_comparison_html_report()`. The first HTML
 version is intentionally conservative: it uses the same helper tables and
@@ -1453,8 +1461,6 @@ avoiding hidden vendor assumptions.
 
 Good next candidates are:
 
-- Improve transaction matching diagnostics when no stable `transaction_id` is
-  present.
 - Add carefully documented contribution-ranking estimates only where the YAML
   provides the required sign, flow, and timing rules.
 - Expand supporting-file comparisons for already-normalized columns before

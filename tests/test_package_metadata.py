@@ -70,6 +70,7 @@ from ppar.performance_comparison import (
     security_period_summary,
     summarize_findings,
     transaction_activity_summary,
+    transaction_matching_diagnostics,
     write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
@@ -283,6 +284,7 @@ class TestPackageMetadata(unittest.TestCase):
             "security_period_summary",
             "summarize_findings",
             "transaction_activity_summary",
+            "transaction_matching_diagnostics",
             "write_performance_comparison_html_report",
             "write_performance_comparison_markdown_report",
             "write_performance_comparison_report_bundle",
@@ -393,6 +395,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             transaction_activity_summary,
             performance_comparison.transaction_activity_summary,
+        )
+        self.assertIs(
+            transaction_matching_diagnostics,
+            performance_comparison.transaction_matching_diagnostics,
         )
         self.assertIs(
             write_performance_comparison_html_report,

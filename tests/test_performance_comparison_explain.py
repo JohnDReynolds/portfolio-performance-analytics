@@ -24,6 +24,7 @@ from ppar.performance_comparison import (
     security_period_evidence_breakdown,
     security_period_summary,
     transaction_activity_summary,
+    transaction_matching_diagnostics,
 )
 from ppar.performance_comparison import explain as pc_explain
 from ppar.performance_comparison.explain import (
@@ -103,6 +104,8 @@ from ppar.performance_comparison.explain import (
     TRANSACTION_ACTIVITY_SUMMARY_COLUMNS,
     TRANSACTION_IMPACT_DIAGNOSTICS,
     TRANSACTION_IMPACT_POLICIES,
+    TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS,
+    TRANSACTION_MATCH_REVIEW_NOTE,
     TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
 )
@@ -134,6 +137,9 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_CATEGORY,
+    TRANSACTION_MATCH_STATUS,
+    TRANSACTION_MATCH_STATUS_ID_MATCH,
+    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
 )
 
@@ -264,6 +270,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             security_period_evidence_breakdown,
         )
         self.assertIs(pc_explain.transaction_activity_summary, transaction_activity_summary)
+        self.assertIs(
+            pc_explain.transaction_matching_diagnostics,
+            transaction_matching_diagnostics,
+        )
 
     def test_portfolio_period_summary_groups_related_evidence(self) -> None:
         """Portfolio-period summary groups findings around return deltas."""
@@ -750,6 +760,42 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             row[MISSING_IMPACT_INPUTS],
             "return denominator, transaction sign and flow semantics",
         )
+
+    def test_transaction_matching_diagnostics_explain_id_and_fallback_counts(
+        self,
+    ) -> None:
+        """Transaction matching diagnostics expose conservative match status counts."""
+        findings = self._restatement()
+
+        diagnostics = transaction_matching_diagnostics(findings)
+        row = diagnostics.row(0, named=True)
+
+        self.assertEqual(
+            diagnostics.columns,
+            list(TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS),
+        )
+        self.assertEqual(diagnostics.height, 1)
+        self.assertEqual(row[TRANSACTION_MATCH_STATUS], TRANSACTION_MATCH_STATUS_ID_MATCH)
+        self.assertEqual(row[FINDING_COUNT], 3)
+        self.assertIn("transaction_id", row[TRANSACTION_MATCH_REVIEW_NOTE])
+
+        fallback_findings = findings.with_columns(
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED))
+            .otherwise(pl.col(TRANSACTION_MATCH_STATUS))
+            .alias(TRANSACTION_MATCH_STATUS)
+        )
+        fallback_row = transaction_matching_diagnostics(fallback_findings).row(
+            0,
+            named=True,
+        )
+
+        self.assertEqual(
+            fallback_row[TRANSACTION_MATCH_STATUS],
+            TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
+        )
+        self.assertIn("strict fallback keys", fallback_row[TRANSACTION_MATCH_REVIEW_NOTE])
+        self.assertIn("rather than inferring an edit", fallback_row[TRANSACTION_MATCH_REVIEW_NOTE])
 
     def test_transaction_rules_fixture_summarizes_yaml_semantics(self) -> None:
         """Axys YAML transaction rules flow into transaction summaries."""
