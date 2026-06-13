@@ -1324,6 +1324,25 @@ report helper tables as CSV files, a short `README.md`, and a JSON manifest
 with options, counts, artifact names, and row counts. This makes reviewer
 handoffs reproducible without coupling the comparison engine to a future
 Axys-specific presentation layer.
+
+The intended bundle review order is:
+
+1. `report.html`: browser-readable narrative, review cues, and key tables.
+2. `needs_review_summary.csv`: changed portfolio periods and suggested next
+   steps.
+3. `impact_coverage.csv`: estimated versus evidence-only cause areas and
+   missing impact inputs.
+4. `context_evidence.csv`: context-only changes such as cost basis,
+   commissions, and security-master reference fields. These rows support
+   reviewer interpretation and are explicitly excluded from return-impact
+   estimates.
+5. `findings.csv`: complete finding-level audit output.
+
+Other generated helper tables include `impact_estimates.csv`,
+`cause_summary.csv`, `transaction_activity.csv`, `transaction_cross_checks.csv`,
+`flow_cross_check_reconciliation.csv`, `transaction_matching_diagnostics.csv`,
+`residual_status.csv`, `portfolio_period_summary.csv`, and `top_evidence.csv`.
+
 The `scripts/performance_comparison_report_bundle.py` command-line script
 exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
@@ -1336,6 +1355,13 @@ it highlights changed portfolio periods with evidence-only areas, missing
 impact inputs, low-confidence estimates, transaction cross-checks, or withheld
 residuals. It does not add new calculation rules; it only summarizes existing
 report helper tables into reviewer cues and suggested next steps.
+
+Context evidence is summarized separately from impact estimates. The
+`context_evidence.csv` bundle artifact contains rows whose evidence role is
+`context`, a reviewer-facing `context_use`, and a
+`return_impact_treatment` value that states the row is not included in
+return-impact estimates. This keeps useful audit context visible without
+quietly relaxing the rule that every modeled impact method must be explicit.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group

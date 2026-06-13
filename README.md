@@ -166,6 +166,20 @@ inspect `needs_review_summary.csv` for the periods and issues that need review
 first. The bundle `README.md` and `manifest.json` describe the generated
 reports and CSV tables.
 
+A practical review order is:
+
+1. `report.html`: browser-readable narrative, cues, and tables.
+2. `needs_review_summary.csv`: changed periods and suggested next steps.
+3. `impact_coverage.csv`: estimated versus evidence-only cause areas.
+4. `context_evidence.csv`: context-only items such as cost basis, commission,
+   and security-master changes that are excluded from return-impact estimates.
+5. `findings.csv`: complete finding-level audit output.
+
+Other useful bundle tables include `impact_estimates.csv` for currently
+quantified impacts, `transaction_activity.csv` for changed transaction rows,
+`transaction_cross_checks.csv` for review-only external-flow diagnostics, and
+`top_evidence.csv` for ranked evidence rows shown in the report.
+
 Transaction impact estimates are never inferred from transaction codes alone.
 When a source does not provide category/sign/flow semantics, supply explicit
 rules in the comparison YAML:
