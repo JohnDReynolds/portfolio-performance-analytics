@@ -65,6 +65,12 @@ _NEEDS_REVIEW_COLUMNS = (
     _REVIEW_CUES,
     _SUGGESTED_NEXT_STEP,
 )
+_TRIAGE_CHANGED_PERIODS = "Changed periods"
+_TRIAGE_NEEDS_REVIEW_PERIODS = "Needs-review periods"
+_TRIAGE_EVIDENCE_ONLY_AREAS = "Evidence-only cause areas"
+_TRIAGE_CONTEXT_GROUPS = "Context evidence groups"
+_TRIAGE_TRANSACTION_CROSS_CHECK_ROWS = "Transaction cross-check rows"
+_TRIAGE_RESIDUAL_WITHHELD_PERIODS = "Residual-withheld periods"
 _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "report",
     "html_report",
@@ -669,6 +675,12 @@ def _run_summary_section(
         f"- Active findings: {_format_value(active_findings.height)}",
         f"- Suppressed findings: {_format_value(findings.height - active_findings.height)}",
         "",
+        "### Reviewer Triage",
+        *[
+            f"- {label}: {_format_value(value)}"
+            for label, value in _reviewer_triage_counts(active_findings)
+        ],
+        "",
         "### Active Findings By Code",
         _markdown_table(active_summaries["by_code"], [_pc_findings.FINDING_CODE, _COUNT]),
         "",
@@ -679,6 +691,54 @@ def _run_summary_section(
         _markdown_table(summaries["by_suppressed"], [_pc_findings.SUPPRESSED, _COUNT]),
     ]
     return "\n".join(lines)
+
+
+def _reviewer_triage_counts(findings: pl.DataFrame) -> list[tuple[str, int]]:
+    """Return top-of-report reviewer triage counts."""
+    periods = _pc_explain.portfolio_period_summary(findings)
+    needs_review = _needs_review_summary_table(findings)
+    impact_coverage = _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    context_summary = _context_evidence_summary_table(findings)
+    transaction_cross_checks = _pc_explain.portfolio_period_transaction_cross_checks(
+        findings
+    )
+    residual_status = _residual_status_table(findings)
+    return [
+        (_TRIAGE_CHANGED_PERIODS, periods.height),
+        (_TRIAGE_NEEDS_REVIEW_PERIODS, _needs_review_period_count(needs_review)),
+        (_TRIAGE_EVIDENCE_ONLY_AREAS, _evidence_only_area_count(impact_coverage)),
+        (_TRIAGE_CONTEXT_GROUPS, context_summary.height),
+        (_TRIAGE_TRANSACTION_CROSS_CHECK_ROWS, transaction_cross_checks.height),
+        (_TRIAGE_RESIDUAL_WITHHELD_PERIODS, _residual_withheld_period_count(residual_status)),
+    ]
+
+
+def _needs_review_period_count(needs_review: pl.DataFrame) -> int:
+    """Return count of periods whose review status needs attention."""
+    if needs_review.is_empty():
+        return 0
+    return needs_review.filter(
+        pl.col(_REVIEW_STATUS) == _REVIEW_STATUS_NEEDS_REVIEW
+    ).height
+
+
+def _evidence_only_area_count(impact_coverage: pl.DataFrame) -> int:
+    """Return total evidence-only cause-area count across changed periods."""
+    if impact_coverage.is_empty():
+        return 0
+    total = impact_coverage.select(
+        pl.col(_pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT).sum()
+    ).item()
+    return _count_value(total)
+
+
+def _residual_withheld_period_count(residual_status: pl.DataFrame) -> int:
+    """Return count of periods whose residual status is withheld."""
+    if residual_status.is_empty():
+        return 0
+    return residual_status.filter(
+        pl.col(_RESIDUAL_STATUS).str.starts_with(_RESIDUAL_WITHHELD_PREFIX)
+    ).height
 
 
 def _needs_review_summary_section(findings: pl.DataFrame) -> str:
@@ -1732,10 +1792,18 @@ def _html_run_summary_section(
         ("Suppressed findings", findings.height - active_findings.height),
     ]
     card_html = "\n".join(_html_summary_card(label, value) for label, value in cards)
+    triage_card_html = "\n".join(
+        _html_summary_card(label, value)
+        for label, value in _reviewer_triage_counts(active_findings)
+    )
     content = "\n".join(
         [
             '<div class="pc-card-row">',
             card_html,
+            "</div>",
+            "<h3>Reviewer Triage</h3>",
+            '<div class="pc-card-row pc-triage-row">',
+            triage_card_html,
             "</div>",
             "<h3>Active Findings By Code</h3>",
             _html_table(active_summaries["by_code"], [_pc_findings.FINDING_CODE, _COUNT]),
@@ -2422,6 +2490,9 @@ body {
   display: block;
   font-size: 20px;
   margin-top: 2px;
+}
+.pc-triage-row .pc-card {
+  border-left-color: var(--pc-accent);
 }
 .pc-note,
 .pc-empty {
