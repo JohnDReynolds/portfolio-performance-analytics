@@ -182,7 +182,8 @@ quantified impacts, `transaction_activity.csv` for changed transaction rows,
 `context_evidence_summary.csv` includes reviewer priority labels so linked
 portfolio-period context appears ahead of broader reference-data context.
 Linked high-priority context is also surfaced in `needs_review_summary.csv`
-review cues for the affected portfolio period.
+review cues for the affected portfolio period. `context_evidence.csv` carries
+the same priority labels on row-level detail.
 
 Transaction impact estimates are never inferred from transaction codes alone.
 When a source does not provide category/sign/flow semantics, supply explicit

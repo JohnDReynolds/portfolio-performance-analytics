@@ -178,6 +178,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertIn("PC-POS-COST", context_evidence)
         self.assertIn("cost-basis review context", context_evidence)
+        self.assertIn("Review Priority", context_evidence)
+        self.assertIn("Linked to one or more changed portfolio periods", context_evidence)
         self.assertIn("not included in return-impact estimates", context_evidence)
         self.assertIn("## Transaction Cross-Checks", report)
         impact_coverage = _section(
@@ -717,7 +719,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "reviewer priority",
                 readme,
             )
-            self.assertIn("`context_evidence.csv`: row-level context evidence", readme)
+            self.assertIn(
+                "`context_evidence.csv`: row-level context evidence, reviewer priority",
+                readme,
+            )
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
@@ -763,8 +768,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             context_evidence = pl.read_csv(paths["context_evidence"])
             self.assertEqual(context_evidence.height, 4)
             self.assertIn("context_use", context_evidence.columns)
+            self.assertIn("review_priority", context_evidence.columns)
+            self.assertIn("review_priority_reason", context_evidence.columns)
             self.assertIn("return_impact_treatment", context_evidence.columns)
             self.assertIn("PC-POS-COST", context_evidence["code"].to_list())
+            self.assertEqual(context_evidence["review_priority"][0], "high")
             self.assertEqual(
                 set(context_evidence["return_impact_treatment"]),
                 {"context only; not included in return-impact estimates"},

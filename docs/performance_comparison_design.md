@@ -1369,6 +1369,9 @@ Context evidence linked to changed portfolio periods is also surfaced as a
 high-priority cue in `needs_review_summary.csv`.
 Top-of-report reviewer triage counts include high-priority context groups so
 reviewers can see immediately when context evidence needs early attention.
+Row-level `context_evidence.csv` detail carries the same priority labels and
+reasons as the grouped summary so reviewers do not need to infer priority by
+joining artifacts manually.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group

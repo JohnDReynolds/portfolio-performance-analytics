@@ -124,6 +124,8 @@ _CONTEXT_EVIDENCE_COLUMNS = (
     _pc_findings.SOURCE_COLUMN,
     _pc_findings.DELTA_B_MINUS_A,
     _CONTEXT_USE,
+    _REVIEW_PRIORITY,
+    _REVIEW_PRIORITY_REASON,
     _RETURN_IMPACT_TREATMENT,
     _pc_findings.MESSAGE,
 )
@@ -504,7 +506,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
             "context-only evidence counts, reviewer priority, and affected identifiers"
         ),
         "context_evidence": (
-            "row-level context evidence excluded from return-impact estimates"
+            "row-level context evidence, reviewer priority, and no-impact treatment"
         ),
         "transaction_cross_checks": "review-only transaction impact cross-checks",
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
@@ -1696,29 +1698,52 @@ def _context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
         return _empty_context_evidence_table(findings)
 
     rows = [
-        {
-            **{
-                column: row.get(column)
-                for column in _CONTEXT_EVIDENCE_COLUMNS
-                if column in row
-            },
-            _CONTEXT_USE: _context_use(row),
-            _RETURN_IMPACT_TREATMENT: _CONTEXT_NO_IMPACT_TREATMENT,
-        }
+        _context_evidence_row(row)
         for row in context_findings.iter_rows(named=True)
     ]
-    return pl.DataFrame(rows).select(_CONTEXT_EVIDENCE_COLUMNS).sort(
-        [
-            _pc_findings.PORTFOLIO_ID,
-            _pc_findings.SECURITY_ID,
-            _pc_findings.FROM_DATE,
-            _pc_findings.THRU_DATE,
-            _pc_findings.DATASET,
-            _pc_findings.FINDING_CODE,
-            _pc_findings.SOURCE_COLUMN,
-        ],
-        nulls_last=True,
+    return (
+        pl.DataFrame(rows)
+        .with_columns(
+            pl.col(_REVIEW_PRIORITY)
+            .replace_strict({"high": 0, "medium": 1, "low": 2}, default=3)
+            .alias("_review_priority_rank")
+        )
+        .sort(
+            [
+                "_review_priority_rank",
+                _pc_findings.PORTFOLIO_ID,
+                _pc_findings.FROM_DATE,
+                _pc_findings.THRU_DATE,
+                _pc_findings.DATASET,
+                _pc_findings.SOURCE_COLUMN,
+                _pc_findings.SECURITY_ID,
+                _pc_findings.FINDING_CODE,
+            ],
+            nulls_last=True,
+        )
+        .select(_CONTEXT_EVIDENCE_COLUMNS)
     )
+
+
+def _context_evidence_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return one row-level context evidence record with review metadata."""
+    priority, priority_reason = _context_review_priority(
+        dataset=row.get(_pc_findings.DATASET),
+        source_column=row.get(_pc_findings.SOURCE_COLUMN),
+        portfolio_count=1 if _has_text(row.get(_pc_findings.PORTFOLIO_ID)) else 0,
+        security_count=1 if _has_text(row.get(_pc_findings.SECURITY_ID)) else 0,
+    )
+    return {
+        **{
+            column: row.get(column)
+            for column in _CONTEXT_EVIDENCE_COLUMNS
+            if column in row
+        },
+        _CONTEXT_USE: _context_use(row),
+        _REVIEW_PRIORITY: priority,
+        _REVIEW_PRIORITY_REASON: priority_reason,
+        _RETURN_IMPACT_TREATMENT: _CONTEXT_NO_IMPACT_TREATMENT,
+    }
 
 
 def _empty_context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
@@ -1749,6 +1774,8 @@ def _empty_context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
                 pl.Float64,
             ),
             _CONTEXT_USE: pl.String,
+            _REVIEW_PRIORITY: pl.String,
+            _REVIEW_PRIORITY_REASON: pl.String,
             _RETURN_IMPACT_TREATMENT: pl.String,
             _pc_findings.MESSAGE: findings.schema.get(_pc_findings.MESSAGE, pl.String),
         }
