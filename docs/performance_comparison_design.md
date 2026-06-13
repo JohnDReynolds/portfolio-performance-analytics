@@ -1331,7 +1331,8 @@ Axys-specific presentation layer.
 
 The intended bundle review order is:
 
-1. `report.html`: browser-readable narrative, review cues, and key tables.
+1. `report.html`: browser-readable Review Dashboard, narrative, review cues,
+   and key tables.
 2. `needs_review_summary.csv`: changed portfolio periods and suggested next
    steps, plus drilldown artifacts for each triage row.
 3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
@@ -1362,6 +1363,13 @@ report helper tables into reviewer cues and suggested next steps. Period-level
 bundle tables carry a stable `review_key` where possible, and
 `needs_review_summary.csv` includes `review_detail_artifacts` to name the CSVs
 most relevant to each changed period.
+
+The HTML report adds a first-screen `Review Dashboard` before the detailed
+sections. It uses the same period-level triage data to show one compact card per
+portfolio period, with status, primary cue, suggested next step, impact coverage
+hint, and links to the supporting detail sections. The dashboard is deliberately
+static for now: it guides the reviewer through existing evidence without adding
+new calculation logic or client-side workflow assumptions.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

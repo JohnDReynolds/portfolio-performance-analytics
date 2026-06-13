@@ -161,16 +161,19 @@ Start with these references:
   layouts used by demos and tests.
 
 The performance comparison demo writes a review bundle under `_demo_output`.
-Start with `_demo_output/performance_comparison_bundle/report.html`, then
-inspect `needs_review_summary.csv` for the periods and issues that need review
-first. The `review_key` column links period-level bundle tables, and
+Start with `_demo_output/performance_comparison_bundle/report.html`; its Review
+Dashboard gives one card per portfolio period, with links into the supporting
+detail sections. Then inspect `needs_review_summary.csv` for the periods and
+issues that need review first. The `review_key` column links period-level
+bundle tables, and
 `review_detail_artifacts` names the CSVs most relevant to each triage row. The
 bundle `README.md` and `manifest.json` describe the generated reports and CSV
 tables.
 
 A practical review order is:
 
-1. `report.html`: browser-readable narrative, cues, and tables.
+1. `report.html`: browser-readable Review Dashboard, narrative, cues, and
+   tables.
 2. `needs_review_summary.csv`: changed periods, suggested next steps, and
    drilldown artifacts.
 3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing

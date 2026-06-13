@@ -56,9 +56,18 @@ _REVIEW_CUES = "review_cues"
 _SUGGESTED_NEXT_STEP = "suggested_next_step"
 _REVIEW_KEY = "review_key"
 _REVIEW_DETAIL_ARTIFACTS = "review_detail_artifacts"
+_PRIMARY_REVIEW_CUE = "primary_review_cue"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
+_DASHBOARD_DETAIL_LINKS = (
+    ("Needs", "needs-review-summary"),
+    ("Impact", "impact-coverage"),
+    ("Context", "context-evidence"),
+    ("Transactions", "transaction-activity"),
+    ("Residual", "residual-status"),
+    ("Findings", "top-evidence"),
+)
 _NEEDS_REVIEW_COLUMNS = (
     _REVIEW_KEY,
     _pc_findings.PORTFOLIO_ID,
@@ -259,7 +268,10 @@ def performance_comparison_html_report(
             "</div>",
             "</header>",
             _html_review_basis_section(active_findings),
-            _html_contents_section(include_suppressed_appendix=include_suppressed_appendix),
+            _html_contents_section(
+                include_suppressed_appendix=include_suppressed_appendix
+            ),
+            _html_review_dashboard_section(active_findings),
             *sections,
             "</main>",
             "</body>",
@@ -1171,6 +1183,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
     """Return report section names in display order."""
     section_names = [
         "Run Summary",
+        "Review Dashboard",
         "Needs Review Summary",
         "Portfolio-Period Narrative",
         "Review Notes",
@@ -2121,6 +2134,204 @@ def _html_run_summary_section(
     return _html_section("Run Summary", content)
 
 
+def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
+    """Return the first-screen period dashboard for HTML review."""
+    dashboard = _review_dashboard_table(findings)
+    if dashboard.is_empty():
+        return _html_section(
+            "Review Dashboard",
+            _html_empty("No changed portfolio periods need dashboard review."),
+        )
+
+    cards = [
+        _html_dashboard_card(row)
+        for row in dashboard.iter_rows(named=True)
+    ]
+    content = "\n".join(
+        [
+            (
+                '<p class="pc-note">Start here: each card summarizes one '
+                'portfolio-period difference and links to the supporting detail '
+                'sections below.</p>'
+            ),
+            '<div class="pc-dashboard-grid">',
+            *cards,
+            "</div>",
+        ]
+    )
+    return _html_section("Review Dashboard", content)
+
+
+def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return compact portfolio-period rows for the HTML review dashboard."""
+    needs_review = _needs_review_summary_table(findings)
+    if needs_review.is_empty():
+        return pl.DataFrame(
+            schema={
+                _REVIEW_KEY: pl.String,
+                _pc_findings.PORTFOLIO_ID: pl.String,
+                _pc_findings.FROM_DATE: pl.Date,
+                _pc_findings.THRU_DATE: pl.Date,
+                _pc_explain.PORTFOLIO_RETURN_DELTA: pl.Float64,
+                _REVIEW_STATUS: pl.String,
+                _PRIMARY_REVIEW_CUE: pl.String,
+                _SUGGESTED_NEXT_STEP: pl.String,
+                _pc_explain.IMPACT_COVERAGE_STATUS: pl.String,
+                _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
+            }
+        )
+
+    coverage_by_period = _period_rows_by_key(
+        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    )
+    rows = [
+        _review_dashboard_row(
+            period=row,
+            coverage=coverage_by_period.get(_period_key(row), []),
+        )
+        for row in needs_review.iter_rows(named=True)
+    ]
+    return pl.DataFrame(rows).sort(
+        [
+            "_review_status_rank",
+            "_absolute_return_delta",
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+        ],
+        descending=[False, True, False, False, False],
+    ).select(
+        [
+            _REVIEW_KEY,
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+            _pc_explain.PORTFOLIO_RETURN_DELTA,
+            _REVIEW_STATUS,
+            _PRIMARY_REVIEW_CUE,
+            _SUGGESTED_NEXT_STEP,
+            _pc_explain.IMPACT_COVERAGE_STATUS,
+            _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
+        ]
+    )
+
+
+def _review_dashboard_row(
+    *,
+    period: Mapping[str, object],
+    coverage: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one compact dashboard row for a portfolio period."""
+    coverage_row = coverage[0] if coverage else {}
+    return_delta = period.get(_pc_explain.PORTFOLIO_RETURN_DELTA)
+    return {
+        _REVIEW_KEY: period.get(_REVIEW_KEY),
+        _pc_findings.PORTFOLIO_ID: period.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: period.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: period.get(_pc_findings.THRU_DATE),
+        _pc_explain.PORTFOLIO_RETURN_DELTA: return_delta,
+        _REVIEW_STATUS: period.get(_REVIEW_STATUS),
+        _PRIMARY_REVIEW_CUE: _primary_review_cue(period.get(_REVIEW_CUES)),
+        _SUGGESTED_NEXT_STEP: period.get(_SUGGESTED_NEXT_STEP),
+        _pc_explain.IMPACT_COVERAGE_STATUS: coverage_row.get(
+            _pc_explain.IMPACT_COVERAGE_STATUS,
+            "",
+        ),
+        _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: coverage_row.get(
+            _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
+            "",
+        ),
+        "_review_status_rank": _review_status_rank(period.get(_REVIEW_STATUS)),
+        "_absolute_return_delta": _absolute_numeric_value(return_delta),
+    }
+
+
+def _primary_review_cue(cues: object) -> str:
+    """Return the leading cue from a comma-separated cue list."""
+    if not _has_text(cues):
+        return "No review cue."
+    return str(cues).split(",", maxsplit=1)[0].strip()
+
+
+def _review_status_rank(status: object) -> int:
+    """Return dashboard sort priority for review status values."""
+    if status == _REVIEW_STATUS_NEEDS_REVIEW:
+        return 0
+    if status == _REVIEW_STATUS_MONITOR:
+        return 1
+    return 2
+
+
+def _absolute_numeric_value(value: object) -> float:
+    """Return absolute numeric value for dashboard sorting."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return abs(float(value))
+    return 0.0
+
+
+def _html_dashboard_card(row: Mapping[str, object]) -> str:
+    """Return one HTML review dashboard card."""
+    status = _format_value(row.get(_REVIEW_STATUS))
+    period = (
+        f"{_format_value(row.get(_pc_findings.FROM_DATE))} to "
+        f"{_format_value(row.get(_pc_findings.THRU_DATE))}"
+    )
+    return "\n".join(
+        [
+            f'<article class="pc-dashboard-card pc-dashboard-{_css_token(status)}">',
+            '<div class="pc-dashboard-card-head">',
+            f"<h3>{_escape_html(row.get(_pc_findings.PORTFOLIO_ID))}</h3>",
+            f'<span class="pc-status-pill pc-status-{_css_token(status)}">'
+            f"{_escape_html(status)}</span>",
+            "</div>",
+            '<dl class="pc-dashboard-facts">',
+            _html_dashboard_fact("Period", period),
+            _html_dashboard_fact(
+                "Return Delta",
+                row.get(_pc_explain.PORTFOLIO_RETURN_DELTA),
+            ),
+            _html_dashboard_fact(
+                "Coverage",
+                row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
+            ),
+            "</dl>",
+            f'<p class="pc-dashboard-cue">{_escape_html(row.get(_PRIMARY_REVIEW_CUE))}</p>',
+            f'<p class="pc-dashboard-next">{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}</p>',
+            f'<p class="pc-dashboard-note">'
+            f"{_escape_html(row.get(_pc_explain.IMPACT_COVERAGE_REVIEW_NOTE))}</p>",
+            _html_dashboard_links(),
+            "</article>",
+        ]
+    )
+
+
+def _html_dashboard_fact(label: str, value: object) -> str:
+    """Return one dashboard fact pair."""
+    return "\n".join(
+        [
+            "<div>",
+            f"<dt>{_escape_html(label)}</dt>",
+            f"<dd>{_escape_html(_format_value(value))}</dd>",
+            "</div>",
+        ]
+    )
+
+
+def _html_dashboard_links() -> str:
+    """Return static drilldown links for dashboard cards."""
+    links = [
+        f'<a href="#{section_id}">{_escape_html(label)}</a>'
+        for label, section_id in _DASHBOARD_DETAIL_LINKS
+    ]
+    return "\n".join(
+        [
+            '<nav class="pc-dashboard-links" aria-label="Dashboard drilldown links">',
+            *links,
+            "</nav>",
+        ]
+    )
+
+
 def _html_needs_review_summary_section(findings: pl.DataFrame) -> str:
     """Return changed-period reviewer cues as an HTML section."""
     return _html_section(
@@ -2837,6 +3048,90 @@ body {
 .pc-triage-row .pc-card {
   border-left-color: var(--pc-accent);
 }
+.pc-dashboard-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.pc-dashboard-card {
+  border: 1px solid var(--pc-border);
+  border-left: 5px solid var(--pc-accent);
+  padding: 10px;
+}
+.pc-dashboard-needs-review {
+  border-left-color: var(--pc-status-review);
+}
+.pc-dashboard-monitor {
+  border-left-color: var(--pc-status-monitor);
+}
+.pc-dashboard-clear {
+  border-left-color: var(--pc-status-clear);
+}
+.pc-dashboard-card-head {
+  align-items: center;
+  border-bottom: 1px solid var(--pc-border-light);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+}
+.pc-dashboard-card h3 {
+  border: 0;
+  color: var(--pc-text);
+  font-size: 16px;
+  margin: 0;
+  padding: 0;
+  text-transform: none;
+}
+.pc-status-pill {
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pc-dashboard-facts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 8px;
+}
+.pc-dashboard-facts div {
+  min-width: 0;
+}
+.pc-dashboard-facts dt {
+  color: var(--pc-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pc-dashboard-facts dd {
+  font-weight: 700;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.pc-dashboard-cue {
+  font-weight: 700;
+}
+.pc-dashboard-next,
+.pc-dashboard-note {
+  color: var(--pc-muted);
+}
+.pc-dashboard-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+.pc-dashboard-links a {
+  border: 1px solid var(--pc-border);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 6px;
+  text-decoration: none;
+}
 .pc-note,
 .pc-empty {
   color: var(--pc-muted);
@@ -2936,6 +3231,12 @@ tbody tr:hover {
   }
   .pc-contents-list {
     columns: 1;
+  }
+  .pc-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .pc-dashboard-facts {
+    grid-template-columns: 1fr;
   }
 }
 @media print {
