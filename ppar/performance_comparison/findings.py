@@ -74,6 +74,7 @@ __all__ = [
     "PC_TXN_AMT",
     "PC_TXN_QTY",
     "PC_TXN_PRICE",
+    "PC_TXN_COMM",
     "SEVERITY_INFORMATIONAL",
     "SEVERITY_MATERIAL",
     "CONFIDENCE_HIGH",
@@ -151,6 +152,7 @@ PC_TXN_DROP: Final[str] = "PC-TXN-DROP"
 PC_TXN_AMT: Final[str] = "PC-TXN-AMT"
 PC_TXN_QTY: Final[str] = "PC-TXN-QTY"
 PC_TXN_PRICE: Final[str] = "PC-TXN-PRICE"
+PC_TXN_COMM: Final[str] = "PC-TXN-COMM"
 TRANSACTION_MATCH_STATUS_ID_MATCH: Final[str] = "transaction_id_match"
 TRANSACTION_MATCH_STATUS_ID_UNMATCHED: Final[str] = "transaction_id_unmatched"
 TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: Final[str] = (

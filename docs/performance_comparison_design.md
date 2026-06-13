@@ -307,6 +307,11 @@ valuation datasets.
 - `currency`
 - `broker`
 
+Changed `commission` values are useful review context for fee, net amount, and
+accounting-treatment differences. They should be reported as context evidence
+and should not receive return-impact estimates unless a future explicit YAML
+method models commission treatment.
+
 Future transaction enhancements should consider optional fixed-income and
 income detail fields when real source files provide them:
 

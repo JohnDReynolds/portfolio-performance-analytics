@@ -43,6 +43,7 @@ from ppar.performance_comparison.findings import (
     PC_SEC_WGT,
     PC_TXN_ADD,
     PC_TXN_AMT,
+    PC_TXN_COMM,
     PC_TXN_DROP,
     PC_TXN_PRICE,
     PC_TXN_QTY,
@@ -167,6 +168,7 @@ _TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.AMOUNT: PC_TXN_AMT,
     pc_cols.QUANTITY: PC_TXN_QTY,
     pc_cols.PRICE: PC_TXN_PRICE,
+    pc_cols.COMMISSION: PC_TXN_COMM,
 }
 _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
     {
@@ -292,6 +294,7 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.PRICE: "price",
     pc_cols.FX_RATE: "fx_rate",
     pc_cols.AMOUNT: "market_value",
+    pc_cols.COMMISSION: "market_value",
 }
 
 
@@ -1305,6 +1308,8 @@ class PerformanceComparison:
         if dataset == pc_cols.SECURITY_PERFORMANCE:
             return RELATED_OUTPUT
         if dataset == pc_cols.POSITIONS and source_column == pc_cols.COST:
+            return CONTEXT
+        if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.COMMISSION:
             return CONTEXT
         if dataset in _DIRECT_INPUT_DATASETS:
             return DIRECT_INPUT

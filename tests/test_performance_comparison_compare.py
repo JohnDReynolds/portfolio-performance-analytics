@@ -53,6 +53,7 @@ from ppar.performance_comparison.findings import (
     PC_SEC_WGT,
     PC_TXN_ADD,
     PC_TXN_AMT,
+    PC_TXN_COMM,
     PC_TXN_DROP,
     PC_TXN_PRICE,
     PC_TXN_QTY,
@@ -875,6 +876,38 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(finding[CASH_FLOW_SIGN], "negative")
             self.assertEqual(finding[PERFORMANCE_FLOW_SIGN], "performance")
             self.assertEqual(finding[TRANSACTION_SEMANTICS_SOURCE], "mixed")
+
+    def test_transaction_commission_changes_are_context(self) -> None:
+        """Commission changes are review context, not modeled performance inputs."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            for snapshot_name, commission in (
+                ("snapshot_a", "5.00"),
+                ("snapshot_b", "7.50"),
+            ):
+                transaction_path = Path(temp_dir) / snapshot_name / "transactions.csv"
+                transaction_path.write_text(
+                    "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
+                    "PRICE,AMOUNT,COMMISSION,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
+                    f"100.00,{commission},cash out,external\n",
+                    encoding="utf-8",
+                )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            commission_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_COMM
+            )
+
+            self.assertEqual(commission_finding[SOURCE_COLUMN], pc_cols.COMMISSION)
+            self.assertEqual(commission_finding[EVIDENCE_ROLE], CONTEXT)
+            self.assertAlmostEqual(
+                cast(float, commission_finding[DELTA_B_MINUS_A]),
+                2.5,
+            )
 
     def test_transaction_changes_link_to_containing_portfolio_period(self) -> None:
         """Changed transaction rows inherit the containing portfolio period."""
