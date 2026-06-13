@@ -1304,8 +1304,8 @@ precision the comparison does not yet have.
 
 Reports may still include a residual status section for portfolio-period return
 changes. This section should use a section-level caveat plus compact per-period
-reason labels, rather than calculating an unexplained amount from partial or
-mixed-confidence estimates.
+reason labels and review notes, rather than calculating an unexplained amount
+from partial or mixed-confidence estimates.
 
 Current residual review statuses are withheld labels only:
 
@@ -1317,7 +1317,9 @@ Current residual review statuses are withheld labels only:
   exist, but no regular contribution estimates are available.
 
 These statuses keep the unexplained amount visible as a review concern without
-emitting a numeric residual.
+emitting a numeric residual. Report helper tables include a
+`residual_review_note` field that explains why each withheld status should not
+be interpreted as a calculated residual.
 
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
 The bundle contains the HTML report, Markdown report, raw findings, current
@@ -1455,6 +1457,8 @@ The first reviewer-facing report layer is implemented.
 - Surface context-only evidence separately from modeled impact estimates.
 - Summarize context evidence by dataset, source column, context use, and
   affected identifiers.
+- Include residual withheld statuses and residual review notes without
+  calculating numeric residuals from incomplete estimates.
 - Write reproducible report bundles with manifest and validation helpers.
   Current bundles include `context_evidence_summary.csv` and
   `context_evidence.csv` alongside impact, transaction, residual, and
@@ -1535,10 +1539,12 @@ transaction quantity, price, and commission.
 ## Current Recommended Next Work
 
 Treat the current comparison engine, evidence layer, and report bundle as the
-baseline. Context-only evidence is now visible both as detail and as a summary,
-and report bundles have a clearer reviewer workflow. The next useful work
-should stay narrow and auditable: improve explanation quality or presentation
-without adding hidden vendor assumptions or broad new datasets.
+baseline. Context-only evidence is visible both as detail and as a summary,
+residual statuses explain why numeric residuals are withheld, and report
+bundles have a clearer reviewer workflow. The next useful work should stay
+narrow and auditable: improve reviewer prioritization or already-normalized
+supporting-file comparisons without adding hidden vendor assumptions or broad
+new datasets.
 
 Good next candidates are:
 
@@ -1547,8 +1553,8 @@ Good next candidates are:
 - Add reviewer-facing charts or compact tables only where they clarify
   prioritization, impact coverage, transaction cross-checks, context evidence,
   or residual status.
-- Revisit residual explanation only after there are enough credible,
-  non-overlapping impact estimates to avoid implying false precision.
+- Defer numeric residuals until there are enough credible, non-overlapping
+  impact estimates to avoid implying false precision.
 - Expand supporting-file comparisons only for already-normalized columns that
   have clear reviewer value, before considering new datasets.
 - Keep transaction and contribution-impact methods explicit in YAML whenever
