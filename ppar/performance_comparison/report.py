@@ -70,6 +70,7 @@ _TRIAGE_CHANGED_PERIODS = "Changed periods"
 _TRIAGE_NEEDS_REVIEW_PERIODS = "Needs-review periods"
 _TRIAGE_EVIDENCE_ONLY_AREAS = "Evidence-only cause areas"
 _TRIAGE_CONTEXT_GROUPS = "Context evidence groups"
+_TRIAGE_HIGH_PRIORITY_CONTEXT_GROUPS = "High-priority context groups"
 _TRIAGE_TRANSACTION_CROSS_CHECK_ROWS = "Transaction cross-check rows"
 _TRIAGE_RESIDUAL_WITHHELD_PERIODS = "Residual-withheld periods"
 _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
@@ -714,6 +715,10 @@ def _reviewer_triage_counts(findings: pl.DataFrame) -> list[tuple[str, int]]:
         (_TRIAGE_NEEDS_REVIEW_PERIODS, _needs_review_period_count(needs_review)),
         (_TRIAGE_EVIDENCE_ONLY_AREAS, _evidence_only_area_count(impact_coverage)),
         (_TRIAGE_CONTEXT_GROUPS, context_summary.height),
+        (
+            _TRIAGE_HIGH_PRIORITY_CONTEXT_GROUPS,
+            _context_priority_group_count(context_summary, "high"),
+        ),
         (_TRIAGE_TRANSACTION_CROSS_CHECK_ROWS, transaction_cross_checks.height),
         (_TRIAGE_RESIDUAL_WITHHELD_PERIODS, _residual_withheld_period_count(residual_status)),
     ]
@@ -741,6 +746,13 @@ def _evidence_only_area_count(impact_coverage: pl.DataFrame) -> int:
         pl.col(_pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT).sum()
     ).item()
     return _count_value(total)
+
+
+def _context_priority_group_count(context_summary: pl.DataFrame, priority: str) -> int:
+    """Return count of context evidence groups for a priority label."""
+    if context_summary.is_empty():
+        return 0
+    return context_summary.filter(pl.col(_REVIEW_PRIORITY) == priority).height
 
 
 def _residual_withheld_period_count(residual_status: pl.DataFrame) -> int:

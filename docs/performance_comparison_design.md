@@ -1367,6 +1367,8 @@ return-impact estimates. This keeps useful audit context visible without
 quietly relaxing the rule that every modeled impact method must be explicit.
 Context evidence linked to changed portfolio periods is also surfaced as a
 high-priority cue in `needs_review_summary.csv`.
+Top-of-report reviewer triage counts include high-priority context groups so
+reviewers can see immediately when context evidence needs early attention.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group
