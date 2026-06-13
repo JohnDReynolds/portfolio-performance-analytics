@@ -229,26 +229,45 @@ def performance_comparison_html_report(
     active_findings = _active_findings(findings)
     summaries = _pc_runner.summarize_findings(findings)
     active_summaries = _pc_runner.summarize_findings(active_findings)
-    sections = [
-        _html_run_summary_section(findings, active_findings, summaries, active_summaries),
-        _html_needs_review_summary_section(active_findings),
-        _html_portfolio_period_narrative_section(active_findings),
-        _html_review_notes_section(active_findings),
-        _html_impact_estimate_summary_section(active_findings),
-        _html_impact_coverage_section(active_findings),
-        _html_context_evidence_summary_section(active_findings),
-        _html_context_evidence_section(active_findings),
-        _html_transaction_cross_checks_section(active_findings),
-        _html_flow_cross_check_reconciliation_section(active_findings),
-        _html_residual_status_section(active_findings),
-        _html_transaction_activity_section(active_findings),
-        _html_transaction_matching_diagnostics_section(active_findings),
-        _html_portfolio_period_section(active_findings),
-        _html_cause_summary_section(active_findings),
-        _html_top_evidence_section(active_findings, top_evidence_limit),
+    narrative_section = _html_portfolio_period_narrative_section(active_findings)
+    detail_sections = [
+        ("Needs Review Summary", _html_needs_review_summary_section(active_findings)),
+        ("Impact Coverage", _html_impact_coverage_section(active_findings)),
+        ("Context Evidence", _html_context_evidence_section(active_findings)),
+        ("Transaction Activity", _html_transaction_activity_section(active_findings)),
+        ("Residual Status", _html_residual_status_section(active_findings)),
+        ("Top Evidence", _html_top_evidence_section(active_findings, top_evidence_limit)),
+        (
+            "Run Summary",
+            _html_run_summary_section(
+                findings,
+                active_findings,
+                summaries,
+                active_summaries,
+            ),
+        ),
+        ("Review Notes", _html_review_notes_section(active_findings)),
+        ("Impact Estimate Summary", _html_impact_estimate_summary_section(active_findings)),
+        ("Context Evidence Summary", _html_context_evidence_summary_section(active_findings)),
+        ("Transaction Cross-Checks", _html_transaction_cross_checks_section(active_findings)),
+        (
+            "Flow Cross-Check Reconciliation",
+            _html_flow_cross_check_reconciliation_section(active_findings),
+        ),
+        (
+            "Transaction Matching Diagnostics",
+            _html_transaction_matching_diagnostics_section(active_findings),
+        ),
+        ("Portfolio-Period Changes", _html_portfolio_period_section(active_findings)),
+        ("Cause Summary", _html_cause_summary_section(active_findings)),
     ]
     if include_suppressed_appendix:
-        sections.append(_html_suppressed_appendix_section(findings, summaries))
+        detail_sections.append(
+            (
+                "Suppressed Findings Appendix",
+                _html_suppressed_appendix_section(findings, summaries),
+            )
+        )
 
     return "\n".join(
         [
@@ -271,12 +290,9 @@ def performance_comparison_html_report(
             f"<p>{_escape_html(_NO_ESTIMATE_NOTE)}</p>",
             "</div>",
             "</header>",
-            _html_review_basis_section(active_findings),
-            _html_contents_section(
-                include_suppressed_appendix=include_suppressed_appendix
-            ),
             _html_review_dashboard_section(active_findings),
-            *sections,
+            narrative_section,
+            _html_supporting_detail_section(detail_sections),
             "</main>",
             _html_dashboard_script(),
             "</body>",
@@ -2572,6 +2588,36 @@ def _html_review_notes_section(findings: pl.DataFrame) -> str:
     return _html_section("Review Notes", _html_list(notes))
 
 
+def _html_supporting_detail_section(sections: Sequence[tuple[str, str]]) -> str:
+    """Return collapsible supporting detail sections for the HTML report."""
+    detail_items = [
+        _html_supporting_detail_item(title, content)
+        for title, content in sections
+    ]
+    content = "\n".join(
+        [
+            (
+                '<p class="pc-note">Open these sections when the dashboard or '
+                'narrative points you to supporting evidence.</p>'
+            ),
+            *detail_items,
+        ]
+    )
+    return _html_section("Supporting Detail", content)
+
+
+def _html_supporting_detail_item(title: str, content: str) -> str:
+    """Return one native disclosure item containing a report section."""
+    return "\n".join(
+        [
+            '<details class="pc-detail">',
+            f"<summary>{_escape_html(title)}</summary>",
+            content,
+            "</details>",
+        ]
+    )
+
+
 def _html_impact_estimate_summary_section(findings: pl.DataFrame) -> str:
     """Return quantified impact estimates as an HTML section."""
     columns = [
@@ -3439,6 +3485,22 @@ body {
   border: 1px dashed var(--pc-border);
   color: var(--pc-muted);
   padding: 8px;
+}
+.pc-detail {
+  border: 1px solid var(--pc-border-light);
+  margin: 7px 0;
+}
+.pc-detail > summary {
+  background: var(--pc-table-head);
+  color: var(--pc-title-rule);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 7px 9px;
+}
+.pc-detail > .pc-section {
+  border: 0;
+  box-shadow: none;
+  margin: 0;
 }
 .pc-note,
 .pc-empty {

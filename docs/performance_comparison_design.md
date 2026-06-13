@@ -1377,7 +1377,9 @@ deltas, then portfolio/date. The dashboard is deliberately static for now: it
 guides the reviewer through existing evidence without adding new calculation
 logic. Its lightweight browser filters search rendered card text, review
 status, and missing-input flags only; they do not change report data or require
-a server.
+a server. The default HTML presentation should stay short at the top: dashboard
+first, concise portfolio-period narrative second, and detailed tables inside a
+Supporting Detail disclosure area.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

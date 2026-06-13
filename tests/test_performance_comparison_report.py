@@ -418,6 +418,17 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('id="review-dashboard"', report)
         self.assertLess(
             report.index('id="review-dashboard"'),
+            report.index('id="portfolio-period-narrative"'),
+        )
+        self.assertLess(
+            report.index('id="portfolio-period-narrative"'),
+            report.index('id="supporting-detail"'),
+        )
+        self.assertIn('id="supporting-detail"', report)
+        self.assertIn('<details class="pc-detail">', report)
+        self.assertIn("<summary>Impact Coverage</summary>", report)
+        self.assertLess(
+            report.index('id="supporting-detail"'),
             report.index('id="needs-review-summary"'),
         )
         dashboard = _html_section(report, "review-dashboard")
@@ -602,10 +613,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Performance Comparison Review", report)
         self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
         self.assertIn("Exception Review Worksheet", report)
-        self.assertIn('class="pc-review-basis"', report)
-        self.assertIn("withheld until supported", report)
+        self.assertIn('id="review-dashboard"', report)
+        self.assertIn('id="supporting-detail"', report)
         self.assertIn("Review table with", report)
-        self.assertIn('<ol class="pc-contents-list">', report)
+        self.assertNotIn('<ol class="pc-contents-list">', report)
 
     def test_markdown_report_limits_top_evidence_per_portfolio_period(self) -> None:
         """Top evidence limit controls displayed contribution candidate rows."""
