@@ -1391,10 +1391,11 @@ unmatched by conservative strict fallback keys. Report bundles include this
 table as `transaction_matching_diagnostics.csv`.
 
 HTML reports can be rendered with `performance_comparison_html_report()` or
-written with `write_performance_comparison_html_report()`. The first HTML
-version is intentionally conservative: it uses the same helper tables and
-section ordering as the Markdown report, with lightweight CSS for reviewer
-readability rather than separate HTML-specific analytics logic.
+written with `write_performance_comparison_html_report()`. The HTML report is
+intentionally conservative: it uses the same helper tables and section ordering
+as the Markdown report, with lightweight CSS, a review-basis strip, reviewer
+triage cards, and accessible table captions for review readability rather than
+separate HTML-specific analytics logic.
 The `scripts/performance_comparison_html_report.py` command-line script writes
 the same HTML report directly from a comparison YAML file.
 
@@ -1417,8 +1418,6 @@ new datasets.
   not have.
 - Keep report/export formats separate from comparison logic. CSV, Markdown, or
   HTML outputs should remain presentation layers over stable helper tables.
-- Make the HTML report feel more like an Axys/Replang review report while
-  preserving the existing calculation and explanation boundaries.
 - Add user-facing charts and tables only where they clarify reviewer workflow,
   such as prioritization, cross-checks, impact coverage, or residual status.
 - Consider a dataset comparison registry if more datasets are added. The
@@ -1459,6 +1458,8 @@ The first reviewer-facing report layer is implemented.
   affected identifiers.
 - Include residual withheld statuses and residual review notes without
   calculating numeric residuals from incomplete estimates.
+- Include an HTML review-basis strip, reviewer triage cards, and accessible
+  table captions while keeping HTML presentation separate from analytics logic.
 - Write reproducible report bundles with manifest and validation helpers.
   Current bundles include `context_evidence_summary.csv` and
   `context_evidence.csv` alongside impact, transaction, residual, and
@@ -1541,15 +1542,14 @@ transaction quantity, price, and commission.
 Treat the current comparison engine, evidence layer, and report bundle as the
 baseline. Context-only evidence is visible both as detail and as a summary,
 residual statuses explain why numeric residuals are withheld, and report
-bundles have a clearer reviewer workflow. The next useful work should stay
-narrow and auditable: improve reviewer prioritization or already-normalized
+bundles have a clearer reviewer workflow with a polished HTML review packet.
+The next useful work should stay narrow and auditable: improve reviewer
+prioritization or already-normalized
 supporting-file comparisons without adding hidden vendor assumptions or broad
 new datasets.
 
 Good next candidates are:
 
-- Make the HTML report feel more like an Axys/Replang review report while
-  preserving the existing calculation and explanation boundaries.
 - Add reviewer-facing charts or compact tables only where they clarify
   prioritization, impact coverage, transaction cross-checks, context evidence,
   or residual status.
