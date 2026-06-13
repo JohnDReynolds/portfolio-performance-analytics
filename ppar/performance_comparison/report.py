@@ -93,6 +93,8 @@ _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "top_evidence",
 )
 _CONTEXT_USE = "context_use"
+_REVIEW_PRIORITY = "review_priority"
+_REVIEW_PRIORITY_REASON = "review_priority_reason"
 _RETURN_IMPACT_TREATMENT = "return_impact_treatment"
 _FINDING_COUNT = "finding_count"
 _PORTFOLIO_COUNT = "portfolio_count"
@@ -103,6 +105,8 @@ _CONTEXT_EVIDENCE_SUMMARY_COLUMNS = (
     _pc_findings.DATASET,
     _pc_findings.SOURCE_COLUMN,
     _CONTEXT_USE,
+    _REVIEW_PRIORITY,
+    _REVIEW_PRIORITY_REASON,
     _FINDING_COUNT,
     _PORTFOLIO_COUNT,
     _SECURITY_COUNT,
@@ -1505,7 +1509,24 @@ def _context_evidence_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
         _context_evidence_summary_row(key, rows_for_key)
         for key, rows_for_key in sorted(grouped_rows.items(), key=_context_summary_key)
     ]
-    return pl.DataFrame(rows).select(_CONTEXT_EVIDENCE_SUMMARY_COLUMNS)
+    return (
+        pl.DataFrame(rows)
+        .with_columns(
+            pl.col(_REVIEW_PRIORITY)
+            .replace_strict({"high": 0, "medium": 1, "low": 2}, default=3)
+            .alias("_review_priority_rank")
+        )
+        .sort(
+            [
+                "_review_priority_rank",
+                _pc_findings.DATASET,
+                _pc_findings.SOURCE_COLUMN,
+                _CONTEXT_USE,
+            ],
+            nulls_last=True,
+        )
+        .select(_CONTEXT_EVIDENCE_SUMMARY_COLUMNS)
+    )
 
 
 def _empty_context_evidence_summary_table() -> pl.DataFrame:
@@ -1515,6 +1536,8 @@ def _empty_context_evidence_summary_table() -> pl.DataFrame:
             _pc_findings.DATASET: pl.String,
             _pc_findings.SOURCE_COLUMN: pl.String,
             _CONTEXT_USE: pl.String,
+            _REVIEW_PRIORITY: pl.String,
+            _REVIEW_PRIORITY_REASON: pl.String,
             _FINDING_COUNT: pl.UInt32,
             _PORTFOLIO_COUNT: pl.UInt32,
             _SECURITY_COUNT: pl.UInt32,
@@ -1549,16 +1572,53 @@ def _context_evidence_summary_row(
     securities = _unique_nonblank_values(
         row.get(_pc_findings.SECURITY_ID) for row in rows
     )
+    priority, priority_reason = _context_review_priority(
+        dataset=dataset,
+        source_column=source_column,
+        portfolio_count=len(portfolios),
+        security_count=len(securities),
+    )
     return {
         _pc_findings.DATASET: dataset,
         _pc_findings.SOURCE_COLUMN: source_column,
         _CONTEXT_USE: context_use,
+        _REVIEW_PRIORITY: priority,
+        _REVIEW_PRIORITY_REASON: priority_reason,
         _FINDING_COUNT: len(rows),
         _PORTFOLIO_COUNT: len(portfolios),
         _SECURITY_COUNT: len(securities),
         _AFFECTED_PORTFOLIOS: _comma_separated(portfolios),
         _AFFECTED_SECURITIES: _comma_separated(securities),
     }
+
+
+def _context_review_priority(
+    *,
+    dataset: object,
+    source_column: object,
+    portfolio_count: int,
+    security_count: int,
+) -> tuple[str, str]:
+    """Return a reviewer priority label for grouped context evidence."""
+    if portfolio_count > 0:
+        return (
+            "high",
+            "Linked to one or more changed portfolio periods.",
+        )
+    if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.COMMISSION:
+        return (
+            "high",
+            "Commission context can explain fee or net-amount differences.",
+        )
+    if security_count > 0:
+        return (
+            "medium",
+            "Security-level context may help identify reference-data changes.",
+        )
+    return (
+        "low",
+        "Context is not linked to a changed portfolio period or security.",
+    )
 
 
 def _context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:

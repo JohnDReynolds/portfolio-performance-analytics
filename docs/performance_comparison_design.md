@@ -1454,8 +1454,8 @@ The first reviewer-facing report layer is implemented.
 - Include impact summaries, cross-check summaries, evidence sections, and
   suppressed findings appendices.
 - Surface context-only evidence separately from modeled impact estimates.
-- Summarize context evidence by dataset, source column, context use, and
-  affected identifiers.
+- Summarize context evidence by dataset, source column, context use, affected
+  identifiers, and reviewer priority.
 - Include residual withheld statuses and residual review notes without
   calculating numeric residuals from incomplete estimates.
 - Include an HTML review-basis strip, reviewer triage cards, and accessible

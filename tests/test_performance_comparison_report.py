@@ -166,6 +166,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("security_master", context_summary)
         self.assertIn("positions", context_summary)
         self.assertIn("cost-basis review context", context_summary)
+        self.assertIn("Review Priority", context_summary)
+        self.assertIn("Linked to one or more changed portfolio periods", context_summary)
         self.assertIn("## Context Evidence", report)
         context_evidence = _section(
             report,
@@ -756,9 +758,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             context_evidence_summary = pl.read_csv(paths["context_evidence_summary"])
             self.assertEqual(context_evidence_summary.height, 4)
+            self.assertIn("review_priority", context_evidence_summary.columns)
+            self.assertIn("review_priority_reason", context_evidence_summary.columns)
             self.assertIn("finding_count", context_evidence_summary.columns)
             self.assertIn("affected_securities", context_evidence_summary.columns)
             self.assertIn("AAPL", context_evidence_summary["affected_securities"].to_list())
+            self.assertEqual(context_evidence_summary["review_priority"][0], "high")
 
             transaction_matching = pl.read_csv(paths["transaction_matching_diagnostics"])
             self.assertEqual(transaction_matching.height, 1)
