@@ -451,21 +451,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('data-dashboard-status', dashboard)
         self.assertIn('data-dashboard-missing-only', dashboard)
         self.assertIn("Missing inputs only", dashboard)
-        self.assertIn("No dashboard cards match the filters.", dashboard)
-        self.assertIn('data-dashboard-card', dashboard)
+        self.assertIn("No dashboard rows match the filters.", dashboard)
+        self.assertIn('data-dashboard-row', dashboard)
         self.assertIn('data-review-status="needs_review"', dashboard)
         self.assertIn('data-missing-inputs="true"', dashboard)
         self.assertIn("PORT_A", dashboard)
-        self.assertIn("PORT_A changed by 0.0005", dashboard)
-        self.assertIn("The strongest currently estimated impact", dashboard)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
         self.assertIn("4 evidence-only area(s)", dashboard)
         self.assertIn("2 estimated / 4 evidence-only", dashboard)
         self.assertIn("return-impact method", dashboard)
         self.assertIn("positions/cost", dashboard)
-        self.assertIn("Review path:", dashboard)
-        self.assertIn("impact_coverage.csv", dashboard)
-        self.assertIn("context_evidence.csv", dashboard)
+        self.assertIn("<th scope=\"col\">Portfolio</th>", dashboard)
+        self.assertIn("<th scope=\"col\">Return Delta</th>", dashboard)
+        self.assertIn("<th scope=\"col\">Links</th>", dashboard)
         self.assertIn("Resolve missing impact inputs", dashboard)
         self.assertIn(
             'href="#impact-coverage--port-a--2025-05-30--2025-05-30"',
@@ -495,9 +493,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             'id="top-evidence--port-a--2025-05-30--2025-05-30"',
             report,
         )
-        self.assertIn('class="pc-dashboard-grid"', dashboard)
+        narrative = _html_section(report, "portfolio-period-narrative")
+        self.assertIn("PORT_A changed by 0.0005", narrative)
+        self.assertIn("The strongest currently estimated impact", narrative)
+        self.assertIn('class="pc-dashboard-table"', dashboard)
         self.assertIn("querySelector(\"[data-dashboard-filters]\")", report)
-        self.assertIn("card.hidden = !visible", report)
+        self.assertIn("row.hidden = !visible", report)
         self.assertIn('id="impact-coverage"', report)
         self.assertIn('id="needs-review-summary"', report)
         self.assertIn("Impact Coverage", report)
@@ -525,7 +526,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
 
     def test_review_dashboard_prioritizes_missing_inputs_across_portfolios(self) -> None:
-        """Dashboard rows sort urgent multi-portfolio review cards first."""
+        """Dashboard rows sort urgent multi-portfolio review periods first."""
         period_date = dt.date(2025, 5, 30)
         needs_review = pl.DataFrame(
             [
@@ -648,12 +649,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             ],
         )
         dashboard_section = _html_section(report, "review-dashboard")
-        self.assertEqual(dashboard_section.count('data-dashboard-card'), 3)
+        self.assertEqual(dashboard_section.count('data-dashboard-row'), 3)
         self.assertIn("PORT_A", dashboard_section)
         self.assertIn("PORT_B", dashboard_section)
         self.assertIn("PORT_C", dashboard_section)
-        self.assertIn("PORT_C changed by 0.0008", dashboard_section)
-        self.assertIn("PORT_B changed by 0.0015", dashboard_section)
+        narrative_section = _html_section(report, "portfolio-period-narrative")
+        self.assertIn("PORT_C changed by 0.0008", narrative_section)
+        self.assertIn("PORT_B changed by 0.0015", narrative_section)
 
     def _assert_html_report_shell(self, report: str) -> None:
         """Verify stable HTML report framing and review-oriented polish."""

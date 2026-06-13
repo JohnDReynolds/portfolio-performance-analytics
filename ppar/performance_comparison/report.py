@@ -59,7 +59,6 @@ _DASHBOARD_COVERAGE_COUNTS = "dashboard_coverage_counts"
 _DASHBOARD_MISSING_INPUTS = "dashboard_missing_inputs"
 _DASHBOARD_CONTEXT_CUE = "dashboard_context_cue"
 _DASHBOARD_REVIEW_PATH = "dashboard_review_path"
-_DASHBOARD_NARRATIVE = "dashboard_narrative"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
@@ -2157,23 +2156,17 @@ def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
             _html_empty("No changed portfolio periods need dashboard review."),
         )
 
-    cards = [
-        _html_dashboard_card(row)
-        for row in dashboard.iter_rows(named=True)
-    ]
     content = "\n".join(
         [
             _html_dashboard_summary(dashboard),
             (
-                '<p class="pc-note">Start here: each card summarizes one '
-                'portfolio-period difference and links to the supporting detail '
-                'sections below.</p>'
+                '<p class="pc-note">Start here: each row is one changed '
+                'portfolio-period. Use filters to narrow the queue, then follow '
+                'the links to supporting evidence.</p>'
             ),
             _html_dashboard_filters(),
-            '<div class="pc-dashboard-grid">',
-            *cards,
-            "</div>",
-            '<p class="pc-dashboard-no-results" hidden>No dashboard cards match the filters.</p>',
+            _html_dashboard_table(dashboard),
+            '<p class="pc-dashboard-no-results" hidden>No dashboard rows match the filters.</p>',
         ]
     )
     return _html_section("Review Dashboard", content)
@@ -2197,7 +2190,6 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
                 _DASHBOARD_MISSING_INPUTS: pl.String,
                 _DASHBOARD_CONTEXT_CUE: pl.String,
                 _DASHBOARD_REVIEW_PATH: pl.String,
-                _DASHBOARD_NARRATIVE: pl.String,
                 _pc_explain.IMPACT_COVERAGE_STATUS: pl.String,
                 _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
                 "_missing_input_rank": pl.Int64,
@@ -2207,12 +2199,10 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
     coverage_by_period = _period_rows_by_key(
         _pc_explain.portfolio_period_impact_coverage_summary(findings)
     )
-    causes = _pc_explain.portfolio_period_cause_summary(findings)
     rows = [
         _review_dashboard_row(
             period=row,
             coverage=coverage_by_period.get(_period_key(row), []),
-            causes=_period_cause_rows(causes, row),
         )
         for row in needs_review.iter_rows(named=True)
     ]
@@ -2240,7 +2230,6 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
             _DASHBOARD_MISSING_INPUTS,
             _DASHBOARD_CONTEXT_CUE,
             _DASHBOARD_REVIEW_PATH,
-            _DASHBOARD_NARRATIVE,
             _pc_explain.IMPACT_COVERAGE_STATUS,
             _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
         ]
@@ -2251,7 +2240,6 @@ def _review_dashboard_row(
     *,
     period: Mapping[str, object],
     coverage: list[dict[str, object]],
-    causes: list[dict[str, object]],
 ) -> dict[str, object]:
     """Return one compact dashboard row for a portfolio period."""
     coverage_row = coverage[0] if coverage else {}
@@ -2274,7 +2262,6 @@ def _review_dashboard_row(
         _DASHBOARD_REVIEW_PATH: _dashboard_review_path(
             period.get(_REVIEW_DETAIL_ARTIFACTS)
         ),
-        _DASHBOARD_NARRATIVE: _dashboard_narrative(period, causes),
         _pc_explain.IMPACT_COVERAGE_STATUS: coverage_row.get(
             _pc_explain.IMPACT_COVERAGE_STATUS,
             "",
@@ -2306,29 +2293,6 @@ def _html_dashboard_summary(dashboard: pl.DataFrame) -> str:
         f"portfolio-period(s) need review across {_escape_html(portfolio_count)} "
         "portfolio(s).</p>"
     )
-
-
-def _dashboard_narrative(
-    period: Mapping[str, object],
-    causes: list[dict[str, object]],
-) -> str:
-    """Return a card-safe narrative for one dashboard period."""
-    narrative_period = dict(period)
-    narrative_period.setdefault(_pc_explain.HAS_SUPPRESSED_FINDINGS, False)
-    narrative = _portfolio_period_narrative(narrative_period, causes)
-    return _first_sentences(narrative, sentence_count=2)
-
-
-def _first_sentences(text: str, *, sentence_count: int) -> str:
-    """Return the leading sentence-like chunks from report prose."""
-    sentences = [sentence.strip() for sentence in text.split(". ") if sentence.strip()]
-    selected = sentences[:sentence_count]
-    if not selected:
-        return text
-    summary = ". ".join(selected)
-    if text.endswith(".") and not summary.endswith("."):
-        return f"{summary}."
-    return summary
 
 
 def _html_dashboard_filters() -> str:
@@ -2366,7 +2330,7 @@ def _primary_review_cue(cues: object) -> str:
 
 
 def _dashboard_coverage_counts(coverage_row: Mapping[str, object]) -> str:
-    """Return estimated versus evidence-only coverage text for a dashboard card."""
+    """Return estimated versus evidence-only coverage text for a dashboard row."""
     estimated = _count_value(coverage_row.get(_pc_explain.ESTIMATED_CAUSE_AREA_COUNT))
     evidence_only = _count_value(
         coverage_row.get(_pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT)
@@ -2442,8 +2406,43 @@ def _absolute_numeric_value(value: object) -> float:
     return 0.0
 
 
-def _html_dashboard_card(row: Mapping[str, object]) -> str:
-    """Return one HTML review dashboard card."""
+def _html_dashboard_table(dashboard: pl.DataFrame) -> str:
+    """Return a compact exception-queue table for dashboard review."""
+    rows = [
+        _html_dashboard_table_row(row)
+        for row in dashboard.iter_rows(named=True)
+    ]
+    return "\n".join(
+        [
+            '<div class="pc-dashboard-table-wrap">',
+            '<table class="pc-dashboard-table">',
+            "<caption>Changed portfolio-period review queue.</caption>",
+            "<thead>",
+            "<tr>",
+            '<th scope="col">Portfolio</th>',
+            '<th scope="col">Period</th>',
+            '<th scope="col">Return Delta</th>',
+            '<th scope="col">Status</th>',
+            '<th scope="col">Coverage</th>',
+            '<th scope="col">Cause Areas</th>',
+            '<th scope="col">Missing Inputs</th>',
+            '<th scope="col">Context</th>',
+            '<th scope="col">Primary Cue</th>',
+            '<th scope="col">Next Step</th>',
+            '<th scope="col">Links</th>',
+            "</tr>",
+            "</thead>",
+            "<tbody>",
+            *rows,
+            "</tbody>",
+            "</table>",
+            "</div>",
+        ]
+    )
+
+
+def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
+    """Return one compact dashboard table row."""
     status = _format_value(row.get(_REVIEW_STATUS))
     missing_inputs = row.get(_DASHBOARD_MISSING_INPUTS)
     period = (
@@ -2452,15 +2451,15 @@ def _html_dashboard_card(row: Mapping[str, object]) -> str:
     )
     search_text = _html_dashboard_search_text(row)
     missing_inputs_token = _boolean_token(_has_text(missing_inputs))
-    card_id = _html_dashboard_link_target(
+    row_id = _html_dashboard_link_target(
         "review-dashboard",
         _format_value(row.get(_REVIEW_KEY)),
     )
     article_attributes = " ".join(
         [
-            f'class="pc-dashboard-card pc-dashboard-{_css_token(status)}"',
-            f'id="{card_id}"',
-            "data-dashboard-card",
+            f'class="pc-dashboard-row pc-dashboard-{_css_token(status)}"',
+            f'id="{row_id}"',
+            "data-dashboard-row",
             f'data-review-status="{_escape_html(status)}"',
             f'data-missing-inputs="{_escape_html(missing_inputs_token)}"',
             f'data-dashboard-search="{_escape_html(search_text)}"',
@@ -2468,53 +2467,28 @@ def _html_dashboard_card(row: Mapping[str, object]) -> str:
     )
     return "\n".join(
         [
-            f"<article {article_attributes}>",
-            '<div class="pc-dashboard-card-head">',
-            f"<h3>{_escape_html(row.get(_pc_findings.PORTFOLIO_ID))}</h3>",
-            f'<span class="pc-status-pill pc-status-{_css_token(status)}">'
-            f"{_escape_html(status)}</span>",
-            "</div>",
-            '<dl class="pc-dashboard-facts">',
-            _html_dashboard_fact("Period", period),
-            _html_dashboard_fact(
-                "Return Delta",
+            f"<tr {article_attributes}>",
+            _html_dashboard_table_cell(row.get(_pc_findings.PORTFOLIO_ID)),
+            _html_dashboard_table_cell(period),
+            _html_dashboard_table_cell(
                 row.get(_pc_explain.PORTFOLIO_RETURN_DELTA),
+                numeric=True,
             ),
-            _html_dashboard_fact(
-                "Coverage",
-                row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
-            ),
-            _html_dashboard_fact(
-                "Cause Areas",
-                row.get(_DASHBOARD_COVERAGE_COUNTS),
-            ),
-            _html_dashboard_fact(
-                "Missing Inputs",
-                row.get(_DASHBOARD_MISSING_INPUTS),
-            ),
-            _html_dashboard_fact(
-                "Context",
-                row.get(_DASHBOARD_CONTEXT_CUE),
-            ),
-            "</dl>",
-            (
-                f'<p class="pc-dashboard-narrative">'
-                f"{_escape_html(row.get(_DASHBOARD_NARRATIVE))}</p>"
-            ),
-            f'<p class="pc-dashboard-cue">{_escape_html(row.get(_PRIMARY_REVIEW_CUE))}</p>',
-            f'<p class="pc-dashboard-next">{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}</p>',
-            f'<p class="pc-dashboard-note">'
-            f"{_escape_html(row.get(_pc_explain.IMPACT_COVERAGE_REVIEW_NOTE))}</p>",
-            f'<p class="pc-dashboard-path">'
-            f"Review path: {_escape_html(row.get(_DASHBOARD_REVIEW_PATH))}</p>",
-            _html_dashboard_links(row),
-            "</article>",
+            _html_dashboard_status_cell(status),
+            _html_dashboard_table_cell(row.get(_pc_explain.IMPACT_COVERAGE_STATUS)),
+            _html_dashboard_table_cell(row.get(_DASHBOARD_COVERAGE_COUNTS)),
+            _html_dashboard_table_cell(row.get(_DASHBOARD_MISSING_INPUTS)),
+            _html_dashboard_table_cell(row.get(_DASHBOARD_CONTEXT_CUE)),
+            _html_dashboard_table_cell(row.get(_PRIMARY_REVIEW_CUE)),
+            _html_dashboard_table_cell(row.get(_SUGGESTED_NEXT_STEP)),
+            f"<td>{_html_dashboard_links(row)}</td>",
+            "</tr>",
         ]
     )
 
 
 def _html_dashboard_search_text(row: Mapping[str, object]) -> str:
-    """Return searchable dashboard card text."""
+    """Return searchable dashboard row text."""
     values = [
         row.get(_pc_findings.PORTFOLIO_ID),
         row.get(_pc_findings.FROM_DATE),
@@ -2523,11 +2497,24 @@ def _html_dashboard_search_text(row: Mapping[str, object]) -> str:
         row.get(_PRIMARY_REVIEW_CUE),
         row.get(_DASHBOARD_MISSING_INPUTS),
         row.get(_DASHBOARD_CONTEXT_CUE),
-        row.get(_DASHBOARD_NARRATIVE),
         row.get(_SUGGESTED_NEXT_STEP),
         row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
     ]
     return " ".join(_format_value(value) for value in values if _has_text(value)).lower()
+
+
+def _html_dashboard_table_cell(value: object, *, numeric: bool = False) -> str:
+    """Return one compact dashboard table cell."""
+    alignment_class = "pc-right" if numeric else "pc-left"
+    return f'<td class="{alignment_class}">{_escape_html(_format_value(value))}</td>'
+
+
+def _html_dashboard_status_cell(status: str) -> str:
+    """Return the dashboard status cell with stable visual class."""
+    return (
+        f'<td class="pc-left pc-status-{_css_token(status)}">'
+        f"{_escape_html(status)}</td>"
+    )
 
 
 def _boolean_token(value: bool) -> str:
@@ -2535,20 +2522,8 @@ def _boolean_token(value: bool) -> str:
     return "true" if value else "false"
 
 
-def _html_dashboard_fact(label: str, value: object) -> str:
-    """Return one dashboard fact pair."""
-    return "\n".join(
-        [
-            "<div>",
-            f"<dt>{_escape_html(label)}</dt>",
-            f"<dd>{_escape_html(_format_value(value))}</dd>",
-            "</div>",
-        ]
-    )
-
-
 def _html_dashboard_links(row: Mapping[str, object]) -> str:
-    """Return period-specific drilldown links for one dashboard card."""
+    """Return period-specific drilldown links for one dashboard row."""
     review_key = _format_value(row.get(_REVIEW_KEY))
     links = [
         f'<a href="#{_html_dashboard_link_target(section_id, review_key)}">'
@@ -3365,74 +3340,6 @@ body {
 .pc-triage-row .pc-card {
   border-left-color: var(--pc-accent);
 }
-.pc-dashboard-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-.pc-dashboard-card {
-  border: 1px solid var(--pc-border);
-  border-left: 5px solid var(--pc-accent);
-  padding: 10px;
-}
-.pc-dashboard-needs-review {
-  border-left-color: var(--pc-status-review);
-}
-.pc-dashboard-monitor {
-  border-left-color: var(--pc-status-monitor);
-}
-.pc-dashboard-clear {
-  border-left-color: var(--pc-status-clear);
-}
-.pc-dashboard-card-head {
-  align-items: center;
-  border-bottom: 1px solid var(--pc-border-light);
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-}
-.pc-dashboard-card h3 {
-  border: 0;
-  color: var(--pc-text);
-  font-size: 16px;
-  margin: 0;
-  padding: 0;
-  text-transform: none;
-}
-.pc-status-pill {
-  border: 1px solid currentColor;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.pc-dashboard-facts {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0 0 8px;
-}
-.pc-dashboard-facts div {
-  min-width: 0;
-}
-.pc-dashboard-facts dt {
-  color: var(--pc-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.pc-dashboard-facts dd {
-  font-weight: 700;
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
-}
-.pc-dashboard-narrative,
-.pc-dashboard-cue {
-  font-weight: 700;
-}
 .pc-dashboard-summary {
   font-weight: 700;
 }
@@ -3474,23 +3381,36 @@ body {
   min-height: 28px;
   padding: 3px 8px;
 }
-.pc-dashboard-next,
-.pc-dashboard-note,
-.pc-dashboard-path {
-  color: var(--pc-muted);
+.pc-dashboard-table-wrap {
+  overflow-x: auto;
 }
-.pc-dashboard-path {
+.pc-dashboard-table {
   font-size: 12px;
+}
+.pc-dashboard-table th,
+.pc-dashboard-table td {
+  padding: 4px 5px;
+}
+.pc-dashboard-row {
+  border-left: 5px solid var(--pc-accent);
+}
+.pc-dashboard-needs-review {
+  border-left-color: var(--pc-status-review);
+}
+.pc-dashboard-monitor {
+  border-left-color: var(--pc-status-monitor);
+}
+.pc-dashboard-clear {
+  border-left-color: var(--pc-status-clear);
 }
 .pc-dashboard-links {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 9px;
 }
 .pc-dashboard-links a {
   border: 1px solid var(--pc-border);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   padding: 3px 6px;
   text-decoration: none;
@@ -3616,12 +3536,6 @@ tbody tr:hover {
   .pc-contents-list {
     columns: 1;
   }
-  .pc-dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-  .pc-dashboard-facts {
-    grid-template-columns: 1fr;
-  }
   .pc-dashboard-filters {
     grid-template-columns: 1fr;
   }
@@ -3670,7 +3584,7 @@ def _html_dashboard_script() -> str:
   if (!filters) {
     return;
   }
-  const cards = Array.from(document.querySelectorAll("[data-dashboard-card]"));
+  const rows = Array.from(document.querySelectorAll("[data-dashboard-row]"));
   const search = filters.querySelector("[data-dashboard-search]");
   const status = filters.querySelector("[data-dashboard-status]");
   const missingOnly = filters.querySelector("[data-dashboard-missing-only]");
@@ -3682,12 +3596,12 @@ def _html_dashboard_script() -> str:
     const requireMissing = Boolean(missingOnly?.checked);
     let visibleCount = 0;
 
-    for (const card of cards) {
-      const matchesSearch = !query || card.dataset.dashboardSearch.includes(query);
-      const matchesStatus = !selectedStatus || card.dataset.reviewStatus === selectedStatus;
-      const matchesMissing = !requireMissing || card.dataset.missingInputs === "true";
+    for (const row of rows) {
+      const matchesSearch = !query || row.dataset.dashboardSearch.includes(query);
+      const matchesStatus = !selectedStatus || row.dataset.reviewStatus === selectedStatus;
+      const matchesMissing = !requireMissing || row.dataset.missingInputs === "true";
       const visible = matchesSearch && matchesStatus && matchesMissing;
-      card.hidden = !visible;
+      row.hidden = !visible;
       if (visible) {
         visibleCount += 1;
       }

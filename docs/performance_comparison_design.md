@@ -1331,7 +1331,7 @@ Axys-specific presentation layer.
 
 The intended bundle review order is:
 
-1. `report.html`: browser-readable Review Dashboard, narrative, review cues,
+1. `report.html`: browser-readable Review Dashboard, drilldown cues, narrative,
    and key tables.
 2. `needs_review_summary.csv`: changed portfolio periods and suggested next
    steps, plus drilldown artifacts for each triage row.
@@ -1365,21 +1365,19 @@ bundle tables carry a stable `review_key` where possible, and
 most relevant to each changed period.
 
 The HTML report adds a first-screen `Review Dashboard` before the detailed
-sections. It uses the same period-level triage data to show one compact card per
-portfolio period, with status, primary cue, suggested next step, impact coverage
-hint, cause-area coverage counts, missing inputs, high-priority context, a
-compact review path, and links to the supporting detail sections. Dashboard
+sections. It uses the same period-level triage data to show one compact row per
+changed portfolio period, with return delta, status, primary cue, suggested next
+step, impact coverage hint, cause-area coverage counts, missing inputs,
+high-priority context, and links to the supporting detail sections. Dashboard
 links use stable period-specific row anchors when the target section carries
 portfolio-period fields, so a reviewer lands near the relevant evidence rather
-than only at the top of a broad section. Cards are sorted to keep needs-review
+than only at the top of a broad section. Rows are sorted to keep needs-review
 periods first, then missing-impact-input periods, then larger absolute return
 deltas, then portfolio/date. The dashboard is deliberately static for now: it
 guides the reviewer through existing evidence without adding new calculation
-logic. Each card includes the concise portfolio-period narrative so the first
-screen explains both what changed and why it likely changed. Its lightweight
-browser filters search rendered card text, review
-status, and missing-input flags only; they do not change report data or require
-a server. The default HTML presentation should stay short at the top: dashboard
+logic. Its lightweight browser filters search rendered row text, review status,
+and missing-input flags only; they do not change report data or require a
+server. The default HTML presentation should stay short at the top: dashboard
 first, with full narrative and detailed tables inside a Supporting Detail
 disclosure area.
 
@@ -1424,9 +1422,9 @@ table as `transaction_matching_diagnostics.csv`.
 HTML reports can be rendered with `performance_comparison_html_report()` or
 written with `write_performance_comparison_html_report()`. The HTML report is
 intentionally conservative: it uses the same helper tables and section ordering
-as the Markdown report, with lightweight CSS, a review-basis strip, reviewer
-triage cards, and accessible table captions for review readability rather than
-separate HTML-specific analytics logic.
+as the Markdown report, with lightweight CSS, a review-basis strip, a compact
+review dashboard, and accessible table captions for review readability rather
+than separate HTML-specific analytics logic.
 The `scripts/performance_comparison_html_report.py` command-line script writes
 the same HTML report directly from a comparison YAML file.
 
@@ -1489,7 +1487,7 @@ The first reviewer-facing report layer is implemented.
   identifiers, and reviewer priority.
 - Include residual withheld statuses and residual review notes without
   calculating numeric residuals from incomplete estimates.
-- Include an HTML review-basis strip, reviewer triage cards, and accessible
+- Include an HTML review-basis strip, a compact review dashboard, and accessible
   table captions while keeping HTML presentation separate from analytics logic.
 - Write reproducible report bundles with manifest and validation helpers.
   Current bundles include `context_evidence_summary.csv` and
