@@ -258,6 +258,12 @@ LOW_CONFIDENCE_ESTIMATE_COUNT = "low_confidence_estimate_count"
 MEDIUM_CONFIDENCE_ESTIMATE_COUNT = "medium_confidence_estimate_count"
 ESTIMATED_RETURN_IMPACT_TOTAL = "estimated_return_impact_total"
 EVIDENCE_ONLY_AREAS = "evidence_only_areas"
+IMPACT_COVERAGE_STATUS = "impact_coverage_status"
+IMPACT_COVERAGE_REVIEW_NOTE = "impact_coverage_review_note"
+IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES = "complete_estimates"
+IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES = "partial_estimates"
+IMPACT_COVERAGE_STATUS_EVIDENCE_ONLY = "evidence_only"
+IMPACT_COVERAGE_STATUS_MISSING_INPUTS = "missing_inputs"
 PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS = (
     PORTFOLIO_ID,
     FROM_DATE,
@@ -272,6 +278,8 @@ PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS = (
     EVIDENCE_ONLY_AREAS,
     TRANSACTION_SEMANTICS_SOURCES,
     MISSING_IMPACT_INPUTS,
+    IMPACT_COVERAGE_STATUS,
+    IMPACT_COVERAGE_REVIEW_NOTE,
     IMPACT_MESSAGE,
 )
 TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
@@ -1579,6 +1587,15 @@ def _impact_coverage_summary_row(
         for cause in causes
         if cause.get(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE
     ]
+    missing_inputs = _coverage_missing_impact_inputs(
+        evidence_only_rows,
+        transactions,
+    )
+    coverage_status = _impact_coverage_status(
+        estimated_count=len(estimate_rows),
+        evidence_only_count=len(evidence_only_rows),
+        missing_inputs=missing_inputs,
+    )
 
     return {
         PORTFOLIO_ID: period[PORTFOLIO_ID],
@@ -1603,15 +1620,41 @@ def _impact_coverage_summary_row(
         TRANSACTION_SEMANTICS_SOURCES: _period_transaction_semantics_sources(
             transactions
         ),
-        MISSING_IMPACT_INPUTS: _coverage_missing_impact_inputs(
-            evidence_only_rows,
-            transactions,
-        ),
+        MISSING_IMPACT_INPUTS: missing_inputs,
+        IMPACT_COVERAGE_STATUS: coverage_status,
+        IMPACT_COVERAGE_REVIEW_NOTE: _impact_coverage_review_note(coverage_status),
         IMPACT_MESSAGE: _impact_coverage_message(
             estimated_count=len(estimate_rows),
             evidence_only_count=len(evidence_only_rows),
         ),
     }
+
+
+def _impact_coverage_status(
+    *,
+    estimated_count: int,
+    evidence_only_count: int,
+    missing_inputs: str,
+) -> str:
+    """Return the reviewer-facing impact coverage status."""
+    if missing_inputs:
+        return IMPACT_COVERAGE_STATUS_MISSING_INPUTS
+    if estimated_count > 0 and evidence_only_count == 0:
+        return IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES
+    if estimated_count > 0:
+        return IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES
+    return IMPACT_COVERAGE_STATUS_EVIDENCE_ONLY
+
+
+def _impact_coverage_review_note(status: str) -> str:
+    """Return reviewer guidance for an impact coverage status."""
+    if status == IMPACT_COVERAGE_STATUS_MISSING_INPUTS:
+        return "Resolve missing inputs before relying on impact totals."
+    if status == IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
+        return "All current cause areas have selected impact estimates."
+    if status == IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
+        return "Review evidence-only areas before relying on impact totals."
+    return "No cause areas have selected impact estimates yet."
 
 
 def _impact_confidence_count(
@@ -2592,6 +2635,8 @@ def _empty_portfolio_period_impact_coverage_summary() -> pl.DataFrame:
             EVIDENCE_ONLY_AREAS: pl.String,
             TRANSACTION_SEMANTICS_SOURCES: pl.String,
             MISSING_IMPACT_INPUTS: pl.String,
+            IMPACT_COVERAGE_STATUS: pl.String,
+            IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
             IMPACT_MESSAGE: pl.String,
         }
     )

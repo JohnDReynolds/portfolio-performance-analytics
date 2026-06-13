@@ -1079,9 +1079,10 @@ Current output layers:
   `portfolio_period_impact_coverage_summary()`. It counts, by changed
   portfolio period, how many cause areas currently have return-impact
   estimates, how many remain evidence-only, and which missing-input themes are
-  blocking the evidence-only areas. The coverage total sums already-selected
-  cause-area estimates for review context; it is not a residual calculation or
-  a complete attribution statement.
+  blocking the evidence-only areas. It also emits a reviewer-facing
+  `impact_coverage_status` and `impact_coverage_review_note`. The coverage
+  total sums already-selected cause-area estimates for review context; it is
+  not a residual calculation or a complete attribution statement.
 - Transaction activity summary: An evidence-only helper returned by
   `transaction_activity_summary()`. It groups changed transaction fields by
   portfolio, security, period, and normalized transaction category, and reports
@@ -1333,8 +1334,8 @@ The intended bundle review order is:
 1. `report.html`: browser-readable narrative, review cues, and key tables.
 2. `needs_review_summary.csv`: changed portfolio periods and suggested next
    steps.
-3. `impact_coverage.csv`: estimated versus evidence-only cause areas and
-   missing impact inputs.
+3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
+   impact inputs, and reviewer-facing coverage status.
 4. `context_evidence.csv`: context-only changes such as cost basis,
    commissions, and security-master reference fields. These rows support
    reviewer interpretation and are explicitly excluded from return-impact

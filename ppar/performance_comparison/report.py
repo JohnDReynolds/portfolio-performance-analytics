@@ -1513,6 +1513,8 @@ def _impact_coverage_section(findings: pl.DataFrame) -> str:
         _pc_explain.EVIDENCE_ONLY_AREAS,
         _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
         _pc_explain.MISSING_IMPACT_INPUTS,
+        _pc_explain.IMPACT_COVERAGE_STATUS,
+        _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
         _pc_explain.IMPACT_MESSAGE,
     ]
     return "\n".join(
@@ -2112,6 +2114,8 @@ def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
         _pc_explain.EVIDENCE_ONLY_AREAS,
         _pc_explain.TRANSACTION_SEMANTICS_SOURCES,
         _pc_explain.MISSING_IMPACT_INPUTS,
+        _pc_explain.IMPACT_COVERAGE_STATUS,
+        _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
         _pc_explain.IMPACT_MESSAGE,
     ]
     return _html_section(

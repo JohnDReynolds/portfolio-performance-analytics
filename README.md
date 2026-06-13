@@ -170,7 +170,8 @@ A practical review order is:
 
 1. `report.html`: browser-readable narrative, cues, and tables.
 2. `needs_review_summary.csv`: changed periods and suggested next steps.
-3. `impact_coverage.csv`: estimated versus evidence-only cause areas.
+3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
+   inputs, and reviewer-facing coverage status.
 4. `context_evidence.csv`: context-only items such as cost basis, commission,
    and security-master changes that are excluded from return-impact estimates.
 5. `findings.csv`: complete finding-level audit output.

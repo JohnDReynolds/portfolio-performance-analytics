@@ -193,6 +193,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Transaction Semantics Sources", impact_coverage)
         self.assertIn("unknown: 3", impact_coverage)
         self.assertIn("return-impact method", impact_coverage)
+        self.assertIn("missing_inputs", impact_coverage)
+        self.assertIn("Resolve missing inputs before relying on impact totals", impact_coverage)
         self.assertIn("2 cause area(s) have estimates", impact_coverage)
         self.assertIn("## Residual Status", report)
         residual_status = _section(
@@ -763,7 +765,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(impact_coverage.height, 1)
             self.assertIn("estimated_cause_area_count", impact_coverage.columns)
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
+            self.assertIn("impact_coverage_status", impact_coverage.columns)
+            self.assertIn("impact_coverage_review_note", impact_coverage.columns)
             self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
+            self.assertEqual(impact_coverage["impact_coverage_status"][0], "missing_inputs")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
             self.assertEqual(context_evidence.height, 4)

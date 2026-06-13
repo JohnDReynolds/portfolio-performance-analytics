@@ -55,6 +55,9 @@ from ppar.performance_comparison.explain import (
     IMPACT_BASIS_SECURITY_CONTRIBUTION,
     IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
     IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+    IMPACT_COVERAGE_REVIEW_NOTE,
+    IMPACT_COVERAGE_STATUS,
+    IMPACT_COVERAGE_STATUS_MISSING_INPUTS,
     IMPACT_CONFIDENCE,
     IMPACT_CONFIDENCE_LOW,
     IMPACT_CONFIDENCE_MEDIUM,
@@ -717,6 +720,11 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             row[MISSING_IMPACT_INPUTS],
         )
         self.assertIn("return-impact method", row[MISSING_IMPACT_INPUTS])
+        self.assertEqual(row[IMPACT_COVERAGE_STATUS], IMPACT_COVERAGE_STATUS_MISSING_INPUTS)
+        self.assertEqual(
+            row[IMPACT_COVERAGE_REVIEW_NOTE],
+            "Resolve missing inputs before relying on impact totals.",
+        )
         self.assertIn("2 cause area(s) have estimates", row[IMPACT_MESSAGE])
 
     def test_portfolio_period_impact_coverage_summary_returns_stable_empty_table(
