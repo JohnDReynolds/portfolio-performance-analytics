@@ -15,6 +15,7 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.errors import PpaError
+from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import runner as _pc_runner
@@ -75,6 +76,7 @@ _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "cause_summary",
     "impact_estimates",
     "impact_coverage",
+    "context_evidence",
     "transaction_cross_checks",
     "flow_cross_check_reconciliation",
     "residual_status",
@@ -82,6 +84,22 @@ _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "transaction_matching_diagnostics",
     "top_evidence",
 )
+_CONTEXT_USE = "context_use"
+_RETURN_IMPACT_TREATMENT = "return_impact_treatment"
+_CONTEXT_EVIDENCE_COLUMNS = (
+    _pc_findings.PORTFOLIO_ID,
+    _pc_findings.SECURITY_ID,
+    _pc_findings.FROM_DATE,
+    _pc_findings.THRU_DATE,
+    _pc_findings.DATASET,
+    _pc_findings.FINDING_CODE,
+    _pc_findings.SOURCE_COLUMN,
+    _pc_findings.DELTA_B_MINUS_A,
+    _CONTEXT_USE,
+    _RETURN_IMPACT_TREATMENT,
+    _pc_findings.MESSAGE,
+)
+_CONTEXT_NO_IMPACT_TREATMENT = "context only; not included in return-impact estimates"
 
 
 def performance_comparison_markdown_report(
@@ -123,6 +141,7 @@ def performance_comparison_markdown_report(
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
         _impact_coverage_section(active_findings),
+        _context_evidence_section(active_findings),
         _transaction_cross_checks_section(active_findings),
         _flow_cross_check_reconciliation_section(active_findings),
         _residual_status_section(active_findings),
@@ -169,6 +188,7 @@ def performance_comparison_html_report(
         _html_review_notes_section(active_findings),
         _html_impact_estimate_summary_section(active_findings),
         _html_impact_coverage_section(active_findings),
+        _html_context_evidence_section(active_findings),
         _html_transaction_cross_checks_section(active_findings),
         _html_flow_cross_check_reconciliation_section(active_findings),
         _html_residual_status_section(active_findings),
@@ -377,6 +397,7 @@ def _report_bundle_tables(
         "impact_coverage": _pc_explain.portfolio_period_impact_coverage_summary(
             active_findings
         ),
+        "context_evidence": _context_evidence_table(active_findings),
         "transaction_cross_checks": (
             _pc_explain.portfolio_period_transaction_cross_checks(active_findings)
         ),
@@ -436,6 +457,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         "cause_summary": "cause-area summary with selected impact estimates",
         "impact_estimates": "currently quantified impact estimates",
         "impact_coverage": "period-level estimate coverage and missing inputs",
+        "context_evidence": "context-only evidence excluded from impact estimates",
         "transaction_cross_checks": "review-only transaction impact cross-checks",
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
         "residual_status": "residual caveat status by changed portfolio period",
@@ -875,6 +897,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
         "Review Notes",
         "Impact Estimate Summary",
         "Impact Coverage",
+        "Context Evidence",
         "Transaction Cross-Checks",
         "Flow Cross-Check Reconciliation",
         "Residual Status",
@@ -1294,6 +1317,104 @@ def _impact_coverage_section(findings: pl.DataFrame) -> str:
     )
 
 
+def _context_evidence_section(findings: pl.DataFrame) -> str:
+    """Return context-only evidence excluded from impact estimates."""
+    return "\n".join(
+        [
+            "## Context Evidence",
+            _markdown_table(
+                _context_evidence_table(findings),
+                _CONTEXT_EVIDENCE_COLUMNS,
+                empty_message="No context-only evidence.",
+            ),
+        ]
+    )
+
+
+def _context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return context evidence with explicit no-impact treatment."""
+    if findings.is_empty():
+        return _empty_context_evidence_table(findings)
+
+    context_findings = findings.filter(
+        pl.col(_pc_findings.EVIDENCE_ROLE) == _pc_findings.CONTEXT
+    )
+    if context_findings.is_empty():
+        return _empty_context_evidence_table(findings)
+
+    rows = [
+        {
+            **{
+                column: row.get(column)
+                for column in _CONTEXT_EVIDENCE_COLUMNS
+                if column in row
+            },
+            _CONTEXT_USE: _context_use(row),
+            _RETURN_IMPACT_TREATMENT: _CONTEXT_NO_IMPACT_TREATMENT,
+        }
+        for row in context_findings.iter_rows(named=True)
+    ]
+    return pl.DataFrame(rows).select(_CONTEXT_EVIDENCE_COLUMNS).sort(
+        [
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.SECURITY_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+            _pc_findings.DATASET,
+            _pc_findings.FINDING_CODE,
+            _pc_findings.SOURCE_COLUMN,
+        ],
+        nulls_last=True,
+    )
+
+
+def _empty_context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return an empty context-evidence table with stable columns."""
+    return pl.DataFrame(
+        schema={
+            _pc_findings.PORTFOLIO_ID: findings.schema.get(
+                _pc_findings.PORTFOLIO_ID,
+                pl.String,
+            ),
+            _pc_findings.SECURITY_ID: findings.schema.get(
+                _pc_findings.SECURITY_ID,
+                pl.String,
+            ),
+            _pc_findings.FROM_DATE: findings.schema.get(_pc_findings.FROM_DATE, pl.Date),
+            _pc_findings.THRU_DATE: findings.schema.get(_pc_findings.THRU_DATE, pl.Date),
+            _pc_findings.DATASET: findings.schema.get(_pc_findings.DATASET, pl.String),
+            _pc_findings.FINDING_CODE: findings.schema.get(
+                _pc_findings.FINDING_CODE,
+                pl.String,
+            ),
+            _pc_findings.SOURCE_COLUMN: findings.schema.get(
+                _pc_findings.SOURCE_COLUMN,
+                pl.String,
+            ),
+            _pc_findings.DELTA_B_MINUS_A: findings.schema.get(
+                _pc_findings.DELTA_B_MINUS_A,
+                pl.Float64,
+            ),
+            _CONTEXT_USE: pl.String,
+            _RETURN_IMPACT_TREATMENT: pl.String,
+            _pc_findings.MESSAGE: findings.schema.get(_pc_findings.MESSAGE, pl.String),
+        }
+    )
+
+
+def _context_use(finding: Mapping[str, object]) -> str:
+    """Return reviewer-facing use text for a context finding."""
+    dataset = finding.get(_pc_findings.DATASET)
+    source_column = finding.get(_pc_findings.SOURCE_COLUMN)
+    if dataset == pc_cols.POSITIONS and source_column == pc_cols.COST:
+        return "cost-basis review context; not a performance input"
+    if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.COMMISSION:
+        return "commission and fee review context; not modeled without explicit policy"
+    if dataset == pc_cols.SECURITY_MASTER:
+        return "security-reference review context"
+    return "review context"
+
+
 def _transaction_cross_checks_section(findings: pl.DataFrame) -> str:
     """Return transaction cross-check diagnostics by portfolio period."""
     return "\n".join(
@@ -1611,6 +1732,18 @@ def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
             _pc_explain.portfolio_period_impact_coverage_summary(findings),
             columns,
             empty_message="No portfolio return changes need impact coverage review.",
+        ),
+    )
+
+
+def _html_context_evidence_section(findings: pl.DataFrame) -> str:
+    """Return context-only evidence as an HTML section."""
+    return _html_section(
+        "Context Evidence",
+        _html_table(
+            _context_evidence_table(findings),
+            _CONTEXT_EVIDENCE_COLUMNS,
+            empty_message="No context-only evidence.",
         ),
     )
 

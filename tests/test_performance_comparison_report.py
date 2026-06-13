@@ -151,6 +151,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("portfolio_source_field", impact_summary)
         self.assertIn("0.00058425", impact_summary)
         self.assertIn("## Impact Coverage", report)
+        self.assertIn("## Context Evidence", report)
+        context_evidence = _section(
+            report,
+            "## Context Evidence",
+            "## Transaction Cross-Checks",
+        )
+        self.assertIn("PC-POS-COST", context_evidence)
+        self.assertIn("cost-basis review context", context_evidence)
+        self.assertIn("not included in return-impact estimates", context_evidence)
         self.assertIn("## Transaction Cross-Checks", report)
         impact_coverage = _section(
             report,
@@ -379,7 +388,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('id="needs-review-summary"', report)
         self.assertIn("Impact Coverage", report)
         self.assertIn("Residual Status", report)
+        self.assertIn("Context Evidence", report)
         self.assertIn("Transaction Activity", report)
+        self.assertIn('id="context-evidence"', report)
         self.assertIn('<p class="pc-table-meta">Rows: 1</p>', report)
         self.assertIn("pc-col-portfolio-return-delta", report)
         self.assertIn("pc-status-needs-review", report)
@@ -433,6 +444,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("_No portfolio return changes to narrate._", report)
         self.assertIn("_No portfolio-period review notes._", report)
         self.assertIn("_No impact estimates are currently available._", report)
+        self.assertIn("_No context-only evidence._", report)
         self.assertIn("_No portfolio return changes need residual review._", report)
         self.assertIn("_No changed transaction activity._", report)
         self.assertIn("_No portfolio return changes._", report)
@@ -448,6 +460,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("No portfolio return changes to narrate.", report)
         self.assertIn("No changed portfolio periods need review.", report)
         self.assertIn("No impact estimates are currently available.", report)
+        self.assertIn("No context-only evidence.", report)
         self.assertIn("No changed transaction activity.", report)
         self.assertIn("No cause summary available.", report)
 
@@ -525,6 +538,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("- Impact Estimate Summary", contents)
         self.assertIn("- Needs Review Summary", contents)
         self.assertIn("- Impact Coverage", contents)
+        self.assertIn("- Context Evidence", contents)
         self.assertIn("- Transaction Cross-Checks", contents)
         self.assertIn("- Flow Cross-Check Reconciliation", contents)
         self.assertIn("- Residual Status", contents)
@@ -558,6 +572,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Impact Coverage"),
+            report.index("## Context Evidence"),
+        )
+        self.assertLess(
+            report.index("## Context Evidence"),
             report.index("## Transaction Cross-Checks"),
         )
         self.assertLess(
@@ -646,6 +664,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("`report.html`: standalone browser report", readme)
             self.assertIn("`needs_review_summary.csv`: top triage table", readme)
+            self.assertIn("`context_evidence.csv`: context-only evidence", readme)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
@@ -660,8 +679,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 manifest["artifacts"]["needs_review_summary"],
                 "needs_review_summary.csv",
             )
+            self.assertEqual(
+                manifest["artifacts"]["context_evidence"],
+                "context_evidence.csv",
+            )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 4)
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
             self.assertEqual(needs_review.height, 1)
@@ -673,6 +697,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("estimated_cause_area_count", impact_coverage.columns)
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
+
+            context_evidence = pl.read_csv(paths["context_evidence"])
+            self.assertEqual(context_evidence.height, 4)
+            self.assertIn("context_use", context_evidence.columns)
+            self.assertIn("return_impact_treatment", context_evidence.columns)
+            self.assertIn("PC-POS-COST", context_evidence["code"].to_list())
+            self.assertEqual(
+                set(context_evidence["return_impact_treatment"]),
+                {"context only; not included in return-impact estimates"},
+            )
 
             transaction_matching = pl.read_csv(paths["transaction_matching_diagnostics"])
             self.assertEqual(transaction_matching.height, 1)
@@ -705,6 +739,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["counts"]["findings"], 0)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 0)
             self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 0)
             self.assertEqual(manifest["tables"]["transaction_cross_checks"]["rows"], 0)
             self.assertEqual(
                 manifest["tables"]["transaction_matching_diagnostics"]["rows"],
@@ -721,6 +756,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "portfolio_id,from_date,thru_date",
                 paths["impact_coverage"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "portfolio_id,security_id,from_date",
+                paths["context_evidence"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "portfolio_id,from_date,thru_date",
