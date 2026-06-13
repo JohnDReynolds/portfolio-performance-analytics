@@ -57,6 +57,10 @@ _SUGGESTED_NEXT_STEP = "suggested_next_step"
 _REVIEW_KEY = "review_key"
 _REVIEW_DETAIL_ARTIFACTS = "review_detail_artifacts"
 _PRIMARY_REVIEW_CUE = "primary_review_cue"
+_DASHBOARD_COVERAGE_COUNTS = "dashboard_coverage_counts"
+_DASHBOARD_MISSING_INPUTS = "dashboard_missing_inputs"
+_DASHBOARD_CONTEXT_CUE = "dashboard_context_cue"
+_DASHBOARD_REVIEW_PATH = "dashboard_review_path"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
@@ -2176,6 +2180,10 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
                 _REVIEW_STATUS: pl.String,
                 _PRIMARY_REVIEW_CUE: pl.String,
                 _SUGGESTED_NEXT_STEP: pl.String,
+                _DASHBOARD_COVERAGE_COUNTS: pl.String,
+                _DASHBOARD_MISSING_INPUTS: pl.String,
+                _DASHBOARD_CONTEXT_CUE: pl.String,
+                _DASHBOARD_REVIEW_PATH: pl.String,
                 _pc_explain.IMPACT_COVERAGE_STATUS: pl.String,
                 _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
             }
@@ -2210,6 +2218,10 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
             _REVIEW_STATUS,
             _PRIMARY_REVIEW_CUE,
             _SUGGESTED_NEXT_STEP,
+            _DASHBOARD_COVERAGE_COUNTS,
+            _DASHBOARD_MISSING_INPUTS,
+            _DASHBOARD_CONTEXT_CUE,
+            _DASHBOARD_REVIEW_PATH,
             _pc_explain.IMPACT_COVERAGE_STATUS,
             _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
         ]
@@ -2233,6 +2245,15 @@ def _review_dashboard_row(
         _REVIEW_STATUS: period.get(_REVIEW_STATUS),
         _PRIMARY_REVIEW_CUE: _primary_review_cue(period.get(_REVIEW_CUES)),
         _SUGGESTED_NEXT_STEP: period.get(_SUGGESTED_NEXT_STEP),
+        _DASHBOARD_COVERAGE_COUNTS: _dashboard_coverage_counts(coverage_row),
+        _DASHBOARD_MISSING_INPUTS: coverage_row.get(
+            _pc_explain.MISSING_IMPACT_INPUTS,
+            "",
+        ),
+        _DASHBOARD_CONTEXT_CUE: _dashboard_context_cue(period.get(_REVIEW_CUES)),
+        _DASHBOARD_REVIEW_PATH: _dashboard_review_path(
+            period.get(_REVIEW_DETAIL_ARTIFACTS)
+        ),
         _pc_explain.IMPACT_COVERAGE_STATUS: coverage_row.get(
             _pc_explain.IMPACT_COVERAGE_STATUS,
             "",
@@ -2251,6 +2272,62 @@ def _primary_review_cue(cues: object) -> str:
     if not _has_text(cues):
         return "No review cue."
     return str(cues).split(",", maxsplit=1)[0].strip()
+
+
+def _dashboard_coverage_counts(coverage_row: Mapping[str, object]) -> str:
+    """Return estimated versus evidence-only coverage text for a dashboard card."""
+    estimated = _count_value(coverage_row.get(_pc_explain.ESTIMATED_CAUSE_AREA_COUNT))
+    evidence_only = _count_value(
+        coverage_row.get(_pc_explain.EVIDENCE_ONLY_CAUSE_AREA_COUNT)
+    )
+    if estimated == 0 and evidence_only == 0:
+        return ""
+    return f"{estimated} estimated / {evidence_only} evidence-only"
+
+
+def _dashboard_context_cue(cues: object) -> str:
+    """Return high-priority context cue text when present."""
+    cue = _cue_with_prefix(cues, "high-priority context:")
+    if not cue:
+        return ""
+    return cue.removeprefix("high-priority context:").strip()
+
+
+def _dashboard_review_path(artifacts: object) -> str:
+    """Return compact dashboard review-path text from detail artifacts."""
+    if not _has_text(artifacts):
+        return ""
+    artifact_names = [
+        artifact.strip()
+        for artifact in str(artifacts).split(",")
+        if artifact.strip()
+    ]
+    if not artifact_names:
+        return ""
+    preferred_order = [
+        "impact_coverage.csv",
+        "context_evidence.csv",
+        "transaction_activity.csv",
+        "residual_status.csv",
+        "findings.csv",
+    ]
+    selected = [
+        artifact
+        for artifact in preferred_order
+        if artifact in artifact_names
+    ]
+    return " -> ".join(selected or artifact_names[:3])
+
+
+def _cue_with_prefix(cues: object, prefix: str) -> str:
+    """Return the first comma-separated cue with a specific prefix."""
+    if not _has_text(cues):
+        return ""
+    for cue in str(cues).split(","):
+        cleaned_cue = cue.strip()
+        if cleaned_cue.startswith(prefix):
+            return cleaned_cue
+    return ""
 
 
 def _review_status_rank(status: object) -> int:
@@ -2294,11 +2371,25 @@ def _html_dashboard_card(row: Mapping[str, object]) -> str:
                 "Coverage",
                 row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
             ),
+            _html_dashboard_fact(
+                "Cause Areas",
+                row.get(_DASHBOARD_COVERAGE_COUNTS),
+            ),
+            _html_dashboard_fact(
+                "Missing Inputs",
+                row.get(_DASHBOARD_MISSING_INPUTS),
+            ),
+            _html_dashboard_fact(
+                "Context",
+                row.get(_DASHBOARD_CONTEXT_CUE),
+            ),
             "</dl>",
             f'<p class="pc-dashboard-cue">{_escape_html(row.get(_PRIMARY_REVIEW_CUE))}</p>',
             f'<p class="pc-dashboard-next">{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}</p>',
             f'<p class="pc-dashboard-note">'
             f"{_escape_html(row.get(_pc_explain.IMPACT_COVERAGE_REVIEW_NOTE))}</p>",
+            f'<p class="pc-dashboard-path">'
+            f"Review path: {_escape_html(row.get(_DASHBOARD_REVIEW_PATH))}</p>",
             _html_dashboard_links(row),
             "</article>",
         ]
@@ -3192,8 +3283,12 @@ body {
   font-weight: 700;
 }
 .pc-dashboard-next,
-.pc-dashboard-note {
+.pc-dashboard-note,
+.pc-dashboard-path {
   color: var(--pc-muted);
+}
+.pc-dashboard-path {
+  font-size: 12px;
 }
 .pc-dashboard-links {
   display: flex;

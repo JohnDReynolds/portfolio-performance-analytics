@@ -424,6 +424,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("PORT_A", dashboard)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
         self.assertIn("4 evidence-only area(s)", dashboard)
+        self.assertIn("2 estimated / 4 evidence-only", dashboard)
+        self.assertIn("return-impact method", dashboard)
+        self.assertIn("positions/cost", dashboard)
+        self.assertIn("Review path:", dashboard)
+        self.assertIn("impact_coverage.csv", dashboard)
+        self.assertIn("context_evidence.csv", dashboard)
         self.assertIn("Resolve missing impact inputs", dashboard)
         self.assertIn(
             'href="#impact-coverage--port-a--2025-05-30--2025-05-30"',
