@@ -471,6 +471,16 @@ def _write_report_bundle_readme(
         "- `manifest.json`: machine-readable artifact and row-count metadata.",
         "- `findings.csv`: complete finding-level comparison output.",
         "",
+        "## Recommended Review Order",
+        "",
+        "1. Open `report.html` and start with the Reviewer Triage and Needs Review sections.",
+        "2. Use `needs_review_summary.csv` to identify changed periods, suggested next "
+        "steps, and high-priority context cues.",
+        "3. Use `context_evidence_summary.csv` to review grouped context priority, then "
+        "open `context_evidence.csv` for row-level support.",
+        "4. Treat high-priority context as review guidance only; it is not included in "
+        "return-impact estimates.",
+        "",
         "## Review Tables",
         "",
         *_report_bundle_readme_table_lines(tables),
@@ -483,14 +493,19 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
     """Return README bullets for report-bundle table artifacts."""
     descriptions = {
         "needs_review_summary": (
-            "top triage table for changed portfolio periods and suggested next steps"
+            "top triage table for changed periods, suggested next steps, and "
+            "high-priority context cues"
         ),
         "portfolio_period_summary": "portfolio-period return-change summary",
         "cause_summary": "cause-area summary with selected impact estimates",
         "impact_estimates": "currently quantified impact estimates",
         "impact_coverage": "period-level estimate coverage and missing inputs",
-        "context_evidence_summary": "context-only evidence counts by source field",
-        "context_evidence": "context-only evidence excluded from impact estimates",
+        "context_evidence_summary": (
+            "context-only evidence counts, reviewer priority, and affected identifiers"
+        ),
+        "context_evidence": (
+            "row-level context evidence excluded from return-impact estimates"
+        ),
         "transaction_cross_checks": "review-only transaction impact cross-checks",
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
         "residual_status": "residual caveat status by changed portfolio period",

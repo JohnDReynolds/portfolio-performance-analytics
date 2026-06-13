@@ -705,12 +705,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("`report.html`: standalone browser report", readme)
-            self.assertIn("`needs_review_summary.csv`: top triage table", readme)
+            self.assertIn("## Recommended Review Order", readme)
+            self.assertIn("high-priority context cues", readme)
+            self.assertIn("review guidance only", readme)
             self.assertIn(
-                "`context_evidence_summary.csv`: context-only evidence counts",
+                "`needs_review_summary.csv`: top triage table for changed periods",
                 readme,
             )
-            self.assertIn("`context_evidence.csv`: context-only evidence", readme)
+            self.assertIn(
+                "`context_evidence_summary.csv`: context-only evidence counts, "
+                "reviewer priority",
+                readme,
+            )
+            self.assertIn("`context_evidence.csv`: row-level context evidence", readme)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
