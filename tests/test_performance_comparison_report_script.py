@@ -339,6 +339,11 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("Config validation passed:", result.stdout)
         self.assertIn("Configured datasets:", result.stdout)
         self.assertIn("Missing optional files: none", result.stdout)
+        self.assertIn(
+            "Contribution impact methods: portfolio_source_field, "
+            "security_contribution, security_return",
+            result.stdout,
+        )
         self.assertIn("Transaction rules configured: 0", result.stdout)
         self.assertIn("Transaction impact methods: none", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)

@@ -186,6 +186,21 @@ Impact methods are also explicit. Omitted methods leave transaction activity as
 review evidence and produce missing-input diagnostics rather than estimates.
 
 ```yaml
+contribution_impact_methods:
+  portfolio_source_field:
+    method: source_field_delta_over_begin_market_value
+    denominator_source: begin_market_value
+    source_fields:
+      - income
+      - gain_loss
+  security_contribution:
+    method: vendor_contribution_delta
+  security_return:
+    method: security_return_delta_times_weight
+    weight_source: snapshot_a_weight
+```
+
+```yaml
 transaction_impact_methods:
   external_flow:
     method: evidence_only

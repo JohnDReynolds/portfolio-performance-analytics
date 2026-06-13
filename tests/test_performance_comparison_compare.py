@@ -1471,6 +1471,93 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn(expected_message, str(context.exception))
 
+    def test_contribution_impact_methods_reject_malformed_yaml(self) -> None:
+        """Contribution impact method YAML must use the supported contract."""
+        scenarios = [
+            ("not-a-mapping", "contribution_impact_methods must be a mapping"),
+            ({"unsupported": {"method": "x"}}, "unsupported"),
+            (
+                {"portfolio_source_field": "estimate"},
+                "portfolio_source_field must be a mapping",
+            ),
+            (
+                {
+                    "portfolio_source_field": {
+                        "method": "source_field_delta_over_begin_market_value",
+                        "denominator_source": "begin_market_value",
+                    }
+                },
+                "portfolio_source_field is missing required keys",
+            ),
+            (
+                {
+                    "portfolio_source_field": {
+                        "method": "unsupported",
+                        "denominator_source": "begin_market_value",
+                        "source_fields": ["income"],
+                    }
+                },
+                "portfolio_source_field.method must be",
+            ),
+            (
+                {
+                    "portfolio_source_field": {
+                        "method": "source_field_delta_over_begin_market_value",
+                        "denominator_source": "ending_market_value",
+                        "source_fields": ["income"],
+                    }
+                },
+                "portfolio_source_field.denominator_source must be one of",
+            ),
+            (
+                {
+                    "portfolio_source_field": {
+                        "method": "source_field_delta_over_begin_market_value",
+                        "denominator_source": "begin_market_value",
+                        "source_fields": ["end_market_value"],
+                    }
+                },
+                "contains unsupported fields",
+            ),
+            (
+                {"security_contribution": {"method": "unsupported"}},
+                "security_contribution.method must be",
+            ),
+            (
+                {
+                    "security_return": {
+                        "method": "security_return_delta_times_weight",
+                        "weight_source": "ending_weight",
+                    }
+                },
+                "security_return.weight_source must be one of",
+            ),
+        ]
+
+        for contribution_impact_methods, expected_message in scenarios:
+            with self.subTest(contribution_impact_methods=contribution_impact_methods):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    specification_path = _write_transaction_period_specification(
+                        Path(temp_dir)
+                    )
+                    configuration = yaml.safe_load(
+                        specification_path.read_text(encoding="utf-8")
+                    )
+                    configuration["contribution_impact_methods"] = (
+                        contribution_impact_methods
+                    )
+                    specification_path.write_text(
+                        yaml.safe_dump(configuration),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaises(PpaError) as context:
+                        PerformanceComparison(
+                            PerformanceComparisonSpecification(specification_path)
+                        )
+
+                    self.assertIn(expected_message, str(context.exception))
+
     def test_transaction_outside_period_does_not_get_denominator(self) -> None:
         """Out-of-period transaction rows do not inherit a return denominator."""
         with tempfile.TemporaryDirectory() as temp_dir:

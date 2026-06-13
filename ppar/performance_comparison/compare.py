@@ -19,6 +19,9 @@ from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     CONTEXT,
     DIRECT_INPUT,
+    IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
+    IMPACT_POLICY_SECURITY_CONTRIBUTION,
+    IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
     RELATED_OUTPUT,
     TARGET_OUTPUT,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
@@ -173,10 +176,23 @@ _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
     }
 )
 _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
+_CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
+_PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
+_SECURITY_CONTRIBUTION_KEY: Final[str] = "security_contribution"
+_SECURITY_RETURN_KEY: Final[str] = "security_return"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
 _PERFORMANCE_KEY: Final[str] = "performance"
 _METHOD_KEY: Final[str] = "method"
+_SOURCE_FIELDS_KEY: Final[str] = "source_fields"
+_WEIGHT_SOURCE_KEY: Final[str] = "weight_source"
 _EVIDENCE_ONLY_METHOD: Final[str] = "evidence_only"
+_VENDOR_CONTRIBUTION_DELTA_METHOD: Final[str] = "vendor_contribution_delta"
+_SECURITY_RETURN_DELTA_TIMES_WEIGHT_METHOD: Final[str] = (
+    "security_return_delta_times_weight"
+)
+_SOURCE_FIELD_DELTA_OVER_BEGIN_MV_METHOD: Final[str] = (
+    "source_field_delta_over_begin_market_value"
+)
 _MODIFIED_DIETZ_METHOD: Final[str] = "modified_dietz"
 _TRANSACTION_AMOUNT_DELTA_METHOD: Final[str] = (
     "transaction_amount_delta_over_return_denominator"
@@ -219,6 +235,34 @@ _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
 _PERFORMANCE_AMOUNT_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
+_PORTFOLIO_SOURCE_FIELD_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
+        _SOURCE_FIELDS_KEY,
+    }
+)
+_SECURITY_CONTRIBUTION_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {_METHOD_KEY}
+)
+_SECURITY_RETURN_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _WEIGHT_SOURCE_KEY,
+    }
+)
+_PORTFOLIO_SOURCE_FIELD_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+}
+_SECURITY_RETURN_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _WEIGHT_SOURCE_KEY: frozenset({"snapshot_a_weight"}),
+}
+_PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS: Final[frozenset[str]] = frozenset(
+    {
+        pc_cols.INCOME,
+        pc_cols.GAIN_LOSS,
+    }
+)
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "return": 1e-6,
     "contribution": 1e-6,
@@ -303,6 +347,8 @@ class PerformanceComparison:
         _transactions_loader: Loader for normalized transaction rows.
         _transaction_impact_policies: YAML-configured transaction impact
             policies keyed by performance-flow treatment.
+        _contribution_impact_policies: YAML-configured contribution impact
+            policy labels keyed by dataset and source column.
     """
 
     def __init__(self, specification: PerformanceComparisonSpecification) -> None:
@@ -321,6 +367,9 @@ class PerformanceComparison:
         self._fx_rates_loader = FxRatesLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
         self._transaction_impact_policies = _transaction_impact_policies(
+            specification
+        )
+        self._contribution_impact_policies = _contribution_impact_policies(
             specification
         )
 
@@ -834,6 +883,10 @@ class PerformanceComparison:
                                 self._transaction_semantics_source(row, dataset)
                             ),
                             transaction_match_status=transaction_match_status,
+                            impact_policy=self._contribution_impact_policy(
+                                dataset,
+                                column,
+                            ),
                             transaction_impact_policy=(
                                 self._transaction_impact_policy(row, dataset)
                             ),
@@ -1281,6 +1334,14 @@ class PerformanceComparison:
             return None
         return comparison_file.relative_path.as_posix()
 
+    def _contribution_impact_policy(
+        self,
+        dataset: str,
+        source_column: str,
+    ) -> str | None:
+        """Return the YAML-selected contribution-impact policy for a field."""
+        return self._contribution_impact_policies.get((dataset, source_column))
+
 
 def _transaction_impact_policies(
     specification: PerformanceComparisonSpecification,
@@ -1354,6 +1415,309 @@ def _transaction_impact_policies(
             performance_value,
         )
     return policies
+
+
+def _contribution_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[tuple[str, str], str]:
+    """Return validated YAML-selected contribution impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by ``(dataset, source_column)``. Missing
+        configuration returns an empty mapping, which leaves candidate rows as
+        evidence-only.
+
+    Raises:
+        PpaError: If contribution impact method configuration is malformed or
+            names an unsupported method.
+    """
+    methods_value = specification.values.get(_CONTRIBUTION_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_CONTRIBUTION_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    supported_keys = {
+        _PORTFOLIO_SOURCE_FIELD_KEY,
+        _SECURITY_CONTRIBUTION_KEY,
+        _SECURITY_RETURN_KEY,
+    }
+    unsupported_keys = set(methods_value) - supported_keys
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_CONTRIBUTION_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[tuple[str, str], str] = {}
+    portfolio_source_field_value = methods_value.get(_PORTFOLIO_SOURCE_FIELD_KEY)
+    if portfolio_source_field_value is not None:
+        policies.update(
+            _validated_portfolio_source_field_policy(
+                specification,
+                portfolio_source_field_value,
+            )
+        )
+
+    security_contribution_value = methods_value.get(_SECURITY_CONTRIBUTION_KEY)
+    if security_contribution_value is not None:
+        policies.update(
+            _validated_security_contribution_policy(
+                specification,
+                security_contribution_value,
+            )
+        )
+
+    security_return_value = methods_value.get(_SECURITY_RETURN_KEY)
+    if security_return_value is not None:
+        policies.update(
+            _validated_security_return_policy(
+                specification,
+                security_return_value,
+            )
+        )
+    return policies
+
+
+def _validated_portfolio_source_field_policy(
+    specification: PerformanceComparisonSpecification,
+    policy_value: object,
+) -> dict[tuple[str, str], str]:
+    """Validate portfolio source-field contribution policy configuration."""
+    policy = _require_policy_mapping(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _PORTFOLIO_SOURCE_FIELD_KEY,
+        policy_value,
+    )
+    _validate_policy_keys(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _PORTFOLIO_SOURCE_FIELD_KEY,
+        policy,
+        _PORTFOLIO_SOURCE_FIELD_REQUIRED_KEYS,
+    )
+    _validate_policy_method(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _PORTFOLIO_SOURCE_FIELD_KEY,
+        policy,
+        _SOURCE_FIELD_DELTA_OVER_BEGIN_MV_METHOD,
+    )
+    _validate_allowed_policy_values(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _PORTFOLIO_SOURCE_FIELD_KEY,
+        policy,
+        _PORTFOLIO_SOURCE_FIELD_ALLOWED_VALUES,
+    )
+    source_fields = policy[_SOURCE_FIELDS_KEY]
+    if not isinstance(source_fields, list) or not source_fields:
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_CONTRIBUTION_IMPACT_METHODS_KEY}.{_PORTFOLIO_SOURCE_FIELD_KEY}."
+                f"{_SOURCE_FIELDS_KEY} must be a non-empty list."
+            ),
+            504,
+        )
+    if any(not isinstance(field, str) for field in source_fields):
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_CONTRIBUTION_IMPACT_METHODS_KEY}.{_PORTFOLIO_SOURCE_FIELD_KEY}."
+                f"{_SOURCE_FIELDS_KEY} values must be strings."
+            ),
+            504,
+        )
+    unsupported_fields = set(source_fields) - _PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS
+    if unsupported_fields:
+        unsupported = ", ".join(sorted(str(field) for field in unsupported_fields))
+        allowed = ", ".join(sorted(_PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS))
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_CONTRIBUTION_IMPACT_METHODS_KEY}.{_PORTFOLIO_SOURCE_FIELD_KEY}."
+                f"{_SOURCE_FIELDS_KEY} contains unsupported fields: {unsupported}. "
+                f"Allowed fields: {allowed}."
+            ),
+            504,
+        )
+    return {
+        (pc_cols.PORTFOLIO_PERFORMANCE, str(field)): IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD
+        for field in source_fields
+    }
+
+
+def _validated_security_contribution_policy(
+    specification: PerformanceComparisonSpecification,
+    policy_value: object,
+) -> dict[tuple[str, str], str]:
+    """Validate vendor contribution-delta policy configuration."""
+    policy = _require_policy_mapping(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_CONTRIBUTION_KEY,
+        policy_value,
+    )
+    _validate_policy_keys(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_CONTRIBUTION_KEY,
+        policy,
+        _SECURITY_CONTRIBUTION_REQUIRED_KEYS,
+    )
+    _validate_policy_method(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_CONTRIBUTION_KEY,
+        policy,
+        _VENDOR_CONTRIBUTION_DELTA_METHOD,
+    )
+    return {
+        (pc_cols.SECURITY_PERFORMANCE, pc_cols.CONTRIBUTION): (
+            IMPACT_POLICY_SECURITY_CONTRIBUTION
+        )
+    }
+
+
+def _validated_security_return_policy(
+    specification: PerformanceComparisonSpecification,
+    policy_value: object,
+) -> dict[tuple[str, str], str]:
+    """Validate weighted security-return policy configuration."""
+    policy = _require_policy_mapping(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_RETURN_KEY,
+        policy_value,
+    )
+    _validate_policy_keys(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_RETURN_KEY,
+        policy,
+        _SECURITY_RETURN_REQUIRED_KEYS,
+    )
+    _validate_policy_method(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_RETURN_KEY,
+        policy,
+        _SECURITY_RETURN_DELTA_TIMES_WEIGHT_METHOD,
+    )
+    _validate_allowed_policy_values(
+        specification,
+        _CONTRIBUTION_IMPACT_METHODS_KEY,
+        _SECURITY_RETURN_KEY,
+        policy,
+        _SECURITY_RETURN_ALLOWED_VALUES,
+    )
+    return {
+        (pc_cols.SECURITY_PERFORMANCE, pc_cols.SECURITY_RETURN): (
+            IMPACT_POLICY_SECURITY_RETURN_WEIGHTED
+        )
+    }
+
+
+def _require_policy_mapping(
+    specification: PerformanceComparisonSpecification,
+    root_key: str,
+    policy_key: str,
+    policy_value: object,
+) -> Mapping[str, object]:
+    """Return a YAML policy mapping or raise a contract error."""
+    if isinstance(policy_value, dict):
+        return policy_value
+    raise PpaError(
+        (
+            f"{specification.path}: {root_key}.{policy_key} "
+            "must be a mapping."
+        ),
+        504,
+    )
+
+
+def _validate_policy_keys(
+    specification: PerformanceComparisonSpecification,
+    root_key: str,
+    policy_key: str,
+    policy: Mapping[str, object],
+    required_keys: frozenset[str],
+) -> None:
+    """Validate one explicit policy has exactly the supported keys."""
+    unsupported_keys = set(policy) - required_keys
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: {root_key}.{policy_key} "
+                f"has unsupported keys: {unsupported}."
+            ),
+            504,
+        )
+    missing_keys = required_keys - set(policy)
+    if missing_keys:
+        missing = ", ".join(sorted(str(key) for key in missing_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: {root_key}.{policy_key} "
+                f"is missing required keys: {missing}."
+            ),
+            504,
+        )
+
+
+def _validate_policy_method(
+    specification: PerformanceComparisonSpecification,
+    root_key: str,
+    policy_key: str,
+    policy: Mapping[str, object],
+    expected_method: str,
+) -> None:
+    """Validate one explicit policy selects the only supported method."""
+    if policy.get(_METHOD_KEY) != expected_method:
+        raise PpaError(
+            (
+                f"{specification.path}: {root_key}.{policy_key}."
+                f"{_METHOD_KEY} must be {expected_method!r}."
+            ),
+            504,
+        )
+
+
+def _validate_allowed_policy_values(
+    specification: PerformanceComparisonSpecification,
+    root_key: str,
+    policy_key: str,
+    policy: Mapping[str, object],
+    allowed_values_by_key: Mapping[str, frozenset[str]],
+) -> None:
+    """Validate one explicit policy's constrained option values."""
+    for key, allowed_values in allowed_values_by_key.items():
+        value = policy.get(key)
+        if value not in allowed_values:
+            allowed = ", ".join(sorted(allowed_values))
+            raise PpaError(
+                (
+                    f"{specification.path}: {root_key}.{policy_key}."
+                    f"{key} must be one of: {allowed}."
+                ),
+                504,
+            )
 
 
 def _validated_external_flow_policy(

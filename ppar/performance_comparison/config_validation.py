@@ -49,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Snapshot B: {summary['snapshot_b']}")
     print(f"Configured datasets: {summary['dataset_names']}")
     print(f"Missing optional files: {summary['missing_optional_files']}")
+    print(f"Contribution impact methods: {summary['contribution_impact_methods']}")
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
     print(f"Transaction files checked: {summary['transaction_files_checked']}")
@@ -79,6 +80,7 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "snapshot_b": specification.snapshot_b.path,
         "dataset_names": dataset_names,
         "missing_optional_files": _missing_optional_files(specification),
+        "contribution_impact_methods": _contribution_impact_methods(specification),
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
         "transaction_files_checked": transaction_preview["files_checked"],
@@ -140,6 +142,16 @@ def _transaction_impact_methods(
 ) -> str:
     """Return configured transaction impact method keys."""
     methods_value = specification.values.get("transaction_impact_methods", {})
+    if not isinstance(methods_value, dict) or not methods_value:
+        return "none"
+    return ", ".join(sorted(str(key) for key in methods_value))
+
+
+def _contribution_impact_methods(
+    specification: PerformanceComparisonSpecification,
+) -> str:
+    """Return configured contribution impact method keys."""
+    methods_value = specification.values.get("contribution_impact_methods", {})
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))

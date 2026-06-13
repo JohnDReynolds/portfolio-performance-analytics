@@ -48,6 +48,7 @@ from ppar.performance_comparison.explain import (
     FINDING_COUNT,
     FX_RATE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
+    IMPACT_POLICY,
     IMPACT_BASIS,
     IMPACT_BASIS_NO_ESTIMATE,
     IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
@@ -417,6 +418,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertEqual(candidates.height, 16)
         self.assertAlmostEqual(contribution[ESTIMATED_RETURN_IMPACT], 0.00058425)
+        self.assertEqual(
+            contribution[IMPACT_POLICY],
+            "security_contribution:vendor_contribution_delta",
+        )
         self.assertEqual(contribution[IMPACT_BASIS], IMPACT_BASIS_SECURITY_CONTRIBUTION)
         self.assertEqual(contribution[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_MEDIUM)
         self.assertEqual(
@@ -441,6 +446,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             500.0 / 999915.0,
         )
         self.assertEqual(source_field[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
+        self.assertEqual(
+            source_field[IMPACT_POLICY],
+            "portfolio_source_field:source_field_delta_over_begin_market_value",
+        )
         self.assertIn("beginning market value", source_field[IMPACT_MESSAGE])
 
     def test_portfolio_period_contribution_candidates_estimates_security_return(
@@ -459,8 +468,40 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             security_return[ESTIMATED_RETURN_IMPACT],
             0.01 * 0.05319463,
         )
+        self.assertEqual(
+            security_return[IMPACT_POLICY],
+            "security_return:security_return_delta_times_weight",
+        )
         self.assertEqual(security_return[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIn("portfolio weight", security_return[IMPACT_MESSAGE])
+
+    def test_contribution_candidates_require_explicit_yaml_policy(self) -> None:
+        """Portfolio and security contribution estimates require YAML policy."""
+        findings = self._restatement().with_columns(
+            pl.when(pl.col(DATASET) != pc_cols.TRANSACTIONS)
+            .then(pl.lit(None))
+            .otherwise(pl.col(IMPACT_POLICY))
+            .alias(IMPACT_POLICY)
+        )
+
+        candidates = portfolio_period_contribution_candidates(findings)
+        gated_rows = candidates.filter(
+            pl.col(FINDING_CODE).is_in([PC_SEC_CONTR, PC_SEC_RET])
+            | (
+                (pl.col(DATASET) == pc_cols.PORTFOLIO_PERFORMANCE)
+                & pl.col(SOURCE_COLUMN).is_in([pc_cols.INCOME, pc_cols.GAIN_LOSS])
+            )
+        )
+
+        self.assertGreater(gated_rows.height, 0)
+        self.assertTrue(
+            gated_rows.get_column(ESTIMATED_RETURN_IMPACT).null_count()
+            == gated_rows.height
+        )
+        self.assertEqual(
+            set(gated_rows.get_column(IMPACT_BASIS).to_list()),
+            {IMPACT_BASIS_NO_ESTIMATE},
+        )
 
     def test_portfolio_period_contribution_candidates_keeps_no_estimate_rows(
         self,

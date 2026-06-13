@@ -1154,9 +1154,9 @@ The existing `rank_portfolio_period_evidence()` helper is a review-priority
 sort. It helps decide which findings to inspect first, but it is not a
 contribution model and should not be labeled as explaining a portion of return.
 
-A future contribution-ranking layer should be optional, conservative, and
-explicit about its basis. The output should be allowed to say "no estimate"
-when a finding lacks the denominator, linkage, or methodology needed for a
+The contribution-ranking layer is optional, conservative, and explicit about
+its basis. The output should be allowed to say "no estimate" when a finding
+lacks the denominator, linkage, or YAML-selected methodology needed for a
 defensible return-impact estimate.
 
 Implemented contribution-candidate fields:
@@ -1170,9 +1170,25 @@ Implemented contribution-candidate fields:
   estimate was produced.
 
 The contribution-candidate implementation preserves all ranked evidence rows
-and populates stable impact columns. It estimates only where the current
-evidence carries enough denominator, weight, or vendor output context to state
-the method clearly.
+and populates stable impact columns. It estimates only where the YAML explicitly
+selects a supported `contribution_impact_methods` or
+`transaction_impact_methods` policy and the current evidence carries enough
+denominator, weight, or vendor output context to state the method clearly.
+
+```yaml
+contribution_impact_methods:
+  portfolio_source_field:
+    method: source_field_delta_over_begin_market_value
+    denominator_source: begin_market_value
+    source_fields:
+      - income
+      - gain_loss
+  security_contribution:
+    method: vendor_contribution_delta
+  security_return:
+    method: security_return_delta_times_weight
+    weight_source: snapshot_a_weight
+```
 
 Current supported impact estimates:
 
@@ -1180,6 +1196,9 @@ Current supported impact estimates:
    - `impact_basis = security_contribution`
    - `impact_method = vendor_contribution_delta`
    - `impact_confidence = medium`
+   - Applies only when YAML explicitly configures
+     `contribution_impact_methods.security_contribution.method` as
+     `vendor_contribution_delta`.
    - Uses the vendor-provided contribution delta as a related-output impact
      estimate. This is preferred for the `security_return_or_contribution`
      cause-area aggregate when available.
@@ -1187,6 +1206,10 @@ Current supported impact estimates:
    - `impact_basis = security_return_weighted`
    - `impact_method = security_return_delta_times_weight`
    - `impact_confidence = low`
+   - Applies only when YAML explicitly configures
+     `contribution_impact_methods.security_return.method` as
+     `security_return_delta_times_weight` and `weight_source` as
+     `snapshot_a_weight`.
    - Formula: `security_return_delta * snapshot_a_weight`.
    - Used as a candidate-level review cross-check or fallback. It is not summed
      with vendor contribution in the same security cause bucket because that
@@ -1195,6 +1218,10 @@ Current supported impact estimates:
    - `impact_basis = portfolio_source_field`
    - `impact_method = source_field_delta_over_begin_market_value`
    - `impact_confidence = low`
+   - Applies only when YAML explicitly configures
+     `contribution_impact_methods.portfolio_source_field.method` as
+     `source_field_delta_over_begin_market_value`, `denominator_source` as
+     `begin_market_value`, and the source field in `source_fields`.
    - Formula: `source_field_delta / beginning_market_value`.
    - Currently applies only to return-bearing portfolio source fields such as
      `income` and `gain_loss`. It does not apply to control/output fields such
@@ -1442,8 +1469,8 @@ transaction quantity, price, and commission.
    id changes?
 4. Should row-level tolerances stay simple, or should more finding types support
    relative/materiality-aware tolerances?
-5. What is the simplest defensible contribution-ranking model for
-   portfolio-period deltas?
+5. Which contribution-ranking methods, if any, should be added next after the
+   initial YAML-gated portfolio/security/transaction methods?
 6. When contribution ranking exists, when should an unexplained residual be
    emitted?
 7. How much of the existing `ppar.axys` inference code should be shared with
@@ -1455,13 +1482,13 @@ transaction quantity, price, and commission.
 
 Treat the current comparison engine, evidence layer, and report bundle as the
 baseline. The next useful work should stay narrow and auditable: strengthen one
-evidence bridge at a time, especially contribution-ranking and residual
-explanation, while keeping all source-specific rules explicit in YAML and
+evidence bridge at a time, especially residual explanation and supporting-file
+comparisons, while keeping all source-specific rules explicit in YAML and
 avoiding hidden vendor assumptions.
 
 Good next candidates are:
 
-- Add carefully documented contribution-ranking estimates only where the YAML
-  provides the required sign, flow, and timing rules.
+- Refine residual review status now that the first YAML-gated contribution
+  estimates are explicit.
 - Expand supporting-file comparisons for already-normalized columns before
   adding new datasets.

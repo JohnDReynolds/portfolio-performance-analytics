@@ -20,6 +20,10 @@ from ppar.performance_comparison.findings import (
     EVIDENCE_ROLE,
     FINDING_CODE,
     FROM_DATE,
+    IMPACT_POLICY,
+    IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
+    IMPACT_POLICY_SECURITY_CONTRIBUTION,
+    IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
     MESSAGE,
     PC_PORT_RET,
     PC_SEC_RET,
@@ -217,6 +221,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
     TRANSACTION_SEMANTICS_SOURCE,
+    IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
@@ -1265,6 +1270,7 @@ def _ranked_evidence_row(
         CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
         PERFORMANCE_FLOW_SIGN: finding[PERFORMANCE_FLOW_SIGN],
         TRANSACTION_SEMANTICS_SOURCE: finding[TRANSACTION_SEMANTICS_SOURCE],
+        IMPACT_POLICY: finding[IMPACT_POLICY],
         TRANSACTION_IMPACT_POLICY: finding[TRANSACTION_IMPACT_POLICY],
         TRANSACTION_IMPACT_DIAGNOSTIC: finding[TRANSACTION_IMPACT_DIAGNOSTIC],
         TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (
@@ -1297,6 +1303,7 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
     if (
         row[DATASET] == pc_cols.SECURITY_PERFORMANCE
         and row[SOURCE_COLUMN] == pc_cols.CONTRIBUTION
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_SECURITY_CONTRIBUTION
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
     ):
@@ -1373,6 +1380,7 @@ def _is_portfolio_source_field_impact_candidate(row: dict[str, object]) -> bool:
     return (
         row[DATASET] == pc_cols.PORTFOLIO_PERFORMANCE
         and row[SOURCE_COLUMN] in {pc_cols.INCOME, pc_cols.GAIN_LOSS}
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
         and isinstance(denominator, (int, float))
@@ -1388,6 +1396,7 @@ def _is_security_return_weighted_impact_candidate(row: dict[str, object]) -> boo
     return (
         row[DATASET] == pc_cols.SECURITY_PERFORMANCE
         and row[SOURCE_COLUMN] == pc_cols.SECURITY_RETURN
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_SECURITY_RETURN_WEIGHTED
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
         and isinstance(weight, (int, float))
@@ -2520,6 +2529,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             CASH_FLOW_SIGN: pl.String,
             PERFORMANCE_FLOW_SIGN: pl.String,
             TRANSACTION_SEMANTICS_SOURCE: pl.String,
+            IMPACT_POLICY: pl.String,
             TRANSACTION_IMPACT_POLICY: pl.String,
             TRANSACTION_IMPACT_DIAGNOSTIC: pl.String,
             TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: pl.Float64,

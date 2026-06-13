@@ -39,6 +39,10 @@ __all__ = [
     "TRANSACTION_MATCH_STATUS_ID_MATCH",
     "TRANSACTION_MATCH_STATUS_ID_UNMATCHED",
     "TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED",
+    "IMPACT_POLICY",
+    "IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD",
+    "IMPACT_POLICY_SECURITY_CONTRIBUTION",
+    "IMPACT_POLICY_SECURITY_RETURN_WEIGHTED",
     "TRANSACTION_IMPACT_POLICY",
     "TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY",
     "TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA",
@@ -102,6 +106,16 @@ CASH_FLOW_SIGN = "cash_flow_sign"
 PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
 TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 TRANSACTION_MATCH_STATUS = "transaction_match_status"
+IMPACT_POLICY = "impact_policy"
+IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD = (
+    "portfolio_source_field:source_field_delta_over_begin_market_value"
+)
+IMPACT_POLICY_SECURITY_CONTRIBUTION = (
+    "security_contribution:vendor_contribution_delta"
+)
+IMPACT_POLICY_SECURITY_RETURN_WEIGHTED = (
+    "security_return:security_return_delta_times_weight"
+)
 TRANSACTION_IMPACT_POLICY = "transaction_impact_policy"
 TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = "external_flow:evidence_only"
 TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA = (
@@ -166,6 +180,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     PERFORMANCE_FLOW_SIGN,
     TRANSACTION_SEMANTICS_SOURCE,
     TRANSACTION_MATCH_STATUS,
+    IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
@@ -206,6 +221,8 @@ class Finding:
             transaction category/sign/flow semantics.
         transaction_match_status: Optional diagnostic label describing how a
             transaction finding was matched or why it remains unmatched.
+        impact_policy: Optional YAML-configured policy controlling
+            non-transaction contribution-ranking estimates.
         transaction_impact_policy: Optional YAML-configured policy controlling
             transaction impact treatment.
         transaction_impact_diagnostic: Optional review diagnostic explaining
@@ -239,6 +256,7 @@ class Finding:
     performance_flow_sign: object | None = None
     transaction_semantics_source: object | None = None
     transaction_match_status: object | None = None
+    impact_policy: object | None = None
     transaction_impact_policy: object | None = None
     transaction_impact_diagnostic: object | None = None
     transaction_impact_diagnostic_estimate: float | None = None
@@ -269,6 +287,7 @@ class Finding:
             PERFORMANCE_FLOW_SIGN: self.performance_flow_sign,
             TRANSACTION_SEMANTICS_SOURCE: self.transaction_semantics_source,
             TRANSACTION_MATCH_STATUS: self.transaction_match_status,
+            IMPACT_POLICY: self.impact_policy,
             TRANSACTION_IMPACT_POLICY: self.transaction_impact_policy,
             TRANSACTION_IMPACT_DIAGNOSTIC: self.transaction_impact_diagnostic,
             TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (
