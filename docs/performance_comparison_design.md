@@ -1371,9 +1371,11 @@ hint, cause-area coverage counts, missing inputs, high-priority context, a
 compact review path, and links to the supporting detail sections. Dashboard
 links use stable period-specific row anchors when the target section carries
 portfolio-period fields, so a reviewer lands near the relevant evidence rather
-than only at the top of a broad section. The dashboard is deliberately static
-for now: it guides the reviewer through existing evidence without adding new
-calculation logic or client-side workflow assumptions.
+than only at the top of a broad section. Cards are sorted to keep needs-review
+periods first, then missing-impact-input periods, then larger absolute return
+deltas, then portfolio/date. The dashboard is deliberately static for now: it
+guides the reviewer through existing evidence without adding new calculation
+logic or client-side workflow assumptions.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

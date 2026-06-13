@@ -36,6 +36,7 @@ from ppar.performance_comparison.report import (
     _REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     _markdown_table,
     _report_bundle_validation_issues,
+    _review_dashboard_table,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
@@ -421,6 +422,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         dashboard = _html_section(report, "review-dashboard")
         self.assertIn("Start here", dashboard)
+        self.assertIn(
+            "1 of 1 portfolio-period(s) need review across 1 portfolio(s).",
+            dashboard,
+        )
         self.assertIn("PORT_A", dashboard)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
         self.assertIn("4 evidence-only area(s)", dashboard)
@@ -482,6 +487,102 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("0.001084292504", report)
         self.assertIn("PC-PORT-MV", report)
         self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
+
+    def test_review_dashboard_prioritizes_missing_inputs_across_portfolios(self) -> None:
+        """Dashboard rows sort urgent multi-portfolio review cards first."""
+        period_date = dt.date(2025, 5, 30)
+        needs_review = pl.DataFrame(
+            [
+                {
+                    "review_key": "PORT_LARGE::2025-05-30::2025-05-30",
+                    "portfolio_id": "PORT_LARGE",
+                    "from_date": period_date,
+                    "thru_date": period_date,
+                    "portfolio_return_delta": 0.02,
+                    "review_status": "needs_review",
+                    "review_cues": "4 evidence-only area(s)",
+                    "suggested_next_step": "Review evidence-only areas.",
+                    "review_detail_artifacts": "impact_coverage.csv, findings.csv",
+                },
+                {
+                    "review_key": "PORT_MISSING::2025-05-30::2025-05-30",
+                    "portfolio_id": "PORT_MISSING",
+                    "from_date": period_date,
+                    "thru_date": period_date,
+                    "portfolio_return_delta": 0.001,
+                    "review_status": "needs_review",
+                    "review_cues": "missing inputs: return-impact method",
+                    "suggested_next_step": "Resolve missing impact inputs.",
+                    "review_detail_artifacts": "impact_coverage.csv, findings.csv",
+                },
+                {
+                    "review_key": "PORT_MONITOR::2025-05-30::2025-05-30",
+                    "portfolio_id": "PORT_MONITOR",
+                    "from_date": period_date,
+                    "thru_date": period_date,
+                    "portfolio_return_delta": 0.05,
+                    "review_status": "monitor",
+                    "review_cues": "1 low-confidence estimate(s)",
+                    "suggested_next_step": "Review low-confidence estimates.",
+                    "review_detail_artifacts": "impact_estimates.csv, findings.csv",
+                },
+            ]
+        )
+        coverage = pl.DataFrame(
+            [
+                {
+                    "portfolio_id": "PORT_LARGE",
+                    "from_date": period_date,
+                    "thru_date": period_date,
+                    "estimated_cause_area_count": 2,
+                    "evidence_only_cause_area_count": 4,
+                    "missing_impact_inputs": "",
+                    "impact_coverage_status": "partial_estimates",
+                    "impact_coverage_review_note": "Review evidence-only areas.",
+                },
+                {
+                    "portfolio_id": "PORT_MISSING",
+                    "from_date": period_date,
+                    "thru_date": period_date,
+                    "estimated_cause_area_count": 1,
+                    "evidence_only_cause_area_count": 2,
+                    "missing_impact_inputs": "return-impact method",
+                    "impact_coverage_status": "missing_inputs",
+                    "impact_coverage_review_note": "Resolve missing inputs.",
+                },
+                {
+                    "portfolio_id": "PORT_MONITOR",
+                    "from_date": period_date,
+                    "thru_date": period_date,
+                    "estimated_cause_area_count": 1,
+                    "evidence_only_cause_area_count": 0,
+                    "missing_impact_inputs": "",
+                    "impact_coverage_status": "complete_estimates",
+                    "impact_coverage_review_note": "All areas estimated.",
+                },
+            ]
+        )
+        with (
+            mock.patch(
+                "ppar.performance_comparison.report._needs_review_summary_table",
+                return_value=needs_review,
+            ),
+            mock.patch(
+                "ppar.performance_comparison.report._pc_explain."
+                "portfolio_period_impact_coverage_summary",
+                return_value=coverage,
+            ),
+        ):
+            dashboard = _review_dashboard_table(pl.DataFrame())
+
+        self.assertEqual(
+            dashboard["portfolio_id"].to_list(),
+            ["PORT_MISSING", "PORT_LARGE", "PORT_MONITOR"],
+        )
+        self.assertEqual(
+            dashboard["dashboard_coverage_counts"][0],
+            "1 estimated / 2 evidence-only",
+        )
 
     def _assert_html_report_shell(self, report: str) -> None:
         """Verify stable HTML report framing and review-oriented polish."""

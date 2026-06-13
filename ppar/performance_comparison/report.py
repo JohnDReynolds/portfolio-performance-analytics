@@ -2153,6 +2153,7 @@ def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
     ]
     content = "\n".join(
         [
+            _html_dashboard_summary(dashboard),
             (
                 '<p class="pc-note">Start here: each card summarizes one '
                 'portfolio-period difference and links to the supporting detail '
@@ -2186,6 +2187,7 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
                 _DASHBOARD_REVIEW_PATH: pl.String,
                 _pc_explain.IMPACT_COVERAGE_STATUS: pl.String,
                 _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
+                "_missing_input_rank": pl.Int64,
             }
         )
 
@@ -2202,12 +2204,13 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
     return pl.DataFrame(rows).sort(
         [
             "_review_status_rank",
+            "_missing_input_rank",
             "_absolute_return_delta",
             _pc_findings.PORTFOLIO_ID,
             _pc_findings.FROM_DATE,
             _pc_findings.THRU_DATE,
         ],
-        descending=[False, True, False, False, False],
+        descending=[False, False, True, False, False, False],
     ).select(
         [
             _REVIEW_KEY,
@@ -2263,8 +2266,28 @@ def _review_dashboard_row(
             "",
         ),
         "_review_status_rank": _review_status_rank(period.get(_REVIEW_STATUS)),
+        "_missing_input_rank": _missing_input_rank(
+            coverage_row.get(_pc_explain.MISSING_IMPACT_INPUTS)
+        ),
         "_absolute_return_delta": _absolute_numeric_value(return_delta),
     }
+
+
+def _html_dashboard_summary(dashboard: pl.DataFrame) -> str:
+    """Return a compact dashboard scope summary."""
+    period_count = dashboard.height
+    portfolio_count = dashboard.select(
+        pl.col(_pc_findings.PORTFOLIO_ID).n_unique()
+    ).item()
+    needs_review_count = dashboard.filter(
+        pl.col(_REVIEW_STATUS) == _REVIEW_STATUS_NEEDS_REVIEW
+    ).height
+    return (
+        '<p class="pc-dashboard-summary">'
+        f"{_escape_html(needs_review_count)} of {_escape_html(period_count)} "
+        f"portfolio-period(s) need review across {_escape_html(portfolio_count)} "
+        "portfolio(s).</p>"
+    )
 
 
 def _primary_review_cue(cues: object) -> str:
@@ -2337,6 +2360,11 @@ def _review_status_rank(status: object) -> int:
     if status == _REVIEW_STATUS_MONITOR:
         return 1
     return 2
+
+
+def _missing_input_rank(value: object) -> int:
+    """Return dashboard sort priority for missing impact inputs."""
+    return 0 if _has_text(value) else 1
 
 
 def _absolute_numeric_value(value: object) -> float:
@@ -3280,6 +3308,9 @@ body {
   overflow-wrap: anywhere;
 }
 .pc-dashboard-cue {
+  font-weight: 700;
+}
+.pc-dashboard-summary {
   font-weight: 700;
 }
 .pc-dashboard-next,
