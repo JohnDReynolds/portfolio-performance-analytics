@@ -426,6 +426,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "1 of 1 portfolio-period(s) need review across 1 portfolio(s).",
             dashboard,
         )
+        self.assertIn('data-dashboard-filters', dashboard)
+        self.assertIn('data-dashboard-search', dashboard)
+        self.assertIn('data-dashboard-status', dashboard)
+        self.assertIn('data-dashboard-missing-only', dashboard)
+        self.assertIn("Missing inputs only", dashboard)
+        self.assertIn("No dashboard cards match the filters.", dashboard)
+        self.assertIn('data-dashboard-card', dashboard)
+        self.assertIn('data-review-status="needs_review"', dashboard)
+        self.assertIn('data-missing-inputs="true"', dashboard)
         self.assertIn("PORT_A", dashboard)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
         self.assertIn("4 evidence-only area(s)", dashboard)
@@ -465,6 +474,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             report,
         )
         self.assertIn('class="pc-dashboard-grid"', dashboard)
+        self.assertIn("querySelector(\"[data-dashboard-filters]\")", report)
+        self.assertIn("card.hidden = !visible", report)
         self.assertIn('id="impact-coverage"', report)
         self.assertIn('id="needs-review-summary"', report)
         self.assertIn("Impact Coverage", report)

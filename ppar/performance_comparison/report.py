@@ -278,6 +278,7 @@ def performance_comparison_html_report(
             _html_review_dashboard_section(active_findings),
             *sections,
             "</main>",
+            _html_dashboard_script(),
             "</body>",
             "</html>",
             "",
@@ -2159,9 +2160,11 @@ def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
                 'portfolio-period difference and links to the supporting detail '
                 'sections below.</p>'
             ),
+            _html_dashboard_filters(),
             '<div class="pc-dashboard-grid">',
             *cards,
             "</div>",
+            '<p class="pc-dashboard-no-results" hidden>No dashboard cards match the filters.</p>',
         ]
     )
     return _html_section("Review Dashboard", content)
@@ -2290,6 +2293,33 @@ def _html_dashboard_summary(dashboard: pl.DataFrame) -> str:
     )
 
 
+def _html_dashboard_filters() -> str:
+    """Return lightweight dashboard filter controls."""
+    return "\n".join(
+        [
+            '<form class="pc-dashboard-filters" data-dashboard-filters>',
+            '<label for="pc-dashboard-search">Search</label>',
+            (
+                '<input id="pc-dashboard-search" type="search" '
+                'placeholder="Portfolio, cue, or input" data-dashboard-search/>'
+            ),
+            '<label for="pc-dashboard-status">Status</label>',
+            '<select id="pc-dashboard-status" data-dashboard-status>',
+            '<option value="">All statuses</option>',
+            '<option value="needs_review">Needs review</option>',
+            '<option value="monitor">Monitor</option>',
+            '<option value="clear">Clear</option>',
+            "</select>",
+            '<label class="pc-dashboard-checkbox">',
+            '<input type="checkbox" data-dashboard-missing-only/>',
+            "Missing inputs only",
+            "</label>",
+            '<button type="reset">Reset</button>',
+            "</form>",
+        ]
+    )
+
+
 def _primary_review_cue(cues: object) -> str:
     """Return the leading cue from a comma-separated cue list."""
     if not _has_text(cues):
@@ -2377,13 +2407,25 @@ def _absolute_numeric_value(value: object) -> float:
 def _html_dashboard_card(row: Mapping[str, object]) -> str:
     """Return one HTML review dashboard card."""
     status = _format_value(row.get(_REVIEW_STATUS))
+    missing_inputs = row.get(_DASHBOARD_MISSING_INPUTS)
     period = (
         f"{_format_value(row.get(_pc_findings.FROM_DATE))} to "
         f"{_format_value(row.get(_pc_findings.THRU_DATE))}"
     )
+    search_text = _html_dashboard_search_text(row)
+    missing_inputs_token = _boolean_token(_has_text(missing_inputs))
+    article_attributes = " ".join(
+        [
+            f'class="pc-dashboard-card pc-dashboard-{_css_token(status)}"',
+            "data-dashboard-card",
+            f'data-review-status="{_escape_html(status)}"',
+            f'data-missing-inputs="{_escape_html(missing_inputs_token)}"',
+            f'data-dashboard-search="{_escape_html(search_text)}"',
+        ]
+    )
     return "\n".join(
         [
-            f'<article class="pc-dashboard-card pc-dashboard-{_css_token(status)}">',
+            f"<article {article_attributes}>",
             '<div class="pc-dashboard-card-head">',
             f"<h3>{_escape_html(row.get(_pc_findings.PORTFOLIO_ID))}</h3>",
             f'<span class="pc-status-pill pc-status-{_css_token(status)}">'
@@ -2422,6 +2464,27 @@ def _html_dashboard_card(row: Mapping[str, object]) -> str:
             "</article>",
         ]
     )
+
+
+def _html_dashboard_search_text(row: Mapping[str, object]) -> str:
+    """Return searchable dashboard card text."""
+    values = [
+        row.get(_pc_findings.PORTFOLIO_ID),
+        row.get(_pc_findings.FROM_DATE),
+        row.get(_pc_findings.THRU_DATE),
+        row.get(_REVIEW_STATUS),
+        row.get(_PRIMARY_REVIEW_CUE),
+        row.get(_DASHBOARD_MISSING_INPUTS),
+        row.get(_DASHBOARD_CONTEXT_CUE),
+        row.get(_SUGGESTED_NEXT_STEP),
+        row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
+    ]
+    return " ".join(_format_value(value) for value in values if _has_text(value)).lower()
+
+
+def _boolean_token(value: bool) -> str:
+    """Return a lower-case JavaScript-friendly boolean token."""
+    return "true" if value else "false"
 
 
 def _html_dashboard_fact(label: str, value: object) -> str:
@@ -3313,6 +3376,44 @@ body {
 .pc-dashboard-summary {
   font-weight: 700;
 }
+.pc-dashboard-filters {
+  align-items: end;
+  border: 1px solid var(--pc-border-light);
+  display: grid;
+  gap: 6px 8px;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 220px) auto auto;
+  margin: 8px 0 10px;
+  padding: 8px;
+}
+.pc-dashboard-filters label {
+  color: var(--pc-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pc-dashboard-filters input[type="search"],
+.pc-dashboard-filters select {
+  border: 1px solid var(--pc-border);
+  color: var(--pc-text);
+  font: inherit;
+  min-height: 28px;
+  padding: 3px 6px;
+}
+.pc-dashboard-checkbox {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  min-height: 28px;
+}
+.pc-dashboard-filters button {
+  background: var(--pc-panel);
+  border: 1px solid var(--pc-border);
+  color: var(--pc-accent);
+  font: inherit;
+  font-weight: 700;
+  min-height: 28px;
+  padding: 3px 8px;
+}
 .pc-dashboard-next,
 .pc-dashboard-note,
 .pc-dashboard-path {
@@ -3333,6 +3434,11 @@ body {
   font-weight: 700;
   padding: 3px 6px;
   text-decoration: none;
+}
+.pc-dashboard-no-results {
+  border: 1px dashed var(--pc-border);
+  color: var(--pc-muted);
+  padding: 8px;
 }
 .pc-note,
 .pc-empty {
@@ -3440,6 +3546,9 @@ tbody tr:hover {
   .pc-dashboard-facts {
     grid-template-columns: 1fr;
   }
+  .pc-dashboard-filters {
+    grid-template-columns: 1fr;
+  }
 }
 @media print {
   body {
@@ -3474,3 +3583,50 @@ tbody tr:hover {
   }
 }
 </style>""".strip()
+
+
+def _html_dashboard_script() -> str:
+    """Return progressive dashboard filtering script."""
+    return """
+<script>
+(() => {
+  const filters = document.querySelector("[data-dashboard-filters]");
+  if (!filters) {
+    return;
+  }
+  const cards = Array.from(document.querySelectorAll("[data-dashboard-card]"));
+  const search = filters.querySelector("[data-dashboard-search]");
+  const status = filters.querySelector("[data-dashboard-status]");
+  const missingOnly = filters.querySelector("[data-dashboard-missing-only]");
+  const noResults = document.querySelector(".pc-dashboard-no-results");
+
+  const applyFilters = () => {
+    const query = (search?.value || "").trim().toLowerCase();
+    const selectedStatus = status?.value || "";
+    const requireMissing = Boolean(missingOnly?.checked);
+    let visibleCount = 0;
+
+    for (const card of cards) {
+      const matchesSearch = !query || card.dataset.dashboardSearch.includes(query);
+      const matchesStatus = !selectedStatus || card.dataset.reviewStatus === selectedStatus;
+      const matchesMissing = !requireMissing || card.dataset.missingInputs === "true";
+      const visible = matchesSearch && matchesStatus && matchesMissing;
+      card.hidden = !visible;
+      if (visible) {
+        visibleCount += 1;
+      }
+    }
+    if (noResults) {
+      noResults.hidden = visibleCount !== 0;
+    }
+  };
+
+  filters.addEventListener("input", applyFilters);
+  filters.addEventListener("change", applyFilters);
+  filters.addEventListener("reset", () => {
+    window.setTimeout(applyFilters, 0);
+  });
+  applyFilters();
+})();
+</script>
+""".strip()

@@ -1375,7 +1375,9 @@ than only at the top of a broad section. Cards are sorted to keep needs-review
 periods first, then missing-impact-input periods, then larger absolute return
 deltas, then portfolio/date. The dashboard is deliberately static for now: it
 guides the reviewer through existing evidence without adding new calculation
-logic or client-side workflow assumptions.
+logic. Its lightweight browser filters search rendered card text, review
+status, and missing-input flags only; they do not change report data or require
+a server.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is
