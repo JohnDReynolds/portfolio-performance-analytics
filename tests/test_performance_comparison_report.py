@@ -430,6 +430,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Performance Comparison Review", report)
         self.assertIn("<h1>HTML &lt;Restatement&gt;</h1>", report)
         self.assertIn("Exception Review Worksheet", report)
+        self.assertIn('class="pc-review-basis"', report)
+        self.assertIn("withheld until supported", report)
+        self.assertIn("Review table with", report)
         self.assertIn('<ol class="pc-contents-list">', report)
 
     def test_markdown_report_limits_top_evidence_per_portfolio_period(self) -> None:

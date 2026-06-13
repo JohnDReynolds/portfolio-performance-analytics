@@ -247,6 +247,7 @@ def performance_comparison_html_report(
             f"<p>{_escape_html(_NO_ESTIMATE_NOTE)}</p>",
             "</div>",
             "</header>",
+            _html_review_basis_section(active_findings),
             _html_contents_section(include_suppressed_appendix=include_suppressed_appendix),
             *sections,
             "</main>",
@@ -714,6 +715,11 @@ def _reviewer_triage_counts(findings: pl.DataFrame) -> list[tuple[str, int]]:
     ]
 
 
+def _changed_period_count(findings: pl.DataFrame) -> int:
+    """Return count of changed portfolio periods."""
+    return _pc_explain.portfolio_period_summary(findings).height
+
+
 def _needs_review_period_count(needs_review: pl.DataFrame) -> int:
     """Return count of periods whose review status needs attention."""
     if needs_review.is_empty():
@@ -965,6 +971,36 @@ def _html_contents_section(*, include_suppressed_appendix: bool) -> str:
             *links,
             "</ol>",
             "</nav>",
+        ]
+    )
+
+
+def _html_review_basis_section(findings: pl.DataFrame) -> str:
+    """Return a compact HTML strip describing the report's review basis."""
+    needs_review = _needs_review_summary_table(findings)
+    values = [
+        ("Scope", "active findings"),
+        ("Impact", "conservative estimates"),
+        ("Residual", "withheld until supported"),
+        ("Changed periods", _changed_period_count(findings)),
+        ("Needs review", _needs_review_period_count(needs_review)),
+    ]
+    items = [
+        "\n".join(
+            [
+                '<div class="pc-basis-item">',
+                f"<span>{_escape_html(label)}</span>",
+                f"<strong>{_escape_html(_format_value(value))}</strong>",
+                "</div>",
+            ]
+        )
+        for label, value in values
+    ]
+    return "\n".join(
+        [
+            '<section class="pc-review-basis" aria-label="Review basis">',
+            *items,
+            "</section>",
         ]
     )
 
@@ -2273,6 +2309,7 @@ def _html_table(
             '<div class="pc-table-wrap">',
             f'<p class="pc-table-meta">Rows: {_escape_html(table.height)}</p>',
             '<table class="pc-table">',
+            f"<caption>{_html_table_caption(table, available_columns)}</caption>",
             "<thead>",
             "<tr>" + "".join(header_cells) + "</tr>",
             "</thead>",
@@ -2283,6 +2320,14 @@ def _html_table(
             "</div>",
         ]
     )
+
+
+def _html_table_caption(table: pl.DataFrame, columns: Sequence[str]) -> str:
+    """Return an accessible compact caption for an HTML review table."""
+    row_count = _format_value(table.height)
+    column_count = _format_value(len(columns))
+    caption = f"Review table with {row_count} row(s) and {column_count} column(s)."
+    return _escape_html(caption)
 
 
 def _html_table_cell(value: object, column: str) -> str:
@@ -2481,6 +2526,32 @@ body {
   margin-top: 10px;
   padding-top: 7px;
 }
+.pc-review-basis {
+  background: var(--pc-panel);
+  border: 1px solid var(--pc-border);
+  border-left: 5px solid var(--pc-title-rule);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin: 0 0 12px;
+}
+.pc-basis-item {
+  border-right: 1px solid var(--pc-border-light);
+  padding: 7px 10px;
+}
+.pc-basis-item span {
+  color: var(--pc-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pc-basis-item strong {
+  display: block;
+  font-size: 13px;
+  margin-top: 2px;
+}
 .pc-section a {
   color: var(--pc-accent);
 }
@@ -2538,6 +2609,13 @@ table {
   border-collapse: collapse;
   min-width: 100%;
   width: 100%;
+}
+caption {
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 th,
 td {
@@ -2623,6 +2701,7 @@ tbody tr:hover {
     padding: 0;
   }
   .pc-header,
+  .pc-review-basis,
   .pc-section {
     border-color: #888888;
     box-shadow: none;
