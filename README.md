@@ -237,6 +237,18 @@ transaction_impact_methods:
     double_count_policy: cross_check_only
 ```
 
+To smoke-test the performance comparison demo from a source checkout:
+
+```bash
+./.venv/bin/python -m ppar.demos.performance_comparison_demo
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py _demo_output/performance_comparison_bundle
+```
+
+Then open `_demo_output/performance_comparison_bundle/report.html` and confirm
+the `Reviewer Triage` and `Context Evidence Summary` sections are present. The
+`_demo_output/` directory is generated output and is intentionally ignored by
+Git.
+
 To validate an existing performance comparison bundle from a source checkout:
 
 ```bash
