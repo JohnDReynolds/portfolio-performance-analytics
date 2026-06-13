@@ -290,14 +290,14 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[PORTFOLIO_FINDING_COUNT], 3)
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 11)
         self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 5)
-        self.assertEqual(row[CONTEXT_FINDING_COUNT], 0)
-        self.assertEqual(row[POSITION_FINDING_COUNT], 3)
+        self.assertEqual(row[CONTEXT_FINDING_COUNT], 1)
+        self.assertEqual(row[POSITION_FINDING_COUNT], 4)
         self.assertEqual(row[CASH_FINDING_COUNT], 2)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
         self.assertEqual(row[PRICE_FINDING_COUNT], 1)
         self.assertEqual(row[FX_RATE_FINDING_COUNT], 0)
         self.assertEqual(row[REFERENCE_FINDING_COUNT], 0)
-        self.assertEqual(row[FINDING_COUNT], 17)
+        self.assertEqual(row[FINDING_COUNT], 18)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 
     def test_portfolio_period_summary_tracks_suppressed_related_evidence(self) -> None:
@@ -327,7 +327,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(_breakdown_count(breakdown, TARGET_OUTPUT, None), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, None), 11)
         self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 5)
-        self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 0)
+        self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 1)
         self.assertEqual(
             _breakdown_count(breakdown, TARGET_OUTPUT, "portfolio_performance"),
             1,
@@ -387,7 +387,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             ranking.columns,
             list(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS),
         )
-        self.assertEqual(ranking.height, 16)
+        self.assertEqual(ranking.height, 17)
         self.assertEqual(first_row[REVIEW_RANK], 1)
         self.assertEqual(first_row[EVIDENCE_ROLE], DIRECT_INPUT)
         direct_input_score_values = [int(value) for value in direct_input_scores.to_list()]
@@ -416,7 +416,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             candidates.columns,
             list(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS),
         )
-        self.assertEqual(candidates.height, 16)
+        self.assertEqual(candidates.height, 17)
         self.assertAlmostEqual(contribution[ESTIMATED_RETURN_IMPACT], 0.00058425)
         self.assertEqual(
             contribution[IMPACT_POLICY],
@@ -515,7 +515,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         row = no_estimate.row(0, named=True)
 
-        self.assertEqual(no_estimate.height, 13)
+        self.assertEqual(no_estimate.height, 14)
         self.assertIsNone(row[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIsNone(row[IMPACT_METHOD])
@@ -675,7 +675,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             counts_by_cause,
             {
                 ROOT_CAUSE_CASH: 2,
-                ROOT_CAUSE_MARKET_VALUE_OR_POSITION: 3,
+                ROOT_CAUSE_MARKET_VALUE_OR_POSITION: 4,
                 ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT: 2,
                 ROOT_CAUSE_PRICE: 1,
                 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION: 5,
@@ -1293,8 +1293,8 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             include_suppressed=True,
         )
 
-        self.assertEqual(active_ranking.height, 15)
-        self.assertEqual(audit_ranking.height, 16)
+        self.assertEqual(active_ranking.height, 16)
+        self.assertEqual(audit_ranking.height, 17)
         self.assertEqual(
             active_ranking.filter(pl.col(FINDING_CODE) == PC_SEC_RET).height,
             0,
@@ -1315,8 +1315,17 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
         ranking = rank_portfolio_period_evidence(portfolio_only_findings)
 
-        self.assertEqual(ranking.height, 11)
-        self.assertEqual(set(ranking.get_column(EVIDENCE_ROLE).to_list()), {DIRECT_INPUT})
+        self.assertEqual(ranking.height, 12)
+        self.assertEqual(
+            set(ranking.get_column(EVIDENCE_ROLE).to_list()),
+            {DIRECT_INPUT, CONTEXT},
+        )
+        self.assertEqual(
+            ranking.filter(pl.col(SOURCE_COLUMN) == pc_cols.COST).row(0, named=True)[
+                EVIDENCE_ROLE
+            ],
+            CONTEXT,
+        )
         self.assertNotIn("security_performance", ranking.get_column(DATASET).to_list())
 
     def test_rank_portfolio_period_evidence_returns_stable_empty_table(self) -> None:
@@ -1355,12 +1364,12 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[SECURITY_FINDING_COUNT], 3)
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 7)
         self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 3)
-        self.assertEqual(row[CONTEXT_FINDING_COUNT], 2)
-        self.assertEqual(row[POSITION_FINDING_COUNT], 3)
+        self.assertEqual(row[CONTEXT_FINDING_COUNT], 3)
+        self.assertEqual(row[POSITION_FINDING_COUNT], 4)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
         self.assertEqual(row[PRICE_FINDING_COUNT], 1)
         self.assertEqual(row[REFERENCE_FINDING_COUNT], 2)
-        self.assertEqual(row[FINDING_COUNT], 12)
+        self.assertEqual(row[FINDING_COUNT], 13)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 
     def test_security_period_summary_tracks_suppressed_related_evidence(self) -> None:
@@ -1373,8 +1382,8 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertTrue(active_summary.row(0, named=True)[HAS_SUPPRESSED_FINDINGS])
         self.assertEqual(active_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 2)
         self.assertEqual(audit_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 3)
-        self.assertEqual(active_summary.row(0, named=True)[FINDING_COUNT], 11)
-        self.assertEqual(audit_summary.row(0, named=True)[FINDING_COUNT], 12)
+        self.assertEqual(active_summary.row(0, named=True)[FINDING_COUNT], 12)
+        self.assertEqual(audit_summary.row(0, named=True)[FINDING_COUNT], 13)
 
     def test_security_period_summary_returns_stable_empty_table(self) -> None:
         """No security return deltas produce an empty stable summary."""
@@ -1401,7 +1410,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(_breakdown_count(breakdown, TARGET_OUTPUT, None), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, None), 7)
         self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 2)
-        self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 2)
+        self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 3)
         self.assertEqual(
             _breakdown_count(breakdown, TARGET_OUTPUT, "security_performance"),
             1,

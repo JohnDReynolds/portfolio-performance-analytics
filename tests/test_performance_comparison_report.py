@@ -110,8 +110,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("- Run Summary", report)
         self.assertIn("- Suppressed Findings Appendix", report)
         self.assertIn("## Run Summary", report)
-        self.assertIn("- Total findings: 21", report)
-        self.assertIn("- Active findings: 21", report)
+        self.assertIn("- Total findings: 22", report)
+        self.assertIn("- Active findings: 22", report)
+        self.assertIn("PC-POS-COST", report)
         self.assertIn("## Needs Review Summary", report)
         needs_review = _section(
             report,
@@ -198,7 +199,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("transaction_id_match", transaction_matching)
         self.assertIn("Changed fields were compared", transaction_matching)
         self.assertIn("## Portfolio-Period Changes", report)
-        self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 17 | no |", report)
+        self.assertIn("| PORT_A | 2025-05-30 | 2025-05-30 | 0.0005 | 18 | no |", report)
         self.assertIn("## Cause Summary", report)
         self.assertIn("security_return_or_contribution", report)
         self.assertIn("security_contribution", report)
@@ -415,8 +416,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         report = performance_comparison_markdown_report(findings)
 
-        self.assertIn("- Total findings: 21", report)
-        self.assertIn("- Active findings: 20", report)
+        self.assertIn("- Total findings: 22", report)
+        self.assertIn("- Active findings: 21", report)
         self.assertIn("- Suppressed findings: 1", report)
         self.assertIn("| PC-SEC-RET | yes | 1 |", report)
         self.assertIn("Suppressed Finding Detail", report)
@@ -649,8 +650,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
             self.assertEqual(manifest["title"], "Bundle Restatement")
-            self.assertEqual(manifest["counts"]["findings"], 21)
-            self.assertEqual(manifest["counts"]["active_findings"], 21)
+            self.assertEqual(manifest["counts"]["findings"], 22)
+            self.assertEqual(manifest["counts"]["active_findings"], 22)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")

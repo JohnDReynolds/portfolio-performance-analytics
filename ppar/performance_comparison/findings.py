@@ -64,6 +64,7 @@ __all__ = [
     "PC_REF_CLASS",
     "PC_POS_QTY",
     "PC_POS_MV",
+    "PC_POS_COST",
     "PC_POS_ACCR",
     "PC_CASH_MV",
     "PC_PRICE",
@@ -140,6 +141,7 @@ PC_REF_ID: Final[str] = "PC-REF-ID"
 PC_REF_CLASS: Final[str] = "PC-REF-CLASS"
 PC_POS_QTY: Final[str] = "PC-POS-QTY"
 PC_POS_MV: Final[str] = "PC-POS-MV"
+PC_POS_COST: Final[str] = "PC-POS-COST"
 PC_POS_ACCR: Final[str] = "PC-POS-ACCR"
 PC_CASH_MV: Final[str] = "PC-CASH-MV"
 PC_PRICE: Final[str] = "PC-PRICE"

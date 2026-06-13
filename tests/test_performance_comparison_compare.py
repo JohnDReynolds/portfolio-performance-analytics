@@ -41,6 +41,7 @@ from ppar.performance_comparison.findings import (
     PC_FX_RATE,
     PC_PORT_MV,
     PC_POS_ACCR,
+    PC_POS_COST,
     PC_PORT_RET,
     PC_POS_MV,
     PC_POS_QTY,
@@ -490,6 +491,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertIn(PC_SEC_ADD, finding_codes)
         self.assertIn(PC_SEC_DROP, finding_codes)
         self.assertIn(PC_POS_QTY, finding_codes)
+        self.assertIn(PC_POS_COST, finding_codes)
         self.assertIn(PC_POS_ACCR, finding_codes)
         self.assertIn(PC_CASH_MV, finding_codes)
         self.assertIn(PC_PRICE, finding_codes)
@@ -524,6 +526,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(role_by_code[PC_PORT_MV], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_SEC_RET], RELATED_OUTPUT)
         self.assertEqual(role_by_code[PC_POS_QTY], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_POS_COST], CONTEXT)
         self.assertEqual(role_by_code[PC_CASH_MV], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_PRICE], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_FX_RATE], DIRECT_INPUT)
@@ -605,6 +608,13 @@ class TestPerformanceComparison(unittest.TestCase):
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
         ]
+        cost_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_POS_COST
+            and finding[SECURITY_ID] == "AAPL"
+            and finding[SOURCE_COLUMN] == pc_cols.COST
+        ]
         accrued_findings = [
             finding
             for finding in finding_dicts
@@ -623,6 +633,12 @@ class TestPerformanceComparison(unittest.TestCase):
             cast(float, market_value_findings[0][DELTA_B_MINUS_A]),
             2648.56,
         )
+        self.assertEqual(len(cost_findings), 1)
+        self.assertAlmostEqual(
+            cast(float, cost_findings[0][DELTA_B_MINUS_A]),
+            225.0,
+        )
+        self.assertEqual(cost_findings[0][EVIDENCE_ROLE], CONTEXT)
         self.assertEqual(len(accrued_findings), 1)
         self.assertAlmostEqual(
             cast(float, accrued_findings[0][DELTA_B_MINUS_A]),

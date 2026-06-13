@@ -49,6 +49,7 @@ from ppar.performance_comparison.findings import (
     PC_REF_CLASS,
     PC_REF_ID,
     PC_POS_MV,
+    PC_POS_COST,
     PC_POS_QTY,
     PC_POS_ACCR,
     PC_PRICE,
@@ -149,6 +150,7 @@ _SECURITY_MASTER_COMPARE_COLUMNS: Final[dict[str, str]] = {
 _POSITIONS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.QUANTITY: PC_POS_QTY,
     pc_cols.MARKET_VALUE: PC_POS_MV,
+    pc_cols.COST: PC_POS_COST,
     pc_cols.ACCRUED: PC_POS_ACCR,
 }
 _CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
@@ -284,6 +286,7 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.CONTRIBUTION: "contribution",
     pc_cols.QUANTITY: "quantity",
     pc_cols.MARKET_VALUE: "market_value",
+    pc_cols.COST: "market_value",
     pc_cols.ACCRUED: "market_value",
     pc_cols.CASH_BALANCE: "market_value",
     pc_cols.PRICE: "price",
@@ -1301,6 +1304,8 @@ class PerformanceComparison:
             return DIRECT_INPUT
         if dataset == pc_cols.SECURITY_PERFORMANCE:
             return RELATED_OUTPUT
+        if dataset == pc_cols.POSITIONS and source_column == pc_cols.COST:
+            return CONTEXT
         if dataset in _DIRECT_INPUT_DATASETS:
             return DIRECT_INPUT
         return CONTEXT

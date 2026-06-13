@@ -245,7 +245,7 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["counts"]["findings"], 21)
+            self.assertEqual(manifest["counts"]["findings"], 22)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["report"], "report.md")
 
@@ -274,7 +274,7 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             )
             self.assertIn("- Suppressed findings: 0", report)
             self.assertNotIn("## Suppressed Findings Appendix", report)
-            self.assertEqual(manifest["counts"]["findings"], 20)
+            self.assertEqual(manifest["counts"]["findings"], 21)
             self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
 
     def test_validate_bundle_script_accepts_valid_bundle(self) -> None:

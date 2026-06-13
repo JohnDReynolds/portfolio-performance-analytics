@@ -569,6 +569,10 @@ digging through lower-level evidence tables.
 - `price`
 - `currency`
 
+Changed `cost` / cost-basis values are useful review context for tax,
+accounting, and downstream unrealized gain/loss questions. They should be
+reported as context evidence, not as direct performance-impact estimates.
+
 `cash` required columns:
 
 - `portfolio_id`
