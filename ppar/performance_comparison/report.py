@@ -40,6 +40,7 @@ _NO_ESTIMATE_NOTE = (
 _ESTIMATED_IMPACT_AREAS = "estimated_impact_areas"
 _RESIDUAL_STATUS = "residual_status"
 _RESIDUAL_REASON = "residual_reason"
+_RESIDUAL_REVIEW_NOTE = "residual_review_note"
 _RESIDUAL_WITHHELD_PREFIX = "withheld"
 _RESIDUAL_WITHHELD_NO_ESTIMATES = "withheld_no_estimates"
 _RESIDUAL_WITHHELD_PARTIAL_ESTIMATES = "withheld_partial_estimates"
@@ -1285,6 +1286,7 @@ def _residual_status_section(findings: pl.DataFrame) -> str:
         _ESTIMATED_IMPACT_AREAS,
         _RESIDUAL_STATUS,
         _RESIDUAL_REASON,
+        _RESIDUAL_REVIEW_NOTE,
     ]
     return "\n".join(
         [
@@ -1313,6 +1315,7 @@ def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
                 _ESTIMATED_IMPACT_AREAS: pl.String,
                 _RESIDUAL_STATUS: pl.String,
                 _RESIDUAL_REASON: pl.String,
+                _RESIDUAL_REVIEW_NOTE: pl.String,
             }
         )
 
@@ -1364,7 +1367,28 @@ def _residual_status_row(
         _ESTIMATED_IMPACT_AREAS: _comma_separated(estimated_areas),
         _RESIDUAL_STATUS: status,
         _RESIDUAL_REASON: reason,
+        _RESIDUAL_REVIEW_NOTE: _residual_review_note(status),
     }
+
+
+def _residual_review_note(status: str) -> str:
+    """Return reviewer-facing guidance for a residual status."""
+    if status == _RESIDUAL_WITHHELD_NO_ESTIMATES:
+        return (
+            "No supported impact estimates exist, so any residual would equal "
+            "the whole return delta and imply false precision."
+        )
+    if status == _RESIDUAL_WITHHELD_PARTIAL_ESTIMATES:
+        return (
+            "Some estimates exist, but coverage is incomplete or overlapping; "
+            "do not reconcile the remaining difference as residual."
+        )
+    if status == _RESIDUAL_WITHHELD_CROSS_CHECKS_ONLY:
+        return (
+            "Only review-only cross-check estimates exist; they are excluded "
+            "from impact totals."
+        )
+    return "Residual status requires review before drawing conclusions."
 
 
 def _impact_coverage_section(findings: pl.DataFrame) -> str:
@@ -1972,6 +1996,7 @@ def _html_residual_status_section(findings: pl.DataFrame) -> str:
         _ESTIMATED_IMPACT_AREAS,
         _RESIDUAL_STATUS,
         _RESIDUAL_REASON,
+        _RESIDUAL_REVIEW_NOTE,
     ]
     content = "\n".join(
         [

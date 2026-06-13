@@ -197,6 +197,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Residual amounts are intentionally withheld", residual_status)
         self.assertIn("withheld_partial_estimates", residual_status)
         self.assertIn("partial or overlapping estimates", residual_status)
+        self.assertIn("do not reconcile the remaining difference as residual", residual_status)
         self.assertIn("## Transaction Activity", report)
         transaction_activity = _section(
             report,
@@ -387,6 +388,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertIn("withheld_cross_checks_only", residual_status)
         self.assertIn("transaction cross-checks only", residual_status)
+        self.assertIn("review-only cross-check estimates exist", residual_status)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
         """HTML reports include the same reviewer-facing sections and tables."""
@@ -540,6 +542,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Residual amounts are intentionally withheld", residual_status)
         self.assertIn("withheld_no_estimates", residual_status)
         self.assertIn("no defensible impact estimates", residual_status)
+        self.assertIn("would equal the whole return delta", residual_status)
         self.assertNotIn("partial or overlapping estimates", residual_status)
 
     def test_markdown_table_escapes_pipe_characters(self) -> None:
@@ -819,6 +822,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "portfolio_id,from_date,thru_date",
                 paths["flow_cross_check_reconciliation"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "residual_review_note",
+                paths["residual_status"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "portfolio_id,security_id,from_date",
