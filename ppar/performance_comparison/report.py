@@ -59,6 +59,7 @@ _DASHBOARD_COVERAGE_COUNTS = "dashboard_coverage_counts"
 _DASHBOARD_MISSING_INPUTS = "dashboard_missing_inputs"
 _DASHBOARD_CONTEXT_CUE = "dashboard_context_cue"
 _DASHBOARD_REVIEW_PATH = "dashboard_review_path"
+_DASHBOARD_NARRATIVE = "dashboard_narrative"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
@@ -229,6 +230,7 @@ def performance_comparison_html_report(
     active_summaries = _pc_runner.summarize_findings(active_findings)
     narrative_section = _html_portfolio_period_narrative_section(active_findings)
     detail_sections = [
+        ("Portfolio-Period Narrative", narrative_section),
         ("Needs Review Summary", _html_needs_review_summary_section(active_findings)),
         ("Impact Coverage", _html_impact_coverage_section(active_findings)),
         ("Context Evidence", _html_context_evidence_section(active_findings)),
@@ -283,7 +285,6 @@ def performance_comparison_html_report(
             f"<h1>{_escape_html(title)}</h1>",
             "</header>",
             _html_review_dashboard_section(active_findings),
-            narrative_section,
             _html_supporting_detail_section(detail_sections),
             "</main>",
             _html_dashboard_script(),
@@ -2196,6 +2197,7 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
                 _DASHBOARD_MISSING_INPUTS: pl.String,
                 _DASHBOARD_CONTEXT_CUE: pl.String,
                 _DASHBOARD_REVIEW_PATH: pl.String,
+                _DASHBOARD_NARRATIVE: pl.String,
                 _pc_explain.IMPACT_COVERAGE_STATUS: pl.String,
                 _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
                 "_missing_input_rank": pl.Int64,
@@ -2205,10 +2207,12 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
     coverage_by_period = _period_rows_by_key(
         _pc_explain.portfolio_period_impact_coverage_summary(findings)
     )
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
     rows = [
         _review_dashboard_row(
             period=row,
             coverage=coverage_by_period.get(_period_key(row), []),
+            causes=_period_cause_rows(causes, row),
         )
         for row in needs_review.iter_rows(named=True)
     ]
@@ -2236,6 +2240,7 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
             _DASHBOARD_MISSING_INPUTS,
             _DASHBOARD_CONTEXT_CUE,
             _DASHBOARD_REVIEW_PATH,
+            _DASHBOARD_NARRATIVE,
             _pc_explain.IMPACT_COVERAGE_STATUS,
             _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
         ]
@@ -2246,6 +2251,7 @@ def _review_dashboard_row(
     *,
     period: Mapping[str, object],
     coverage: list[dict[str, object]],
+    causes: list[dict[str, object]],
 ) -> dict[str, object]:
     """Return one compact dashboard row for a portfolio period."""
     coverage_row = coverage[0] if coverage else {}
@@ -2268,6 +2274,7 @@ def _review_dashboard_row(
         _DASHBOARD_REVIEW_PATH: _dashboard_review_path(
             period.get(_REVIEW_DETAIL_ARTIFACTS)
         ),
+        _DASHBOARD_NARRATIVE: _dashboard_narrative(period, causes),
         _pc_explain.IMPACT_COVERAGE_STATUS: coverage_row.get(
             _pc_explain.IMPACT_COVERAGE_STATUS,
             "",
@@ -2299,6 +2306,29 @@ def _html_dashboard_summary(dashboard: pl.DataFrame) -> str:
         f"portfolio-period(s) need review across {_escape_html(portfolio_count)} "
         "portfolio(s).</p>"
     )
+
+
+def _dashboard_narrative(
+    period: Mapping[str, object],
+    causes: list[dict[str, object]],
+) -> str:
+    """Return a card-safe narrative for one dashboard period."""
+    narrative_period = dict(period)
+    narrative_period.setdefault(_pc_explain.HAS_SUPPRESSED_FINDINGS, False)
+    narrative = _portfolio_period_narrative(narrative_period, causes)
+    return _first_sentences(narrative, sentence_count=2)
+
+
+def _first_sentences(text: str, *, sentence_count: int) -> str:
+    """Return the leading sentence-like chunks from report prose."""
+    sentences = [sentence.strip() for sentence in text.split(". ") if sentence.strip()]
+    selected = sentences[:sentence_count]
+    if not selected:
+        return text
+    summary = ". ".join(selected)
+    if text.endswith(".") and not summary.endswith("."):
+        return f"{summary}."
+    return summary
 
 
 def _html_dashboard_filters() -> str:
@@ -2467,6 +2497,10 @@ def _html_dashboard_card(row: Mapping[str, object]) -> str:
                 row.get(_DASHBOARD_CONTEXT_CUE),
             ),
             "</dl>",
+            (
+                f'<p class="pc-dashboard-narrative">'
+                f"{_escape_html(row.get(_DASHBOARD_NARRATIVE))}</p>"
+            ),
             f'<p class="pc-dashboard-cue">{_escape_html(row.get(_PRIMARY_REVIEW_CUE))}</p>',
             f'<p class="pc-dashboard-next">{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}</p>',
             f'<p class="pc-dashboard-note">'
@@ -2489,6 +2523,7 @@ def _html_dashboard_search_text(row: Mapping[str, object]) -> str:
         row.get(_PRIMARY_REVIEW_CUE),
         row.get(_DASHBOARD_MISSING_INPUTS),
         row.get(_DASHBOARD_CONTEXT_CUE),
+        row.get(_DASHBOARD_NARRATIVE),
         row.get(_SUGGESTED_NEXT_STEP),
         row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
     ]
@@ -3394,6 +3429,7 @@ body {
   margin: 2px 0 0;
   overflow-wrap: anywhere;
 }
+.pc-dashboard-narrative,
 .pc-dashboard-cue {
   font-weight: 700;
 }

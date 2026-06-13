@@ -165,12 +165,12 @@ Start with `_demo_output/performance_comparison_bundle/report.html`; its Review
 Dashboard gives one card per changed portfolio period. The default demo uses a
 multi-portfolio restatement fixture so the dashboard has several issue shapes to
 review. Cards surface cause-area coverage, missing inputs, high-priority
-context, and a compact review path. The dashboard includes lightweight browser
-filters for search, review status, and missing-input-only review. Those links
-land on period-specific detail rows where the section carries portfolio-period
-data. The HTML report keeps the first view short: dashboard first, concise
-period narrative second, and detailed evidence tables under Supporting Detail.
-Then inspect
+context, a concise narrative, and a compact review path. The dashboard includes
+lightweight browser filters for search, review status, and missing-input-only
+review. Those links land on period-specific detail rows where the section
+carries portfolio-period data. The HTML report keeps the first view short:
+dashboard first, with full narrative and detailed evidence tables under
+Supporting Detail. Then inspect
 `needs_review_summary.csv` for the periods and issues that need review first.
 The `review_key` column links period-level bundle tables, and
 `review_detail_artifacts` names the CSVs most relevant to each triage row. The

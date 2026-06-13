@@ -421,14 +421,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('id="review-dashboard"', report)
         self.assertLess(
             report.index('id="review-dashboard"'),
-            report.index('id="portfolio-period-narrative"'),
+            report.index('id="supporting-detail"'),
         )
         self.assertLess(
-            report.index('id="portfolio-period-narrative"'),
             report.index('id="supporting-detail"'),
+            report.index('id="portfolio-period-narrative"'),
         )
         self.assertIn('id="supporting-detail"', report)
         self.assertIn('<details class="pc-detail">', report)
+        self.assertIn("<summary>Portfolio-Period Narrative</summary>", report)
         self.assertIn("<summary>Impact Coverage</summary>", report)
         self.assertLess(
             report.index('id="supporting-detail"'),
@@ -455,6 +456,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('data-review-status="needs_review"', dashboard)
         self.assertIn('data-missing-inputs="true"', dashboard)
         self.assertIn("PORT_A", dashboard)
+        self.assertIn("PORT_A changed by 0.0005", dashboard)
+        self.assertIn("The strongest currently estimated impact", dashboard)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
         self.assertIn("4 evidence-only area(s)", dashboard)
         self.assertIn("2 estimated / 4 evidence-only", dashboard)
@@ -649,6 +652,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("PORT_A", dashboard_section)
         self.assertIn("PORT_B", dashboard_section)
         self.assertIn("PORT_C", dashboard_section)
+        self.assertIn("PORT_C changed by 0.0008", dashboard_section)
+        self.assertIn("PORT_B changed by 0.0015", dashboard_section)
 
     def _assert_html_report_shell(self, report: str) -> None:
         """Verify stable HTML report framing and review-oriented polish."""
