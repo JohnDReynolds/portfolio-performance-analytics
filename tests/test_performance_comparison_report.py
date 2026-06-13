@@ -151,10 +151,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("portfolio_source_field", impact_summary)
         self.assertIn("0.00058425", impact_summary)
         self.assertIn("## Impact Coverage", report)
+        self.assertIn("## Context Evidence Summary", report)
+        context_summary = _section(
+            report,
+            "## Context Evidence Summary",
+            "## Context Evidence\n",
+        )
+        self.assertIn("security_master", context_summary)
+        self.assertIn("positions", context_summary)
+        self.assertIn("cost-basis review context", context_summary)
         self.assertIn("## Context Evidence", report)
         context_evidence = _section(
             report,
-            "## Context Evidence",
+            "## Context Evidence\n",
             "## Transaction Cross-Checks",
         )
         self.assertIn("PC-POS-COST", context_evidence)
@@ -388,8 +397,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('id="needs-review-summary"', report)
         self.assertIn("Impact Coverage", report)
         self.assertIn("Residual Status", report)
+        self.assertIn("Context Evidence Summary", report)
         self.assertIn("Context Evidence", report)
         self.assertIn("Transaction Activity", report)
+        self.assertIn('id="context-evidence-summary"', report)
         self.assertIn('id="context-evidence"', report)
         self.assertIn('<p class="pc-table-meta">Rows: 1</p>', report)
         self.assertIn("pc-col-portfolio-return-delta", report)
@@ -444,6 +455,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("_No portfolio return changes to narrate._", report)
         self.assertIn("_No portfolio-period review notes._", report)
         self.assertIn("_No impact estimates are currently available._", report)
+        self.assertIn("_No context-only evidence summary._", report)
         self.assertIn("_No context-only evidence._", report)
         self.assertIn("_No portfolio return changes need residual review._", report)
         self.assertIn("_No changed transaction activity._", report)
@@ -460,6 +472,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("No portfolio return changes to narrate.", report)
         self.assertIn("No changed portfolio periods need review.", report)
         self.assertIn("No impact estimates are currently available.", report)
+        self.assertIn("No context-only evidence summary.", report)
         self.assertIn("No context-only evidence.", report)
         self.assertIn("No changed transaction activity.", report)
         self.assertIn("No cause summary available.", report)
@@ -538,6 +551,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("- Impact Estimate Summary", contents)
         self.assertIn("- Needs Review Summary", contents)
         self.assertIn("- Impact Coverage", contents)
+        self.assertIn("- Context Evidence Summary", contents)
         self.assertIn("- Context Evidence", contents)
         self.assertIn("- Transaction Cross-Checks", contents)
         self.assertIn("- Flow Cross-Check Reconciliation", contents)
@@ -572,10 +586,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertLess(
             report.index("## Impact Coverage"),
-            report.index("## Context Evidence"),
+            report.index("## Context Evidence Summary"),
         )
         self.assertLess(
-            report.index("## Context Evidence"),
+            report.index("## Context Evidence Summary"),
+            report.index("## Context Evidence\n"),
+        )
+        self.assertLess(
+            report.index("## Context Evidence\n"),
             report.index("## Transaction Cross-Checks"),
         )
         self.assertLess(
@@ -664,6 +682,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("`report.html`: standalone browser report", readme)
             self.assertIn("`needs_review_summary.csv`: top triage table", readme)
+            self.assertIn(
+                "`context_evidence_summary.csv`: context-only evidence counts",
+                readme,
+            )
             self.assertIn("`context_evidence.csv`: context-only evidence", readme)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
@@ -683,8 +705,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 manifest["artifacts"]["context_evidence"],
                 "context_evidence.csv",
             )
+            self.assertEqual(
+                manifest["artifacts"]["context_evidence_summary"],
+                "context_evidence_summary.csv",
+            )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 4)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 4)
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
@@ -707,6 +734,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 set(context_evidence["return_impact_treatment"]),
                 {"context only; not included in return-impact estimates"},
             )
+
+            context_evidence_summary = pl.read_csv(paths["context_evidence_summary"])
+            self.assertEqual(context_evidence_summary.height, 4)
+            self.assertIn("finding_count", context_evidence_summary.columns)
+            self.assertIn("affected_securities", context_evidence_summary.columns)
+            self.assertIn("AAPL", context_evidence_summary["affected_securities"].to_list())
 
             transaction_matching = pl.read_csv(paths["transaction_matching_diagnostics"])
             self.assertEqual(transaction_matching.height, 1)
@@ -739,6 +772,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["counts"]["findings"], 0)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 0)
             self.assertEqual(manifest["tables"]["impact_coverage"]["rows"], 0)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 0)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 0)
             self.assertEqual(manifest["tables"]["transaction_cross_checks"]["rows"], 0)
             self.assertEqual(
@@ -760,6 +794,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "portfolio_id,security_id,from_date",
                 paths["context_evidence"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "dataset,source_column,context_use",
+                paths["context_evidence_summary"].read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "portfolio_id,from_date,thru_date",

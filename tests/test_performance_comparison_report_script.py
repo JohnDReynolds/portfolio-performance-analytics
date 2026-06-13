@@ -237,22 +237,29 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn(str(output_directory), result.stdout)
             self.assertTrue((output_directory / "report.md").exists())
             self.assertTrue((output_directory / "findings.csv").exists())
+            self.assertTrue((output_directory / "context_evidence_summary.csv").exists())
             self.assertTrue((output_directory / "context_evidence.csv").exists())
             self.assertTrue((output_directory / "impact_coverage.csv").exists())
             self.assertTrue((output_directory / "manifest.json").exists())
             report = (output_directory / "report.md").read_text(encoding="utf-8")
             self.assertIn("# Script Bundle Report", report)
+            self.assertIn("## Context Evidence Summary", report)
             self.assertIn("## Context Evidence", report)
 
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
             self.assertEqual(manifest["counts"]["findings"], 22)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 4)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 4)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(
                 manifest["artifacts"]["context_evidence"],
                 "context_evidence.csv",
+            )
+            self.assertEqual(
+                manifest["artifacts"]["context_evidence_summary"],
+                "context_evidence_summary.csv",
             )
             self.assertEqual(manifest["artifacts"]["report"], "report.md")
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 import datetime as dt
 import html as html_lib
 import json
@@ -76,6 +76,7 @@ _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "cause_summary",
     "impact_estimates",
     "impact_coverage",
+    "context_evidence_summary",
     "context_evidence",
     "transaction_cross_checks",
     "flow_cross_check_reconciliation",
@@ -86,6 +87,21 @@ _REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
 )
 _CONTEXT_USE = "context_use"
 _RETURN_IMPACT_TREATMENT = "return_impact_treatment"
+_FINDING_COUNT = "finding_count"
+_PORTFOLIO_COUNT = "portfolio_count"
+_SECURITY_COUNT = "security_count"
+_AFFECTED_PORTFOLIOS = "affected_portfolios"
+_AFFECTED_SECURITIES = "affected_securities"
+_CONTEXT_EVIDENCE_SUMMARY_COLUMNS = (
+    _pc_findings.DATASET,
+    _pc_findings.SOURCE_COLUMN,
+    _CONTEXT_USE,
+    _FINDING_COUNT,
+    _PORTFOLIO_COUNT,
+    _SECURITY_COUNT,
+    _AFFECTED_PORTFOLIOS,
+    _AFFECTED_SECURITIES,
+)
 _CONTEXT_EVIDENCE_COLUMNS = (
     _pc_findings.PORTFOLIO_ID,
     _pc_findings.SECURITY_ID,
@@ -141,6 +157,7 @@ def performance_comparison_markdown_report(
         _review_notes_section(active_findings),
         _impact_estimate_summary_section(active_findings),
         _impact_coverage_section(active_findings),
+        _context_evidence_summary_section(active_findings),
         _context_evidence_section(active_findings),
         _transaction_cross_checks_section(active_findings),
         _flow_cross_check_reconciliation_section(active_findings),
@@ -188,6 +205,7 @@ def performance_comparison_html_report(
         _html_review_notes_section(active_findings),
         _html_impact_estimate_summary_section(active_findings),
         _html_impact_coverage_section(active_findings),
+        _html_context_evidence_summary_section(active_findings),
         _html_context_evidence_section(active_findings),
         _html_transaction_cross_checks_section(active_findings),
         _html_flow_cross_check_reconciliation_section(active_findings),
@@ -397,6 +415,7 @@ def _report_bundle_tables(
         "impact_coverage": _pc_explain.portfolio_period_impact_coverage_summary(
             active_findings
         ),
+        "context_evidence_summary": _context_evidence_summary_table(active_findings),
         "context_evidence": _context_evidence_table(active_findings),
         "transaction_cross_checks": (
             _pc_explain.portfolio_period_transaction_cross_checks(active_findings)
@@ -457,6 +476,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         "cause_summary": "cause-area summary with selected impact estimates",
         "impact_estimates": "currently quantified impact estimates",
         "impact_coverage": "period-level estimate coverage and missing inputs",
+        "context_evidence_summary": "context-only evidence counts by source field",
         "context_evidence": "context-only evidence excluded from impact estimates",
         "transaction_cross_checks": "review-only transaction impact cross-checks",
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
@@ -897,6 +917,7 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
         "Review Notes",
         "Impact Estimate Summary",
         "Impact Coverage",
+        "Context Evidence Summary",
         "Context Evidence",
         "Transaction Cross-Checks",
         "Flow Cross-Check Reconciliation",
@@ -1331,6 +1352,95 @@ def _context_evidence_section(findings: pl.DataFrame) -> str:
     )
 
 
+def _context_evidence_summary_section(findings: pl.DataFrame) -> str:
+    """Return context-only evidence counts by source field."""
+    return "\n".join(
+        [
+            "## Context Evidence Summary",
+            _markdown_table(
+                _context_evidence_summary_table(findings),
+                _CONTEXT_EVIDENCE_SUMMARY_COLUMNS,
+                empty_message="No context-only evidence summary.",
+            ),
+        ]
+    )
+
+
+def _context_evidence_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return grouped context evidence counts and affected identifiers."""
+    context_evidence = _context_evidence_table(findings)
+    if context_evidence.is_empty():
+        return _empty_context_evidence_summary_table()
+
+    grouped_rows: dict[tuple[object, object, object], list[dict[str, object]]] = {}
+    for row in context_evidence.iter_rows(named=True):
+        key = (
+            row[_pc_findings.DATASET],
+            row[_pc_findings.SOURCE_COLUMN],
+            row[_CONTEXT_USE],
+        )
+        grouped_rows.setdefault(key, []).append(row)
+
+    rows = [
+        _context_evidence_summary_row(key, rows_for_key)
+        for key, rows_for_key in sorted(grouped_rows.items(), key=_context_summary_key)
+    ]
+    return pl.DataFrame(rows).select(_CONTEXT_EVIDENCE_SUMMARY_COLUMNS)
+
+
+def _empty_context_evidence_summary_table() -> pl.DataFrame:
+    """Return an empty context-evidence summary with stable columns."""
+    return pl.DataFrame(
+        schema={
+            _pc_findings.DATASET: pl.String,
+            _pc_findings.SOURCE_COLUMN: pl.String,
+            _CONTEXT_USE: pl.String,
+            _FINDING_COUNT: pl.UInt32,
+            _PORTFOLIO_COUNT: pl.UInt32,
+            _SECURITY_COUNT: pl.UInt32,
+            _AFFECTED_PORTFOLIOS: pl.String,
+            _AFFECTED_SECURITIES: pl.String,
+        }
+    )
+
+
+def _context_summary_key(
+    item: tuple[tuple[object, object, object], list[dict[str, object]]],
+) -> tuple[str, str, str]:
+    """Return stable sort text for context-summary groups."""
+    key, _ = item
+    dataset, source_column, context_use = key
+    return (
+        _format_value(dataset),
+        _format_value(source_column),
+        _format_value(context_use),
+    )
+
+
+def _context_evidence_summary_row(
+    key: tuple[object, object, object],
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one grouped context-evidence summary row."""
+    dataset, source_column, context_use = key
+    portfolios = _unique_nonblank_values(
+        row.get(_pc_findings.PORTFOLIO_ID) for row in rows
+    )
+    securities = _unique_nonblank_values(
+        row.get(_pc_findings.SECURITY_ID) for row in rows
+    )
+    return {
+        _pc_findings.DATASET: dataset,
+        _pc_findings.SOURCE_COLUMN: source_column,
+        _CONTEXT_USE: context_use,
+        _FINDING_COUNT: len(rows),
+        _PORTFOLIO_COUNT: len(portfolios),
+        _SECURITY_COUNT: len(securities),
+        _AFFECTED_PORTFOLIOS: _comma_separated(portfolios),
+        _AFFECTED_SECURITIES: _comma_separated(securities),
+    }
+
+
 def _context_evidence_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return context evidence with explicit no-impact treatment."""
     if findings.is_empty():
@@ -1732,6 +1842,18 @@ def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
             _pc_explain.portfolio_period_impact_coverage_summary(findings),
             columns,
             empty_message="No portfolio return changes need impact coverage review.",
+        ),
+    )
+
+
+def _html_context_evidence_summary_section(findings: pl.DataFrame) -> str:
+    """Return context-only evidence counts as an HTML section."""
+    return _html_section(
+        "Context Evidence Summary",
+        _html_table(
+            _context_evidence_summary_table(findings),
+            _CONTEXT_EVIDENCE_SUMMARY_COLUMNS,
+            empty_message="No context-only evidence summary.",
         ),
     )
 
@@ -2153,6 +2275,16 @@ def _format_value(value: object) -> str:
 def _comma_separated(values: Sequence[str]) -> str:
     """Return a readable comma-separated list."""
     return ", ".join(values)
+
+
+def _unique_nonblank_values(values: Iterable[object]) -> list[str]:
+    """Return sorted unique display values, omitting blanks and nulls."""
+    unique_values = {
+        _format_value(value)
+        for value in values
+        if value is not None and _format_value(value)
+    }
+    return sorted(unique_values)
 
 
 def _escape_markdown_text(value: object) -> str:
