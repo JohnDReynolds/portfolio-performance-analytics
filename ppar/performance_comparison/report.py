@@ -227,26 +227,21 @@ def performance_comparison_html_report(
     active_findings = _active_findings(findings)
     summaries = _pc_runner.summarize_findings(findings)
     active_summaries = _pc_runner.summarize_findings(active_findings)
-    narrative_section = _html_portfolio_period_narrative_section(active_findings)
-    detail_sections = [
-        ("Portfolio-Period Narrative", narrative_section),
+    review_detail_sections = [
+        (
+            "Portfolio-Period Narrative",
+            _html_portfolio_period_narrative_section(active_findings),
+        ),
         ("Needs Review Summary", _html_needs_review_summary_section(active_findings)),
         ("Impact Coverage", _html_impact_coverage_section(active_findings)),
         ("Context Evidence", _html_context_evidence_section(active_findings)),
-        ("Transaction Activity", _html_transaction_activity_section(active_findings)),
-        ("Residual Status", _html_residual_status_section(active_findings)),
         ("Top Evidence", _html_top_evidence_section(active_findings, top_evidence_limit)),
-        (
-            "Run Summary",
-            _html_run_summary_section(
-                findings,
-                active_findings,
-                summaries,
-                active_summaries,
-            ),
-        ),
+    ]
+    audit_appendix_sections = [
         ("Review Notes", _html_review_notes_section(active_findings)),
         ("Impact Estimate Summary", _html_impact_estimate_summary_section(active_findings)),
+        ("Transaction Activity", _html_transaction_activity_section(active_findings)),
+        ("Residual Status", _html_residual_status_section(active_findings)),
         ("Context Evidence Summary", _html_context_evidence_summary_section(active_findings)),
         ("Transaction Cross-Checks", _html_transaction_cross_checks_section(active_findings)),
         (
@@ -259,9 +254,18 @@ def performance_comparison_html_report(
         ),
         ("Portfolio-Period Changes", _html_portfolio_period_section(active_findings)),
         ("Cause Summary", _html_cause_summary_section(active_findings)),
+        (
+            "Run Summary",
+            _html_run_summary_section(
+                findings,
+                active_findings,
+                summaries,
+                active_summaries,
+            ),
+        ),
     ]
     if include_suppressed_appendix:
-        detail_sections.append(
+        audit_appendix_sections.append(
             (
                 "Suppressed Findings Appendix",
                 _html_suppressed_appendix_section(findings, summaries),
@@ -284,7 +288,8 @@ def performance_comparison_html_report(
             f"<h1>{_escape_html(title)}</h1>",
             "</header>",
             _html_review_dashboard_section(active_findings),
-            _html_supporting_detail_section(detail_sections),
+            _html_review_detail_section(review_detail_sections),
+            _html_audit_appendix_section(audit_appendix_sections),
             "</main>",
             _html_dashboard_script(),
             "</body>",
@@ -2594,25 +2599,50 @@ def _html_review_notes_section(findings: pl.DataFrame) -> str:
     return _html_section("Review Notes", _html_list(notes))
 
 
-def _html_supporting_detail_section(sections: Sequence[tuple[str, str]]) -> str:
-    """Return collapsible supporting detail sections for the HTML report."""
+def _html_review_detail_section(sections: Sequence[tuple[str, str]]) -> str:
+    """Return the small set of first-pass reviewer detail sections."""
+    return _html_detail_group_section(
+        "Review Detail",
+        (
+            "Open these sections when the dashboard points you to supporting "
+            "evidence."
+        ),
+        sections,
+    )
+
+
+def _html_audit_appendix_section(sections: Sequence[tuple[str, str]]) -> str:
+    """Return secondary diagnostic and completeness sections."""
+    return _html_detail_group_section(
+        "Audit Appendix",
+        (
+            "These sections preserve diagnostic detail and report completeness; "
+            "most first-pass reviews should not need to start here."
+        ),
+        sections,
+    )
+
+
+def _html_detail_group_section(
+    title: str,
+    note: str,
+    sections: Sequence[tuple[str, str]],
+) -> str:
+    """Return a grouped set of collapsible HTML detail sections."""
     detail_items = [
-        _html_supporting_detail_item(title, content)
-        for title, content in sections
+        _html_detail_group_item(section_title, content)
+        for section_title, content in sections
     ]
     content = "\n".join(
         [
-            (
-                '<p class="pc-note">Open these sections when the dashboard or '
-                'narrative points you to supporting evidence.</p>'
-            ),
+            f'<p class="pc-note">{_escape_html(note)}</p>',
             *detail_items,
         ]
     )
-    return _html_section("Supporting Detail", content)
+    return _html_section(title, content)
 
 
-def _html_supporting_detail_item(title: str, content: str) -> str:
+def _html_detail_group_item(title: str, content: str) -> str:
     """Return one native disclosure item containing a report section."""
     return "\n".join(
         [

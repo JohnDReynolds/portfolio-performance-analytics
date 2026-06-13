@@ -421,19 +421,30 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('id="review-dashboard"', report)
         self.assertLess(
             report.index('id="review-dashboard"'),
-            report.index('id="supporting-detail"'),
+            report.index('id="review-detail"'),
         )
         self.assertLess(
-            report.index('id="supporting-detail"'),
+            report.index('id="review-detail"'),
             report.index('id="portfolio-period-narrative"'),
         )
-        self.assertIn('id="supporting-detail"', report)
+        self.assertLess(
+            report.index('id="review-detail"'),
+            report.index('id="audit-appendix"'),
+        )
+        self.assertIn('id="review-detail"', report)
+        self.assertIn('id="audit-appendix"', report)
         self.assertIn('<details class="pc-detail">', report)
         self.assertIn("<summary>Portfolio-Period Narrative</summary>", report)
         self.assertIn("<summary>Impact Coverage</summary>", report)
+        self.assertIn("<summary>Top Evidence</summary>", report)
+        self.assertIn("<summary>Run Summary</summary>", report)
         self.assertLess(
-            report.index('id="supporting-detail"'),
+            report.index('id="review-detail"'),
             report.index('id="needs-review-summary"'),
+        )
+        self.assertLess(
+            report.index('id="audit-appendix"'),
+            report.index('id="run-summary"'),
         )
         self.assertNotIn('id="at-a-glance"', report)
         dashboard = _html_section(report, "review-dashboard")
@@ -668,7 +679,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertNotIn('class="pc-subtitle"', report)
         self.assertNotIn('class="pc-header-notes"', report)
         self.assertIn('id="review-dashboard"', report)
-        self.assertIn('id="supporting-detail"', report)
+        self.assertIn('id="review-detail"', report)
+        self.assertIn('id="audit-appendix"', report)
         self.assertIn("Review table with", report)
         self.assertNotIn('<ol class="pc-contents-list">', report)
 

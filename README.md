@@ -170,7 +170,8 @@ links. The dashboard includes lightweight browser filters for search, review
 status, and missing-input-only review. Those links land on period-specific
 detail rows where the section carries portfolio-period data. The HTML report
 keeps the first view short: dashboard first, with full narrative and detailed
-evidence tables under Supporting Detail. Then inspect
+evidence tables under Review Detail, and secondary diagnostics under Audit
+Appendix. Then inspect
 `needs_review_summary.csv` for the periods and issues that need review first.
 The `review_key` column links period-level bundle tables, and
 `review_detail_artifacts` names the CSVs most relevant to each triage row. The
@@ -179,8 +180,8 @@ tables.
 
 A practical review order is:
 
-1. `report.html`: browser-readable Review Dashboard, drilldown cues, narrative,
-   and tables.
+1. `report.html`: browser-readable Review Dashboard, Review Detail, and Audit
+   Appendix.
 2. `needs_review_summary.csv`: changed periods, suggested next steps, and
    drilldown artifacts.
 3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing

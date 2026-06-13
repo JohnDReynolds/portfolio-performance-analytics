@@ -1368,7 +1368,7 @@ The HTML report adds a first-screen `Review Dashboard` before the detailed
 sections. It uses the same period-level triage data to show one compact row per
 changed portfolio period, with return delta, status, primary cue, suggested next
 step, impact coverage hint, cause-area coverage counts, missing inputs,
-high-priority context, and links to the supporting detail sections. Dashboard
+high-priority context, and links to the review detail sections. Dashboard
 links use stable period-specific row anchors when the target section carries
 portfolio-period fields, so a reviewer lands near the relevant evidence rather
 than only at the top of a broad section. Rows are sorted to keep needs-review
@@ -1378,8 +1378,8 @@ guides the reviewer through existing evidence without adding new calculation
 logic. Its lightweight browser filters search rendered row text, review status,
 and missing-input flags only; they do not change report data or require a
 server. The default HTML presentation should stay short at the top: dashboard
-first, with full narrative and detailed tables inside a Supporting Detail
-disclosure area.
+first, then a small Review Detail group for first-pass evidence, then an Audit
+Appendix group for secondary diagnostics and completeness tables.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is
