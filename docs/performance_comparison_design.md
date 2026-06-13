@@ -1297,6 +1297,18 @@ changes. This section should use a section-level caveat plus compact per-period
 reason labels, rather than calculating an unexplained amount from partial or
 mixed-confidence estimates.
 
+Current residual review statuses are withheld labels only:
+
+- `withheld_no_estimates`: No regular contribution estimates are available for
+  the changed portfolio period.
+- `withheld_partial_estimates`: Some regular contribution estimates exist, but
+  they are partial, low/medium confidence, or potentially overlapping.
+- `withheld_cross_checks_only`: Review-only transaction cross-check estimates
+  exist, but no regular contribution estimates are available.
+
+These statuses keep the unexplained amount visible as a review concern without
+emitting a numeric residual.
+
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
 The bundle contains the HTML report, Markdown report, raw findings, current
 report helper tables as CSV files, a short `README.md`, and a JSON manifest

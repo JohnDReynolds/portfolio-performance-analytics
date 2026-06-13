@@ -39,7 +39,10 @@ _NO_ESTIMATE_NOTE = (
 _ESTIMATED_IMPACT_AREAS = "estimated_impact_areas"
 _RESIDUAL_STATUS = "residual_status"
 _RESIDUAL_REASON = "residual_reason"
-_RESIDUAL_WITHHELD = "withheld"
+_RESIDUAL_WITHHELD_PREFIX = "withheld"
+_RESIDUAL_WITHHELD_NO_ESTIMATES = "withheld_no_estimates"
+_RESIDUAL_WITHHELD_PARTIAL_ESTIMATES = "withheld_partial_estimates"
+_RESIDUAL_WITHHELD_CROSS_CHECKS_ONLY = "withheld_cross_checks_only"
 _RESIDUAL_STATUS_NOTE = (
     "Residual amounts are intentionally withheld until the attribution model has "
     "enough defensible, non-overlapping impact estimates."
@@ -756,8 +759,9 @@ def _needs_review_cues(
         if policies:
             cross_check_cue = f"{cross_check_cue}: {policies}"
         cues.append(cross_check_cue)
-    if residual_row.get(_RESIDUAL_STATUS) == _RESIDUAL_WITHHELD:
-        cues.append(f"residual {_RESIDUAL_WITHHELD}")
+    residual_status = residual_row.get(_RESIDUAL_STATUS)
+    if _is_residual_withheld_status(residual_status):
+        cues.append(f"residual {residual_status}")
     return cues
 
 
@@ -784,7 +788,7 @@ def _suggested_next_step(cues: Sequence[str]) -> str:
         return "Review transaction cross-checks separately from impact totals."
     if any("low-confidence" in cue for cue in cues):
         return "Review low-confidence estimates and supporting evidence."
-    if any(cue == "residual withheld" for cue in cues):
+    if any(cue.startswith("residual withheld") for cue in cues):
         return "Keep residual caveat visible until estimates are complete."
     return "No changed portfolio-period review cue."
 
@@ -825,6 +829,11 @@ def _count_value(value: object) -> int:
 def _has_text(value: object) -> bool:
     """Return whether a value has non-empty display text."""
     return bool(value is not None and str(value).strip())
+
+
+def _is_residual_withheld_status(value: object) -> bool:
+    """Return whether a residual status represents a withheld residual."""
+    return isinstance(value, str) and value.startswith(_RESIDUAL_WITHHELD_PREFIX)
 
 
 def _report_contents_section(*, include_suppressed_appendix: bool) -> str:
@@ -1204,9 +1213,15 @@ def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
         )
 
     causes = _pc_explain.portfolio_period_cause_summary(findings)
+    cross_checks = _pc_explain.portfolio_period_transaction_cross_checks(findings)
+    cross_checks_by_period = _period_rows_by_key(cross_checks)
     return pl.DataFrame(
         [
-            _residual_status_row(period, _period_cause_rows(causes, period))
+            _residual_status_row(
+                period,
+                _period_cause_rows(causes, period),
+                cross_checks_by_period.get(_period_key(period), []),
+            )
             for period in periods.iter_rows(named=True)
         ]
     )
@@ -1215,6 +1230,7 @@ def _residual_status_table(findings: pl.DataFrame) -> pl.DataFrame:
 def _residual_status_row(
     period: dict[str, object],
     causes: list[dict[str, object]],
+    cross_checks: list[dict[str, object]],
 ) -> dict[str, object]:
     """Return one residual-status row for a portfolio period."""
     estimated_areas = [
@@ -1222,9 +1238,18 @@ def _residual_status_row(
         for cause in causes
         if cause.get(_pc_explain.ESTIMATED_RETURN_IMPACT) is not None
     ]
+    cross_check_count = sum(
+        _count_value(row.get(_pc_explain.CROSS_CHECK_COUNT))
+        for row in cross_checks
+    )
     if estimated_areas:
+        status = _RESIDUAL_WITHHELD_PARTIAL_ESTIMATES
         reason = "partial or overlapping estimates"
+    elif cross_check_count > 0:
+        status = _RESIDUAL_WITHHELD_CROSS_CHECKS_ONLY
+        reason = "transaction cross-checks only; no contribution estimates"
     else:
+        status = _RESIDUAL_WITHHELD_NO_ESTIMATES
         reason = "no defensible impact estimates"
 
     return {
@@ -1233,7 +1258,7 @@ def _residual_status_row(
         _pc_findings.THRU_DATE: period[_pc_findings.THRU_DATE],
         _pc_explain.PORTFOLIO_RETURN_DELTA: period[_pc_explain.PORTFOLIO_RETURN_DELTA],
         _ESTIMATED_IMPACT_AREAS: _comma_separated(estimated_areas),
-        _RESIDUAL_STATUS: _RESIDUAL_WITHHELD,
+        _RESIDUAL_STATUS: status,
         _RESIDUAL_REASON: reason,
     }
 
@@ -1943,7 +1968,7 @@ def _html_value_classes(column: str, value: object) -> list[str]:
     """Return CSS classes derived from stable report status values."""
     if column == _REVIEW_STATUS:
         return [f"pc-status-{_css_token(_format_value(value))}"]
-    if column == _RESIDUAL_STATUS and value == _RESIDUAL_WITHHELD:
+    if column == _RESIDUAL_STATUS and _is_residual_withheld_status(value):
         return ["pc-status-withheld"]
     return []
 

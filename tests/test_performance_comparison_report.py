@@ -170,7 +170,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "## Transaction Activity",
         )
         self.assertIn("Residual amounts are intentionally withheld", residual_status)
-        self.assertIn("withheld", residual_status)
+        self.assertIn("withheld_partial_estimates", residual_status)
         self.assertIn("partial or overlapping estimates", residual_status)
         self.assertIn("## Transaction Activity", report)
         transaction_activity = _section(
@@ -355,6 +355,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("not included in estimated impact totals", cross_checks)
         self.assertIn("missing_portfolio_flow_delta", reconciliation)
         self.assertIn("0.005483870968", reconciliation)
+        residual_status = _section(
+            report,
+            "## Residual Status",
+            "## Transaction Activity",
+        )
+        self.assertIn("withheld_cross_checks_only", residual_status)
+        self.assertIn("transaction cross-checks only", residual_status)
 
     def test_html_report_summarizes_restatement_findings(self) -> None:
         """HTML reports include the same reviewer-facing sections and tables."""
@@ -491,7 +498,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertIn("PORT_NO_EST", residual_status)
         self.assertIn("Residual amounts are intentionally withheld", residual_status)
-        self.assertIn("withheld", residual_status)
+        self.assertIn("withheld_no_estimates", residual_status)
         self.assertIn("no defensible impact estimates", residual_status)
         self.assertNotIn("partial or overlapping estimates", residual_status)
 
