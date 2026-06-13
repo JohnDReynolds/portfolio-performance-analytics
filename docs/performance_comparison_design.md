@@ -54,6 +54,7 @@ Implemented output helpers:
 - portfolio-period contribution candidates
 - portfolio-period cause summaries
 - transaction activity summaries
+- context evidence summaries and context evidence detail
 - security-period summaries
 - security-period evidence breakdowns
 - Markdown and HTML review reports
@@ -1451,7 +1452,13 @@ The first reviewer-facing report layer is implemented.
 - Rank largest return and contribution deltas.
 - Include impact summaries, cross-check summaries, evidence sections, and
   suppressed findings appendices.
+- Surface context-only evidence separately from modeled impact estimates.
+- Summarize context evidence by dataset, source column, context use, and
+  affected identifiers.
 - Write reproducible report bundles with manifest and validation helpers.
+  Current bundles include `context_evidence_summary.csv` and
+  `context_evidence.csv` alongside impact, transaction, residual, and
+  top-evidence tables.
 
 ### Milestone 3: Supporting-File Explanations - Implemented Evidence Layer
 
@@ -1528,14 +1535,21 @@ transaction quantity, price, and commission.
 ## Current Recommended Next Work
 
 Treat the current comparison engine, evidence layer, and report bundle as the
-baseline. The next useful work should stay narrow and auditable: strengthen one
-evidence bridge at a time, especially residual explanation and supporting-file
-comparisons, while keeping all source-specific rules explicit in YAML and
-avoiding hidden vendor assumptions.
+baseline. Context-only evidence is now visible both as detail and as a summary,
+and report bundles have a clearer reviewer workflow. The next useful work
+should stay narrow and auditable: improve explanation quality or presentation
+without adding hidden vendor assumptions or broad new datasets.
 
 Good next candidates are:
 
-- Refine residual review status now that the first YAML-gated contribution
-  estimates are explicit.
-- Expand supporting-file comparisons for already-normalized columns before
-  adding new datasets.
+- Make the HTML report feel more like an Axys/Replang review report while
+  preserving the existing calculation and explanation boundaries.
+- Add reviewer-facing charts or compact tables only where they clarify
+  prioritization, impact coverage, transaction cross-checks, context evidence,
+  or residual status.
+- Revisit residual explanation only after there are enough credible,
+  non-overlapping impact estimates to avoid implying false precision.
+- Expand supporting-file comparisons only for already-normalized columns that
+  have clear reviewer value, before considering new datasets.
+- Keep transaction and contribution-impact methods explicit in YAML whenever
+  vendor-specific sign, flow, timing, or denominator rules are involved.
