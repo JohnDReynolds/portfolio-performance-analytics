@@ -1365,6 +1365,8 @@ Context evidence is summarized separately from impact estimates. The
 `return_impact_treatment` value that states the row is not included in
 return-impact estimates. This keeps useful audit context visible without
 quietly relaxing the rule that every modeled impact method must be explicit.
+Context evidence linked to changed portfolio periods is also surfaced as a
+high-priority cue in `needs_review_summary.csv`.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group

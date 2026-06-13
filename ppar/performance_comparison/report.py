@@ -779,12 +779,14 @@ def _needs_review_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
     cross_checks_by_period = _period_rows_by_key(
         _pc_explain.portfolio_period_transaction_cross_checks(findings)
     )
+    context_by_period = _period_rows_by_key(_context_evidence_table(findings))
     rows = [
         _needs_review_summary_row(
             period=period,
             coverage=coverage_by_period.get(_period_key(period), []),
             residual=residual_by_period.get(_period_key(period), []),
             cross_checks=cross_checks_by_period.get(_period_key(period), []),
+            context=context_by_period.get(_period_key(period), []),
         )
         for period in periods.iter_rows(named=True)
     ]
@@ -812,12 +814,14 @@ def _needs_review_summary_row(
     coverage: list[dict[str, object]],
     residual: list[dict[str, object]],
     cross_checks: list[dict[str, object]],
+    context: list[dict[str, object]],
 ) -> dict[str, object]:
     """Return one reviewer-cue row for a changed portfolio period."""
     cues = _needs_review_cues(
         coverage=coverage,
         residual=residual,
         cross_checks=cross_checks,
+        context=context,
     )
     return {
         _pc_findings.PORTFOLIO_ID: period[_pc_findings.PORTFOLIO_ID],
@@ -835,6 +839,7 @@ def _needs_review_cues(
     coverage: list[dict[str, object]],
     residual: list[dict[str, object]],
     cross_checks: list[dict[str, object]],
+    context: list[dict[str, object]],
 ) -> list[str]:
     """Return deterministic reviewer cues for a portfolio period."""
     cues: list[str] = []
@@ -872,10 +877,38 @@ def _needs_review_cues(
         if policies:
             cross_check_cue = f"{cross_check_cue}: {policies}"
         cues.append(cross_check_cue)
+    context_cue = _high_priority_context_cue(context)
+    if context_cue:
+        cues.append(context_cue)
     residual_status = residual_row.get(_RESIDUAL_STATUS)
     if _is_residual_withheld_status(residual_status):
         cues.append(f"residual {residual_status}")
     return cues
+
+
+def _high_priority_context_cue(context: list[dict[str, object]]) -> str:
+    """Return a period-level cue for context rows linked to changed periods."""
+    if not context:
+        return ""
+    labels = sorted(
+        {
+            _context_source_label(row)
+            for row in context
+            if _has_text(row.get(_pc_findings.DATASET))
+        }
+    )
+    if not labels:
+        return ""
+    return f"high-priority context: {_comma_separated(labels)}"
+
+
+def _context_source_label(row: Mapping[str, object]) -> str:
+    """Return a compact dataset/source label for context triage cues."""
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    if source_column:
+        return f"{dataset}/{source_column}"
+    return dataset
 
 
 def _needs_review_status(cues: Sequence[str]) -> str:
@@ -884,6 +917,7 @@ def _needs_review_status(cues: Sequence[str]) -> str:
         return _REVIEW_STATUS_CLEAR
     if any(
         cue.startswith(("missing inputs:", "residual withheld"))
+        or cue.startswith("high-priority context:")
         or "evidence-only" in cue
         for cue in cues
     ):
@@ -895,6 +929,8 @@ def _suggested_next_step(cues: Sequence[str]) -> str:
     """Return a conservative next action for a period's reviewer cues."""
     if any(cue.startswith("missing inputs:") for cue in cues):
         return "Resolve missing impact inputs before interpreting estimates."
+    if any(cue.startswith("high-priority context:") for cue in cues):
+        return "Review high-priority context evidence linked to the changed period."
     if any("evidence-only" in cue for cue in cues):
         return "Review evidence-only areas before relying on impact totals."
     if any("transaction cross-check" in cue for cue in cues):

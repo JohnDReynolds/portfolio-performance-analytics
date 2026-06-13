@@ -128,6 +128,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("needs_review", needs_review)
         self.assertIn("4 evidence-only area(s)", needs_review)
         self.assertIn("missing inputs: return-impact method", needs_review)
+        self.assertIn("high-priority context: positions/cost", needs_review)
         self.assertIn("residual withheld", needs_review)
         self.assertIn("Resolve missing impact inputs before interpreting estimates.", needs_review)
         self.assertIn("## Portfolio-Period Narrative", report)
@@ -739,6 +740,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(needs_review.height, 1)
             self.assertIn("review_status", needs_review.columns)
             self.assertEqual(needs_review["review_status"][0], "needs_review")
+            self.assertIn(
+                "high-priority context: positions/cost",
+                needs_review["review_cues"][0],
+            )
 
             impact_coverage = pl.read_csv(paths["impact_coverage"])
             self.assertEqual(impact_coverage.height, 1)
