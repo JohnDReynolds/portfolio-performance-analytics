@@ -22,12 +22,14 @@ from ppar.performance_comparison import (
     security_period_summary,
     summarize_findings,
     transaction_activity_summary,
-    write_performance_comparison_html_report,
-    write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
 )
 
 _DemoTable = tuple[str, pl.DataFrame, bool]
+_LEGACY_STANDALONE_REPORT_NAMES = (
+    "performance_comparison_restatement.md",
+    "performance_comparison_restatement.html",
+)
 
 
 def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None:
@@ -56,25 +58,26 @@ def main() -> None:
         )
 
         output_root = Path.cwd() / "_demo_output"
-        report_path = output_root / "performance_comparison_restatement.md"
-        html_report_path = output_root / "performance_comparison_restatement.html"
         bundle_path = output_root / "performance_comparison_bundle"
+        _remove_legacy_standalone_reports(output_root)
 
         _run_comparison_demo(
             comparison_path=comparison_path,
             suppressed_comparison_path=suppressed_comparison_path,
-            report_path=report_path,
-            html_report_path=html_report_path,
             bundle_path=bundle_path,
         )
+
+
+def _remove_legacy_standalone_reports(output_root: Path) -> None:
+    """Remove old top-level demo reports now superseded by bundle reports."""
+    for report_name in _LEGACY_STANDALONE_REPORT_NAMES:
+        (output_root / report_name).unlink(missing_ok=True)
 
 
 def _run_comparison_demo(
     *,
     comparison_path: Path,
     suppressed_comparison_path: Path,
-    report_path: Path,
-    html_report_path: Path,
     bundle_path: Path,
 ) -> None:
     """Run the performance comparison workflow for resolved demo paths."""
@@ -100,22 +103,12 @@ def _run_comparison_demo(
     suppressed_summaries = summarize_findings(suppressed_findings)
     suppressed_active_summaries = summarize_findings(suppressed_active_findings)
     markdown_report = performance_comparison_markdown_report(findings)
-    written_report_path = write_performance_comparison_markdown_report(
-        findings,
-        report_path,
-    )
-    written_html_report_path = write_performance_comparison_html_report(
-        findings,
-        html_report_path,
-    )
     written_bundle_paths = write_performance_comparison_report_bundle(
         findings,
         bundle_path,
     )
     print("Restatement comparison")
     print()
-    print(f"Markdown report written to: {written_report_path}")
-    print(f"HTML report written to: {written_html_report_path}")
     print(f"Report bundle written to: {written_bundle_paths['manifest'].parent}")
     _print_bundle_handoff(written_bundle_paths)
     print(markdown_report)
