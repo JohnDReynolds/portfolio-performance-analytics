@@ -2299,7 +2299,7 @@ def _html_dashboard_card(row: Mapping[str, object]) -> str:
             f'<p class="pc-dashboard-next">{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}</p>',
             f'<p class="pc-dashboard-note">'
             f"{_escape_html(row.get(_pc_explain.IMPACT_COVERAGE_REVIEW_NOTE))}</p>",
-            _html_dashboard_links(),
+            _html_dashboard_links(row),
             "</article>",
         ]
     )
@@ -2317,10 +2317,12 @@ def _html_dashboard_fact(label: str, value: object) -> str:
     )
 
 
-def _html_dashboard_links() -> str:
-    """Return static drilldown links for dashboard cards."""
+def _html_dashboard_links(row: Mapping[str, object]) -> str:
+    """Return period-specific drilldown links for one dashboard card."""
+    review_key = _format_value(row.get(_REVIEW_KEY))
     links = [
-        f'<a href="#{section_id}">{_escape_html(label)}</a>'
+        f'<a href="#{_html_dashboard_link_target(section_id, review_key)}">'
+        f"{_escape_html(label)}</a>"
         for label, section_id in _DASHBOARD_DETAIL_LINKS
     ]
     return "\n".join(
@@ -2332,6 +2334,13 @@ def _html_dashboard_links() -> str:
     )
 
 
+def _html_dashboard_link_target(section_id: str, review_key: str) -> str:
+    """Return a dashboard link target for a section and review key."""
+    if not review_key:
+        return section_id
+    return _html_review_key_row_id(section_id, review_key)
+
+
 def _html_needs_review_summary_section(findings: pl.DataFrame) -> str:
     """Return changed-period reviewer cues as an HTML section."""
     return _html_section(
@@ -2340,6 +2349,7 @@ def _html_needs_review_summary_section(findings: pl.DataFrame) -> str:
             _needs_review_summary_table(findings),
             _NEEDS_REVIEW_COLUMNS,
             empty_message="No changed portfolio periods need review.",
+            row_id_prefix="needs-review-summary",
         ),
     )
 
@@ -2428,6 +2438,7 @@ def _html_impact_coverage_section(findings: pl.DataFrame) -> str:
             _pc_explain.portfolio_period_impact_coverage_summary(findings),
             columns,
             empty_message="No portfolio return changes need impact coverage review.",
+            row_id_prefix="impact-coverage",
         ),
     )
 
@@ -2452,6 +2463,7 @@ def _html_context_evidence_section(findings: pl.DataFrame) -> str:
             _context_evidence_table(findings),
             _CONTEXT_EVIDENCE_COLUMNS,
             empty_message="No context-only evidence.",
+            row_id_prefix="context-evidence",
         ),
     )
 
@@ -2464,6 +2476,7 @@ def _html_transaction_cross_checks_section(findings: pl.DataFrame) -> str:
             _pc_explain.portfolio_period_transaction_cross_checks(findings),
             list(_pc_explain.PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS),
             empty_message="No transaction cross-check estimates are available.",
+            row_id_prefix="transaction-cross-checks",
         ),
     )
 
@@ -2476,6 +2489,7 @@ def _html_flow_cross_check_reconciliation_section(findings: pl.DataFrame) -> str
             _pc_explain.portfolio_period_flow_cross_check_reconciliation(findings),
             list(_pc_explain.PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS),
             empty_message="No flow/cross-check reconciliation rows are available.",
+            row_id_prefix="flow-cross-check-reconciliation",
         ),
     )
 
@@ -2499,6 +2513,7 @@ def _html_residual_status_section(findings: pl.DataFrame) -> str:
                 _residual_status_table(findings),
                 columns,
                 empty_message="No portfolio return changes need residual review.",
+                row_id_prefix="residual-status",
             ),
         ]
     )
@@ -2527,6 +2542,7 @@ def _html_transaction_activity_section(findings: pl.DataFrame) -> str:
             _pc_explain.transaction_activity_summary(findings),
             columns,
             empty_message="No changed transaction activity.",
+            row_id_prefix="transaction-activity",
         ),
     )
 
@@ -2564,6 +2580,7 @@ def _html_portfolio_period_section(findings: pl.DataFrame) -> str:
             _pc_explain.portfolio_period_summary(findings),
             columns,
             empty_message="No portfolio return changes.",
+            row_id_prefix="portfolio-period-changes",
         ),
     )
 
@@ -2593,6 +2610,7 @@ def _html_cause_summary_section(findings: pl.DataFrame) -> str:
             _pc_explain.portfolio_period_cause_summary(findings),
             columns,
             empty_message="No cause summary available.",
+            row_id_prefix="cause-summary",
         ),
     )
 
@@ -2632,6 +2650,7 @@ def _html_top_evidence_section(
             _top_evidence_table(findings, top_evidence_limit),
             columns,
             empty_message="No ranked evidence is available.",
+            row_id_prefix="top-evidence",
         ),
     )
 
@@ -2745,6 +2764,7 @@ def _html_table(
     columns: Sequence[str],
     *,
     empty_message: str = "No rows.",
+    row_id_prefix: str | None = None,
 ) -> str:
     """Return an HTML table for selected columns."""
     if table.is_empty():
@@ -2759,9 +2779,16 @@ def _html_table(
         for column in available_columns
     ]
     body_rows = []
+    row_id_counts: dict[str, int] = {}
     for row in table.select(available_columns).iter_rows(named=True):
         cells = [_html_table_cell(row[column], column) for column in available_columns]
-        body_rows.append("<tr>" + "".join(cells) + "</tr>")
+        row_id = _html_table_row_id(
+            row,
+            row_id_prefix=row_id_prefix,
+            row_id_counts=row_id_counts,
+        )
+        row_id_attribute = f' id="{row_id}"' if row_id else ""
+        body_rows.append(f"<tr{row_id_attribute}>" + "".join(cells) + "</tr>")
     return "\n".join(
         [
             '<div class="pc-table-wrap">',
@@ -2778,6 +2805,55 @@ def _html_table(
             "</div>",
         ]
     )
+
+
+def _html_table_row_id(
+    row: Mapping[str, object],
+    *,
+    row_id_prefix: str | None,
+    row_id_counts: dict[str, int],
+) -> str:
+    """Return an optional stable row id for period-level HTML table rows."""
+    if not row_id_prefix:
+        return ""
+    review_key = _row_review_key(row)
+    if not review_key:
+        return ""
+
+    base_row_id = _html_review_key_row_id(row_id_prefix, review_key)
+    row_id_count = row_id_counts.get(base_row_id, 0) + 1
+    row_id_counts[base_row_id] = row_id_count
+    if row_id_count == 1:
+        return base_row_id
+    return f"{base_row_id}-{row_id_count}"
+
+
+def _row_review_key(row: Mapping[str, object]) -> str:
+    """Return a row's review key when enough period fields are available."""
+    if _has_text(row.get(_REVIEW_KEY)):
+        return _format_value(row.get(_REVIEW_KEY))
+    period_columns = {
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+    }
+    if not period_columns.issubset(row.keys()):
+        return ""
+    return _period_review_key(row)
+
+
+def _html_review_key_row_id(section_id: str, review_key: str) -> str:
+    """Return a stable HTML row id for a section/review-key pair."""
+    return f"{section_id}--{_html_id_token(review_key)}"
+
+
+def _html_id_token(value: str) -> str:
+    """Return a conservative HTML id token."""
+    token = "".join(
+        character.lower() if character.isalnum() else "-"
+        for character in value
+    ).strip("-")
+    return token or "row"
 
 
 def _html_table_caption(table: pl.DataFrame, columns: Sequence[str]) -> str:

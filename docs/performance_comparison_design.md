@@ -1367,9 +1367,12 @@ most relevant to each changed period.
 The HTML report adds a first-screen `Review Dashboard` before the detailed
 sections. It uses the same period-level triage data to show one compact card per
 portfolio period, with status, primary cue, suggested next step, impact coverage
-hint, and links to the supporting detail sections. The dashboard is deliberately
-static for now: it guides the reviewer through existing evidence without adding
-new calculation logic or client-side workflow assumptions.
+hint, and links to the supporting detail sections. Dashboard links use stable
+period-specific row anchors when the target section carries portfolio-period
+fields, so a reviewer lands near the relevant evidence rather than only at the
+top of a broad section. The dashboard is deliberately static for now: it guides
+the reviewer through existing evidence without adding new calculation logic or
+client-side workflow assumptions.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

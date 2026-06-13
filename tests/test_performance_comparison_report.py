@@ -425,9 +425,34 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
         self.assertIn("4 evidence-only area(s)", dashboard)
         self.assertIn("Resolve missing impact inputs", dashboard)
-        self.assertIn('href="#impact-coverage"', dashboard)
-        self.assertIn('href="#context-evidence"', dashboard)
-        self.assertIn('href="#transaction-activity"', dashboard)
+        self.assertIn(
+            'href="#impact-coverage--port-a--2025-05-30--2025-05-30"',
+            dashboard,
+        )
+        self.assertIn(
+            'href="#context-evidence--port-a--2025-05-30--2025-05-30"',
+            dashboard,
+        )
+        self.assertIn(
+            'href="#transaction-activity--port-a--2025-05-30--2025-05-30"',
+            dashboard,
+        )
+        self.assertIn(
+            'id="impact-coverage--port-a--2025-05-30--2025-05-30"',
+            report,
+        )
+        self.assertIn(
+            'id="context-evidence--port-a--2025-05-30--2025-05-30"',
+            report,
+        )
+        self.assertIn(
+            'id="transaction-activity--port-a--2025-05-30--2025-05-30"',
+            report,
+        )
+        self.assertIn(
+            'id="top-evidence--port-a--2025-05-30--2025-05-30"',
+            report,
+        )
         self.assertIn('class="pc-dashboard-grid"', dashboard)
         self.assertIn('id="impact-coverage"', report)
         self.assertIn('id="needs-review-summary"', report)
