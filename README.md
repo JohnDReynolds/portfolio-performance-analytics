@@ -163,13 +163,16 @@ Start with these references:
 The performance comparison demo writes a review bundle under `_demo_output`.
 Start with `_demo_output/performance_comparison_bundle/report.html`, then
 inspect `needs_review_summary.csv` for the periods and issues that need review
-first. The bundle `README.md` and `manifest.json` describe the generated
-reports and CSV tables.
+first. The `review_key` column links period-level bundle tables, and
+`review_detail_artifacts` names the CSVs most relevant to each triage row. The
+bundle `README.md` and `manifest.json` describe the generated reports and CSV
+tables.
 
 A practical review order is:
 
 1. `report.html`: browser-readable narrative, cues, and tables.
-2. `needs_review_summary.csv`: changed periods and suggested next steps.
+2. `needs_review_summary.csv`: changed periods, suggested next steps, and
+   drilldown artifacts.
 3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
    inputs, and reviewer-facing coverage status.
 4. `context_evidence.csv`: context-only items such as cost basis, commission,

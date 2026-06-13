@@ -1333,7 +1333,7 @@ The intended bundle review order is:
 
 1. `report.html`: browser-readable narrative, review cues, and key tables.
 2. `needs_review_summary.csv`: changed portfolio periods and suggested next
-   steps.
+   steps, plus drilldown artifacts for each triage row.
 3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
    impact inputs, and reviewer-facing coverage status.
 4. `context_evidence.csv`: context-only changes such as cost basis,
@@ -1358,7 +1358,10 @@ The report workflow starts with a `Needs Review Summary` section and matching
 it highlights changed portfolio periods with evidence-only areas, missing
 impact inputs, low-confidence estimates, transaction cross-checks, or withheld
 residuals. It does not add new calculation rules; it only summarizes existing
-report helper tables into reviewer cues and suggested next steps.
+report helper tables into reviewer cues and suggested next steps. Period-level
+bundle tables carry a stable `review_key` where possible, and
+`needs_review_summary.csv` includes `review_detail_artifacts` to name the CSVs
+most relevant to each changed period.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

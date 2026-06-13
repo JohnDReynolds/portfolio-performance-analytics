@@ -127,6 +127,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "## Portfolio-Period Narrative",
         )
         self.assertIn("needs_review", needs_review)
+        self.assertIn("Review Key", needs_review)
+        self.assertIn("PORT_A::2025-05-30::2025-05-30", needs_review)
+        self.assertIn("Review Detail Artifacts", needs_review)
+        self.assertIn("impact_coverage.csv", needs_review)
+        self.assertIn("context_evidence.csv", needs_review)
         self.assertIn("4 evidence-only area(s)", needs_review)
         self.assertIn("missing inputs: return-impact method", needs_review)
         self.assertIn("high-priority context: positions/cost", needs_review)
@@ -754,15 +759,33 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
             self.assertEqual(needs_review.height, 1)
+            self.assertIn("review_key", needs_review.columns)
+            self.assertIn("review_detail_artifacts", needs_review.columns)
+            self.assertEqual(
+                needs_review["review_key"][0],
+                "PORT_A::2025-05-30::2025-05-30",
+            )
             self.assertIn("review_status", needs_review.columns)
             self.assertEqual(needs_review["review_status"][0], "needs_review")
             self.assertIn(
                 "high-priority context: positions/cost",
                 needs_review["review_cues"][0],
             )
+            self.assertIn(
+                "transaction_activity.csv",
+                needs_review["review_detail_artifacts"][0],
+            )
+            self.assertIn(
+                "context_evidence.csv",
+                needs_review["review_detail_artifacts"][0],
+            )
 
             impact_coverage = pl.read_csv(paths["impact_coverage"])
             self.assertEqual(impact_coverage.height, 1)
+            self.assertEqual(
+                impact_coverage["review_key"][0],
+                "PORT_A::2025-05-30::2025-05-30",
+            )
             self.assertIn("estimated_cause_area_count", impact_coverage.columns)
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertIn("impact_coverage_status", impact_coverage.columns)
@@ -772,6 +795,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             context_evidence = pl.read_csv(paths["context_evidence"])
             self.assertEqual(context_evidence.height, 4)
+            self.assertIn("review_key", context_evidence.columns)
             self.assertIn("context_use", context_evidence.columns)
             self.assertIn("review_priority", context_evidence.columns)
             self.assertIn("review_priority_reason", context_evidence.columns)
@@ -806,6 +830,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             top_evidence = pl.read_csv(paths["top_evidence"])
             self.assertEqual(top_evidence.height, 2)
+            self.assertIn("review_key", top_evidence.columns)
             self.assertIn("review_rank", top_evidence.columns)
             self.assertIn("transaction_semantics_source", top_evidence.columns)
             self.assertIn("transaction_impact_policy", top_evidence.columns)
@@ -835,15 +860,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 0,
             )
             self.assertIn(
-                "portfolio_id,from_date,thru_date",
+                "review_key,portfolio_id,from_date,thru_date",
                 paths["needs_review_summary"].read_text(encoding="utf-8"),
             )
             self.assertIn(
-                "portfolio_id,from_date,thru_date",
+                "review_key,portfolio_id,from_date,thru_date",
                 paths["impact_coverage"].read_text(encoding="utf-8"),
             )
             self.assertIn(
-                "portfolio_id,security_id,from_date",
+                "review_key,portfolio_id,security_id,from_date",
                 paths["context_evidence"].read_text(encoding="utf-8"),
             )
             self.assertIn(
@@ -851,11 +876,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 paths["context_evidence_summary"].read_text(encoding="utf-8"),
             )
             self.assertIn(
-                "portfolio_id,from_date,thru_date",
+                "review_key,portfolio_id,from_date,thru_date",
                 paths["transaction_cross_checks"].read_text(encoding="utf-8"),
             )
             self.assertIn(
-                "portfolio_id,from_date,thru_date",
+                "review_key,portfolio_id,from_date,thru_date",
                 paths["flow_cross_check_reconciliation"].read_text(encoding="utf-8"),
             )
             self.assertIn(
@@ -863,7 +888,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 paths["residual_status"].read_text(encoding="utf-8"),
             )
             self.assertIn(
-                "portfolio_id,security_id,from_date",
+                "review_key,portfolio_id,security_id,from_date",
                 paths["transaction_activity"].read_text(encoding="utf-8"),
             )
             self.assertIn(

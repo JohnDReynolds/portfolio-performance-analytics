@@ -54,10 +54,13 @@ _HTML_REPORT_SUBTITLE = "Exception Review Worksheet"
 _REVIEW_STATUS = "review_status"
 _REVIEW_CUES = "review_cues"
 _SUGGESTED_NEXT_STEP = "suggested_next_step"
+_REVIEW_KEY = "review_key"
+_REVIEW_DETAIL_ARTIFACTS = "review_detail_artifacts"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
 _NEEDS_REVIEW_COLUMNS = (
+    _REVIEW_KEY,
     _pc_findings.PORTFOLIO_ID,
     _pc_findings.FROM_DATE,
     _pc_findings.THRU_DATE,
@@ -65,6 +68,7 @@ _NEEDS_REVIEW_COLUMNS = (
     _REVIEW_STATUS,
     _REVIEW_CUES,
     _SUGGESTED_NEXT_STEP,
+    _REVIEW_DETAIL_ARTIFACTS,
 )
 _TRIAGE_CHANGED_PERIODS = "Changed periods"
 _TRIAGE_NEEDS_REVIEW_PERIODS = "Needs-review periods"
@@ -420,7 +424,7 @@ def _report_bundle_tables(
     top_evidence_limit: int,
 ) -> dict[str, pl.DataFrame]:
     """Return report-bundle tables keyed by artifact stem."""
-    return {
+    tables = {
         "needs_review_summary": _needs_review_summary_table(active_findings),
         "portfolio_period_summary": _pc_explain.portfolio_period_summary(
             active_findings
@@ -444,6 +448,10 @@ def _report_bundle_tables(
             _pc_explain.transaction_matching_diagnostics(active_findings)
         ),
         "top_evidence": _top_evidence_table(active_findings, top_evidence_limit),
+    }
+    return {
+        name: _with_period_review_key(table)
+        for name, table in tables.items()
     }
 
 
@@ -477,10 +485,11 @@ def _write_report_bundle_readme(
         "",
         "1. Open `report.html` and start with the Reviewer Triage and Needs Review sections.",
         "2. Use `needs_review_summary.csv` to identify changed periods, suggested next "
-        "steps, and high-priority context cues.",
-        "3. Use `context_evidence_summary.csv` to review grouped context priority, then "
+        "steps, high-priority context cues, and drilldown artifacts.",
+        "3. Use the `review_key` column to follow a period across CSV artifacts.",
+        "4. Use `context_evidence_summary.csv` to review grouped context priority, then "
         "open `context_evidence.csv` for row-level support.",
-        "4. Treat high-priority context as review guidance only; it is not included in "
+        "5. Treat high-priority context as review guidance only; it is not included in "
         "return-impact estimates.",
         "",
         "## Review Tables",
@@ -496,7 +505,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
     descriptions = {
         "needs_review_summary": (
             "top triage table for changed periods, suggested next steps, and "
-            "high-priority context cues"
+            "drilldown artifacts"
         ),
         "portfolio_period_summary": "portfolio-period return-change summary",
         "cause_summary": "cause-area summary with selected impact estimates",
@@ -826,6 +835,7 @@ def _empty_needs_review_summary() -> pl.DataFrame:
     """Return an empty needs-review summary with stable columns."""
     return pl.DataFrame(
         schema={
+            _REVIEW_KEY: pl.String,
             _pc_findings.PORTFOLIO_ID: pl.String,
             _pc_findings.FROM_DATE: pl.Date,
             _pc_findings.THRU_DATE: pl.Date,
@@ -833,6 +843,7 @@ def _empty_needs_review_summary() -> pl.DataFrame:
             _REVIEW_STATUS: pl.String,
             _REVIEW_CUES: pl.String,
             _SUGGESTED_NEXT_STEP: pl.String,
+            _REVIEW_DETAIL_ARTIFACTS: pl.String,
         }
     )
 
@@ -853,6 +864,7 @@ def _needs_review_summary_row(
         context=context,
     )
     return {
+        _REVIEW_KEY: _period_review_key(period),
         _pc_findings.PORTFOLIO_ID: period[_pc_findings.PORTFOLIO_ID],
         _pc_findings.FROM_DATE: period[_pc_findings.FROM_DATE],
         _pc_findings.THRU_DATE: period[_pc_findings.THRU_DATE],
@@ -860,6 +872,12 @@ def _needs_review_summary_row(
         _REVIEW_STATUS: _needs_review_status(cues),
         _REVIEW_CUES: _comma_separated(cues),
         _SUGGESTED_NEXT_STEP: _suggested_next_step(cues),
+        _REVIEW_DETAIL_ARTIFACTS: _review_detail_artifacts(
+            coverage=coverage,
+            residual=residual,
+            cross_checks=cross_checks,
+            context=context,
+        ),
     }
 
 
@@ -971,6 +989,46 @@ def _suggested_next_step(cues: Sequence[str]) -> str:
     return "No changed portfolio-period review cue."
 
 
+def _review_detail_artifacts(
+    *,
+    coverage: list[dict[str, object]],
+    residual: list[dict[str, object]],
+    cross_checks: list[dict[str, object]],
+    context: list[dict[str, object]],
+) -> str:
+    """Return bundle artifacts that help review a period-level triage row."""
+    artifacts = ["portfolio_period_summary.csv", "cause_summary.csv"]
+    coverage_row = coverage[0] if coverage else {}
+
+    if coverage:
+        artifacts.extend(["impact_coverage.csv", "impact_estimates.csv"])
+    if _coverage_points_to_transaction_activity(coverage_row):
+        artifacts.append("transaction_activity.csv")
+    if cross_checks:
+        artifacts.extend(
+            [
+                "transaction_cross_checks.csv",
+                "flow_cross_check_reconciliation.csv",
+            ]
+        )
+    if residual:
+        artifacts.append("residual_status.csv")
+    if context:
+        artifacts.extend(["context_evidence_summary.csv", "context_evidence.csv"])
+    artifacts.append("findings.csv")
+    return _comma_separated(list(dict.fromkeys(artifacts)))
+
+
+def _coverage_points_to_transaction_activity(coverage_row: Mapping[str, object]) -> bool:
+    """Return whether impact coverage points reviewers to transaction activity."""
+    evidence_only_areas = str(coverage_row.get(_pc_explain.EVIDENCE_ONLY_AREAS, ""))
+    missing_inputs = str(coverage_row.get(_pc_explain.MISSING_IMPACT_INPUTS, ""))
+    return (
+        _pc_explain.ROOT_CAUSE_TRANSACTION_ACTIVITY in evidence_only_areas
+        or "transaction" in missing_inputs
+    )
+
+
 def _period_rows_by_key(
     table: pl.DataFrame,
 ) -> dict[tuple[object, object, object], list[dict[str, object]]]:
@@ -989,6 +1047,41 @@ def _period_key(row: Mapping[str, object]) -> tuple[object, object, object]:
         row[_pc_findings.PORTFOLIO_ID],
         row[_pc_findings.FROM_DATE],
         row[_pc_findings.THRU_DATE],
+    )
+
+
+def _period_review_key(row: Mapping[str, object]) -> str:
+    """Return a stable text key for joining period-level bundle artifacts."""
+    return "::".join(
+        [
+            _format_value(row.get(_pc_findings.PORTFOLIO_ID)),
+            _format_value(row.get(_pc_findings.FROM_DATE)),
+            _format_value(row.get(_pc_findings.THRU_DATE)),
+        ]
+    )
+
+
+def _with_period_review_key(table: pl.DataFrame) -> pl.DataFrame:
+    """Add ``review_key`` to tables that already carry portfolio-period columns."""
+    period_columns = {
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+    }
+    if _REVIEW_KEY in table.columns or not period_columns.issubset(table.columns):
+        return table
+    table_with_key = table.with_columns(
+        pl.concat_str(
+            [
+                pl.col(_pc_findings.PORTFOLIO_ID).cast(pl.String),
+                pl.col(_pc_findings.FROM_DATE).cast(pl.String),
+                pl.col(_pc_findings.THRU_DATE).cast(pl.String),
+            ],
+            separator="::",
+        ).alias(_REVIEW_KEY)
+    )
+    return table_with_key.select(
+        [_REVIEW_KEY, *[column for column in table.columns if column != _REVIEW_KEY]]
     )
 
 
