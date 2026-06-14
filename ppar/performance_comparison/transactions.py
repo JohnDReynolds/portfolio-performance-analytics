@@ -9,6 +9,7 @@ from __future__ import annotations
 
 # Python imports
 from collections.abc import Mapping
+from enum import StrEnum
 
 # Third-party imports
 import polars as pl
@@ -23,6 +24,10 @@ from ppar.performance_comparison.specification import PerformanceComparisonSpeci
 import ppar.utilities as util
 
 __all__ = [
+    "TransactionCategory",
+    "TransactionCashFlowSign",
+    "TransactionPerformanceFlowSign",
+    "TransactionSemanticsSource",
     "TRANSACTION_CATEGORY_EXTERNAL_FLOW",
     "TRANSACTION_CATEGORY_INCOME",
     "TRANSACTION_CATEGORY_FEE_EXPENSE",
@@ -51,26 +56,68 @@ __all__ = [
     "TransactionsLoader",
 ]
 
-TRANSACTION_CATEGORY_EXTERNAL_FLOW = "external_flow"
-TRANSACTION_CATEGORY_INCOME = "income"
-TRANSACTION_CATEGORY_FEE_EXPENSE = "fee_expense"
-TRANSACTION_CATEGORY_BUY = "buy"
-TRANSACTION_CATEGORY_SELL = "sell"
-TRANSACTION_CATEGORY_TRANSFER = "transfer"
-TRANSACTION_CATEGORY_CORPORATE_ACTION = "corporate_action"
-TRANSACTION_CATEGORY_UNKNOWN = "unknown"
-TRANSACTION_CASH_FLOW_SIGN_POSITIVE = "positive"
-TRANSACTION_CASH_FLOW_SIGN_NEGATIVE = "negative"
-TRANSACTION_CASH_FLOW_SIGN_NONE = "none"
-TRANSACTION_CASH_FLOW_SIGN_UNKNOWN = "unknown"
-TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL = "external"
-TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE = "performance"
-TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL = "neutral"
-TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN = "unknown"
-TRANSACTION_SEMANTICS_SOURCE_SOURCE = "source"
-TRANSACTION_SEMANTICS_SOURCE_YAML_RULE = "yaml_rule"
-TRANSACTION_SEMANTICS_SOURCE_MIXED = "mixed"
-TRANSACTION_SEMANTICS_SOURCE_UNKNOWN = "unknown"
+class TransactionCategory(StrEnum):
+    """Supported normalized transaction category labels."""
+
+    EXTERNAL_FLOW = "external_flow"
+    INCOME = "income"
+    FEE_EXPENSE = "fee_expense"
+    BUY = "buy"
+    SELL = "sell"
+    TRANSFER = "transfer"
+    CORPORATE_ACTION = "corporate_action"
+    UNKNOWN = "unknown"
+
+
+class TransactionCashFlowSign(StrEnum):
+    """Supported normalized transaction cash-flow direction labels."""
+
+    POSITIVE = "positive"
+    NEGATIVE = "negative"
+    NONE = "none"
+    UNKNOWN = "unknown"
+
+
+class TransactionPerformanceFlowSign(StrEnum):
+    """Supported normalized transaction performance-flow treatment labels."""
+
+    EXTERNAL = "external"
+    PERFORMANCE = "performance"
+    NEUTRAL = "neutral"
+    UNKNOWN = "unknown"
+
+
+class TransactionSemanticsSource(StrEnum):
+    """Supported transaction sign/flow semantics provenance labels."""
+
+    SOURCE = "source"
+    YAML_RULE = "yaml_rule"
+    MIXED = "mixed"
+    UNKNOWN = "unknown"
+
+
+TRANSACTION_CATEGORY_EXTERNAL_FLOW = TransactionCategory.EXTERNAL_FLOW.value
+TRANSACTION_CATEGORY_INCOME = TransactionCategory.INCOME.value
+TRANSACTION_CATEGORY_FEE_EXPENSE = TransactionCategory.FEE_EXPENSE.value
+TRANSACTION_CATEGORY_BUY = TransactionCategory.BUY.value
+TRANSACTION_CATEGORY_SELL = TransactionCategory.SELL.value
+TRANSACTION_CATEGORY_TRANSFER = TransactionCategory.TRANSFER.value
+TRANSACTION_CATEGORY_CORPORATE_ACTION = TransactionCategory.CORPORATE_ACTION.value
+TRANSACTION_CATEGORY_UNKNOWN = TransactionCategory.UNKNOWN.value
+TRANSACTION_CASH_FLOW_SIGN_POSITIVE = TransactionCashFlowSign.POSITIVE.value
+TRANSACTION_CASH_FLOW_SIGN_NEGATIVE = TransactionCashFlowSign.NEGATIVE.value
+TRANSACTION_CASH_FLOW_SIGN_NONE = TransactionCashFlowSign.NONE.value
+TRANSACTION_CASH_FLOW_SIGN_UNKNOWN = TransactionCashFlowSign.UNKNOWN.value
+TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL = TransactionPerformanceFlowSign.EXTERNAL.value
+TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE = (
+    TransactionPerformanceFlowSign.PERFORMANCE.value
+)
+TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL = TransactionPerformanceFlowSign.NEUTRAL.value
+TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN = TransactionPerformanceFlowSign.UNKNOWN.value
+TRANSACTION_SEMANTICS_SOURCE_SOURCE = TransactionSemanticsSource.SOURCE.value
+TRANSACTION_SEMANTICS_SOURCE_YAML_RULE = TransactionSemanticsSource.YAML_RULE.value
+TRANSACTION_SEMANTICS_SOURCE_MIXED = TransactionSemanticsSource.MIXED.value
+TRANSACTION_SEMANTICS_SOURCE_UNKNOWN = TransactionSemanticsSource.UNKNOWN.value
 _TRANSACTION_RULES_KEY = "transaction_rules"
 
 _CATEGORY_NORMALIZATION: dict[str, str] = {

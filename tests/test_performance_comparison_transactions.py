@@ -32,6 +32,10 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_SEMANTICS_SOURCE_SOURCE,
     TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
     TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+    TransactionCashFlowSign,
+    TransactionCategory,
+    TransactionPerformanceFlowSign,
+    TransactionSemanticsSource,
     normalize_transaction_cash_flow_sign,
     normalize_transaction_category,
     normalize_transaction_performance_flow_sign,
@@ -73,6 +77,60 @@ def _minimal_specification(directory: Path) -> dict[str, object]:
 
 class TestTransactionsLoader(unittest.TestCase):
     """Verify normalized transaction loading for snapshots."""
+
+    def test_public_transaction_constants_match_enum_values(self) -> None:
+        """Legacy public string constants stay aligned with transaction enums."""
+        self.assertEqual(
+            TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+            TransactionCategory.EXTERNAL_FLOW.value,
+        )
+        self.assertEqual(TRANSACTION_CATEGORY_BUY, TransactionCategory.BUY.value)
+        self.assertEqual(TRANSACTION_CATEGORY_INCOME, TransactionCategory.INCOME.value)
+        self.assertEqual(
+            TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+            TransactionCashFlowSign.POSITIVE.value,
+        )
+        self.assertEqual(
+            TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+            TransactionCashFlowSign.NEGATIVE.value,
+        )
+        self.assertEqual(TRANSACTION_CASH_FLOW_SIGN_NONE, TransactionCashFlowSign.NONE.value)
+        self.assertEqual(
+            TRANSACTION_CASH_FLOW_SIGN_UNKNOWN,
+            TransactionCashFlowSign.UNKNOWN.value,
+        )
+        self.assertEqual(
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            TransactionPerformanceFlowSign.EXTERNAL.value,
+        )
+        self.assertEqual(
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+            TransactionPerformanceFlowSign.PERFORMANCE.value,
+        )
+        self.assertEqual(
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+            TransactionPerformanceFlowSign.NEUTRAL.value,
+        )
+        self.assertEqual(
+            TRANSACTION_PERFORMANCE_FLOW_SIGN_UNKNOWN,
+            TransactionPerformanceFlowSign.UNKNOWN.value,
+        )
+        self.assertEqual(
+            TRANSACTION_SEMANTICS_SOURCE_SOURCE,
+            TransactionSemanticsSource.SOURCE.value,
+        )
+        self.assertEqual(
+            TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+            TransactionSemanticsSource.YAML_RULE.value,
+        )
+        self.assertEqual(
+            TRANSACTION_SEMANTICS_SOURCE_MIXED,
+            TransactionSemanticsSource.MIXED.value,
+        )
+        self.assertEqual(
+            TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
+            TransactionSemanticsSource.UNKNOWN.value,
+        )
 
     def test_load_baseline_snapshot_a_transactions(self) -> None:
         """Transaction rows load with normalized internal columns."""
