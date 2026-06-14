@@ -2159,8 +2159,8 @@ def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
             _html_dashboard_summary(dashboard),
             (
                 '<p class="pc-note">Start here: each row is one changed '
-                'portfolio-period. Use filters to narrow the queue, then follow '
-                'Open for the best first supporting evidence.</p>'
+                'portfolio-period. Use filters and sortable headers to narrow '
+                'the queue, then expand Open for next-step detail.</p>'
             ),
             _html_dashboard_filters(),
             _html_dashboard_table(dashboard),
@@ -2438,13 +2438,13 @@ def _html_dashboard_table(dashboard: pl.DataFrame) -> str:
             "<caption>Changed portfolio-period review queue.</caption>",
             "<thead>",
             "<tr>",
-            '<th scope="col">Portfolio</th>',
-            '<th scope="col">Period</th>',
-            '<th scope="col">Return Delta</th>',
-            '<th scope="col">Status</th>',
-            '<th scope="col">Main Issue</th>',
-            '<th scope="col">Next Step</th>',
-            '<th scope="col">Open</th>',
+            _html_dashboard_sort_header("Portfolio", "portfolio"),
+            _html_dashboard_sort_header("Period", "period"),
+            _html_dashboard_sort_header("Return Delta", "return-delta"),
+            _html_dashboard_sort_header("Status", "status"),
+            _html_dashboard_sort_header("Main Issue", "issue"),
+            _html_dashboard_sort_header("Next Step", "next-step"),
+            '<th scope="col">Details</th>',
             "</tr>",
             "</thead>",
             "<tbody>",
@@ -2478,6 +2478,15 @@ def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
             f'data-review-status="{_escape_html(status)}"',
             f'data-missing-inputs="{_escape_html(missing_inputs_token)}"',
             f'data-dashboard-search="{_escape_html(search_text)}"',
+            f'data-sort-portfolio="{_escape_html(row.get(_pc_findings.PORTFOLIO_ID))}"',
+            f'data-sort-period="{_escape_html(period)}"',
+            (
+                'data-sort-return-delta="'
+                f'{_escape_html(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))}"'
+            ),
+            f'data-sort-status="{_escape_html(status)}"',
+            f'data-sort-issue="{_escape_html(row.get(_DASHBOARD_MAIN_ISSUE))}"',
+            f'data-sort-next-step="{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}"',
         ]
     )
     return "\n".join(
@@ -2492,9 +2501,18 @@ def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
             _html_dashboard_status_cell(status),
             _html_dashboard_table_cell(row.get(_DASHBOARD_MAIN_ISSUE)),
             _html_dashboard_table_cell(row.get(_SUGGESTED_NEXT_STEP)),
-            f"<td>{_html_dashboard_open_link(row)}</td>",
+            f"<td>{_html_dashboard_drilldown(row)}</td>",
             "</tr>",
         ]
+    )
+
+
+def _html_dashboard_sort_header(label: str, sort_key: str) -> str:
+    """Return a sortable dashboard table header."""
+    return (
+        '<th scope="col">'
+        f'<button type="button" data-dashboard-sort="{sort_key}">'
+        f"{_escape_html(label)}</button></th>"
     )
 
 
@@ -2534,15 +2552,59 @@ def _boolean_token(value: bool) -> str:
     return "true" if value else "false"
 
 
-def _html_dashboard_open_link(row: Mapping[str, object]) -> str:
-    """Return one period-specific drilldown link for a dashboard row."""
+def _html_dashboard_drilldown(row: Mapping[str, object]) -> str:
+    """Return an inline drilldown for one dashboard row."""
     review_key = _format_value(row.get(_REVIEW_KEY))
     section_id = _format_value(row.get(_DASHBOARD_OPEN_SECTION))
     target = _html_dashboard_link_target(section_id, review_key)
-    return (
-        '<a class="pc-dashboard-open-link" '
-        f'href="#{target}">Open</a>'
+    detail_items = [
+        _html_dashboard_detail_item("Issue", row.get(_DASHBOARD_MAIN_ISSUE)),
+        _html_dashboard_detail_item("Action", row.get(_SUGGESTED_NEXT_STEP)),
+        _html_dashboard_detail_item(
+            "Evidence",
+            f'<a href="#{target}">{_escape_html(_dashboard_section_label(section_id))}</a>',
+            escape_value=False,
+        ),
+    ]
+    return "\n".join(
+        [
+            '<details class="pc-dashboard-drilldown">',
+            "<summary>Open</summary>",
+            "<dl>",
+            *detail_items,
+            "</dl>",
+            "</details>",
+        ]
     )
+
+
+def _html_dashboard_detail_item(
+    label: str,
+    value: object,
+    *,
+    escape_value: bool = True,
+) -> str:
+    """Return one compact dashboard drilldown fact."""
+    display_value = _format_value(value)
+    if escape_value:
+        display_value = _escape_html(display_value)
+    return "\n".join(
+        [
+            f"<dt>{_escape_html(label)}</dt>",
+            f"<dd>{display_value}</dd>",
+        ]
+    )
+
+
+def _dashboard_section_label(section_id: str) -> str:
+    """Return a reviewer-facing label for a dashboard detail section."""
+    labels = {
+        "context-evidence": "Context Evidence",
+        "impact-coverage": "Impact Coverage",
+        "needs-review-summary": "Needs Review Summary",
+        "top-evidence": "Top Evidence",
+    }
+    return labels.get(section_id, section_id.replace("-", " ").title())
 
 
 def _html_dashboard_link_target(section_id: str, review_key: str) -> str:
@@ -3422,6 +3484,22 @@ body {
 .pc-dashboard-table td {
   padding: 4px 5px;
 }
+.pc-dashboard-table th button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  text-align: left;
+}
+.pc-dashboard-table th button::after {
+  color: var(--pc-muted);
+  content: " sort";
+  font-size: 10px;
+  font-weight: 400;
+}
 .pc-dashboard-row {
   border-left: 5px solid var(--pc-accent);
 }
@@ -3434,13 +3512,25 @@ body {
 .pc-dashboard-clear {
   border-left-color: var(--pc-status-clear);
 }
-.pc-dashboard-open-link {
-  border: 1px solid var(--pc-border);
-  display: inline-block;
+.pc-dashboard-drilldown {
+  min-width: 140px;
+}
+.pc-dashboard-drilldown summary {
+  color: var(--pc-accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+.pc-dashboard-drilldown dl {
+  margin: 6px 0 0;
+}
+.pc-dashboard-drilldown dt {
+  color: var(--pc-muted);
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 6px;
-  text-decoration: none;
+  text-transform: uppercase;
+}
+.pc-dashboard-drilldown dd {
+  margin: 2px 0 6px;
 }
 .pc-dashboard-no-results {
   border: 1px dashed var(--pc-border);
@@ -3611,11 +3701,13 @@ def _html_dashboard_script() -> str:
   if (!filters) {
     return;
   }
-  const rows = Array.from(document.querySelectorAll("[data-dashboard-row]"));
+  const tableBody = document.querySelector(".pc-dashboard-table tbody");
+  let rows = Array.from(document.querySelectorAll("[data-dashboard-row]"));
   const search = filters.querySelector("[data-dashboard-search]");
   const status = filters.querySelector("[data-dashboard-status]");
   const missingOnly = filters.querySelector("[data-dashboard-missing-only]");
   const noResults = document.querySelector(".pc-dashboard-no-results");
+  let currentSort = {key: "", direction: "asc"};
 
   const applyFilters = () => {
     const query = (search?.value || "").trim().toLowerCase();
@@ -3643,7 +3735,39 @@ def _html_dashboard_script() -> str:
   filters.addEventListener("reset", () => {
     window.setTimeout(applyFilters, 0);
   });
+  for (const button of document.querySelectorAll("[data-dashboard-sort]")) {
+    button.addEventListener("click", () => {
+      const key = button.dataset.dashboardSort || "";
+      const sameKey = currentSort.key === key;
+      const direction = sameKey && currentSort.direction === "asc" ? "desc" : "asc";
+      currentSort = {key, direction};
+      rows = [...rows].sort((left, right) => {
+        const leftValue = left.dataset[`sort${toDatasetSuffix(key)}`] || "";
+        const rightValue = right.dataset[`sort${toDatasetSuffix(key)}`] || "";
+        return compareValues(leftValue, rightValue, direction);
+      });
+      tableBody?.append(...rows);
+      applyFilters();
+    });
+  }
   applyFilters();
+
+  function toDatasetSuffix(key) {
+    return key
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join("");
+  }
+
+  function compareValues(leftValue, rightValue, direction) {
+    const leftNumber = Number(leftValue);
+    const rightNumber = Number(rightValue);
+    const bothNumeric = Number.isFinite(leftNumber) && Number.isFinite(rightNumber);
+    const comparison = bothNumeric
+      ? leftNumber - rightNumber
+      : leftValue.localeCompare(rightValue);
+    return direction === "asc" ? comparison : -comparison;
+  }
 })();
 </script>
 """.strip()
