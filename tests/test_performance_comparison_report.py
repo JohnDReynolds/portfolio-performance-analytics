@@ -50,6 +50,9 @@ _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
 _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml"
 )
+_POLICY_GAP_DEMO_COMPARISON_PATH = Path(
+    "ppar/demo_data/axys/ppar_performance_comparison_policy_gap_demo.yaml"
+)
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
@@ -676,6 +679,56 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         narrative_section = _html_section(report, "portfolio-period-narrative")
         self.assertIn("PORT_C changed by 0.0008", narrative_section)
         self.assertIn("PORT_B changed by 0.0015", narrative_section)
+
+    def test_policy_gap_demo_fixture_surfaces_yaml_actions(self) -> None:
+        """The demo policy-gap fixture produces specific YAML remediation rows."""
+        findings = compare_snapshots(_POLICY_GAP_DEMO_COMPARISON_PATH)
+
+        problems = _problem_table(findings)
+        report = performance_comparison_html_report(
+            findings,
+            title="Policy Gap HTML",
+            top_evidence_limit=2,
+        )
+
+        self.assertEqual(problems.height, 3)
+        self.assertEqual(
+            problems["portfolio_id"].to_list(),
+            ["PORT_B", "PORT_C", "PORT_A"],
+        )
+        problem_rows = {
+            row["portfolio_id"]: row
+            for row in problems.iter_rows(named=True)
+        }
+        self.assertIn(
+            "select the relevant `contribution_impact_methods` policy",
+            problem_rows["PORT_B"]["action_required"],
+        )
+        self.assertNotIn(
+            "`transaction_impact_methods`",
+            problem_rows["PORT_B"]["action_required"],
+        )
+        self.assertIn(
+            "define transaction sign and external-flow semantics",
+            problem_rows["PORT_C"]["action_required"],
+        )
+        self.assertIn(
+            "configure `transaction_impact_methods` with an explicit method",
+            problem_rows["PORT_A"]["action_required"],
+        )
+        self.assertIn(
+            "set `denominator_source` or map beginning market value",
+            problem_rows["PORT_A"]["action_required"],
+        )
+
+        problems_section = _html_section(report, "problems")
+        self.assertEqual(problems_section.count('data-dashboard-row'), 3)
+        self.assertIn("contribution_impact_methods", problems_section)
+        self.assertIn("transaction_impact_methods", problems_section)
+        self.assertIn(
+            "define transaction sign and external-flow semantics",
+            problems_section,
+        )
 
     def _assert_html_report_shell(self, report: str) -> None:
         """Verify stable HTML report framing and review-oriented polish."""

@@ -1354,16 +1354,6 @@ Existing bundles can be checked with
 `scripts/performance_comparison_validate_bundle.py`, which verifies required
 artifacts, manifest artifact names, CSV row counts, and empty-table headers.
 
-The report workflow starts with a `Needs Review Summary` section and matching
-`needs_review_summary.csv` bundle artifact. This table is a derived triage aid:
-it highlights changed portfolio periods with evidence-only areas, missing
-impact inputs, low-confidence estimates, transaction cross-checks, or withheld
-residuals. It does not add new calculation rules; it only summarizes existing
-report helper tables into reviewer cues and suggested next steps. Period-level
-bundle tables carry a stable `review_key` where possible, and
-`needs_review_summary.csv` includes `review_detail_artifacts` to name the CSVs
-most relevant to each changed period.
-
 The HTML report starts with a first-screen `Problems` grid instead of a stack of
 evidence tables. It uses the same period-level triage data to show one compact
 row per actionable issue, with severity, portfolio, period, return delta,
@@ -1378,6 +1368,29 @@ lightweight browser filters search rendered row text, review status, and
 missing-input flags only; they do not change report data or require a server.
 The default HTML presentation should stay short at the top: Problems first,
 with backing tables inside an Evidence Appendix.
+
+The `Needs Review Summary` section and matching `needs_review_summary.csv`
+bundle artifact remain the derived period-level triage source behind the
+Problems grid. The table highlights changed portfolio periods with
+evidence-only areas, missing impact inputs, low-confidence estimates,
+transaction cross-checks, or withheld residuals. It does not add new
+calculation rules; it only summarizes existing report helper tables into
+reviewer cues and suggested next steps. Period-level bundle tables carry a
+stable `review_key` where possible, and `needs_review_summary.csv` includes
+`review_detail_artifacts` to name the CSVs most relevant to each changed
+period.
+
+The packaged Axys demo fixtures intentionally separate normal review output
+from policy-gap scenarios:
+
+- `ppar_performance_comparison_multi_restatement.yaml`: Default demo fixture
+  with explicit contribution and transaction policies, used to generate the
+  browser review bundle.
+- `ppar_performance_comparison_policy_gap_demo.yaml`: Companion fixture that
+  reuses the same CSV snapshots but omits selected YAML policy inputs. It
+  exercises Problems-grid actions such as selecting
+  `contribution_impact_methods`, configuring `transaction_impact_methods`,
+  setting `denominator_source`, and defining transaction sign/flow semantics.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

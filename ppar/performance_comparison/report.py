@@ -2291,8 +2291,13 @@ def _missing_inputs_action_required(missing_inputs: object) -> str:
     """Return a YAML-oriented action for missing impact inputs."""
     text = _format_value(missing_inputs).lower()
     actions: list[str] = []
-    if "method" in text:
+    if "transaction impact method" in text or "return-impact method" in text:
         actions.append("configure `transaction_impact_methods` with an explicit method")
+    if "defensible impact method" in text:
+        actions.append(
+            "select the relevant `contribution_impact_methods` policy for "
+            "evidence-only cause areas"
+        )
     if "denominator" in text:
         actions.append("set `denominator_source` or map beginning market value")
     if "transaction sign" in text or "flow semantics" in text:

@@ -226,6 +226,11 @@ class TestPackageMetadata(unittest.TestCase):
                 axys_demo_data / "ppar_performance_comparison_multi_restatement.yaml"
             ).is_file()
         )
+        self.assertTrue(
+            (
+                axys_demo_data / "ppar_performance_comparison_policy_gap_demo.yaml"
+            ).is_file()
+        )
         self.assertTrue((axys_demo_data / "axys_a" / "portperf.csv").is_file())
         self.assertTrue((axys_demo_data / "axys_b_restatement" / "secperf.csv").is_file())
         self.assertTrue(

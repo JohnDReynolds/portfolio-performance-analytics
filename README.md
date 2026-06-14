@@ -168,7 +168,10 @@ review. Rows surface severity, portfolio, period, return delta, the problem,
 the required action, why it matters, and an optional evidence link. The grid
 includes lightweight browser filters and sortable headers. The HTML report
 keeps the first view short: Problems first, with backing tables under Evidence
-Appendix. Then inspect
+Appendix. A separate packaged
+`ppar_performance_comparison_policy_gap_demo.yaml` fixture intentionally omits
+selected YAML impact-policy inputs so reviewer action wording can be exercised
+without duplicating the CSV data. Then inspect
 `needs_review_summary.csv` for the periods and issues that need review first.
 The `review_key` column links period-level bundle tables, and
 `review_detail_artifacts` names the CSVs most relevant to each triage row. The

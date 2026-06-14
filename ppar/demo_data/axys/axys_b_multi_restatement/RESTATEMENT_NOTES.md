@@ -32,3 +32,11 @@ Controlled changes:
 
 The existing `axys_a` and `axys_b` snapshots remain identical for a baseline
 no-difference comparison.
+
+Related YAML demos:
+
+- `ppar_performance_comparison_multi_restatement.yaml` supplies explicit
+  contribution and transaction policies and is the default report-bundle demo.
+- `ppar_performance_comparison_policy_gap_demo.yaml` reuses this snapshot but
+  intentionally leaves selected policy inputs unresolved so Problems-grid
+  action wording can be reviewed without duplicating CSV data.
