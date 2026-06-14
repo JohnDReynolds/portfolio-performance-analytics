@@ -21,6 +21,7 @@ import polars as pl  # noqa: E402
 
 # Project imports
 from ppar.performance_comparison import compare_snapshots, summarize_findings  # noqa: E402
+from ppar.performance_comparison import explain as _pc_explain  # noqa: E402
 from ppar.performance_comparison import findings as _pc_findings  # noqa: E402
 from ppar.performance_comparison.report import (  # noqa: E402
     _context_evidence_table,
@@ -31,6 +32,7 @@ from ppar.performance_comparison.report import (  # noqa: E402
 _DEFAULT_DEMO_DIRECTORY = _REPO_ROOT / "ppar" / "demo_data" / "axys"
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
+_MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_performance_comparison_suppressed.yaml"
 
@@ -91,6 +93,7 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     """
     baseline_findings = compare_snapshots(demo_directory / _BASELINE_YAML)
     multi_findings = compare_snapshots(demo_directory / _MULTI_YAML)
+    modified_dietz_findings = compare_snapshots(demo_directory / _MODIFIED_DIETZ_YAML)
     policy_gap_findings = compare_snapshots(demo_directory / _POLICY_GAP_YAML)
     suppressed_findings = compare_snapshots(demo_directory / _SUPPRESSED_YAML)
     suppressed_active_findings = compare_snapshots(
@@ -102,6 +105,9 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     multi_problems = _problem_table(multi_findings)
     policy_gap_problems = _problem_table(policy_gap_findings)
     context_evidence = _context_evidence_table(multi_findings)
+    modified_dietz_cross_checks = (
+        _pc_explain.portfolio_period_transaction_cross_checks(modified_dietz_findings)
+    )
     residual_status = _residual_status_table(multi_findings)
     suppressed_summary = summarize_findings(suppressed_findings)["by_suppressed"]
 
@@ -137,6 +143,7 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
             context_evidence,
             "context evidence row(s) remain available",
         ),
+        _check_modified_dietz_cross_check(modified_dietz_cross_checks),
         _check_suppressed_findings(
             suppressed_findings,
             suppressed_active_findings,
@@ -211,6 +218,37 @@ def _check_non_empty_table(
     if not table.is_empty():
         return _ScenarioCheck(name, True, f"{table.height} {detail}")
     return _ScenarioCheck(name, False, "expected at least one supporting row")
+
+
+def _check_modified_dietz_cross_check(cross_checks: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether the Modified Dietz demo produces a cross-check row."""
+    name = "Modified Dietz external-flow cross-check"
+    if cross_checks.is_empty():
+        return _ScenarioCheck(name, False, "transaction cross-check table is empty")
+
+    policies = [
+        str(value)
+        for value in cross_checks.get_column("transaction_impact_policies").to_list()
+    ]
+    diagnostics = [
+        str(value)
+        for value in cross_checks.get_column("transaction_impact_diagnostics").to_list()
+    ]
+    estimates = [
+        float(value)
+        for value in cross_checks.get_column("cross_check_estimate_total").to_list()
+    ]
+    if (
+        any("external_flow:modified_dietz" in policy for policy in policies)
+        and any("modified_dietz cross-check estimate" in item for item in diagnostics)
+        and any(abs(estimate) > 0 for estimate in estimates)
+    ):
+        return _ScenarioCheck(name, True, "Modified Dietz cross-check row is available")
+    return _ScenarioCheck(
+        name,
+        False,
+        "missing modified_dietz policy, diagnostic, or nonzero estimate",
+    )
 
 
 def _check_suppressed_findings(

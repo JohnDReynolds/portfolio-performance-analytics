@@ -236,10 +236,21 @@ class TestPackageMetadata(unittest.TestCase):
                 axys_demo_data / "ppar_performance_comparison_policy_gap_demo.yaml"
             ).is_file()
         )
+        self.assertTrue(
+            (
+                axys_demo_data / "ppar_performance_comparison_modified_dietz.yaml"
+            ).is_file()
+        )
         self.assertTrue((axys_demo_data / "axys_a" / "portperf.csv").is_file())
         self.assertTrue((axys_demo_data / "axys_b_restatement" / "secperf.csv").is_file())
         self.assertTrue(
             (axys_demo_data / "axys_b_multi_restatement" / "secperf.csv").is_file()
+        )
+        self.assertTrue(
+            (axys_demo_data / "axys_modified_dietz_a" / "transactions.csv").is_file()
+        )
+        self.assertTrue(
+            (axys_demo_data / "axys_modified_dietz_b" / "transactions.csv").is_file()
         )
 
     def test_axys_demo_matrix_documents_problem_scenarios(self) -> None:
@@ -261,6 +272,9 @@ class TestPackageMetadata(unittest.TestCase):
                 "ppar_performance_comparison_multi_restatement.yaml"
             ),
             "Context-only evidence": "ppar_performance_comparison_multi_restatement.yaml",
+            "Modified Dietz cross-check": (
+                "ppar_performance_comparison_modified_dietz.yaml"
+            ),
             "Suppressed finding": "ppar_performance_comparison_suppressed.yaml",
             "Residual withheld": "ppar_performance_comparison_multi_restatement.yaml",
             "Large multi-period scale": "Future generated fixture",

@@ -17,6 +17,7 @@ From a source checkout, validate the covered scenarios with:
 - `transaction_rules`:
   `ppar_performance_comparison_restatement_transaction_rules.yaml`
 - `multi`: `ppar_performance_comparison_multi_restatement.yaml`
+- `modified_dietz`: `ppar_performance_comparison_modified_dietz.yaml`
 - `policy_gap`: `ppar_performance_comparison_policy_gap_demo.yaml`
 - `suppressed`: `ppar_performance_comparison_suppressed.yaml`
 
@@ -31,6 +32,7 @@ From a source checkout, validate the covered scenarios with:
 | Missing transaction sign/flow semantics | `policy_gap` | Define sign/flow semantics. | Covered |
 | Low-confidence estimate | `multi` | Decide whether the estimate is acceptable. | Covered |
 | Context-only evidence | `multi` | Review context without treating it as impact. | Covered |
+| Modified Dietz cross-check | `modified_dietz` | Review cross-check. | Covered |
 | Suppressed finding | `suppressed` | Exclude from active review; keep audit-visible. | Covered |
 | Residual withheld | `multi` | Resolve partial or missing estimates first. | Covered |
 | Large multi-period scale | Future generated fixture | Test hundreds of problem rows. | Planned |
@@ -60,6 +62,6 @@ Current public YAML method targets:
 - `contribution_impact_methods.security_return`:
   `security_return_delta_times_weight` (covered)
 - `transaction_impact_methods.external_flow`: `evidence_only` (covered)
-- `transaction_impact_methods.external_flow`: `modified_dietz` (planned)
+- `transaction_impact_methods.external_flow`: `modified_dietz` (covered)
 - `transaction_impact_methods.performance`:
   `transaction_amount_delta_over_return_denominator` (covered)

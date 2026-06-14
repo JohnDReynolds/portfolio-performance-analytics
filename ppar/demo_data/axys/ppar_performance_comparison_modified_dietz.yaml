@@ -1,0 +1,44 @@
+# =========================
+# PPAR Performance Comparison Configuration
+# =========================
+# This fixture demonstrates the cross-check-only Modified Dietz diagnostic
+# path for external-flow transaction amount changes.
+
+comparison:
+  name: Axys fixture Modified Dietz external-flow cross-check
+
+snapshots:
+  a:
+    label: axys_modified_dietz_a
+    path: axys_modified_dietz_a
+    vendor: axys
+    schema: axys_column_mappings.yaml
+
+  b:
+    label: axys_modified_dietz_b
+    path: axys_modified_dietz_b
+    vendor: axys
+    schema: axys_column_mappings.yaml
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  DEP:
+    transaction_category: external_flow
+    cash_flow_sign: positive
+    performance_flow_sign: external
+
+transaction_impact_methods:
+  external_flow:
+    method: modified_dietz
+    flow_timing: trade_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
+    denominator_source: begin_market_value
+    double_count_policy: cross_check_only
+
+tolerances:
+  return: 0.000001
+  market_value: 0.01

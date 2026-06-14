@@ -1440,6 +1440,9 @@ from policy-gap scenarios:
   exercises Problems-grid actions such as selecting
   `contribution_impact_methods`, configuring `transaction_impact_methods`,
   setting `denominator_source`, and defining transaction sign/flow semantics.
+- `ppar_performance_comparison_modified_dietz.yaml`: Minimal fixture with an
+  explicit external-flow transaction rule and `modified_dietz` policy, used to
+  demonstrate cross-check-only diagnostics.
 
 The compact demo scenario matrix lives in `ppar/demo_data/axys/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which
