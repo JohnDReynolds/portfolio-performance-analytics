@@ -76,6 +76,51 @@ layer is intentionally conservative: it presents evidence, review cues, and
 documented estimates without claiming more precision than the current model
 supports.
 
+## Supported Vocabulary
+
+YAML files and report artifacts use plain string values so they remain easy to
+read, diff, and edit. The package code centralizes the same values in
+`StrEnum` classes to reduce drift and give internal APIs stricter annotations
+where practical. Existing public constants remain as compatibility aliases for
+the enum members.
+
+Public YAML impact method values are centralized in:
+
+- `ContributionImpactMethod`: `source_field_delta_over_begin_market_value`,
+  `vendor_contribution_delta`, and `security_return_delta_times_weight`.
+- `TransactionImpactMethod`: `evidence_only`, `modified_dietz`, and
+  `transaction_amount_delta_over_return_denominator`.
+
+Transaction sign/flow semantics are centralized in:
+
+- `TransactionCategory`: `external_flow`, `income`, `fee_expense`, `buy`,
+  `sell`, `transfer`, `corporate_action`, and `unknown`.
+- `TransactionCashFlowSign`: `positive`, `negative`, `none`, and `unknown`.
+- `TransactionPerformanceFlowSign`: `external`, `performance`, `neutral`,
+  and `unknown`.
+- `TransactionSemanticsSource`: `source`, `yaml_rule`, `mixed`, and
+  `unknown`.
+
+Modified Dietz policy options are centralized in:
+
+- `ModifiedDietzFlowTiming`: `trade_date` and `settlement_date`.
+- `ModifiedDietzDayCount`: `actual_days`.
+- `ModifiedDietzInclusionRule`: `beginning_of_day` and `end_of_day`.
+- `ModifiedDietzDoubleCountPolicy`: `cross_check_only`.
+
+Finding and review classification values are centralized in:
+
+- `FindingSeverity`: `informational` and `material`.
+- `FindingConfidence`: `high`.
+- `EvidenceRole`: `target_output`, `direct_input`, `related_output`, and
+  `context`.
+- `TransactionMatchStatus`: `transaction_id_match`,
+  `transaction_id_unmatched`, and `strict_fallback_unmatched`.
+
+When a value crosses into Polars tables, CSVs, Markdown, HTML, or YAML, it
+should be serialized as its plain string value. Enum members are primarily for
+construction, validation, and package-internal type clarity.
+
 ## Non-Goals For The First Pass
 
 - Recalculate full portfolio performance from transactions and holdings.

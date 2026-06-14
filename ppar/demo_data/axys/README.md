@@ -46,6 +46,11 @@ scenario and one validator assertion. Tests can still cover narrow edge cases,
 but the demos should prove that each method is understandable from reviewer
 outputs.
 
+The supported string vocabulary is summarized in
+`docs/performance_comparison_design.md`. The package code backs those strings
+with enums, but YAML examples intentionally show the plain string values users
+edit.
+
 Current public YAML method targets:
 
 - `contribution_impact_methods.portfolio_source_field`:
