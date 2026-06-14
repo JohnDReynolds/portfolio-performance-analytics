@@ -35,6 +35,7 @@ from ppar.performance_comparison.findings import (
 from ppar.performance_comparison.report import (
     _REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     _markdown_table,
+    _problem_table,
     _report_bundle_validation_issues,
     _review_dashboard_table,
 )
@@ -418,84 +419,68 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self._assert_html_report_shell(report)
-        self.assertIn('id="review-dashboard"', report)
+        self.assertIn('id="problems"', report)
         self.assertLess(
-            report.index('id="review-dashboard"'),
-            report.index('id="review-detail"'),
+            report.index('id="problems"'),
+            report.index('id="evidence-appendix"'),
         )
-        self.assertLess(
-            report.index('id="review-detail"'),
-            report.index('id="portfolio-period-narrative"'),
-        )
-        self.assertLess(
-            report.index('id="review-detail"'),
-            report.index('id="audit-appendix"'),
-        )
-        self.assertIn('id="review-detail"', report)
-        self.assertIn('id="audit-appendix"', report)
+        self.assertIn('id="evidence-appendix"', report)
         self.assertIn('<details class="pc-detail">', report)
         self.assertIn("<summary>Portfolio-Period Narrative</summary>", report)
         self.assertIn("<summary>Impact Coverage</summary>", report)
         self.assertIn("<summary>Top Evidence</summary>", report)
         self.assertIn("<summary>Run Summary</summary>", report)
         self.assertLess(
-            report.index('id="review-detail"'),
-            report.index('id="needs-review-summary"'),
-        )
-        self.assertLess(
-            report.index('id="audit-appendix"'),
+            report.index('id="evidence-appendix"'),
             report.index('id="run-summary"'),
         )
         self.assertNotIn('id="at-a-glance"', report)
-        dashboard = _html_section(report, "review-dashboard")
-        self.assertIn("Start here", dashboard)
+        problems = _html_section(report, "problems")
+        self.assertIn("Start here", problems)
         self.assertIn(
-            "1 of 1 portfolio-period(s) need review across 1 portfolio(s).",
-            dashboard,
+            "1 of 1 problem(s) need review across 1 portfolio(s).",
+            problems,
         )
         self.assertIn(
-            'id="review-dashboard--port-a--2025-05-30--2025-05-30"',
-            dashboard,
+            'id="problems--port-a--2025-05-30--2025-05-30"',
+            problems,
         )
-        self.assertIn('data-dashboard-filters', dashboard)
-        self.assertIn('data-dashboard-search', dashboard)
-        self.assertIn('data-dashboard-status', dashboard)
-        self.assertIn('data-dashboard-missing-only', dashboard)
-        self.assertIn('data-dashboard-sort="portfolio"', dashboard)
-        self.assertIn('data-dashboard-sort="return-delta"', dashboard)
-        self.assertIn("Missing inputs only", dashboard)
-        self.assertIn("No dashboard rows match the filters.", dashboard)
-        self.assertIn('data-dashboard-row', dashboard)
-        self.assertIn('data-review-status="needs_review"', dashboard)
-        self.assertIn('data-missing-inputs="true"', dashboard)
-        self.assertIn("PORT_A", dashboard)
+        self.assertIn('data-dashboard-filters', problems)
+        self.assertIn('data-dashboard-search', problems)
+        self.assertIn('data-dashboard-status', problems)
+        self.assertIn('data-dashboard-missing-only', problems)
+        self.assertIn('data-dashboard-sort="portfolio"', problems)
+        self.assertIn('data-dashboard-sort="return-delta"', problems)
+        self.assertIn("Missing inputs only", problems)
+        self.assertIn("No problem rows match the filters.", problems)
+        self.assertIn('data-dashboard-row', problems)
+        self.assertIn('data-review-status="needs_review"', problems)
+        self.assertIn('data-missing-inputs="true"', problems)
+        self.assertIn("PORT_A", problems)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
-        self.assertIn('data-dashboard-sort="portfolio">Portfolio</button>', dashboard)
+        self.assertIn('data-dashboard-sort="severity">Severity</button>', problems)
+        self.assertIn('data-dashboard-sort="portfolio">Portfolio</button>', problems)
         self.assertIn(
             'data-dashboard-sort="return-delta">Return Delta</button>',
-            dashboard,
+            problems,
         )
-        self.assertIn('data-dashboard-sort="issue">Main Issue</button>', dashboard)
-        self.assertIn("<th scope=\"col\">Details</th>", dashboard)
-        self.assertNotIn("<th scope=\"col\">Coverage</th>", dashboard)
-        self.assertNotIn("<th scope=\"col\">Cause Areas</th>", dashboard)
-        self.assertNotIn("<th scope=\"col\">Missing Inputs</th>", dashboard)
-        self.assertNotIn("<th scope=\"col\">Context</th>", dashboard)
-        self.assertNotIn("<th scope=\"col\">Primary Cue</th>", dashboard)
-        self.assertIn("Missing inputs: return-impact method", dashboard)
-        self.assertIn('class="pc-dashboard-drilldown"', dashboard)
-        self.assertEqual(dashboard.count('class="pc-dashboard-drilldown"'), 1)
-        self.assertIn("<summary>Open</summary>", dashboard)
-        self.assertIn("<dt>Issue</dt>", dashboard)
-        self.assertIn("<dt>Action</dt>", dashboard)
-        self.assertIn("<dt>Evidence</dt>", dashboard)
-        self.assertIn("Resolve missing impact inputs", dashboard)
+        self.assertIn('data-dashboard-sort="problem">Problem</button>', problems)
+        self.assertIn(
+            'data-dashboard-sort="action">Action Required</button>',
+            problems,
+        )
+        self.assertIn("Return-impact estimate is blocked", problems)
+        self.assertIn("Update the comparison YAML", problems)
+        self.assertIn("transaction_impact_methods", problems)
+        self.assertIn("denominator_source", problems)
+        self.assertIn("define transaction sign and external-flow semantics", problems)
+        self.assertIn("ppar can show evidence", problems)
         self.assertIn(
             'href="#impact-coverage--port-a--2025-05-30--2025-05-30"',
-            dashboard,
+            problems,
         )
-        self.assertNotIn('href="#context-evidence--', dashboard)
-        self.assertNotIn('href="#transaction-activity--', dashboard)
+        self.assertNotIn('href="#context-evidence--', problems)
+        self.assertNotIn('href="#transaction-activity--', problems)
         self.assertIn(
             'id="impact-coverage--port-a--2025-05-30--2025-05-30"',
             report,
@@ -515,7 +500,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         narrative = _html_section(report, "portfolio-period-narrative")
         self.assertIn("PORT_A changed by 0.0005", narrative)
         self.assertIn("The strongest currently estimated impact", narrative)
-        self.assertIn('class="pc-dashboard-table"', dashboard)
+        self.assertIn('class="pc-dashboard-table"', problems)
         self.assertIn("querySelector(\"[data-dashboard-filters]\")", report)
         self.assertIn("querySelectorAll(\"[data-dashboard-sort]\")", report)
         self.assertIn("compareValues", report)
@@ -652,6 +637,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_MULTI_RESTATEMENT_COMPARISON_PATH)
 
         dashboard = _review_dashboard_table(findings)
+        problems = _problem_table(findings)
         report = performance_comparison_html_report(
             findings,
             title="Multi-Portfolio HTML",
@@ -674,14 +660,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "2 estimated / 0 evidence-only",
             ],
         )
-        dashboard_section = _html_section(report, "review-dashboard")
-        self.assertEqual(dashboard_section.count('data-dashboard-row'), 3)
-        self.assertEqual(dashboard_section.count('class="pc-dashboard-drilldown"'), 3)
-        self.assertIn("PORT_A", dashboard_section)
-        self.assertIn("PORT_B", dashboard_section)
-        self.assertIn("PORT_C", dashboard_section)
-        self.assertIn("Missing inputs: defensible impact method", dashboard_section)
-        self.assertIn("1 low-confidence estimate(s)", dashboard_section)
+        self.assertEqual(
+            problems["portfolio_id"].to_list(),
+            ["PORT_C", "PORT_A", "PORT_B"],
+        )
+        self.assertIn("Update the comparison YAML", problems["action_required"][0])
+        self.assertIn("screening estimate", problems["action_required"][2])
+        problems_section = _html_section(report, "problems")
+        self.assertEqual(problems_section.count('data-dashboard-row'), 3)
+        self.assertIn("PORT_A", problems_section)
+        self.assertIn("PORT_B", problems_section)
+        self.assertIn("PORT_C", problems_section)
+        self.assertIn("Return-impact estimate is blocked", problems_section)
+        self.assertIn("low-confidence screening estimate", problems_section)
         narrative_section = _html_section(report, "portfolio-period-narrative")
         self.assertIn("PORT_C changed by 0.0008", narrative_section)
         self.assertIn("PORT_B changed by 0.0015", narrative_section)
@@ -696,9 +687,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertNotIn('class="pc-kicker"', report)
         self.assertNotIn('class="pc-subtitle"', report)
         self.assertNotIn('class="pc-header-notes"', report)
-        self.assertIn('id="review-dashboard"', report)
-        self.assertIn('id="review-detail"', report)
-        self.assertIn('id="audit-appendix"', report)
+        self.assertIn('id="problems"', report)
+        self.assertIn('id="evidence-appendix"', report)
         self.assertIn("Review table with", report)
         self.assertNotIn('<ol class="pc-contents-list">', report)
 
@@ -755,7 +745,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         report = performance_comparison_html_report(findings)
 
         self.assertIn("No portfolio return changes to narrate.", report)
-        self.assertIn("No changed portfolio periods need dashboard review.", report)
+        self.assertIn("No actionable performance comparison problems.", report)
         self.assertIn("No changed portfolio periods need review.", report)
         self.assertIn("No impact estimates are currently available.", report)
         self.assertIn("No context-only evidence summary.", report)

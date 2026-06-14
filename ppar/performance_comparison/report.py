@@ -60,6 +60,10 @@ _DASHBOARD_MISSING_INPUTS = "dashboard_missing_inputs"
 _DASHBOARD_CONTEXT_CUE = "dashboard_context_cue"
 _DASHBOARD_MAIN_ISSUE = "dashboard_main_issue"
 _DASHBOARD_OPEN_SECTION = "dashboard_open_section"
+_PROBLEM = "problem"
+_ACTION_REQUIRED = "action_required"
+_WHY_IT_MATTERS = "why_it_matters"
+_EVIDENCE_SECTION = "evidence_section"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
@@ -220,7 +224,7 @@ def performance_comparison_html_report(
     active_findings = _active_findings(findings)
     summaries = _pc_runner.summarize_findings(findings)
     active_summaries = _pc_runner.summarize_findings(active_findings)
-    review_detail_sections = [
+    evidence_sections = [
         (
             "Portfolio-Period Narrative",
             _html_portfolio_period_narrative_section(active_findings),
@@ -229,8 +233,6 @@ def performance_comparison_html_report(
         ("Impact Coverage", _html_impact_coverage_section(active_findings)),
         ("Context Evidence", _html_context_evidence_section(active_findings)),
         ("Top Evidence", _html_top_evidence_section(active_findings, top_evidence_limit)),
-    ]
-    audit_appendix_sections = [
         ("Review Notes", _html_review_notes_section(active_findings)),
         ("Impact Estimate Summary", _html_impact_estimate_summary_section(active_findings)),
         ("Transaction Activity", _html_transaction_activity_section(active_findings)),
@@ -258,7 +260,7 @@ def performance_comparison_html_report(
         ),
     ]
     if include_suppressed_appendix:
-        audit_appendix_sections.append(
+        evidence_sections.append(
             (
                 "Suppressed Findings Appendix",
                 _html_suppressed_appendix_section(findings, summaries),
@@ -280,9 +282,8 @@ def performance_comparison_html_report(
             '<header class="pc-header">',
             f"<h1>{_escape_html(title)}</h1>",
             "</header>",
-            _html_review_dashboard_section(active_findings),
-            _html_review_detail_section(review_detail_sections),
-            _html_audit_appendix_section(audit_appendix_sections),
+            _html_problems_section(active_findings),
+            _html_evidence_appendix_section(evidence_sections),
             "</main>",
             _html_dashboard_script(),
             "</body>",
@@ -1194,7 +1195,6 @@ def _report_section_names(*, include_suppressed_appendix: bool) -> list[str]:
     """Return report section names in display order."""
     section_names = [
         "Run Summary",
-        "Review Dashboard",
         "Needs Review Summary",
         "Portfolio-Period Narrative",
         "Review Notes",
@@ -2145,29 +2145,188 @@ def _html_run_summary_section(
     return _html_section("Run Summary", content)
 
 
-def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
-    """Return the first-screen period dashboard for HTML review."""
-    dashboard = _review_dashboard_table(findings)
-    if dashboard.is_empty():
+def _html_problems_section(findings: pl.DataFrame) -> str:
+    """Return the first-screen actionable problem grid."""
+    problems = _problem_table(findings)
+    if problems.is_empty():
         return _html_section(
-            "Review Dashboard",
-            _html_empty("No changed portfolio periods need dashboard review."),
+            "Problems",
+            _html_empty("No actionable performance comparison problems."),
         )
 
     content = "\n".join(
         [
-            _html_dashboard_summary(dashboard),
+            _html_problems_summary(problems),
             (
-                '<p class="pc-note">Start here: each row is one changed '
-                'portfolio-period. Use filters and sortable headers to narrow '
-                'the queue, then expand Open for next-step detail.</p>'
+                '<p class="pc-note">Start here. Each row is one problem; the '
+                'Action Required cell is the recommended next step.</p>'
             ),
             _html_dashboard_filters(),
-            _html_dashboard_table(dashboard),
-            '<p class="pc-dashboard-no-results" hidden>No dashboard rows match the filters.</p>',
+            _html_problems_table(problems),
+            '<p class="pc-dashboard-no-results" hidden>No problem rows match the filters.</p>',
         ]
     )
-    return _html_section("Review Dashboard", content)
+    return _html_section("Problems", content)
+
+
+def _problem_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return one actionable problem row per changed portfolio period."""
+    dashboard = _review_dashboard_table(findings)
+    if dashboard.is_empty():
+        return pl.DataFrame(
+            schema={
+                _REVIEW_KEY: pl.String,
+                _pc_findings.PORTFOLIO_ID: pl.String,
+                _pc_findings.FROM_DATE: pl.Date,
+                _pc_findings.THRU_DATE: pl.Date,
+                _pc_explain.PORTFOLIO_RETURN_DELTA: pl.Float64,
+                _REVIEW_STATUS: pl.String,
+                _PROBLEM: pl.String,
+                _ACTION_REQUIRED: pl.String,
+                _WHY_IT_MATTERS: pl.String,
+                _EVIDENCE_SECTION: pl.String,
+                _DASHBOARD_MISSING_INPUTS: pl.String,
+                _DASHBOARD_OPEN_SECTION: pl.String,
+            }
+        )
+
+    rows = [
+        _problem_row(row)
+        for row in dashboard.iter_rows(named=True)
+    ]
+    return pl.DataFrame(rows).select(
+        [
+            _REVIEW_KEY,
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+            _pc_explain.PORTFOLIO_RETURN_DELTA,
+            _REVIEW_STATUS,
+            _PROBLEM,
+            _ACTION_REQUIRED,
+            _WHY_IT_MATTERS,
+            _EVIDENCE_SECTION,
+            _DASHBOARD_MISSING_INPUTS,
+            _DASHBOARD_OPEN_SECTION,
+        ]
+    )
+
+
+def _problem_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return one action-oriented problem row from dashboard data."""
+    missing_inputs = row.get(_DASHBOARD_MISSING_INPUTS)
+    primary_cue = _format_value(row.get(_PRIMARY_REVIEW_CUE))
+    return {
+        _REVIEW_KEY: row.get(_REVIEW_KEY),
+        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _pc_explain.PORTFOLIO_RETURN_DELTA: row.get(
+            _pc_explain.PORTFOLIO_RETURN_DELTA
+        ),
+        _REVIEW_STATUS: row.get(_REVIEW_STATUS),
+        _PROBLEM: _problem_text(row),
+        _ACTION_REQUIRED: _problem_action_required(
+            missing_inputs=missing_inputs,
+            primary_cue=primary_cue,
+        ),
+        _WHY_IT_MATTERS: _problem_why_it_matters(
+            missing_inputs=missing_inputs,
+            primary_cue=primary_cue,
+        ),
+        _EVIDENCE_SECTION: _dashboard_section_label(
+            _format_value(row.get(_DASHBOARD_OPEN_SECTION))
+        ),
+        _DASHBOARD_MISSING_INPUTS: missing_inputs,
+        _DASHBOARD_OPEN_SECTION: row.get(_DASHBOARD_OPEN_SECTION),
+    }
+
+
+def _problem_text(row: Mapping[str, object]) -> str:
+    """Return a plain-English problem statement."""
+    missing_inputs = row.get(_DASHBOARD_MISSING_INPUTS)
+    if _has_text(missing_inputs):
+        return (
+            "Return-impact estimate is blocked by missing configuration: "
+            f"{_format_value(missing_inputs)}."
+        )
+
+    primary_cue = _format_value(row.get(_PRIMARY_REVIEW_CUE))
+    if "low-confidence" in primary_cue:
+        return "Return difference relies on a low-confidence screening estimate."
+    if _has_text(row.get(_DASHBOARD_CONTEXT_CUE)):
+        return f"Context evidence needs review: {row[_DASHBOARD_CONTEXT_CUE]}."
+    if primary_cue and primary_cue != "No review cue.":
+        return primary_cue
+    return _format_value(row.get(_DASHBOARD_MAIN_ISSUE))
+
+
+def _problem_action_required(
+    *,
+    missing_inputs: object,
+    primary_cue: str,
+) -> str:
+    """Return the concrete next action for a problem row."""
+    if _has_text(missing_inputs):
+        return _missing_inputs_action_required(missing_inputs)
+    if "low-confidence" in primary_cue:
+        return (
+            "Decide whether the screening estimate is acceptable; if not, "
+            "provide vendor contribution or mark the estimate review-only."
+        )
+    if "context:" in primary_cue:
+        return (
+            "Confirm whether the context-only change affects reviewer judgment; "
+            "no YAML change is required unless it should affect return impact."
+        )
+    if "evidence-only" in primary_cue:
+        return (
+            "Add an explicit impact method for this evidence type or document "
+            "that it should remain evidence-only."
+        )
+    return "Review the problem statement and update source data or YAML policy as needed."
+
+
+def _missing_inputs_action_required(missing_inputs: object) -> str:
+    """Return a YAML-oriented action for missing impact inputs."""
+    text = _format_value(missing_inputs).lower()
+    actions: list[str] = []
+    if "method" in text:
+        actions.append("configure `transaction_impact_methods` with an explicit method")
+    if "denominator" in text:
+        actions.append("set `denominator_source` or map beginning market value")
+    if "transaction sign" in text or "flow semantics" in text:
+        actions.append("define transaction sign and external-flow semantics")
+    if not actions:
+        actions.append(f"provide {_format_value(missing_inputs)}")
+    return f"Update the comparison YAML to {_join_action_phrases(actions)}; then rerun."
+
+
+def _join_action_phrases(actions: Sequence[str]) -> str:
+    """Return a compact natural-language action list."""
+    if len(actions) == 1:
+        return actions[0]
+    if len(actions) == 2:
+        return f"{actions[0]} and {actions[1]}"
+    return f"{', '.join(actions[:-1])}, and {actions[-1]}"
+
+
+def _problem_why_it_matters(
+    *,
+    missing_inputs: object,
+    primary_cue: str,
+) -> str:
+    """Return why a problem matters to the reviewer."""
+    if _has_text(missing_inputs):
+        return (
+            "ppar can show evidence, but it cannot calculate a defensible "
+            "return-impact estimate until the policy is explicit."
+        )
+    if "low-confidence" in primary_cue:
+        return "The estimate is useful for screening, not final attribution."
+    if "evidence-only" in primary_cue:
+        return "The report has evidence but no accepted impact calculation."
+    return "This row may explain or qualify the reported return difference."
 
 
 def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
@@ -2286,19 +2445,19 @@ def _review_dashboard_row(
     }
 
 
-def _html_dashboard_summary(dashboard: pl.DataFrame) -> str:
-    """Return a compact dashboard scope summary."""
-    period_count = dashboard.height
-    portfolio_count = dashboard.select(
+def _html_problems_summary(problems: pl.DataFrame) -> str:
+    """Return a compact problem-grid scope summary."""
+    problem_count = problems.height
+    portfolio_count = problems.select(
         pl.col(_pc_findings.PORTFOLIO_ID).n_unique()
     ).item()
-    needs_review_count = dashboard.filter(
+    needs_review_count = problems.filter(
         pl.col(_REVIEW_STATUS) == _REVIEW_STATUS_NEEDS_REVIEW
     ).height
     return (
         '<p class="pc-dashboard-summary">'
-        f"{_escape_html(needs_review_count)} of {_escape_html(period_count)} "
-        f"portfolio-period(s) need review across {_escape_html(portfolio_count)} "
+        f"{_escape_html(needs_review_count)} of {_escape_html(problem_count)} "
+        f"problem(s) need review across {_escape_html(portfolio_count)} "
         "portfolio(s).</p>"
     )
 
@@ -2311,7 +2470,7 @@ def _html_dashboard_filters() -> str:
             '<label for="pc-dashboard-search">Search</label>',
             (
                 '<input id="pc-dashboard-search" type="search" '
-                'placeholder="Portfolio, cue, or input" data-dashboard-search/>'
+                'placeholder="Portfolio, problem, or action" data-dashboard-search/>'
             ),
             '<label for="pc-dashboard-status">Status</label>',
             '<select id="pc-dashboard-status" data-dashboard-status>',
@@ -2425,26 +2584,27 @@ def _absolute_numeric_value(value: object) -> float:
     return 0.0
 
 
-def _html_dashboard_table(dashboard: pl.DataFrame) -> str:
-    """Return a compact exception-queue table for dashboard review."""
+def _html_problems_table(problems: pl.DataFrame) -> str:
+    """Return the first-pass actionable problems grid."""
     rows = [
-        _html_dashboard_table_row(row)
-        for row in dashboard.iter_rows(named=True)
+        _html_problem_table_row(row)
+        for row in problems.iter_rows(named=True)
     ]
     return "\n".join(
         [
             '<div class="pc-dashboard-table-wrap">',
             '<table class="pc-dashboard-table">',
-            "<caption>Changed portfolio-period review queue.</caption>",
+            "<caption>Actionable performance comparison problems.</caption>",
             "<thead>",
             "<tr>",
+            _html_dashboard_sort_header("Severity", "severity"),
             _html_dashboard_sort_header("Portfolio", "portfolio"),
             _html_dashboard_sort_header("Period", "period"),
             _html_dashboard_sort_header("Return Delta", "return-delta"),
-            _html_dashboard_sort_header("Status", "status"),
-            _html_dashboard_sort_header("Main Issue", "issue"),
-            _html_dashboard_sort_header("Next Step", "next-step"),
-            '<th scope="col">Details</th>',
+            _html_dashboard_sort_header("Problem", "problem"),
+            _html_dashboard_sort_header("Action Required", "action"),
+            _html_dashboard_sort_header("Why It Matters", "why"),
+            _html_dashboard_sort_header("Evidence", "evidence"),
             "</tr>",
             "</thead>",
             "<tbody>",
@@ -2456,8 +2616,8 @@ def _html_dashboard_table(dashboard: pl.DataFrame) -> str:
     )
 
 
-def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
-    """Return one compact dashboard table row."""
+def _html_problem_table_row(row: Mapping[str, object]) -> str:
+    """Return one compact problem-grid row."""
     status = _format_value(row.get(_REVIEW_STATUS))
     missing_inputs = row.get(_DASHBOARD_MISSING_INPUTS)
     period = (
@@ -2467,7 +2627,7 @@ def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
     search_text = _html_dashboard_search_text(row)
     missing_inputs_token = _boolean_token(_has_text(missing_inputs))
     row_id = _html_dashboard_link_target(
-        "review-dashboard",
+        "problems",
         _format_value(row.get(_REVIEW_KEY)),
     )
     article_attributes = " ".join(
@@ -2478,30 +2638,33 @@ def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
             f'data-review-status="{_escape_html(status)}"',
             f'data-missing-inputs="{_escape_html(missing_inputs_token)}"',
             f'data-dashboard-search="{_escape_html(search_text)}"',
+            f'data-sort-severity="{_escape_html(status)}"',
             f'data-sort-portfolio="{_escape_html(row.get(_pc_findings.PORTFOLIO_ID))}"',
             f'data-sort-period="{_escape_html(period)}"',
             (
                 'data-sort-return-delta="'
                 f'{_escape_html(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))}"'
             ),
-            f'data-sort-status="{_escape_html(status)}"',
-            f'data-sort-issue="{_escape_html(row.get(_DASHBOARD_MAIN_ISSUE))}"',
-            f'data-sort-next-step="{_escape_html(row.get(_SUGGESTED_NEXT_STEP))}"',
+            f'data-sort-problem="{_escape_html(row.get(_PROBLEM))}"',
+            f'data-sort-action="{_escape_html(row.get(_ACTION_REQUIRED))}"',
+            f'data-sort-why="{_escape_html(row.get(_WHY_IT_MATTERS))}"',
+            f'data-sort-evidence="{_escape_html(row.get(_EVIDENCE_SECTION))}"',
         ]
     )
     return "\n".join(
         [
             f"<tr {article_attributes}>",
+            _html_dashboard_status_cell(status),
             _html_dashboard_table_cell(row.get(_pc_findings.PORTFOLIO_ID)),
             _html_dashboard_table_cell(period),
             _html_dashboard_table_cell(
                 row.get(_pc_explain.PORTFOLIO_RETURN_DELTA),
                 numeric=True,
             ),
-            _html_dashboard_status_cell(status),
-            _html_dashboard_table_cell(row.get(_DASHBOARD_MAIN_ISSUE)),
-            _html_dashboard_table_cell(row.get(_SUGGESTED_NEXT_STEP)),
-            f"<td>{_html_dashboard_drilldown(row)}</td>",
+            _html_dashboard_table_cell(row.get(_PROBLEM)),
+            _html_dashboard_table_cell(row.get(_ACTION_REQUIRED)),
+            _html_dashboard_table_cell(row.get(_WHY_IT_MATTERS)),
+            f"<td>{_html_problem_evidence_link(row)}</td>",
             "</tr>",
         ]
     )
@@ -2523,12 +2686,11 @@ def _html_dashboard_search_text(row: Mapping[str, object]) -> str:
         row.get(_pc_findings.FROM_DATE),
         row.get(_pc_findings.THRU_DATE),
         row.get(_REVIEW_STATUS),
-        row.get(_PRIMARY_REVIEW_CUE),
+        row.get(_PROBLEM),
+        row.get(_ACTION_REQUIRED),
+        row.get(_WHY_IT_MATTERS),
         row.get(_DASHBOARD_MISSING_INPUTS),
-        row.get(_DASHBOARD_CONTEXT_CUE),
-        row.get(_DASHBOARD_MAIN_ISSUE),
-        row.get(_SUGGESTED_NEXT_STEP),
-        row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
+        row.get(_EVIDENCE_SECTION),
     ]
     return " ".join(_format_value(value) for value in values if _has_text(value)).lower()
 
@@ -2552,47 +2714,15 @@ def _boolean_token(value: bool) -> str:
     return "true" if value else "false"
 
 
-def _html_dashboard_drilldown(row: Mapping[str, object]) -> str:
-    """Return an inline drilldown for one dashboard row."""
+def _html_problem_evidence_link(row: Mapping[str, object]) -> str:
+    """Return the optional evidence link for one problem row."""
     review_key = _format_value(row.get(_REVIEW_KEY))
     section_id = _format_value(row.get(_DASHBOARD_OPEN_SECTION))
     target = _html_dashboard_link_target(section_id, review_key)
-    detail_items = [
-        _html_dashboard_detail_item("Issue", row.get(_DASHBOARD_MAIN_ISSUE)),
-        _html_dashboard_detail_item("Action", row.get(_SUGGESTED_NEXT_STEP)),
-        _html_dashboard_detail_item(
-            "Evidence",
-            f'<a href="#{target}">{_escape_html(_dashboard_section_label(section_id))}</a>',
-            escape_value=False,
-        ),
-    ]
-    return "\n".join(
-        [
-            '<details class="pc-dashboard-drilldown">',
-            "<summary>Open</summary>",
-            "<dl>",
-            *detail_items,
-            "</dl>",
-            "</details>",
-        ]
-    )
-
-
-def _html_dashboard_detail_item(
-    label: str,
-    value: object,
-    *,
-    escape_value: bool = True,
-) -> str:
-    """Return one compact dashboard drilldown fact."""
-    display_value = _format_value(value)
-    if escape_value:
-        display_value = _escape_html(display_value)
-    return "\n".join(
-        [
-            f"<dt>{_escape_html(label)}</dt>",
-            f"<dd>{display_value}</dd>",
-        ]
+    label = _format_value(row.get(_EVIDENCE_SECTION))
+    return (
+        '<a class="pc-problem-evidence-link" '
+        f'href="#{target}">{_escape_html(label)}</a>'
     )
 
 
@@ -2662,25 +2792,13 @@ def _html_review_notes_section(findings: pl.DataFrame) -> str:
     return _html_section("Review Notes", _html_list(notes))
 
 
-def _html_review_detail_section(sections: Sequence[tuple[str, str]]) -> str:
-    """Return the small set of first-pass reviewer detail sections."""
+def _html_evidence_appendix_section(sections: Sequence[tuple[str, str]]) -> str:
+    """Return optional backing evidence sections."""
     return _html_detail_group_section(
-        "Review Detail",
+        "Evidence Appendix",
         (
-            "Open these sections when the dashboard points you to supporting "
-            "evidence."
-        ),
-        sections,
-    )
-
-
-def _html_audit_appendix_section(sections: Sequence[tuple[str, str]]) -> str:
-    """Return secondary diagnostic and completeness sections."""
-    return _html_detail_group_section(
-        "Audit Appendix",
-        (
-            "These sections preserve diagnostic detail and report completeness; "
-            "most first-pass reviews should not need to start here."
+            "Use this appendix only when you need to audit a Problems-grid row. "
+            "The Problems grid is the primary review workflow."
         ),
         sections,
     )
@@ -3512,25 +3630,13 @@ body {
 .pc-dashboard-clear {
   border-left-color: var(--pc-status-clear);
 }
-.pc-dashboard-drilldown {
-  min-width: 140px;
-}
-.pc-dashboard-drilldown summary {
-  color: var(--pc-accent);
-  cursor: pointer;
+.pc-problem-evidence-link {
+  border: 1px solid var(--pc-border);
+  display: inline-block;
   font-weight: 700;
-}
-.pc-dashboard-drilldown dl {
-  margin: 6px 0 0;
-}
-.pc-dashboard-drilldown dt {
-  color: var(--pc-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.pc-dashboard-drilldown dd {
-  margin: 2px 0 6px;
+  padding: 3px 6px;
+  text-decoration: none;
+  white-space: nowrap;
 }
 .pc-dashboard-no-results {
   border: 1px dashed var(--pc-border);

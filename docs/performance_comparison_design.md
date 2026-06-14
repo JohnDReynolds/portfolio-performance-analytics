@@ -1331,8 +1331,8 @@ Axys-specific presentation layer.
 
 The intended bundle review order is:
 
-1. `report.html`: browser-readable Review Dashboard, drilldown cues, narrative,
-   and key tables.
+1. `report.html`: browser-readable Problems grid with specific actions and an
+   optional Evidence Appendix.
 2. `needs_review_summary.csv`: changed portfolio periods and suggested next
    steps, plus drilldown artifacts for each triage row.
 3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
@@ -1364,22 +1364,20 @@ bundle tables carry a stable `review_key` where possible, and
 `needs_review_summary.csv` includes `review_detail_artifacts` to name the CSVs
 most relevant to each changed period.
 
-The HTML report adds a first-screen `Review Dashboard` before the detailed
-sections. It uses the same period-level triage data to show one compact row per
-changed portfolio period, with return delta, status, main issue, suggested next
-step, sortable headers, browser filters, and an inline details control.
-Expanded dashboard details include one suggested evidence link into the review
-detail sections. Links use stable period-specific row anchors when the target section carries
-portfolio-period fields, so a reviewer lands near the relevant evidence rather
-than only at the top of a broad section. Rows are sorted to keep needs-review
-periods first, then missing-impact-input periods, then larger absolute return
-deltas, then portfolio/date. The dashboard is deliberately static for now: it
-guides the reviewer through existing evidence without adding new calculation
-logic. Its lightweight browser filters search rendered row text, review status,
-and missing-input flags only; they do not change report data or require a
-server. The default HTML presentation should stay short at the top: dashboard
-first, then a small Review Detail group for first-pass evidence, then an Audit
-Appendix group for secondary diagnostics and completeness tables.
+The HTML report starts with a first-screen `Problems` grid instead of a stack of
+evidence tables. It uses the same period-level triage data to show one compact
+row per actionable issue, with severity, portfolio, period, return delta,
+problem, action required, why it matters, and an optional evidence link. Links
+use stable period-specific row anchors when the target section carries
+portfolio-period fields, so a reviewer can audit the conclusion without using
+raw tables as the primary workflow. Rows are sorted to keep needs-review periods
+first, then missing-impact-input periods, then larger absolute return deltas,
+then portfolio/date. The grid is deliberately static for now: it guides the
+reviewer through existing evidence without adding new calculation logic. Its
+lightweight browser filters search rendered row text, review status, and
+missing-input flags only; they do not change report data or require a server.
+The default HTML presentation should stay short at the top: Problems first,
+with backing tables inside an Evidence Appendix.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is
