@@ -164,14 +164,13 @@ The performance comparison demo writes a review bundle under `_demo_output`.
 Start with `_demo_output/performance_comparison_bundle/report.html`; its Review
 Dashboard gives one compact row per changed portfolio period. The default demo
 uses a multi-portfolio restatement fixture so the dashboard has several issue
-shapes to review. Rows surface return delta, status, cause-area coverage,
-missing inputs, high-priority context, the primary cue, next step, and drilldown
-links. The dashboard includes lightweight browser filters for search, review
-status, and missing-input-only review. Those links land on period-specific
-detail rows where the section carries portfolio-period data. The HTML report
-keeps the first view short: dashboard first, with full narrative and detailed
-evidence tables under Review Detail, and secondary diagnostics under Audit
-Appendix. Then inspect
+shapes to review. Rows surface return delta, status, one main issue, one next
+step, and one suggested opening link. The dashboard includes lightweight browser
+filters for search, review status, and missing-input-only review. Open links
+land on period-specific detail rows where the section carries portfolio-period
+data. The HTML report keeps the first view short: dashboard first, with full
+narrative and detailed evidence tables under Review Detail, and secondary
+diagnostics under Audit Appendix. Then inspect
 `needs_review_summary.csv` for the periods and issues that need review first.
 The `review_key` column links period-level bundle tables, and
 `review_detail_artifacts` names the CSVs most relevant to each triage row. The

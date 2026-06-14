@@ -468,26 +468,25 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn('data-missing-inputs="true"', dashboard)
         self.assertIn("PORT_A", dashboard)
         self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
-        self.assertIn("4 evidence-only area(s)", dashboard)
-        self.assertIn("2 estimated / 4 evidence-only", dashboard)
-        self.assertIn("return-impact method", dashboard)
-        self.assertIn("positions/cost", dashboard)
         self.assertIn("<th scope=\"col\">Portfolio</th>", dashboard)
         self.assertIn("<th scope=\"col\">Return Delta</th>", dashboard)
-        self.assertIn("<th scope=\"col\">Links</th>", dashboard)
+        self.assertIn("<th scope=\"col\">Main Issue</th>", dashboard)
+        self.assertIn("<th scope=\"col\">Open</th>", dashboard)
+        self.assertNotIn("<th scope=\"col\">Coverage</th>", dashboard)
+        self.assertNotIn("<th scope=\"col\">Cause Areas</th>", dashboard)
+        self.assertNotIn("<th scope=\"col\">Missing Inputs</th>", dashboard)
+        self.assertNotIn("<th scope=\"col\">Context</th>", dashboard)
+        self.assertNotIn("<th scope=\"col\">Primary Cue</th>", dashboard)
+        self.assertIn("Missing inputs: return-impact method", dashboard)
+        self.assertIn('class="pc-dashboard-open-link"', dashboard)
+        self.assertEqual(dashboard.count('class="pc-dashboard-open-link"'), 1)
         self.assertIn("Resolve missing impact inputs", dashboard)
         self.assertIn(
             'href="#impact-coverage--port-a--2025-05-30--2025-05-30"',
             dashboard,
         )
-        self.assertIn(
-            'href="#context-evidence--port-a--2025-05-30--2025-05-30"',
-            dashboard,
-        )
-        self.assertIn(
-            'href="#transaction-activity--port-a--2025-05-30--2025-05-30"',
-            dashboard,
-        )
+        self.assertNotIn('href="#context-evidence--', dashboard)
+        self.assertNotIn('href="#transaction-activity--', dashboard)
         self.assertIn(
             'id="impact-coverage--port-a--2025-05-30--2025-05-30"',
             report,
@@ -631,6 +630,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             dashboard["dashboard_coverage_counts"][0],
             "1 estimated / 2 evidence-only",
         )
+        self.assertEqual(
+            dashboard["dashboard_main_issue"][0],
+            "Missing inputs: return-impact method",
+        )
+        self.assertEqual(dashboard["dashboard_open_section"][0], "impact-coverage")
 
     def test_multi_portfolio_fixture_renders_dashboard_variety(self) -> None:
         """The demo fixture gives the HTML report multiple issue shapes."""
@@ -661,9 +665,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         dashboard_section = _html_section(report, "review-dashboard")
         self.assertEqual(dashboard_section.count('data-dashboard-row'), 3)
+        self.assertEqual(dashboard_section.count('class="pc-dashboard-open-link"'), 3)
         self.assertIn("PORT_A", dashboard_section)
         self.assertIn("PORT_B", dashboard_section)
         self.assertIn("PORT_C", dashboard_section)
+        self.assertIn("Missing inputs: defensible impact method", dashboard_section)
+        self.assertIn("1 low-confidence estimate(s)", dashboard_section)
         narrative_section = _html_section(report, "portfolio-period-narrative")
         self.assertIn("PORT_C changed by 0.0008", narrative_section)
         self.assertIn("PORT_B changed by 0.0015", narrative_section)

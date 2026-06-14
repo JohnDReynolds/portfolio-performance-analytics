@@ -1366,9 +1366,8 @@ most relevant to each changed period.
 
 The HTML report adds a first-screen `Review Dashboard` before the detailed
 sections. It uses the same period-level triage data to show one compact row per
-changed portfolio period, with return delta, status, primary cue, suggested next
-step, impact coverage hint, cause-area coverage counts, missing inputs,
-high-priority context, and links to the review detail sections. Dashboard
+changed portfolio period, with return delta, status, main issue, suggested next
+step, and one suggested opening link into the review detail sections. Dashboard
 links use stable period-specific row anchors when the target section carries
 portfolio-period fields, so a reviewer lands near the relevant evidence rather
 than only at the top of a broad section. Rows are sorted to keep needs-review

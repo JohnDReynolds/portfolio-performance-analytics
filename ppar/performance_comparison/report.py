@@ -58,18 +58,11 @@ _PRIMARY_REVIEW_CUE = "primary_review_cue"
 _DASHBOARD_COVERAGE_COUNTS = "dashboard_coverage_counts"
 _DASHBOARD_MISSING_INPUTS = "dashboard_missing_inputs"
 _DASHBOARD_CONTEXT_CUE = "dashboard_context_cue"
-_DASHBOARD_REVIEW_PATH = "dashboard_review_path"
+_DASHBOARD_MAIN_ISSUE = "dashboard_main_issue"
+_DASHBOARD_OPEN_SECTION = "dashboard_open_section"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
-_DASHBOARD_DETAIL_LINKS = (
-    ("Needs", "needs-review-summary"),
-    ("Impact", "impact-coverage"),
-    ("Context", "context-evidence"),
-    ("Transactions", "transaction-activity"),
-    ("Residual", "residual-status"),
-    ("Findings", "top-evidence"),
-)
 _NEEDS_REVIEW_COLUMNS = (
     _REVIEW_KEY,
     _pc_findings.PORTFOLIO_ID,
@@ -2167,7 +2160,7 @@ def _html_review_dashboard_section(findings: pl.DataFrame) -> str:
             (
                 '<p class="pc-note">Start here: each row is one changed '
                 'portfolio-period. Use filters to narrow the queue, then follow '
-                'the links to supporting evidence.</p>'
+                'Open for the best first supporting evidence.</p>'
             ),
             _html_dashboard_filters(),
             _html_dashboard_table(dashboard),
@@ -2194,7 +2187,8 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
                 _DASHBOARD_COVERAGE_COUNTS: pl.String,
                 _DASHBOARD_MISSING_INPUTS: pl.String,
                 _DASHBOARD_CONTEXT_CUE: pl.String,
-                _DASHBOARD_REVIEW_PATH: pl.String,
+                _DASHBOARD_MAIN_ISSUE: pl.String,
+                _DASHBOARD_OPEN_SECTION: pl.String,
                 _pc_explain.IMPACT_COVERAGE_STATUS: pl.String,
                 _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE: pl.String,
                 "_missing_input_rank": pl.Int64,
@@ -2234,7 +2228,8 @@ def _review_dashboard_table(findings: pl.DataFrame) -> pl.DataFrame:
             _DASHBOARD_COVERAGE_COUNTS,
             _DASHBOARD_MISSING_INPUTS,
             _DASHBOARD_CONTEXT_CUE,
-            _DASHBOARD_REVIEW_PATH,
+            _DASHBOARD_MAIN_ISSUE,
+            _DASHBOARD_OPEN_SECTION,
             _pc_explain.IMPACT_COVERAGE_STATUS,
             _pc_explain.IMPACT_COVERAGE_REVIEW_NOTE,
         ]
@@ -2249,6 +2244,9 @@ def _review_dashboard_row(
     """Return one compact dashboard row for a portfolio period."""
     coverage_row = coverage[0] if coverage else {}
     return_delta = period.get(_pc_explain.PORTFOLIO_RETURN_DELTA)
+    primary_cue = _primary_review_cue(period.get(_REVIEW_CUES))
+    missing_inputs = coverage_row.get(_pc_explain.MISSING_IMPACT_INPUTS, "")
+    context_cue = _dashboard_context_cue(period.get(_REVIEW_CUES))
     return {
         _REVIEW_KEY: period.get(_REVIEW_KEY),
         _pc_findings.PORTFOLIO_ID: period.get(_pc_findings.PORTFOLIO_ID),
@@ -2256,16 +2254,21 @@ def _review_dashboard_row(
         _pc_findings.THRU_DATE: period.get(_pc_findings.THRU_DATE),
         _pc_explain.PORTFOLIO_RETURN_DELTA: return_delta,
         _REVIEW_STATUS: period.get(_REVIEW_STATUS),
-        _PRIMARY_REVIEW_CUE: _primary_review_cue(period.get(_REVIEW_CUES)),
+        _PRIMARY_REVIEW_CUE: primary_cue,
         _SUGGESTED_NEXT_STEP: period.get(_SUGGESTED_NEXT_STEP),
         _DASHBOARD_COVERAGE_COUNTS: _dashboard_coverage_counts(coverage_row),
-        _DASHBOARD_MISSING_INPUTS: coverage_row.get(
-            _pc_explain.MISSING_IMPACT_INPUTS,
-            "",
+        _DASHBOARD_MISSING_INPUTS: missing_inputs,
+        _DASHBOARD_CONTEXT_CUE: context_cue,
+        _DASHBOARD_MAIN_ISSUE: _dashboard_main_issue(
+            primary_cue=primary_cue,
+            missing_inputs=missing_inputs,
+            context_cue=context_cue,
+            coverage_row=coverage_row,
         ),
-        _DASHBOARD_CONTEXT_CUE: _dashboard_context_cue(period.get(_REVIEW_CUES)),
-        _DASHBOARD_REVIEW_PATH: _dashboard_review_path(
-            period.get(_REVIEW_DETAIL_ARTIFACTS)
+        _DASHBOARD_OPEN_SECTION: _dashboard_open_section(
+            primary_cue=primary_cue,
+            missing_inputs=missing_inputs,
+            context_cue=context_cue,
         ),
         _pc_explain.IMPACT_COVERAGE_STATUS: coverage_row.get(
             _pc_explain.IMPACT_COVERAGE_STATUS,
@@ -2353,30 +2356,41 @@ def _dashboard_context_cue(cues: object) -> str:
     return cue.removeprefix("high-priority context:").strip()
 
 
-def _dashboard_review_path(artifacts: object) -> str:
-    """Return compact dashboard review-path text from detail artifacts."""
-    if not _has_text(artifacts):
-        return ""
-    artifact_names = [
-        artifact.strip()
-        for artifact in str(artifacts).split(",")
-        if artifact.strip()
-    ]
-    if not artifact_names:
-        return ""
-    preferred_order = [
-        "impact_coverage.csv",
-        "context_evidence.csv",
-        "transaction_activity.csv",
-        "residual_status.csv",
-        "findings.csv",
-    ]
-    selected = [
-        artifact
-        for artifact in preferred_order
-        if artifact in artifact_names
-    ]
-    return " -> ".join(selected or artifact_names[:3])
+def _dashboard_main_issue(
+    *,
+    primary_cue: str,
+    missing_inputs: object,
+    context_cue: str,
+    coverage_row: Mapping[str, object],
+) -> str:
+    """Return one plain-English issue for the dashboard row."""
+    if _has_text(missing_inputs):
+        return f"Missing inputs: {_format_value(missing_inputs)}"
+    if context_cue:
+        return f"Review context: {context_cue}"
+    if primary_cue and primary_cue != "No review cue.":
+        return primary_cue
+
+    coverage_status = _format_value(coverage_row.get(_pc_explain.IMPACT_COVERAGE_STATUS))
+    if coverage_status:
+        return coverage_status.replace("_", " ")
+    return "No specific issue identified."
+
+
+def _dashboard_open_section(
+    *,
+    primary_cue: str,
+    missing_inputs: object,
+    context_cue: str,
+) -> str:
+    """Return the best first drilldown section for a dashboard row."""
+    if _has_text(missing_inputs) or "evidence-only" in primary_cue:
+        return "impact-coverage"
+    if context_cue:
+        return "context-evidence"
+    if "low-confidence" in primary_cue:
+        return "top-evidence"
+    return "needs-review-summary"
 
 
 def _cue_with_prefix(cues: object, prefix: str) -> str:
@@ -2428,13 +2442,9 @@ def _html_dashboard_table(dashboard: pl.DataFrame) -> str:
             '<th scope="col">Period</th>',
             '<th scope="col">Return Delta</th>',
             '<th scope="col">Status</th>',
-            '<th scope="col">Coverage</th>',
-            '<th scope="col">Cause Areas</th>',
-            '<th scope="col">Missing Inputs</th>',
-            '<th scope="col">Context</th>',
-            '<th scope="col">Primary Cue</th>',
+            '<th scope="col">Main Issue</th>',
             '<th scope="col">Next Step</th>',
-            '<th scope="col">Links</th>',
+            '<th scope="col">Open</th>',
             "</tr>",
             "</thead>",
             "<tbody>",
@@ -2480,13 +2490,9 @@ def _html_dashboard_table_row(row: Mapping[str, object]) -> str:
                 numeric=True,
             ),
             _html_dashboard_status_cell(status),
-            _html_dashboard_table_cell(row.get(_pc_explain.IMPACT_COVERAGE_STATUS)),
-            _html_dashboard_table_cell(row.get(_DASHBOARD_COVERAGE_COUNTS)),
-            _html_dashboard_table_cell(row.get(_DASHBOARD_MISSING_INPUTS)),
-            _html_dashboard_table_cell(row.get(_DASHBOARD_CONTEXT_CUE)),
-            _html_dashboard_table_cell(row.get(_PRIMARY_REVIEW_CUE)),
+            _html_dashboard_table_cell(row.get(_DASHBOARD_MAIN_ISSUE)),
             _html_dashboard_table_cell(row.get(_SUGGESTED_NEXT_STEP)),
-            f"<td>{_html_dashboard_links(row)}</td>",
+            f"<td>{_html_dashboard_open_link(row)}</td>",
             "</tr>",
         ]
     )
@@ -2502,6 +2508,7 @@ def _html_dashboard_search_text(row: Mapping[str, object]) -> str:
         row.get(_PRIMARY_REVIEW_CUE),
         row.get(_DASHBOARD_MISSING_INPUTS),
         row.get(_DASHBOARD_CONTEXT_CUE),
+        row.get(_DASHBOARD_MAIN_ISSUE),
         row.get(_SUGGESTED_NEXT_STEP),
         row.get(_pc_explain.IMPACT_COVERAGE_STATUS),
     ]
@@ -2527,20 +2534,14 @@ def _boolean_token(value: bool) -> str:
     return "true" if value else "false"
 
 
-def _html_dashboard_links(row: Mapping[str, object]) -> str:
-    """Return period-specific drilldown links for one dashboard row."""
+def _html_dashboard_open_link(row: Mapping[str, object]) -> str:
+    """Return one period-specific drilldown link for a dashboard row."""
     review_key = _format_value(row.get(_REVIEW_KEY))
-    links = [
-        f'<a href="#{_html_dashboard_link_target(section_id, review_key)}">'
-        f"{_escape_html(label)}</a>"
-        for label, section_id in _DASHBOARD_DETAIL_LINKS
-    ]
-    return "\n".join(
-        [
-            '<nav class="pc-dashboard-links" aria-label="Dashboard drilldown links">',
-            *links,
-            "</nav>",
-        ]
+    section_id = _format_value(row.get(_DASHBOARD_OPEN_SECTION))
+    target = _html_dashboard_link_target(section_id, review_key)
+    return (
+        '<a class="pc-dashboard-open-link" '
+        f'href="#{target}">Open</a>'
     )
 
 
@@ -3433,13 +3434,9 @@ body {
 .pc-dashboard-clear {
   border-left-color: var(--pc-status-clear);
 }
-.pc-dashboard-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.pc-dashboard-links a {
+.pc-dashboard-open-link {
   border: 1px solid var(--pc-border);
+  display: inline-block;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 6px;
