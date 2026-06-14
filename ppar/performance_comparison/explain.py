@@ -52,6 +52,8 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison.methods import (
     ContributionImpactMethod,
+    ModifiedDietzDoubleCountPolicy,
+    ModifiedDietzInclusionRule,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison.transactions import (
@@ -189,7 +191,7 @@ NEUTRAL_FLOW_IMPACT_METHOD = "neutral-flow impact method"
 NO_CASH_TRANSACTION_IMPACT_METHOD = "no-cash transaction impact method"
 TRANSACTION_IMPACT_METHOD = "transaction impact method"
 CROSS_CHECK_TREATMENT = "cross_check_treatment"
-CROSS_CHECK_ONLY = "cross_check_only"
+CROSS_CHECK_ONLY = ModifiedDietzDoubleCountPolicy.CROSS_CHECK_ONLY.value
 CROSS_CHECK_COUNT = "cross_check_count"
 CROSS_CHECK_ESTIMATE_TOTAL = "cross_check_estimate_total"
 CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
@@ -1494,9 +1496,9 @@ def _modified_dietz_flow_weight(
         raise ValueError("flow_date must be inside the period")
 
     remaining_days = (thru_date - flow_date).days
-    if inclusion_rule == "beginning_of_day":
+    if inclusion_rule == ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value:
         remaining_days += 1
-    elif inclusion_rule != "end_of_day":
+    elif inclusion_rule != ModifiedDietzInclusionRule.END_OF_DAY.value:
         raise ValueError("inclusion_rule must be beginning_of_day or end_of_day")
     return remaining_days / period_days
 

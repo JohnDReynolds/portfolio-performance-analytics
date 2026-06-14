@@ -61,6 +61,10 @@ from ppar.performance_comparison.findings import (
 from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.methods import (
     ContributionImpactMethod,
+    ModifiedDietzDayCount,
+    ModifiedDietzDoubleCountPolicy,
+    ModifiedDietzFlowTiming,
+    ModifiedDietzInclusionRule,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison.period_linking import (
@@ -212,6 +216,18 @@ _DAY_COUNT_KEY: Final[str] = "day_count"
 _INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
 _DENOMINATOR_SOURCE_KEY: Final[str] = "denominator_source"
 _DOUBLE_COUNT_POLICY_KEY: Final[str] = "double_count_policy"
+_MODIFIED_DIETZ_FLOW_TIMINGS: Final[frozenset[str]] = frozenset(
+    member.value for member in ModifiedDietzFlowTiming
+)
+_MODIFIED_DIETZ_DAY_COUNTS: Final[frozenset[str]] = frozenset(
+    member.value for member in ModifiedDietzDayCount
+)
+_MODIFIED_DIETZ_INCLUSION_RULES: Final[frozenset[str]] = frozenset(
+    member.value for member in ModifiedDietzInclusionRule
+)
+_MODIFIED_DIETZ_DOUBLE_COUNT_POLICIES: Final[frozenset[str]] = frozenset(
+    member.value for member in ModifiedDietzDoubleCountPolicy
+)
 _MODIFIED_DIETZ_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
@@ -229,11 +245,11 @@ _PERFORMANCE_AMOUNT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     }
 )
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
-    _FLOW_TIMING_KEY: frozenset({"trade_date", "settlement_date"}),
-    _DAY_COUNT_KEY: frozenset({"actual_days"}),
-    _INCLUSION_RULE_KEY: frozenset({"beginning_of_day", "end_of_day"}),
+    _FLOW_TIMING_KEY: _MODIFIED_DIETZ_FLOW_TIMINGS,
+    _DAY_COUNT_KEY: _MODIFIED_DIETZ_DAY_COUNTS,
+    _INCLUSION_RULE_KEY: _MODIFIED_DIETZ_INCLUSION_RULES,
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
-    _DOUBLE_COUNT_POLICY_KEY: frozenset({"cross_check_only"}),
+    _DOUBLE_COUNT_POLICY_KEY: _MODIFIED_DIETZ_DOUBLE_COUNT_POLICIES,
 }
 _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
     {
@@ -1898,7 +1914,10 @@ def _modified_dietz_external_flow_eligibility(
         missing_inputs.append("external performance-flow semantics")
     if policy is None or policy.method != _MODIFIED_DIETZ_METHOD:
         missing_inputs.append("modified_dietz policy")
-    elif policy.double_count_policy != "cross_check_only":
+    elif (
+        policy.double_count_policy
+        != ModifiedDietzDoubleCountPolicy.CROSS_CHECK_ONLY.value
+    ):
         missing_inputs.append("cross_check_only double-count policy")
     if flow_date is None:
         missing_inputs.append("flow date")
@@ -1958,9 +1977,9 @@ def _modified_dietz_flow_weight(
         raise ValueError("flow_date must be inside the period")
 
     remaining_days = (thru_date - flow_date).days
-    if inclusion_rule == "beginning_of_day":
+    if inclusion_rule == ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value:
         remaining_days += 1
-    elif inclusion_rule != "end_of_day":
+    elif inclusion_rule != ModifiedDietzInclusionRule.END_OF_DAY.value:
         raise ValueError("inclusion_rule must be beginning_of_day or end_of_day")
     return remaining_days / period_days
 
@@ -1973,8 +1992,8 @@ def _modified_dietz_flow_date(
     if policy is None:
         return None
     flow_date_column_by_timing = {
-        "trade_date": pc_cols.TRANSACTION_DATE,
-        "settlement_date": pc_cols.SETTLEMENT_DATE,
+        ModifiedDietzFlowTiming.TRADE_DATE.value: pc_cols.TRANSACTION_DATE,
+        ModifiedDietzFlowTiming.SETTLEMENT_DATE.value: pc_cols.SETTLEMENT_DATE,
     }
     if policy.flow_timing is None:
         return None

@@ -29,3 +29,29 @@ class TransactionImpactMethod(StrEnum):
     TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR = (
         "transaction_amount_delta_over_return_denominator"
     )
+
+
+class ModifiedDietzFlowTiming(StrEnum):
+    """Supported Modified Dietz flow date source options."""
+
+    TRADE_DATE = "trade_date"
+    SETTLEMENT_DATE = "settlement_date"
+
+
+class ModifiedDietzDayCount(StrEnum):
+    """Supported Modified Dietz day-count conventions."""
+
+    ACTUAL_DAYS = "actual_days"
+
+
+class ModifiedDietzInclusionRule(StrEnum):
+    """Supported Modified Dietz flow inclusion timing rules."""
+
+    BEGINNING_OF_DAY = "beginning_of_day"
+    END_OF_DAY = "end_of_day"
+
+
+class ModifiedDietzDoubleCountPolicy(StrEnum):
+    """Supported Modified Dietz double-counting guardrail policies."""
+
+    CROSS_CHECK_ONLY = "cross_check_only"

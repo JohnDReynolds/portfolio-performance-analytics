@@ -79,6 +79,12 @@ from ppar.performance_comparison.findings import (
     PERFORMANCE_FLOW_SIGN,
     Finding,
 )
+from ppar.performance_comparison.methods import (
+    ModifiedDietzDayCount,
+    ModifiedDietzDoubleCountPolicy,
+    ModifiedDietzFlowTiming,
+    ModifiedDietzInclusionRule,
+)
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
@@ -1039,11 +1045,17 @@ class TestPerformanceComparison(unittest.TestCase):
             )
 
             self.assertEqual(policy.method, "modified_dietz")
-            self.assertEqual(policy.flow_timing, "settlement_date")
-            self.assertEqual(policy.day_count, "actual_days")
-            self.assertEqual(policy.inclusion_rule, "end_of_day")
+            self.assertEqual(policy.flow_timing, ModifiedDietzFlowTiming.SETTLEMENT_DATE.value)
+            self.assertEqual(policy.day_count, ModifiedDietzDayCount.ACTUAL_DAYS.value)
+            self.assertEqual(
+                policy.inclusion_rule,
+                ModifiedDietzInclusionRule.END_OF_DAY.value,
+            )
             self.assertEqual(policy.denominator_source, "begin_market_value")
-            self.assertEqual(policy.double_count_policy, "cross_check_only")
+            self.assertEqual(
+                policy.double_count_policy,
+                ModifiedDietzDoubleCountPolicy.CROSS_CHECK_ONLY.value,
+            )
 
     def test_transaction_modified_dietz_eligibility_accepts_complete_inputs(
         self,
