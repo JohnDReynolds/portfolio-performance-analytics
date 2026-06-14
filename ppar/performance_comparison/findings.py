@@ -14,6 +14,12 @@ from typing import Final, Sequence
 # Third-party imports
 import polars as pl
 
+# Project imports
+from ppar.performance_comparison.methods import (
+    ContributionImpactMethod,
+    TransactionImpactMethod,
+)
+
 __all__ = [
     "FINDING_CODE",
     "SEVERITY",
@@ -110,18 +116,23 @@ TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 TRANSACTION_MATCH_STATUS = "transaction_match_status"
 IMPACT_POLICY = "impact_policy"
 IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD = (
-    "portfolio_source_field:source_field_delta_over_begin_market_value"
+    "portfolio_source_field:"
+    f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
 )
 IMPACT_POLICY_SECURITY_CONTRIBUTION = (
-    "security_contribution:vendor_contribution_delta"
+    f"security_contribution:{ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value}"
 )
 IMPACT_POLICY_SECURITY_RETURN_WEIGHTED = (
-    "security_return:security_return_delta_times_weight"
+    "security_return:"
+    f"{ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value}"
 )
 TRANSACTION_IMPACT_POLICY = "transaction_impact_policy"
-TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = "external_flow:evidence_only"
+TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY = (
+    f"external_flow:{TransactionImpactMethod.EVIDENCE_ONLY.value}"
+)
 TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA = (
-    "performance:transaction_amount_delta_over_return_denominator"
+    "performance:"
+    f"{TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value}"
 )
 TRANSACTION_IMPACT_DIAGNOSTIC = "transaction_impact_diagnostic"
 TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE = "transaction_impact_diagnostic_estimate"

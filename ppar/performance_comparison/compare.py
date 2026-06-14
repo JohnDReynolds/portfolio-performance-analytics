@@ -59,6 +59,10 @@ from ppar.performance_comparison.findings import (
     Finding,
 )
 from ppar.performance_comparison.fx_rates import FxRatesLoader
+from ppar.performance_comparison.methods import (
+    ContributionImpactMethod,
+    TransactionImpactMethod,
+)
 from ppar.performance_comparison.period_linking import (
     period_context_for_dated_evidence,
     portfolio_periods_from_snapshots,
@@ -189,17 +193,19 @@ _PERFORMANCE_KEY: Final[str] = "performance"
 _METHOD_KEY: Final[str] = "method"
 _SOURCE_FIELDS_KEY: Final[str] = "source_fields"
 _WEIGHT_SOURCE_KEY: Final[str] = "weight_source"
-_EVIDENCE_ONLY_METHOD: Final[str] = "evidence_only"
-_VENDOR_CONTRIBUTION_DELTA_METHOD: Final[str] = "vendor_contribution_delta"
+_EVIDENCE_ONLY_METHOD: Final[str] = TransactionImpactMethod.EVIDENCE_ONLY.value
+_VENDOR_CONTRIBUTION_DELTA_METHOD: Final[str] = (
+    ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value
+)
 _SECURITY_RETURN_DELTA_TIMES_WEIGHT_METHOD: Final[str] = (
-    "security_return_delta_times_weight"
+    ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value
 )
 _SOURCE_FIELD_DELTA_OVER_BEGIN_MV_METHOD: Final[str] = (
-    "source_field_delta_over_begin_market_value"
+    ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value
 )
-_MODIFIED_DIETZ_METHOD: Final[str] = "modified_dietz"
+_MODIFIED_DIETZ_METHOD: Final[str] = TransactionImpactMethod.MODIFIED_DIETZ.value
 _TRANSACTION_AMOUNT_DELTA_METHOD: Final[str] = (
-    "transaction_amount_delta_over_return_denominator"
+    TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"

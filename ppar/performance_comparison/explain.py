@@ -50,6 +50,10 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
 )
+from ppar.performance_comparison.methods import (
+    ContributionImpactMethod,
+    TransactionImpactMethod,
+)
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,
@@ -150,14 +154,16 @@ IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
 IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT = (
-    "security_return_delta_times_weight"
+    ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value
 )
 IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV = (
-    "source_field_delta_over_begin_market_value"
+    ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value
 )
-IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = "vendor_contribution_delta"
+IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
+    ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value
+)
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
-    "transaction_amount_delta_over_return_denominator"
+    TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"

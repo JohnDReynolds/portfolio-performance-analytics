@@ -1398,7 +1398,9 @@ from policy-gap scenarios:
 
 The compact demo scenario matrix lives in `ppar/demo_data/axys/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which
-scenarios are intentionally planned rather than covered.
+scenarios are intentionally planned rather than covered. It also tracks the
+goal that every supported public YAML impact method should have at least one
+packaged demo scenario and validator assertion.
 
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is

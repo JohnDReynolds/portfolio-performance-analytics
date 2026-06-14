@@ -38,3 +38,23 @@ From a source checkout, validate the covered scenarios with:
 The current matrix favors a small set of reusable CSV snapshots over many
 near-duplicate directories. Add new CSV snapshots only when a scenario cannot be
 expressed clearly through YAML policy changes against the existing data.
+
+## Method Coverage Goal
+
+Each supported public YAML impact method should have at least one packaged demo
+scenario and one validator assertion. Tests can still cover narrow edge cases,
+but the demos should prove that each method is understandable from reviewer
+outputs.
+
+Current public YAML method targets:
+
+- `contribution_impact_methods.portfolio_source_field`:
+  `source_field_delta_over_begin_market_value` (covered)
+- `contribution_impact_methods.security_contribution`:
+  `vendor_contribution_delta` (covered)
+- `contribution_impact_methods.security_return`:
+  `security_return_delta_times_weight` (covered)
+- `transaction_impact_methods.external_flow`: `evidence_only` (covered)
+- `transaction_impact_methods.external_flow`: `modified_dietz` (planned)
+- `transaction_impact_methods.performance`:
+  `transaction_amount_delta_over_return_denominator` (covered)

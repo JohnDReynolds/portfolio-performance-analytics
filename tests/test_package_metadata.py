@@ -24,6 +24,10 @@ from ppar.axys import (
 from ppar.performance_comparison import runner as performance_comparison_runner
 from ppar.performance_comparison import report as performance_comparison_report
 from ppar.performance_comparison import findings as performance_comparison_findings
+from ppar.performance_comparison.methods import (
+    ContributionImpactMethod,
+    TransactionImpactMethod,
+)
 from ppar.performance_comparison import (
     transactions as performance_comparison_transactions,
 )
@@ -269,6 +273,58 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(fixture, matrix)
         self.assertIn("Covered", matrix)
         self.assertIn("Planned", matrix)
+
+    def test_axys_demo_matrix_documents_supported_yaml_methods(self) -> None:
+        """The packaged Axys demo matrix tracks every public YAML method target."""
+        matrix = Path("ppar/demo_data/axys/README.md").read_text(encoding=util.ENCODING)
+        expected_methods = {
+            ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value,
+            ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value,
+            ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value,
+            TransactionImpactMethod.EVIDENCE_ONLY.value,
+            TransactionImpactMethod.MODIFIED_DIETZ.value,
+            TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value,
+        }
+
+        self.assertIn("## Method Coverage Goal", matrix)
+        for method in expected_methods:
+            with self.subTest(method=method):
+                self.assertIn(method, matrix)
+
+    def test_performance_comparison_method_constants_use_enum_values(self) -> None:
+        """Report and finding constants stay aligned with YAML method enums."""
+        self.assertEqual(
+            performance_comparison_findings.IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
+            (
+                "portfolio_source_field:"
+                f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
+            ),
+        )
+        self.assertEqual(
+            performance_comparison_findings.IMPACT_POLICY_SECURITY_CONTRIBUTION,
+            (
+                "security_contribution:"
+                f"{ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value}"
+            ),
+        )
+        self.assertEqual(
+            performance_comparison_findings.IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
+            (
+                "security_return:"
+                f"{ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value}"
+            ),
+        )
+        self.assertEqual(
+            performance_comparison_findings.TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+            f"external_flow:{TransactionImpactMethod.EVIDENCE_ONLY.value}",
+        )
+        self.assertEqual(
+            performance_comparison_findings.TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+            (
+                "performance:"
+                f"{TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value}"
+            ),
+        )
 
     def test_public_axys_import_contract(self) -> None:
         """The documented Axys package exports remain importable."""
