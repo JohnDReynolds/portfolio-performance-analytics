@@ -1392,6 +1392,10 @@ from policy-gap scenarios:
   `contribution_impact_methods`, configuring `transaction_impact_methods`,
   setting `denominator_source`, and defining transaction sign/flow semantics.
 
+The compact demo scenario matrix lives in `ppar/demo_data/axys/README.md`.
+It lists which YAML fixture covers each reviewer-facing problem type and which
+scenarios are intentionally planned rather than covered.
+
 Context evidence is summarized separately from impact estimates. The
 `context_evidence.csv` bundle artifact contains rows whose evidence role is
 `context`, a reviewer-facing `context_use`, and a

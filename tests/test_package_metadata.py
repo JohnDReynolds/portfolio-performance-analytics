@@ -217,6 +217,7 @@ class TestPackageMetadata(unittest.TestCase):
         """The Axys demos use packaged resources instead of test fixtures."""
         axys_demo_data = files("ppar.demo_data") / "axys"
 
+        self.assertTrue((axys_demo_data / "README.md").is_file())
         self.assertTrue((axys_demo_data / "axys_column_mappings.yaml").is_file())
         self.assertTrue(
             (axys_demo_data / "ppar_performance_comparison_restatement.yaml").is_file()
@@ -236,6 +237,38 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertTrue(
             (axys_demo_data / "axys_b_multi_restatement" / "secperf.csv").is_file()
         )
+
+    def test_axys_demo_matrix_documents_problem_scenarios(self) -> None:
+        """The packaged Axys demo matrix names the expected review scenarios."""
+        matrix = Path("ppar/demo_data/axys/README.md").read_text(encoding=util.ENCODING)
+        expected_scenarios = {
+            "Clean/no issue": "ppar_performance_comparison.yaml",
+            "Missing contribution policy": (
+                "ppar_performance_comparison_policy_gap_demo.yaml"
+            ),
+            "Missing transaction method": (
+                "ppar_performance_comparison_policy_gap_demo.yaml"
+            ),
+            "Missing denominator": "ppar_performance_comparison_policy_gap_demo.yaml",
+            "Missing transaction sign/flow semantics": (
+                "ppar_performance_comparison_policy_gap_demo.yaml"
+            ),
+            "Low-confidence estimate": (
+                "ppar_performance_comparison_multi_restatement.yaml"
+            ),
+            "Context-only evidence": "ppar_performance_comparison_multi_restatement.yaml",
+            "Suppressed finding": "ppar_performance_comparison_suppressed.yaml",
+            "Residual withheld": "ppar_performance_comparison_multi_restatement.yaml",
+            "Large multi-period scale": "Future generated fixture",
+        }
+
+        self.assertIn("## Scenario Matrix", matrix)
+        for scenario, fixture in expected_scenarios.items():
+            with self.subTest(scenario=scenario):
+                self.assertIn(scenario, matrix)
+                self.assertIn(fixture, matrix)
+        self.assertIn("Covered", matrix)
+        self.assertIn("Planned", matrix)
 
     def test_public_axys_import_contract(self) -> None:
         """The documented Axys package exports remain importable."""

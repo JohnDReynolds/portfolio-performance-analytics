@@ -152,6 +152,7 @@ ppar = [
     "demo_data/mappings/*.csv",
     "demo_data/performance/*.csv",
     "demo_data/axys/*.yaml",
+    "demo_data/axys/*.md",
     "demo_data/axys/*/*.csv",
     "demo_data/axys/*/*.md",
 ]
