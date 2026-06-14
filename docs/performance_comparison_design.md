@@ -1353,6 +1353,10 @@ exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
 `scripts/performance_comparison_validate_bundle.py`, which verifies required
 artifacts, manifest artifact names, CSV row counts, and empty-table headers.
+Packaged demo scenario coverage can be checked with
+`scripts/performance_comparison_validate_demo_matrix.py`, which verifies that
+the current YAML fixtures still produce the reviewer-facing scenarios named in
+the demo matrix.
 
 The HTML report starts with a first-screen `Problems` grid instead of a stack of
 evidence tables. It uses the same period-level triage data to show one compact

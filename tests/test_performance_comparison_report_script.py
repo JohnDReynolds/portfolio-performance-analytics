@@ -23,6 +23,9 @@ _HTML_SCRIPT_PATH = Path("scripts/performance_comparison_html_report.py")
 _BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_report_bundle.py")
 _VALIDATE_BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_validate_bundle.py")
 _VALIDATE_CONFIG_SCRIPT_PATH = Path("scripts/performance_comparison_validate_config.py")
+_VALIDATE_DEMO_MATRIX_SCRIPT_PATH = Path(
+    "scripts/performance_comparison_validate_demo_matrix.py"
+)
 
 
 class TestPerformanceComparisonReportScript(unittest.TestCase):
@@ -41,6 +44,9 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             ),
             _VALIDATE_CONFIG_SCRIPT_PATH: (
                 "Validate a performance comparison YAML configuration."
+            ),
+            _VALIDATE_DEMO_MATRIX_SCRIPT_PATH: (
+                "Validate packaged performance comparison demo scenario coverage."
             ),
         }
 
@@ -422,6 +428,30 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertEqual(result.stdout, "")
         self.assertIn("Config validation failed:", result.stderr)
         self.assertIn("performance.method must be", result.stderr)
+
+    def test_validate_demo_matrix_script_accepts_packaged_demos(self) -> None:
+        """The demo matrix validator confirms packaged scenario coverage."""
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(_VALIDATE_DEMO_MATRIX_SCRIPT_PATH),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Demo matrix validation passed:", result.stdout)
+        self.assertIn("Clean/no issue", result.stdout)
+        self.assertIn("Missing contribution policy", result.stdout)
+        self.assertIn("Missing transaction method", result.stdout)
+        self.assertIn("Missing denominator", result.stdout)
+        self.assertIn("Missing transaction sign/flow semantics", result.stdout)
+        self.assertIn("Low-confidence estimate", result.stdout)
+        self.assertIn("Context-only evidence", result.stdout)
+        self.assertIn("Suppressed finding", result.stdout)
+        self.assertIn("Residual withheld", result.stdout)
+        self.assertEqual(result.stderr, "")
 
     def _write_bundle(self, output_directory: Path) -> None:
         """Write a standard report bundle for script validation tests."""

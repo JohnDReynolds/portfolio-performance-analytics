@@ -4,6 +4,12 @@ The packaged Axys demo data is intentionally separate from the unit-test
 fixtures. Demo files are shaped for reviewer workflow examples; tests may still
 smoke-test them so the examples do not drift.
 
+From a source checkout, validate the covered scenarios with:
+
+```bash
+./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+```
+
 ## Comparison YAML Files
 
 - `baseline`: `ppar_performance_comparison.yaml`
