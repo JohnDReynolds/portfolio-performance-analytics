@@ -269,6 +269,9 @@ To smoke-test the performance comparison demo from a source checkout:
 Then open `_demo_output/performance_comparison_bundle/report.html` and confirm
 the `Problems` grid and `Evidence Appendix` sections are present. The
 `_demo_output/` directory is generated output and is intentionally ignored by Git.
+The default generated bundle uses the multi-portfolio restatement fixture; the
+demo matrix validator also checks companion fixtures such as policy gaps,
+suppressions, and the Modified Dietz cross-check.
 
 To validate an existing performance comparison bundle from a source checkout:
 

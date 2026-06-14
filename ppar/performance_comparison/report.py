@@ -507,7 +507,7 @@ def _write_report_bundle_readme(
         "",
         "## Recommended Review Order",
         "",
-        "1. Open `report.html` and start with the Reviewer Triage and Needs Review sections.",
+        "1. Open `report.html` and start with the Problems grid.",
         "2. Use `needs_review_summary.csv` to identify changed periods, suggested next "
         "steps, high-priority context cues, and drilldown artifacts.",
         "3. Use the `review_key` column to follow a period across CSV artifacts.",

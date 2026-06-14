@@ -1012,6 +1012,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("`report.html`: standalone browser report", readme)
             self.assertIn("## Recommended Review Order", readme)
+            self.assertIn("start with the Problems grid", readme)
             self.assertIn("high-priority context cues", readme)
             self.assertIn("review guidance only", readme)
             self.assertIn(
