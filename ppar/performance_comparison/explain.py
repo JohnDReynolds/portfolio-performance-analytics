@@ -2199,9 +2199,9 @@ def _transaction_matching_diagnostic_sort_key(
 ) -> tuple[int, str]:
     """Return stable ordering for transaction matching diagnostic rows."""
     order = {
-        TRANSACTION_MATCH_STATUS_ID_MATCH: 0,
-        TRANSACTION_MATCH_STATUS_ID_UNMATCHED: 1,
-        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: 2,
+        TRANSACTION_MATCH_STATUS_ID_MATCH.value: 0,
+        TRANSACTION_MATCH_STATUS_ID_UNMATCHED.value: 1,
+        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED.value: 2,
     }
     match_status = str(row[TRANSACTION_MATCH_STATUS])
     return order.get(match_status, len(order)), str(match_status)
@@ -2439,10 +2439,10 @@ def _priority_score_and_reason(
 def _role_priority_score(evidence_role: str) -> int:
     """Return the review-priority weight for an evidence role."""
     return {
-        DIRECT_INPUT: 300,
-        RELATED_OUTPUT: 200,
-        CONTEXT: 100,
-        TARGET_OUTPUT: 0,
+        DIRECT_INPUT.value: 300,
+        RELATED_OUTPUT.value: 200,
+        CONTEXT.value: 100,
+        TARGET_OUTPUT.value: 0,
     }.get(evidence_role, 0)
 
 

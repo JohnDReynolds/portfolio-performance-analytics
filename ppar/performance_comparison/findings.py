@@ -9,6 +9,7 @@ from __future__ import annotations
 
 # Python imports
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Final, Sequence
 
 # Third-party imports
@@ -21,6 +22,10 @@ from ppar.performance_comparison.methods import (
 )
 
 __all__ = [
+    "FindingSeverity",
+    "FindingConfidence",
+    "EvidenceRole",
+    "TransactionMatchStatus",
     "FINDING_CODE",
     "SEVERITY",
     "CONFIDENCE",
@@ -164,19 +169,55 @@ PC_TXN_AMT: Final[str] = "PC-TXN-AMT"
 PC_TXN_QTY: Final[str] = "PC-TXN-QTY"
 PC_TXN_PRICE: Final[str] = "PC-TXN-PRICE"
 PC_TXN_COMM: Final[str] = "PC-TXN-COMM"
-TRANSACTION_MATCH_STATUS_ID_MATCH: Final[str] = "transaction_id_match"
-TRANSACTION_MATCH_STATUS_ID_UNMATCHED: Final[str] = "transaction_id_unmatched"
-TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: Final[str] = (
-    "strict_fallback_unmatched"
+
+
+class FindingSeverity(StrEnum):
+    """Supported finding materiality/severity labels."""
+
+    INFORMATIONAL = "informational"
+    MATERIAL = "material"
+
+
+class FindingConfidence(StrEnum):
+    """Supported finding explanation confidence labels."""
+
+    HIGH = "high"
+
+
+class EvidenceRole(StrEnum):
+    """Supported evidence roles in the explanation model."""
+
+    TARGET_OUTPUT = "target_output"
+    DIRECT_INPUT = "direct_input"
+    RELATED_OUTPUT = "related_output"
+    CONTEXT = "context"
+
+
+class TransactionMatchStatus(StrEnum):
+    """Supported transaction matching diagnostic labels."""
+
+    ID_MATCH = "transaction_id_match"
+    ID_UNMATCHED = "transaction_id_unmatched"
+    STRICT_FALLBACK_UNMATCHED = "strict_fallback_unmatched"
+
+
+TRANSACTION_MATCH_STATUS_ID_MATCH: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.ID_MATCH
+)
+TRANSACTION_MATCH_STATUS_ID_UNMATCHED: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.ID_UNMATCHED
+)
+TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.STRICT_FALLBACK_UNMATCHED
 )
 
-SEVERITY_INFORMATIONAL: Final[str] = "informational"
-SEVERITY_MATERIAL: Final[str] = "material"
-CONFIDENCE_HIGH: Final[str] = "high"
-TARGET_OUTPUT: Final[str] = "target_output"
-DIRECT_INPUT: Final[str] = "direct_input"
-RELATED_OUTPUT: Final[str] = "related_output"
-CONTEXT: Final[str] = "context"
+SEVERITY_INFORMATIONAL: Final[FindingSeverity] = FindingSeverity.INFORMATIONAL
+SEVERITY_MATERIAL: Final[FindingSeverity] = FindingSeverity.MATERIAL
+CONFIDENCE_HIGH: Final[FindingConfidence] = FindingConfidence.HIGH
+TARGET_OUTPUT: Final[EvidenceRole] = EvidenceRole.TARGET_OUTPUT
+DIRECT_INPUT: Final[EvidenceRole] = EvidenceRole.DIRECT_INPUT
+RELATED_OUTPUT: Final[EvidenceRole] = EvidenceRole.RELATED_OUTPUT
+CONTEXT: Final[EvidenceRole] = EvidenceRole.CONTEXT
 
 FINDING_COLUMNS: Final[tuple[str, ...]] = (
     FINDING_CODE,
@@ -256,10 +297,10 @@ class Finding:
     """
 
     code: str
-    severity: str
-    confidence: str
+    severity: FindingSeverity
+    confidence: FindingConfidence
     dataset: str
-    evidence_role: str
+    evidence_role: EvidenceRole
     portfolio_id: object | None = None
     security_id: object | None = None
     from_date: object | None = None
@@ -270,7 +311,7 @@ class Finding:
     cash_flow_sign: object | None = None
     performance_flow_sign: object | None = None
     transaction_semantics_source: object | None = None
-    transaction_match_status: object | None = None
+    transaction_match_status: TransactionMatchStatus | None = None
     impact_policy: object | None = None
     transaction_impact_policy: object | None = None
     transaction_impact_diagnostic: object | None = None
@@ -287,21 +328,25 @@ class Finding:
         """Return this finding as a column-aligned dictionary."""
         return {
             FINDING_CODE: self.code,
-            SEVERITY: self.severity,
-            CONFIDENCE: self.confidence,
+            SEVERITY: _string_value(self.severity),
+            CONFIDENCE: _string_value(self.confidence),
             DATASET: self.dataset,
-            EVIDENCE_ROLE: self.evidence_role,
+            EVIDENCE_ROLE: _string_value(self.evidence_role),
             PORTFOLIO_ID: self.portfolio_id,
             SECURITY_ID: self.security_id,
             FROM_DATE: self.from_date,
             THRU_DATE: self.thru_date,
             SOURCE_FILE: self.source_file,
             SOURCE_COLUMN: self.source_column,
-            TRANSACTION_CATEGORY: self.transaction_category,
-            CASH_FLOW_SIGN: self.cash_flow_sign,
-            PERFORMANCE_FLOW_SIGN: self.performance_flow_sign,
-            TRANSACTION_SEMANTICS_SOURCE: self.transaction_semantics_source,
-            TRANSACTION_MATCH_STATUS: self.transaction_match_status,
+            TRANSACTION_CATEGORY: _string_value_or_none(self.transaction_category),
+            CASH_FLOW_SIGN: _string_value_or_none(self.cash_flow_sign),
+            PERFORMANCE_FLOW_SIGN: _string_value_or_none(self.performance_flow_sign),
+            TRANSACTION_SEMANTICS_SOURCE: _string_value_or_none(
+                self.transaction_semantics_source
+            ),
+            TRANSACTION_MATCH_STATUS: _string_value_or_none(
+                self.transaction_match_status
+            ),
             IMPACT_POLICY: self.impact_policy,
             TRANSACTION_IMPACT_POLICY: self.transaction_impact_policy,
             TRANSACTION_IMPACT_DIAGNOSTIC: self.transaction_impact_diagnostic,
@@ -316,6 +361,18 @@ class Finding:
             MESSAGE: self.message,
             SUPPRESSED: self.suppressed,
         }
+
+
+def _string_value(value: StrEnum | str) -> str:
+    """Return a plain string for enum-backed output values."""
+    return str(value)
+
+
+def _string_value_or_none(value: object | None) -> object | None:
+    """Return a plain string for enum-backed optional output values."""
+    if isinstance(value, StrEnum):
+        return str(value)
+    return value
 
 
 def findings_to_polars(findings: Sequence[Finding]) -> pl.DataFrame:

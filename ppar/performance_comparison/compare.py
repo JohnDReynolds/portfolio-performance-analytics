@@ -19,6 +19,7 @@ from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     CONTEXT,
     DIRECT_INPUT,
+    EvidenceRole,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
     IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
@@ -26,6 +27,7 @@ from ppar.performance_comparison.findings import (
     TARGET_OUTPUT,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+    TransactionMatchStatus,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
@@ -699,7 +701,7 @@ class PerformanceComparison:
         dataset: str = pc_cols.PORTFOLIO_PERFORMANCE,
         add_message: str = "Portfolio performance row appears only in snapshot B.",
         drop_message: str = "Portfolio performance row appears only in snapshot A.",
-        transaction_match_status: object | None = None,
+        transaction_match_status: TransactionMatchStatus | None = None,
     ) -> list[Finding]:
         """Return findings for portfolio rows present in only one snapshot."""
         self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
@@ -835,7 +837,7 @@ class PerformanceComparison:
         portfolio_periods: pl.DataFrame | None = None,
         security_periods: pl.DataFrame | None = None,
         return_denominators: Mapping[tuple[object, object, object], float] | None = None,
-        transaction_match_status: object | None = None,
+        transaction_match_status: TransactionMatchStatus | None = None,
     ) -> list[Finding]:
         """Return findings for material value changes on matching rows."""
         compare_columns = compare_columns or _PORTFOLIO_COMPARE_COLUMNS
@@ -1271,7 +1273,9 @@ class PerformanceComparison:
         )
 
     @staticmethod
-    def _transaction_unmatched_status(key_columns: tuple[str, ...]) -> str:
+    def _transaction_unmatched_status(
+        key_columns: tuple[str, ...],
+    ) -> TransactionMatchStatus:
         """Return the unmatched transaction diagnostic for a comparison key."""
         if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
             return TRANSACTION_MATCH_STATUS_ID_UNMATCHED
@@ -1285,7 +1289,7 @@ class PerformanceComparison:
         dataset: str,
         source_file: str | None,
         message: str,
-        transaction_match_status: object | None = None,
+        transaction_match_status: TransactionMatchStatus | None = None,
     ) -> Finding:
         """Return a row-presence finding from a portfolio key tuple."""
         portfolio_id: object | None = None
@@ -1318,7 +1322,7 @@ class PerformanceComparison:
         code: str,
         dataset: str,
         source_column: str | None,
-    ) -> str:
+    ) -> EvidenceRole:
         """Return the explanation role for a finding."""
         if dataset == pc_cols.PORTFOLIO_PERFORMANCE:
             if (
