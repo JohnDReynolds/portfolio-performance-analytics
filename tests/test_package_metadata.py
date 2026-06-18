@@ -75,9 +75,11 @@ from ppar.performance_comparison import (
     summarize_findings,
     transaction_activity_summary,
     transaction_matching_diagnostics,
+    validate_causal_attribution_ready,
     write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
+    write_performance_comparison_review_workbook,
 )
 
 
@@ -129,6 +131,10 @@ class TestPackageMetadata(unittest.TestCase):
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in optional_dependencies["charts"]
         }
+        excel_dependencies = {
+            dependency.split(">=", maxsplit=1)[0].lower()
+            for dependency in optional_dependencies["excel"]
+        }
         dev_dependencies = {
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in optional_dependencies["dev"]
@@ -139,6 +145,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("matplotlib", pyproject_dependencies)
         self.assertIn("matplotlib", chart_dependencies)
         self.assertIn("seaborn", chart_dependencies)
+        self.assertEqual(excel_dependencies, {"openpyxl"})
+        self.assertTrue(excel_dependencies.isdisjoint(pyproject_dependencies))
         self.assertIn("pytest", dev_dependencies)
 
     def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
@@ -220,38 +228,26 @@ class TestPackageMetadata(unittest.TestCase):
     def test_axys_demo_resources_are_packaged(self) -> None:
         """The Axys demos use packaged resources instead of test fixtures."""
         axys_demo_data = files("ppar.demo_data") / "axys"
+        expected_resources = (
+            "README.md",
+            "axys_column_mappings.yaml",
+            "ppar_performance_comparison_restatement.yaml",
+            "ppar_performance_comparison_multi_restatement.yaml",
+            "ppar_performance_comparison_policy_gap_demo.yaml",
+            "ppar_performance_comparison_full_spec.yaml",
+            "ppar_performance_comparison_modified_dietz.yaml",
+            "axys_a/portperf.csv",
+            "axys_b_restatement/secperf.csv",
+            "axys_b_multi_restatement/secperf.csv",
+            "axys_full_spec_a/portperf.csv",
+            "axys_full_spec_b/transactions.csv",
+            "axys_modified_dietz_a/transactions.csv",
+            "axys_modified_dietz_b/transactions.csv",
+        )
 
-        self.assertTrue((axys_demo_data / "README.md").is_file())
-        self.assertTrue((axys_demo_data / "axys_column_mappings.yaml").is_file())
-        self.assertTrue(
-            (axys_demo_data / "ppar_performance_comparison_restatement.yaml").is_file()
-        )
-        self.assertTrue(
-            (
-                axys_demo_data / "ppar_performance_comparison_multi_restatement.yaml"
-            ).is_file()
-        )
-        self.assertTrue(
-            (
-                axys_demo_data / "ppar_performance_comparison_policy_gap_demo.yaml"
-            ).is_file()
-        )
-        self.assertTrue(
-            (
-                axys_demo_data / "ppar_performance_comparison_modified_dietz.yaml"
-            ).is_file()
-        )
-        self.assertTrue((axys_demo_data / "axys_a" / "portperf.csv").is_file())
-        self.assertTrue((axys_demo_data / "axys_b_restatement" / "secperf.csv").is_file())
-        self.assertTrue(
-            (axys_demo_data / "axys_b_multi_restatement" / "secperf.csv").is_file()
-        )
-        self.assertTrue(
-            (axys_demo_data / "axys_modified_dietz_a" / "transactions.csv").is_file()
-        )
-        self.assertTrue(
-            (axys_demo_data / "axys_modified_dietz_b" / "transactions.csv").is_file()
-        )
+        for resource_path in expected_resources:
+            with self.subTest(resource_path=resource_path):
+                self.assertTrue((axys_demo_data / resource_path).is_file())
 
     def test_axys_demo_matrix_documents_problem_scenarios(self) -> None:
         """The packaged Axys demo matrix names the expected review scenarios."""
@@ -275,6 +271,7 @@ class TestPackageMetadata(unittest.TestCase):
             "Modified Dietz cross-check": (
                 "ppar_performance_comparison_modified_dietz.yaml"
             ),
+            "Full YAML specifications": "ppar_performance_comparison_full_spec.yaml",
             "Suppressed finding": "ppar_performance_comparison_suppressed.yaml",
             "Residual withheld": "ppar_performance_comparison_multi_restatement.yaml",
             "Large multi-period scale": "Future generated fixture",
@@ -358,176 +355,82 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_performance_comparison_import_contract(self) -> None:
         """The documented performance comparison exports remain importable."""
         expected_exports = {
-            "CashLoader",
-            "ComparisonFile",
-            "ComparisonSnapshot",
-            "CONTEXT",
-            "DIRECT_INPUT",
-            "EVIDENCE_ROLE",
-            "Finding",
-            "FxRatesLoader",
-            "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD",
-            "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED",
-            "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT",
-            "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV",
-            "PerformanceComparison",
-            "PortfolioPerformanceLoader",
-            "PerformanceComparisonSpecification",
-            "PositionsLoader",
-            "PricesLoader",
-            "SecurityPerformanceLoader",
-            "SecurityMasterLoader",
-            "SuppressionRule",
-            "RELATED_OUTPUT",
-            "TARGET_OUTPUT",
-            "TransactionsLoader",
-            "apply_suppressions",
-            "columns",
-            "compact_findings_table",
-            "compare_snapshots",
-            "findings_to_polars",
-            "portfolio_period_cause_summary",
-            "portfolio_period_contribution_candidates",
-            "portfolio_period_evidence_breakdown",
-            "portfolio_period_flow_cross_check_reconciliation",
-            "portfolio_period_impact_coverage_summary",
-            "portfolio_period_summary",
-            "portfolio_period_transaction_cross_checks",
-            "performance_comparison_html_report",
-            "performance_comparison_markdown_report",
-            "rank_portfolio_period_evidence",
-            "security_period_evidence_breakdown",
-            "security_period_summary",
-            "summarize_findings",
-            "transaction_activity_summary",
-            "transaction_matching_diagnostics",
-            "write_performance_comparison_html_report",
-            "write_performance_comparison_markdown_report",
-            "write_performance_comparison_report_bundle",
+            "CashLoader": CashLoader,
+            "ComparisonFile": ComparisonFile,
+            "ComparisonSnapshot": ComparisonSnapshot,
+            "CONTEXT": CONTEXT,
+            "DIRECT_INPUT": DIRECT_INPUT,
+            "EVIDENCE_ROLE": EVIDENCE_ROLE,
+            "Finding": Finding,
+            "FxRatesLoader": FxRatesLoader,
+            "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD": IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+            "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED": IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+            "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT": (
+                IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT
+            ),
+            "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV": (
+                IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV
+            ),
+            "PerformanceComparison": PerformanceComparison,
+            "PortfolioPerformanceLoader": PortfolioPerformanceLoader,
+            "PerformanceComparisonSpecification": PerformanceComparisonSpecification,
+            "PositionsLoader": PositionsLoader,
+            "PricesLoader": PricesLoader,
+            "SecurityPerformanceLoader": SecurityPerformanceLoader,
+            "SecurityMasterLoader": SecurityMasterLoader,
+            "SuppressionRule": SuppressionRule,
+            "RELATED_OUTPUT": RELATED_OUTPUT,
+            "TARGET_OUTPUT": TARGET_OUTPUT,
+            "TransactionsLoader": TransactionsLoader,
+            "apply_suppressions": apply_suppressions,
+            "columns": columns,
+            "compact_findings_table": compact_findings_table,
+            "compare_snapshots": compare_snapshots,
+            "findings_to_polars": findings_to_polars,
+            "portfolio_period_cause_summary": portfolio_period_cause_summary,
+            "portfolio_period_contribution_candidates": (
+                portfolio_period_contribution_candidates
+            ),
+            "portfolio_period_evidence_breakdown": portfolio_period_evidence_breakdown,
+            "portfolio_period_flow_cross_check_reconciliation": (
+                portfolio_period_flow_cross_check_reconciliation
+            ),
+            "portfolio_period_impact_coverage_summary": (
+                portfolio_period_impact_coverage_summary
+            ),
+            "portfolio_period_summary": portfolio_period_summary,
+            "portfolio_period_transaction_cross_checks": (
+                portfolio_period_transaction_cross_checks
+            ),
+            "performance_comparison_html_report": performance_comparison_html_report,
+            "performance_comparison_markdown_report": (
+                performance_comparison_markdown_report
+            ),
+            "rank_portfolio_period_evidence": rank_portfolio_period_evidence,
+            "security_period_evidence_breakdown": security_period_evidence_breakdown,
+            "security_period_summary": security_period_summary,
+            "summarize_findings": summarize_findings,
+            "validate_causal_attribution_ready": validate_causal_attribution_ready,
+            "transaction_activity_summary": transaction_activity_summary,
+            "transaction_matching_diagnostics": transaction_matching_diagnostics,
+            "write_performance_comparison_html_report": (
+                write_performance_comparison_html_report
+            ),
+            "write_performance_comparison_markdown_report": (
+                write_performance_comparison_markdown_report
+            ),
+            "write_performance_comparison_report_bundle": (
+                write_performance_comparison_report_bundle
+            ),
+            "write_performance_comparison_review_workbook": (
+                write_performance_comparison_review_workbook
+            ),
         }
 
-        self.assertEqual(set(performance_comparison.__all__), expected_exports)
-        self.assertIs(CashLoader, performance_comparison.CashLoader)
-        self.assertIs(ComparisonFile, performance_comparison.ComparisonFile)
-        self.assertIs(ComparisonSnapshot, performance_comparison.ComparisonSnapshot)
-        self.assertIs(CONTEXT, performance_comparison.CONTEXT)
-        self.assertIs(DIRECT_INPUT, performance_comparison.DIRECT_INPUT)
-        self.assertIs(EVIDENCE_ROLE, performance_comparison.EVIDENCE_ROLE)
-        self.assertIs(Finding, performance_comparison.Finding)
-        self.assertIs(FxRatesLoader, performance_comparison.FxRatesLoader)
-        self.assertIs(
-            IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-            performance_comparison.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-        )
-        self.assertIs(
-            IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
-            performance_comparison.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
-        )
-        self.assertIs(
-            IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
-            performance_comparison.IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT,
-        )
-        self.assertIs(
-            IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
-            performance_comparison.IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV,
-        )
-        self.assertIs(PerformanceComparison, performance_comparison.PerformanceComparison)
-        self.assertIs(
-            PerformanceComparisonSpecification,
-            performance_comparison.PerformanceComparisonSpecification,
-        )
-        self.assertIs(
-            PortfolioPerformanceLoader,
-            performance_comparison.PortfolioPerformanceLoader,
-        )
-        self.assertIs(PositionsLoader, performance_comparison.PositionsLoader)
-        self.assertIs(PricesLoader, performance_comparison.PricesLoader)
-        self.assertIs(RELATED_OUTPUT, performance_comparison.RELATED_OUTPUT)
-        self.assertIs(
-            SecurityMasterLoader,
-            performance_comparison.SecurityMasterLoader,
-        )
-        self.assertIs(
-            SecurityPerformanceLoader,
-            performance_comparison.SecurityPerformanceLoader,
-        )
-        self.assertIs(SuppressionRule, performance_comparison.SuppressionRule)
-        self.assertIs(TARGET_OUTPUT, performance_comparison.TARGET_OUTPUT)
-        self.assertIs(TransactionsLoader, performance_comparison.TransactionsLoader)
-        self.assertIs(apply_suppressions, performance_comparison.apply_suppressions)
-        self.assertIs(columns, performance_comparison.columns)
-        self.assertIs(compact_findings_table, performance_comparison.compact_findings_table)
-        self.assertIs(compare_snapshots, performance_comparison.compare_snapshots)
-        self.assertIs(findings_to_polars, performance_comparison.findings_to_polars)
-        self.assertIs(
-            performance_comparison_html_report,
-            performance_comparison.performance_comparison_html_report,
-        )
-        self.assertIs(
-            performance_comparison_markdown_report,
-            performance_comparison.performance_comparison_markdown_report,
-        )
-        self.assertIs(
-            portfolio_period_cause_summary,
-            performance_comparison.portfolio_period_cause_summary,
-        )
-        self.assertIs(
-            portfolio_period_contribution_candidates,
-            performance_comparison.portfolio_period_contribution_candidates,
-        )
-        self.assertIs(
-            portfolio_period_evidence_breakdown,
-            performance_comparison.portfolio_period_evidence_breakdown,
-        )
-        self.assertIs(
-            portfolio_period_flow_cross_check_reconciliation,
-            performance_comparison.portfolio_period_flow_cross_check_reconciliation,
-        )
-        self.assertIs(
-            portfolio_period_impact_coverage_summary,
-            performance_comparison.portfolio_period_impact_coverage_summary,
-        )
-        self.assertIs(
-            portfolio_period_summary,
-            performance_comparison.portfolio_period_summary,
-        )
-        self.assertIs(
-            portfolio_period_transaction_cross_checks,
-            performance_comparison.portfolio_period_transaction_cross_checks,
-        )
-        self.assertIs(
-            rank_portfolio_period_evidence,
-            performance_comparison.rank_portfolio_period_evidence,
-        )
-        self.assertIs(
-            security_period_evidence_breakdown,
-            performance_comparison.security_period_evidence_breakdown,
-        )
-        self.assertIs(
-            security_period_summary,
-            performance_comparison.security_period_summary,
-        )
-        self.assertIs(summarize_findings, performance_comparison.summarize_findings)
-        self.assertIs(
-            transaction_activity_summary,
-            performance_comparison.transaction_activity_summary,
-        )
-        self.assertIs(
-            transaction_matching_diagnostics,
-            performance_comparison.transaction_matching_diagnostics,
-        )
-        self.assertIs(
-            write_performance_comparison_html_report,
-            performance_comparison.write_performance_comparison_html_report,
-        )
-        self.assertIs(
-            write_performance_comparison_markdown_report,
-            performance_comparison.write_performance_comparison_markdown_report,
-        )
-        self.assertIs(
-            write_performance_comparison_report_bundle,
-            performance_comparison.write_performance_comparison_report_bundle,
-        )
+        self.assertEqual(set(performance_comparison.__all__), set(expected_exports))
+        for name, imported_object in expected_exports.items():
+            with self.subTest(name=name):
+                self.assertIs(imported_object, getattr(performance_comparison, name))
 
     def test_public_performance_comparison_runner_import_contract(self) -> None:
         """The runner module exposes only the compact workflow helper surface."""
@@ -535,6 +438,7 @@ class TestPackageMetadata(unittest.TestCase):
             "compact_findings_table",
             "compare_snapshots",
             "summarize_findings",
+            "validate_causal_attribution_ready",
         }
 
         self.assertEqual(set(performance_comparison_runner.__all__), expected_exports)
@@ -544,6 +448,10 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIs(compare_snapshots, performance_comparison_runner.compare_snapshots)
         self.assertIs(summarize_findings, performance_comparison_runner.summarize_findings)
+        self.assertIs(
+            validate_causal_attribution_ready,
+            performance_comparison_runner.validate_causal_attribution_ready,
+        )
 
     def test_public_performance_comparison_report_import_contract(self) -> None:
         """The report module exposes only report rendering and writing helpers."""
@@ -553,6 +461,7 @@ class TestPackageMetadata(unittest.TestCase):
             "write_performance_comparison_html_report",
             "write_performance_comparison_markdown_report",
             "write_performance_comparison_report_bundle",
+            "write_performance_comparison_review_workbook",
         }
 
         self.assertEqual(set(performance_comparison_report.__all__), expected_exports)
@@ -575,6 +484,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             write_performance_comparison_report_bundle,
             performance_comparison_report.write_performance_comparison_report_bundle,
+        )
+        self.assertIs(
+            write_performance_comparison_review_workbook,
+            performance_comparison_report.write_performance_comparison_review_workbook,
         )
         self.assertNotIn(
             "_report_bundle_validation_issues",

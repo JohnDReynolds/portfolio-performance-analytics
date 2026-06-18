@@ -32,6 +32,7 @@ from ppar.performance_comparison.report import (  # noqa: E402
 _DEFAULT_DEMO_DIRECTORY = _REPO_ROOT / "ppar" / "demo_data" / "axys"
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
+_FULL_SPEC_YAML = "ppar_performance_comparison_full_spec.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_performance_comparison_suppressed.yaml"
@@ -93,6 +94,10 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     """
     baseline_findings = compare_snapshots(demo_directory / _BASELINE_YAML)
     multi_findings = compare_snapshots(demo_directory / _MULTI_YAML)
+    full_spec_findings = compare_snapshots(
+        demo_directory / _FULL_SPEC_YAML,
+        require_causal_attribution=True,
+    )
     modified_dietz_findings = compare_snapshots(demo_directory / _MODIFIED_DIETZ_YAML)
     policy_gap_findings = compare_snapshots(demo_directory / _POLICY_GAP_YAML)
     suppressed_findings = compare_snapshots(demo_directory / _SUPPRESSED_YAML)
@@ -133,10 +138,10 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
             policy_gap_problems,
             "transaction sign and external-flow semantics",
         ),
-        _check_problem_text(
-            "Low-confidence estimate",
+        _check_problem_action(
+            "Multi-portfolio missing specifications",
             multi_problems,
-            "low-confidence screening estimate",
+            "set `denominator_source` or map beginning market value",
         ),
         _check_non_empty_table(
             "Context-only evidence",
@@ -144,6 +149,7 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
             "context evidence row(s) remain available",
         ),
         _check_modified_dietz_cross_check(modified_dietz_cross_checks),
+        _check_full_spec_strict_attribution(full_spec_findings),
         _check_suppressed_findings(
             suppressed_findings,
             suppressed_active_findings,
@@ -248,6 +254,37 @@ def _check_modified_dietz_cross_check(cross_checks: pl.DataFrame) -> _ScenarioCh
         name,
         False,
         "missing modified_dietz policy, diagnostic, or nonzero estimate",
+    )
+
+
+def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether full-spec YAML exercises every strict attribution basis."""
+    name = "Full YAML specifications"
+    cause_summary = _pc_explain.portfolio_period_cause_summary(findings)
+    if cause_summary.is_empty():
+        return _ScenarioCheck(name, False, "cause summary is empty")
+
+    impact_bases = {
+        str(value)
+        for value in cause_summary.get_column(_pc_explain.IMPACT_BASIS).to_list()
+    }
+    expected_bases = {
+        _pc_explain.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
+        _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION,
+        _pc_explain.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
+        _pc_explain.IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+    }
+    missing = sorted(expected_bases - impact_bases)
+    if missing:
+        return _ScenarioCheck(
+            name,
+            False,
+            f"strict fixture is missing impact basis value(s): {', '.join(missing)}",
+        )
+    return _ScenarioCheck(
+        name,
+        True,
+        "strict attribution accepted full YAML and covered all impact bases",
     )
 
 

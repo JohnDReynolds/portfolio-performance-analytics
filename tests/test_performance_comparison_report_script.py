@@ -297,6 +297,29 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertEqual(manifest["counts"]["findings"], 21)
             self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
 
+    def test_bundle_script_can_require_causal_attribution(self) -> None:
+        """The bundle script can fail before writing ambiguous attribution."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_BUNDLE_SCRIPT_PATH),
+                    str(_RESTATEMENT_COMPARISON_PATH),
+                    str(output_directory),
+                    "--require-causal-attribution",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("Causal attribution setup is incomplete", result.stderr)
+            self.assertIn("missing YAML setup", result.stderr)
+
     def test_validate_bundle_script_accepts_valid_bundle(self) -> None:
         """The bundle validator script accepts a generated bundle."""
         with tempfile.TemporaryDirectory() as directory:
@@ -447,7 +470,7 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("Missing transaction method", result.stdout)
         self.assertIn("Missing denominator", result.stdout)
         self.assertIn("Missing transaction sign/flow semantics", result.stdout)
-        self.assertIn("Low-confidence estimate", result.stdout)
+        self.assertIn("Multi-portfolio missing specifications", result.stdout)
         self.assertIn("Context-only evidence", result.stdout)
         self.assertIn("Suppressed finding", result.stdout)
         self.assertIn("Residual withheld", result.stdout)

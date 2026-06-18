@@ -1,10 +1,14 @@
 """Tests for performance comparison Markdown reporting."""
 
 # Python imports
+from collections.abc import Mapping
 import datetime as dt
+import importlib
+import importlib.util
 import json
 from pathlib import Path
 import tempfile
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -22,9 +26,11 @@ from ppar.performance_comparison import (
     findings_to_polars,
     performance_comparison_html_report,
     performance_comparison_markdown_report,
+    validate_causal_attribution_ready,
     write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
+    write_performance_comparison_review_workbook,
 )
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
@@ -56,6 +62,7 @@ _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
+_original_import = __import__
 
 
 def _write_transaction_estimate_specification(directory: Path) -> Path:
@@ -649,33 +656,33 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(
             dashboard["portfolio_id"].to_list(),
-            ["PORT_C", "PORT_A", "PORT_B"],
+            ["PORT_B", "PORT_C", "PORT_A"],
         )
         self.assertEqual(
             dashboard["impact_coverage_status"].to_list(),
-            ["missing_inputs", "missing_inputs", "complete_estimates"],
+            ["missing_inputs", "missing_inputs", "missing_inputs"],
         )
         self.assertEqual(
             dashboard["dashboard_coverage_counts"].to_list(),
             [
-                "0 estimated / 2 evidence-only",
+                "2 estimated / 3 evidence-only",
+                "0 estimated / 4 evidence-only",
                 "2 estimated / 4 evidence-only",
-                "2 estimated / 0 evidence-only",
             ],
         )
         self.assertEqual(
             problems["portfolio_id"].to_list(),
-            ["PORT_C", "PORT_A", "PORT_B"],
+            ["PORT_B", "PORT_C", "PORT_A"],
         )
         self.assertIn("Update the comparison YAML", problems["action_required"][0])
-        self.assertIn("screening estimate", problems["action_required"][2])
+        self.assertIn("denominator_source", problems["action_required"][0])
         problems_section = _html_section(report, "problems")
         self.assertEqual(problems_section.count('data-dashboard-row'), 3)
         self.assertIn("PORT_A", problems_section)
         self.assertIn("PORT_B", problems_section)
         self.assertIn("PORT_C", problems_section)
         self.assertIn("Return-impact estimate is blocked", problems_section)
-        self.assertIn("low-confidence screening estimate", problems_section)
+        self.assertIn("return denominator", problems_section)
         narrative_section = _html_section(report, "portfolio-period-narrative")
         self.assertIn("PORT_C changed by 0.0008", narrative_section)
         self.assertIn("PORT_B changed by 0.0015", narrative_section)
@@ -704,7 +711,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "select the relevant `contribution_impact_methods` policy",
             problem_rows["PORT_B"]["action_required"],
         )
-        self.assertNotIn(
+        self.assertIn(
             "`transaction_impact_methods`",
             problem_rows["PORT_B"]["action_required"],
         )
@@ -747,7 +754,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
     def test_markdown_report_limits_top_evidence_per_portfolio_period(self) -> None:
         """Top evidence limit controls displayed contribution candidate rows."""
-        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        findings = compare_snapshots(_MULTI_RESTATEMENT_COMPARISON_PATH)
 
         report = performance_comparison_markdown_report(findings, top_evidence_limit=2)
 
@@ -1136,6 +1143,217 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(_report_bundle_validation_issues(output_directory), [])
 
+    def test_strict_causal_attribution_rejects_missing_setup(self) -> None:
+        """Strict causal attribution mode fails before ambiguous reporting."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        with self.assertRaises(PpaError) as context:
+            validate_causal_attribution_ready(findings)
+
+        message = str(context.exception)
+        self.assertIn("Causal attribution setup is incomplete", message)
+        self.assertIn("PORT_A::2025-05-30::2025-05-30", message)
+        self.assertIn("missing YAML setup", message)
+
+    def test_write_report_bundle_can_include_review_workbook(self) -> None:
+        """Report bundles can optionally include an XLSX review workbook."""
+        if importlib.util.find_spec("openpyxl") is None:
+            self.skipTest("Workbook checks require optional ppar[excel].")
+        openpyxl: Any = importlib.import_module("openpyxl")
+
+        findings = compare_snapshots(_MULTI_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                include_workbook=True,
+                top_evidence_limit=2,
+            )
+
+            self.assertEqual(
+                set(paths),
+                {*_REPORT_BUNDLE_REQUIRED_ARTIFACTS, "review_workbook"},
+            )
+            self.assertEqual(paths["review_workbook"].name, "review_workbook.xlsx")
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            self.assertEqual(
+                manifest["artifacts"]["review_workbook"],
+                "review_workbook.xlsx",
+            )
+            readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertIn("`review_workbook.xlsx`: optional Excel workbook", readme)
+
+            workbook = openpyxl.load_workbook(
+                paths["review_workbook"],
+            )
+            self.assertEqual(
+                workbook.sheetnames,
+                [
+                    "Portfolio Changes",
+                    "Security Changes",
+                    "What Changed",
+                    "Raw Audit Trail",
+                ],
+            )
+            performance_change_sheet = workbook["Portfolio Changes"]
+            self.assertEqual(
+                [
+                    performance_change_sheet.cell(row=1, column=column).value
+                    for column in range(1, 7)
+                ],
+                [
+                    "Portfolio",
+                    "From Date",
+                    "Thru Date",
+                    "Performance Change",
+                    "Explained Change",
+                    "Unexplained Change",
+                ],
+            )
+            self.assertEqual(performance_change_sheet["G1"].value, "Status")
+            self.assertEqual(performance_change_sheet["H1"].value, "Next Action")
+            self.assertEqual(performance_change_sheet["I1"].value, "Review Key")
+            self.assertEqual(
+                [performance_change_sheet[f"I{row}"].value for row in range(2, 5)],
+                [
+                    "PORT_A::2025-05-30::2025-05-30",
+                    "PORT_B::2025-05-30::2025-05-30",
+                    "PORT_C::2025-05-30::2025-05-30",
+                ],
+            )
+            self.assertEqual(performance_change_sheet.max_row, 4)
+            self.assertEqual(performance_change_sheet["D2"].number_format, "0.0000")
+            self.assertEqual(performance_change_sheet["E2"].number_format, "0.0000")
+            self.assertEqual(performance_change_sheet["F2"].number_format, "0.0000")
+            self.assertIsNotNone(performance_change_sheet["A1"].comment)
+            assert performance_change_sheet["A1"].comment is not None
+            self.assertIn(
+                "Portfolio identifier",
+                performance_change_sheet["A1"].comment.text,
+            )
+
+            security_changes_sheet = workbook["Security Changes"]
+            self.assertEqual(
+                [
+                    security_changes_sheet.cell(row=1, column=column).value
+                    for column in range(1, 11)
+                ],
+                [
+                    "Portfolio",
+                    "From Date",
+                    "Thru Date",
+                    "Security",
+                    "Performance Change",
+                    "Explained Change",
+                    "Unexplained Change",
+                    "Status",
+                    "Next Action",
+                    "Review Key",
+                ],
+            )
+            self.assertGreater(security_changes_sheet.max_row, 2)
+            self.assertEqual(security_changes_sheet["E2"].number_format, "0.0000")
+            self.assertEqual(
+                security_changes_sheet.cell(
+                    row=1,
+                    column=security_changes_sheet.max_column,
+                ).value,
+                "Review Key",
+            )
+
+            what_changed_sheet = workbook["What Changed"]
+            self.assertEqual(
+                [
+                    what_changed_sheet.cell(row=1, column=column).value
+                    for column in range(1, 12)
+                ],
+                [
+                    "Portfolio",
+                    "From Date",
+                    "Thru Date",
+                    "Purpose",
+                    "What Changed",
+                    "Security",
+                    "Snapshot A Value",
+                    "Snapshot B Value",
+                    "Change",
+                    "Change Explained By This Row",
+                    "Next Action",
+                ],
+            )
+            self.assertGreater(what_changed_sheet.max_row, 10)
+            self.assertEqual(what_changed_sheet["J2"].number_format, "0.0000")
+            uses = [
+                str(what_changed_sheet[f"D{row}"].value)
+                for row in range(2, what_changed_sheet.max_row + 1)
+            ]
+            self.assertIn("Explains Change", uses)
+            self.assertNotIn("Performance Result", uses)
+            portfolios = {
+                str(what_changed_sheet[f"A{row}"].value)
+                for row in range(2, what_changed_sheet.max_row + 1)
+            }
+            self.assertEqual(portfolios, {"PORT_A", "PORT_B", "PORT_C"})
+            next_actions = [
+                str(what_changed_sheet[f"K{row}"].value)
+                for row in range(2, what_changed_sheet.max_row + 1)
+            ]
+            self.assertTrue(any("price changed" in action for action in next_actions))
+            self.assertEqual(
+                what_changed_sheet.cell(
+                    row=1,
+                    column=what_changed_sheet.max_column,
+                ).value,
+                "Review Key",
+            )
+            self.assertEqual(
+                [
+                    what_changed_sheet[f"P{row}"].value
+                    for row in range(2, min(5, what_changed_sheet.max_row) + 1)
+                ][0],
+                "PORT_A::2025-05-30::2025-05-30",
+            )
+
+            findings_sheet = workbook["Raw Audit Trail"]
+            self.assertEqual(
+                [findings_sheet.cell(row=1, column=column).value for column in range(1, 6)],
+                ["Portfolio", "From Date", "Thru Date", "Security", "Severity"],
+            )
+            self.assertEqual(
+                findings_sheet.cell(row=1, column=findings_sheet.max_column).value,
+                "Review Key",
+            )
+            self.assertIsNotNone(findings_sheet["A1"].comment)
+
+    def test_write_review_workbook_requires_excel_extra(self) -> None:
+        """Workbook export fails clearly when the optional dependency is absent."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        def _import_without_openpyxl(
+            name: str,
+            globals_: Mapping[str, object] | None = None,
+            locals_: Mapping[str, object] | None = None,
+            fromlist: tuple[str, ...] = (),
+            level: int = 0,
+        ) -> object:
+            if name.startswith("openpyxl"):
+                raise ImportError(name)
+            return _original_import(name, globals_, locals_, fromlist, level)
+
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch("builtins.__import__", side_effect=_import_without_openpyxl):
+                with self.assertRaises(PpaError) as context:
+                    write_performance_comparison_review_workbook(
+                        findings,
+                        Path(directory) / "review_workbook.xlsx",
+                    )
+
+        message = str(context.exception)
+        self.assertIn("XLSX review workbook export requires", message)
+        self.assertIn("ppar[excel]", message)
+
     def test_write_report_bundle_preserves_empty_table_columns(self) -> None:
         """Report bundles write stable CSV headers for baseline empty tables."""
         findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
@@ -1204,6 +1422,48 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = _report_bundle_validation_issues(directory)
 
         self.assertIn("artifact file 'needs_review_summary.csv' is missing", issues)
+
+    def test_report_bundle_validation_catches_missing_review_workbook(self) -> None:
+        """Bundle validation reports optional workbook artifacts that are absent."""
+        if importlib.util.find_spec("openpyxl") is None:
+            self.skipTest("Workbook checks require optional ppar[excel].")
+
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                include_workbook=True,
+            )
+
+            paths["review_workbook"].unlink()
+            issues = _report_bundle_validation_issues(directory)
+
+        self.assertIn("artifact file 'review_workbook.xlsx' is missing", issues)
+
+    def test_report_bundle_validation_catches_invalid_review_workbook(self) -> None:
+        """Bundle validation checks optional workbook sheet structure."""
+        if importlib.util.find_spec("openpyxl") is None:
+            self.skipTest("Workbook checks require optional ppar[excel].")
+        openpyxl: Any = importlib.import_module("openpyxl")
+
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                include_workbook=True,
+            )
+            workbook = openpyxl.load_workbook(paths["review_workbook"])
+            del workbook["Portfolio Changes"]
+            workbook.save(paths["review_workbook"])
+
+            issues = _report_bundle_validation_issues(directory)
+
+        self.assertIn(
+            "review_workbook.xlsx is missing sheet 'Portfolio Changes'",
+            issues,
+        )
 
     def test_report_bundle_validation_catches_csv_row_count_drift(self) -> None:
         """Bundle validation compares manifest row counts to CSV row counts."""

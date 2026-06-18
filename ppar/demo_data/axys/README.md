@@ -17,6 +17,7 @@ From a source checkout, validate the covered scenarios with:
 - `transaction_rules`:
   `ppar_performance_comparison_restatement_transaction_rules.yaml`
 - `multi`: `ppar_performance_comparison_multi_restatement.yaml`
+- `full_spec`: `ppar_performance_comparison_full_spec.yaml`
 - `modified_dietz`: `ppar_performance_comparison_modified_dietz.yaml`
 - `policy_gap`: `ppar_performance_comparison_policy_gap_demo.yaml`
 - `suppressed`: `ppar_performance_comparison_suppressed.yaml`
@@ -33,6 +34,7 @@ From a source checkout, validate the covered scenarios with:
 | Low-confidence estimate | `multi` | Decide whether the estimate is acceptable. | Covered |
 | Context-only evidence | `multi` | Review context without treating it as impact. | Covered |
 | Modified Dietz cross-check | `modified_dietz` | Review cross-check. | Covered |
+| Full YAML specifications | `full_spec` | Run strict causal attribution with all supported policies configured. | Covered |
 | Suppressed finding | `suppressed` | Exclude from active review; keep audit-visible. | Covered |
 | Residual withheld | `multi` | Resolve partial or missing estimates first. | Covered |
 | Large multi-period scale | Future generated fixture | Test hundreds of problem rows. | Planned |
@@ -52,6 +54,15 @@ The supported string vocabulary is summarized in
 `docs/performance_comparison_design.md`. The package code backs those strings
 with enums, but YAML examples intentionally show the plain string values users
 edit.
+
+The `full_spec` fixture is intentionally compact and action-oriented. It
+contains four changed portfolio periods so reviewers can see one occurrence of
+each currently supported causal-attribution basis:
+
+- security return weighted by beginning weight
+- transaction amount over beginning market value
+- vendor contribution delta
+- portfolio income/gain-loss source-field delta over beginning market value
 
 Current public YAML method targets:
 

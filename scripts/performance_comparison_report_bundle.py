@@ -16,6 +16,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT))
 
 # Project imports
+from ppar.errors import PpaError  # noqa: E402
 from ppar.performance_comparison import (  # noqa: E402
     compare_snapshots,
     write_performance_comparison_report_bundle,
@@ -32,20 +33,29 @@ def main(argv: list[str] | None = None) -> int:
         Process exit code. ``0`` indicates that the report bundle was written.
     """
     args = _argument_parser().parse_args(argv)
-    findings = compare_snapshots(
-        args.comparison_path,
-        include_suppressed=not args.active_only,
-    )
-    bundle_paths = write_performance_comparison_report_bundle(
-        findings,
-        args.output_directory,
-        title=args.title,
-        include_suppressed_appendix=not args.no_suppressed_appendix,
-        top_evidence_limit=args.top_evidence_limit,
-    )
+    try:
+        findings = compare_snapshots(
+            args.comparison_path,
+            include_suppressed=not args.active_only,
+            require_causal_attribution=args.require_causal_attribution,
+        )
+        bundle_paths = write_performance_comparison_report_bundle(
+            findings,
+            args.output_directory,
+            title=args.title,
+            include_suppressed_appendix=not args.no_suppressed_appendix,
+            top_evidence_limit=args.top_evidence_limit,
+            include_workbook=args.include_workbook,
+            require_causal_attribution=args.require_causal_attribution,
+        )
+    except PpaError as error:
+        print(f"Report bundle failed: {error}", file=sys.stderr)
+        return 1
     print(f"Report bundle written to: {bundle_paths['manifest'].parent}")
     print(f"README written to: {bundle_paths['readme']}")
     print(f"HTML report written to: {bundle_paths['html_report']}")
+    if "review_workbook" in bundle_paths:
+        print(f"Review workbook written to: {bundle_paths['review_workbook']}")
     print(f"Needs review summary written to: {bundle_paths['needs_review_summary']}")
     print(f"Manifest written to: {bundle_paths['manifest']}")
     return 0
@@ -86,6 +96,16 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--no-suppressed-appendix",
         action="store_true",
         help="Omit the suppressed findings appendix from report.md.",
+    )
+    parser.add_argument(
+        "--include-workbook",
+        action="store_true",
+        help="Write optional review_workbook.xlsx. Requires ppar[excel].",
+    )
+    parser.add_argument(
+        "--require-causal-attribution",
+        action="store_true",
+        help="Fail unless changed periods have all setup needed for causal attribution.",
     )
     return parser
 

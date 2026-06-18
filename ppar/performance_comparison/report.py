@@ -4,10 +4,12 @@ from __future__ import annotations
 
 # Python imports
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
 import datetime as dt
 import html as html_lib
 import json
 from pathlib import Path
+from typing import Any
 
 # Third-party imports
 import polars as pl
@@ -26,6 +28,7 @@ __all__ = [
     "write_performance_comparison_html_report",
     "write_performance_comparison_markdown_report",
     "write_performance_comparison_report_bundle",
+    "write_performance_comparison_review_workbook",
 ]
 
 _COUNT = "count"
@@ -64,6 +67,21 @@ _PROBLEM = "problem"
 _ACTION_REQUIRED = "action_required"
 _WHY_IT_MATTERS = "why_it_matters"
 _EVIDENCE_SECTION = "evidence_section"
+_PERFORMANCE_CHANGE = "performance_change"
+_ESTIMATED_CAUSE_TOTAL = "estimated_cause_total"
+_UNEXPLAINED_CHANGE = "unexplained_change"
+_USE = "use"
+_USE_PRIORITY = "_use_priority"
+_WHAT_CHANGED = "what_changed"
+_CHANGE = "change"
+_ESTIMATED_IMPACT = "estimated_impact"
+_NEXT_ACTION = "next_action"
+_USE_EXPLAINS_CHANGE = "Explains Change"
+_USE_REVIEW_CONTEXT = "Review Context"
+_STATUS_FULLY_EXPLAINED = "Fully Explained"
+_STATUS_NEEDS_SETUP = "Missing YAML Specifications"
+_STATUS_PARTLY_EXPLAINED = "Partly Explained"
+_STATUS_UNEXPLAINED = "Unexplained"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
@@ -142,6 +160,73 @@ _CONTEXT_EVIDENCE_COLUMNS = (
     _pc_findings.MESSAGE,
 )
 _CONTEXT_NO_IMPACT_TREATMENT = "context only; not included in return-impact estimates"
+_REVIEW_WORKBOOK_ARTIFACT = "review_workbook"
+_REVIEW_WORKBOOK_FILE_NAME = "review_workbook.xlsx"
+_REVIEW_WORKBOOK_EXPECTED_SHEETS = (
+    "Portfolio Changes",
+    "Security Changes",
+    "What Changed",
+    "Raw Audit Trail",
+)
+_REVIEW_WORKBOOK_REQUIRED_HEADERS = {
+    "Portfolio Changes": (
+        "Portfolio",
+        "From Date",
+        "Thru Date",
+        "Performance Change",
+        "Explained Change",
+        "Unexplained Change",
+        "Status",
+        "Next Action",
+        "Review Key",
+    ),
+    "Security Changes": (
+        "Portfolio",
+        "From Date",
+        "Thru Date",
+        "Security",
+        "Performance Change",
+        "Explained Change",
+        "Unexplained Change",
+        "Status",
+        "Next Action",
+        "Review Key",
+    ),
+    "What Changed": (
+        "Portfolio",
+        "From Date",
+        "Thru Date",
+        "Purpose",
+        "What Changed",
+        "Security",
+        "Snapshot A Value",
+        "Snapshot B Value",
+        "Change",
+        "Change Explained By This Row",
+        "Next Action",
+        "Review Key",
+    ),
+    "Raw Audit Trail": (
+        "Portfolio",
+        "From Date",
+        "Thru Date",
+        "Security",
+        "Severity",
+        "Message",
+        "Review Key",
+    ),
+}
+
+
+@dataclass(frozen=True)
+class _ReviewWorkbookSheet:
+    """Describe one review workbook worksheet."""
+
+    artifact_name: str
+    sheet_name: str
+    table: pl.DataFrame
+    columns: tuple[str, ...] | None = None
+    labels: Mapping[str, str] | None = None
 
 
 def performance_comparison_markdown_report(
@@ -372,6 +457,8 @@ def write_performance_comparison_report_bundle(
     title: str = "Performance Comparison Report",
     include_suppressed_appendix: bool = True,
     top_evidence_limit: int = 10,
+    include_workbook: bool = False,
+    require_causal_attribution: bool = False,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
 
@@ -384,13 +471,22 @@ def write_performance_comparison_report_bundle(
             suppressed findings appendix section.
         top_evidence_limit: Maximum number of top-evidence rows to include per
             portfolio period in both ``report.md`` and ``top_evidence.csv``.
+        include_workbook: Whether to include an XLSX review workbook. Requires
+            installing the optional ``ppar[excel]`` dependency group.
+        require_causal_attribution: Whether changed portfolio periods must be
+            fully explained before writing bundle artifacts.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
     """
+    if include_workbook:
+        _load_openpyxl()
+
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
     active_findings = _active_findings(findings)
+    if require_causal_attribution:
+        _pc_runner.validate_causal_attribution_ready(active_findings)
     tables = _report_bundle_tables(active_findings, top_evidence_limit)
 
     paths: dict[str, Path] = {}
@@ -413,10 +509,17 @@ def write_performance_comparison_report_bundle(
     paths["findings"] = _write_csv(findings, bundle_directory / "findings.csv")
     for name, table in tables.items():
         paths[name] = _write_csv(table, bundle_directory / f"{name}.csv")
+    if include_workbook:
+        paths[_REVIEW_WORKBOOK_ARTIFACT] = write_performance_comparison_review_workbook(
+            findings,
+            bundle_directory / _REVIEW_WORKBOOK_FILE_NAME,
+            top_evidence_limit=top_evidence_limit,
+        )
     paths["readme"] = _write_report_bundle_readme(
         bundle_directory / "README.md",
         title=title,
         tables=tables,
+        include_workbook=include_workbook,
     )
 
     manifest_path = bundle_directory / "manifest.json"
@@ -479,6 +582,703 @@ def _report_bundle_tables(
     }
 
 
+def write_performance_comparison_review_workbook(
+    findings: pl.DataFrame,
+    output_path: util.PathLike,
+    *,
+    top_evidence_limit: int = 10,
+) -> Path:
+    """Write an XLSX workbook for performance comparison review.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        output_path: Destination workbook path. Parent directories are created
+            when needed.
+        top_evidence_limit: Reserved for parity with bundle/report writers.
+
+    Returns:
+        Normalized workbook path.
+
+    Raises:
+        PpaError: If the optional Excel dependency group is not installed.
+
+    Notes:
+        The workbook is a presentation layer over the same impact coverage,
+        top-evidence, and findings output used by the HTML/CSV reports. It does
+        not add comparison logic.
+    """
+    workbook_class, styles = _load_openpyxl()
+    workbook = workbook_class()
+    default_sheet = workbook.active
+    workbook.remove(default_sheet)
+
+    active_findings = _active_findings(findings)
+    del top_evidence_limit
+    for sheet in _review_workbook_sheets(
+        portfolio_changes=_workbook_portfolio_changes_table(active_findings),
+        security_changes=_workbook_security_changes_table(active_findings),
+        what_changed=_workbook_what_changed_table(active_findings),
+        findings=findings,
+    ):
+        _add_workbook_sheet(workbook, sheet, styles)
+
+    workbook_path = Path(output_path)
+    workbook_path.parent.mkdir(parents=True, exist_ok=True)
+    workbook.save(workbook_path)
+    return workbook_path
+
+
+def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
+    """Return openpyxl classes or raise a clear optional-dependency error."""
+    try:
+        # Optional dependency: keep base package imports free of Excel libraries.
+        # pylint: disable=import-outside-toplevel
+        from openpyxl import Workbook  # type: ignore[import-not-found]
+        from openpyxl.comments import Comment  # type: ignore[import-not-found]
+        from openpyxl.styles import Font, PatternFill  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise PpaError(
+            "XLSX review workbook export requires the optional Excel dependency. "
+            'Install it with: pip install "ppar[excel]"',
+            None,
+        ) from error
+    return (
+        Workbook,
+        {
+            "header_font": Font(bold=True, color="FFFFFF"),
+            "header_fill": PatternFill(
+                fill_type="solid",
+                start_color="1F4E78",
+                end_color="1F4E78",
+            ),
+            "comment_class": Comment,
+        },
+    )
+
+
+def _review_workbook_sheets(
+    *,
+    portfolio_changes: pl.DataFrame,
+    security_changes: pl.DataFrame,
+    what_changed: pl.DataFrame,
+    findings: pl.DataFrame,
+) -> tuple[_ReviewWorkbookSheet, ...]:
+    """Return workbook sheet specifications in reviewer-first order."""
+    return (
+        _ReviewWorkbookSheet(
+            artifact_name="portfolio_changes",
+            sheet_name="Portfolio Changes",
+            table=portfolio_changes,
+            columns=_workbook_portfolio_changes_columns(),
+            labels=_workbook_column_labels(),
+        ),
+        _ReviewWorkbookSheet(
+            artifact_name="security_changes",
+            sheet_name="Security Changes",
+            table=security_changes,
+            columns=_workbook_security_changes_columns(),
+            labels=_workbook_column_labels(),
+        ),
+        _ReviewWorkbookSheet(
+            artifact_name="what_changed",
+            sheet_name="What Changed",
+            table=what_changed,
+            columns=_workbook_what_changed_columns(),
+            labels=_workbook_column_labels(),
+        ),
+        _ReviewWorkbookSheet(
+            artifact_name="raw_audit_trail",
+            sheet_name="Raw Audit Trail",
+            table=_workbook_sorted_table(
+                _with_period_review_key(findings),
+                [
+                    _pc_findings.PORTFOLIO_ID,
+                    _pc_findings.FROM_DATE,
+                    _pc_findings.THRU_DATE,
+                    _pc_findings.SECURITY_ID,
+                    _pc_findings.SEVERITY,
+                ],
+            ),
+            columns=_workbook_findings_columns(findings),
+            labels=_workbook_column_labels(),
+        ),
+    )
+
+
+def _workbook_portfolio_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return one workbook row per changed portfolio period."""
+    coverage = _with_period_review_key(
+        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    )
+    if coverage.is_empty():
+        return _workbook_empty_portfolio_changes_table()
+    rows = [
+        _workbook_performance_change_row(row)
+        for row in coverage.iter_rows(named=True)
+    ]
+    return _workbook_sorted_table(
+        pl.DataFrame(rows),
+        [_REVIEW_KEY],
+    )
+
+
+def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return one plain-English performance-change workbook row."""
+    performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
+    estimated_total = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL))
+    unexplained_change = None
+    if performance_change is not None:
+        unexplained_change = performance_change - (estimated_total or 0.0)
+    return {
+        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _PERFORMANCE_CHANGE: performance_change,
+        _ESTIMATED_CAUSE_TOTAL: estimated_total,
+        _UNEXPLAINED_CHANGE: unexplained_change,
+        _REVIEW_STATUS: _workbook_explanation_status(row),
+        _NEXT_ACTION: _workbook_performance_next_action(row),
+        _REVIEW_KEY: row.get(_REVIEW_KEY),
+    }
+
+
+def _workbook_explanation_status(row: Mapping[str, object]) -> str:
+    """Return a plain-language explanation status for a portfolio period."""
+    status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
+    if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
+        return _STATUS_FULLY_EXPLAINED
+    if status == _pc_explain.IMPACT_COVERAGE_STATUS_MISSING_INPUTS:
+        return _STATUS_NEEDS_SETUP
+    if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
+        return _STATUS_PARTLY_EXPLAINED
+    return _STATUS_UNEXPLAINED
+
+
+def _workbook_performance_next_action(row: Mapping[str, object]) -> str:
+    """Return a plain-language next action for a portfolio period."""
+    missing_inputs = row.get(_pc_explain.MISSING_IMPACT_INPUTS)
+    status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
+    if _has_text(missing_inputs):
+        return f"Add missing YAML specifications: {_format_value(missing_inputs)}."
+    if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
+        return "No action: changed rows explain the performance change."
+    if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
+        return "Review unexplained changed rows and add setup if needed."
+    return "Add setup so changed rows can explain the performance change."
+
+
+def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
+    """Return an empty workbook Portfolio Changes table."""
+    return pl.DataFrame(
+        schema={
+            _pc_findings.PORTFOLIO_ID: pl.String,
+            _pc_findings.FROM_DATE: pl.Date,
+            _pc_findings.THRU_DATE: pl.Date,
+            _PERFORMANCE_CHANGE: pl.Float64,
+            _ESTIMATED_CAUSE_TOTAL: pl.Float64,
+            _UNEXPLAINED_CHANGE: pl.Float64,
+            _REVIEW_STATUS: pl.String,
+            _NEXT_ACTION: pl.String,
+            _REVIEW_KEY: pl.String,
+        }
+    )
+
+
+def _workbook_security_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return one workbook row per changed security period."""
+    summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
+    if summary.is_empty():
+        return _workbook_empty_security_changes_table()
+    rows = [
+        _workbook_security_change_row(row)
+        for row in summary.iter_rows(named=True)
+    ]
+    return _workbook_sorted_table(
+        pl.DataFrame(rows),
+        [_REVIEW_KEY, _pc_findings.SECURITY_ID],
+    )
+
+
+def _workbook_security_change_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return one security-level result row for the workbook."""
+    performance_change = _number_or_none(row.get(_pc_explain.SECURITY_RETURN_DELTA))
+    return {
+        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
+        _PERFORMANCE_CHANGE: performance_change,
+        _ESTIMATED_CAUSE_TOTAL: None,
+        _UNEXPLAINED_CHANGE: performance_change,
+        _REVIEW_STATUS: "Security Changed",
+        _NEXT_ACTION: "Review What Changed rows for related source-data changes.",
+        _REVIEW_KEY: row.get(_REVIEW_KEY),
+    }
+
+
+def _workbook_empty_security_changes_table() -> pl.DataFrame:
+    """Return an empty workbook Security Changes table."""
+    return pl.DataFrame(
+        schema={
+            _pc_findings.PORTFOLIO_ID: pl.String,
+            _pc_findings.FROM_DATE: pl.Date,
+            _pc_findings.THRU_DATE: pl.Date,
+            _pc_findings.SECURITY_ID: pl.String,
+            _PERFORMANCE_CHANGE: pl.Float64,
+            _ESTIMATED_CAUSE_TOTAL: pl.Float64,
+            _UNEXPLAINED_CHANGE: pl.Float64,
+            _REVIEW_STATUS: pl.String,
+            _NEXT_ACTION: pl.String,
+            _REVIEW_KEY: pl.String,
+        }
+    )
+
+
+def _workbook_what_changed_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return concrete changed items with decimal impact estimates when available."""
+    evidence = _with_period_review_key(
+        _top_evidence_table(findings, top_evidence_limit=findings.height)
+    )
+    if evidence.is_empty():
+        return _workbook_empty_what_changed_table()
+    rows = [
+        _workbook_what_changed_row(row)
+        for row in evidence.iter_rows(named=True)
+        if _workbook_include_changed_row(row)
+    ]
+    if not rows:
+        return _workbook_empty_what_changed_table()
+    return _workbook_sorted_table(
+        pl.DataFrame(rows),
+        [_REVIEW_KEY, _USE_PRIORITY, _pc_explain.REVIEW_RANK],
+    )
+
+
+def _workbook_what_changed_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return one plain-English changed-item workbook row."""
+    estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
+    row_use = _workbook_row_use(row)
+    return {
+        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _USE: row_use,
+        _WHAT_CHANGED: _workbook_change_label(row),
+        _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
+        _pc_findings.SNAPSHOT_A_VALUE: row.get(_pc_findings.SNAPSHOT_A_VALUE),
+        _pc_findings.SNAPSHOT_B_VALUE: row.get(_pc_findings.SNAPSHOT_B_VALUE),
+        _CHANGE: row.get(_pc_findings.DELTA_B_MINUS_A),
+        _ESTIMATED_IMPACT: estimated_impact,
+        _NEXT_ACTION: _workbook_next_action(row, estimated_impact, row_use),
+        _pc_findings.DATASET: row.get(_pc_findings.DATASET),
+        _pc_findings.SOURCE_COLUMN: row.get(_pc_findings.SOURCE_COLUMN),
+        _pc_findings.FINDING_CODE: row.get(_pc_findings.FINDING_CODE),
+        _pc_explain.REVIEW_RANK: row.get(_pc_explain.REVIEW_RANK),
+        _USE_PRIORITY: _workbook_use_priority(row_use),
+        _REVIEW_KEY: row.get(_REVIEW_KEY),
+    }
+
+
+def _workbook_change_label(row: Mapping[str, object]) -> str:
+    """Return a concise changed-item label."""
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    dataset = _format_value(row.get(_pc_findings.DATASET)).replace("_", " ")
+    if source_column:
+        return f"{dataset} {source_column} changed"
+    return _format_value(row.get(_pc_findings.MESSAGE))
+
+
+def _workbook_include_changed_row(row: Mapping[str, object]) -> bool:
+    """Return whether a row belongs on the What Changed worksheet."""
+    dataset = row.get(_pc_findings.DATASET)
+    return dataset not in {pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.SECURITY_PERFORMANCE}
+
+
+def _workbook_row_use(row: Mapping[str, object]) -> str:
+    """Return how a changed item should be used during review."""
+    evidence_role = row.get(_pc_findings.EVIDENCE_ROLE)
+    if evidence_role == _pc_findings.CONTEXT.value:
+        return _USE_REVIEW_CONTEXT
+    return _USE_EXPLAINS_CHANGE
+
+
+def _workbook_use_priority(row_use: str) -> int:
+    """Return sort priority for reviewer-facing changed-item uses."""
+    return {
+        _USE_EXPLAINS_CHANGE: 0,
+        _USE_REVIEW_CONTEXT: 1,
+    }.get(row_use, 9)
+
+
+def _workbook_next_action(
+    row: Mapping[str, object],
+    estimated_impact: float | None,
+    row_use: str,
+) -> str:
+    """Return one action-oriented note for a changed workbook row."""
+    if estimated_impact is not None:
+        return "No action: this row contributes to Explained Change."
+
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    impact_message = _format_value(row.get(_pc_explain.IMPACT_MESSAGE)).lower()
+    if dataset == pc_cols.PRICES:
+        return "Determine why the price changed."
+    if dataset == pc_cols.TRANSACTIONS:
+        return "Review transaction change or add missing YAML specifications."
+    if dataset in {pc_cols.POSITIONS, pc_cols.CASH}:
+        return f"Review why {source_column or dataset} changed."
+    if "contribution" in impact_message or source_column == pc_cols.CONTRIBUTION:
+        return "Add contribution_impact_methods setting to YAML."
+    if row_use == _USE_REVIEW_CONTEXT:
+        return "Review as context; not currently used in Explained Change."
+    return "Review the changed source value and decide whether setup is needed."
+
+
+def _workbook_empty_what_changed_table() -> pl.DataFrame:
+    """Return an empty workbook What Changed table."""
+    return pl.DataFrame(
+        schema={
+            _pc_findings.PORTFOLIO_ID: pl.String,
+            _pc_findings.FROM_DATE: pl.Date,
+            _pc_findings.THRU_DATE: pl.Date,
+            _USE: pl.String,
+            _WHAT_CHANGED: pl.String,
+            _pc_findings.SECURITY_ID: pl.String,
+            _pc_findings.SNAPSHOT_A_VALUE: pl.String,
+            _pc_findings.SNAPSHOT_B_VALUE: pl.String,
+            _CHANGE: pl.Float64,
+            _ESTIMATED_IMPACT: pl.Float64,
+            _NEXT_ACTION: pl.String,
+            _pc_findings.DATASET: pl.String,
+            _pc_findings.SOURCE_COLUMN: pl.String,
+            _pc_findings.FINDING_CODE: pl.String,
+            _pc_explain.REVIEW_RANK: pl.Int64,
+            _USE_PRIORITY: pl.Int64,
+            _REVIEW_KEY: pl.String,
+        }
+    )
+
+
+def _workbook_portfolio_changes_columns() -> tuple[str, ...]:
+    """Return Portfolio Changes worksheet columns."""
+    return (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _PERFORMANCE_CHANGE,
+        _ESTIMATED_CAUSE_TOTAL,
+        _UNEXPLAINED_CHANGE,
+        _REVIEW_STATUS,
+        _NEXT_ACTION,
+        _REVIEW_KEY,
+    )
+
+
+def _workbook_security_changes_columns() -> tuple[str, ...]:
+    """Return Security Changes worksheet columns."""
+    return (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_findings.SECURITY_ID,
+        _PERFORMANCE_CHANGE,
+        _ESTIMATED_CAUSE_TOTAL,
+        _UNEXPLAINED_CHANGE,
+        _REVIEW_STATUS,
+        _NEXT_ACTION,
+        _REVIEW_KEY,
+    )
+
+
+def _workbook_what_changed_columns() -> tuple[str, ...]:
+    """Return What Changed worksheet columns."""
+    return (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _USE,
+        _WHAT_CHANGED,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.SNAPSHOT_A_VALUE,
+        _pc_findings.SNAPSHOT_B_VALUE,
+        _CHANGE,
+        _ESTIMATED_IMPACT,
+        _NEXT_ACTION,
+        _pc_findings.DATASET,
+        _pc_findings.SOURCE_COLUMN,
+        _pc_findings.FINDING_CODE,
+        _pc_explain.REVIEW_RANK,
+        _REVIEW_KEY,
+    )
+
+
+def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
+    """Return reviewer-first Findings worksheet columns with review key last."""
+    preferred_columns = (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.SEVERITY,
+    )
+    remaining_columns = [
+        column
+        for column in findings.columns
+        if column not in {*preferred_columns, _REVIEW_KEY}
+    ]
+    return (*preferred_columns, *remaining_columns, _REVIEW_KEY)
+
+
+def _workbook_sorted_table(table: pl.DataFrame, columns: Sequence[str]) -> pl.DataFrame:
+    """Return a workbook table sorted by available reviewer-facing columns."""
+    sort_columns = [column for column in columns if column in table.columns]
+    if not sort_columns or table.is_empty():
+        return table
+    return table.sort(sort_columns, nulls_last=True)
+
+
+def _workbook_column_labels() -> dict[str, str]:
+    """Return shared user-facing labels for review workbook columns."""
+    return {
+        _REVIEW_KEY: "Review Key",
+        _pc_findings.PORTFOLIO_ID: "Portfolio",
+        _pc_findings.SECURITY_ID: "Security",
+        _pc_findings.FROM_DATE: "From Date",
+        _pc_findings.THRU_DATE: "Thru Date",
+        _PERFORMANCE_CHANGE: "Performance Change",
+        _ESTIMATED_CAUSE_TOTAL: "Explained Change",
+        _UNEXPLAINED_CHANGE: "Unexplained Change",
+        _USE: "Purpose",
+        _WHAT_CHANGED: "What Changed",
+        _CHANGE: "Change",
+        _ESTIMATED_IMPACT: "Change Explained By This Row",
+        _NEXT_ACTION: "Next Action",
+        _pc_explain.PORTFOLIO_RETURN_DELTA: "Return Delta",
+        _REVIEW_STATUS: "Status",
+        _PROBLEM: "Problem",
+        _ACTION_REQUIRED: "Action Required",
+        _WHY_IT_MATTERS: "Why It Matters",
+        _EVIDENCE_SECTION: "Evidence Section",
+        _DASHBOARD_MISSING_INPUTS: "Missing Inputs",
+        _DASHBOARD_OPEN_SECTION: "Open Section",
+        _REVIEW_CUES: "Review Cues",
+        _SUGGESTED_NEXT_STEP: "Suggested Next Step",
+        _REVIEW_DETAIL_ARTIFACTS: "Review Detail Artifacts",
+        _CONTEXT_USE: "Context Use",
+        _REVIEW_PRIORITY: "Review Priority",
+        _REVIEW_PRIORITY_REASON: "Review Priority Reason",
+        _RETURN_IMPACT_TREATMENT: "Return Impact Treatment",
+        _pc_findings.FINDING_CODE: "Code",
+        _pc_findings.DATASET: "Dataset",
+        _pc_findings.SOURCE_COLUMN: "Source Column",
+        _pc_findings.MESSAGE: "Message",
+        _pc_findings.SEVERITY: "Severity",
+        _pc_findings.CONFIDENCE: "Confidence",
+        _pc_findings.EVIDENCE_ROLE: "Evidence Role",
+        _pc_findings.SOURCE_FILE: "Source File",
+        _pc_findings.SNAPSHOT_A_VALUE: "Snapshot A Value",
+        _pc_findings.SNAPSHOT_B_VALUE: "Snapshot B Value",
+        _pc_findings.DELTA_B_MINUS_A: "Delta B Minus A",
+        _pc_findings.SUPPRESSED: "Suppressed",
+        _pc_explain.ROOT_CAUSE_AREA: "Cause Area",
+        _pc_explain.FINDING_COUNT: "Finding Count",
+        _pc_explain.IMPACT_BASIS: "Impact Basis",
+        _pc_explain.IMPACT_CONFIDENCE: "Confidence",
+        _pc_explain.TOP_CODES: "Top Codes",
+        _pc_explain.IMPACT_MESSAGE: "Impact Message",
+        _pc_explain.REVIEW_RANK: "Review Rank",
+    }
+
+
+def _add_workbook_sheet(
+    workbook: Any,
+    sheet: _ReviewWorkbookSheet,
+    styles: Mapping[str, Any],
+) -> None:
+    """Add one formatted worksheet to a workbook."""
+    worksheet = workbook.create_sheet(sheet.sheet_name)
+    table = sheet.table
+    columns = _workbook_sheet_columns(sheet)
+    headers = [_workbook_column_label(column, sheet.labels) for column in columns]
+    worksheet.append(headers)
+    for row in table.select(columns).iter_rows(named=True):
+        worksheet.append(
+            [
+                _workbook_cell_value(row[column], column_name=column)
+                for column in columns
+            ]
+        )
+
+    worksheet.freeze_panes = "A2"
+    max_column_letter = worksheet.cell(row=1, column=len(columns)).column_letter
+    worksheet.auto_filter.ref = f"A1:{max_column_letter}{max(worksheet.max_row, 1)}"
+    for column_name, cell in zip(columns, worksheet[1]):
+        cell.font = styles["header_font"]
+        cell.fill = styles["header_fill"]
+        cell.comment = styles["comment_class"](
+            _workbook_column_tooltip(column_name),
+            "ppar",
+        )
+    _format_workbook_columns(worksheet, columns, headers)
+
+
+def _workbook_sheet_columns(sheet: _ReviewWorkbookSheet) -> tuple[str, ...]:
+    """Return columns for a workbook sheet, preserving configured order."""
+    if sheet.columns is not None:
+        return tuple(column for column in sheet.columns if column in sheet.table.columns)
+    return tuple(sheet.table.columns)
+
+
+def _workbook_column_label(column: str, labels: Mapping[str, str] | None) -> str:
+    """Return the display label for a workbook column."""
+    if labels is None:
+        return column
+    return labels.get(column, column)
+
+
+def _workbook_column_tooltip(column: str) -> str:
+    """Return explanatory header text for a workbook column comment."""
+    tooltips = {
+        _REVIEW_KEY: (
+            "Stable portfolio-period key used to connect workbook rows."
+        ),
+        _pc_findings.PORTFOLIO_ID: "Portfolio identifier from the compared source data.",
+        _pc_findings.FROM_DATE: "Beginning date of the affected performance period.",
+        _pc_findings.THRU_DATE: "Ending date of the affected performance period.",
+        _pc_findings.SECURITY_ID: "Security identifier, when the discrepancy is security-level.",
+        _pc_findings.SEVERITY: "Materiality/severity assigned to this discrepancy.",
+        _PERFORMANCE_CHANGE: (
+            "Snapshot B portfolio return minus snapshot A portfolio return."
+        ),
+        _ESTIMATED_CAUSE_TOTAL: "Total performance change explained by What Changed.",
+        _UNEXPLAINED_CHANGE: "Performance change less explained change.",
+        _USE: "Whether this row explains the change or is review-only context.",
+        _WHAT_CHANGED: "Plain-English changed data item.",
+        _CHANGE: "Snapshot B value minus snapshot A value for the changed item.",
+        _ESTIMATED_IMPACT: "Decimal performance change explained by this row.",
+        _NEXT_ACTION: "Recommended reviewer action for this changed item.",
+        _pc_explain.PORTFOLIO_RETURN_DELTA: (
+            "Snapshot B portfolio return minus snapshot A portfolio return."
+        ),
+        _REVIEW_STATUS: "Reviewer triage status for this portfolio-period problem.",
+        _PROBLEM: "Plain-English statement of the issue to review.",
+        _ACTION_REQUIRED: "Recommended next action for the reviewer or configuration owner.",
+        _WHY_IT_MATTERS: "Why this issue affects interpretation of the return change.",
+        _DASHBOARD_MISSING_INPUTS: (
+            "Configuration or source inputs needed before ppar can estimate impact."
+        ),
+        _pc_explain.ROOT_CAUSE_AREA: "Coarse explanation bucket for a group of findings.",
+        _pc_explain.FINDING_COUNT: "Number of finding rows grouped into this cause.",
+        _pc_explain.IMPACT_BASIS: "Method basis used to estimate return impact.",
+        _pc_explain.IMPACT_CONFIDENCE: "Confidence level for the estimated impact.",
+        _pc_explain.TOP_CODES: "Most relevant finding codes represented by this row.",
+        _pc_explain.IMPACT_MESSAGE: "Explanation of the impact estimate or limitation.",
+        _pc_explain.REVIEW_RANK: "Priority rank within the portfolio period.",
+        _pc_findings.FINDING_CODE: "Stable finding code for the discrepancy type.",
+        _pc_findings.CONFIDENCE: "Confidence level for the finding or impact interpretation.",
+        _pc_findings.DATASET: "Normalized source dataset where the discrepancy was found.",
+        _pc_findings.EVIDENCE_ROLE: (
+            "Whether the finding is target output, direct input, related output, or context."
+        ),
+        _pc_findings.SOURCE_FILE: "Source file path or dataset file where applicable.",
+        _pc_findings.SOURCE_COLUMN: "Normalized source column that changed or was relevant.",
+        _pc_findings.TRANSACTION_CATEGORY: "Normalized transaction category, when applicable.",
+        _pc_findings.CASH_FLOW_SIGN: "Configured or source cash-flow sign, when applicable.",
+        _pc_findings.PERFORMANCE_FLOW_SIGN: (
+            "Configured or source performance-flow sign, when applicable."
+        ),
+        _pc_findings.TRANSACTION_SEMANTICS_SOURCE: (
+            "Where transaction sign/category semantics came from."
+        ),
+        _pc_findings.TRANSACTION_MATCH_STATUS: (
+            "How transaction rows were matched between snapshots."
+        ),
+        _pc_findings.IMPACT_POLICY: "Contribution/return impact policy used for this finding.",
+        _pc_findings.TRANSACTION_IMPACT_POLICY: (
+            "Transaction impact policy used for this finding."
+        ),
+        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC: (
+            "Review-only transaction diagnostic name, when available."
+        ),
+        _pc_findings.TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (
+            "Review-only transaction diagnostic estimate, when available."
+        ),
+        _pc_findings.SNAPSHOT_A_VALUE: "Value observed in snapshot A.",
+        _pc_findings.SNAPSHOT_B_VALUE: "Value observed in snapshot B.",
+        _pc_findings.DELTA_B_MINUS_A: "Numeric difference calculated as snapshot B minus A.",
+        _pc_findings.RETURN_DENOMINATOR: (
+            "Denominator used for return-impact estimates, when configured."
+        ),
+        _pc_findings.RETURN_WEIGHT: (
+            "Weight used for security return-impact estimates, when available."
+        ),
+        _pc_findings.MESSAGE: "Human-readable finding detail.",
+        _pc_findings.SUPPRESSED: "Whether a configured suppression marked this finding hidden.",
+    }
+    return tooltips.get(
+        column,
+        f"Workbook column derived from normalized ppar field `{column}`.",
+    )
+
+
+def _workbook_cell_value(value: object, *, column_name: str) -> object:
+    """Return a scalar value suitable for openpyxl cells."""
+    if (
+        _is_workbook_return_column(column_name)
+        and isinstance(value, (int, float))
+        and not isinstance(value, bool)
+    ):
+        return round(float(value), 4)
+    if isinstance(value, (dt.date, dt.datetime, int, float, str, bool)) or value is None:
+        return value
+    return _format_value(value)
+
+
+def _format_workbook_columns(
+    worksheet: Any,
+    columns: Sequence[str],
+    headers: Sequence[str],
+) -> None:
+    """Apply readable widths and common number formats to a worksheet."""
+    for column_index, (column_name, header) in enumerate(zip(columns, headers), start=1):
+        column_letter = worksheet.cell(row=1, column=column_index).column_letter
+        max_width = len(header)
+        for row_index in range(2, worksheet.max_row + 1):
+            cell = worksheet.cell(row=row_index, column=column_index)
+            max_width = max(max_width, len(_format_value(cell.value)))
+            if column_name in {_pc_findings.FROM_DATE, _pc_findings.THRU_DATE}:
+                cell.number_format = "yyyy-mm-dd"
+            elif _is_workbook_return_column(column_name):
+                cell.number_format = "0.0000"
+        worksheet.column_dimensions[column_letter].width = min(max(max_width + 2, 12), 60)
+
+
+def _is_workbook_return_column(column_name: str) -> bool:
+    """Return whether a workbook column should be shown as a decimal return."""
+    normalized_name = column_name.lower()
+    return normalized_name in {
+        pc_cols.PORTFOLIO_RETURN,
+        pc_cols.SECURITY_RETURN,
+        _PERFORMANCE_CHANGE,
+        _ESTIMATED_CAUSE_TOTAL,
+        _UNEXPLAINED_CHANGE,
+        _ESTIMATED_IMPACT,
+        _pc_explain.PORTFOLIO_RETURN_DELTA,
+        _pc_explain.SECURITY_RETURN_DELTA,
+        _pc_explain.ESTIMATED_RETURN_IMPACT,
+        _pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL,
+    }
+
+
+def _number_or_none(value: object) -> float | None:
+    """Return a float for numeric values, preserving missing/non-numeric values."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
 def _write_csv(table: pl.DataFrame, output_path: Path) -> Path:
     """Write a CSV table and return the normalized path."""
     table.write_csv(output_path)
@@ -490,8 +1290,18 @@ def _write_report_bundle_readme(
     *,
     title: str,
     tables: Mapping[str, pl.DataFrame],
+    include_workbook: bool,
 ) -> Path:
     """Write a short bundle README and return the normalized path."""
+    workbook_line = (
+        "- `review_workbook.xlsx`: optional Excel workbook with Portfolio Changes, "
+        "Security Changes, What Changed, and Raw Audit Trail sheets."
+    )
+    first_review_step = (
+        "1. Open `report.html`, or start `review_workbook.xlsx` at Portfolio Changes."
+        if include_workbook
+        else "1. Open `report.html` and start with the Problems grid."
+    )
     lines = [
         f"# {_escape_markdown_text(title)}",
         "",
@@ -504,10 +1314,11 @@ def _write_report_bundle_readme(
         "- `report.md`: Markdown version of the same review narrative.",
         "- `manifest.json`: machine-readable artifact and row-count metadata.",
         "- `findings.csv`: complete finding-level comparison output.",
+        *([workbook_line] if include_workbook else []),
         "",
         "## Recommended Review Order",
         "",
-        "1. Open `report.html` and start with the Problems grid.",
+        first_review_step,
         "2. Use `needs_review_summary.csv` to identify changed periods, suggested next "
         "steps, high-priority context cues, and drilldown artifacts.",
         "3. Use the `review_key` column to follow a period across CSV artifacts.",
@@ -532,7 +1343,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
             "drilldown artifacts"
         ),
         "portfolio_period_summary": "portfolio-period return-change summary",
-        "cause_summary": "cause-area summary with selected impact estimates",
+        "cause_summary": "cause-area summary with explained-change methods",
         "impact_estimates": "currently quantified impact estimates",
         "impact_coverage": "period-level estimate coverage and missing inputs",
         "context_evidence_summary": (
@@ -612,6 +1423,7 @@ def _report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[st
     tables = _manifest_mapping(manifest, "tables")
     issues.extend(_report_bundle_artifact_issues(bundle_path, artifacts))
     issues.extend(_report_bundle_table_issues(bundle_path, artifacts, tables))
+    issues.extend(_report_bundle_workbook_issues(bundle_path, artifacts))
     return issues
 
 
@@ -717,6 +1529,74 @@ def _csv_file_has_header(csv_path: Path) -> bool:
     except (IndexError, OSError, UnicodeDecodeError):
         return False
     return bool(first_line.strip())
+
+
+def _report_bundle_workbook_issues(
+    bundle_path: Path,
+    artifacts: Mapping[str, object],
+) -> list[str]:
+    """Return optional XLSX review workbook validation issues."""
+    artifact_file = artifacts.get(_REVIEW_WORKBOOK_ARTIFACT)
+    if artifact_file is None:
+        return []
+    if not isinstance(artifact_file, str) or not artifact_file:
+        return ["manifest artifact 'review_workbook' is malformed"]
+
+    workbook_path = bundle_path / artifact_file
+    if not workbook_path.is_file():
+        return [f"artifact file {artifact_file!r} is missing"]
+
+    try:
+        # Optional dependency: only needed when validating an optional workbook.
+        # pylint: disable=import-outside-toplevel
+        from openpyxl import load_workbook  # type: ignore[import-not-found]
+    except ImportError:
+        return [
+            "review_workbook.xlsx cannot be validated because optional dependency "
+            '"ppar[excel]" is not installed'
+        ]
+
+    try:
+        workbook = load_workbook(workbook_path, read_only=True, data_only=True)
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        return [f"review_workbook.xlsx could not be opened: {error}"]
+
+    issues = _review_workbook_sheet_issues(workbook)
+    workbook.close()
+    return issues
+
+
+def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
+    """Return review workbook sheet and header validation issues."""
+    issues: list[str] = []
+    sheet_names = tuple(str(name) for name in workbook.sheetnames)
+    for sheet_name in _REVIEW_WORKBOOK_EXPECTED_SHEETS:
+        if sheet_name not in sheet_names:
+            issues.append(f"review_workbook.xlsx is missing sheet {sheet_name!r}")
+            continue
+        issues.extend(_review_workbook_header_issues(workbook[sheet_name], sheet_name))
+    return issues
+
+
+def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]:
+    """Return header validation issues for one review workbook sheet."""
+    rows = worksheet.iter_rows(min_row=1, max_row=1, values_only=True)
+    try:
+        headers = tuple(str(value) for value in next(rows) if value is not None)
+    except StopIteration:
+        return [f"review_workbook.xlsx sheet {sheet_name!r} has no header row"]
+
+    missing_headers = [
+        header
+        for header in _REVIEW_WORKBOOK_REQUIRED_HEADERS[sheet_name]
+        if header not in headers
+    ]
+    if not missing_headers:
+        return []
+    return [
+        f"review_workbook.xlsx sheet {sheet_name!r} is missing headers "
+        f"{missing_headers}"
+    ]
 
 
 def _run_summary_section(
@@ -1100,6 +1980,32 @@ def _with_period_review_key(table: pl.DataFrame) -> pl.DataFrame:
                 pl.col(_pc_findings.PORTFOLIO_ID).cast(pl.String),
                 pl.col(_pc_findings.FROM_DATE).cast(pl.String),
                 pl.col(_pc_findings.THRU_DATE).cast(pl.String),
+            ],
+            separator="::",
+        ).alias(_REVIEW_KEY)
+    )
+    return table_with_key.select(
+        [_REVIEW_KEY, *[column for column in table.columns if column != _REVIEW_KEY]]
+    )
+
+
+def _with_security_review_key(table: pl.DataFrame) -> pl.DataFrame:
+    """Add ``review_key`` to tables that already carry security-period columns."""
+    security_columns = {
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_findings.SECURITY_ID,
+    }
+    if _REVIEW_KEY in table.columns or not security_columns.issubset(table.columns):
+        return table
+    table_with_key = table.with_columns(
+        pl.concat_str(
+            [
+                pl.col(_pc_findings.PORTFOLIO_ID).cast(pl.String),
+                pl.col(_pc_findings.FROM_DATE).cast(pl.String),
+                pl.col(_pc_findings.THRU_DATE).cast(pl.String),
+                pl.col(_pc_findings.SECURITY_ID).cast(pl.String),
             ],
             separator="::",
         ).alias(_REVIEW_KEY)

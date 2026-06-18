@@ -1397,7 +1397,8 @@ The `scripts/performance_comparison_report_bundle.py` command-line script
 exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
 `scripts/performance_comparison_validate_bundle.py`, which verifies required
-artifacts, manifest artifact names, CSV row counts, and empty-table headers.
+artifacts, manifest artifact names, CSV row counts, empty-table headers, and
+the optional XLSX workbook when the manifest includes one.
 Packaged demo scenario coverage can be checked with
 `scripts/performance_comparison_validate_demo_matrix.py`, which verifies that
 the current YAML fixtures still produce the reviewer-facing scenarios named in
@@ -1417,6 +1418,29 @@ lightweight browser filters search rendered row text, review status, and
 missing-input flags only; they do not change report data or require a server.
 The default HTML presentation should stay short at the top: Problems first,
 with backing tables inside an Evidence Appendix.
+
+The optional XLSX workbook is a second presentation over the same review
+tables, not a separate report product. It is generated only when requested with
+`include_workbook=True` or `--include-workbook`, and requires the optional
+`ppar[excel]` dependency group. The workbook starts with `Portfolio Changes`:
+one row per changed portfolio period, showing the decimal return change,
+currently explained changes, and any unexplained remainder. `Security Changes`
+shows security-level return changes when security-performance rows changed.
+`What Changed` lists the concrete changed data items with reviewer-facing
+`Purpose` values, snapshot A/B values, `Change Explained By This Row` values
+when ppar has a defensible method, and a single `Next Action` column.
+`Purpose` values distinguish rows that explain the performance change from
+review-only context. Rows that only restate the performance result are excluded
+because `Portfolio Changes` and `Security Changes` already show those return
+changes. `Raw Audit Trail` preserves the full finding-level detail.
+Workbook-specific behavior is limited to spreadsheet
+ergonomics such as sheet names, frozen headers, filters, column widths, Excel
+number formats, and header comments that explain column meaning.
+
+Strict causal attribution is available as an opt-in guardrail through
+`require_causal_attribution=True` or `--require-causal-attribution`. In strict
+mode, bundle generation fails before writing report artifacts if any changed
+portfolio period still has missing YAML setup or unexplained changed rows.
 
 The `Needs Review Summary` section and matching `needs_review_summary.csv`
 bundle artifact remain the derived period-level triage source behind the

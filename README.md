@@ -148,7 +148,8 @@ The performance comparison feature compares two source-data snapshots and helps
 explain why reported portfolio performance changed between extraction dates. It
 loads normalized portfolio performance, security performance, transactions,
 positions, prices, FX rates, cash, and security-reference data; emits stable
-findings; and writes reviewer-oriented Markdown, HTML, CSV, and bundle outputs.
+findings; and writes reviewer-oriented Markdown, HTML, CSV, optional XLSX, and
+bundle outputs.
 
 Start with these references:
 
@@ -178,17 +179,41 @@ The `review_key` column links period-level bundle tables, and
 bundle `README.md` and `manifest.json` describe the generated reports and CSV
 tables.
 
+XLSX workbook export is optional. Install the Excel extra when reviewers want a
+spreadsheet version of the same review-first tables:
+
+```bash
+./.venv/bin/python -m pip install -e ".[excel]"
+```
+
+Then pass `--include-workbook` to the bundle script. The generated
+`review_workbook.xlsx` starts with `Portfolio Changes`: one row per changed
+portfolio period, showing the return change, explained change, and any
+unexplained remainder as decimal return numbers. `Security Changes` shows the
+security-level return changes when security-performance rows changed.
+`What Changed` then lists the concrete changed data items, shows each row's
+`Purpose`, shows snapshot A/B values before the change amount, and gives a
+single `Next Action` for each row. `Raw Audit Trail` preserves the full
+finding-level detail. Sheets use frozen headers, filters, and header comments.
+
+When you want reporting to fail instead of carrying unexplained ambiguity, add
+`--require-causal-attribution`. The bundle command will stop before writing
+artifacts if a changed portfolio period is missing YAML setup for causal
+attribution.
+
 A practical review order is:
 
 1. `report.html`: browser-readable Problems grid and optional Evidence
    Appendix.
-2. `needs_review_summary.csv`: changed periods, suggested next steps, and
+2. `review_workbook.xlsx`: optional spreadsheet with `Portfolio Changes`,
+   `Security Changes`, `What Changed`, and `Raw Audit Trail` sheets.
+3. `needs_review_summary.csv`: changed periods, suggested next steps, and
    drilldown artifacts.
-3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
+4. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
    inputs, and reviewer-facing coverage status.
-4. `context_evidence.csv`: context-only items such as cost basis, commission,
+5. `context_evidence.csv`: context-only items such as cost basis, commission,
    and security-master changes that are excluded from return-impact estimates.
-5. `findings.csv`: complete finding-level audit output.
+6. `findings.csv`: complete finding-level audit output.
 
 Other useful bundle tables include `impact_estimates.csv` for currently
 quantified impacts, `transaction_activity.csv` for changed transaction rows,
@@ -272,6 +297,17 @@ the `Problems` grid and `Evidence Appendix` sections are present. The
 The default generated bundle uses the multi-portfolio restatement fixture; the
 demo matrix validator also checks companion fixtures such as policy gaps,
 suppressions, and the Modified Dietz cross-check.
+
+To smoke-test the optional XLSX workbook path:
+
+```bash
+./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+  ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml \
+  _demo_output/performance_comparison_bundle_xlsx \
+  --include-workbook
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+  _demo_output/performance_comparison_bundle_xlsx
+```
 
 To validate an existing performance comparison bundle from a source checkout:
 

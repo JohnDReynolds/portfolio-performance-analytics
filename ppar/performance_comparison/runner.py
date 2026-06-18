@@ -6,7 +6,9 @@ from __future__ import annotations
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison.compare import PerformanceComparison
+import ppar.performance_comparison.explain as _pc_explain
 from ppar.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
@@ -29,6 +31,7 @@ __all__ = [
     "compact_findings_table",
     "compare_snapshots",
     "summarize_findings",
+    "validate_causal_attribution_ready",
 ]
 
 
@@ -36,6 +39,7 @@ def compare_snapshots(
     specification_path: util.PathLike,
     *,
     include_suppressed: bool = True,
+    require_causal_attribution: bool = False,
 ) -> pl.DataFrame:
     """Compare two configured snapshots and return a findings table.
 
@@ -43,6 +47,9 @@ def compare_snapshots(
         specification_path: Path to a ``ppar_performance_comparison.yaml`` file.
         include_suppressed: Whether to include findings marked suppressed by
             configured suppression rules.
+        require_causal_attribution: Whether changed portfolio periods must have
+            all needed YAML setup for causal attribution before results are
+            returned.
 
     Returns:
         Polars DataFrame containing one row per finding. If no findings are
@@ -56,9 +63,61 @@ def compare_snapshots(
     specification = PerformanceComparisonSpecification(specification_path)
     findings = PerformanceComparison(specification).compare()
     findings_table = findings_to_polars(findings)
+    validate_findings = findings_table
+    if not include_suppressed:
+        validate_findings = validate_findings.filter(~pl.col(SUPPRESSED))
+    if require_causal_attribution:
+        validate_causal_attribution_ready(validate_findings)
     if include_suppressed:
         return findings_table
     return findings_table.filter(~pl.col(SUPPRESSED))
+
+
+def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
+    """Raise if changed portfolio periods are not ready for causal attribution.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+
+    Raises:
+        PpaError: If any changed portfolio period still has missing setup or
+            unexplained changed rows.
+    """
+    active_findings = findings
+    if SUPPRESSED in active_findings.columns:
+        active_findings = active_findings.filter(~pl.col(SUPPRESSED))
+    coverage = _pc_explain.portfolio_period_impact_coverage_summary(active_findings)
+    if coverage.is_empty():
+        return
+
+    incomplete = coverage.filter(
+        pl.col(_pc_explain.IMPACT_COVERAGE_STATUS)
+        != _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES
+    )
+    if incomplete.is_empty():
+        return
+
+    details = [
+        _causal_attribution_issue(row)
+        for row in incomplete.iter_rows(named=True)
+    ]
+    raise PpaError(
+        "Causal attribution setup is incomplete: " + "; ".join(details),
+        504,
+    )
+
+
+def _causal_attribution_issue(row: dict[str, object]) -> str:
+    """Return one strict-mode attribution issue."""
+    review_key = (
+        f"{row.get(PORTFOLIO_ID)}::{row.get(FROM_DATE)}::{row.get(THRU_DATE)}"
+    )
+    missing_inputs = row.get(_pc_explain.MISSING_IMPACT_INPUTS)
+    if isinstance(missing_inputs, str) and missing_inputs:
+        return f"{review_key} missing YAML setup: {missing_inputs}"
+    status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
+    return f"{review_key} is {status}; add causal attribution setup"
 
 
 def summarize_findings(findings: pl.DataFrame) -> dict[str, pl.DataFrame]:

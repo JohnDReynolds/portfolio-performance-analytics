@@ -40,12 +40,14 @@ from ppar.performance_comparison.report import (
     write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
+    write_performance_comparison_review_workbook,
 )
 from ppar.performance_comparison.rules import SuppressionRule, apply_suppressions
 from ppar.performance_comparison.runner import (
     compact_findings_table,
     compare_snapshots,
     summarize_findings,
+    validate_causal_attribution_ready,
 )
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.security_master import SecurityMasterLoader
@@ -98,9 +100,11 @@ __all__ = [
     "security_period_evidence_breakdown",
     "security_period_summary",
     "summarize_findings",
+    "validate_causal_attribution_ready",
     "transaction_activity_summary",
     "transaction_matching_diagnostics",
     "write_performance_comparison_html_report",
     "write_performance_comparison_markdown_report",
     "write_performance_comparison_report_bundle",
+    "write_performance_comparison_review_workbook",
 ]

@@ -58,6 +58,10 @@ charts = [
     "matplotlib>=3.8.2",
     "seaborn>=0.13.2",
 ]
+# Excel workbook export support for performance comparison review bundles.
+excel = [
+    "openpyxl>=3.1",
+]
 # Developer tooling used for local checks and editor feedback.
 dev = [
     "build>=1.2",
