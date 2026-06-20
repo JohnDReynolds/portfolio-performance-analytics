@@ -139,21 +139,22 @@ Last successful focused checks after installing `ppar[excel]`:
 ```
 
 The workbook-content and workbook-validation tests now run instead of skipping.
-The workbook-content test uses the multi-portfolio fixture so the Performance
-Change sheet has more than one row. A bundle smoke also wrote
-`_demo_output/performance_comparison_bundle_xlsx/review_workbook.xlsx` with
-these sheets:
+The workbook-content test uses the multi-portfolio fixture so the Portfolio
+Differences sheet has more than one row. Workbook demo output now lives under
+`_demo_output/workbooks/<demo_name>/review_workbook.xlsx` with these sheets:
 
-- `Portfolio Changes`
-- `Security Changes`
-- `What Changed`
+- `Portfolio Differences`
+- `Security Differences`
+- `Underlying Causes`
+- `Derived Checks`
+- `Context`
 - `Raw Audit Trail`
 
-The workbook bundle passes:
+For example, the single-restatement workbook bundle passes:
 
 ```bash
 ./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
-  _demo_output/performance_comparison_bundle_xlsx
+  _demo_output/workbooks/single_restatement
 ```
 
 Older focused checks:

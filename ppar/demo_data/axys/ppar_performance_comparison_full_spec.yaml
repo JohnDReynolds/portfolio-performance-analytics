@@ -23,6 +23,8 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
+  positions: positions_holdings.csv
+  prices: prices.csv
   transactions: transactions.csv
 
 contribution_impact_methods:
@@ -37,6 +39,25 @@ contribution_impact_methods:
   security_return:
     method: security_return_delta_times_weight
     weight_source: snapshot_a_weight
+
+position_impact_methods:
+  market_value:
+    method: market_value_delta_over_return_denominator
+    denominator_source: begin_market_value
+  accrued:
+    method: accrued_delta_over_return_denominator
+    denominator_source: begin_market_value
+
+price_impact_methods:
+  price:
+    method: price_delta_over_snapshot_a_price_times_weight
+    weight_source: snapshot_a_weight
+
+evidence_only_impact_methods:
+  positions:
+    method: evidence_only
+    source_fields:
+      - quantity
 
 transaction_rules:
   BUY:

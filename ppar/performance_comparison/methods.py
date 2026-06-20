@@ -31,6 +31,25 @@ class TransactionImpactMethod(StrEnum):
     )
 
 
+class PositionImpactMethod(StrEnum):
+    """Supported `position_impact_methods` YAML method names."""
+
+    MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR = (
+        "market_value_delta_over_return_denominator"
+    )
+    ACCRUED_DELTA_OVER_RETURN_DENOMINATOR = (
+        "accrued_delta_over_return_denominator"
+    )
+
+
+class PriceImpactMethod(StrEnum):
+    """Supported `price_impact_methods` YAML method names."""
+
+    PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
+        "price_delta_over_snapshot_a_price_times_weight"
+    )
+
+
 class ModifiedDietzFlowTiming(StrEnum):
     """Supported Modified Dietz flow date source options."""
 

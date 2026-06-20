@@ -90,6 +90,9 @@ Public YAML impact method values are centralized in:
   `vendor_contribution_delta`, and `security_return_delta_times_weight`.
 - `TransactionImpactMethod`: `evidence_only`, `modified_dietz`, and
   `transaction_amount_delta_over_return_denominator`.
+- `PositionImpactMethod`: `market_value_delta_over_return_denominator` and
+  `accrued_delta_over_return_denominator`.
+- `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
 
 Transaction sign/flow semantics are centralized in:
 
@@ -1227,9 +1230,12 @@ Implemented contribution-candidate fields:
 
 The contribution-candidate implementation preserves all ranked evidence rows
 and populates stable impact columns. It estimates only where the YAML explicitly
-selects a supported `contribution_impact_methods` or
-`transaction_impact_methods` policy and the current evidence carries enough
+selects a supported `contribution_impact_methods`, `position_impact_methods`,
+or `transaction_impact_methods` policy and the current evidence carries enough
 denominator, weight, or vendor output context to state the method clearly.
+When a changed source field is known review evidence but should not receive an
+additive estimate, YAML can instead mark it with
+`evidence_only_impact_methods`.
 
 ```yaml
 contribution_impact_methods:
@@ -1244,6 +1250,23 @@ contribution_impact_methods:
   security_return:
     method: security_return_delta_times_weight
     weight_source: snapshot_a_weight
+position_impact_methods:
+  market_value:
+    method: market_value_delta_over_return_denominator
+    denominator_source: begin_market_value
+  accrued:
+    method: accrued_delta_over_return_denominator
+    denominator_source: begin_market_value
+price_impact_methods:
+  price:
+    method: price_delta_over_snapshot_a_price_times_weight
+    weight_source: snapshot_a_weight
+evidence_only_impact_methods:
+  positions:
+    method: evidence_only
+    source_fields:
+      - quantity
+      - cost
 ```
 
 Current supported impact estimates:
@@ -1308,9 +1331,51 @@ Current supported impact estimates:
      Modified Dietz cross-check estimates. Eligible Modified Dietz rows may
      also carry `transaction_impact_diagnostic_estimate`. These diagnostics are
      reviewer-facing only; they do not populate `estimated_return_impact`.
+5. Position market value delta:
+   - `impact_basis = position_market_value`
+   - `impact_method = market_value_delta_over_return_denominator`
+   - `impact_confidence = low`
+   - Formula: `position_market_value_delta / return_denominator`.
+   - Applies only when YAML explicitly configures
+     `position_impact_methods.market_value.method` as
+     `market_value_delta_over_return_denominator` and `denominator_source` as
+     `begin_market_value`.
+   - This is intentionally a low-confidence screening estimate because a
+     position market value delta may reflect price, quantity, FX,
+     accrued-interest, or booking changes.
+6. Weighted price delta:
+   - `impact_basis = price_weighted`
+   - `impact_method = price_delta_over_snapshot_a_price_times_weight`
+   - `impact_confidence = low`
+   - Formula: `(price_delta / snapshot_a_price) * snapshot_a_weight`.
+   - Applies only when YAML explicitly configures
+     `price_impact_methods.price.method` as
+     `price_delta_over_snapshot_a_price_times_weight` and `weight_source` as
+     `snapshot_a_weight`.
+   - Price findings link through security-performance periods, so one changed
+     security price may produce one explanation row per affected portfolio.
+7. Position accrued delta:
+   - `impact_basis = position_accrued`
+   - `impact_method = accrued_delta_over_return_denominator`
+   - `impact_confidence = low`
+   - Formula: `position_accrued_delta / return_denominator`.
+   - Applies only when YAML explicitly configures
+     `position_impact_methods.accrued.method` as
+     `accrued_delta_over_return_denominator` and `denominator_source` as
+     `begin_market_value`.
+   - This is intentionally a low-confidence screening estimate because accrued
+     balances depend on source income accrual and pricing conventions.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
+
+`evidence_only_impact_methods` is the explicit unsupported-but-known escape
+hatch. It does not create `estimated_return_impact`; instead, workbook rows are
+marked review-only and `Required YAML Setup` says the row is configured as
+evidence-only. This keeps intentionally review-only changes from looking like
+missing setup. Supported dataset keys are `cash`, `fx_rates`, `positions`,
+`prices`, `security_master`, and `transactions`; each dataset may list only
+fields that the comparison engine already compares.
 
 First contribution estimates should start only where the math is defensible:
 
@@ -1422,25 +1487,33 @@ with backing tables inside an Evidence Appendix.
 The optional XLSX workbook is a second presentation over the same review
 tables, not a separate report product. It is generated only when requested with
 `include_workbook=True` or `--include-workbook`, and requires the optional
-`ppar[excel]` dependency group. The workbook starts with `Portfolio Changes`:
-one row per changed portfolio period, showing the decimal return change,
-currently explained changes, and any unexplained remainder. `Security Changes`
-shows security-level return changes when security-performance rows changed.
-`What Changed` lists the concrete changed data items with reviewer-facing
-`Purpose` values, snapshot A/B values, `Change Explained By This Row` values
-when ppar has a defensible method, and a single `Next Action` column.
-`Purpose` values distinguish rows that explain the performance change from
-review-only context. Rows that only restate the performance result are excluded
-because `Portfolio Changes` and `Security Changes` already show those return
-changes. `Raw Audit Trail` preserves the full finding-level detail.
+`ppar[excel]` dependency group. The workbook starts with `Portfolio
+Differences`: one row per changed portfolio period, showing the decimal return
+difference, explained difference, and any unexplained remainder. `Security
+Differences` shows security-level return differences when security-performance
+rows changed, and it adds explicit no-difference rows for changed portfolio
+periods with no security-level return difference. `Underlying Causes` lists
+input rows such as positions, transactions, cash, prices, and FX rates; its
+`B - A Difference` values are raw input-value differences, and its
+`Performance Difference Explained` values appear only when ppar has a
+defensible input-level explanation. `Required YAML Setup` is `None` for rows
+that are already explainable and otherwise names the YAML fields or unsupported
+impact method blocking attribution. Changed periods without input-cause rows
+get a `no_underlying_cause_found` diagnostic row. `Derived Checks` lists
+portfolio-performance and security-performance rows that confirm reporting
+differences but are not root causes. `Context` lists review-only supporting
+rows. `Raw Audit Trail`
+preserves the full finding-level detail.
 Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.
 
-Strict causal attribution is available as an opt-in guardrail through
-`require_causal_attribution=True` or `--require-causal-attribution`. In strict
-mode, bundle generation fails before writing report artifacts if any changed
-portfolio period still has missing YAML setup or unexplained changed rows.
+Strict supported-attribution setup is available as an opt-in guardrail through
+`require_causal_attribution=True`, `--require-causal-attribution`, or
+`--require-supported-attribution-setup`. In strict mode, bundle generation fails
+before writing report artifacts if any changed portfolio period still has
+missing YAML setup for supported attribution methods. It does not require every
+performance difference to be fully explained.
 
 The `Needs Review Summary` section and matching `needs_review_summary.csv`
 bundle artifact remain the derived period-level triage source behind the

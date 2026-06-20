@@ -47,15 +47,16 @@ def main(argv: list[str] | None = None) -> int:
             top_evidence_limit=args.top_evidence_limit,
             include_workbook=args.include_workbook,
             require_causal_attribution=args.require_causal_attribution,
+            comparison_path=args.comparison_path,
         )
     except PpaError as error:
         print(f"Report bundle failed: {error}", file=sys.stderr)
         return 1
     print(f"Report bundle written to: {bundle_paths['manifest'].parent}")
     print(f"README written to: {bundle_paths['readme']}")
-    print(f"HTML report written to: {bundle_paths['html_report']}")
     if "review_workbook" in bundle_paths:
         print(f"Review workbook written to: {bundle_paths['review_workbook']}")
+    print(f"HTML report written to: {bundle_paths['html_report']}")
     print(f"Needs review summary written to: {bundle_paths['needs_review_summary']}")
     print(f"Manifest written to: {bundle_paths['manifest']}")
     return 0
@@ -104,8 +105,14 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--require-causal-attribution",
+        "--require-supported-attribution-setup",
+        dest="require_causal_attribution",
         action="store_true",
-        help="Fail unless changed periods have all setup needed for causal attribution.",
+        help=(
+            "Fail unless changed periods have all YAML setup needed for supported "
+            "causal attribution methods. This does not require every performance "
+            "change to be fully explained."
+        ),
     )
     return parser
 

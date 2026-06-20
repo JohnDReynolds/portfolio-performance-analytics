@@ -12,6 +12,7 @@ portfolio-performance-analytics (ppar) is a python package that produces holding
 - [Installation](#installation)
 - [Usage](#usage)
 - [Performance Comparison](#performance-comparison)
+- [Repository Guide](#repository-guide)
 - [Technical](#technical)
 - [Enhancements](#enhancements)
 - [Support](#support)
@@ -151,138 +152,23 @@ positions, prices, FX rates, cash, and security-reference data; emits stable
 findings; and writes reviewer-oriented Markdown, HTML, CSV, optional XLSX, and
 bundle outputs.
 
-Start with these references:
+Start with these references instead of treating this root README as the full
+manual:
 
+- [Repository Guide](docs/repository_guide.md) for a high-level map of the
+  README files, scripts, demos, test fixtures, validators, and generated
+  outputs.
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md)
   for the feature model, current implementation checkpoint, YAML semantics, and
   report bundle shape.
+- [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md) for exact demo
+  YAML files, XLSX workbook commands, and expected outputs.
 - [Axys Common-Core Export Reference](docs/axys_common_core_export.md) for a
   starter Axys export template and field-reference tables.
 - [Axys test data notes](tests/data/axys/README.md) for the synthetic fixture
   layouts used by demos and tests.
 
-The performance comparison demo writes a review bundle under `_demo_output`.
-Start with `_demo_output/performance_comparison_bundle/report.html`; its Review
-Problems grid gives one row per actionable issue. The default demo uses a
-multi-portfolio restatement fixture so the grid has several issue shapes to
-review. Rows surface severity, portfolio, period, return delta, the problem,
-the required action, why it matters, and an optional evidence link. The grid
-includes lightweight browser filters and sortable headers. The HTML report
-keeps the first view short: Problems first, with backing tables under Evidence
-Appendix. A separate packaged
-`ppar_performance_comparison_policy_gap_demo.yaml` fixture intentionally omits
-selected YAML impact-policy inputs so reviewer action wording can be exercised
-without duplicating the CSV data. Then inspect
-`needs_review_summary.csv` for the periods and issues that need review first.
-The `review_key` column links period-level bundle tables, and
-`review_detail_artifacts` names the CSVs most relevant to each triage row. The
-bundle `README.md` and `manifest.json` describe the generated reports and CSV
-tables.
-
-XLSX workbook export is optional. Install the Excel extra when reviewers want a
-spreadsheet version of the same review-first tables:
-
-```bash
-./.venv/bin/python -m pip install -e ".[excel]"
-```
-
-Then pass `--include-workbook` to the bundle script. The generated
-`review_workbook.xlsx` starts with `Portfolio Changes`: one row per changed
-portfolio period, showing the return change, explained change, and any
-unexplained remainder as decimal return numbers. `Security Changes` shows the
-security-level return changes when security-performance rows changed.
-`What Changed` then lists the concrete changed data items, shows each row's
-`Purpose`, shows snapshot A/B values before the change amount, and gives a
-single `Next Action` for each row. `Raw Audit Trail` preserves the full
-finding-level detail. Sheets use frozen headers, filters, and header comments.
-
-When you want reporting to fail instead of carrying unexplained ambiguity, add
-`--require-causal-attribution`. The bundle command will stop before writing
-artifacts if a changed portfolio period is missing YAML setup for causal
-attribution.
-
-A practical review order is:
-
-1. `report.html`: browser-readable Problems grid and optional Evidence
-   Appendix.
-2. `review_workbook.xlsx`: optional spreadsheet with `Portfolio Changes`,
-   `Security Changes`, `What Changed`, and `Raw Audit Trail` sheets.
-3. `needs_review_summary.csv`: changed periods, suggested next steps, and
-   drilldown artifacts.
-4. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
-   inputs, and reviewer-facing coverage status.
-5. `context_evidence.csv`: context-only items such as cost basis, commission,
-   and security-master changes that are excluded from return-impact estimates.
-6. `findings.csv`: complete finding-level audit output.
-
-Other useful bundle tables include `impact_estimates.csv` for currently
-quantified impacts, `transaction_activity.csv` for changed transaction rows,
-`transaction_cross_checks.csv` for review-only external-flow diagnostics, and
-`top_evidence.csv` for ranked evidence rows shown in the report.
-`context_evidence_summary.csv` includes reviewer priority labels so linked
-portfolio-period context appears ahead of broader reference-data context.
-Linked high-priority context is also surfaced in `needs_review_summary.csv`
-review cues for the affected portfolio period. `context_evidence.csv` carries
-the same priority labels on row-level detail.
-
-Transaction impact estimates are never inferred from transaction codes alone.
-When a source does not provide category/sign/flow semantics, supply explicit
-rules in the comparison YAML:
-
-```yaml
-transaction_rules:
-  BUY:
-    transaction_category: buy
-    cash_flow_sign: negative
-    performance_flow_sign: performance
-  DEP:
-    transaction_category: external_flow
-    cash_flow_sign: positive
-    performance_flow_sign: external
-```
-
-Impact methods are also explicit. Omitted methods leave transaction activity as
-review evidence and produce missing-input diagnostics rather than estimates.
-
-```yaml
-contribution_impact_methods:
-  portfolio_source_field:
-    method: source_field_delta_over_begin_market_value
-    denominator_source: begin_market_value
-    source_fields:
-      - income
-      - gain_loss
-  security_contribution:
-    method: vendor_contribution_delta
-  security_return:
-    method: security_return_delta_times_weight
-    weight_source: snapshot_a_weight
-```
-
-```yaml
-transaction_impact_methods:
-  external_flow:
-    method: evidence_only
-  performance:
-    method: transaction_amount_delta_over_return_denominator
-    denominator_source: begin_market_value
-```
-
-For external-flow review cross-checks, the supported Modified Dietz diagnostic
-requires every convention to be named:
-
-```yaml
-transaction_impact_methods:
-  external_flow:
-    method: modified_dietz
-    flow_timing: trade_date
-    day_count: actual_days
-    inclusion_rule: beginning_of_day
-    denominator_source: begin_market_value
-    double_count_policy: cross_check_only
-```
-
-To smoke-test the performance comparison demo from a source checkout:
+To smoke-test the default performance comparison demo from a source checkout:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
@@ -291,48 +177,38 @@ To smoke-test the performance comparison demo from a source checkout:
 ./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
 ```
 
-Then open `_demo_output/performance_comparison_bundle/report.html` and confirm
-the `Problems` grid and `Evidence Appendix` sections are present. The
-`_demo_output/` directory is generated output and is intentionally ignored by Git.
-The default generated bundle uses the multi-portfolio restatement fixture; the
-demo matrix validator also checks companion fixtures such as policy gaps,
-suppressions, and the Modified Dietz cross-check.
+Then open `_demo_output/performance_comparison_bundle/report.html`. Generated
+output under `_demo_output/` is intentionally ignored by Git.
 
-To smoke-test the optional XLSX workbook path:
+XLSX workbook export is optional. Install the Excel extra and pass
+`--include-workbook` to one of the packaged workbook demo commands. For XLSX
+demos, start review in `review_workbook.xlsx`; use `report.html` as a secondary
+browser-friendly narrative view.
 
 ```bash
+./.venv/bin/python -m pip install -e ".[excel]"
 ./.venv/bin/python scripts/performance_comparison_report_bundle.py \
-  ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml \
-  _demo_output/performance_comparison_bundle_xlsx \
+  ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
+  _demo_output/workbooks/single_restatement \
   --include-workbook
 ./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
-  _demo_output/performance_comparison_bundle_xlsx
+  _demo_output/workbooks/single_restatement
 ```
 
-To validate an existing performance comparison bundle from a source checkout:
+Use the [Repository Guide](docs/repository_guide.md) for the full script and
+validator map. Use the [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md)
+for the workbook demo commands and what each workbook should contain.
 
-```bash
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
-  _demo_output/performance_comparison_bundle
-```
+---
 
-To validate the packaged demo scenario matrix from a source checkout:
+## Repository Guide
 
-```bash
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
-```
-
-To validate a comparison YAML file before running a report:
-
-```bash
-ppar-performance-comparison-validate-config tests/data/axys/ppar_performance_comparison_restatement.yaml
-```
-
-From a source checkout, the same validator is also available as:
-
-```bash
-./.venv/bin/python scripts/performance_comparison_validate_config.py tests/data/axys/ppar_performance_comparison_restatement.yaml
-```
+If the README files, demo fixtures, scripts, validators, and tests start to feel
+too scattered, start with the [Repository Guide](docs/repository_guide.md). It
+maps the major directories, explains which README owns which topic, summarizes
+the source-checkout scripts and installed commands, and gives common workflows
+for generating and validating performance comparison reports and XLSX
+workbooks.
 
 ---
 

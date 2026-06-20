@@ -50,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Configured datasets: {summary['dataset_names']}")
     print(f"Missing optional files: {summary['missing_optional_files']}")
     print(f"Contribution impact methods: {summary['contribution_impact_methods']}")
+    print(f"Position impact methods: {summary['position_impact_methods']}")
+    print(f"Price impact methods: {summary['price_impact_methods']}")
+    print(f"Evidence-only impact methods: {summary['evidence_only_impact_methods']}")
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
     print(f"Transaction files checked: {summary['transaction_files_checked']}")
@@ -81,6 +84,9 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "dataset_names": dataset_names,
         "missing_optional_files": _missing_optional_files(specification),
         "contribution_impact_methods": _contribution_impact_methods(specification),
+        "position_impact_methods": _position_impact_methods(specification),
+        "price_impact_methods": _price_impact_methods(specification),
+        "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
         "transaction_files_checked": transaction_preview["files_checked"],
@@ -152,6 +158,36 @@ def _contribution_impact_methods(
 ) -> str:
     """Return configured contribution impact method keys."""
     methods_value = specification.values.get("contribution_impact_methods", {})
+    if not isinstance(methods_value, dict) or not methods_value:
+        return "none"
+    return ", ".join(sorted(str(key) for key in methods_value))
+
+
+def _position_impact_methods(
+    specification: PerformanceComparisonSpecification,
+) -> str:
+    """Return configured position impact method keys."""
+    methods_value = specification.values.get("position_impact_methods", {})
+    if not isinstance(methods_value, dict) or not methods_value:
+        return "none"
+    return ", ".join(sorted(str(key) for key in methods_value))
+
+
+def _price_impact_methods(
+    specification: PerformanceComparisonSpecification,
+) -> str:
+    """Return configured price impact method keys."""
+    methods_value = specification.values.get("price_impact_methods", {})
+    if not isinstance(methods_value, dict) or not methods_value:
+        return "none"
+    return ", ".join(sorted(str(key) for key in methods_value))
+
+
+def _evidence_only_impact_methods(
+    specification: PerformanceComparisonSpecification,
+) -> str:
+    """Return configured evidence-only impact method keys."""
+    methods_value = specification.values.get("evidence_only_impact_methods", {})
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))

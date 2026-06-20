@@ -21,6 +21,10 @@ from ppar.performance_comparison.findings import (
     FINDING_CODE,
     FROM_DATE,
     IMPACT_POLICY,
+    IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
+    IMPACT_POLICY_POSITION_ACCRUED,
+    IMPACT_POLICY_POSITION_MARKET_VALUE,
+    IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
     IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
@@ -56,6 +60,8 @@ from ppar.performance_comparison.methods import (
     ContributionImpactMethod,
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzInclusionRule,
+    PositionImpactMethod,
+    PriceImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison.transactions import (
@@ -152,6 +158,9 @@ IMPACT_METHOD = "impact_method"
 IMPACT_MESSAGE = "impact_message"
 IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
 IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
+IMPACT_BASIS_POSITION_ACCRUED = "position_accrued"
+IMPACT_BASIS_POSITION_MARKET_VALUE = "position_market_value"
+IMPACT_BASIS_PRICE_WEIGHTED = "price_weighted"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
@@ -168,6 +177,15 @@ IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
 )
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+IMPACT_METHOD_POSITION_MARKET_VALUE_DELTA_OVER_DENOMINATOR = (
+    PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+IMPACT_METHOD_POSITION_ACCRUED_DELTA_OVER_DENOMINATOR = (
+    PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
+    PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
@@ -1383,6 +1401,70 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
             IMPACT_MESSAGE: _transaction_performance_amount_impact_message(row),
         }
+    if _is_position_market_value_impact_candidate(row):
+        delta_float = _number_value(delta)
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        assert delta_float is not None
+        assert denominator is not None
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
+            IMPACT_BASIS: IMPACT_BASIS_POSITION_MARKET_VALUE,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_POSITION_MARKET_VALUE_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the position market value delta "
+                "divided by the return denominator. Treat as a low-confidence "
+                "screening estimate because market value can reflect price, "
+                "quantity, FX, accrued-interest, or booking changes."
+            ),
+        }
+    if _is_position_accrued_impact_candidate(row):
+        delta_float = _number_value(delta)
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        assert delta_float is not None
+        assert denominator is not None
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
+            IMPACT_BASIS: IMPACT_BASIS_POSITION_ACCRUED,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_POSITION_ACCRUED_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the position accrued delta divided "
+                "by the return denominator. Treat as a low-confidence "
+                "screening estimate because accrued balances depend on source "
+                "income accrual and pricing conventions."
+            ),
+        }
+    if _is_price_weighted_impact_candidate(row):
+        delta_float = _number_value(delta)
+        snapshot_a_price = _number_value(row[SNAPSHOT_A_VALUE])
+        weight = _number_value(row[RETURN_WEIGHT])
+        assert delta_float is not None
+        assert snapshot_a_price is not None
+        assert weight is not None
+        return {
+            ESTIMATED_RETURN_IMPACT: (delta_float / snapshot_a_price) * weight,
+            IMPACT_BASIS: IMPACT_BASIS_PRICE_WEIGHTED,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the price delta divided by snapshot A "
+                "price, multiplied by snapshot A security weight. Treat as a "
+                "low-confidence screening estimate because holdings, FX, and "
+                "accrual treatment may also affect market value."
+            ),
+        }
+    if _has_evidence_only_impact_policy(row):
+        return {
+            ESTIMATED_RETURN_IMPACT: None,
+            IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: None,
+            IMPACT_MESSAGE: (
+                "Configured as evidence-only in comparison YAML; this row is "
+                "review evidence and does not receive an additive impact estimate."
+            ),
+        }
     return {
         ESTIMATED_RETURN_IMPACT: None,
         IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
@@ -1451,6 +1533,64 @@ def _is_transaction_performance_amount_impact_candidate(
         and not isinstance(denominator, bool)
         and float(denominator) != 0.0
     )
+
+
+def _is_position_market_value_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a position market value row supports a rough estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    denominator = row[RETURN_DENOMINATOR]
+    return (
+        row[DATASET] == pc_cols.POSITIONS
+        and row[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_POSITION_MARKET_VALUE
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(denominator, (int, float))
+        and not isinstance(denominator, bool)
+        and float(denominator) != 0.0
+    )
+
+
+def _is_position_accrued_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a position accrued row supports a rough estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    denominator = row[RETURN_DENOMINATOR]
+    return (
+        row[DATASET] == pc_cols.POSITIONS
+        and row[SOURCE_COLUMN] == pc_cols.ACCRUED
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_POSITION_ACCRUED
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(denominator, (int, float))
+        and not isinstance(denominator, bool)
+        and float(denominator) != 0.0
+    )
+
+
+def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a price row supports a weighted price-return estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    snapshot_a_price = row[SNAPSHOT_A_VALUE]
+    weight = row[RETURN_WEIGHT]
+    return (
+        row[DATASET] == pc_cols.PRICES
+        and row[SOURCE_COLUMN] == pc_cols.PRICE
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_PRICE_WEIGHTED
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(snapshot_a_price, (int, float))
+        and not isinstance(snapshot_a_price, bool)
+        and float(snapshot_a_price) != 0.0
+        and isinstance(weight, (int, float))
+        and not isinstance(weight, bool)
+        and float(weight) != 0.0
+    )
+
+
+def _has_evidence_only_impact_policy(row: dict[str, object]) -> bool:
+    """Return whether a finding row is explicitly configured as evidence-only."""
+    policy = row.get(IMPACT_POLICY)
+    return isinstance(policy, str) and policy.startswith(IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
 
 
 def _transaction_performance_amount_impact_message(row: dict[str, object]) -> str:
@@ -1715,6 +1855,8 @@ def _coverage_missing_impact_inputs(
     """Return compact missing-input themes for evidence-only cause areas."""
     missing_inputs: list[str] = []
     for cause in evidence_only_causes:
+        if _cause_is_configured_evidence_only(cause):
+            continue
         cause_area = cause.get(ROOT_CAUSE_AREA)
         if cause_area == ROOT_CAUSE_TRANSACTION_ACTIVITY:
             transaction_inputs_found = False
@@ -1741,6 +1883,12 @@ def _coverage_missing_impact_inputs(
         else:
             _extend_unique(missing_inputs, ["defensible impact method"])
     return ", ".join(missing_inputs)
+
+
+def _cause_is_configured_evidence_only(cause: dict[str, object]) -> bool:
+    """Return whether a cause-area row is intentionally evidence-only."""
+    message = cause.get(IMPACT_MESSAGE)
+    return isinstance(message, str) and "Configured as evidence-only" in message
 
 
 def _split_missing_impact_inputs(value: object) -> list[str]:
@@ -1829,6 +1977,12 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
         return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
+    if IMPACT_BASIS_POSITION_MARKET_VALUE in bases:
+        return IMPACT_BASIS_POSITION_MARKET_VALUE
+    if IMPACT_BASIS_POSITION_ACCRUED in bases:
+        return IMPACT_BASIS_POSITION_ACCRUED
+    if IMPACT_BASIS_PRICE_WEIGHTED in bases:
+        return IMPACT_BASIS_PRICE_WEIGHTED
     return IMPACT_BASIS_NO_ESTIMATE
 
 
@@ -1873,6 +2027,11 @@ def _summary_impact_message(
         return (
             "Transaction differences are grouped as evidence only. Missing "
             f"impact inputs: {_transaction_missing_impact_inputs_message(rows)}."
+        )
+    if any(_has_evidence_only_impact_policy(row) for row in rows):
+        return (
+            "Configured as evidence-only in comparison YAML; this cause area "
+            f"is review evidence. Representative codes: {top_codes}."
         )
     return (
         "Grouped evidence only; no defensible return-impact estimate is "

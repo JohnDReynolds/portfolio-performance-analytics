@@ -18,6 +18,9 @@ _RESTATEMENT_COMPARISON_PATH = Path(
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
+_FULL_SPEC_COMPARISON_PATH = Path(
+    "ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml"
+)
 _SCRIPT_PATH = Path("scripts/performance_comparison_report.py")
 _HTML_SCRIPT_PATH = Path("scripts/performance_comparison_html_report.py")
 _BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_report_bundle.py")
@@ -318,7 +321,34 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertEqual(result.stdout, "")
             self.assertIn("Causal attribution setup is incomplete", result.stderr)
-            self.assertIn("missing YAML setup", result.stderr)
+
+    def test_bundle_script_accepts_supported_attribution_setup_alias(self) -> None:
+        """The clearer strict-setup alias preserves current strict semantics."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(_BUNDLE_SCRIPT_PATH),
+                    str(_FULL_SPEC_COMPARISON_PATH),
+                    str(output_directory),
+                    "--include-workbook",
+                    "--require-supported-attribution-setup",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("Report bundle written to:", result.stdout)
+            self.assertLess(
+                result.stdout.index("Review workbook written to:"),
+                result.stdout.index("HTML report written to:"),
+            )
+            self.assertTrue((output_directory / "review_workbook.xlsx").exists())
+            self.assertEqual(result.stderr, "")
 
     def test_validate_bundle_script_accepts_valid_bundle(self) -> None:
         """The bundle validator script accepts a generated bundle."""
@@ -468,9 +498,10 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("Clean/no issue", result.stdout)
         self.assertIn("Missing contribution policy", result.stdout)
         self.assertIn("Missing transaction method", result.stdout)
-        self.assertIn("Missing denominator", result.stdout)
         self.assertIn("Missing transaction sign/flow semantics", result.stdout)
         self.assertIn("Multi-portfolio missing specifications", result.stdout)
+        self.assertIn("Single-restatement transaction rows", result.stdout)
+        self.assertIn("Transaction rules amount explanation", result.stdout)
         self.assertIn("Context-only evidence", result.stdout)
         self.assertIn("Suppressed finding", result.stdout)
         self.assertIn("Residual withheld", result.stdout)

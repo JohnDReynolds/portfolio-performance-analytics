@@ -44,6 +44,9 @@ from ppar.performance_comparison.report import (
     _problem_table,
     _report_bundle_validation_issues,
     _review_dashboard_table,
+    _workbook_portfolio_changes_table,
+    _workbook_security_changes_table,
+    _workbook_underlying_causes_table,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
@@ -55,6 +58,9 @@ _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
 )
 _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml"
+)
+_FULL_SPEC_COMPARISON_PATH = Path(
+    "ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
     "ppar/demo_data/axys/ppar_performance_comparison_policy_gap_demo.yaml"
@@ -108,6 +114,214 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
         encoding="utf-8",
     )
     return specification_path
+
+
+def _write_position_estimate_specification(
+    directory: Path,
+    *,
+    include_position_impact_methods: bool,
+    include_accrued_impact_methods: bool = False,
+) -> Path:
+    """Write a minimal source-loaded fixture with position market value changes."""
+    for snapshot_name, portfolio_return, market_value, accrued in (
+        ("snapshot_a", "0.0100", "1000.00", "25.00"),
+        ("snapshot_b", "0.0110", "1010.00", "30.00"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir(parents=True)
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "positions.csv").write_text(
+            "PORT,SEC,POSITION_DATE,QTY,MKT_VAL,ACCRUED\n"
+            f"PORT_A,AAPL,2025-05-31,10,{market_value},{accrued}\n",
+            encoding="utf-8",
+        )
+
+    lines = [
+        "snapshots:",
+        "  a:",
+        "    path: snapshot_a",
+        "  b:",
+        "    path: snapshot_b",
+        "files:",
+        "  portfolio_performance: portperf.csv",
+        "  positions: positions.csv",
+    ]
+    if include_position_impact_methods:
+        lines.extend(
+            [
+                "position_impact_methods:",
+                "  market_value:",
+                "    method: market_value_delta_over_return_denominator",
+                "    denominator_source: begin_market_value",
+            ]
+        )
+    if include_accrued_impact_methods:
+        if not include_position_impact_methods:
+            lines.append("position_impact_methods:")
+        lines.extend(
+            [
+                "  accrued:",
+                "    method: accrued_delta_over_return_denominator",
+                "    denominator_source: begin_market_value",
+            ]
+        )
+
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return specification_path
+
+
+def _write_price_estimate_specification(
+    directory: Path,
+    *,
+    include_price_impact_methods: bool,
+) -> Path:
+    """Write a minimal source-loaded fixture with linked price changes."""
+    for snapshot_name, portfolio_return, price in (
+        ("snapshot_a", "0.0100", "100.00"),
+        ("snapshot_b", "0.0110", "101.00"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir(parents=True)
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            f"PORT_A,2025-05-01,2025-05-31,{portfolio_return}\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "secperf.csv").write_text(
+            "PORTFOLIO_CODE,SEC,FROM_DATE,THRU_DATE,SEC_RETURN,WEIGHT\n"
+            "PORT_A,AAPL,2025-05-01,2025-05-31,0.01,0.20\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "prices.csv").write_text(
+            "SEC,PRICE_DATE,PRICE\n"
+            f"AAPL,2025-05-31,{price}\n",
+            encoding="utf-8",
+        )
+
+    lines = [
+        "snapshots:",
+        "  a:",
+        "    path: snapshot_a",
+        "  b:",
+        "    path: snapshot_b",
+        "files:",
+        "  portfolio_performance: portperf.csv",
+        "  security_performance: secperf.csv",
+        "  prices: prices.csv",
+    ]
+    if include_price_impact_methods:
+        lines.extend(
+            [
+                "price_impact_methods:",
+                "  price:",
+                "    method: price_delta_over_snapshot_a_price_times_weight",
+                "    weight_source: snapshot_a_weight",
+            ]
+        )
+
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return specification_path
+
+
+def _assert_workbook_unexplained_formula(
+    test_case: unittest.TestCase,
+    portfolio_changes: pl.DataFrame,
+) -> None:
+    """Assert workbook portfolio rows obey performance minus explained math."""
+    for row in portfolio_changes.iter_rows(named=True):
+        performance_change = _float_or_zero(row.get("performance_change"))
+        explained_change = _float_or_zero(row.get("estimated_cause_total"))
+        unexplained_change = _float_or_zero(row.get("unexplained_change"))
+        test_case.assertAlmostEqual(
+            performance_change - explained_change,
+            unexplained_change,
+            msg=f"{row.get('review_key')} unexplained change does not reconcile.",
+        )
+
+
+def _assert_workbook_explained_rows_reconcile(
+    test_case: unittest.TestCase,
+    portfolio_changes: pl.DataFrame,
+    underlying_causes: pl.DataFrame,
+) -> None:
+    """Assert visible row-level explained changes reconcile by review key."""
+    explained_by_key: dict[object, float] = {}
+    for row in underlying_causes.iter_rows(named=True):
+        estimated_impact = _float_or_none(row.get("estimated_impact"))
+        if estimated_impact is None:
+            continue
+        review_key = row.get("review_key")
+        explained_by_key[review_key] = explained_by_key.get(review_key, 0.0) + (
+            estimated_impact
+        )
+
+    for row in portfolio_changes.iter_rows(named=True):
+        review_key = row.get("review_key")
+        explained_change = _float_or_zero(row.get("estimated_cause_total"))
+        row_explained_change = explained_by_key.get(review_key, 0.0)
+        test_case.assertAlmostEqual(
+            row_explained_change,
+            explained_change,
+            msg=(
+                f"{review_key} visible Underlying Causes rows do not match "
+                "Explained Difference."
+            ),
+        )
+        if abs(explained_change) > 0:
+            test_case.assertIn(
+                review_key,
+                explained_by_key,
+                msg=f"{review_key} has hidden Explained Difference.",
+            )
+
+
+def _assert_workbook_explained_row_actions(
+    test_case: unittest.TestCase,
+    underlying_causes: pl.DataFrame,
+) -> None:
+    """Assert explained workbook rows have clear YAML setup wording."""
+    for row in underlying_causes.iter_rows(named=True):
+        estimated_impact = _float_or_none(row.get("estimated_impact"))
+        required_setup = row.get("required_yaml_setup")
+        if estimated_impact is None:
+            test_case.assertNotEqual(required_setup, "None")
+            if row.get("dataset") == "no_underlying_cause_found":
+                test_case.assertEqual(row.get("use"), "Diagnostic")
+                test_case.assertEqual(row.get("impact_status"), "Review only")
+                test_case.assertIn("No underlying input", str(required_setup))
+                continue
+            if "configured as evidence-only" in str(required_setup):
+                test_case.assertEqual(row.get("impact_status"), "Review only")
+                continue
+            test_case.assertEqual(row.get("impact_status"), "Missing impact method")
+            setup_text = str(required_setup)
+            test_case.assertTrue(
+                "YAML" in setup_text or "impact method" in setup_text,
+                msg=f"{row.get('review_key')} has unclear setup: {setup_text}",
+            )
+            continue
+
+        test_case.assertEqual(row.get("use"), "Explains Change")
+        test_case.assertEqual(row.get("impact_status"), "Estimated")
+        test_case.assertEqual(required_setup, "None")
+
+
+def _float_or_none(value: object) -> float | None:
+    """Return value as float when it is numeric and not a boolean."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    return None
+
+
+def _float_or_zero(value: object) -> float:
+    """Return numeric value as float, treating null workbook values as zero."""
+    return _float_or_none(value) or 0.0
 
 
 class TestPerformanceComparisonReport(unittest.TestCase):
@@ -240,7 +454,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             transaction_activity,
         )
         self.assertIn("amount, quantity, price", transaction_activity)
-        self.assertIn("return denominator", transaction_activity)
         self.assertIn("transaction sign and flow semantics", transaction_activity)
         self.assertNotIn("portfolio period, return denominator", transaction_activity)
         self.assertIn("## Transaction Matching Diagnostics", report)
@@ -283,7 +496,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertIn("mixed: 3", impact_coverage)
         self.assertIn("mixed: 3", transaction_activity)
-        self.assertIn("return denominator", transaction_activity)
         self.assertNotIn("transaction sign and flow semantics", transaction_activity)
         self.assertIn("Transaction Semantics Source", top_evidence)
         self.assertIn("Impact Policy", top_evidence)
@@ -482,7 +694,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("Return-impact estimate is blocked", problems)
         self.assertIn("Update the comparison YAML", problems)
         self.assertIn("transaction_impact_methods", problems)
-        self.assertIn("denominator_source", problems)
+        self.assertIn("transaction_impact_methods", problems)
+        self.assertIn("transaction sign and flow semantics", problems)
         self.assertIn("define transaction sign and external-flow semantics", problems)
         self.assertIn("ppar can show evidence", problems)
         self.assertIn(
@@ -665,9 +878,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(
             dashboard["dashboard_coverage_counts"].to_list(),
             [
-                "2 estimated / 3 evidence-only",
-                "0 estimated / 4 evidence-only",
-                "2 estimated / 4 evidence-only",
+                "3 estimated / 2 evidence-only",
+                "1 estimated / 3 evidence-only",
+                "3 estimated / 3 evidence-only",
             ],
         )
         self.assertEqual(
@@ -675,14 +888,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             ["PORT_B", "PORT_C", "PORT_A"],
         )
         self.assertIn("Update the comparison YAML", problems["action_required"][0])
-        self.assertIn("denominator_source", problems["action_required"][0])
+        self.assertIn("transaction_impact_methods", problems["action_required"][0])
         problems_section = _html_section(report, "problems")
         self.assertEqual(problems_section.count('data-dashboard-row'), 3)
         self.assertIn("PORT_A", problems_section)
         self.assertIn("PORT_B", problems_section)
         self.assertIn("PORT_C", problems_section)
         self.assertIn("Return-impact estimate is blocked", problems_section)
-        self.assertIn("return denominator", problems_section)
+        self.assertIn("transaction_impact_methods", problems_section)
         narrative_section = _html_section(report, "portfolio-period-narrative")
         self.assertIn("PORT_C changed by 0.0008", narrative_section)
         self.assertIn("PORT_B changed by 0.0015", narrative_section)
@@ -721,10 +934,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertIn(
             "configure `transaction_impact_methods` with an explicit method",
-            problem_rows["PORT_A"]["action_required"],
-        )
-        self.assertIn(
-            "set `denominator_source` or map beginning market value",
             problem_rows["PORT_A"]["action_required"],
         )
 
@@ -1017,11 +1226,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("<h1>Bundle Restatement</h1>", paths["html_report"].read_text())
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
-            self.assertIn("`report.html`: standalone browser report", readme)
+            self.assertIn("## Primary Review Artifact", readme)
+            self.assertIn("`report.html`: primary browser review report", readme)
+            self.assertIn("## Secondary Review Views", readme)
+            self.assertIn("`report.html`: browser-friendly narrative report", readme)
             self.assertIn("## Recommended Review Order", readme)
             self.assertIn("start with the Problems grid", readme)
             self.assertIn("high-priority context cues", readme)
             self.assertIn("review guidance only", readme)
+            self.assertIn("## Audit/Export Files", readme)
+            self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn(
                 "`needs_review_summary.csv`: top triage table for changed periods",
                 readme,
@@ -1155,6 +1369,349 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIn("PORT_A::2025-05-30::2025-05-30", message)
         self.assertIn("missing YAML setup", message)
 
+    def test_workbook_tables_follow_review_accounting_invariants(self) -> None:
+        """Workbook review tables stay internally consistent across demos."""
+        cases = (
+            ("single", _RESTATEMENT_COMPARISON_PATH, {}),
+            ("transaction_rules", _RESTATEMENT_TRANSACTION_RULES_PATH, {}),
+            ("multi", _MULTI_RESTATEMENT_COMPARISON_PATH, {}),
+            ("full_spec", _FULL_SPEC_COMPARISON_PATH, {"require_causal_attribution": True}),
+            ("policy_gap", _POLICY_GAP_DEMO_COMPARISON_PATH, {}),
+        )
+
+        for name, comparison_path, kwargs in cases:
+            with self.subTest(name=name):
+                findings = compare_snapshots(comparison_path, **kwargs)
+                portfolio_changes = _workbook_portfolio_changes_table(findings)
+                underlying_causes = _workbook_underlying_causes_table(findings)
+
+                _assert_workbook_unexplained_formula(self, portfolio_changes)
+                _assert_workbook_explained_rows_reconcile(
+                    self,
+                    portfolio_changes,
+                    underlying_causes,
+                )
+                _assert_workbook_explained_row_actions(self, underlying_causes)
+
+    def test_clean_workbook_portfolio_changes_has_no_differences_message(self) -> None:
+        """Clean comparisons still give reviewers a visible workbook result."""
+        findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
+
+        portfolio_changes = _workbook_portfolio_changes_table(findings)
+
+        self.assertEqual(portfolio_changes.height, 1)
+        self.assertEqual(
+            portfolio_changes["portfolio_id"][0],
+            "No portfolio performance differences found",
+        )
+        self.assertEqual(portfolio_changes["review_status"][0], "No differences")
+        self.assertEqual(portfolio_changes["next_action"][0], "None")
+        self.assertEqual(
+            portfolio_changes["review_key"][0],
+            "NO_PORTFOLIO_PERFORMANCE_DIFFERENCES",
+        )
+        _assert_workbook_unexplained_formula(self, portfolio_changes)
+
+    def test_transaction_rules_demo_explains_transaction_amount_row(self) -> None:
+        """Transaction rules demo exposes the modeled transaction amount impact."""
+        plain_findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        plain_causes = _workbook_underlying_causes_table(plain_findings)
+        plain_transaction_amount = plain_causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "amount")
+        )
+        self.assertEqual(plain_transaction_amount.height, 1)
+        self.assertIsNone(plain_transaction_amount["estimated_impact"][0])
+        self.assertIn(
+            "transaction_impact_methods.performance.method",
+            plain_transaction_amount["required_yaml_setup"][0],
+        )
+
+        rules_findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+        rules_causes = _workbook_underlying_causes_table(rules_findings)
+        rules_transaction_amount = rules_causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "amount")
+        )
+        rules_transaction_quantity = rules_causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "quantity")
+        )
+        rules_transaction_price = rules_causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "price")
+        )
+        self.assertEqual(rules_transaction_amount.height, 1)
+        self.assertAlmostEqual(
+            rules_transaction_amount["estimated_impact"][0],
+            -100.0 / 999915.0,
+        )
+        self.assertEqual(rules_transaction_amount["required_yaml_setup"][0], "None")
+        self.assertIsNone(rules_transaction_quantity["estimated_impact"][0])
+        self.assertEqual(
+            rules_transaction_quantity["required_yaml_setup"][0],
+            "No supported YAML impact method exists yet for transactions.quantity.",
+        )
+        self.assertIsNone(rules_transaction_price["estimated_impact"][0])
+        self.assertEqual(
+            rules_transaction_price["required_yaml_setup"][0],
+            "No supported YAML impact method exists yet for transactions.price.",
+        )
+
+    def test_security_differences_roll_up_security_underlying_causes(self) -> None:
+        """Security Differences shows explained amounts from security causes."""
+        findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+
+        security_differences = _workbook_security_changes_table(findings)
+        aapl = security_differences.filter(pl.col("security_id") == "AAPL")
+
+        self.assertEqual(aapl.height, 1)
+        self.assertAlmostEqual(aapl["performance_change"][0], 0.01)
+        self.assertAlmostEqual(aapl["estimated_cause_total"][0], -100.0 / 999915.0)
+        self.assertAlmostEqual(
+            aapl["unexplained_change"][0],
+            0.01 - (-100.0 / 999915.0),
+        )
+
+    def test_security_differences_marks_periods_without_security_rows(self) -> None:
+        """Portfolio periods without security differences get explicit rows."""
+        findings = compare_snapshots(
+            _FULL_SPEC_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        security_differences = _workbook_security_changes_table(findings)
+        placeholders = security_differences.filter(
+            pl.col("security_id") == "No security performance differences found"
+        )
+
+        self.assertEqual(placeholders.height, 7)
+        self.assertTrue(placeholders["performance_change"].is_null().all())
+        self.assertTrue(placeholders["estimated_cause_total"].is_null().all())
+        self.assertEqual(set(placeholders["review_status"].to_list()), {"No differences"})
+        self.assertEqual(set(placeholders["next_action"].to_list()), {"None"})
+
+    def test_position_impact_method_explains_market_value_row(self) -> None:
+        """Position market value YAML exposes the modeled position impact."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plain_path = _write_position_estimate_specification(
+                Path(temp_dir) / "plain",
+                include_position_impact_methods=False,
+            )
+            configured_path = _write_position_estimate_specification(
+                Path(temp_dir) / "configured",
+                include_position_impact_methods=True,
+            )
+
+            plain_causes = _workbook_underlying_causes_table(
+                compare_snapshots(plain_path),
+                comparison_path=plain_path,
+            )
+            configured_causes = _workbook_underlying_causes_table(
+                compare_snapshots(configured_path),
+                comparison_path=configured_path,
+            )
+
+        plain_position = plain_causes.filter(
+            (pl.col("dataset") == "positions")
+            & (pl.col("source_column") == "market_value")
+        )
+        configured_position = configured_causes.filter(
+            (pl.col("dataset") == "positions")
+            & (pl.col("source_column") == "market_value")
+        )
+
+        self.assertEqual(plain_position.height, 1)
+        self.assertIsNone(plain_position["estimated_impact"][0])
+        self.assertIn(
+            "position_impact_methods.market_value.method",
+            plain_position["required_yaml_setup"][0],
+        )
+        self.assertEqual(configured_position.height, 1)
+        self.assertAlmostEqual(configured_position["estimated_impact"][0], 0.01)
+        self.assertEqual(configured_position["required_yaml_setup"][0], "None")
+
+    def test_position_accrued_impact_method_explains_accrued_row(self) -> None:
+        """Position accrued YAML exposes the modeled accrued-balance impact."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plain_path = _write_position_estimate_specification(
+                Path(temp_dir) / "plain",
+                include_position_impact_methods=False,
+            )
+            configured_path = _write_position_estimate_specification(
+                Path(temp_dir) / "configured",
+                include_position_impact_methods=False,
+                include_accrued_impact_methods=True,
+            )
+
+            plain_causes = _workbook_underlying_causes_table(
+                compare_snapshots(plain_path),
+                comparison_path=plain_path,
+            )
+            configured_causes = _workbook_underlying_causes_table(
+                compare_snapshots(configured_path),
+                comparison_path=configured_path,
+            )
+
+        plain_accrued = plain_causes.filter(
+            (pl.col("dataset") == "positions")
+            & (pl.col("source_column") == "accrued")
+        )
+        configured_accrued = configured_causes.filter(
+            (pl.col("dataset") == "positions")
+            & (pl.col("source_column") == "accrued")
+        )
+
+        self.assertEqual(plain_accrued.height, 1)
+        self.assertIsNone(plain_accrued["estimated_impact"][0])
+        self.assertIn(
+            "position_impact_methods.accrued.method",
+            plain_accrued["required_yaml_setup"][0],
+        )
+        self.assertEqual(configured_accrued.height, 1)
+        self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
+        self.assertEqual(configured_accrued["required_yaml_setup"][0], "None")
+
+    def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
+        """Evidence-only YAML removes missing-method guidance for known fields."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plain_path = _write_position_estimate_specification(
+                Path(temp_dir) / "plain",
+                include_position_impact_methods=False,
+            )
+            configured_path = _write_position_estimate_specification(
+                Path(temp_dir) / "configured",
+                include_position_impact_methods=False,
+            )
+            for comparison_path in (plain_path, configured_path):
+                position_path = comparison_path.parent / "snapshot_b" / "positions.csv"
+                position_path.write_text(
+                    position_path.read_text(encoding="utf-8").replace(
+                        "PORT_A,AAPL,2025-05-31,10,1010.00,30.00",
+                        "PORT_A,AAPL,2025-05-31,11,1010.00,30.00",
+                    ),
+                    encoding="utf-8",
+                )
+            configured_path.write_text(
+                configured_path.read_text(encoding="utf-8")
+                + "\n"
+                + "evidence_only_impact_methods:\n"
+                + "  positions:\n"
+                + "    method: evidence_only\n"
+                + "    source_fields:\n"
+                + "      - quantity\n",
+                encoding="utf-8",
+            )
+
+            plain_causes = _workbook_underlying_causes_table(
+                compare_snapshots(plain_path),
+                comparison_path=plain_path,
+            )
+            configured_causes = _workbook_underlying_causes_table(
+                compare_snapshots(configured_path),
+                comparison_path=configured_path,
+            )
+
+        plain_quantity = plain_causes.filter(
+            (pl.col("dataset") == "positions")
+            & (pl.col("source_column") == "quantity")
+        )
+        configured_quantity = configured_causes.filter(
+            (pl.col("dataset") == "positions")
+            & (pl.col("source_column") == "quantity")
+        )
+
+        self.assertEqual(plain_quantity.height, 1)
+        self.assertEqual(
+            plain_quantity["required_yaml_setup"][0],
+            "No supported YAML impact method exists yet for positions.quantity.",
+        )
+        self.assertEqual(plain_quantity["impact_status"][0], "Missing impact method")
+        self.assertEqual(configured_quantity.height, 1)
+        self.assertEqual(configured_quantity["estimated_impact"][0], None)
+        self.assertEqual(configured_quantity["impact_status"][0], "Review only")
+        self.assertEqual(
+            configured_quantity["required_yaml_setup"][0],
+            "None; configured as evidence-only in comparison YAML.",
+        )
+
+    def test_price_impact_method_explains_price_row(self) -> None:
+        """Price YAML exposes the modeled weighted price impact."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plain_path = _write_price_estimate_specification(
+                Path(temp_dir) / "plain",
+                include_price_impact_methods=False,
+            )
+            configured_path = _write_price_estimate_specification(
+                Path(temp_dir) / "configured",
+                include_price_impact_methods=True,
+            )
+
+            plain_causes = _workbook_underlying_causes_table(
+                compare_snapshots(plain_path),
+                comparison_path=plain_path,
+            )
+            configured_causes = _workbook_underlying_causes_table(
+                compare_snapshots(configured_path),
+                comparison_path=configured_path,
+            )
+
+        plain_price = plain_causes.filter(
+            (pl.col("dataset") == "prices")
+            & (pl.col("source_column") == "price")
+        )
+        configured_price = configured_causes.filter(
+            (pl.col("dataset") == "prices")
+            & (pl.col("source_column") == "price")
+        )
+
+        self.assertEqual(plain_price.height, 1)
+        self.assertIsNone(plain_price["estimated_impact"][0])
+        self.assertIn(
+            "price_impact_methods.price.method",
+            plain_price["required_yaml_setup"][0],
+        )
+        self.assertEqual(configured_price.height, 1)
+        self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
+        self.assertEqual(configured_price["required_yaml_setup"][0], "None")
+
+    def test_full_spec_workbook_marks_periods_without_underlying_causes(self) -> None:
+        """Changed periods without source-data causes receive diagnostic rows."""
+        findings = compare_snapshots(
+            _FULL_SPEC_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        portfolio_changes = _workbook_portfolio_changes_table(findings)
+        underlying_causes = _workbook_underlying_causes_table(findings)
+        placeholders = underlying_causes.filter(
+            pl.col("dataset") == "no_underlying_cause_found"
+        )
+        placeholder_keys = set(placeholders["review_key"].to_list())
+
+        self.assertEqual(placeholders.height, 2)
+        self.assertEqual(
+            placeholder_keys,
+            {
+                "PORT_FULL_A::2025-05-01::2025-05-31",
+                "PORT_FULL_C::2025-05-01::2025-05-31",
+            },
+        )
+        self.assertTrue(
+            placeholders["estimated_impact"].is_null().all(),
+        )
+        self.assertTrue(
+            all(
+                "No underlying input differences were found" in value
+                for value in placeholders["required_yaml_setup"].to_list()
+            )
+        )
+        _assert_workbook_explained_rows_reconcile(
+            self,
+            portfolio_changes,
+            underlying_causes,
+        )
+
     def test_write_report_bundle_can_include_review_workbook(self) -> None:
         """Report bundles can optionally include an XLSX review workbook."""
         if importlib.util.find_spec("openpyxl") is None:
@@ -1170,20 +1727,33 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 output_directory,
                 include_workbook=True,
                 top_evidence_limit=2,
+                comparison_path=_MULTI_RESTATEMENT_COMPARISON_PATH,
             )
 
             self.assertEqual(
                 set(paths),
                 {*_REPORT_BUNDLE_REQUIRED_ARTIFACTS, "review_workbook"},
             )
-            self.assertEqual(paths["review_workbook"].name, "review_workbook.xlsx")
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(
                 manifest["artifacts"]["review_workbook"],
                 "review_workbook.xlsx",
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("`review_workbook.xlsx`: optional Excel workbook", readme)
+            self.assertIn("`review_workbook.xlsx`: primary Excel review workbook", readme)
+            self.assertIn("Open `review_workbook.xlsx` first", readme)
+            self.assertIn(
+                "1. Open `review_workbook.xlsx` and start with the Portfolio "
+                "Differences sheet.",
+                readme,
+            )
+            self.assertIn("## Primary Review Artifact", readme)
+            self.assertIn("## Secondary Review Views", readme)
+            self.assertIn("## Audit/Export Files", readme)
+            self.assertLess(
+                readme.index("`review_workbook.xlsx`: primary Excel review workbook"),
+                readme.index("`report.html`: browser-friendly narrative report"),
+            )
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
@@ -1191,13 +1761,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(
                 workbook.sheetnames,
                 [
-                    "Portfolio Changes",
-                    "Security Changes",
-                    "What Changed",
+                    "Portfolio Differences",
+                    "Security Differences",
+                    "Underlying Causes",
+                    "Derived Checks",
+                    "Context",
                     "Raw Audit Trail",
                 ],
             )
-            performance_change_sheet = workbook["Portfolio Changes"]
+            performance_change_sheet = workbook["Portfolio Differences"]
             self.assertEqual(
                 [
                     performance_change_sheet.cell(row=1, column=column).value
@@ -1207,9 +1779,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Performance Change",
-                    "Explained Change",
-                    "Unexplained Change",
+                    "Performance Difference",
+                    "Explained Difference",
+                    "Unexplained Difference",
                 ],
             )
             self.assertEqual(performance_change_sheet["G1"].value, "Status")
@@ -1224,9 +1796,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ],
             )
             self.assertEqual(performance_change_sheet.max_row, 4)
-            self.assertEqual(performance_change_sheet["D2"].number_format, "0.0000")
-            self.assertEqual(performance_change_sheet["E2"].number_format, "0.0000")
-            self.assertEqual(performance_change_sheet["F2"].number_format, "0.0000")
+            self.assertEqual(performance_change_sheet["D2"].number_format, "0.######")
+            self.assertEqual(performance_change_sheet["E2"].number_format, "0.######")
+            self.assertEqual(performance_change_sheet["F2"].number_format, "0.######")
             self.assertIsNotNone(performance_change_sheet["A1"].comment)
             assert performance_change_sheet["A1"].comment is not None
             self.assertIn(
@@ -1234,7 +1806,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 performance_change_sheet["A1"].comment.text,
             )
 
-            security_changes_sheet = workbook["Security Changes"]
+            security_changes_sheet = workbook["Security Differences"]
             self.assertEqual(
                 [
                     security_changes_sheet.cell(row=1, column=column).value
@@ -1245,16 +1817,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "From Date",
                     "Thru Date",
                     "Security",
-                    "Performance Change",
-                    "Explained Change",
-                    "Unexplained Change",
+                    "Performance Difference",
+                    "Explained Difference",
+                    "Unexplained Difference",
                     "Status",
                     "Next Action",
                     "Review Key",
                 ],
             )
             self.assertGreater(security_changes_sheet.max_row, 2)
-            self.assertEqual(security_changes_sheet["E2"].number_format, "0.0000")
+            self.assertEqual(security_changes_sheet["E2"].number_format, "0.######")
             self.assertEqual(
                 security_changes_sheet.cell(
                     row=1,
@@ -1263,58 +1835,135 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "Review Key",
             )
 
-            what_changed_sheet = workbook["What Changed"]
+            underlying_causes_sheet = workbook["Underlying Causes"]
             self.assertEqual(
                 [
-                    what_changed_sheet.cell(row=1, column=column).value
+                    underlying_causes_sheet.cell(row=1, column=column).value
                     for column in range(1, 12)
                 ],
                 [
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Purpose",
-                    "What Changed",
+                    "Dataset",
+                    "Source Column",
                     "Security",
                     "Snapshot A Value",
                     "Snapshot B Value",
-                    "Change",
-                    "Change Explained By This Row",
-                    "Next Action",
+                    "B - A Difference",
+                    "Performance Difference Explained",
+                    "Required YAML Setup",
                 ],
             )
-            self.assertGreater(what_changed_sheet.max_row, 10)
-            self.assertEqual(what_changed_sheet["J2"].number_format, "0.0000")
-            uses = [
-                str(what_changed_sheet[f"D{row}"].value)
-                for row in range(2, what_changed_sheet.max_row + 1)
-            ]
-            self.assertIn("Explains Change", uses)
-            self.assertNotIn("Performance Result", uses)
-            portfolios = {
-                str(what_changed_sheet[f"A{row}"].value)
-                for row in range(2, what_changed_sheet.max_row + 1)
-            }
-            self.assertEqual(portfolios, {"PORT_A", "PORT_B", "PORT_C"})
-            next_actions = [
-                str(what_changed_sheet[f"K{row}"].value)
-                for row in range(2, what_changed_sheet.max_row + 1)
-            ]
-            self.assertTrue(any("price changed" in action for action in next_actions))
+            self.assertGreater(underlying_causes_sheet.max_row, 5)
+            numeric_source_row = next(
+                row
+                for row in range(2, underlying_causes_sheet.max_row + 1)
+                if isinstance(underlying_causes_sheet[f"G{row}"].value, (int, float))
+                and isinstance(underlying_causes_sheet[f"H{row}"].value, (int, float))
+            )
             self.assertEqual(
-                what_changed_sheet.cell(
+                underlying_causes_sheet[f"G{numeric_source_row}"].number_format,
+                "0.######",
+            )
+            self.assertEqual(
+                underlying_causes_sheet[f"H{numeric_source_row}"].number_format,
+                "0.######",
+            )
+            numeric_explained_row = next(
+                row
+                for row in range(2, underlying_causes_sheet.max_row + 1)
+                if isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
+            )
+            self.assertEqual(
+                underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
+                "0.######",
+            )
+            portfolios = {
+                str(underlying_causes_sheet[f"A{row}"].value)
+                for row in range(2, underlying_causes_sheet.max_row + 1)
+            }
+            self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
+            required_setup = [
+                str(underlying_causes_sheet[f"K{row}"].value)
+                for row in range(2, underlying_causes_sheet.max_row + 1)
+            ]
+            self.assertTrue(
+                any(
+                    "price_impact_methods.price.method"
+                    in setup
+                    for setup in required_setup
+                )
+            )
+            self.assertEqual(
+                underlying_causes_sheet.cell(
                     row=1,
-                    column=what_changed_sheet.max_column,
+                    column=underlying_causes_sheet.max_column,
                 ).value,
                 "Review Key",
             )
             self.assertEqual(
                 [
-                    what_changed_sheet[f"P{row}"].value
-                    for row in range(2, min(5, what_changed_sheet.max_row) + 1)
+                    underlying_causes_sheet[f"L{row}"].value
+                    for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",
             )
+
+            derived_checks_sheet = workbook["Derived Checks"]
+            self.assertGreater(derived_checks_sheet.max_row, 1)
+            self.assertEqual(
+                [cell.value for cell in derived_checks_sheet[1]],
+                [
+                    "Portfolio",
+                    "From Date",
+                    "Thru Date",
+                    "Dataset",
+                    "Source Column",
+                    "Security",
+                    "Snapshot A Value",
+                    "Snapshot B Value",
+                    "B - A Difference",
+                    "What Changed",
+                    "Next Action",
+                    "Review Key",
+                ],
+            )
+            self.assertNotIn(
+                "Performance Difference Explained",
+                [cell.value for cell in derived_checks_sheet[1]],
+            )
+            self.assertNotIn("Code", [cell.value for cell in derived_checks_sheet[1]])
+            self.assertNotIn(
+                "Review Rank",
+                [cell.value for cell in derived_checks_sheet[1]],
+            )
+
+            context_sheet = workbook["Context"]
+            self.assertGreater(context_sheet.max_row, 1)
+            self.assertEqual(
+                [cell.value for cell in context_sheet[1]],
+                [
+                    "Portfolio",
+                    "From Date",
+                    "Thru Date",
+                    "Dataset",
+                    "Source Column",
+                    "Security",
+                    "Snapshot A Value",
+                    "Snapshot B Value",
+                    "B - A Difference",
+                    "What Changed",
+                    "Next Action",
+                    "Review Key",
+                ],
+            )
+            self.assertNotIn(
+                "Performance Difference Explained",
+                [cell.value for cell in context_sheet[1]],
+            )
+            self.assertNotIn("Code", [cell.value for cell in context_sheet[1]])
+            self.assertNotIn("Review Rank", [cell.value for cell in context_sheet[1]])
 
             findings_sheet = workbook["Raw Audit Trail"]
             self.assertEqual(
@@ -1455,13 +2104,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 include_workbook=True,
             )
             workbook = openpyxl.load_workbook(paths["review_workbook"])
-            del workbook["Portfolio Changes"]
+            del workbook["Portfolio Differences"]
             workbook.save(paths["review_workbook"])
 
             issues = _report_bundle_validation_issues(directory)
 
         self.assertIn(
-            "review_workbook.xlsx is missing sheet 'Portfolio Changes'",
+            "review_workbook.xlsx is missing sheet 'Portfolio Differences'",
             issues,
         )
 

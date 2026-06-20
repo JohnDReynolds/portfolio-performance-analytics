@@ -48,8 +48,9 @@ def compare_snapshots(
         include_suppressed: Whether to include findings marked suppressed by
             configured suppression rules.
         require_causal_attribution: Whether changed portfolio periods must have
-            all needed YAML setup for causal attribution before results are
-            returned.
+            all YAML setup needed by supported causal attribution methods before
+            results are returned. This does not require every performance
+            change to be fully explained.
 
     Returns:
         Polars DataFrame containing one row per finding. If no findings are
@@ -91,10 +92,7 @@ def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
     if coverage.is_empty():
         return
 
-    incomplete = coverage.filter(
-        pl.col(_pc_explain.IMPACT_COVERAGE_STATUS)
-        != _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES
-    )
+    incomplete = coverage.filter(pl.col(_pc_explain.MISSING_IMPACT_INPUTS) != "")
     if incomplete.is_empty():
         return
 

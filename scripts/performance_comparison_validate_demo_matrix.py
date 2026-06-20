@@ -27,10 +27,15 @@ from ppar.performance_comparison.report import (  # noqa: E402
     _context_evidence_table,
     _problem_table,
     _residual_status_table,
+    _workbook_underlying_causes_table,
 )
 
 _DEFAULT_DEMO_DIRECTORY = _REPO_ROOT / "ppar" / "demo_data" / "axys"
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
+_RESTATEMENT_YAML = "ppar_performance_comparison_restatement.yaml"
+_RESTATEMENT_TRANSACTION_RULES_YAML = (
+    "ppar_performance_comparison_restatement_transaction_rules.yaml"
+)
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
 _FULL_SPEC_YAML = "ppar_performance_comparison_full_spec.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
@@ -93,6 +98,10 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
         FileNotFoundError: If one of the required YAML fixtures is missing.
     """
     baseline_findings = compare_snapshots(demo_directory / _BASELINE_YAML)
+    restatement_findings = compare_snapshots(demo_directory / _RESTATEMENT_YAML)
+    transaction_rules_findings = compare_snapshots(
+        demo_directory / _RESTATEMENT_TRANSACTION_RULES_YAML
+    )
     multi_findings = compare_snapshots(demo_directory / _MULTI_YAML)
     full_spec_findings = compare_snapshots(
         demo_directory / _FULL_SPEC_YAML,
@@ -107,6 +116,8 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     )
 
     baseline_problems = _problem_table(baseline_findings)
+    restatement_causes = _workbook_underlying_causes_table(restatement_findings)
+    transaction_rules_causes = _workbook_underlying_causes_table(transaction_rules_findings)
     multi_problems = _problem_table(multi_findings)
     policy_gap_problems = _problem_table(policy_gap_findings)
     context_evidence = _context_evidence_table(multi_findings)
@@ -129,11 +140,6 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
             "transaction_impact_methods",
         ),
         _check_problem_action(
-            "Missing denominator",
-            policy_gap_problems,
-            "denominator_source",
-        ),
-        _check_problem_action(
             "Missing transaction sign/flow semantics",
             policy_gap_problems,
             "transaction sign and external-flow semantics",
@@ -141,8 +147,10 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
         _check_problem_action(
             "Multi-portfolio missing specifications",
             multi_problems,
-            "set `denominator_source` or map beginning market value",
+            "transaction_impact_methods",
         ),
+        _check_transaction_rows_visible(restatement_causes),
+        _check_transaction_rules_explain_amount(transaction_rules_causes),
         _check_non_empty_table(
             "Context-only evidence",
             context_evidence,
@@ -200,6 +208,45 @@ def _check_problem_text(
 ) -> _ScenarioCheck:
     """Return whether a Problems-grid problem statement contains expected text."""
     return _check_problem_column(name, problems, "problem", expected_text)
+
+
+def _check_transaction_rows_visible(causes: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether the single-restatement workbook table shows transactions."""
+    transaction_rows = causes.filter(pl.col("dataset") == "transactions")
+    expected_columns = {"amount", "quantity", "price"}
+    actual_columns = set(transaction_rows.get_column("source_column").to_list())
+    if expected_columns.issubset(actual_columns):
+        return _ScenarioCheck(
+            "Single-restatement transaction rows",
+            True,
+            "transaction amount, quantity, and price rows are workbook-visible",
+        )
+    missing_columns = sorted(expected_columns - actual_columns)
+    return _ScenarioCheck(
+        "Single-restatement transaction rows",
+        False,
+        f"missing transaction source column(s): {', '.join(missing_columns)}",
+    )
+
+
+def _check_transaction_rules_explain_amount(causes: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether transaction-rules YAML explains transaction amount deltas."""
+    amount_rows = causes.filter(
+        (pl.col("dataset") == "transactions")
+        & (pl.col("source_column") == "amount")
+        & pl.col("estimated_impact").is_not_null()
+    )
+    if amount_rows.height == 1:
+        return _ScenarioCheck(
+            "Transaction rules amount explanation",
+            True,
+            "transaction amount row has a performance explanation",
+        )
+    return _ScenarioCheck(
+        "Transaction rules amount explanation",
+        False,
+        "transaction amount row does not have a performance explanation",
+    )
 
 
 def _check_problem_column(
@@ -269,6 +316,9 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         for value in cause_summary.get_column(_pc_explain.IMPACT_BASIS).to_list()
     }
     expected_bases = {
+        _pc_explain.IMPACT_BASIS_POSITION_ACCRUED,
+        _pc_explain.IMPACT_BASIS_POSITION_MARKET_VALUE,
+        _pc_explain.IMPACT_BASIS_PRICE_WEIGHTED,
         _pc_explain.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
         _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION,
         _pc_explain.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
@@ -280,6 +330,18 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
             name,
             False,
             f"strict fixture is missing impact basis value(s): {', '.join(missing)}",
+        )
+    causes = _workbook_underlying_causes_table(findings)
+    evidence_only_rows = causes.filter(
+        (pl.col("dataset") == "positions")
+        & (pl.col("source_column") == "quantity")
+        & (pl.col("impact_status") == "Review only")
+    )
+    if evidence_only_rows.is_empty():
+        return _ScenarioCheck(
+            name,
+            False,
+            "strict fixture is missing explicit evidence-only position row",
         )
     return _ScenarioCheck(
         name,

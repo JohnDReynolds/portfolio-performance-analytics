@@ -19,6 +19,10 @@ from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     CONTEXT,
     DIRECT_INPUT,
+    IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
+    IMPACT_POLICY_POSITION_ACCRUED,
+    IMPACT_POLICY_POSITION_MARKET_VALUE,
+    IMPACT_POLICY_PRICE_WEIGHTED,
     EvidenceRole,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
@@ -67,6 +71,8 @@ from ppar.performance_comparison.methods import (
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzFlowTiming,
     ModifiedDietzInclusionRule,
+    PositionImpactMethod,
+    PriceImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison.period_linking import (
@@ -191,9 +197,13 @@ _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
 )
 _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
+_POSITION_IMPACT_METHODS_KEY: Final[str] = "position_impact_methods"
+_PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
+_EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
 _SECURITY_CONTRIBUTION_KEY: Final[str] = "security_contribution"
 _SECURITY_RETURN_KEY: Final[str] = "security_return"
+_MARKET_VALUE_KEY: Final[str] = "market_value"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
 _PERFORMANCE_KEY: Final[str] = "performance"
 _METHOD_KEY: Final[str] = "method"
@@ -212,6 +222,15 @@ _SOURCE_FIELD_DELTA_OVER_BEGIN_MV_METHOD: Final[str] = (
 _MODIFIED_DIETZ_METHOD: Final[str] = TransactionImpactMethod.MODIFIED_DIETZ.value
 _TRANSACTION_AMOUNT_DELTA_METHOD: Final[str] = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+_POSITION_MARKET_VALUE_DELTA_METHOD: Final[str] = (
+    PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+_POSITION_ACCRUED_DELTA_METHOD: Final[str] = (
+    PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD: Final[str] = (
+    PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
@@ -246,6 +265,24 @@ _PERFORMANCE_AMOUNT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _DENOMINATOR_SOURCE_KEY,
     }
 )
+_POSITION_MARKET_VALUE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
+    }
+)
+_POSITION_ACCRUED_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
+    }
+)
+_PRICE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _WEIGHT_SOURCE_KEY,
+    }
+)
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _FLOW_TIMING_KEY: _MODIFIED_DIETZ_FLOW_TIMINGS,
     _DAY_COUNT_KEY: _MODIFIED_DIETZ_DAY_COUNTS,
@@ -262,6 +299,29 @@ _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
 )
 _PERFORMANCE_AMOUNT_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+}
+_POSITION_MARKET_VALUE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+}
+_POSITION_ACCRUED_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+}
+_PRICE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _WEIGHT_SOURCE_KEY: frozenset({"snapshot_a_weight"}),
+}
+_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _SOURCE_FIELDS_KEY,
+    }
+)
+_EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
+    pc_cols.CASH: frozenset(_CASH_COMPARE_COLUMNS),
+    pc_cols.FX_RATES: frozenset(_FX_RATE_COMPARE_COLUMNS),
+    pc_cols.POSITIONS: frozenset(_POSITIONS_COMPARE_COLUMNS),
+    pc_cols.PRICES: frozenset(_PRICE_COMPARE_COLUMNS),
+    pc_cols.SECURITY_MASTER: frozenset(_SECURITY_MASTER_COMPARE_COLUMNS),
+    pc_cols.TRANSACTIONS: frozenset(_TRANSACTION_COMPARE_COLUMNS),
 }
 _PORTFOLIO_SOURCE_FIELD_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
@@ -379,6 +439,12 @@ class PerformanceComparison:
             policies keyed by performance-flow treatment.
         _contribution_impact_policies: YAML-configured contribution impact
             policy labels keyed by dataset and source column.
+        _position_impact_policies: YAML-configured position impact policy
+            labels keyed by source column.
+        _price_impact_policies: YAML-configured price impact policy labels
+            keyed by source column.
+        _evidence_only_impact_policies: YAML-configured evidence-only policy
+            labels keyed by dataset and source column.
     """
 
     def __init__(self, specification: PerformanceComparisonSpecification) -> None:
@@ -400,6 +466,11 @@ class PerformanceComparison:
             specification
         )
         self._contribution_impact_policies = _contribution_impact_policies(
+            specification
+        )
+        self._position_impact_policies = _position_impact_policies(specification)
+        self._price_impact_policies = _price_impact_policies(specification)
+        self._evidence_only_impact_policies = _evidence_only_impact_policies(
             specification
         )
 
@@ -515,6 +586,7 @@ class PerformanceComparison:
             return []
 
         portfolio_periods = self._portfolio_periods()
+        return_denominators = self._portfolio_period_return_denominators()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -533,6 +605,7 @@ class PerformanceComparison:
                 _POSITIONS_COMPARE_COLUMNS,
                 pc_cols.POSITIONS,
                 portfolio_periods,
+                return_denominators=return_denominators,
             )
         )
         return findings
@@ -588,6 +661,7 @@ class PerformanceComparison:
 
         key_columns = self._optional_key_columns(snapshot_a, snapshot_b, _PRICE_KEY_COLUMNS)
         security_periods = self._security_periods()
+        return_weights = self._security_period_return_weights()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -606,6 +680,7 @@ class PerformanceComparison:
                 _PRICE_COMPARE_COLUMNS,
                 pc_cols.PRICES,
                 security_periods=security_periods,
+                return_weights=return_weights,
             )
         )
         return findings
@@ -665,6 +740,7 @@ class PerformanceComparison:
         key_columns = self._transaction_key_columns(snapshot_a, snapshot_b)
         portfolio_periods = self._portfolio_periods()
         return_denominators = self._portfolio_period_return_denominators()
+        fallback_periods = self._single_changed_portfolio_return_periods()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -687,6 +763,7 @@ class PerformanceComparison:
                     portfolio_periods,
                     return_denominators=return_denominators,
                     transaction_match_status=TRANSACTION_MATCH_STATUS_ID_MATCH,
+                    transaction_fallback_periods=fallback_periods,
                 )
             )
         return findings
@@ -837,7 +914,13 @@ class PerformanceComparison:
         portfolio_periods: pl.DataFrame | None = None,
         security_periods: pl.DataFrame | None = None,
         return_denominators: Mapping[tuple[object, object, object], float] | None = None,
+        return_weights: (
+            Mapping[tuple[object, object, object, object], float] | None
+        ) = None,
         transaction_match_status: TransactionMatchStatus | None = None,
+        transaction_fallback_periods: (
+            Mapping[object, tuple[object | None, object | None]] | None
+        ) = None,
     ) -> list[Finding]:
         """Return findings for material value changes on matching rows."""
         compare_columns = compare_columns or _PORTFOLIO_COMPARE_COLUMNS
@@ -863,6 +946,7 @@ class PerformanceComparison:
                 dataset,
                 portfolio_periods,
                 security_periods,
+                transaction_fallback_periods,
             )
             for column in shared_columns:
                 snapshot_a_value = row[column]
@@ -913,7 +997,7 @@ class PerformanceComparison:
                                 self._transaction_semantics_source(row, dataset)
                             ),
                             transaction_match_status=transaction_match_status,
-                            impact_policy=self._contribution_impact_policy(
+                            impact_policy=self._impact_policy(
                                 dataset,
                                 column,
                             ),
@@ -947,7 +1031,14 @@ class PerformanceComparison:
                             snapshot_b_value=snapshot_b_value,
                             delta_b_minus_a=delta,
                             return_denominator=return_denominator,
-                            return_weight=self._return_weight(row, dataset),
+                            return_weight=self._return_weight(
+                                row,
+                                dataset,
+                                portfolio_id,
+                                from_date,
+                                thru_date,
+                                return_weights,
+                            ),
                             message=f"{dataset} {column!r} changed.",
                         )
                     )
@@ -1148,7 +1239,7 @@ class PerformanceComparison:
         """Return beginning market value for approximate return impacts."""
         if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
             if (
-                dataset == pc_cols.TRANSACTIONS
+                dataset in {pc_cols.POSITIONS, pc_cols.TRANSACTIONS}
                 and portfolio_id is not None
                 and from_date is not None
                 and thru_date is not None
@@ -1165,8 +1256,22 @@ class PerformanceComparison:
     def _return_weight(
         row: Mapping[str, object],
         dataset: str,
+        portfolio_id: object | None,
+        from_date: object | None,
+        thru_date: object | None,
+        return_weights: Mapping[tuple[object, object, object, object], float] | None,
     ) -> float | None:
         """Return snapshot A security weight for approximate return impacts."""
+        if dataset == pc_cols.PRICES:
+            if (
+                portfolio_id is None
+                or from_date is None
+                or thru_date is None
+                or return_weights is None
+            ):
+                return None
+            key = (portfolio_id, row.get(pc_cols.SECURITY_ID), from_date, thru_date)
+            return return_weights.get(key)
         if dataset != pc_cols.SECURITY_PERFORMANCE:
             return None
         value = row.get(pc_cols.WEIGHT)
@@ -1180,6 +1285,9 @@ class PerformanceComparison:
         dataset: str,
         portfolio_periods: pl.DataFrame | None,
         security_periods: pl.DataFrame | None,
+        transaction_fallback_periods: (
+            Mapping[object, tuple[object | None, object | None]] | None
+        ) = None,
     ) -> list[tuple[object | None, object | None, object | None]]:
         """Return portfolio and period contexts for changed-value findings."""
         security_period_contexts = security_period_contexts_for_dated_evidence(
@@ -1195,6 +1303,14 @@ class PerformanceComparison:
             dataset,
             portfolio_periods,
         )
+        if (
+            dataset == pc_cols.TRANSACTIONS
+            and period_context == (None, None)
+            and transaction_fallback_periods is not None
+        ):
+            fallback_period = transaction_fallback_periods.get(row.get(pc_cols.PORTFOLIO_ID))
+            if fallback_period is not None:
+                return [(row.get(pc_cols.PORTFOLIO_ID), fallback_period[0], fallback_period[1])]
         return [(row.get(pc_cols.PORTFOLIO_ID), period_context[0], period_context[1])]
 
     def _portfolio_period_return_denominators(
@@ -1215,6 +1331,41 @@ class PerformanceComparison:
             denominators[key] = float(value)
         return denominators
 
+    def _single_changed_portfolio_return_periods(
+        self,
+    ) -> dict[object, tuple[object | None, object | None]]:
+        """Return one changed portfolio-return period per portfolio when unambiguous."""
+        snapshot_a = self._portfolio_loader.load("a")
+        snapshot_b = self._portfolio_loader.load("b")
+        if pc_cols.PORTFOLIO_RETURN not in snapshot_a.columns:
+            return {}
+        if pc_cols.PORTFOLIO_RETURN not in snapshot_b.columns:
+            return {}
+
+        joined = snapshot_a.join(
+            snapshot_b,
+            on=list(_PORTFOLIO_KEY_COLUMNS),
+            how="inner",
+            suffix="_b",
+        )
+        changed_periods_by_portfolio: dict[object, list[tuple[object, object]]] = {}
+        for row in joined.iter_rows(named=True):
+            delta = self._numeric_delta(
+                row[pc_cols.PORTFOLIO_RETURN],
+                row[f"{pc_cols.PORTFOLIO_RETURN}_b"],
+            )
+            if delta is None or abs(delta) <= self._tolerance(pc_cols.PORTFOLIO_RETURN):
+                continue
+            portfolio_id = row[pc_cols.PORTFOLIO_ID]
+            period = (row[pc_cols.FROM_DATE], row[pc_cols.THRU_DATE])
+            changed_periods_by_portfolio.setdefault(portfolio_id, []).append(period)
+
+        return {
+            portfolio_id: periods[0]
+            for portfolio_id, periods in changed_periods_by_portfolio.items()
+            if len(periods) == 1
+        }
+
     def _portfolio_periods(self) -> pl.DataFrame:
         """Return portfolio period rows from both snapshots for evidence linking."""
         return portfolio_periods_from_snapshots(
@@ -1229,6 +1380,27 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return None
         return security_periods_from_snapshots(snapshot_a, snapshot_b)
+
+    def _security_period_return_weights(
+        self,
+    ) -> dict[tuple[object, object, object, object], float]:
+        """Return snapshot A security weights keyed by portfolio/security period."""
+        snapshot_a = self._security_loader.load("a")
+        if snapshot_a is None or pc_cols.WEIGHT not in snapshot_a.columns:
+            return {}
+        weights: dict[tuple[object, object, object, object], float] = {}
+        for row in snapshot_a.iter_rows(named=True):
+            value = row.get(pc_cols.WEIGHT)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            key = (
+                row.get(pc_cols.PORTFOLIO_ID),
+                row.get(pc_cols.SECURITY_ID),
+                row.get(pc_cols.FROM_DATE),
+                row.get(pc_cols.THRU_DATE),
+            )
+            weights[key] = float(value)
+        return weights
 
     @staticmethod
     def _cash_key_columns(
@@ -1377,6 +1549,25 @@ class PerformanceComparison:
     ) -> str | None:
         """Return the YAML-selected contribution-impact policy for a field."""
         return self._contribution_impact_policies.get((dataset, source_column))
+
+    def _impact_policy(
+        self,
+        dataset: str,
+        source_column: str,
+    ) -> str | None:
+        """Return the YAML-selected non-transaction impact policy for a field."""
+        if dataset == pc_cols.POSITIONS:
+            policy = self._position_impact_policies.get(source_column)
+            if policy is not None:
+                return policy
+        if dataset == pc_cols.PRICES:
+            policy = self._price_impact_policies.get(source_column)
+            if policy is not None:
+                return policy
+        policy = self._contribution_impact_policy(dataset, source_column)
+        if policy is not None:
+            return policy
+        return self._evidence_only_impact_policies.get((dataset, source_column))
 
 
 def _transaction_impact_policies(
@@ -1528,6 +1719,254 @@ def _contribution_impact_policies(
     return policies
 
 
+def _position_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, str]:
+    """Return validated YAML-selected position impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by position source column. Missing configuration
+        returns an empty mapping, which leaves position rows as evidence-only.
+
+    Raises:
+        PpaError: If position impact method configuration is malformed or
+            names an unsupported method.
+    """
+    methods_value = specification.values.get(_POSITION_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_POSITION_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    unsupported_keys = set(methods_value) - {_MARKET_VALUE_KEY, pc_cols.ACCRUED}
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_POSITION_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[str, str] = {}
+    market_value = methods_value.get(_MARKET_VALUE_KEY)
+    if market_value is not None:
+        policy = _require_policy_mapping(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            _MARKET_VALUE_KEY,
+            market_value,
+        )
+        _validate_policy_keys(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            _MARKET_VALUE_KEY,
+            policy,
+            _POSITION_MARKET_VALUE_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            _MARKET_VALUE_KEY,
+            policy,
+            _POSITION_MARKET_VALUE_DELTA_METHOD,
+        )
+        _validate_allowed_policy_values(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            _MARKET_VALUE_KEY,
+            policy,
+            _POSITION_MARKET_VALUE_ALLOWED_VALUES,
+        )
+        policies[pc_cols.MARKET_VALUE] = IMPACT_POLICY_POSITION_MARKET_VALUE
+    accrued = methods_value.get(pc_cols.ACCRUED)
+    if accrued is not None:
+        policy = _require_policy_mapping(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.ACCRUED,
+            accrued,
+        )
+        _validate_policy_keys(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.ACCRUED,
+            policy,
+            _POSITION_ACCRUED_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.ACCRUED,
+            policy,
+            _POSITION_ACCRUED_DELTA_METHOD,
+        )
+        _validate_allowed_policy_values(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.ACCRUED,
+            policy,
+            _POSITION_ACCRUED_ALLOWED_VALUES,
+        )
+        policies[pc_cols.ACCRUED] = IMPACT_POLICY_POSITION_ACCRUED
+    return policies
+
+
+def _price_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, str]:
+    """Return validated YAML-selected price impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by price source column. Missing configuration
+        returns an empty mapping, which leaves price rows as evidence-only.
+
+    Raises:
+        PpaError: If price impact method configuration is malformed or names
+            an unsupported method.
+    """
+    methods_value = specification.values.get(_PRICE_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_PRICE_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    unsupported_keys = set(methods_value) - {pc_cols.PRICE}
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_PRICE_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[str, str] = {}
+    price_value = methods_value.get(pc_cols.PRICE)
+    if price_value is not None:
+        policy = _require_policy_mapping(
+            specification,
+            _PRICE_IMPACT_METHODS_KEY,
+            pc_cols.PRICE,
+            price_value,
+        )
+        _validate_policy_keys(
+            specification,
+            _PRICE_IMPACT_METHODS_KEY,
+            pc_cols.PRICE,
+            policy,
+            _PRICE_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _PRICE_IMPACT_METHODS_KEY,
+            pc_cols.PRICE,
+            policy,
+            _PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD,
+        )
+        _validate_allowed_policy_values(
+            specification,
+            _PRICE_IMPACT_METHODS_KEY,
+            pc_cols.PRICE,
+            policy,
+            _PRICE_ALLOWED_VALUES,
+        )
+        policies[pc_cols.PRICE] = IMPACT_POLICY_PRICE_WEIGHTED
+    return policies
+
+
+def _evidence_only_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[tuple[str, str], str]:
+    """Return validated YAML-selected evidence-only impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by ``(dataset, source_column)``. These policies
+        document known source-data differences that should remain review-only.
+
+    Raises:
+        PpaError: If evidence-only impact configuration is malformed or names
+            an unsupported dataset or field.
+    """
+    methods_value = specification.values.get(_EVIDENCE_ONLY_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_EVIDENCE_ONLY_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    unsupported_keys = set(methods_value) - set(_EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS)
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_EVIDENCE_ONLY_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[tuple[str, str], str] = {}
+    for dataset, policy_value in methods_value.items():
+        dataset_name = str(dataset)
+        policy = _require_policy_mapping(
+            specification,
+            _EVIDENCE_ONLY_IMPACT_METHODS_KEY,
+            dataset_name,
+            policy_value,
+        )
+        _validate_policy_keys(
+            specification,
+            _EVIDENCE_ONLY_IMPACT_METHODS_KEY,
+            dataset_name,
+            policy,
+            _EVIDENCE_ONLY_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _EVIDENCE_ONLY_IMPACT_METHODS_KEY,
+            dataset_name,
+            policy,
+            _EVIDENCE_ONLY_METHOD,
+        )
+        policies.update(
+            _validated_evidence_only_source_fields(
+                specification,
+                dataset_name,
+                policy,
+            )
+        )
+    return policies
+
+
 def _validated_portfolio_source_field_policy(
     specification: PerformanceComparisonSpecification,
     policy_value: object,
@@ -1598,6 +2037,53 @@ def _validated_portfolio_source_field_policy(
     }
 
 
+def _validated_evidence_only_source_fields(
+    specification: PerformanceComparisonSpecification,
+    dataset: str,
+    policy: Mapping[str, object],
+) -> dict[tuple[str, str], str]:
+    """Validate and return evidence-only policy labels for source fields."""
+    source_fields = policy[_SOURCE_FIELDS_KEY]
+    if not isinstance(source_fields, list) or not source_fields:
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_EVIDENCE_ONLY_IMPACT_METHODS_KEY}.{dataset}."
+                f"{_SOURCE_FIELDS_KEY} must be a non-empty list."
+            ),
+            504,
+        )
+    if any(not isinstance(field, str) for field in source_fields):
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_EVIDENCE_ONLY_IMPACT_METHODS_KEY}.{dataset}."
+                f"{_SOURCE_FIELDS_KEY} values must be strings."
+            ),
+            504,
+        )
+
+    allowed_fields = _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS[dataset]
+    unsupported_fields = set(source_fields) - allowed_fields
+    if unsupported_fields:
+        unsupported = ", ".join(sorted(str(field) for field in unsupported_fields))
+        allowed = ", ".join(sorted(allowed_fields))
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_EVIDENCE_ONLY_IMPACT_METHODS_KEY}.{dataset}."
+                f"{_SOURCE_FIELDS_KEY} contains unsupported fields: {unsupported}. "
+                f"Allowed fields: {allowed}."
+            ),
+            504,
+        )
+
+    return {
+        (dataset, str(field)): _evidence_only_impact_policy_label(dataset, str(field))
+        for field in source_fields
+    }
+
+
 def _validated_security_contribution_policy(
     specification: PerformanceComparisonSpecification,
     policy_value: object,
@@ -1628,6 +2114,11 @@ def _validated_security_contribution_policy(
             IMPACT_POLICY_SECURITY_CONTRIBUTION
         )
     }
+
+
+def _evidence_only_impact_policy_label(dataset: str, source_column: str) -> str:
+    """Return a stable evidence-only impact policy label."""
+    return f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}{dataset}.{source_column}"
 
 
 def _validated_security_return_policy(

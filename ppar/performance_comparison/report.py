@@ -4,7 +4,6 @@ from __future__ import annotations
 
 # Python imports
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
 import datetime as dt
 import html as html_lib
 import json
@@ -21,6 +20,7 @@ from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import runner as _pc_runner
+from ppar.performance_comparison import workbook as _pc_workbook
 
 __all__ = [
     "performance_comparison_html_report",
@@ -72,12 +72,24 @@ _ESTIMATED_CAUSE_TOTAL = "estimated_cause_total"
 _UNEXPLAINED_CHANGE = "unexplained_change"
 _USE = "use"
 _USE_PRIORITY = "_use_priority"
-_WHAT_CHANGED = "what_changed"
+_CHANGE_LABEL = "change_label"
 _CHANGE = "change"
 _ESTIMATED_IMPACT = "estimated_impact"
+_IMPACT_STATUS = "impact_status"
 _NEXT_ACTION = "next_action"
+_REQUIRED_YAML_SETUP = "required_yaml_setup"
 _USE_EXPLAINS_CHANGE = "Explains Change"
 _USE_REVIEW_CONTEXT = "Review Context"
+_USE_DIAGNOSTIC = "Diagnostic"
+_IMPACT_STATUS_ESTIMATED = "Estimated"
+_IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
+_IMPACT_STATUS_REVIEW_ONLY = "Review only"
+_NO_UNDERLYING_CAUSE_DATASET = "no_underlying_cause_found"
+_WORKBOOK_ROW_KIND_UNDERLYING_CAUSE = "underlying_cause"
+_WORKBOOK_ROW_KIND_DERIVED_CHECK = "derived_check"
+_WORKBOOK_ROW_KIND_CONTEXT = "context"
+_WORKBOOK_ROW_KIND_DIAGNOSTIC = "diagnostic"
+_WORKBOOK_ROW_KIND_OTHER = "other"
 _STATUS_FULLY_EXPLAINED = "Fully Explained"
 _STATUS_NEEDS_SETUP = "Missing YAML Specifications"
 _STATUS_PARTLY_EXPLAINED = "Partly Explained"
@@ -160,73 +172,8 @@ _CONTEXT_EVIDENCE_COLUMNS = (
     _pc_findings.MESSAGE,
 )
 _CONTEXT_NO_IMPACT_TREATMENT = "context only; not included in return-impact estimates"
-_REVIEW_WORKBOOK_ARTIFACT = "review_workbook"
-_REVIEW_WORKBOOK_FILE_NAME = "review_workbook.xlsx"
-_REVIEW_WORKBOOK_EXPECTED_SHEETS = (
-    "Portfolio Changes",
-    "Security Changes",
-    "What Changed",
-    "Raw Audit Trail",
-)
-_REVIEW_WORKBOOK_REQUIRED_HEADERS = {
-    "Portfolio Changes": (
-        "Portfolio",
-        "From Date",
-        "Thru Date",
-        "Performance Change",
-        "Explained Change",
-        "Unexplained Change",
-        "Status",
-        "Next Action",
-        "Review Key",
-    ),
-    "Security Changes": (
-        "Portfolio",
-        "From Date",
-        "Thru Date",
-        "Security",
-        "Performance Change",
-        "Explained Change",
-        "Unexplained Change",
-        "Status",
-        "Next Action",
-        "Review Key",
-    ),
-    "What Changed": (
-        "Portfolio",
-        "From Date",
-        "Thru Date",
-        "Purpose",
-        "What Changed",
-        "Security",
-        "Snapshot A Value",
-        "Snapshot B Value",
-        "Change",
-        "Change Explained By This Row",
-        "Next Action",
-        "Review Key",
-    ),
-    "Raw Audit Trail": (
-        "Portfolio",
-        "From Date",
-        "Thru Date",
-        "Security",
-        "Severity",
-        "Message",
-        "Review Key",
-    ),
-}
-
-
-@dataclass(frozen=True)
-class _ReviewWorkbookSheet:
-    """Describe one review workbook worksheet."""
-
-    artifact_name: str
-    sheet_name: str
-    table: pl.DataFrame
-    columns: tuple[str, ...] | None = None
-    labels: Mapping[str, str] | None = None
+_REVIEW_WORKBOOK_ARTIFACT = _pc_workbook.REVIEW_WORKBOOK_ARTIFACT
+_REVIEW_WORKBOOK_FILE_NAME = _pc_workbook.REVIEW_WORKBOOK_FILE_NAME
 
 
 def performance_comparison_markdown_report(
@@ -459,6 +406,7 @@ def write_performance_comparison_report_bundle(
     top_evidence_limit: int = 10,
     include_workbook: bool = False,
     require_causal_attribution: bool = False,
+    comparison_path: util.PathLike | None = None,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
 
@@ -473,14 +421,19 @@ def write_performance_comparison_report_bundle(
             portfolio period in both ``report.md`` and ``top_evidence.csv``.
         include_workbook: Whether to include an XLSX review workbook. Requires
             installing the optional ``ppar[excel]`` dependency group.
-        require_causal_attribution: Whether changed portfolio periods must be
-            fully explained before writing bundle artifacts.
+        require_causal_attribution: Whether changed portfolio periods must have
+            all YAML setup needed by supported attribution methods before
+            writing bundle artifacts. This does not require every performance
+            change to be fully explained.
+        comparison_path: Optional path to the comparison YAML. When provided,
+            the XLSX workbook can name the exact YAML file to update for
+            missing attribution setup.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
     """
     if include_workbook:
-        _load_openpyxl()
+        _pc_workbook.ensure_openpyxl_installed()
 
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
@@ -514,6 +467,7 @@ def write_performance_comparison_report_bundle(
             findings,
             bundle_directory / _REVIEW_WORKBOOK_FILE_NAME,
             top_evidence_limit=top_evidence_limit,
+            comparison_path=comparison_path,
         )
     paths["readme"] = _write_report_bundle_readme(
         bundle_directory / "README.md",
@@ -587,6 +541,7 @@ def write_performance_comparison_review_workbook(
     output_path: util.PathLike,
     *,
     top_evidence_limit: int = 10,
+    comparison_path: util.PathLike | None = None,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -596,6 +551,9 @@ def write_performance_comparison_review_workbook(
         output_path: Destination workbook path. Parent directories are created
             when needed.
         top_evidence_limit: Reserved for parity with bundle/report writers.
+        comparison_path: Optional path to the comparison YAML. When provided,
+            the ``Underlying Causes`` sheet can name the exact file to update
+            for missing attribution setup.
 
     Returns:
         Normalized workbook path.
@@ -608,52 +566,22 @@ def write_performance_comparison_review_workbook(
         top-evidence, and findings output used by the HTML/CSV reports. It does
         not add comparison logic.
     """
-    workbook_class, styles = _load_openpyxl()
-    workbook = workbook_class()
-    default_sheet = workbook.active
-    workbook.remove(default_sheet)
-
     active_findings = _active_findings(findings)
     del top_evidence_limit
-    for sheet in _review_workbook_sheets(
-        portfolio_changes=_workbook_portfolio_changes_table(active_findings),
-        security_changes=_workbook_security_changes_table(active_findings),
-        what_changed=_workbook_what_changed_table(active_findings),
-        findings=findings,
-    ):
-        _add_workbook_sheet(workbook, sheet, styles)
-
-    workbook_path = Path(output_path)
-    workbook_path.parent.mkdir(parents=True, exist_ok=True)
-    workbook.save(workbook_path)
-    return workbook_path
-
-
-def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
-    """Return openpyxl classes or raise a clear optional-dependency error."""
-    try:
-        # Optional dependency: keep base package imports free of Excel libraries.
-        # pylint: disable=import-outside-toplevel
-        from openpyxl import Workbook  # type: ignore[import-not-found]
-        from openpyxl.comments import Comment  # type: ignore[import-not-found]
-        from openpyxl.styles import Font, PatternFill  # type: ignore[import-not-found]
-    except ImportError as error:
-        raise PpaError(
-            "XLSX review workbook export requires the optional Excel dependency. "
-            'Install it with: pip install "ppar[excel]"',
-            None,
-        ) from error
-    return (
-        Workbook,
-        {
-            "header_font": Font(bold=True, color="FFFFFF"),
-            "header_fill": PatternFill(
-                fill_type="solid",
-                start_color="1F4E78",
-                end_color="1F4E78",
+    return _pc_workbook.write_review_workbook_sheets(
+        _review_workbook_sheets(
+            portfolio_changes=_workbook_portfolio_changes_table(active_findings),
+            security_changes=_workbook_security_changes_table(active_findings),
+            underlying_causes=_workbook_underlying_causes_table(
+                active_findings,
+                comparison_path=comparison_path,
             ),
-            "comment_class": Comment,
-        },
+            derived_checks=_workbook_derived_checks_table(active_findings),
+            context=_workbook_context_table(active_findings),
+            findings=findings,
+        ),
+        output_path,
+        column_tooltip=_workbook_column_tooltip,
     )
 
 
@@ -661,33 +589,49 @@ def _review_workbook_sheets(
     *,
     portfolio_changes: pl.DataFrame,
     security_changes: pl.DataFrame,
-    what_changed: pl.DataFrame,
+    underlying_causes: pl.DataFrame,
+    derived_checks: pl.DataFrame,
+    context: pl.DataFrame,
     findings: pl.DataFrame,
-) -> tuple[_ReviewWorkbookSheet, ...]:
+) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return workbook sheet specifications in reviewer-first order."""
     return (
-        _ReviewWorkbookSheet(
+        _pc_workbook.ReviewWorkbookSheet(
             artifact_name="portfolio_changes",
-            sheet_name="Portfolio Changes",
+            sheet_name="Portfolio Differences",
             table=portfolio_changes,
             columns=_workbook_portfolio_changes_columns(),
             labels=_workbook_column_labels(),
         ),
-        _ReviewWorkbookSheet(
+        _pc_workbook.ReviewWorkbookSheet(
             artifact_name="security_changes",
-            sheet_name="Security Changes",
+            sheet_name="Security Differences",
             table=security_changes,
             columns=_workbook_security_changes_columns(),
             labels=_workbook_column_labels(),
         ),
-        _ReviewWorkbookSheet(
-            artifact_name="what_changed",
-            sheet_name="What Changed",
-            table=what_changed,
-            columns=_workbook_what_changed_columns(),
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name="underlying_causes",
+            sheet_name="Underlying Causes",
+            table=underlying_causes,
+            columns=_workbook_underlying_cause_columns(),
             labels=_workbook_column_labels(),
         ),
-        _ReviewWorkbookSheet(
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name="derived_checks",
+            sheet_name="Derived Checks",
+            table=derived_checks,
+            columns=_workbook_non_additive_change_columns(),
+            labels=_workbook_column_labels(),
+        ),
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name="context",
+            sheet_name="Context",
+            table=context,
+            columns=_workbook_non_additive_change_columns(),
+            labels=_workbook_column_labels(),
+        ),
+        _pc_workbook.ReviewWorkbookSheet(
             artifact_name="raw_audit_trail",
             sheet_name="Raw Audit Trail",
             table=_workbook_sorted_table(
@@ -713,8 +657,17 @@ def _workbook_portfolio_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
     )
     if coverage.is_empty():
         return _workbook_empty_portfolio_changes_table()
+    underlying_totals = _workbook_underlying_impact_totals(findings)
     rows = [
-        _workbook_performance_change_row(row)
+        _workbook_performance_change_row(
+            {
+                **row,
+                "_underlying_estimated_total": underlying_totals.get(
+                    _workbook_period_key(row),
+                    0.0,
+                ),
+            }
+        )
         for row in coverage.iter_rows(named=True)
     ]
     return _workbook_sorted_table(
@@ -723,10 +676,38 @@ def _workbook_portfolio_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+def _workbook_underlying_impact_totals(
+    findings: pl.DataFrame,
+) -> dict[tuple[object, object, object], float]:
+    """Return explained difference totals from underlying input rows."""
+    totals: dict[tuple[object, object, object], float] = {}
+    for row in _workbook_ranked_changed_rows(findings):
+        if not _workbook_is_underlying_cause_row(row):
+            continue
+        estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
+        if estimated_impact is None:
+            continue
+        key = _workbook_period_key(row)
+        totals[key] = totals.get(key, 0.0) + estimated_impact
+    return totals
+
+
+def _workbook_period_key(row: Mapping[str, object]) -> tuple[object, object, object]:
+    """Return the workbook period key for a row."""
+    return (
+        row.get(_pc_findings.PORTFOLIO_ID),
+        row.get(_pc_findings.FROM_DATE),
+        row.get(_pc_findings.THRU_DATE),
+    )
+
+
 def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, object]:
     """Return one plain-English performance-change workbook row."""
     performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
     estimated_total = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL))
+    underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
+    if underlying_estimated_total is not None:
+        estimated_total = underlying_estimated_total
     unexplained_change = None
     if performance_change is not None:
         unexplained_change = performance_change - (estimated_total or 0.0)
@@ -745,8 +726,17 @@ def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, obj
 
 def _workbook_explanation_status(row: Mapping[str, object]) -> str:
     """Return a plain-language explanation status for a portfolio period."""
+    underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
+    performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
+        if underlying_estimated_total is not None and performance_change is not None:
+            residual = performance_change - underlying_estimated_total
+            if abs(residual) <= 0.00000001:
+                return _STATUS_FULLY_EXPLAINED
+            if abs(underlying_estimated_total) > 0:
+                return _STATUS_PARTLY_EXPLAINED
+            return _STATUS_UNEXPLAINED
         return _STATUS_FULLY_EXPLAINED
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_MISSING_INPUTS:
         return _STATUS_NEEDS_SETUP
@@ -761,16 +751,38 @@ def _workbook_performance_next_action(row: Mapping[str, object]) -> str:
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if _has_text(missing_inputs):
         return f"Add missing YAML specifications: {_format_value(missing_inputs)}."
+    underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
+    performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
+    if underlying_estimated_total is not None and performance_change is not None:
+        residual = performance_change - underlying_estimated_total
+        if abs(residual) <= 0.00000001:
+            return "None"
+        if abs(underlying_estimated_total) > 0:
+            return "Review the Underlying Causes sheet for this portfolio and period."
+        return "Review the Underlying Causes sheet for this portfolio and period."
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
-        return "No action: changed rows explain the performance change."
+        return "None"
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
-        return "Review unexplained changed rows and add setup if needed."
-    return "Add setup so changed rows can explain the performance change."
+        return "Review unexplained difference rows and add setup if needed."
+    return "Add setup so rows can explain the performance difference."
 
 
 def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
-    """Return an empty workbook Portfolio Changes table."""
+    """Return a reviewer-facing Portfolio Differences row for clean comparisons."""
     return pl.DataFrame(
+        [
+            {
+                _pc_findings.PORTFOLIO_ID: "No portfolio performance differences found",
+                _pc_findings.FROM_DATE: None,
+                _pc_findings.THRU_DATE: None,
+                _PERFORMANCE_CHANGE: None,
+                _ESTIMATED_CAUSE_TOTAL: None,
+                _UNEXPLAINED_CHANGE: None,
+                _REVIEW_STATUS: "No differences",
+                _NEXT_ACTION: "None",
+                _REVIEW_KEY: "NO_PORTFOLIO_PERFORMANCE_DIFFERENCES",
+            }
+        ],
         schema={
             _pc_findings.PORTFOLIO_ID: pl.String,
             _pc_findings.FROM_DATE: pl.Date,
@@ -781,44 +793,133 @@ def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
             _REVIEW_STATUS: pl.String,
             _NEXT_ACTION: pl.String,
             _REVIEW_KEY: pl.String,
-        }
+        },
     )
 
 
 def _workbook_security_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return one workbook row per changed security period."""
     summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
-    if summary.is_empty():
+    security_totals = _workbook_security_underlying_impact_totals(findings)
+    rows: list[dict[str, object]] = []
+    if not summary.is_empty():
+        rows = [
+            _workbook_security_change_row(
+                {
+                    **row,
+                    "_underlying_estimated_total": security_totals.get(
+                        _workbook_security_period_key(row),
+                        0.0,
+                    ),
+                }
+            )
+            for row in summary.iter_rows(named=True)
+        ]
+    rows.extend(_workbook_missing_security_change_rows(findings, rows))
+    if not rows:
         return _workbook_empty_security_changes_table()
-    rows = [
-        _workbook_security_change_row(row)
-        for row in summary.iter_rows(named=True)
-    ]
     return _workbook_sorted_table(
         pl.DataFrame(rows),
         [_REVIEW_KEY, _pc_findings.SECURITY_ID],
     )
 
 
+def _workbook_security_underlying_impact_totals(
+    findings: pl.DataFrame,
+) -> dict[tuple[object, object, object, object], float]:
+    """Return security-level explained totals from underlying input rows."""
+    totals: dict[tuple[object, object, object, object], float] = {}
+    for row in _workbook_ranked_changed_rows(findings):
+        if not _workbook_is_underlying_cause_row(row):
+            continue
+        if not _has_text(row.get(_pc_findings.SECURITY_ID)):
+            continue
+        estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
+        if estimated_impact is None:
+            continue
+        key = _workbook_security_period_key(row)
+        totals[key] = totals.get(key, 0.0) + estimated_impact
+    return totals
+
+
+def _workbook_security_period_key(
+    row: Mapping[str, object],
+) -> tuple[object, object, object, object]:
+    """Return the workbook security-period key for a row."""
+    return (
+        row.get(_pc_findings.PORTFOLIO_ID),
+        row.get(_pc_findings.FROM_DATE),
+        row.get(_pc_findings.THRU_DATE),
+        row.get(_pc_findings.SECURITY_ID),
+    )
+
+
 def _workbook_security_change_row(row: Mapping[str, object]) -> dict[str, object]:
     """Return one security-level result row for the workbook."""
     performance_change = _number_or_none(row.get(_pc_explain.SECURITY_RETURN_DELTA))
+    explained_change = _number_or_none(row.get("_underlying_estimated_total"))
+    unexplained_change = None
+    if performance_change is not None:
+        unexplained_change = performance_change - (explained_change or 0.0)
     return {
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
         _PERFORMANCE_CHANGE: performance_change,
+        _ESTIMATED_CAUSE_TOTAL: explained_change,
+        _UNEXPLAINED_CHANGE: unexplained_change,
+        _REVIEW_STATUS: "Security Difference",
+        _NEXT_ACTION: (
+            "Review Underlying Causes for this security and period."
+        ),
+        _REVIEW_KEY: row.get(_REVIEW_KEY),
+    }
+
+
+def _workbook_missing_security_change_rows(
+    findings: pl.DataFrame,
+    security_rows: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    """Return placeholder rows for portfolio periods without security differences."""
+    coverage = _with_period_review_key(
+        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    )
+    if coverage.is_empty():
+        return []
+
+    security_period_keys = {
+        _workbook_period_key(row)
+        for row in security_rows
+    }
+    rows: list[dict[str, object]] = []
+    for row in coverage.iter_rows(named=True):
+        if _workbook_period_key(row) in security_period_keys:
+            continue
+        rows.append(_workbook_missing_security_change_row(row))
+    return rows
+
+
+def _workbook_missing_security_change_row(
+    row: Mapping[str, object],
+) -> dict[str, object]:
+    """Return a reviewer-facing placeholder for periods with no security differences."""
+    return {
+        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _pc_findings.SECURITY_ID: "No security performance differences found",
+        _PERFORMANCE_CHANGE: None,
         _ESTIMATED_CAUSE_TOTAL: None,
-        _UNEXPLAINED_CHANGE: performance_change,
-        _REVIEW_STATUS: "Security Changed",
-        _NEXT_ACTION: "Review What Changed rows for related source-data changes.",
+        _UNEXPLAINED_CHANGE: None,
+        _REVIEW_STATUS: "No differences",
+        _NEXT_ACTION: "None",
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
 
 
 def _workbook_empty_security_changes_table() -> pl.DataFrame:
-    """Return an empty workbook Security Changes table."""
+    """Return an empty workbook Security Differences table."""
     return pl.DataFrame(
         schema={
             _pc_findings.PORTFOLIO_ID: pl.String,
@@ -835,42 +936,259 @@ def _workbook_empty_security_changes_table() -> pl.DataFrame:
     )
 
 
-def _workbook_what_changed_table(findings: pl.DataFrame) -> pl.DataFrame:
-    """Return concrete changed items with decimal impact estimates when available."""
+def _workbook_ranked_changed_rows(findings: pl.DataFrame) -> list[dict[str, object]]:
+    """Return ranked changed rows with selected additive impacts marked."""
     evidence = _with_period_review_key(
         _top_evidence_table(findings, top_evidence_limit=findings.height)
     )
     if evidence.is_empty():
-        return _workbook_empty_what_changed_table()
+        return []
+
+    selected_impact_bases = _workbook_selected_impact_basis_keys(findings)
+    rows: list[dict[str, object]] = []
+    for row in evidence.iter_rows(named=True):
+        rows.append(_workbook_selected_impact_row(row, selected_impact_bases))
+    return rows
+
+
+def _workbook_underlying_causes_table(
+    findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None = None,
+) -> pl.DataFrame:
+    """Return input rows that may directly explain performance differences."""
     rows = [
-        _workbook_what_changed_row(row)
-        for row in evidence.iter_rows(named=True)
-        if _workbook_include_changed_row(row)
+        _workbook_changed_item_row(row, comparison_path=comparison_path)
+        for row in _workbook_ranked_changed_rows(findings)
+        if _workbook_is_underlying_cause_row(row)
     ]
+    rows.extend(_workbook_missing_underlying_cause_rows(findings, rows))
     if not rows:
-        return _workbook_empty_what_changed_table()
+        return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
         pl.DataFrame(rows),
-        [_REVIEW_KEY, _USE_PRIORITY, _pc_explain.REVIEW_RANK],
+        _workbook_left_review_sort_columns(),
     )
 
 
-def _workbook_what_changed_row(row: Mapping[str, object]) -> dict[str, object]:
+def _workbook_missing_underlying_cause_rows(
+    findings: pl.DataFrame,
+    underlying_rows: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    """Return placeholder rows for changed periods without input causes."""
+    coverage = _with_period_review_key(
+        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    )
+    if coverage.is_empty():
+        return []
+
+    underlying_period_keys = {
+        _workbook_period_key(row)
+        for row in underlying_rows
+    }
+    rows: list[dict[str, object]] = []
+    for row in coverage.iter_rows(named=True):
+        if _workbook_period_key(row) in underlying_period_keys:
+            continue
+        rows.append(_workbook_missing_underlying_cause_row(row))
+    return rows
+
+
+def _workbook_missing_underlying_cause_row(
+    row: Mapping[str, object],
+) -> dict[str, object]:
+    """Return a reviewer-facing placeholder for periods with no source cause."""
+    return {
+        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
+        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
+        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _USE: _USE_DIAGNOSTIC,
+        _CHANGE_LABEL: "No underlying input differences found",
+        _pc_findings.SECURITY_ID: None,
+        _pc_findings.SNAPSHOT_A_VALUE: None,
+        _pc_findings.SNAPSHOT_B_VALUE: None,
+        _CHANGE: None,
+        _ESTIMATED_IMPACT: None,
+        _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
+        _NEXT_ACTION: (
+            "Review Derived Checks, Raw Audit Trail, missing datasets, or vendor "
+            "methodology."
+        ),
+        _REQUIRED_YAML_SETUP: (
+            "No underlying input differences were found. Review Derived "
+            "Checks, Raw Audit Trail, missing datasets, or vendor methodology."
+        ),
+        _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
+        _pc_findings.SOURCE_COLUMN: None,
+        _pc_findings.FINDING_CODE: None,
+        _pc_explain.REVIEW_RANK: 999999,
+        _USE_PRIORITY: _workbook_use_priority(_USE_DIAGNOSTIC),
+        _REVIEW_KEY: row.get(_REVIEW_KEY),
+    }
+
+
+def _workbook_derived_checks_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return derived performance rows used as checks, not root causes."""
+    rows = [
+        _workbook_changed_item_row(_workbook_non_additive_row(row))
+        for row in _workbook_ranked_changed_rows(findings)
+        if _workbook_is_derived_check_row(row)
+    ]
+    if not rows:
+        return _workbook_empty_changed_item_table()
+    return _workbook_sorted_table(
+        pl.DataFrame(rows),
+        _workbook_left_review_sort_columns(),
+    )
+
+
+def _workbook_context_table(findings: pl.DataFrame) -> pl.DataFrame:
+    """Return review-context rows that are not additive return explanations."""
+    rows = [
+        _workbook_changed_item_row(_workbook_non_additive_row(row))
+        for row in _workbook_ranked_changed_rows(findings)
+        if _workbook_is_context_row(row)
+    ]
+    if not rows:
+        return _workbook_empty_changed_item_table()
+    return _workbook_sorted_table(
+        pl.DataFrame(rows),
+        _workbook_left_review_sort_columns(),
+    )
+
+
+def _workbook_left_review_sort_columns() -> tuple[str, ...]:
+    """Return the shared left-column sort order for review detail sheets."""
+    return (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _pc_findings.DATASET,
+        _pc_findings.SOURCE_COLUMN,
+        _pc_findings.SECURITY_ID,
+    )
+
+
+def _workbook_selected_impact_basis_keys(
+    findings: pl.DataFrame,
+) -> set[tuple[object, object, object, object]]:
+    """Return period/impact-basis keys included in Portfolio Differences totals."""
+    causes = _pc_explain.portfolio_period_cause_summary(findings)
+    if causes.is_empty():
+        return set()
+
+    keys: set[tuple[object, object, object, object]] = set()
+    for row in causes.iter_rows(named=True):
+        if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
+            continue
+        impact_basis = row.get(_pc_explain.IMPACT_BASIS)
+        if impact_basis == _pc_explain.IMPACT_BASIS_NO_ESTIMATE:
+            continue
+        keys.add(
+            (
+                row.get(_pc_findings.PORTFOLIO_ID),
+                row.get(_pc_findings.FROM_DATE),
+                row.get(_pc_findings.THRU_DATE),
+                impact_basis,
+            )
+        )
+    return keys
+
+
+def _workbook_selected_impact_row(
+    row: Mapping[str, object],
+    selected_impact_bases: set[tuple[object, object, object, object]],
+) -> dict[str, object]:
+    """Return row with unselected candidate estimates cleared for the workbook."""
+    row_dict = dict(row)
+    if _number_or_none(row_dict.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
+        return row_dict
+
+    key = (
+        row_dict.get(_pc_findings.PORTFOLIO_ID),
+        row_dict.get(_pc_findings.FROM_DATE),
+        row_dict.get(_pc_findings.THRU_DATE),
+        row_dict.get(_pc_explain.IMPACT_BASIS),
+    )
+    if key in selected_impact_bases:
+        return row_dict
+
+    row_dict[_pc_explain.ESTIMATED_RETURN_IMPACT] = None
+    row_dict[_pc_explain.IMPACT_BASIS] = _pc_explain.IMPACT_BASIS_NO_ESTIMATE
+    row_dict[_pc_explain.IMPACT_METHOD] = None
+    row_dict[_pc_explain.IMPACT_MESSAGE] = (
+        "Another estimate was selected for this portfolio-period cause area."
+    )
+    return row_dict
+
+
+def _workbook_non_additive_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return a workbook row with explained-difference fields cleared."""
+    row_dict = dict(row)
+    row_dict[_pc_explain.ESTIMATED_RETURN_IMPACT] = None
+    row_dict[_pc_explain.IMPACT_BASIS] = _pc_explain.IMPACT_BASIS_NO_ESTIMATE
+    row_dict[_pc_explain.IMPACT_METHOD] = None
+    return row_dict
+
+
+def _workbook_is_underlying_cause_row(row: Mapping[str, object]) -> bool:
+    """Return whether row is an underlying input-cause candidate."""
+    return _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE
+
+
+def _workbook_is_derived_check_row(row: Mapping[str, object]) -> bool:
+    """Return whether row is a derived performance check, not a root cause."""
+    return _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DERIVED_CHECK
+
+
+def _workbook_is_context_row(row: Mapping[str, object]) -> bool:
+    """Return whether row is context-only evidence."""
+    return _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_CONTEXT
+
+
+def _workbook_row_kind(row: Mapping[str, object]) -> str:
+    """Return the workbook presentation role for a finding row."""
+    if row.get(_pc_findings.DATASET) == _NO_UNDERLYING_CAUSE_DATASET:
+        return _WORKBOOK_ROW_KIND_DIAGNOSTIC
+    if row.get(_pc_findings.EVIDENCE_ROLE) == _pc_findings.CONTEXT.value:
+        return _WORKBOOK_ROW_KIND_CONTEXT
+    if row.get(_pc_findings.DATASET) in {
+        pc_cols.PORTFOLIO_PERFORMANCE,
+        pc_cols.SECURITY_PERFORMANCE,
+    }:
+        return _WORKBOOK_ROW_KIND_DERIVED_CHECK
+    if row.get(_pc_findings.EVIDENCE_ROLE) == _pc_findings.DIRECT_INPUT.value:
+        return _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE
+    return _WORKBOOK_ROW_KIND_OTHER
+
+
+def _workbook_changed_item_row(
+    row: Mapping[str, object],
+    *,
+    comparison_path: util.PathLike | None = None,
+) -> dict[str, object]:
     """Return one plain-English changed-item workbook row."""
     estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
     row_use = _workbook_row_use(row)
+    impact_status = _workbook_impact_status(row, estimated_impact)
     return {
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
         _USE: row_use,
-        _WHAT_CHANGED: _workbook_change_label(row),
+        _CHANGE_LABEL: _workbook_change_label(row),
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
         _pc_findings.SNAPSHOT_A_VALUE: row.get(_pc_findings.SNAPSHOT_A_VALUE),
         _pc_findings.SNAPSHOT_B_VALUE: row.get(_pc_findings.SNAPSHOT_B_VALUE),
         _CHANGE: row.get(_pc_findings.DELTA_B_MINUS_A),
         _ESTIMATED_IMPACT: estimated_impact,
-        _NEXT_ACTION: _workbook_next_action(row, estimated_impact, row_use),
+        _IMPACT_STATUS: impact_status,
+        _NEXT_ACTION: _workbook_next_action(row, estimated_impact, row_use, impact_status),
+        _REQUIRED_YAML_SETUP: _workbook_required_yaml_setup(
+            row,
+            estimated_impact,
+            comparison_path=comparison_path,
+        ),
         _pc_findings.DATASET: row.get(_pc_findings.DATASET),
         _pc_findings.SOURCE_COLUMN: row.get(_pc_findings.SOURCE_COLUMN),
         _pc_findings.FINDING_CODE: row.get(_pc_findings.FINDING_CODE),
@@ -889,14 +1207,10 @@ def _workbook_change_label(row: Mapping[str, object]) -> str:
     return _format_value(row.get(_pc_findings.MESSAGE))
 
 
-def _workbook_include_changed_row(row: Mapping[str, object]) -> bool:
-    """Return whether a row belongs on the What Changed worksheet."""
-    dataset = row.get(_pc_findings.DATASET)
-    return dataset not in {pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.SECURITY_PERFORMANCE}
-
-
 def _workbook_row_use(row: Mapping[str, object]) -> str:
     """Return how a changed item should be used during review."""
+    if _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC:
+        return _USE_DIAGNOSTIC
     evidence_role = row.get(_pc_findings.EVIDENCE_ROLE)
     if evidence_role == _pc_findings.CONTEXT.value:
         return _USE_REVIEW_CONTEXT
@@ -908,49 +1222,202 @@ def _workbook_use_priority(row_use: str) -> int:
     return {
         _USE_EXPLAINS_CHANGE: 0,
         _USE_REVIEW_CONTEXT: 1,
+        _USE_DIAGNOSTIC: 2,
     }.get(row_use, 9)
+
+
+def _workbook_impact_status(
+    row: Mapping[str, object],
+    estimated_impact: float | None,
+) -> str:
+    """Return a compact status for row-level impact treatment."""
+    if estimated_impact is not None:
+        return _IMPACT_STATUS_ESTIMATED
+    if (
+        _workbook_is_context_row(row)
+        or _workbook_is_derived_check_row(row)
+        or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
+        or _workbook_has_evidence_only_policy(row)
+    ):
+        return _IMPACT_STATUS_REVIEW_ONLY
+    return _IMPACT_STATUS_MISSING_METHOD
 
 
 def _workbook_next_action(
     row: Mapping[str, object],
     estimated_impact: float | None,
     row_use: str,
+    impact_status: str,
 ) -> str:
     """Return one action-oriented note for a changed workbook row."""
     if estimated_impact is not None:
-        return "No action: this row contributes to Explained Change."
+        return "None"
 
     dataset = _format_value(row.get(_pc_findings.DATASET))
     source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
-    impact_message = _format_value(row.get(_pc_explain.IMPACT_MESSAGE)).lower()
-    if dataset == pc_cols.PRICES:
-        return "Determine why the price changed."
-    if dataset == pc_cols.TRANSACTIONS:
-        return "Review transaction change or add missing YAML specifications."
-    if dataset in {pc_cols.POSITIONS, pc_cols.CASH}:
-        return f"Review why {source_column or dataset} changed."
-    if "contribution" in impact_message or source_column == pc_cols.CONTRIBUTION:
-        return "Add contribution_impact_methods setting to YAML."
+    if dataset in {pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.SECURITY_PERFORMANCE}:
+        return (
+            "This is simply a difference in the raw performance datasets. Check "
+            "the Underlying Causes sheet to see what explains it."
+        )
+    if _workbook_has_evidence_only_policy(row):
+        return "Review this input difference; YAML marks it as evidence-only."
+    if impact_status == _IMPACT_STATUS_MISSING_METHOD:
+        return _workbook_missing_impact_method_action(dataset, source_column)
     if row_use == _USE_REVIEW_CONTEXT:
-        return "Review as context; not currently used in Explained Change."
-    return "Review the changed source value and decide whether setup is needed."
+        return "Review context; not included in explained performance difference."
+    dataset_actions = {
+        pc_cols.PRICES: "Review price change.",
+        pc_cols.TRANSACTIONS: _workbook_review_change_action(
+            "transaction",
+            source_column,
+        ),
+        pc_cols.POSITIONS: _workbook_review_change_action("position", source_column),
+        pc_cols.CASH: _workbook_review_change_action("cash", source_column),
+    }
+    return dataset_actions.get(
+        dataset,
+        _workbook_review_change_action("input", source_column),
+    )
 
 
-def _workbook_empty_what_changed_table() -> pl.DataFrame:
-    """Return an empty workbook What Changed table."""
+def _workbook_required_yaml_setup(
+    row: Mapping[str, object],
+    estimated_impact: float | None,
+    *,
+    comparison_path: util.PathLike | None,
+) -> str:
+    """Return the YAML setup required before this row can explain performance."""
+    if estimated_impact is not None:
+        return "None"
+    if (
+        _workbook_is_context_row(row)
+        or _workbook_is_derived_check_row(row)
+        or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
+    ):
+        return "None; this row is review context, not an underlying input difference."
+    if _workbook_has_evidence_only_policy(row):
+        return "None; configured as evidence-only in comparison YAML."
+
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    dataset_column = _workbook_dataset_column_label(dataset, source_column)
+    yaml_path = _workbook_yaml_path_label(comparison_path)
+    if dataset == pc_cols.TRANSACTIONS:
+        if source_column != pc_cols.AMOUNT:
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        if _has_text(row.get(_pc_findings.TRANSACTION_IMPACT_POLICY)):
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        return (
+            "Specify the YAML transaction_impact_methods.performance.method, "
+            "transaction_impact_methods.performance.denominator_source, and "
+            f"transaction_rules for each transaction code in {yaml_path}."
+        )
+    if dataset == pc_cols.POSITIONS:
+        if source_column not in {pc_cols.MARKET_VALUE, pc_cols.ACCRUED}:
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        if source_column == pc_cols.ACCRUED:
+            return (
+                "Specify the YAML position_impact_methods.accrued.method and "
+                "position_impact_methods.accrued.denominator_source in "
+                f"{yaml_path}."
+            )
+        return (
+            "Specify the YAML position_impact_methods.market_value.method and "
+            "position_impact_methods.market_value.denominator_source in "
+            f"{yaml_path}."
+        )
+    if dataset == pc_cols.PRICES:
+        if source_column != pc_cols.PRICE:
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        return (
+            "Specify the YAML price_impact_methods.price.method and "
+            f"price_impact_methods.price.weight_source in {yaml_path}."
+        )
+    return f"No supported YAML impact method exists yet for {dataset_column}."
+
+
+def _workbook_yaml_path_label(comparison_path: util.PathLike | None) -> str:
+    """Return a compact YAML path label for workbook setup instructions."""
+    if comparison_path is None:
+        return "comparison YAML"
+    return str(Path(comparison_path))
+
+
+def _workbook_has_evidence_only_policy(row: Mapping[str, object]) -> bool:
+    """Return whether a row has explicit YAML evidence-only treatment."""
+    policy = row.get(_pc_findings.IMPACT_POLICY)
+    return (
+        isinstance(policy, str)
+        and policy.startswith(_pc_findings.IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
+    )
+
+
+def _workbook_dataset_column_label(dataset: str, source_column: str) -> str:
+    """Return ``dataset.column`` text for impact-method setup messages."""
+    if dataset and source_column:
+        return f"{dataset}.{source_column}"
+    if dataset:
+        return dataset
+    if source_column:
+        return source_column
+    return "this input field"
+
+
+def _workbook_missing_impact_method_action(dataset: str, source_column: str) -> str:
+    """Return action text for source rows with no additive impact method."""
+    if dataset == pc_cols.PRICES:
+        return "Review price change; add price impact method before estimating."
+    if dataset == pc_cols.TRANSACTIONS:
+        return _workbook_add_method_action("transaction", source_column)
+    if dataset == pc_cols.POSITIONS:
+        return _workbook_add_method_action("position", source_column)
+    if dataset == pc_cols.CASH:
+        return _workbook_add_method_action("cash", source_column)
+    return _workbook_add_method_action("input", source_column)
+
+
+def _workbook_review_change_action(dataset_label: str, source_column: str) -> str:
+    """Return standardized action text for review-only changed source values."""
+    return f"Review {_workbook_source_change_label(dataset_label, source_column)} change."
+
+
+def _workbook_add_method_action(dataset_label: str, source_column: str) -> str:
+    """Return standardized action text for missing impact-method rows."""
+    return (
+        f"Review {_workbook_source_change_label(dataset_label, source_column)} change; "
+        f"add {dataset_label} impact method before estimating."
+    )
+
+
+def _workbook_source_change_label(dataset_label: str, source_column: str) -> str:
+    """Return compact dataset/field wording for action text."""
+    if source_column:
+        return f"{dataset_label} {source_column}"
+    return dataset_label
+
+
+def _workbook_empty_changed_item_table() -> pl.DataFrame:
+    """Return an empty workbook changed-item table."""
     return pl.DataFrame(
         schema={
             _pc_findings.PORTFOLIO_ID: pl.String,
             _pc_findings.FROM_DATE: pl.Date,
             _pc_findings.THRU_DATE: pl.Date,
             _USE: pl.String,
-            _WHAT_CHANGED: pl.String,
+            _CHANGE_LABEL: pl.String,
             _pc_findings.SECURITY_ID: pl.String,
             _pc_findings.SNAPSHOT_A_VALUE: pl.String,
             _pc_findings.SNAPSHOT_B_VALUE: pl.String,
             _CHANGE: pl.Float64,
             _ESTIMATED_IMPACT: pl.Float64,
+            _IMPACT_STATUS: pl.String,
             _NEXT_ACTION: pl.String,
+            _REQUIRED_YAML_SETUP: pl.String,
             _pc_findings.DATASET: pl.String,
             _pc_findings.SOURCE_COLUMN: pl.String,
             _pc_findings.FINDING_CODE: pl.String,
@@ -962,7 +1429,7 @@ def _workbook_empty_what_changed_table() -> pl.DataFrame:
 
 
 def _workbook_portfolio_changes_columns() -> tuple[str, ...]:
-    """Return Portfolio Changes worksheet columns."""
+    """Return Portfolio Differences worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -977,7 +1444,7 @@ def _workbook_portfolio_changes_columns() -> tuple[str, ...]:
 
 
 def _workbook_security_changes_columns() -> tuple[str, ...]:
-    """Return Security Changes worksheet columns."""
+    """Return Security Differences worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -992,24 +1459,38 @@ def _workbook_security_changes_columns() -> tuple[str, ...]:
     )
 
 
-def _workbook_what_changed_columns() -> tuple[str, ...]:
-    """Return What Changed worksheet columns."""
+def _workbook_underlying_cause_columns() -> tuple[str, ...]:
+    """Return Underlying Causes worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
         _pc_findings.THRU_DATE,
-        _USE,
-        _WHAT_CHANGED,
+        _pc_findings.DATASET,
+        _pc_findings.SOURCE_COLUMN,
         _pc_findings.SECURITY_ID,
         _pc_findings.SNAPSHOT_A_VALUE,
         _pc_findings.SNAPSHOT_B_VALUE,
         _CHANGE,
         _ESTIMATED_IMPACT,
-        _NEXT_ACTION,
+        _REQUIRED_YAML_SETUP,
+        _REVIEW_KEY,
+    )
+
+
+def _workbook_non_additive_change_columns() -> tuple[str, ...]:
+    """Return non-additive Derived Checks and Context worksheet columns."""
+    return (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
         _pc_findings.DATASET,
         _pc_findings.SOURCE_COLUMN,
-        _pc_findings.FINDING_CODE,
-        _pc_explain.REVIEW_RANK,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.SNAPSHOT_A_VALUE,
+        _pc_findings.SNAPSHOT_B_VALUE,
+        _CHANGE,
+        _CHANGE_LABEL,
+        _NEXT_ACTION,
         _REVIEW_KEY,
     )
 
@@ -1047,14 +1528,16 @@ def _workbook_column_labels() -> dict[str, str]:
         _pc_findings.SECURITY_ID: "Security",
         _pc_findings.FROM_DATE: "From Date",
         _pc_findings.THRU_DATE: "Thru Date",
-        _PERFORMANCE_CHANGE: "Performance Change",
-        _ESTIMATED_CAUSE_TOTAL: "Explained Change",
-        _UNEXPLAINED_CHANGE: "Unexplained Change",
+        _PERFORMANCE_CHANGE: "Performance Difference",
+        _ESTIMATED_CAUSE_TOTAL: "Explained Difference",
+        _UNEXPLAINED_CHANGE: "Unexplained Difference",
         _USE: "Purpose",
-        _WHAT_CHANGED: "What Changed",
-        _CHANGE: "Change",
-        _ESTIMATED_IMPACT: "Change Explained By This Row",
+        _CHANGE_LABEL: "What Changed",
+        _CHANGE: "B - A Difference",
+        _ESTIMATED_IMPACT: "Performance Difference Explained",
+        _IMPACT_STATUS: "Impact Status",
         _NEXT_ACTION: "Next Action",
+        _REQUIRED_YAML_SETUP: "Required YAML Setup",
         _pc_explain.PORTFOLIO_RETURN_DELTA: "Return Delta",
         _REVIEW_STATUS: "Status",
         _PROBLEM: "Problem",
@@ -1092,52 +1575,6 @@ def _workbook_column_labels() -> dict[str, str]:
     }
 
 
-def _add_workbook_sheet(
-    workbook: Any,
-    sheet: _ReviewWorkbookSheet,
-    styles: Mapping[str, Any],
-) -> None:
-    """Add one formatted worksheet to a workbook."""
-    worksheet = workbook.create_sheet(sheet.sheet_name)
-    table = sheet.table
-    columns = _workbook_sheet_columns(sheet)
-    headers = [_workbook_column_label(column, sheet.labels) for column in columns]
-    worksheet.append(headers)
-    for row in table.select(columns).iter_rows(named=True):
-        worksheet.append(
-            [
-                _workbook_cell_value(row[column], column_name=column)
-                for column in columns
-            ]
-        )
-
-    worksheet.freeze_panes = "A2"
-    max_column_letter = worksheet.cell(row=1, column=len(columns)).column_letter
-    worksheet.auto_filter.ref = f"A1:{max_column_letter}{max(worksheet.max_row, 1)}"
-    for column_name, cell in zip(columns, worksheet[1]):
-        cell.font = styles["header_font"]
-        cell.fill = styles["header_fill"]
-        cell.comment = styles["comment_class"](
-            _workbook_column_tooltip(column_name),
-            "ppar",
-        )
-    _format_workbook_columns(worksheet, columns, headers)
-
-
-def _workbook_sheet_columns(sheet: _ReviewWorkbookSheet) -> tuple[str, ...]:
-    """Return columns for a workbook sheet, preserving configured order."""
-    if sheet.columns is not None:
-        return tuple(column for column in sheet.columns if column in sheet.table.columns)
-    return tuple(sheet.table.columns)
-
-
-def _workbook_column_label(column: str, labels: Mapping[str, str] | None) -> str:
-    """Return the display label for a workbook column."""
-    if labels is None:
-        return column
-    return labels.get(column, column)
-
-
 def _workbook_column_tooltip(column: str) -> str:
     """Return explanatory header text for a workbook column comment."""
     tooltips = {
@@ -1152,13 +1589,26 @@ def _workbook_column_tooltip(column: str) -> str:
         _PERFORMANCE_CHANGE: (
             "Snapshot B portfolio return minus snapshot A portfolio return."
         ),
-        _ESTIMATED_CAUSE_TOTAL: "Total performance change explained by What Changed.",
-        _UNEXPLAINED_CHANGE: "Performance change less explained change.",
-        _USE: "Whether this row explains the change or is review-only context.",
-        _WHAT_CHANGED: "Plain-English changed data item.",
-        _CHANGE: "Snapshot B value minus snapshot A value for the changed item.",
-        _ESTIMATED_IMPACT: "Decimal performance change explained by this row.",
+        _ESTIMATED_CAUSE_TOTAL: (
+            "Total performance difference explained by Underlying Causes rows."
+        ),
+        _UNEXPLAINED_CHANGE: "Performance difference less explained difference.",
+        _USE: "Workbook row category used for sorting and compatibility.",
+        _CHANGE_LABEL: "Plain-English changed data item.",
+        _CHANGE: "Snapshot B value minus snapshot A value for the compared item.",
+        _ESTIMATED_IMPACT: (
+            "Decimal portfolio performance difference explained by this underlying "
+            "input row."
+        ),
+        _IMPACT_STATUS: (
+            "Whether this row has an additive estimate, is missing an impact method, "
+            "or is review-only."
+        ),
         _NEXT_ACTION: "Recommended reviewer action for this changed item.",
+        _REQUIRED_YAML_SETUP: (
+            "YAML setup needed before this input row can receive a performance "
+            "difference explanation."
+        ),
         _pc_explain.PORTFOLIO_RETURN_DELTA: (
             "Snapshot B portfolio return minus snapshot A portfolio return."
         ),
@@ -1223,55 +1673,6 @@ def _workbook_column_tooltip(column: str) -> str:
     )
 
 
-def _workbook_cell_value(value: object, *, column_name: str) -> object:
-    """Return a scalar value suitable for openpyxl cells."""
-    if (
-        _is_workbook_return_column(column_name)
-        and isinstance(value, (int, float))
-        and not isinstance(value, bool)
-    ):
-        return round(float(value), 4)
-    if isinstance(value, (dt.date, dt.datetime, int, float, str, bool)) or value is None:
-        return value
-    return _format_value(value)
-
-
-def _format_workbook_columns(
-    worksheet: Any,
-    columns: Sequence[str],
-    headers: Sequence[str],
-) -> None:
-    """Apply readable widths and common number formats to a worksheet."""
-    for column_index, (column_name, header) in enumerate(zip(columns, headers), start=1):
-        column_letter = worksheet.cell(row=1, column=column_index).column_letter
-        max_width = len(header)
-        for row_index in range(2, worksheet.max_row + 1):
-            cell = worksheet.cell(row=row_index, column=column_index)
-            max_width = max(max_width, len(_format_value(cell.value)))
-            if column_name in {_pc_findings.FROM_DATE, _pc_findings.THRU_DATE}:
-                cell.number_format = "yyyy-mm-dd"
-            elif _is_workbook_return_column(column_name):
-                cell.number_format = "0.0000"
-        worksheet.column_dimensions[column_letter].width = min(max(max_width + 2, 12), 60)
-
-
-def _is_workbook_return_column(column_name: str) -> bool:
-    """Return whether a workbook column should be shown as a decimal return."""
-    normalized_name = column_name.lower()
-    return normalized_name in {
-        pc_cols.PORTFOLIO_RETURN,
-        pc_cols.SECURITY_RETURN,
-        _PERFORMANCE_CHANGE,
-        _ESTIMATED_CAUSE_TOTAL,
-        _UNEXPLAINED_CHANGE,
-        _ESTIMATED_IMPACT,
-        _pc_explain.PORTFOLIO_RETURN_DELTA,
-        _pc_explain.SECURITY_RETURN_DELTA,
-        _pc_explain.ESTIMATED_RETURN_IMPACT,
-        _pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL,
-    }
-
-
 def _number_or_none(value: object) -> float | None:
     """Return a float for numeric values, preserving missing/non-numeric values."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -1294,11 +1695,23 @@ def _write_report_bundle_readme(
 ) -> Path:
     """Write a short bundle README and return the normalized path."""
     workbook_line = (
-        "- `review_workbook.xlsx`: optional Excel workbook with Portfolio Changes, "
-        "Security Changes, What Changed, and Raw Audit Trail sheets."
+        "- `review_workbook.xlsx`: primary Excel review workbook with Portfolio Differences, "
+        "Security Differences, Underlying Causes, Derived Checks, Context, and "
+        "Raw Audit Trail sheets."
+    )
+    primary_artifact_lines = (
+        [workbook_line]
+        if include_workbook
+        else ["- `report.html`: primary browser review report with reviewer cues and tables."]
+    )
+    opening_line = (
+        "Open `review_workbook.xlsx` first for the workbook review. Use `report.html` "
+        "when you want a browser-friendly narrative view."
+        if include_workbook
+        else "Open `report.html` for the browser report, or `report.md` for a plain-text review."
     )
     first_review_step = (
-        "1. Open `report.html`, or start `review_workbook.xlsx` at Portfolio Changes."
+        "1. Open `review_workbook.xlsx` and start with the Portfolio Differences sheet."
         if include_workbook
         else "1. Open `report.html` and start with the Problems grid."
     )
@@ -1306,15 +1719,16 @@ def _write_report_bundle_readme(
         f"# {_escape_markdown_text(title)}",
         "",
         "This directory is a portable performance-comparison review bundle.",
-        "Open `report.html` for the browser report, or `report.md` for a plain-text review.",
+        opening_line,
         "",
-        "## Primary Artifacts",
+        "## Primary Review Artifact",
         "",
-        "- `report.html`: standalone browser report with reviewer cues and tables.",
-        "- `report.md`: Markdown version of the same review narrative.",
-        "- `manifest.json`: machine-readable artifact and row-count metadata.",
-        "- `findings.csv`: complete finding-level comparison output.",
-        *([workbook_line] if include_workbook else []),
+        *primary_artifact_lines,
+        "",
+        "## Secondary Review Views",
+        "",
+        "- `report.html`: browser-friendly narrative report with reviewer cues and tables.",
+        "- `report.md`: plain-text Markdown version of the same review narrative.",
         "",
         "## Recommended Review Order",
         "",
@@ -1327,8 +1741,10 @@ def _write_report_bundle_readme(
         "5. Treat high-priority context as review guidance only; it is not included in "
         "return-impact estimates.",
         "",
-        "## Review Tables",
+        "## Audit/Export Files",
         "",
+        "- `findings.csv`: complete finding-level comparison output.",
+        "- `manifest.json`: machine-readable artifact and row-count metadata.",
         *_report_bundle_readme_table_lines(tables),
     ]
     output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
@@ -1536,67 +1952,7 @@ def _report_bundle_workbook_issues(
     artifacts: Mapping[str, object],
 ) -> list[str]:
     """Return optional XLSX review workbook validation issues."""
-    artifact_file = artifacts.get(_REVIEW_WORKBOOK_ARTIFACT)
-    if artifact_file is None:
-        return []
-    if not isinstance(artifact_file, str) or not artifact_file:
-        return ["manifest artifact 'review_workbook' is malformed"]
-
-    workbook_path = bundle_path / artifact_file
-    if not workbook_path.is_file():
-        return [f"artifact file {artifact_file!r} is missing"]
-
-    try:
-        # Optional dependency: only needed when validating an optional workbook.
-        # pylint: disable=import-outside-toplevel
-        from openpyxl import load_workbook  # type: ignore[import-not-found]
-    except ImportError:
-        return [
-            "review_workbook.xlsx cannot be validated because optional dependency "
-            '"ppar[excel]" is not installed'
-        ]
-
-    try:
-        workbook = load_workbook(workbook_path, read_only=True, data_only=True)
-    except Exception as error:  # pylint: disable=broad-exception-caught
-        return [f"review_workbook.xlsx could not be opened: {error}"]
-
-    issues = _review_workbook_sheet_issues(workbook)
-    workbook.close()
-    return issues
-
-
-def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
-    """Return review workbook sheet and header validation issues."""
-    issues: list[str] = []
-    sheet_names = tuple(str(name) for name in workbook.sheetnames)
-    for sheet_name in _REVIEW_WORKBOOK_EXPECTED_SHEETS:
-        if sheet_name not in sheet_names:
-            issues.append(f"review_workbook.xlsx is missing sheet {sheet_name!r}")
-            continue
-        issues.extend(_review_workbook_header_issues(workbook[sheet_name], sheet_name))
-    return issues
-
-
-def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]:
-    """Return header validation issues for one review workbook sheet."""
-    rows = worksheet.iter_rows(min_row=1, max_row=1, values_only=True)
-    try:
-        headers = tuple(str(value) for value in next(rows) if value is not None)
-    except StopIteration:
-        return [f"review_workbook.xlsx sheet {sheet_name!r} has no header row"]
-
-    missing_headers = [
-        header
-        for header in _REVIEW_WORKBOOK_REQUIRED_HEADERS[sheet_name]
-        if header not in headers
-    ]
-    if not missing_headers:
-        return []
-    return [
-        f"review_workbook.xlsx sheet {sheet_name!r} is missing headers "
-        f"{missing_headers}"
-    ]
+    return _pc_workbook.workbook_artifact_issues(bundle_path, artifacts)
 
 
 def _run_summary_section(
@@ -3197,6 +3553,10 @@ def _missing_inputs_action_required(missing_inputs: object) -> str:
     """Return a YAML-oriented action for missing impact inputs."""
     text = _format_value(missing_inputs).lower()
     actions: list[str] = []
+    if "market value" in text or "position" in text:
+        actions.append("configure `position_impact_methods` for market value")
+    if "price" in text:
+        actions.append("configure `price_impact_methods` for price")
     if "transaction impact method" in text or "return-impact method" in text:
         actions.append("configure `transaction_impact_methods` with an explicit method")
     if "defensible impact method" in text:
