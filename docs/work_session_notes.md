@@ -87,6 +87,7 @@ Run these checks before considering the current workbook/report work ready:
   tests.test_performance_comparison_compare \
   tests.test_performance_comparison_report \
   tests.test_performance_comparison_report_script \
+  tests.test_performance_comparison_workbook_contract \
   tests.test_package_metadata
 ./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
 ./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
@@ -102,7 +103,8 @@ Run these checks before considering the current workbook/report work ready:
   ppar/performance_comparison/workbook.py \
   scripts/performance_comparison_report_bundle.py \
   tests/test_performance_comparison_report.py \
-  tests/test_performance_comparison_report_script.py
+  tests/test_performance_comparison_report_script.py \
+  tests/test_performance_comparison_workbook_contract.py
 git diff --check
 ```
 

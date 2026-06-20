@@ -148,27 +148,23 @@ ppar-performance-comparison-validate-config
 The performance comparison feature compares two source-data snapshots and helps
 explain why reported portfolio performance changed between extraction dates. It
 loads normalized portfolio performance, security performance, transactions,
-positions, prices, FX rates, cash, and security-reference data; emits stable
-findings; and writes reviewer-oriented Markdown, HTML, CSV, optional XLSX, and
-bundle outputs.
+positions, prices, FX rates, cash, and security-reference data, then writes a
+review bundle with HTML, Markdown, CSV, manifest, and optional XLSX workbook
+artifacts.
 
-Start with these references instead of treating this root README as the full
-manual:
+Use these entry points:
 
-- [Repository Guide](docs/repository_guide.md) for a high-level map of the
-  README files, scripts, demos, test fixtures, validators, and generated
-  outputs.
-- [Performance Comparison Design Notes](docs/performance_comparison_design.md)
-  for the feature model, current implementation checkpoint, YAML semantics, and
-  report bundle shape.
-- [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md) for exact demo
-  YAML files, XLSX workbook commands, and expected outputs.
-- [Axys Common-Core Export Reference](docs/axys_common_core_export.md) for a
-  starter Axys export template and field-reference tables.
-- [Axys test data notes](tests/data/axys/README.md) for the synthetic fixture
-  layouts used by demos and tests.
+- [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md): exact workbook
+  demo commands, YAML files, data used, and expected XLSX output.
+- [Repository Guide](docs/repository_guide.md): map of README files, scripts,
+  validators, generated outputs, and common workflows.
+- [Performance Comparison Design Notes](docs/performance_comparison_design.md):
+  internal model, YAML vocabulary, attribution setup, and report/workbook
+  design rationale.
+- [Axys Common-Core Export Reference](docs/axys_common_core_export.md): starter
+  Axys export template and field-reference tables.
 
-To smoke-test the default performance comparison demo from a source checkout:
+Source-checkout smoke test:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
@@ -177,13 +173,9 @@ To smoke-test the default performance comparison demo from a source checkout:
 ./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
 ```
 
-Then open `_demo_output/performance_comparison_bundle/report.html`. Generated
-output under `_demo_output/` is intentionally ignored by Git.
-
-XLSX workbook export is optional. Install the Excel extra and pass
-`--include-workbook` to one of the packaged workbook demo commands. For XLSX
-demos, start review in `review_workbook.xlsx`; use `report.html` as a secondary
-browser-friendly narrative view.
+For XLSX workbook demos, install the Excel extra and use the commands in the
+[Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md). Start review in
+`review_workbook.xlsx`; use `report.html` as a secondary browser-friendly view.
 
 ```bash
 ./.venv/bin/python -m pip install -e ".[excel]"
@@ -194,10 +186,6 @@ browser-friendly narrative view.
 ./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
   _demo_output/workbooks/single_restatement
 ```
-
-Use the [Repository Guide](docs/repository_guide.md) for the full script and
-validator map. Use the [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md)
-for the workbook demo commands and what each workbook should contain.
 
 ---
 

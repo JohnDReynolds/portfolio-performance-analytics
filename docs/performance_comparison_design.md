@@ -1439,19 +1439,24 @@ with options, counts, artifact names, and row counts. This makes reviewer
 handoffs reproducible without coupling the comparison engine to a future
 Axys-specific presentation layer.
 
-The intended bundle review order is:
+The intended bundle review order depends on whether the optional workbook was
+requested:
 
-1. `report.html`: browser-readable Problems grid with specific actions and an
-   optional Evidence Appendix.
-2. `needs_review_summary.csv`: changed portfolio periods and suggested next
+1. `review_workbook.xlsx`, when present: primary reviewer artifact. Start with
+   the `Portfolio Differences` sheet, then use the `Underlying Causes` sheet
+   to understand what explains each portfolio-period difference.
+2. `report.html`: browser-readable Problems grid and Evidence Appendix. This
+   is the primary view for non-workbook bundles and a secondary narrative view
+   for workbook bundles.
+3. `needs_review_summary.csv`: changed portfolio periods and suggested next
    steps, plus drilldown artifacts for each triage row.
-3. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
+4. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
    impact inputs, and reviewer-facing coverage status.
-4. `context_evidence.csv`: context-only changes such as cost basis,
+5. `context_evidence.csv`: context-only changes such as cost basis,
    commissions, and security-master reference fields. These rows support
    reviewer interpretation and are explicitly excluded from return-impact
    estimates.
-5. `findings.csv`: complete finding-level audit output.
+6. `findings.csv`: complete finding-level audit output.
 
 Other generated helper tables include `impact_estimates.csv`,
 `cause_summary.csv`, `transaction_activity.csv`, `transaction_cross_checks.csv`,
@@ -1526,20 +1531,30 @@ stable `review_key` where possible, and `needs_review_summary.csv` includes
 `review_detail_artifacts` to name the CSVs most relevant to each changed
 period.
 
-The packaged Axys demo fixtures intentionally separate normal review output
-from policy-gap scenarios:
+The packaged Axys fixtures intentionally separate workbook demos from
+validation fixtures. The user-facing workbook demos are:
 
-- `ppar_performance_comparison_multi_restatement.yaml`: Default demo fixture
-  with explicit contribution and transaction policies, used to generate the
-  browser review bundle.
-- `ppar_performance_comparison_policy_gap_demo.yaml`: Companion fixture that
-  reuses the same CSV snapshots but omits selected YAML policy inputs. It
-  exercises Problems-grid actions such as selecting
-  `contribution_impact_methods`, configuring `transaction_impact_methods`,
-  setting `denominator_source`, and defining transaction sign/flow semantics.
-- `ppar_performance_comparison_modified_dietz.yaml`: Minimal fixture with an
-  explicit external-flow transaction rule and `modified_dietz` policy, used to
-  demonstrate cross-check-only diagnostics.
+- `ppar_performance_comparison.yaml`: Clean baseline.
+- `ppar_performance_comparison_restatement.yaml`: Controlled single
+  restatement with missing transaction setup.
+- `ppar_performance_comparison_restatement_transaction_rules.yaml`: Same data
+  with explicit transaction rules and transaction impact setup.
+- `ppar_performance_comparison_full_spec.yaml`: Compact strict-attribution
+  fixture with every currently supported causal-attribution policy.
+
+The remaining YAML files are scenario-coverage fixtures for tests and
+validators:
+
+- `ppar_performance_comparison_multi_restatement.yaml`: Multiple portfolios,
+  multiple periods, context rows, and residual/coverage behavior.
+- `ppar_performance_comparison_policy_gap_demo.yaml`: Missing-YAML actions such
+  as selecting `contribution_impact_methods`, configuring
+  `transaction_impact_methods`, setting `denominator_source`, and defining
+  transaction sign/flow semantics.
+- `ppar_performance_comparison_modified_dietz.yaml`: Cross-check-only Modified
+  Dietz external-flow diagnostics.
+- `ppar_performance_comparison_suppressed.yaml`: Active-vs-suppressed finding
+  behavior and audit visibility.
 
 The compact demo scenario matrix lives in `ppar/demo_data/axys/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which

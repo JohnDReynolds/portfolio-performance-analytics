@@ -11,7 +11,7 @@ many disconnected entry points.
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public demo commands, and common smoke tests. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
 | Axys export shape | [`docs/axys_common_core_export.md`](axys_common_core_export.md) | Starter Axys export template and field-reference notes. |
-| Packaged Axys demos | [`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md) | Scenario matrix plus exact XLSX workbook commands and expected outputs. |
+| Packaged Axys demos | [`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md) | Four XLSX workbook demos, four validation fixtures, exact commands, and expected outputs. |
 | Test Axys fixtures | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic test fixture layout and test-focused comparison YAML files. |
 | Session continuity | [`docs/work_session_notes.md`](work_session_notes.md) | Working notes from recent implementation sessions; useful context, not durable product documentation. |
 
@@ -79,18 +79,20 @@ Packaged demos and test fixtures intentionally live in different places:
 - `tests/data/axys/` is for tests. These fixtures can be smaller, more
   specialized, and shaped around edge cases.
 
-The main packaged Axys YAML files are:
+The packaged Axys YAML files are split by role. The workbook demos are intended
+for user-facing review; the validation fixtures are scenario coverage inputs
+for tests and validators.
 
-| YAML | Snapshot A | Snapshot B | Use |
-| --- | --- | --- | --- |
-| `ppar_performance_comparison.yaml` | `axys_a` | `axys_b` | Clean baseline with no expected findings. |
-| `ppar_performance_comparison_restatement.yaml` | `axys_a` | `axys_b_restatement` | Controlled single restatement. |
-| `ppar_performance_comparison_restatement_transaction_rules.yaml` | `axys_a` | `axys_b_restatement` | Same data with explicit transaction rules. |
-| `ppar_performance_comparison_multi_restatement.yaml` | `axys_a` | `axys_b_multi_restatement` | Main reviewer-workflow demo with multiple portfolios and periods. |
-| `ppar_performance_comparison_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Compact strict-attribution demo with all supported causal policies. |
-| `ppar_performance_comparison_modified_dietz.yaml` | `axys_modified_dietz_a` | `axys_modified_dietz_b` | External-flow Modified Dietz cross-check demo. |
-| `ppar_performance_comparison_policy_gap_demo.yaml` | `axys_a` | `axys_b_multi_restatement` | Missing-YAML-specification demo. |
-| `ppar_performance_comparison_suppressed.yaml` | `axys_a` | `axys_b_restatement` | Suppressed-finding demo. |
+| Role | YAML | Snapshot A | Snapshot B | Use |
+| --- | --- | --- | --- | --- |
+| Workbook demo | `ppar_performance_comparison.yaml` | `axys_a` | `axys_b` | Clean baseline with no expected findings. |
+| Workbook demo | `ppar_performance_comparison_restatement.yaml` | `axys_a` | `axys_b_restatement` | Controlled single restatement. |
+| Workbook demo | `ppar_performance_comparison_restatement_transaction_rules.yaml` | `axys_a` | `axys_b_restatement` | Same data with explicit transaction rules. |
+| Workbook demo | `ppar_performance_comparison_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Compact strict-attribution demo with all supported causal policies. |
+| Validation fixture | `ppar_performance_comparison_multi_restatement.yaml` | `axys_a` | `axys_b_multi_restatement` | Multiple portfolios/periods, context rows, and residual coverage. |
+| Validation fixture | `ppar_performance_comparison_modified_dietz.yaml` | `axys_modified_dietz_a` | `axys_modified_dietz_b` | External-flow Modified Dietz cross-check diagnostics. |
+| Validation fixture | `ppar_performance_comparison_policy_gap_demo.yaml` | `axys_a` | `axys_b_multi_restatement` | Missing-YAML-specification coverage. |
+| Validation fixture | `ppar_performance_comparison_suppressed.yaml` | `axys_a` | `axys_b_restatement` | Suppressed-finding coverage. |
 
 For exact XLSX workbook commands and expected outputs, use
 [`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md).
@@ -180,7 +182,8 @@ When changing report/workbook behavior, the most relevant focused tests are:
 ./.venv/bin/python -m unittest \
   tests.test_package_metadata \
   tests.test_performance_comparison_report \
-  tests.test_performance_comparison_report_script
+  tests.test_performance_comparison_report_script \
+  tests.test_performance_comparison_workbook_contract
 ```
 
 When changing demo data or YAML, also run:

@@ -10,17 +10,23 @@ From a source checkout, validate the covered scenarios with:
 ./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
 ```
 
-## Comparison YAML Files
+## Comparison YAML Files By Role
 
-- `baseline`: `ppar_performance_comparison.yaml`
-- `single`: `ppar_performance_comparison_restatement.yaml`
-- `transaction_rules`:
-  `ppar_performance_comparison_restatement_transaction_rules.yaml`
-- `multi`: `ppar_performance_comparison_multi_restatement.yaml`
-- `full_spec`: `ppar_performance_comparison_full_spec.yaml`
-- `modified_dietz`: `ppar_performance_comparison_modified_dietz.yaml`
-- `policy_gap`: `ppar_performance_comparison_policy_gap_demo.yaml`
-- `suppressed`: `ppar_performance_comparison_suppressed.yaml`
+There are eight packaged comparison YAML files, but only four are intended as
+user-facing XLSX workbook demos. The others are validation fixtures that keep
+specific edge cases covered without asking reviewers to inspect extra
+workbooks.
+
+| Role | Short name | YAML |
+| --- | --- | --- |
+| Workbook demo | `baseline` | `ppar_performance_comparison.yaml` |
+| Workbook demo | `single` | `ppar_performance_comparison_restatement.yaml` |
+| Workbook demo | `transaction_rules` | `ppar_performance_comparison_restatement_transaction_rules.yaml` |
+| Workbook demo | `full_spec` | `ppar_performance_comparison_full_spec.yaml` |
+| Validation fixture | `multi` | `ppar_performance_comparison_multi_restatement.yaml` |
+| Validation fixture | `modified_dietz` | `ppar_performance_comparison_modified_dietz.yaml` |
+| Validation fixture | `policy_gap` | `ppar_performance_comparison_policy_gap_demo.yaml` |
+| Validation fixture | `suppressed` | `ppar_performance_comparison_suppressed.yaml` |
 
 ## XLSX Workbook Demo Commands
 
