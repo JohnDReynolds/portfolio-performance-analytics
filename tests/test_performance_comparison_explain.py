@@ -619,7 +619,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(transaction_row[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
         self.assertEqual(transaction_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIn("Missing impact inputs", transaction_row[IMPACT_MESSAGE])
-        self.assertIn("return denominator", transaction_row[IMPACT_MESSAGE])
+        self.assertNotIn("return denominator", transaction_row[IMPACT_MESSAGE])
         self.assertIn(
             "transaction sign and flow semantics",
             transaction_row[IMPACT_MESSAGE],
@@ -714,7 +714,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertIn(ROOT_CAUSE_TRANSACTION_ACTIVITY, row[EVIDENCE_ONLY_AREAS])
         self.assertIn(ROOT_CAUSE_PRICE, row[EVIDENCE_ONLY_AREAS])
         self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
-        self.assertIn("return denominator", row[MISSING_IMPACT_INPUTS])
+        self.assertNotIn("return denominator", row[MISSING_IMPACT_INPUTS])
         self.assertIn(
             "transaction sign and flow semantics",
             row[MISSING_IMPACT_INPUTS],
@@ -807,7 +807,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
         self.assertEqual(
             row[MISSING_IMPACT_INPUTS],
-            "return denominator, transaction sign and flow semantics",
+            "transaction sign and flow semantics",
         )
 
     def test_transaction_matching_diagnostics_explain_id_and_fallback_counts(
@@ -856,13 +856,13 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         coverage_row = coverage.row(0, named=True)
 
         self.assertEqual(activity_row[TRANSACTION_SEMANTICS_SOURCES], "mixed: 3")
-        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "return denominator")
+        self.assertEqual(activity_row[MISSING_IMPACT_INPUTS], "")
         self.assertNotIn(
             "transaction sign and flow semantics",
             activity_row[IMPACT_MESSAGE],
         )
         self.assertEqual(coverage_row[TRANSACTION_SEMANTICS_SOURCES], "mixed: 3")
-        self.assertIn("return denominator", coverage_row[MISSING_IMPACT_INPUTS])
+        self.assertNotIn("return denominator", coverage_row[MISSING_IMPACT_INPUTS])
         self.assertNotIn(
             "transaction sign and flow semantics",
             coverage_row[MISSING_IMPACT_INPUTS],
@@ -1262,7 +1262,16 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self,
     ) -> None:
         """Transaction activity summary only borrows unambiguous target periods."""
-        findings = self._restatement()
+        findings = self._restatement().with_columns(
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(None).cast(pl.Date))
+            .otherwise(pl.col(FROM_DATE))
+            .alias(FROM_DATE),
+            pl.when(pl.col(DATASET) == pc_cols.TRANSACTIONS)
+            .then(pl.lit(None).cast(pl.Date))
+            .otherwise(pl.col(THRU_DATE))
+            .alias(THRU_DATE),
+        )
         second_target_period = (
             findings.filter(pl.col(FINDING_CODE) == PC_PORT_RET)
             .head(1)
