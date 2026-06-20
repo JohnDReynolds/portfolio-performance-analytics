@@ -1,189 +1,139 @@
 # Work Session Notes
 
-## Current Focus
+## Current State
 
-Add an optional XLSX review workbook export for the performance comparison
-review bundle. The current direction is a simple, action-oriented workbook:
-"this is the performance change, and this is what caused it."
+The performance comparison XLSX work is now workbook-first. For bundles
+generated with `--include-workbook`, reviewers should start with
+`review_workbook.xlsx`; `report.html` is a secondary browser-friendly narrative
+view, and CSV files are audit/export artifacts.
 
-## Restart Context
+The current workbook sheets are:
 
-- Local Codex history recovered the XLSX discussion from thread
-  `019ea901-0959-7163-a44b-19bb2d1dcc72`, titled
-  "Recommend next comparison feature".
-- The relevant discussion happened on June 14, 2026 around 10:39-10:45 AM
-  Pacific.
-- The current repo worktree was clean when these notes were created.
+- `Portfolio Differences`: portfolio-period return differences, explained
+  difference, unexplained difference, status, and next action.
+- `Security Differences`: security-period return differences, including
+  explicit no-security-difference rows for changed portfolio periods.
+- `Underlying Causes`: input rows that may explain portfolio differences, with
+  `Performance Difference Explained` when ppar has a defensible calculation and
+  `Required YAML Setup` when setup is missing.
+- `Derived Checks`: raw performance dataset differences used for checking, not
+  treated as root causes.
+- `Context`: review-only supporting differences.
+- `Raw Audit Trail`: full finding-level detail.
 
-## Key Decisions
+Workbook numeric cells are real Excel numbers where possible. Numeric display
+uses up to six decimals with trailing zeros suppressed.
 
-- Treat HTML and XLSX as two renderers over the same comparison outputs, not as
-  two separate report products.
-- Share as much presentation schema as makes sense:
-  - table key
-  - display title
-  - source DataFrame
-  - preferred columns
-  - user-facing column labels
-  - numeric/date formatting hints
-  - primary table/sheet ordering
-- Keep renderer-specific behavior separate:
-  - HTML owns anchors, browser filtering/sorting, CSS, and appendix layout.
-  - XLSX owns worksheets, frozen panes, autofilters, column widths, and Excel
-    number formats.
-- The HTML report can keep its `Problems` grid. The workbook should start with
-  `Portfolio Changes`, because the spreadsheet workflow is meant to answer
-  "what changed and why?" quickly.
-- XLSX support should be an optional package extra, not a core runtime
-  dependency.
-- Prefer `openpyxl` for direct workbook creation and styling.
-- If Excel support is requested without the optional dependency installed, fail
-  with a clear `PpaError` explaining how to install the `excel` extra.
+## Current Demo Paths
 
-## Current Workbook Shape
+The four user-facing XLSX workbook demos are documented in
+[`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md):
 
-The workbook is intentionally small and action-oriented:
+- `_demo_output/workbooks/baseline`
+- `_demo_output/workbooks/single_restatement`
+- `_demo_output/workbooks/transaction_rules`
+- `_demo_output/workbooks/full_spec`
 
-- Artifact: `review_workbook.xlsx`.
-- First sheet: `Portfolio Changes`, one row per changed portfolio period with
-  the decimal performance change, estimated cause total, and unexplained
-  remainder.
-- Second sheet: `Security Changes`, one row per changed security period when
-  security-performance rows changed.
-- Third sheet: `What Changed`, concrete changed data items with decimal
-  estimated impact when ppar has a defensible method. It includes:
-  - `Purpose`: `Explains Change` or `Review Context`.
-  - `Snapshot A Value` and `Snapshot B Value` before `Change`.
-  - `Change Explained By This Row` when ppar has a defensible method.
-  - `Next Action` instead of separate impact-status and note columns.
-  - Performance-result rows are intentionally excluded because `Performance
-    Change` already shows the return change.
-- Fourth sheet: `Raw Audit Trail`, with the full finding-level detail.
-- Workbook ergonomics:
-  - frozen header rows
-  - autofilter enabled
-  - readable column widths
-  - return-style numbers rounded/displayed as decimal values with four places
-  - basic date formatting
-
-## Implemented Changes
-
-- Added an `excel` optional dependency in `pyproject.toml`:
-
-  ```toml
-  excel = [
-      "openpyxl>=3.1",
-  ]
-  ```
-
-- Added `write_performance_comparison_review_workbook(...)`.
-- Added `include_workbook: bool = False` to
-  `write_performance_comparison_report_bundle(...)`.
-- Added `--include-workbook` to
-  `scripts/performance_comparison_report_bundle.py`.
-- Workbook export imports `openpyxl` only when requested and raises a clear
-  `PpaError` if the optional dependency is missing.
-- Workbook-specific tests run when `openpyxl` is installed and skip otherwise.
-- Bundle validation checks `review_workbook.xlsx` when the manifest includes it:
-  the artifact must exist, open successfully, include expected sheets, and carry
-  key reviewer headers.
-- Workbook sheets were revised to `Portfolio Changes`, `Security Changes`,
-  `What Changed`, and `Raw Audit Trail` after review feedback that the prior
-  workbook was too broad and made it hard to answer why performance changed.
-- The workbook uses decimal return impacts, not basis points.
-- The `Raw Audit Trail` worksheet now starts with `Portfolio`, `From Date`,
-  `Thru Date`, `Security`, and `Severity`, sorts by those columns, and carries
-  `Review Key` at the far right.
-- Workbook headers include Excel comments explaining what each column means.
-- README and design notes describe the optional XLSX path.
-- Default report bundle behavior remains unchanged.
-
-## Next Implementation Steps
-
-1. Inspect the generated workbook in Excel or another spreadsheet viewer.
-2. Decide whether the `Portfolio Changes`, `Security Changes`, and
-   `What Changed` sheets now answer "what changed and why?" clearly enough.
-3. Decide whether the demo command should ever include the workbook
-   automatically when `openpyxl` is available.
-
-## Validation Commands
-
-Focused checks:
-
-```bash
-./.venv/bin/python -m unittest tests.test_package_metadata \
-  tests.test_performance_comparison_report \
-  tests.test_performance_comparison_report_script
-./.venv/bin/python -m pyright ppar/performance_comparison/report.py \
-  tests/test_performance_comparison_report.py tests/test_package_metadata.py
-./.venv/bin/python -m pylint \
-  --disable=too-many-lines,too-many-return-statements \
-  --disable=too-many-public-methods,too-many-statements,duplicate-code \
-  ppar/performance_comparison/report.py \
-  tests/test_performance_comparison_report.py tests/test_package_metadata.py
-```
-
-Last successful focused checks after installing `ppar[excel]`:
-
-```bash
-./.venv/bin/python -m unittest tests.test_package_metadata \
-  tests.test_performance_comparison_report \
-  tests.test_performance_comparison_report_script
-./.venv/bin/python -m pyright ppar/performance_comparison/report.py \
-  tests/test_performance_comparison_report.py tests/test_package_metadata.py
-./.venv/bin/python -m pylint \
-  --disable=too-many-lines,too-many-return-statements \
-  --disable=too-many-public-methods,too-many-statements,duplicate-code \
-  ppar/performance_comparison/report.py \
-  tests/test_performance_comparison_report.py tests/test_package_metadata.py
-```
-
-The workbook-content and workbook-validation tests now run instead of skipping.
-The workbook-content test uses the multi-portfolio fixture so the Portfolio
-Differences sheet has more than one row. Workbook demo output now lives under
-`_demo_output/workbooks/<demo_name>/review_workbook.xlsx` with these sheets:
-
-- `Portfolio Differences`
-- `Security Differences`
-- `Underlying Causes`
-- `Derived Checks`
-- `Context`
-- `Raw Audit Trail`
-
-For example, the single-restatement workbook bundle passes:
-
-```bash
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
-  _demo_output/workbooks/single_restatement
-```
-
-Older focused checks:
-
-```bash
-./.venv/bin/python -m unittest tests.test_performance_comparison_report
-./.venv/bin/python -m unittest tests.test_performance_comparison_report_script
-```
-
-Bundle/demo smoke checks:
+The old `_demo_output/performance_comparison_bundle_xlsx` output has been
+removed and should not be documented again. The
+`_demo_output/performance_comparison_bundle` directory remains the default
+non-workbook smoke-test output from:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
-  _demo_output/performance_comparison_bundle
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
 ```
 
-Install the optional Excel extra locally before workbook-specific validation:
+## Key Decisions
+
+- Treat `review_workbook.xlsx` as the primary reviewer artifact when generated.
+- Keep `report.html`, `report.md`, CSV files, and `manifest.json` for narrative,
+  fallback, audit, export, and validation uses.
+- Keep XLSX support optional through the `excel` extra:
+
+  ```bash
+  ./.venv/bin/python -m pip install -e ".[excel]"
+  ```
+
+- Keep workbook generation opt-in with `--include-workbook`.
+- Keep the workbook action-oriented: "This is the performance difference, and
+  this is what explains it."
+- Keep deep diagnostic fields such as `Code` and `Review Rank` in
+  `Raw Audit Trail`, not in the main action sheets.
+- Use the same left-side sort fields for `Underlying Causes`, `Derived Checks`,
+  and `Context`: `Portfolio`, `From Date`, `Thru Date`, `Dataset`,
+  `Source Column`, `Security`.
+
+## Current Implementation Notes
+
+- `ppar/performance_comparison/report.py` still builds the report tables and
+  workbook sheet DataFrames.
+- `ppar/performance_comparison/workbook.py` owns XLSX presentation mechanics:
+  sheet metadata, required workbook headers, optional `openpyxl` loading,
+  workbook writing/styling, numeric/date formatting, and workbook artifact
+  validation.
+- Generated bundle `README.md` files now use role-based sections:
+  `Primary Review Artifact`, `Secondary Review Views`, `Recommended Review
+  Order`, and `Audit/Export Files`.
+- `scripts/performance_comparison_report_bundle.py` prints the workbook path
+  before the HTML path when `--include-workbook` is used.
+
+## Release-Style Verification
+
+Run these checks before considering the current workbook/report work ready:
 
 ```bash
-./.venv/bin/python -m pip install -e ".[excel]"
+./.venv/bin/python -m unittest \
+  tests.test_performance_comparison_compare \
+  tests.test_performance_comparison_report \
+  tests.test_performance_comparison_report_script \
+  tests.test_package_metadata
+./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+  _demo_output/workbooks/baseline
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+  _demo_output/workbooks/single_restatement
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+  _demo_output/workbooks/transaction_rules
+./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+  _demo_output/workbooks/full_spec
+./.venv/bin/pyright \
+  ppar/performance_comparison/report.py \
+  ppar/performance_comparison/workbook.py \
+  scripts/performance_comparison_report_bundle.py \
+  tests/test_performance_comparison_report.py \
+  tests/test_performance_comparison_report_script.py
+git diff --check
+```
+
+Regenerate the four workbook demos after workbook/report presentation changes:
+
+```bash
+./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+  ppar/demo_data/axys/ppar_performance_comparison.yaml \
+  _demo_output/workbooks/baseline \
+  --include-workbook
+./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+  ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
+  _demo_output/workbooks/single_restatement \
+  --include-workbook
+./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+  ppar/demo_data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
+  _demo_output/workbooks/transaction_rules \
+  --include-workbook
+./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+  ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml \
+  _demo_output/workbooks/full_spec \
+  --include-workbook \
+  --require-causal-attribution
 ```
 
 ## Open Questions
 
-- Should workbook generation be opt-in only, or should the demo bundle include
-  it when `openpyxl` is available?
-- Should `review_workbook.xlsx` be validated by the existing bundle validator,
-  or treated as an optional artifact with separate workbook-specific tests?
-- Should the first workbook include every CSV artifact or only the review-first
-  sheets listed above?
+- Should `report.md` stay in the root bundle long-term, or eventually move to an
+  exports/audit area with the CSV files?
+- Should generated CSV artifacts eventually move under an `exports/`
+  subdirectory? This would reduce bundle clutter but would change paths and
+  validators.
+- Should workbook table-builder tests move into a dedicated
+  `tests/test_performance_comparison_workbook.py` file now that
+  `workbook.py` exists?
