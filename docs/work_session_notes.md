@@ -24,6 +24,27 @@ The current workbook sheets are:
 Workbook numeric cells are real Excel numbers where possible. Numeric display
 uses up to six decimals with trailing zeros suppressed.
 
+## Stable Checkpoint
+
+The workbook review phase is stable as of the local checkpoint tag
+`workbook-review-checkpoint`.
+
+Recent checkpoint work:
+
+- Stabilized the workbook-first review flow for bundles generated with
+  `--include-workbook`.
+- Renamed the supporting performance-output worksheet to
+  `Reported Performance Checks`.
+- Aligned the `Raw Audit Trail` sheet with the common left-side review columns.
+- Added `tests/test_performance_comparison_workbook_contract.py` to protect
+  workbook sheet names, key headers, stale wording, and numeric cell behavior.
+- Clarified documentation ownership across the root README, repository guide,
+  design notes, and packaged Axys demo matrix.
+- Aligned transaction explanation tests with current missing-input behavior.
+
+Recommended posture: pause feature expansion until fresh reviewer feedback
+identifies a specific workbook, YAML, or report pain point.
+
 ## Current Demo Paths
 
 The four user-facing XLSX workbook demos are documented in
