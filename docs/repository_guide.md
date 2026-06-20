@@ -205,12 +205,13 @@ Generated output normally belongs under `_demo_output/`. Report bundles include:
 The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
-The workbook separates review concerns into `Portfolio Differences`,
-`Security Differences`, `Underlying Causes`, `Derived Checks`, `Context`, and
-`Raw Audit Trail`. Explained amounts appear on `Underlying Causes` rows when
-ppar has a defensible input-level explanation. The `Required YAML Setup` column
-is `None` for rows that are already explainable and otherwise names the YAML
-fields or unsupported impact method blocking attribution.
+The workbook separates review concerns into the `Portfolio Differences` sheet,
+`Security Differences` sheet, `Underlying Causes` sheet, `Reported Performance
+Checks` sheet, `Context` sheet, and `Raw Audit Trail` sheet. Explained amounts
+appear on `Underlying Causes` sheet rows when ppar has a defensible input-level
+explanation. The `Required YAML Setup` column is `None` for rows that are
+already explainable and otherwise names the YAML fields or unsupported impact
+method blocking attribution.
 
 ## Suggested Consolidation Rules
 

@@ -619,7 +619,7 @@ def _review_workbook_sheets(
         ),
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="derived_checks",
-            sheet_name="Derived Checks",
+            sheet_name="Reported Performance Checks",
             table=derived_checks,
             columns=_workbook_non_additive_change_columns(),
             labels=_workbook_column_labels(),
@@ -636,13 +636,7 @@ def _review_workbook_sheets(
             sheet_name="Raw Audit Trail",
             table=_workbook_sorted_table(
                 _with_period_review_key(findings),
-                [
-                    _pc_findings.PORTFOLIO_ID,
-                    _pc_findings.FROM_DATE,
-                    _pc_findings.THRU_DATE,
-                    _pc_findings.SECURITY_ID,
-                    _pc_findings.SEVERITY,
-                ],
+                _workbook_left_review_sort_columns(),
             ),
             columns=_workbook_findings_columns(findings),
             labels=_workbook_column_labels(),
@@ -1011,12 +1005,13 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _NEXT_ACTION: (
-            "Review Derived Checks, Raw Audit Trail, missing datasets, or vendor "
-            "methodology."
+            "Review the Reported Performance Checks sheet, Raw Audit Trail sheet, "
+            "missing datasets, or vendor methodology."
         ),
         _REQUIRED_YAML_SETUP: (
-            "No underlying input differences were found. Review Derived "
-            "Checks, Raw Audit Trail, missing datasets, or vendor methodology."
+            "No underlying input differences were found. Review the Reported "
+            "Performance Checks sheet, Raw Audit Trail sheet, missing datasets, "
+            "or vendor methodology."
         ),
         _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
         _pc_findings.SOURCE_COLUMN: None,
@@ -1478,7 +1473,7 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
 
 
 def _workbook_non_additive_change_columns() -> tuple[str, ...]:
-    """Return non-additive Derived Checks and Context worksheet columns."""
+    """Return non-additive reported-performance and context worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -1501,8 +1496,9 @@ def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
         _pc_findings.THRU_DATE,
+        _pc_findings.DATASET,
+        _pc_findings.SOURCE_COLUMN,
         _pc_findings.SECURITY_ID,
-        _pc_findings.SEVERITY,
     )
     remaining_columns = [
         column
@@ -1590,7 +1586,7 @@ def _workbook_column_tooltip(column: str) -> str:
             "Snapshot B portfolio return minus snapshot A portfolio return."
         ),
         _ESTIMATED_CAUSE_TOTAL: (
-            "Total performance difference explained by Underlying Causes rows."
+            "Total performance difference explained by Underlying Causes sheet rows."
         ),
         _UNEXPLAINED_CHANGE: "Performance difference less explained difference.",
         _USE: "Workbook row category used for sorting and compatibility.",
@@ -1695,9 +1691,9 @@ def _write_report_bundle_readme(
 ) -> Path:
     """Write a short bundle README and return the normalized path."""
     workbook_line = (
-        "- `review_workbook.xlsx`: primary Excel review workbook with Portfolio Differences, "
-        "Security Differences, Underlying Causes, Derived Checks, Context, and "
-        "Raw Audit Trail sheets."
+        "- `review_workbook.xlsx`: primary Excel review workbook with the Portfolio "
+        "Differences sheet, Security Differences sheet, Underlying Causes sheet, "
+        "Reported Performance Checks sheet, Context sheet, and Raw Audit Trail sheet."
     )
     primary_artifact_lines = (
         [workbook_line]

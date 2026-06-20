@@ -1764,7 +1764,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio Differences",
                     "Security Differences",
                     "Underlying Causes",
-                    "Derived Checks",
+                    "Reported Performance Checks",
                     "Context",
                     "Raw Audit Trail",
                 ],
@@ -1910,7 +1910,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "PORT_A::2025-05-30::2025-05-30",
             )
 
-            derived_checks_sheet = workbook["Derived Checks"]
+            derived_checks_sheet = workbook["Reported Performance Checks"]
             self.assertGreater(derived_checks_sheet.max_row, 1)
             self.assertEqual(
                 [cell.value for cell in derived_checks_sheet[1]],
@@ -1967,8 +1967,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             findings_sheet = workbook["Raw Audit Trail"]
             self.assertEqual(
-                [findings_sheet.cell(row=1, column=column).value for column in range(1, 6)],
-                ["Portfolio", "From Date", "Thru Date", "Security", "Severity"],
+                [findings_sheet.cell(row=1, column=column).value for column in range(1, 7)],
+                [
+                    "Portfolio",
+                    "From Date",
+                    "Thru Date",
+                    "Dataset",
+                    "Source Column",
+                    "Security",
+                ],
             )
             self.assertEqual(
                 findings_sheet.cell(row=1, column=findings_sheet.max_column).value,

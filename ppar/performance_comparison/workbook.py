@@ -27,7 +27,7 @@ EXPECTED_SHEETS = (
     "Portfolio Differences",
     "Security Differences",
     "Underlying Causes",
-    "Derived Checks",
+    "Reported Performance Checks",
     "Context",
     "Raw Audit Trail",
 )
@@ -69,7 +69,7 @@ REQUIRED_HEADERS = {
         "Required YAML Setup",
         "Review Key",
     ),
-    "Derived Checks": (
+    "Reported Performance Checks": (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -101,8 +101,9 @@ REQUIRED_HEADERS = {
         "Portfolio",
         "From Date",
         "Thru Date",
+        "Dataset",
+        "Source Column",
         "Security",
-        "Severity",
         "Message",
         "Review Key",
     ),

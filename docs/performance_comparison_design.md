@@ -1487,23 +1487,23 @@ with backing tables inside an Evidence Appendix.
 The optional XLSX workbook is a second presentation over the same review
 tables, not a separate report product. It is generated only when requested with
 `include_workbook=True` or `--include-workbook`, and requires the optional
-`ppar[excel]` dependency group. The workbook starts with `Portfolio
-Differences`: one row per changed portfolio period, showing the decimal return
-difference, explained difference, and any unexplained remainder. `Security
-Differences` shows security-level return differences when security-performance
-rows changed, and it adds explicit no-difference rows for changed portfolio
-periods with no security-level return difference. `Underlying Causes` lists
-input rows such as positions, transactions, cash, prices, and FX rates; its
-`B - A Difference` values are raw input-value differences, and its
-`Performance Difference Explained` values appear only when ppar has a
-defensible input-level explanation. `Required YAML Setup` is `None` for rows
-that are already explainable and otherwise names the YAML fields or unsupported
-impact method blocking attribution. Changed periods without input-cause rows
-get a `no_underlying_cause_found` diagnostic row. `Derived Checks` lists
-portfolio-performance and security-performance rows that confirm reporting
-differences but are not root causes. `Context` lists review-only supporting
-rows. `Raw Audit Trail`
-preserves the full finding-level detail.
+`ppar[excel]` dependency group. The workbook starts with the `Portfolio
+Differences` sheet: one row per changed portfolio period, showing the decimal
+return difference, explained difference, and any unexplained remainder. The
+`Security Differences` sheet shows security-level return differences when
+security-performance rows changed, and it adds explicit no-difference rows for
+changed portfolio periods with no security-level return difference. The
+`Underlying Causes` sheet lists input rows such as positions, transactions,
+cash, prices, and FX rates; its `B - A Difference` values are raw input-value
+differences, and its `Performance Difference Explained` values appear only when
+ppar has a defensible input-level explanation. `Required YAML Setup` is `None`
+for rows that are already explainable and otherwise names the YAML fields or
+unsupported impact method blocking attribution. Changed periods without
+input-cause rows get a `no_underlying_cause_found` diagnostic row. The
+`Reported Performance Checks` sheet lists portfolio-performance and
+security-performance rows that confirm reporting differences but are not root
+causes. The `Context` sheet lists review-only supporting rows. The `Raw Audit
+Trail` sheet preserves the full finding-level detail.
 Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.

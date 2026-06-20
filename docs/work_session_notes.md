@@ -9,17 +9,17 @@ view, and CSV files are audit/export artifacts.
 
 The current workbook sheets are:
 
-- `Portfolio Differences`: portfolio-period return differences, explained
+- `Portfolio Differences` sheet: portfolio-period return differences, explained
   difference, unexplained difference, status, and next action.
-- `Security Differences`: security-period return differences, including
+- `Security Differences` sheet: security-period return differences, including
   explicit no-security-difference rows for changed portfolio periods.
-- `Underlying Causes`: input rows that may explain portfolio differences, with
+- `Underlying Causes` sheet: input rows that may explain portfolio differences, with
   `Performance Difference Explained` when ppar has a defensible calculation and
   `Required YAML Setup` when setup is missing.
-- `Derived Checks`: raw performance dataset differences used for checking, not
-  treated as root causes.
-- `Context`: review-only supporting differences.
-- `Raw Audit Trail`: full finding-level detail.
+- `Reported Performance Checks` sheet: raw performance dataset differences used
+  for checking, not treated as root causes.
+- `Context` sheet: review-only supporting differences.
+- `Raw Audit Trail` sheet: full finding-level detail.
 
 Workbook numeric cells are real Excel numbers where possible. Numeric display
 uses up to six decimals with trailing zeros suppressed.
@@ -58,10 +58,11 @@ non-workbook smoke-test output from:
 - Keep the workbook action-oriented: "This is the performance difference, and
   this is what explains it."
 - Keep deep diagnostic fields such as `Code` and `Review Rank` in
-  `Raw Audit Trail`, not in the main action sheets.
-- Use the same left-side sort fields for `Underlying Causes`, `Derived Checks`,
-  and `Context`: `Portfolio`, `From Date`, `Thru Date`, `Dataset`,
-  `Source Column`, `Security`.
+  the `Raw Audit Trail` sheet, not in the main action sheets.
+- Use the same left-side sort fields for the `Underlying Causes` sheet,
+  `Reported Performance Checks` sheet, `Context` sheet, and `Raw Audit Trail`
+  sheet: `Portfolio`, `From Date`, `Thru Date`, `Dataset`, `Source Column`,
+  `Security`.
 
 ## Current Implementation Notes
 

@@ -32,14 +32,14 @@ writes a report bundle and an Excel workbook at
 For these XLSX demos, start review in `review_workbook.xlsx`. Use `report.html`
 only when you want a browser-friendly narrative view. The workbook is designed
 for review, not for raw data export. It separates portfolio/security
-performance differences from underlying input differences and derived checks:
+performance differences from underlying input differences and reported checks:
 
-- `Portfolio Differences`: one row per portfolio period with a performance
+- `Portfolio Differences` sheet: one row per portfolio period with a performance
   difference.
-- `Security Differences`: one row per security-period return difference, when
+- `Security Differences` sheet: one row per security-period return difference, when
   security performance data exists. Portfolio periods with no security-level
   return differences get an explicit no-differences row.
-- `Underlying Causes`: input rows such as positions, transactions, cash, prices,
+- `Underlying Causes` sheet: input rows such as positions, transactions, cash, prices,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation. `Required YAML Setup` is `None` when the
@@ -47,11 +47,12 @@ performance differences from underlying input differences and derived checks:
   impact method blocking attribution. If a portfolio period has no matching
   input differences, the sheet adds a `no_underlying_cause_found`
   diagnostic row.
-- `Derived Checks`: portfolio-performance and security-performance rows that
-  confirm derived/reporting differences but are not treated as root causes.
-- `Context`: review-only supporting rows that are not used to explain return
+- `Reported Performance Checks` sheet: portfolio-performance and
+  security-performance rows that confirm reporting differences but are not
+  treated as root causes.
+- `Context` sheet: review-only supporting rows that are not used to explain return
   differences.
-- `Raw Audit Trail`: the underlying finding rows used to build the workbook.
+- `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
 
 ### 1. Baseline / Clean Comparison
 
@@ -73,13 +74,13 @@ Data used:
 
 Expected workbook:
 
-- `Portfolio Differences`: one message row indicating that no portfolio
+- `Portfolio Differences` sheet: one message row indicating that no portfolio
   performance differences were found.
-- `Security Differences`: empty
-- `Underlying Causes`: empty
-- `Derived Checks`: empty
-- `Context`: empty
-- `Raw Audit Trail`: empty
+- `Security Differences` sheet: empty
+- `Underlying Causes` sheet: empty
+- `Reported Performance Checks` sheet: empty
+- `Context` sheet: empty
+- `Raw Audit Trail` sheet: empty
 
 Why: this is the clean/no-issue control fixture. It proves the comparison can
 run without producing false positives. An empty workbook is the expected result.
@@ -108,11 +109,12 @@ Expected workbook:
 
 - A small review workbook with one changed portfolio period and one changed
   security period.
-- `Underlying Causes` should show restated source values such as positions,
+- `Underlying Causes` sheet should show restated source values such as positions,
   transactions, cash, and prices.
-- `Derived Checks` should show portfolio/security performance rows such as
-  gain/loss and contribution changes without treating them as root causes.
-- `Portfolio Differences` should indicate that some setup is missing because
+- `Reported Performance Checks` sheet should show portfolio/security performance
+  rows such as gain/loss and contribution changes without treating them as root
+  causes.
+- `Portfolio Differences` sheet should indicate that some setup is missing because
   transaction semantics are not fully specified.
 
 Why: this fixture shows a controlled restatement, but intentionally leaves
@@ -171,21 +173,22 @@ Data used:
 
 Expected workbook:
 
-- Eight changed portfolio periods in `Portfolio Differences`.
-- One changed security-period return in `Security Differences`.
-- `Underlying Causes` should show additive transaction amount, position market
+- Eight changed portfolio periods in the `Portfolio Differences` sheet.
+- One changed security-period return in the `Security Differences` sheet.
+- `Underlying Causes` sheet should show additive transaction amount, position market
   value, position accrued, and weighted price examples.
-- `Underlying Causes` should also show one explicit evidence-only position
+- `Underlying Causes` sheet should also show one explicit evidence-only position
   quantity row with `Required YAML Setup` set to `None; configured as
   evidence-only in comparison YAML.`
-- `Derived Checks` should show configured portfolio/security performance
-  estimates such as security-return weighting, vendor contribution delta, and
-  portfolio source-field delta. These confirm performance-output differences
-  but are not labeled as root-cause input differences.
+- `Reported Performance Checks` sheet should show configured
+  portfolio/security performance estimates such as security-return weighting,
+  vendor contribution delta, and portfolio source-field delta. These confirm
+  performance-output differences but are not labeled as root-cause input
+  differences.
 - Some portfolio changes may still be unexplained when the changed data falls
   outside currently supported attribution methods; strict mode verifies setup
   completeness for supported methods, not perfect explanatory coverage. These
-  periods appear in `Underlying Causes` as `no_underlying_cause_found`
+  periods appear in the `Underlying Causes` sheet as `no_underlying_cause_found`
   diagnostic rows.
 
 Why: this is the most focused workbook for understanding the causal-attribution
