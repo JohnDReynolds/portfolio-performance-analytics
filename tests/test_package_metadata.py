@@ -300,7 +300,10 @@ class TestPackageMetadata(unittest.TestCase):
             "Full YAML specifications": "ppar_performance_comparison_full_spec.yaml",
             "Suppressed finding": "ppar_performance_comparison_suppressed.yaml",
             "Residual withheld": "ppar_performance_comparison_multi_restatement.yaml",
-            "Large multi-period scale": "Future generated fixture",
+            "Large clean background": (
+                "ppar_performance_comparison_multi_restatement.yaml"
+            ),
+            "Large issue scale": "Future generated fixture",
         }
 
         self.assertIn("## Scenario Matrix", matrix)

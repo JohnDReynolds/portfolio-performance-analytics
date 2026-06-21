@@ -1719,6 +1719,9 @@ work should be data-facing and behavior-facing.
 3. Expand and validate against more realistic performance comparison data.
    Use larger multi-portfolio, multi-period inputs once the expected workbook
    behavior is clear from smaller fixtures.
+   Initial coverage validates that the packaged multi-restatement fixture keeps
+   a large clean background portfolio with many periods while still surfacing
+   the intended smaller restatement issues.
 4. Revisit `explain.py` only when a new feature makes a natural split obvious.
    Avoid splitting it merely because it is large; split only around stable
    responsibilities such as impact estimates, transaction diagnostics, or

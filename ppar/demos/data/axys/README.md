@@ -217,7 +217,9 @@ not recommended XLSX workbook demos. They are exercised by
 `ppar.performance_comparison.cli.validate_demo_matrix` and targeted unit tests.
 
 - `multi`: Stress-tests multiple portfolios, multiple periods, context rows,
-  residual/coverage behavior, and workbook accounting invariants.
+  residual/coverage behavior, workbook accounting invariants, and a large
+  clean multi-period background portfolio that should not create false
+  positives.
 - `modified_dietz`: Tests Modified Dietz external-flow cross-check diagnostics.
   The relevant outputs are `transaction_cross_checks.csv`, transaction summary
   tables, and HTML transaction sections rather than workbook review sheets.
@@ -247,7 +249,8 @@ Validate the full packaged scenario matrix, including these fixtures, with:
 | Full YAML specifications | `full_spec` | Run strict causal attribution with all supported policies configured. | Covered |
 | Suppressed finding | `suppressed` | Exclude from active review; keep audit-visible. | Covered |
 | Residual withheld | `multi` | Resolve partial or missing estimates first. | Covered |
-| Large multi-period scale | Future generated fixture | Test hundreds of problem rows. | Planned |
+| Large clean background | `multi` | Confirm unchanged periods do not create false positives. | Covered |
+| Large issue scale | Future generated fixture | Test hundreds of problem rows. | Planned |
 
 The current matrix favors a small set of reusable CSV snapshots over many
 near-duplicate directories. Add new CSV snapshots only when a scenario cannot be

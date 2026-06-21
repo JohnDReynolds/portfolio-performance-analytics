@@ -148,6 +148,7 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
             context_evidence,
             "context evidence row(s) remain available",
         ),
+        _check_large_clean_background(demo_directory, multi_findings),
         _check_modified_dietz_cross_check(modified_dietz_cross_checks),
         _check_full_spec_strict_attribution(full_spec_findings),
         _check_suppressed_findings(
@@ -263,6 +264,57 @@ def _check_non_empty_table(
     if not table.is_empty():
         return _ScenarioCheck(name, True, f"{table.height} {detail}")
     return _ScenarioCheck(name, False, "expected at least one supporting row")
+
+
+def _check_large_clean_background(
+    demo_directory: Path,
+    findings: pl.DataFrame,
+) -> _ScenarioCheck:
+    """Return whether the multi fixture includes clean multi-period scale data."""
+    name = "Large multi-period clean background"
+    try:
+        snapshot_a_periods = _large_background_period_count(
+            demo_directory / "axys_a" / "portperf.csv"
+        )
+        snapshot_b_periods = _large_background_period_count(
+            demo_directory / "axys_b_multi_restatement" / "portperf.csv"
+        )
+    except (OSError, pl.exceptions.PolarsError) as error:
+        return _ScenarioCheck(name, False, f"could not read PORT_LARGE rows: {error}")
+
+    large_findings = findings.filter(pl.col(_pc_findings.PORTFOLIO_ID) == "PORT_LARGE")
+    if snapshot_a_periods < 40 or snapshot_b_periods < 40:
+        return _ScenarioCheck(
+            name,
+            False,
+            (
+                "expected at least 40 PORT_LARGE periods in each snapshot; "
+                f"found {snapshot_a_periods} and {snapshot_b_periods}"
+            ),
+        )
+    if not large_findings.is_empty():
+        return _ScenarioCheck(
+            name,
+            False,
+            f"PORT_LARGE produced {large_findings.height} unexpected finding row(s)",
+        )
+    return _ScenarioCheck(
+        name,
+        True,
+        (
+            f"PORT_LARGE has {snapshot_a_periods} clean period(s) in snapshot A "
+            f"and {snapshot_b_periods} in snapshot B"
+        ),
+    )
+
+
+def _large_background_period_count(portfolio_performance_path: Path) -> int:
+    """Return unique PORT_LARGE period count from a demo portfolio file."""
+    table = pl.read_csv(portfolio_performance_path)
+    large_rows = table.filter(pl.col("PORTFOLIO_CODE") == "PORT_LARGE")
+    if large_rows.is_empty():
+        return 0
+    return large_rows.select(["FROM_DATE", "THRU_DATE"]).unique().height
 
 
 def _check_modified_dietz_cross_check(cross_checks: pl.DataFrame) -> _ScenarioCheck:
