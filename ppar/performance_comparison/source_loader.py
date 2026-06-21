@@ -207,6 +207,53 @@ def read_schema_mapped_csv(
     )
 
 
+def require_numeric_columns(
+    frame: pl.DataFrame,
+    *,
+    columns: tuple[str, ...],
+    dataset_name: str,
+    path: util.PathLike,
+    specification_path: util.PathLike,
+) -> pl.DataFrame:
+    """Raise if present numeric columns contain nonblank nonnumeric values.
+
+    Args:
+        frame: Normalized source DataFrame.
+        columns: Normalized numeric columns to validate when present.
+        dataset_name: Normalized dataset name for error messages.
+        path: Source CSV path.
+        specification_path: Comparison YAML path for error context.
+
+    Returns:
+        The original DataFrame, unchanged.
+
+    Raises:
+        PpaError: If a present numeric column contains a nonblank value that
+            cannot be converted to a number.
+    """
+    for column in columns:
+        if column not in frame.columns:
+            continue
+        invalid_rows = frame.filter(
+            pl.col(column).is_not_null()
+            & pl.col(column).cast(pl.Float64, strict=False).is_null()
+        )
+        if invalid_rows.is_empty():
+            continue
+        invalid_value = invalid_rows.get_column(column)[0]
+        raise PpaError(
+            _error_message(
+                (
+                    f"{dataset_name} column {column!r} contains a nonnumeric "
+                    f"value {invalid_value!r} in {str(path)!r}."
+                ),
+                specification_path,
+            ),
+            502,
+        )
+    return frame
+
+
 def snapshot_by_key(
     specification: PerformanceComparisonSpecification,
     snapshot_key: str,

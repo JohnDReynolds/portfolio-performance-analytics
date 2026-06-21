@@ -415,6 +415,62 @@ def _write_duplicate_portfolio_specification(directory: Path) -> Path:
     return specification_path
 
 
+def _write_blank_portfolio_key_specification(directory: Path) -> Path:
+    """Write a fixture with a blank portfolio comparison key value."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        portfolio_id = "" if snapshot_name == "snapshot_a" else "PORT_A"
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            f"{portfolio_id},2025-05-01,2025-05-31,0.01\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {"portfolio_performance": "portperf.csv"},
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_blank_position_key_specification(directory: Path) -> Path:
+    """Write a fixture with a blank optional position comparison key value."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            encoding="utf-8",
+        )
+        security_id = "" if snapshot_name == "snapshot_a" else "AAPL"
+        (snapshot_path / "positions.csv").write_text(
+            "PORT,SEC,POSITION_DATE,QTY,MKT_VAL\n"
+            f"PORT_A,{security_id},2025-05-31,10,1000.00\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "positions": "positions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
 class TestPerformanceComparison(unittest.TestCase):
     """Verify portfolio performance comparison findings."""
 
@@ -511,6 +567,35 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 112"))
             self.assertIn("portfolio_performance", str(context.exception))
             self.assertIn("snapshot A", str(context.exception))
+
+    def test_blank_portfolio_comparison_key_raises_error_112(self) -> None:
+        """Blank portfolio keys fail clearly before comparison output is built."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_blank_portfolio_key_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                PerformanceComparison(specification).compare_portfolio_performance()
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 112"))
+            self.assertIn("missing snapshot A comparison key values", message)
+            self.assertIn("portfolio_id", message)
+
+    def test_blank_position_comparison_key_raises_error_112(self) -> None:
+        """Blank optional evidence keys fail clearly before unmatched findings."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_blank_position_key_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                PerformanceComparison(specification).compare_positions()
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 112"))
+            self.assertIn("positions", message)
+            self.assertIn("missing snapshot A comparison key values", message)
+            self.assertIn("security_id", message)
 
     def test_identical_baseline_snapshots_have_no_security_findings(self) -> None:
         """The baseline fixture compares identical security performance rows."""

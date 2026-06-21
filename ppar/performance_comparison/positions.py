@@ -52,16 +52,26 @@ class PositionsLoader:
         if path is None or not util.file_path_exists(path):
             return None
 
-        return (
-            source_loader.read_mapped_csv(
-                path,
-                pc_cols.POSITIONS_COLUMNS,
-                pc_cols.POSITIONS,
-                aliases.POSITIONS_REQUIRED_ALIASES,
-                aliases.POSITIONS_OPTIONAL_ALIASES,
-                self._specification.path,
-            )
-            .with_columns(
-                pl.col(pc_cols.POSITION_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-            )
+        frame = source_loader.read_mapped_csv(
+            path,
+            pc_cols.POSITIONS_COLUMNS,
+            pc_cols.POSITIONS,
+            aliases.POSITIONS_REQUIRED_ALIASES,
+            aliases.POSITIONS_OPTIONAL_ALIASES,
+            self._specification.path,
+        ).with_columns(
+            pl.col(pc_cols.POSITION_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+        )
+        return source_loader.require_numeric_columns(
+            frame,
+            columns=(
+                pc_cols.QUANTITY,
+                pc_cols.PRICE,
+                pc_cols.MARKET_VALUE,
+                pc_cols.COST,
+                pc_cols.ACCRUED,
+            ),
+            dataset_name=pc_cols.POSITIONS,
+            path=path,
+            specification_path=self._specification.path,
         )

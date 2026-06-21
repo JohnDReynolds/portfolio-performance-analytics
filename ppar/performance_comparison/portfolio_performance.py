@@ -52,20 +52,31 @@ class PortfolioPerformanceLoader:
         if not util.file_path_exists(path):
             raise PpaError(self._error_message(util.file_path_error(path)), 802)
 
-        return (
-            source_loader.read_schema_mapped_csv(
-                path,
-                pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS,
-                pc_cols.PORTFOLIO_PERFORMANCE,
-                aliases.PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES,
-                aliases.PORTFOLIO_PERFORMANCE_OPTIONAL_ALIASES,
-                self._specification,
-                snapshot_key,
-            )
-            .with_columns(
-                pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-                pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-            )
+        frame = source_loader.read_schema_mapped_csv(
+            path,
+            pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS,
+            pc_cols.PORTFOLIO_PERFORMANCE,
+            aliases.PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES,
+            aliases.PORTFOLIO_PERFORMANCE_OPTIONAL_ALIASES,
+            self._specification,
+            snapshot_key,
+        ).with_columns(
+            pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+            pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+        )
+        return source_loader.require_numeric_columns(
+            frame,
+            columns=(
+                pc_cols.PORTFOLIO_RETURN,
+                pc_cols.BEGIN_MARKET_VALUE,
+                pc_cols.END_MARKET_VALUE,
+                pc_cols.FLOW,
+                pc_cols.INCOME,
+                pc_cols.GAIN_LOSS,
+            ),
+            dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
+            path=path,
+            specification_path=self._specification.path,
         )
 
     def _portfolio_performance_path(self, snapshot_key: SnapshotKey) -> util.PathLike:

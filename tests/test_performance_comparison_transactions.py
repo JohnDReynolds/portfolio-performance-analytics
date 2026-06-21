@@ -593,6 +593,33 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("Ambiguous transactions", str(context.exception))
 
+    def test_nonnumeric_transaction_amount_raises_error_502(self) -> None:
+        """Malformed transaction numeric values fail with field-level context."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (directory / snapshot_name / "transactions.csv").write_text(
+                    "PORT,SEC,TRANSACTION_DATE,AMOUNT\n"
+                    "P1,S1,2025-01-31,--\n",
+                    encoding="utf-8",
+                )
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                TransactionsLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 502"))
+            self.assertIn("transactions", message)
+            self.assertIn("amount", message)
+            self.assertIn("--", message)
+
 
 if __name__ == "__main__":
     unittest.main()

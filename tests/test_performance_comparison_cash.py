@@ -145,6 +145,33 @@ class TestCashLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("Ambiguous cash", str(context.exception))
 
+    def test_nonnumeric_cash_balance_raises_error_502(self) -> None:
+        """Malformed cash numeric values fail with field-level context."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "cash": "cash.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (directory / snapshot_name / "cash.csv").write_text(
+                    "PORT,CASH_DATE,CASH_BALANCE,MARKET_VALUE\n"
+                    'P1,2025-01-31,"1,000.00",1000.00\n',
+                    encoding="utf-8",
+                )
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                CashLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 502"))
+            self.assertIn("cash", message)
+            self.assertIn("cash_balance", message)
+            self.assertIn("1,000.00", message)
+
 
 if __name__ == "__main__":
     unittest.main()

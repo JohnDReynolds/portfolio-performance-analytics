@@ -52,18 +52,30 @@ class SecurityPerformanceLoader:
         if path is None or not util.file_path_exists(path):
             return None
 
-        return (
-            source_loader.read_schema_mapped_csv(
-                path,
-                pc_cols.SECURITY_PERFORMANCE_COLUMNS,
-                pc_cols.SECURITY_PERFORMANCE,
-                aliases.SECURITY_PERFORMANCE_REQUIRED_ALIASES,
-                aliases.SECURITY_PERFORMANCE_OPTIONAL_ALIASES,
-                self._specification,
-                snapshot_key,
-            )
-            .with_columns(
-                pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-                pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-            )
+        frame = source_loader.read_schema_mapped_csv(
+            path,
+            pc_cols.SECURITY_PERFORMANCE_COLUMNS,
+            pc_cols.SECURITY_PERFORMANCE,
+            aliases.SECURITY_PERFORMANCE_REQUIRED_ALIASES,
+            aliases.SECURITY_PERFORMANCE_OPTIONAL_ALIASES,
+            self._specification,
+            snapshot_key,
+        ).with_columns(
+            pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+            pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+        )
+        return source_loader.require_numeric_columns(
+            frame,
+            columns=(
+                pc_cols.SECURITY_RETURN,
+                pc_cols.WEIGHT,
+                pc_cols.CONTRIBUTION,
+                pc_cols.BEGIN_MARKET_VALUE,
+                pc_cols.END_MARKET_VALUE,
+                pc_cols.INCOME,
+                pc_cols.GAIN_LOSS,
+            ),
+            dataset_name=pc_cols.SECURITY_PERFORMANCE,
+            path=path,
+            specification_path=self._specification.path,
         )

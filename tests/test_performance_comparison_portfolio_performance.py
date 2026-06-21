@@ -128,6 +128,39 @@ class TestPortfolioPerformanceLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("Ambiguous portfolio performance", str(context.exception))
 
+    def test_nonnumeric_return_raises_error_502(self) -> None:
+        """Malformed portfolio numeric values fail with field-level context."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                snapshot_path.mkdir()
+                (snapshot_path / "portperf.csv").write_text(
+                    "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
+                    "P1,2025-01-01,2025-01-31,N/A\n",
+                    encoding="utf-8",
+                )
+            path = _write_yaml(
+                directory,
+                {
+                    "snapshots": {
+                        "a": {"path": "snapshot_a"},
+                        "b": {"path": "snapshot_b"},
+                    },
+                    "files": {"portfolio_performance": "portperf.csv"},
+                },
+            )
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                PortfolioPerformanceLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 502"))
+            self.assertIn("portfolio_performance", message)
+            self.assertIn("portfolio_return", message)
+            self.assertIn("N/A", message)
+
 
 if __name__ == "__main__":
     unittest.main()

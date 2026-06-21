@@ -175,6 +175,33 @@ class TestPricesLoader(unittest.TestCase):
             self.assertIn("Ambiguous prices", str(context.exception))
             self.assertIn("price_source", str(context.exception))
 
+    def test_nonnumeric_price_raises_error_502(self) -> None:
+        """Malformed price numeric values fail with field-level context."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "prices": "prices.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (directory / snapshot_name / "prices.csv").write_text(
+                    "SEC,PRICE_DATE,PRICE\n"
+                    "S1,2025-01-31,N/A\n",
+                    encoding="utf-8",
+                )
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                PricesLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 502"))
+            self.assertIn("prices", message)
+            self.assertIn("price", message)
+            self.assertIn("N/A", message)
+
 
 if __name__ == "__main__":
     unittest.main()

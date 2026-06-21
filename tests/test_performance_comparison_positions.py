@@ -148,6 +148,33 @@ class TestPositionsLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("Ambiguous positions", str(context.exception))
 
+    def test_nonnumeric_market_value_raises_error_502(self) -> None:
+        """Malformed position numeric values fail with field-level context."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "positions": "positions.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                (directory / snapshot_name / "positions.csv").write_text(
+                    "PORT,SEC,POSITION_DATE,QTY,MKT_VAL\n"
+                    "P1,S1,2025-01-31,10,--\n",
+                    encoding="utf-8",
+                )
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                PositionsLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 502"))
+            self.assertIn("positions", message)
+            self.assertIn("market_value", message)
+            self.assertIn("--", message)
+
 
 if __name__ == "__main__":
     unittest.main()

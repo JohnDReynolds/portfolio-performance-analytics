@@ -52,16 +52,20 @@ class FxRatesLoader:
         if path is None or not util.file_path_exists(path):
             return None
 
-        return (
-            source_loader.read_mapped_csv(
-                path,
-                pc_cols.FX_RATES_COLUMNS,
-                pc_cols.FX_RATES,
-                aliases.FX_RATES_REQUIRED_ALIASES,
-                aliases.FX_RATES_OPTIONAL_ALIASES,
-                self._specification.path,
-            )
-            .with_columns(
-                pl.col(pc_cols.RATE_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-            )
+        frame = source_loader.read_mapped_csv(
+            path,
+            pc_cols.FX_RATES_COLUMNS,
+            pc_cols.FX_RATES,
+            aliases.FX_RATES_REQUIRED_ALIASES,
+            aliases.FX_RATES_OPTIONAL_ALIASES,
+            self._specification.path,
+        ).with_columns(
+            pl.col(pc_cols.RATE_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+        )
+        return source_loader.require_numeric_columns(
+            frame,
+            columns=(pc_cols.FX_RATE,),
+            dataset_name=pc_cols.FX_RATES,
+            path=path,
+            specification_path=self._specification.path,
         )

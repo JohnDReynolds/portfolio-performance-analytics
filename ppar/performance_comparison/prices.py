@@ -52,16 +52,20 @@ class PricesLoader:
         if path is None or not util.file_path_exists(path):
             return None
 
-        return (
-            source_loader.read_mapped_csv(
-                path,
-                pc_cols.PRICES_COLUMNS,
-                pc_cols.PRICES,
-                aliases.PRICES_REQUIRED_ALIASES,
-                aliases.PRICES_OPTIONAL_ALIASES,
-                self._specification.path,
-            )
-            .with_columns(
-                pl.col(pc_cols.PRICE_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-            )
+        frame = source_loader.read_mapped_csv(
+            path,
+            pc_cols.PRICES_COLUMNS,
+            pc_cols.PRICES,
+            aliases.PRICES_REQUIRED_ALIASES,
+            aliases.PRICES_OPTIONAL_ALIASES,
+            self._specification.path,
+        ).with_columns(
+            pl.col(pc_cols.PRICE_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+        )
+        return source_loader.require_numeric_columns(
+            frame,
+            columns=(pc_cols.PRICE,),
+            dataset_name=pc_cols.PRICES,
+            path=path,
+            specification_path=self._specification.path,
         )

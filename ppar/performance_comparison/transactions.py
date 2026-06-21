@@ -360,6 +360,18 @@ class TransactionsLoader:
         frame = frame.with_columns(
             pl.col(date_columns).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
+        frame = source_loader.require_numeric_columns(
+            frame,
+            columns=(
+                pc_cols.QUANTITY,
+                pc_cols.PRICE,
+                pc_cols.AMOUNT,
+                pc_cols.COMMISSION,
+            ),
+            dataset_name=pc_cols.TRANSACTIONS,
+            path=path,
+            specification_path=self._specification.path,
+        )
         return _with_transaction_rules(
             _with_transaction_semantics(_with_transaction_category(frame)),
             self._transaction_rules(),

@@ -52,16 +52,20 @@ class CashLoader:
         if path is None or not util.file_path_exists(path):
             return None
 
-        return (
-            source_loader.read_mapped_csv(
-                path,
-                pc_cols.CASH_COLUMNS,
-                pc_cols.CASH,
-                aliases.CASH_REQUIRED_ALIASES,
-                aliases.CASH_OPTIONAL_ALIASES,
-                self._specification.path,
-            )
-            .with_columns(
-                pl.col(pc_cols.CASH_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
-            )
+        frame = source_loader.read_mapped_csv(
+            path,
+            pc_cols.CASH_COLUMNS,
+            pc_cols.CASH,
+            aliases.CASH_REQUIRED_ALIASES,
+            aliases.CASH_OPTIONAL_ALIASES,
+            self._specification.path,
+        ).with_columns(
+            pl.col(pc_cols.CASH_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+        )
+        return source_loader.require_numeric_columns(
+            frame,
+            columns=(pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE),
+            dataset_name=pc_cols.CASH,
+            path=path,
+            specification_path=self._specification.path,
         )

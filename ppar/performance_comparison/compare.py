@@ -1149,6 +1149,20 @@ class PerformanceComparison:
         snapshot_label: str,
     ) -> None:
         """Raise if a normalized frame has duplicate comparison keys."""
+        null_key_rows = frame.filter(
+            pl.any_horizontal(pl.col(column).is_null() for column in key_columns)
+        )
+        if not null_key_rows.is_empty():
+            null_key = null_key_rows.select(key_columns).row(0, named=True)
+            key_names = ", ".join(key_columns)
+            raise PpaError(
+                (
+                    f"{dataset} contains missing {snapshot_label} comparison "
+                    f"key values for key columns {key_names}: {null_key}"
+                ),
+                112,
+            )
+
         duplicate_keys = (
             frame.group_by(list(key_columns))
             .len(name="_duplicate_count")
