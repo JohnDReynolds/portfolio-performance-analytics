@@ -170,6 +170,7 @@ ppar/performance_comparison/
   compare.py
   findings.py
   explain.py
+  _transaction_diagnostics.py
   fx_rates.py
   period_linking.py
   positions.py
@@ -193,7 +194,11 @@ Current responsibilities:
   where the linkage is conservative.
 - `findings.py`: Define finding records, roles, suppressions, and codes.
 - `explain.py`: Build portfolio/security period summaries, evidence
-  breakdowns, rankings, contribution candidates, and cause summaries.
+  breakdowns, rankings, contribution candidates, cause summaries, and
+  transaction summary tables.
+- `_transaction_diagnostics.py`: Centralize transaction diagnostic labels,
+  provenance-count formatting, match-status review notes, and business sort
+  ordering used by explanation tables.
 - `runner.py`: Public execution helpers, compact output tables, and summary
   tables.
 - `report.py`: Markdown, HTML, and bundle report rendering over stable helper
@@ -1099,7 +1104,10 @@ Current module ownership:
 - `runner.py` owns execution-facing helpers: snapshot comparison, compact
   findings, and finding-count summaries.
 - `explain.py` owns explanation-facing table helpers: portfolio/security
-  period summaries, evidence breakdowns, and evidence rankings.
+  period summaries, evidence breakdowns, evidence rankings, contribution
+  candidates, cause summaries, and transaction summary tables.
+- `_transaction_diagnostics.py` owns transaction-diagnostic presentation helpers
+  used by `explain.py`; it does not build Polars output tables.
 - `__init__.py` re-exports the stable public helpers so callers do not need to
   care which internal module owns the implementation.
 - `runner.py` also re-exports explanation helpers and constants as a
@@ -1725,7 +1733,9 @@ work should be data-facing and behavior-facing.
 4. Revisit `explain.py` only when a new feature makes a natural split obvious.
    Avoid splitting it merely because it is large; split only around stable
    responsibilities such as impact estimates, transaction diagnostics, or
-   summary tables when active work creates that boundary.
+   summary tables when active work creates that boundary. Initial transaction
+   diagnostic presentation helpers now live in `_transaction_diagnostics.py`;
+   keep additional extraction similarly narrow and behavior-preserving.
 
 Guardrails for all four phases:
 
