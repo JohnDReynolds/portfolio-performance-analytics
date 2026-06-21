@@ -7,7 +7,7 @@ smoke-test them so the examples do not drift.
 From a source checkout, validate the covered scenarios with:
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
 ## Comparison YAML Files By Role
@@ -63,7 +63,7 @@ performance differences from underlying input differences and reported checks:
 ### 1. Baseline / Clean Comparison
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison.yaml \
   _demo_output/workbooks/baseline \
   --include-workbook
@@ -94,7 +94,7 @@ run without producing false positives. An empty workbook is the expected result.
 ### 2. Single Restatement
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
   _demo_output/workbooks/single_restatement \
   --include-workbook
@@ -130,7 +130,7 @@ that would be needed for more complete attribution.
 ### 3. Single Restatement With Transaction Rules
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
   _demo_output/workbooks/transaction_rules \
   --include-workbook
@@ -163,7 +163,7 @@ defines transaction behavior instead of asking the reviewer to infer it.
 ### 4. Full YAML Specifications / Strict Attribution
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml \
   _demo_output/workbooks/full_spec \
   --include-workbook \
@@ -206,7 +206,7 @@ underlying input causes from derived performance checks.
 After generating any workbook demo bundle, validate it with:
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/<demo_name>
 ```
 
@@ -214,7 +214,7 @@ After generating any workbook demo bundle, validate it with:
 
 The remaining comparison YAML files are primarily scenario-coverage fixtures,
 not recommended XLSX workbook demos. They are exercised by
-`performance_comparison_validate_demo_matrix.py` and targeted unit tests.
+`ppar.performance_comparison.cli.validate_demo_matrix` and targeted unit tests.
 
 - `multi`: Stress-tests multiple portfolios, multiple periods, context rows,
   residual/coverage behavior, and workbook accounting invariants.
@@ -229,7 +229,7 @@ not recommended XLSX workbook demos. They are exercised by
 Validate the full packaged scenario matrix, including these fixtures, with:
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
 ## Scenario Matrix

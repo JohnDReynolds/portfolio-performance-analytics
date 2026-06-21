@@ -138,7 +138,10 @@ Run the bundled demos from an installed environment:
 ppar-analytics-demo
 ppar-axys-analytics-demo
 ppar-performance-comparison-demo
+ppar-performance-comparison-report-bundle
+ppar-performance-comparison-validate-bundle
 ppar-performance-comparison-validate-config
+ppar-performance-comparison-validate-demo-matrix
 ```
 
 ---
@@ -156,7 +159,7 @@ Use these entry points:
 
 - [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md): exact workbook
   demo commands, YAML files, data used, and expected XLSX output.
-- [Repository Guide](docs/repository_guide.md): map of README files, scripts,
+- [Repository Guide](docs/repository_guide.md): map of README files, commands,
   validators, generated outputs, and common workflows.
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
   internal model, YAML vocabulary, attribution setup, and report/workbook
@@ -168,9 +171,9 @@ Source-checkout smoke test:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/performance_comparison_bundle
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
 For XLSX workbook demos, install the Excel extra and use the commands in the
@@ -179,11 +182,11 @@ For XLSX workbook demos, install the Excel extra and use the commands in the
 
 ```bash
 ./.venv/bin/python -m pip install -e ".[excel]"
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
   _demo_output/workbooks/single_restatement \
   --include-workbook
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/single_restatement
 ```
 
@@ -191,10 +194,10 @@ For XLSX workbook demos, install the Excel extra and use the commands in the
 
 ## Repository Guide
 
-If the README files, demo fixtures, scripts, validators, and tests start to feel
+If the README files, demo fixtures, commands, validators, and tests start to feel
 too scattered, start with the [Repository Guide](docs/repository_guide.md). It
 maps the major directories, explains which README owns which topic, summarizes
-the source-checkout scripts and installed commands, and gives common workflows
+the source-checkout commands and installed commands, and gives common workflows
 for generating and validating performance comparison reports and XLSX
 workbooks.
 

@@ -1,4 +1,4 @@
-"""Tests for the performance comparison Markdown report script."""
+"""Tests for the performance comparison Markdown report CLI."""
 
 # Python imports
 import json
@@ -21,42 +21,40 @@ _SUPPRESSED_COMPARISON_PATH = Path(
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml"
 )
-_SCRIPT_PATH = Path("scripts/performance_comparison_report.py")
-_HTML_SCRIPT_PATH = Path("scripts/performance_comparison_html_report.py")
-_BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_report_bundle.py")
-_VALIDATE_BUNDLE_SCRIPT_PATH = Path("scripts/performance_comparison_validate_bundle.py")
-_VALIDATE_CONFIG_SCRIPT_PATH = Path("scripts/performance_comparison_validate_config.py")
-_VALIDATE_DEMO_MATRIX_SCRIPT_PATH = Path(
-    "scripts/performance_comparison_validate_demo_matrix.py"
-)
+_REPORT_MODULE = "ppar.performance_comparison.cli.report"
+_HTML_REPORT_MODULE = "ppar.performance_comparison.cli.html_report"
+_BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
+_VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
+_VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
+_VALIDATE_DEMO_MATRIX_MODULE = "ppar.performance_comparison.cli.validate_demo_matrix"
 
 
-class TestPerformanceComparisonReportScript(unittest.TestCase):
+class TestPerformanceComparisonCli(unittest.TestCase):
     """Verify command-line Markdown report generation."""
 
-    def test_report_scripts_expose_help(self) -> None:
-        """Report scripts expose consistent command-line help."""
-        script_expectations = {
-            _SCRIPT_PATH: "Write a Markdown performance comparison report.",
-            _HTML_SCRIPT_PATH: "Write an HTML performance comparison report.",
-            _BUNDLE_SCRIPT_PATH: (
+    def test_report_cli_modules_expose_help(self) -> None:
+        """Report CLI modules expose consistent command-line help."""
+        module_expectations = {
+            _REPORT_MODULE: "Write a Markdown performance comparison report.",
+            _HTML_REPORT_MODULE: "Write an HTML performance comparison report.",
+            _BUNDLE_MODULE: (
                 "Write a performance comparison review artifact bundle."
             ),
-            _VALIDATE_BUNDLE_SCRIPT_PATH: (
+            _VALIDATE_BUNDLE_MODULE: (
                 "Validate a performance comparison report bundle."
             ),
-            _VALIDATE_CONFIG_SCRIPT_PATH: (
+            _VALIDATE_CONFIG_MODULE: (
                 "Validate a performance comparison YAML configuration."
             ),
-            _VALIDATE_DEMO_MATRIX_SCRIPT_PATH: (
+            _VALIDATE_DEMO_MATRIX_MODULE: (
                 "Validate packaged performance comparison demo scenario coverage."
             ),
         }
 
-        for script_path, expected_description in script_expectations.items():
-            with self.subTest(script_path=script_path):
+        for module_name, expected_description in module_expectations.items():
+            with self.subTest(module_name=module_name):
                 result = subprocess.run(
-                    [sys.executable, str(script_path), "--help"],
+                    _module_command(module_name, "--help"),
                     check=True,
                     capture_output=True,
                     text=True,
@@ -66,26 +64,25 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
                 self.assertIn("-h, --help", result.stdout)
                 self.assertEqual(result.stderr, "")
 
-    def test_report_scripts_reject_negative_top_evidence_limit(self) -> None:
-        """Report scripts reject surprising negative evidence-row limits."""
-        script_output_args = {
-            _SCRIPT_PATH: ("comparison.md",),
-            _HTML_SCRIPT_PATH: ("comparison.html",),
-            _BUNDLE_SCRIPT_PATH: ("bundle",),
+    def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
+        """Report CLI modules reject surprising negative evidence-row limits."""
+        module_output_args = {
+            _REPORT_MODULE: ("comparison.md",),
+            _HTML_REPORT_MODULE: ("comparison.html",),
+            _BUNDLE_MODULE: ("bundle",),
         }
 
         with tempfile.TemporaryDirectory() as directory:
-            for script_path, output_args in script_output_args.items():
-                with self.subTest(script_path=script_path):
+            for module_name, output_args in module_output_args.items():
+                with self.subTest(module_name=module_name):
                     result = subprocess.run(
-                        [
-                            sys.executable,
-                            str(script_path),
+                        _module_command(
+                            module_name,
                             str(_RESTATEMENT_COMPARISON_PATH),
                             *[str(Path(directory) / value) for value in output_args],
                             "--top-evidence-limit",
                             "-1",
-                        ],
+                        ),
                         check=False,
                         capture_output=True,
                         text=True,
@@ -95,18 +92,17 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
                     self.assertIn("--top-evidence-limit", result.stderr)
                     self.assertIn("must be greater than or equal to 0", result.stderr)
 
-    def test_report_scripts_reject_non_integer_top_evidence_limit(self) -> None:
-        """Report scripts reject non-integer evidence-row limits."""
+    def test_report_cli_modules_reject_non_integer_top_evidence_limit(self) -> None:
+        """Report CLI modules reject non-integer evidence-row limits."""
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_SCRIPT_PATH),
+                _module_command(
+                    _REPORT_MODULE,
                     str(_RESTATEMENT_COMPARISON_PATH),
                     str(Path(directory) / "comparison.md"),
                     "--top-evidence-limit",
                     "many",
-                ],
+                ),
                 check=False,
                 capture_output=True,
                 text=True,
@@ -116,22 +112,21 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("--top-evidence-limit", result.stderr)
         self.assertIn("must be an integer", result.stderr)
 
-    def test_script_writes_markdown_report(self) -> None:
-        """The script writes a report for a comparison YAML file."""
+    def test_cli_module_writes_markdown_report(self) -> None:
+        """The CLI module writes a report for a comparison YAML file."""
         with tempfile.TemporaryDirectory() as directory:
             output_path = Path(directory) / "reports" / "comparison.md"
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_SCRIPT_PATH),
+                _module_command(
+                    _REPORT_MODULE,
                     str(_RESTATEMENT_COMPARISON_PATH),
                     str(output_path),
                     "--title",
                     "Script Restatement Report",
                     "--top-evidence-limit",
                     "2",
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -147,19 +142,18 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn("## Top Evidence", report)
             self.assertIn("PC-PORT-MV", report)
 
-    def test_script_can_omit_suppressed_appendix(self) -> None:
-        """The script can suppress the suppressed-findings appendix section."""
+    def test_cli_module_can_omit_suppressed_appendix(self) -> None:
+        """The CLI module can suppress the suppressed-findings appendix section."""
         with tempfile.TemporaryDirectory() as directory:
             output_path = Path(directory) / "comparison.md"
 
             subprocess.run(
-                [
-                    sys.executable,
-                    str(_SCRIPT_PATH),
+                _module_command(
+                    _REPORT_MODULE,
                     str(_SUPPRESSED_COMPARISON_PATH),
                     str(output_path),
                     "--no-suppressed-appendix",
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -169,22 +163,21 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn("- Suppressed findings: 1", report)
             self.assertNotIn("## Suppressed Findings Appendix", report)
 
-    def test_html_script_writes_html_report(self) -> None:
-        """The HTML script writes a browser-readable report file."""
+    def test_html_cli_module_writes_html_report(self) -> None:
+        """The HTML CLI module writes a browser-readable report file."""
         with tempfile.TemporaryDirectory() as directory:
             output_path = Path(directory) / "reports" / "comparison.html"
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_HTML_SCRIPT_PATH),
+                _module_command(
+                    _HTML_REPORT_MODULE,
                     str(_RESTATEMENT_COMPARISON_PATH),
                     str(output_path),
                     "--title",
                     "Script HTML Report",
                     "--top-evidence-limit",
                     "2",
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -198,20 +191,19 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn("security_contribution", report)
             self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
 
-    def test_html_script_can_omit_suppressed_appendix(self) -> None:
-        """The HTML script can suppress the suppressed-findings appendix."""
+    def test_html_cli_module_can_omit_suppressed_appendix(self) -> None:
+        """The HTML CLI module can suppress the suppressed-findings appendix."""
         with tempfile.TemporaryDirectory() as directory:
             output_path = Path(directory) / "comparison.html"
 
             subprocess.run(
-                [
-                    sys.executable,
-                    str(_HTML_SCRIPT_PATH),
+                _module_command(
+                    _HTML_REPORT_MODULE,
                     str(_SUPPRESSED_COMPARISON_PATH),
                     str(output_path),
                     "--active-only",
                     "--no-suppressed-appendix",
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -222,22 +214,21 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn("<strong>0</strong>", report)
             self.assertNotIn("Suppressed Findings Appendix</h2>", report)
 
-    def test_bundle_script_writes_report_bundle(self) -> None:
-        """The bundle script writes Markdown, CSV, and manifest artifacts."""
+    def test_bundle_cli_module_writes_report_bundle(self) -> None:
+        """The bundle CLI module writes Markdown, CSV, and manifest artifacts."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_BUNDLE_SCRIPT_PATH),
+                _module_command(
+                    _BUNDLE_MODULE,
                     str(_RESTATEMENT_COMPARISON_PATH),
                     str(output_directory),
                     "--title",
                     "Script Bundle Report",
                     "--top-evidence-limit",
                     "2",
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -272,20 +263,19 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             )
             self.assertEqual(manifest["artifacts"]["report"], "report.md")
 
-    def test_bundle_script_supports_active_only_and_omits_appendix(self) -> None:
-        """The bundle script passes active-only and appendix options through."""
+    def test_bundle_cli_module_supports_active_only_and_omits_appendix(self) -> None:
+        """The bundle CLI module passes active-only and appendix options through."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
             subprocess.run(
-                [
-                    sys.executable,
-                    str(_BUNDLE_SCRIPT_PATH),
+                _module_command(
+                    _BUNDLE_MODULE,
                     str(_SUPPRESSED_COMPARISON_PATH),
                     str(output_directory),
                     "--active-only",
                     "--no-suppressed-appendix",
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -300,19 +290,18 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertEqual(manifest["counts"]["findings"], 21)
             self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
 
-    def test_bundle_script_can_require_causal_attribution(self) -> None:
-        """The bundle script can fail before writing ambiguous attribution."""
+    def test_bundle_cli_module_can_require_causal_attribution(self) -> None:
+        """The bundle CLI module can fail before writing ambiguous attribution."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_BUNDLE_SCRIPT_PATH),
+                _module_command(
+                    _BUNDLE_MODULE,
                     str(_RESTATEMENT_COMPARISON_PATH),
                     str(output_directory),
                     "--require-causal-attribution",
-                ],
+                ),
                 check=False,
                 capture_output=True,
                 text=True,
@@ -322,20 +311,19 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertEqual(result.stdout, "")
             self.assertIn("Causal attribution setup is incomplete", result.stderr)
 
-    def test_bundle_script_accepts_supported_attribution_setup_alias(self) -> None:
+    def test_bundle_cli_module_accepts_supported_attribution_setup_alias(self) -> None:
         """The clearer strict-setup alias preserves current strict semantics."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_BUNDLE_SCRIPT_PATH),
+                _module_command(
+                    _BUNDLE_MODULE,
                     str(_FULL_SPEC_COMPARISON_PATH),
                     str(output_directory),
                     "--include-workbook",
                     "--require-supported-attribution-setup",
-                ],
+                ),
                 check=False,
                 capture_output=True,
                 text=True,
@@ -350,18 +338,17 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertTrue((output_directory / "review_workbook.xlsx").exists())
             self.assertEqual(result.stderr, "")
 
-    def test_validate_bundle_script_accepts_valid_bundle(self) -> None:
-        """The bundle validator script accepts a generated bundle."""
+    def test_validate_bundle_cli_module_accepts_valid_bundle(self) -> None:
+        """The bundle validator CLI module accepts a generated bundle."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
             self._write_bundle(output_directory)
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_VALIDATE_BUNDLE_SCRIPT_PATH),
+                _module_command(
+                    _VALIDATE_BUNDLE_MODULE,
                     str(output_directory),
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -371,8 +358,8 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn(str(output_directory), result.stdout)
             self.assertEqual(result.stderr, "")
 
-    def test_validate_bundle_script_reports_invalid_bundle(self) -> None:
-        """The bundle validator script exits nonzero for a broken bundle."""
+    def test_validate_bundle_cli_module_reports_invalid_bundle(self) -> None:
+        """The bundle validator CLI module exits nonzero for a broken bundle."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
             self._write_bundle(output_directory)
@@ -381,11 +368,10 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             top_evidence_path.write_text(header + "\n", encoding="utf-8")
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_VALIDATE_BUNDLE_SCRIPT_PATH),
+                _module_command(
+                    _VALIDATE_BUNDLE_MODULE,
                     str(output_directory),
-                ],
+                ),
                 check=False,
                 capture_output=True,
                 text=True,
@@ -396,14 +382,13 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             self.assertIn("Bundle validation failed:", result.stderr)
             self.assertIn("table 'top_evidence' row count is 0, expected 10", result.stderr)
 
-    def test_validate_config_script_accepts_valid_yaml(self) -> None:
-        """The config validator accepts a valid comparison YAML file."""
+    def test_validate_config_cli_module_accepts_valid_yaml(self) -> None:
+        """The CLI config validator accepts a valid comparison YAML file."""
         result = subprocess.run(
-            [
-                sys.executable,
-                str(_VALIDATE_CONFIG_SCRIPT_PATH),
+            _module_command(
+                _VALIDATE_CONFIG_MODULE,
                 str(_RESTATEMENT_COMPARISON_PATH),
-            ],
+            ),
             check=True,
             capture_output=True,
             text=True,
@@ -426,8 +411,8 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("Transaction semantics sources:", result.stdout)
         self.assertEqual(result.stderr, "")
 
-    def test_validate_config_script_reports_missing_optional_files(self) -> None:
-        """The config validator previews absent optional files without failing."""
+    def test_validate_config_cli_module_reports_missing_optional_files(self) -> None:
+        """The CLI config validator previews absent optional files without failing."""
         with tempfile.TemporaryDirectory() as directory:
             configuration = _absolute_restatement_configuration()
             files = cast(dict[str, object], configuration["files"])
@@ -439,11 +424,10 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             )
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_VALIDATE_CONFIG_SCRIPT_PATH),
+                _module_command(
+                    _VALIDATE_CONFIG_MODULE,
                     str(comparison_path),
-                ],
+                ),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -453,8 +437,8 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("Missing optional files: prices:a, prices:b", result.stdout)
         self.assertEqual(result.stderr, "")
 
-    def test_validate_config_script_reports_invalid_yaml_contract(self) -> None:
-        """The config validator exits nonzero for malformed YAML contracts."""
+    def test_validate_config_cli_module_reports_invalid_yaml_contract(self) -> None:
+        """The CLI config validator exits nonzero for malformed YAML contracts."""
         with tempfile.TemporaryDirectory() as directory:
             configuration = _absolute_restatement_configuration()
             configuration["transaction_impact_methods"] = {
@@ -470,11 +454,10 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             )
 
             result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_VALIDATE_CONFIG_SCRIPT_PATH),
+                _module_command(
+                    _VALIDATE_CONFIG_MODULE,
                     str(comparison_path),
-                ],
+                ),
                 check=False,
                 capture_output=True,
                 text=True,
@@ -485,13 +468,10 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertIn("Config validation failed:", result.stderr)
         self.assertIn("performance.method must be", result.stderr)
 
-    def test_validate_demo_matrix_script_accepts_packaged_demos(self) -> None:
-        """The demo matrix validator confirms packaged scenario coverage."""
+    def test_validate_demo_matrix_cli_module_accepts_packaged_demos(self) -> None:
+        """The CLI demo matrix validator confirms packaged scenario coverage."""
         result = subprocess.run(
-            [
-                sys.executable,
-                str(_VALIDATE_DEMO_MATRIX_SCRIPT_PATH),
-            ],
+            _module_command(_VALIDATE_DEMO_MATRIX_MODULE),
             check=True,
             capture_output=True,
             text=True,
@@ -511,14 +491,13 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
         self.assertEqual(result.stderr, "")
 
     def _write_bundle(self, output_directory: Path) -> None:
-        """Write a standard report bundle for script validation tests."""
+        """Write a standard report bundle for CLI validation tests."""
         subprocess.run(
-            [
-                sys.executable,
-                str(_BUNDLE_SCRIPT_PATH),
+            _module_command(
+                _BUNDLE_MODULE,
                 str(_RESTATEMENT_COMPARISON_PATH),
                 str(output_directory),
-            ],
+            ),
             check=True,
             capture_output=True,
             text=True,
@@ -546,6 +525,11 @@ def _html_section(report: str, section_id: str) -> str:
     """Return one HTML section by id."""
     start = f'<section class="pc-section" id="{section_id}">'
     return report.split(start, maxsplit=1)[1].split("</section>", maxsplit=1)[0]
+
+
+def _module_command(module_name: str, *args: str) -> list[str]:
+    """Return a subprocess command that runs a package CLI module."""
+    return [sys.executable, "-m", module_name, *args]
 
 
 if __name__ == "__main__":

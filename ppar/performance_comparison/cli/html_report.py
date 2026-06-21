@@ -1,29 +1,18 @@
-"""Write a Markdown report for a performance comparison specification."""
-
-# This script is meant to run directly from the repository checkout. Insert the
-# repository root before importing ppar so the local source tree is used even
-# when the package has not been installed. The ppar imports below therefore
-# intentionally sit after executable bootstrap code; `noqa: E402` suppresses
-# the "module import not at top of file" warning for those lines.
-# pylint: disable=wrong-import-order,wrong-import-position
+"""Write an HTML report for a performance comparison specification."""
 
 # Python imports
 import argparse
 from pathlib import Path
-import sys
-
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_REPO_ROOT))
 
 # Project imports
-from ppar.performance_comparison import (  # noqa: E402
+from ppar.performance_comparison import (
     compare_snapshots,
-    write_performance_comparison_markdown_report,
+    write_performance_comparison_html_report,
 )
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Write a Markdown report from a comparison YAML file.
+    """Write an HTML report from a comparison YAML file.
 
     Args:
         argv: Optional command-line arguments excluding the executable name.
@@ -36,21 +25,21 @@ def main(argv: list[str] | None = None) -> int:
         args.comparison_path,
         include_suppressed=not args.active_only,
     )
-    report_path = write_performance_comparison_markdown_report(
+    report_path = write_performance_comparison_html_report(
         findings,
         args.output_path,
         title=args.title,
         include_suppressed_appendix=not args.no_suppressed_appendix,
         top_evidence_limit=args.top_evidence_limit,
     )
-    print(f"Markdown report written to: {report_path}")
+    print(f"HTML report written to: {report_path}")
     return 0
 
 
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Write a Markdown performance comparison report.",
+        description="Write an HTML performance comparison report.",
     )
     parser.add_argument(
         "comparison_path",
@@ -60,12 +49,12 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "output_path",
         type=Path,
-        help="Destination Markdown report path.",
+        help="Destination HTML report path.",
     )
     parser.add_argument(
         "--title",
         default="Performance Comparison Report",
-        help="Markdown H1 title for the report.",
+        help="HTML document title and visible H1 text.",
     )
     parser.add_argument(
         "--top-evidence-limit",

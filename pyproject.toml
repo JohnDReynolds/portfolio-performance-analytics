@@ -81,7 +81,12 @@ dev = [
 ppar-analytics-demo = "ppar.demos.analytics_demo:main"
 ppar-axys-analytics-demo = "ppar.demos.axys_analytics_demo:main"
 ppar-performance-comparison-demo = "ppar.demos.performance_comparison_demo:main"
-ppar-performance-comparison-validate-config = "ppar.performance_comparison.config_validation:main"
+ppar-performance-comparison-html-report = "ppar.performance_comparison.cli.html_report:main"
+ppar-performance-comparison-report = "ppar.performance_comparison.cli.report:main"
+ppar-performance-comparison-report-bundle = "ppar.performance_comparison.cli.report_bundle:main"
+ppar-performance-comparison-validate-bundle = "ppar.performance_comparison.cli.validate_bundle:main"
+ppar-performance-comparison-validate-config = "ppar.performance_comparison.cli.validate_config:main"
+ppar-performance-comparison-validate-demo-matrix = "ppar.performance_comparison.cli.validate_demo_matrix:main"
 
 [tool.mypy]
 python_version = "3.12"
@@ -130,6 +135,7 @@ min-public-methods = 0
 # - `include-package-data`: include files specified in package-data or MANIFEST.in.
 packages = [
     "ppar",
+    "ppar.analytics",
     "ppar.axys",
     "ppar.demo_data",
     "ppar.demo_data.axys",
@@ -142,6 +148,7 @@ packages = [
     "ppar.demo_data.performance",
     "ppar.demos",
     "ppar.performance_comparison",
+    "ppar.performance_comparison.cli",
 ]
 include-package-data = true
 

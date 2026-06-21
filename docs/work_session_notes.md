@@ -96,7 +96,7 @@ non-workbook smoke-test output from:
 - Generated bundle `README.md` files now use role-based sections:
   `Primary Review Artifact`, `Secondary Review Views`, `Recommended Review
   Order`, and `Audit/Export Files`.
-- `scripts/performance_comparison_report_bundle.py` prints the workbook path
+- `ppar.performance_comparison.cli.report_bundle` prints the workbook path
   before the HTML path when `--include-workbook` is used.
 
 ## Release-Style Verification
@@ -107,24 +107,24 @@ Run these checks before considering the current workbook/report work ready:
 ./.venv/bin/python -m unittest \
   tests.test_performance_comparison_compare \
   tests.test_performance_comparison_report \
-  tests.test_performance_comparison_report_script \
+  tests.test_performance_comparison_cli \
   tests.test_performance_comparison_workbook_contract \
   tests.test_package_metadata
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/baseline
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/single_restatement
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/transaction_rules
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/full_spec
 ./.venv/bin/pyright \
   ppar/performance_comparison/report.py \
   ppar/performance_comparison/workbook.py \
-  scripts/performance_comparison_report_bundle.py \
+  ppar.performance_comparison.cli.report_bundle \
   tests/test_performance_comparison_report.py \
-  tests/test_performance_comparison_report_script.py \
+  tests/test_performance_comparison_cli.py \
   tests/test_performance_comparison_workbook_contract.py
 git diff --check
 ```
@@ -132,19 +132,19 @@ git diff --check
 Regenerate the four workbook demos after workbook/report presentation changes:
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison.yaml \
   _demo_output/workbooks/baseline \
   --include-workbook
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
   _demo_output/workbooks/single_restatement \
   --include-workbook
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
   _demo_output/workbooks/transaction_rules \
   --include-workbook
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml \
   _demo_output/workbooks/full_spec \
   --include-workbook \

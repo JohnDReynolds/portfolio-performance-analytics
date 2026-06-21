@@ -1,7 +1,7 @@
 # Repository Guide
 
 This guide is the orientation layer for the repository. Use it when the root
-README, demo fixtures, scripts, validators, and tests start to feel like too
+README, demo fixtures, commands, validators, and tests start to feel like too
 many disconnected entry points.
 
 ## Start Here
@@ -27,7 +27,7 @@ many disconnected entry points.
 | `ppar/demo_data/axys/` | Packaged Axys demo snapshots and comparison YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
-| `scripts/` | Source-checkout commands for report generation, validation, project checks, and documentation image rendering. |
+| `scripts/` | Repository-maintenance helpers; Performance Comparison commands live under ppar.performance_comparison.cli. |
 | `docs/` | Durable project documentation and design notes. |
 | `_demo_output/` | Generated demo/report output. This is intentionally ignored by Git. |
 
@@ -43,19 +43,19 @@ many disconnected entry points.
 
 ## Scripts
 
-The `scripts/` directory contains source-checkout helpers. Installed users
-should usually prefer console commands from `pyproject.toml`; maintainers often
-use the scripts directly while developing.
+The `scripts/` directory contains repository-maintenance helpers. Performance
+Comparison command implementations live in `ppar.performance_comparison.cli` and
+can be run from a source checkout with `./.venv/bin/python -m <module>`.
 
-| Script | Purpose | Common Use |
+| Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
-| `scripts/performance_comparison_report_bundle.py` | Writes Markdown, HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
-| `scripts/performance_comparison_validate_bundle.py` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
-| `scripts/performance_comparison_validate_demo_matrix.py` | Validates packaged Axys demo scenarios. | Prove demo fixtures still cover documented scenarios. |
-| `scripts/performance_comparison_validate_config.py` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
-| `scripts/performance_comparison_html_report.py` | Writes a standalone HTML report. | Lower-level report smoke testing. |
-| `scripts/performance_comparison_report.py` | Writes a standalone Markdown report. | Lower-level report smoke testing. |
+| `ppar.performance_comparison.cli.report_bundle` | Writes Markdown, HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
+| `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
+| `ppar.performance_comparison.cli.validate_demo_matrix` | Validates packaged Axys demo scenarios. | Prove demo fixtures still cover documented scenarios. |
+| `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
+| `ppar.performance_comparison.cli.html_report` | Writes a standalone HTML report. | Lower-level report smoke testing. |
+| `ppar.performance_comparison.cli.report` | Writes a standalone Markdown report. | Lower-level report smoke testing. |
 | `scripts/render_readme_images.py` | Regenerates README image artifacts. | Documentation image maintenance. |
 
 ## Installed Commands
@@ -67,7 +67,12 @@ The installed command names are declared in `pyproject.toml`.
 | `ppar-analytics-demo` | Runs the core analytics demo. |
 | `ppar-axys-analytics-demo` | Runs the Axys analytics demo. |
 | `ppar-performance-comparison-demo` | Runs the packaged performance comparison demo and writes a bundle under `_demo_output/`. |
+| `ppar-performance-comparison-html-report` | Writes a standalone HTML performance comparison report. |
+| `ppar-performance-comparison-report` | Writes a standalone Markdown performance comparison report. |
+| `ppar-performance-comparison-report-bundle` | Writes a portable performance comparison review bundle. |
+| `ppar-performance-comparison-validate-bundle` | Validates a generated performance comparison review bundle. |
 | `ppar-performance-comparison-validate-config` | Validates a performance comparison YAML file. |
+| `ppar-performance-comparison-validate-demo-matrix` | Validates packaged Axys demo scenario coverage. |
 
 ## Demo Data
 
@@ -103,7 +108,7 @@ For exact XLSX workbook commands and expected outputs, use
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/performance_comparison_bundle
 ```
 
@@ -113,7 +118,7 @@ non-workbook smoke test.
 ### Generate An XLSX Workbook Bundle
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_report_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml \
   _demo_output/workbooks/multi_restatement \
   --include-workbook
@@ -128,7 +133,7 @@ browser-friendly narrative view.
 ### Validate The Packaged Demo Matrix
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
 This is a scenario-coverage check. It is not just a bundle validator; it proves
@@ -137,7 +142,7 @@ that packaged fixtures still demonstrate the documented review situations.
 ### Validate A Generated Bundle
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_bundle.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   _demo_output/workbooks/multi_restatement
 ```
 
@@ -146,7 +151,7 @@ Use this after generating report/workbook output.
 ### Validate A Comparison YAML
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_config.py \
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
   ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml
 ```
 
@@ -182,14 +187,14 @@ When changing report/workbook behavior, the most relevant focused tests are:
 ./.venv/bin/python -m unittest \
   tests.test_package_metadata \
   tests.test_performance_comparison_report \
-  tests.test_performance_comparison_report_script \
+  tests.test_performance_comparison_cli \
   tests.test_performance_comparison_workbook_contract
 ```
 
 When changing demo data or YAML, also run:
 
 ```bash
-./.venv/bin/python scripts/performance_comparison_validate_demo_matrix.py
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
 ## Generated Output

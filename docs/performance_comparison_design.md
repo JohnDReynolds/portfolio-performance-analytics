@@ -63,9 +63,13 @@ Implemented output helpers:
 User-facing entry points:
 
 - `ppar-performance-comparison-demo`: installed demo command.
-- `scripts/performance_comparison_report_bundle.py`: source-checkout command
+- `ppar-performance-comparison-report-bundle`: installed command for writing a
+  report bundle from a comparison YAML file.
+- `ppar-performance-comparison-validate-bundle`: installed command for
+  validating an existing report bundle.
+- `ppar.performance_comparison.cli.report_bundle`: source-checkout command
   for writing a report bundle from a comparison YAML file.
-- `scripts/performance_comparison_validate_bundle.py`: source-checkout command
+- `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
   for validating an existing report bundle.
 - [Axys Common-Core Export Reference](axys_common_core_export.md): starter
   export shape for Axys-oriented source data.
@@ -1547,14 +1551,14 @@ Other generated helper tables include `impact_estimates.csv`,
 `flow_cross_check_reconciliation.csv`, `transaction_matching_diagnostics.csv`,
 `residual_status.csv`, `portfolio_period_summary.csv`, and `top_evidence.csv`.
 
-The `scripts/performance_comparison_report_bundle.py` command-line script
+The `ppar.performance_comparison.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
-`scripts/performance_comparison_validate_bundle.py`, which verifies required
+`ppar.performance_comparison.cli.validate_bundle`, which verifies required
 artifacts, manifest artifact names, CSV row counts, empty-table headers, and
 the optional XLSX workbook when the manifest includes one.
 Packaged demo scenario coverage can be checked with
-`scripts/performance_comparison_validate_demo_matrix.py`, which verifies that
+`ppar.performance_comparison.cli.validate_demo_matrix`, which verifies that
 the current YAML fixtures still produce the reviewer-facing scenarios named in
 the demo matrix.
 
@@ -1690,7 +1694,7 @@ intentionally conservative: it uses the same helper tables and section ordering
 as the Markdown report, with lightweight CSS, a review-basis strip, a compact
 review dashboard, and accessible table captions for review readability rather
 than separate HTML-specific analytics logic.
-The `scripts/performance_comparison_html_report.py` command-line script writes
+The `ppar.performance_comparison.cli.html_report` package CLI module writes
 the same HTML report directly from a comparison YAML file.
 
 ## Near-Term Roadmap

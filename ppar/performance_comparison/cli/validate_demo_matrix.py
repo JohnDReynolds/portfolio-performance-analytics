@@ -1,36 +1,26 @@
 """Validate packaged performance comparison demo scenario coverage."""
 
-# This script is meant to run directly from the repository checkout. Insert the
-# repository root before importing ppar so the local source tree is used even
-# when the package has not been installed. The ppar imports below therefore
-# intentionally sit after executable bootstrap code; `noqa: E402` suppresses
-# the "module import not at top of file" warning for those lines.
-# pylint: disable=wrong-import-order,wrong-import-position
-
 # Python imports
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
 import sys
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_REPO_ROOT))
-
 # Third-party imports
-import polars as pl  # noqa: E402
+import polars as pl
 
 # Project imports
-from ppar.performance_comparison import compare_snapshots, summarize_findings  # noqa: E402
-from ppar.performance_comparison import explain as _pc_explain  # noqa: E402
-from ppar.performance_comparison import findings as _pc_findings  # noqa: E402
-from ppar.performance_comparison.report import (  # noqa: E402
+from ppar.performance_comparison import compare_snapshots, summarize_findings
+from ppar.performance_comparison import explain as _pc_explain
+from ppar.performance_comparison import findings as _pc_findings
+from ppar.performance_comparison.report import (
     _context_evidence_table,
     _problem_table,
     _residual_status_table,
     _workbook_underlying_causes_table,
 )
 
-_DEFAULT_DEMO_DIRECTORY = _REPO_ROOT / "ppar" / "demo_data" / "axys"
+_DEFAULT_DEMO_DIRECTORY = Path(__file__).resolve().parents[2] / "demo_data" / "axys"
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _RESTATEMENT_YAML = "ppar_performance_comparison_restatement.yaml"
 _RESTATEMENT_TRANSACTION_RULES_YAML = (

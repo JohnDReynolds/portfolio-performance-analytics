@@ -204,9 +204,14 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject = tomllib.load(file)
 
         self.assertIn("ppar.axys", pyproject["tool"]["setuptools"]["packages"])
+        self.assertIn("ppar.analytics", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn("ppar.demos", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn(
             "ppar.performance_comparison",
+            pyproject["tool"]["setuptools"]["packages"],
+        )
+        self.assertIn(
+            "ppar.performance_comparison.cli",
             pyproject["tool"]["setuptools"]["packages"],
         )
 
@@ -223,8 +228,23 @@ class TestPackageMetadata(unittest.TestCase):
                 "ppar-performance-comparison-demo": (
                     "ppar.demos.performance_comparison_demo:main"
                 ),
+                "ppar-performance-comparison-html-report": (
+                    "ppar.performance_comparison.cli.html_report:main"
+                ),
+                "ppar-performance-comparison-report": (
+                    "ppar.performance_comparison.cli.report:main"
+                ),
+                "ppar-performance-comparison-report-bundle": (
+                    "ppar.performance_comparison.cli.report_bundle:main"
+                ),
+                "ppar-performance-comparison-validate-bundle": (
+                    "ppar.performance_comparison.cli.validate_bundle:main"
+                ),
                 "ppar-performance-comparison-validate-config": (
-                    "ppar.performance_comparison.config_validation:main"
+                    "ppar.performance_comparison.cli.validate_config:main"
+                ),
+                "ppar-performance-comparison-validate-demo-matrix": (
+                    "ppar.performance_comparison.cli.validate_demo_matrix:main"
                 ),
             },
         )
