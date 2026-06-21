@@ -19,7 +19,7 @@ from ppar.performance_comparison import (
     findings_to_polars,
 )
 from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison.compare import (
+from ppar.performance_comparison.policies import (
     _cash_impact_policies,
     _fx_rate_impact_policies,
     _modified_dietz_external_flow_eligibility,
