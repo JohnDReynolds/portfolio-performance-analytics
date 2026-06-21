@@ -10,7 +10,7 @@ import numpy as np
 import polars as pl
 
 # Project Imports
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.analytics.frequency import Frequency

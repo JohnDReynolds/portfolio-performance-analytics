@@ -17,7 +17,7 @@ import polars as pl
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import Attribution, View
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency
 from ppar.analytics.html_table import ColumnSpec, HtmlTable, SpannerSpec, attribution_table
 from ppar.analytics.riskstatistics import RiskStatistics

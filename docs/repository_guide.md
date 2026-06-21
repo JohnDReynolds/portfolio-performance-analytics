@@ -20,6 +20,7 @@ many disconnected entry points.
 | Path | Purpose |
 | --- | --- |
 | `ppar/` | Installable package code. |
+| `ppar/analytics/` | Core analytics engine, analytics column schema, attribution, contribution, and risk calculations. |
 | `ppar/axys/` | Axys-specific ingestion and normalization support. |
 | `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
 | `ppar/demos/` | Installed demo entry points, including `ppar-performance-comparison-demo`. |

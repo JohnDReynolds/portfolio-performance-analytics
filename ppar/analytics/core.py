@@ -20,7 +20,7 @@ from ppar.analytics.frequency import Frequency, date_matches_frequency
 from ppar.analytics.mapping import Mapping
 from ppar.analytics.performance import Performance
 from ppar.analytics.riskstatistics import RiskStatistics
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
 

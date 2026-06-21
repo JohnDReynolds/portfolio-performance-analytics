@@ -8,7 +8,7 @@ import unittest
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.analytics.frequency import Frequency

@@ -3,6 +3,7 @@
 # Python Imports
 import ast
 from fnmatch import fnmatch
+import importlib.util
 from importlib.resources import files
 from pathlib import Path
 import subprocess
@@ -11,7 +12,7 @@ import tomllib
 import unittest
 
 # Project Imports
-import ppar.schema as core_schema
+import ppar.analytics.schema as core_schema
 import ppar.errors as core_errors
 import ppar.utilities as util
 from ppar import axys, performance_comparison
@@ -567,7 +568,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_core_public_exports_are_explicit(self) -> None:
         """Core helper modules export every intentional public module name."""
         module_paths = {
-            core_schema: Path("ppar/schema.py"),
+            core_schema: Path("ppar/analytics/schema.py"),
             core_errors: Path("ppar/errors.py"),
             util: Path("ppar/utilities.py"),
         }
@@ -578,6 +579,10 @@ class TestPackageMetadata(unittest.TestCase):
                     set(module.__all__),
                     _declared_public_module_names(path),
                 )
+
+    def test_analytics_schema_has_no_top_level_compatibility_module(self) -> None:
+        """Analytics schema constants live only under the analytics package."""
+        self.assertIsNone(importlib.util.find_spec("ppar.schema"))
 
     def test_chart_dependencies_are_optional(self) -> None:
         """Normal package imports do not load optional chart rendering code."""

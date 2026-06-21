@@ -28,7 +28,7 @@ from ppar.analytics.frequency import Frequency
 from ppar.analytics import html_table
 from ppar.analytics import output
 from ppar.analytics.performance import Performance
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
 

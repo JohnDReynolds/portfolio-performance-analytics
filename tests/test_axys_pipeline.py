@@ -15,7 +15,7 @@ import yaml
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 from ppar.axys import AxysData
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 

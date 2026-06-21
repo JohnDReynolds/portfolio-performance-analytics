@@ -1,10 +1,10 @@
-"""Define shared column names, column groups, and column-name helpers.
+"""Define analytics column names, column groups, and column-name helpers.
 
-This module centralizes the string constants used throughout the package for
-performance, attribution, contribution, classification, and output-view column
-names. It also defines reusable column groupings and suffix constants used to
-translate between related performance columns, such as return, weight, and
-contribution columns.
+This module centralizes the string constants used by the analytics and Axys
+loading features for performance, attribution, contribution, classification,
+and output-view column names. It also defines reusable column groupings and
+suffix constants used to translate between related performance columns, such
+as return, weight, and contribution columns.
 
 The public constants are intentionally exported because callers may use them
 when preparing inputs, selecting output columns, or labeling reports.

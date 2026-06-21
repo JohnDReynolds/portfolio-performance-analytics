@@ -20,7 +20,7 @@ from tests import test_utilities as test_util
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import Chart, View
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency
 import ppar.utilities as util
 

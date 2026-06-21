@@ -16,7 +16,7 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
 

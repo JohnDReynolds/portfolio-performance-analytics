@@ -20,7 +20,7 @@ import polars as pl
 from scipy.stats import norm
 
 # Project Imports
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency, periods_per_year
 from ppar.analytics import html_table
 from ppar.analytics import output

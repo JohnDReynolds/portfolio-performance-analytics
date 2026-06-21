@@ -12,7 +12,7 @@ import polars as pl
 from ppar.axys.specification import AxysSpecification, ErrorMessage
 from ppar.axys.column_aliases import resolve_column
 from ppar.axys.date_ranges import AxysDateRange
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
 

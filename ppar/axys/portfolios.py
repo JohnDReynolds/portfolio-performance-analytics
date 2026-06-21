@@ -15,7 +15,7 @@ import polars as pl
 from ppar.axys import reconciliation
 from ppar.axys.performance_sources import AxysPerformanceSourceLoader
 from ppar.axys.specification import AxysSpecification
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 from ppar.analytics.frequency import Frequency
 import ppar.utilities as util

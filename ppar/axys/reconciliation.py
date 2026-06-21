@@ -16,7 +16,7 @@ from typing import Callable, Final
 import polars as pl
 
 # Project imports
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 from ppar.axys.weight_solver import derive_reconciled_weights
 from ppar.errors import PpaError
 

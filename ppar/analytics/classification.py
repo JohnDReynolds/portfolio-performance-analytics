@@ -12,7 +12,7 @@ from typing import Sequence
 import polars as pl
 
 # Project Imports
-import ppar.schema as cols
+import ppar.analytics.schema as cols
 import ppar.errors as errs
 from ppar.analytics.performance import Performance
 import ppar.utilities as util
