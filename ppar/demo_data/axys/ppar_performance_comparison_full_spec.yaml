@@ -26,6 +26,7 @@ files:
   positions: positions_holdings.csv
   prices: prices.csv
   transactions: transactions.csv
+  cash: cash.csv
 
 contribution_impact_methods:
   portfolio_source_field:
@@ -47,17 +48,21 @@ position_impact_methods:
   accrued:
     method: accrued_delta_over_return_denominator
     denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
 
 price_impact_methods:
   price:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
 
-evidence_only_impact_methods:
-  positions:
-    method: evidence_only
-    source_fields:
-      - quantity
+cash_impact_methods:
+  cash_balance:
+    method: cash_delta_over_return_denominator
+    denominator_source: begin_market_value
+  market_value:
+    method: cash_delta_over_return_denominator
+    denominator_source: begin_market_value
 
 transaction_rules:
   BUY:
@@ -75,6 +80,12 @@ transaction_impact_methods:
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
 
 tolerances:
   return: 0.000001

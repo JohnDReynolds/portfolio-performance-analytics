@@ -142,16 +142,18 @@ Data used:
 - Snapshot B: `axys_b_restatement`
 - Files: same full Axys-shaped data set as the single restatement demo.
 - YAML: adds transaction rules for `BUY`, `SELL`, `DIV`, and `INT`.
-- YAML: adds transaction impact methods for performance transactions and
-  evidence-only external flows.
+- YAML: adds transaction impact methods for performance transactions,
+  evidence-only external flows, and review-only transaction quantity, price,
+  and commission.
 
 Expected workbook:
 
 - Similar changed portfolio/security rows as the single restatement demo.
 - Transaction amount rows should have `Performance Difference Explained` because
   the YAML supplies sign/flow semantics and a transaction amount impact method.
-- Transaction quantity and price rows remain visible as input differences, but
-  they are not directly modeled as performance explanations.
+- Transaction quantity, price, and configured commission rows remain visible as
+  review-only input differences so they do not double-count the transaction
+  amount explanation.
 - This fixture isolates transaction-related setup. Other non-transaction
   input differences may still require separate YAML decisions.
 
@@ -173,16 +175,16 @@ Data used:
 - Snapshot A: `axys_full_spec_a`
 - Snapshot B: `axys_full_spec_b`
 - Files: compact set of portfolio performance, security performance,
-  transactions, positions, and prices.
+  transactions, positions, prices, and cash.
 - YAML: includes every currently supported causal-attribution policy.
 - YAML: strict mode is enabled with `--require-causal-attribution`.
 
 Expected workbook:
 
-- Eight changed portfolio periods in the `Portfolio Differences` sheet.
+- Changed portfolio periods in the `Portfolio Differences` sheet.
 - One changed security-period return in the `Security Differences` sheet.
 - `Underlying Causes` sheet should show additive transaction amount, position market
-  value, position accrued, and weighted price examples.
+  value, position accrued, weighted price, and cash examples.
 - `Underlying Causes` sheet should also show one explicit evidence-only position
   quantity row with `Required YAML Setup` set to `None; configured as
   evidence-only in comparison YAML.`
@@ -264,7 +266,7 @@ with enums, but YAML examples intentionally show the plain string values users
 edit.
 
 The `full_spec` fixture is intentionally compact and action-oriented. It
-contains eight changed portfolio periods so reviewers can see one occurrence of
+contains changed portfolio periods so reviewers can see one occurrence of
 each currently supported causal-attribution basis:
 
 - security return weighted by beginning weight
@@ -274,6 +276,7 @@ each currently supported causal-attribution basis:
 - position market value over beginning market value
 - position accrued over beginning market value
 - price delta over snapshot A price, weighted by snapshot A security weight
+- cash balance/market value over beginning market value
 - explicit evidence-only treatment for a known position quantity change
 
 Current public YAML method targets:
@@ -288,11 +291,17 @@ Current public YAML method targets:
   `market_value_delta_over_return_denominator` (covered)
 - `position_impact_methods.accrued`:
   `accrued_delta_over_return_denominator` (covered)
+- `position_impact_methods.quantity`: `evidence_only` (covered)
 - `price_impact_methods.price`:
   `price_delta_over_snapshot_a_price_times_weight` (covered)
+- `cash_impact_methods.cash_balance` and `cash_impact_methods.market_value`:
+  `cash_delta_over_return_denominator` (covered)
 - `evidence_only_impact_methods.<dataset>`:
-  `evidence_only` with explicit `source_fields` (covered)
+  `evidence_only` with explicit `source_fields` for known review-only fields
+  without a dataset-specific method target (covered)
 - `transaction_impact_methods.external_flow`: `evidence_only` (covered)
 - `transaction_impact_methods.external_flow`: `modified_dietz` (covered)
 - `transaction_impact_methods.performance`:
   `transaction_amount_delta_over_return_denominator` (covered)
+- `transaction_impact_methods.quantity`, `transaction_impact_methods.price`, and
+  `transaction_impact_methods.commission`: `evidence_only` (covered)

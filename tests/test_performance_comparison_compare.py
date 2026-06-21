@@ -20,6 +20,7 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.compare import (
+    _cash_impact_policies,
     _modified_dietz_external_flow_eligibility,
     _position_impact_policies,
     _price_impact_policies,
@@ -39,6 +40,8 @@ from ppar.performance_comparison.findings import (
     FINDING_CODE,
     FROM_DATE,
     IMPACT_POLICY,
+    IMPACT_POLICY_CASH_BALANCE,
+    IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_POSITION_ACCRUED,
     IMPACT_POLICY_POSITION_MARKET_VALUE,
@@ -295,20 +298,20 @@ def _write_position_period_specification(directory: Path) -> Path:
 
 def _write_cash_period_specification(directory: Path) -> Path:
     """Write a minimal cash comparison fixture with a containing period."""
-    for snapshot_name, cash_balance in (
-        ("snapshot_a", "1000.00"),
-        ("snapshot_b", "1010.00"),
+    for snapshot_name, cash_balance, market_value, portfolio_return in (
+        ("snapshot_a", "1000.00", "1000.00", "0.0100"),
+        ("snapshot_b", "1010.00", "1015.00", "0.0110"),
     ):
         snapshot_path = directory / snapshot_name
         snapshot_path.mkdir()
         (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
-            "PORT_A,2025-05-01,2025-05-31,0.01\n",
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
             encoding="utf-8",
         )
         (snapshot_path / "cash.csv").write_text(
-            "PORT,CASH_DATE,CURRENCY,CASH_BALANCE\n"
-            f"PORT_A,2025-05-31,USD,{cash_balance}\n",
+            "PORT,CASH_DATE,CURRENCY,CASH_BALANCE,MARKET_VALUE\n"
+            f"PORT_A,2025-05-31,USD,{cash_balance},{market_value}\n",
             encoding="utf-8",
         )
 
@@ -882,6 +885,47 @@ class TestPerformanceComparison(unittest.TestCase):
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
             )
 
+    def test_position_quantity_evidence_only_policy_is_loaded_from_yaml(self) -> None:
+        """Position quantity can be marked review-only in position impact YAML."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_position_period_specification(Path(temp_dir))
+            position_path = Path(temp_dir) / "snapshot_b" / "positions.csv"
+            position_path.write_text(
+                position_path.read_text(encoding="utf-8").replace(
+                    "PORT_A,AAPL,2025-05-31,10,1010.00,25.00",
+                    "PORT_A,AAPL,2025-05-31,11,1010.00,25.00",
+                ),
+                encoding="utf-8",
+            )
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["position_impact_methods"] = {
+                "quantity": {
+                    "method": "evidence_only",
+                },
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            policies = _position_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare_positions()
+            quantity_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_POS_QTY
+            )
+
+            self.assertEqual(
+                policies[pc_cols.QUANTITY],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
+            )
+            self.assertEqual(
+                quantity_finding[IMPACT_POLICY],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
+            )
+
     def test_identical_baseline_snapshots_have_no_cash_findings(self) -> None:
         """The baseline fixture compares identical cash rows."""
         findings = list(self._baseline_cash_findings)
@@ -922,7 +966,7 @@ class TestPerformanceComparison(unittest.TestCase):
             specification_path = _write_cash_period_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
 
-            findings = PerformanceComparison(specification).compare_cash()
+            findings = PerformanceComparison(specification).compare()
             finding_dicts = [finding.to_dict() for finding in findings]
             cash_balance_finding = next(
                 finding
@@ -932,6 +976,72 @@ class TestPerformanceComparison(unittest.TestCase):
 
             self.assertEqual(str(cash_balance_finding[FROM_DATE]), "2025-05-01")
             self.assertEqual(str(cash_balance_finding[THRU_DATE]), "2025-05-31")
+
+    def test_cash_impact_policy_is_loaded_from_yaml(self) -> None:
+        """Explicit cash impact policy is carried into findings."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_cash_period_specification(Path(temp_dir))
+            configuration = yaml.safe_load(
+                specification_path.read_text(encoding="utf-8")
+            )
+            configuration["cash_impact_methods"] = {
+                "cash_balance": {
+                    "method": "cash_delta_over_return_denominator",
+                    "denominator_source": "begin_market_value",
+                },
+                "market_value": {
+                    "method": "cash_delta_over_return_denominator",
+                    "denominator_source": "begin_market_value",
+                },
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            policies = _cash_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare()
+            candidates = portfolio_period_contribution_candidates(
+                findings_to_polars(findings)
+            )
+            balance_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.source_column == pc_cols.CASH_BALANCE
+            )
+            market_value_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.source_column == pc_cols.MARKET_VALUE
+            )
+            balance_candidate = candidates.filter(
+                pl.col("source_column") == pc_cols.CASH_BALANCE
+            ).row(0, named=True)
+            market_value_candidate = candidates.filter(
+                pl.col("source_column") == pc_cols.MARKET_VALUE
+            ).row(0, named=True)
+
+            self.assertEqual(policies[pc_cols.CASH_BALANCE], IMPACT_POLICY_CASH_BALANCE)
+            self.assertEqual(
+                policies[pc_cols.MARKET_VALUE],
+                IMPACT_POLICY_CASH_MARKET_VALUE,
+            )
+            self.assertEqual(balance_finding[IMPACT_POLICY], IMPACT_POLICY_CASH_BALANCE)
+            self.assertEqual(
+                market_value_finding[IMPACT_POLICY],
+                IMPACT_POLICY_CASH_MARKET_VALUE,
+            )
+            self.assertEqual(balance_finding[RETURN_DENOMINATOR], 1000.0)
+            self.assertEqual(market_value_finding[RETURN_DENOMINATOR], 1000.0)
+            self.assertAlmostEqual(
+                balance_candidate[ESTIMATED_RETURN_IMPACT],
+                0.01,
+            )
+            self.assertAlmostEqual(
+                market_value_candidate[ESTIMATED_RETURN_IMPACT],
+                0.015,
+            )
 
     def test_identical_baseline_snapshots_have_no_price_findings(self) -> None:
         """The baseline fixture compares identical price rows."""
@@ -1136,8 +1246,8 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertEqual(finding[PERFORMANCE_FLOW_SIGN], "performance")
             self.assertEqual(finding[TRANSACTION_SEMANTICS_SOURCE], "mixed")
 
-    def test_transaction_commission_changes_are_context(self) -> None:
-        """Commission changes are review context, not modeled performance inputs."""
+    def test_transaction_commission_changes_are_context_by_default(self) -> None:
+        """Commission changes remain context without explicit YAML treatment."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
             for snapshot_name, commission in (
@@ -1167,6 +1277,53 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertAlmostEqual(
                 cast(float, commission_finding[DELTA_B_MINUS_A]),
                 2.5,
+            )
+
+    def test_transaction_commission_evidence_only_policy_loads_from_yaml(self) -> None:
+        """Transaction commission can be marked review-only in YAML."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            for snapshot_name, commission in (
+                ("snapshot_a", "5.00"),
+                ("snapshot_b", "7.50"),
+            ):
+                transaction_path = Path(temp_dir) / snapshot_name / "transactions.csv"
+                transaction_path.write_text(
+                    "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
+                    "PRICE,AMOUNT,COMMISSION,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
+                    f"100.00,{commission},cash out,external\n",
+                    encoding="utf-8",
+                )
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["transaction_impact_methods"] = {
+                "commission": {
+                    "method": "evidence_only",
+                },
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            policies = _transaction_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare_transactions()
+            commission_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_TXN_COMM
+            )
+
+            self.assertEqual(policies[pc_cols.COMMISSION].method, "evidence_only")
+            self.assertEqual(
+                policies[pc_cols.COMMISSION].finding_label,
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.commission",
+            )
+            self.assertEqual(commission_finding[EVIDENCE_ROLE], DIRECT_INPUT)
+            self.assertEqual(
+                commission_finding[TRANSACTION_IMPACT_POLICY],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.commission",
             )
 
     def test_transaction_changes_link_to_containing_portfolio_period(self) -> None:
@@ -1278,6 +1435,52 @@ class TestPerformanceComparison(unittest.TestCase):
                 TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
             )
             self.assertEqual(performance_policy.denominator_source, "begin_market_value")
+
+    def test_transaction_source_field_evidence_only_policies_load_from_yaml(
+        self,
+    ) -> None:
+        """Transaction source fields can be marked review-only in YAML."""
+        specification = PerformanceComparisonSpecification(
+            _RESTATEMENT_TRANSACTION_RULES_PATH
+        )
+
+        policies = _transaction_impact_policies(specification)
+        findings = PerformanceComparison(specification).compare_transactions()
+        finding_dicts = [finding.to_dict() for finding in findings]
+        quantity_finding = next(
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_TXN_QTY
+        )
+        price_finding = next(
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_TXN_PRICE
+        )
+
+        self.assertEqual(policies[pc_cols.QUANTITY].method, "evidence_only")
+        self.assertEqual(policies[pc_cols.PRICE].method, "evidence_only")
+        self.assertEqual(policies[pc_cols.COMMISSION].method, "evidence_only")
+        self.assertEqual(
+            policies[pc_cols.QUANTITY].finding_label,
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.quantity",
+        )
+        self.assertEqual(
+            policies[pc_cols.PRICE].finding_label,
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.price",
+        )
+        self.assertEqual(
+            policies[pc_cols.COMMISSION].finding_label,
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.commission",
+        )
+        self.assertEqual(
+            quantity_finding[TRANSACTION_IMPACT_POLICY],
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.quantity",
+        )
+        self.assertEqual(
+            price_finding[TRANSACTION_IMPACT_POLICY],
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.price",
+        )
 
     def test_transaction_modified_dietz_policy_preserves_explicit_yaml_fields(
         self,
@@ -1762,6 +1965,36 @@ class TestPerformanceComparison(unittest.TestCase):
                 },
                 "performance.denominator_source must be one of",
             ),
+            ({"quantity": "review-only"}, "quantity must be a mapping"),
+            ({"quantity": {}}, "quantity is missing required keys"),
+            (
+                {"quantity": {"method": "quantity_delta_over_return_denominator"}},
+                "quantity.method must be",
+            ),
+            (
+                {"quantity": {"method": "evidence_only", "denominator_source": "x"}},
+                "quantity has unsupported keys",
+            ),
+            ({"price": "review-only"}, "price must be a mapping"),
+            ({"price": {}}, "price is missing required keys"),
+            (
+                {"price": {"method": "price_delta_over_return_denominator"}},
+                "price.method must be",
+            ),
+            (
+                {"price": {"method": "evidence_only", "denominator_source": "x"}},
+                "price has unsupported keys",
+            ),
+            ({"commission": "review-only"}, "commission must be a mapping"),
+            ({"commission": {}}, "commission is missing required keys"),
+            (
+                {"commission": {"method": "commission_delta_over_return_denominator"}},
+                "commission.method must be",
+            ),
+            (
+                {"commission": {"method": "evidence_only", "denominator_source": "x"}},
+                "commission has unsupported keys",
+            ),
         ]
 
         for transaction_impact_methods, expected_message in scenarios:
@@ -1920,6 +2153,16 @@ class TestPerformanceComparison(unittest.TestCase):
                 },
                 "accrued.denominator_source must be one of",
             ),
+            ({"quantity": "review-only"}, "quantity must be a mapping"),
+            ({"quantity": {}}, "quantity is missing required keys"),
+            (
+                {"quantity": {"method": "quantity_delta_over_return_denominator"}},
+                "quantity.method must be",
+            ),
+            (
+                {"quantity": {"method": "evidence_only", "denominator_source": "x"}},
+                "quantity has unsupported keys",
+            ),
         ]
 
         for position_impact_methods, expected_message in scenarios:
@@ -1981,6 +2224,55 @@ class TestPerformanceComparison(unittest.TestCase):
                         specification_path.read_text(encoding="utf-8")
                     )
                     configuration["price_impact_methods"] = price_impact_methods
+                    specification_path.write_text(
+                        yaml.safe_dump(configuration),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaises(PpaError) as context:
+                        PerformanceComparison(
+                            PerformanceComparisonSpecification(specification_path)
+                        )
+
+                    self.assertIn(expected_message, str(context.exception))
+
+    def test_cash_impact_methods_reject_malformed_yaml(self) -> None:
+        """Cash impact method YAML must use the supported contract."""
+        scenarios = [
+            ("not-a-mapping", "cash_impact_methods must be a mapping"),
+            ({"unsupported": {"method": "x"}}, "unsupported"),
+            ({"cash_balance": "estimate"}, "cash_balance must be a mapping"),
+            ({"cash_balance": {}}, "cash_balance is missing required keys"),
+            (
+                {
+                    "cash_balance": {
+                        "method": "unsupported",
+                        "denominator_source": "begin_market_value",
+                    }
+                },
+                "cash_balance.method must be",
+            ),
+            (
+                {
+                    "market_value": {
+                        "method": "cash_delta_over_return_denominator",
+                        "denominator_source": "ending_market_value",
+                    }
+                },
+                "market_value.denominator_source must be one of",
+            ),
+        ]
+
+        for cash_impact_methods, expected_message in scenarios:
+            with self.subTest(cash_impact_methods=cash_impact_methods):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    specification_path = _write_cash_period_specification(
+                        Path(temp_dir)
+                    )
+                    configuration = yaml.safe_load(
+                        specification_path.read_text(encoding="utf-8")
+                    )
+                    configuration["cash_impact_methods"] = cash_impact_methods
                     specification_path.write_text(
                         yaml.safe_dump(configuration),
                         encoding="utf-8",

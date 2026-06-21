@@ -1333,6 +1333,15 @@ def _workbook_required_yaml_setup(
             "Specify the YAML price_impact_methods.price.method and "
             f"price_impact_methods.price.weight_source in {yaml_path}."
         )
+    if dataset == pc_cols.CASH:
+        if source_column not in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}:
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        return (
+            f"Specify the YAML cash_impact_methods.{source_column}.method and "
+            f"cash_impact_methods.{source_column}.denominator_source in {yaml_path}."
+        )
     return f"No supported YAML impact method exists yet for {dataset_column}."
 
 
@@ -1345,10 +1354,14 @@ def _workbook_yaml_path_label(comparison_path: util.PathLike | None) -> str:
 
 def _workbook_has_evidence_only_policy(row: Mapping[str, object]) -> bool:
     """Return whether a row has explicit YAML evidence-only treatment."""
-    policy = row.get(_pc_findings.IMPACT_POLICY)
-    return (
+    policies = (
+        row.get(_pc_findings.IMPACT_POLICY),
+        row.get(_pc_findings.TRANSACTION_IMPACT_POLICY),
+    )
+    return any(
         isinstance(policy, str)
         and policy.startswith(_pc_findings.IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
+        for policy in policies
     )
 
 

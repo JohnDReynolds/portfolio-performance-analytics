@@ -52,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Contribution impact methods: {summary['contribution_impact_methods']}")
     print(f"Position impact methods: {summary['position_impact_methods']}")
     print(f"Price impact methods: {summary['price_impact_methods']}")
+    print(f"Cash impact methods: {summary['cash_impact_methods']}")
     print(f"Evidence-only impact methods: {summary['evidence_only_impact_methods']}")
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
@@ -86,6 +87,7 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "contribution_impact_methods": _contribution_impact_methods(specification),
         "position_impact_methods": _position_impact_methods(specification),
         "price_impact_methods": _price_impact_methods(specification),
+        "cash_impact_methods": _cash_impact_methods(specification),
         "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
@@ -178,6 +180,16 @@ def _price_impact_methods(
 ) -> str:
     """Return configured price impact method keys."""
     methods_value = specification.values.get("price_impact_methods", {})
+    if not isinstance(methods_value, dict) or not methods_value:
+        return "none"
+    return ", ".join(sorted(str(key) for key in methods_value))
+
+
+def _cash_impact_methods(
+    specification: PerformanceComparisonSpecification,
+) -> str:
+    """Return configured cash impact method keys."""
+    methods_value = specification.values.get("cash_impact_methods", {})
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))

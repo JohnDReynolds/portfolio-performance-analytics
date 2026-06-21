@@ -34,6 +34,7 @@ class TransactionImpactMethod(StrEnum):
 class PositionImpactMethod(StrEnum):
     """Supported `position_impact_methods` YAML method names."""
 
+    EVIDENCE_ONLY = "evidence_only"
     MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR = (
         "market_value_delta_over_return_denominator"
     )
@@ -48,6 +49,12 @@ class PriceImpactMethod(StrEnum):
     PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
         "price_delta_over_snapshot_a_price_times_weight"
     )
+
+
+class CashImpactMethod(StrEnum):
+    """Supported `cash_impact_methods` YAML method names."""
+
+    CASH_DELTA_OVER_RETURN_DENOMINATOR = "cash_delta_over_return_denominator"
 
 
 class ModifiedDietzFlowTiming(StrEnum):

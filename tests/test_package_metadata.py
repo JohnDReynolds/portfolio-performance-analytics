@@ -25,7 +25,9 @@ from ppar.performance_comparison import runner as performance_comparison_runner
 from ppar.performance_comparison import report as performance_comparison_report
 from ppar.performance_comparison import findings as performance_comparison_findings
 from ppar.performance_comparison.methods import (
+    CashImpactMethod,
     ContributionImpactMethod,
+    PositionImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison import (
@@ -292,6 +294,10 @@ class TestPackageMetadata(unittest.TestCase):
             ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value,
             ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value,
             ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value,
+            CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value,
+            PositionImpactMethod.EVIDENCE_ONLY.value,
+            PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value,
+            PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value,
             TransactionImpactMethod.EVIDENCE_ONLY.value,
             TransactionImpactMethod.MODIFIED_DIETZ.value,
             TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value,
@@ -323,6 +329,17 @@ class TestPackageMetadata(unittest.TestCase):
             (
                 "security_return:"
                 f"{ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value}"
+            ),
+        )
+        self.assertEqual(
+            performance_comparison_findings.IMPACT_POLICY_CASH_BALANCE,
+            f"cash_balance:{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}",
+        )
+        self.assertEqual(
+            performance_comparison_findings.IMPACT_POLICY_CASH_MARKET_VALUE,
+            (
+                "cash_market_value:"
+                f"{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}"
             ),
         )
         self.assertEqual(

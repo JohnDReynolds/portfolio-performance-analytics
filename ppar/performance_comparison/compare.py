@@ -19,6 +19,8 @@ from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     CONTEXT,
     DIRECT_INPUT,
+    IMPACT_POLICY_CASH_BALANCE,
+    IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_POSITION_ACCRUED,
     IMPACT_POLICY_POSITION_MARKET_VALUE,
@@ -66,6 +68,7 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.methods import (
+    CashImpactMethod,
     ContributionImpactMethod,
     ModifiedDietzDayCount,
     ModifiedDietzDoubleCountPolicy,
@@ -199,6 +202,7 @@ _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
 _POSITION_IMPACT_METHODS_KEY: Final[str] = "position_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
+_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
 _SECURITY_CONTRIBUTION_KEY: Final[str] = "security_contribution"
@@ -206,6 +210,9 @@ _SECURITY_RETURN_KEY: Final[str] = "security_return"
 _MARKET_VALUE_KEY: Final[str] = "market_value"
 _EXTERNAL_FLOW_KEY: Final[str] = "external_flow"
 _PERFORMANCE_KEY: Final[str] = "performance"
+_TRANSACTION_QUANTITY_KEY: Final[str] = pc_cols.QUANTITY
+_TRANSACTION_PRICE_KEY: Final[str] = pc_cols.PRICE
+_TRANSACTION_COMMISSION_KEY: Final[str] = pc_cols.COMMISSION
 _METHOD_KEY: Final[str] = "method"
 _SOURCE_FIELDS_KEY: Final[str] = "source_fields"
 _WEIGHT_SOURCE_KEY: Final[str] = "weight_source"
@@ -229,8 +236,12 @@ _POSITION_MARKET_VALUE_DELTA_METHOD: Final[str] = (
 _POSITION_ACCRUED_DELTA_METHOD: Final[str] = (
     PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
 )
+_POSITION_EVIDENCE_ONLY_METHOD: Final[str] = PositionImpactMethod.EVIDENCE_ONLY.value
 _PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD: Final[str] = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
+)
+_CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD: Final[str] = (
+    CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
@@ -265,6 +276,11 @@ _PERFORMANCE_AMOUNT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _DENOMINATOR_SOURCE_KEY,
     }
 )
+_TRANSACTION_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+    }
+)
 _POSITION_MARKET_VALUE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
@@ -277,10 +293,21 @@ _POSITION_ACCRUED_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _DENOMINATOR_SOURCE_KEY,
     }
 )
+_POSITION_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+    }
+)
 _PRICE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
         _WEIGHT_SOURCE_KEY,
+    }
+)
+_CASH_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
     }
 )
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
@@ -308,6 +335,9 @@ _POSITION_ACCRUED_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
 }
 _PRICE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _WEIGHT_SOURCE_KEY: frozenset({"snapshot_a_weight"}),
+}
+_CASH_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
 _EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
@@ -443,6 +473,8 @@ class PerformanceComparison:
             labels keyed by source column.
         _price_impact_policies: YAML-configured price impact policy labels
             keyed by source column.
+        _cash_impact_policies: YAML-configured cash impact policy labels keyed
+            by source column.
         _evidence_only_impact_policies: YAML-configured evidence-only policy
             labels keyed by dataset and source column.
     """
@@ -470,6 +502,7 @@ class PerformanceComparison:
         )
         self._position_impact_policies = _position_impact_policies(specification)
         self._price_impact_policies = _price_impact_policies(specification)
+        self._cash_impact_policies = _cash_impact_policies(specification)
         self._evidence_only_impact_policies = _evidence_only_impact_policies(
             specification
         )
@@ -624,6 +657,7 @@ class PerformanceComparison:
             return []
 
         portfolio_periods = self._portfolio_periods()
+        return_denominators = self._portfolio_period_return_denominators()
         key_columns = self._cash_key_columns(snapshot_a, snapshot_b)
         findings = self._row_presence_findings(
             snapshot_a,
@@ -643,6 +677,7 @@ class PerformanceComparison:
                 _CASH_COMPARE_COLUMNS,
                 pc_cols.CASH,
                 portfolio_periods,
+                return_denominators=return_denominators,
             )
         )
         return findings
@@ -845,16 +880,22 @@ class PerformanceComparison:
                 snapshot_b_value = row[f"{column}_b"]
                 if snapshot_a_value == snapshot_b_value:
                     continue
+                transaction_impact_policy = self._transaction_impact_policy(
+                    row,
+                    dataset,
+                    column,
+                )
                 findings.append(
                     Finding(
                         code=compare_columns[column],
                         severity=SEVERITY_INFORMATIONAL,
                         confidence=CONFIDENCE_HIGH,
                         dataset=dataset,
-                        evidence_role=self._evidence_role(
+                        evidence_role=self._changed_value_evidence_role(
                             compare_columns[column],
                             dataset,
                             column,
+                            transaction_impact_policy,
                         ),
                         portfolio_id=row.get(pc_cols.PORTFOLIO_ID),
                         security_id=row.get(pc_cols.SECURITY_ID),
@@ -871,35 +912,33 @@ class PerformanceComparison:
                         transaction_semantics_source=(
                             self._transaction_semantics_source(row, dataset)
                         ),
-                            transaction_impact_policy=(
-                                self._transaction_impact_policy(row, dataset)
-                            ),
-                            transaction_impact_diagnostic=(
-                                self._transaction_impact_diagnostic(
-                                    row,
-                                    dataset,
-                                    column,
-                                    row.get(pc_cols.PORTFOLIO_ID),
-                                    row.get(pc_cols.FROM_DATE),
-                                    row.get(pc_cols.THRU_DATE),
-                                    None,
-                                )
-                            ),
-                            transaction_impact_diagnostic_estimate=(
-                                self._transaction_impact_diagnostic_estimate(
-                                    row,
-                                    dataset,
-                                    column,
-                                    row.get(pc_cols.PORTFOLIO_ID),
-                                    row.get(pc_cols.FROM_DATE),
-                                    row.get(pc_cols.THRU_DATE),
-                                    None,
-                                    None,
-                                )
-                            ),
-                            snapshot_a_value=snapshot_a_value,
-                            snapshot_b_value=snapshot_b_value,
-                            message=f"{dataset} {column!r} changed.",
+                        transaction_impact_policy=transaction_impact_policy,
+                        transaction_impact_diagnostic=(
+                            self._transaction_impact_diagnostic(
+                                row,
+                                dataset,
+                                column,
+                                row.get(pc_cols.PORTFOLIO_ID),
+                                row.get(pc_cols.FROM_DATE),
+                                row.get(pc_cols.THRU_DATE),
+                                None,
+                            )
+                        ),
+                        transaction_impact_diagnostic_estimate=(
+                            self._transaction_impact_diagnostic_estimate(
+                                row,
+                                dataset,
+                                column,
+                                row.get(pc_cols.PORTFOLIO_ID),
+                                row.get(pc_cols.FROM_DATE),
+                                row.get(pc_cols.THRU_DATE),
+                                None,
+                                None,
+                            )
+                        ),
+                        snapshot_a_value=snapshot_a_value,
+                        snapshot_b_value=snapshot_b_value,
+                        message=f"{dataset} {column!r} changed.",
                     )
                 )
         return findings
@@ -957,6 +996,11 @@ class PerformanceComparison:
                 if abs(delta) <= self._tolerance(column):
                     continue
                 for portfolio_id, from_date, thru_date in finding_contexts:
+                    transaction_impact_policy = self._transaction_impact_policy(
+                        row,
+                        dataset,
+                        column,
+                    )
                     return_denominator = self._return_denominator(
                         row,
                         dataset,
@@ -971,10 +1015,11 @@ class PerformanceComparison:
                             severity=SEVERITY_MATERIAL,
                             confidence=CONFIDENCE_HIGH,
                             dataset=dataset,
-                            evidence_role=self._evidence_role(
+                            evidence_role=self._changed_value_evidence_role(
                                 compare_columns[column],
                                 dataset,
                                 column,
+                                transaction_impact_policy,
                             ),
                             portfolio_id=portfolio_id,
                             security_id=row.get(pc_cols.SECURITY_ID),
@@ -1001,9 +1046,7 @@ class PerformanceComparison:
                                 dataset,
                                 column,
                             ),
-                            transaction_impact_policy=(
-                                self._transaction_impact_policy(row, dataset)
-                            ),
+                            transaction_impact_policy=transaction_impact_policy,
                             transaction_impact_diagnostic=(
                                 self._transaction_impact_diagnostic(
                                     row,
@@ -1121,10 +1164,19 @@ class PerformanceComparison:
         self,
         row: dict[str, object],
         dataset: str,
+        source_column: str,
     ) -> object | None:
         """Return YAML-configured transaction impact policy for a row."""
         if dataset != pc_cols.TRANSACTIONS:
             return None
+        if source_column in {
+            _TRANSACTION_QUANTITY_KEY,
+            _TRANSACTION_PRICE_KEY,
+            _TRANSACTION_COMMISSION_KEY,
+        }:
+            policy = self._transaction_impact_policies.get(source_column)
+            if policy is not None:
+                return policy.finding_label
         performance_flow_sign = row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
         if performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
             policy_key = _EXTERNAL_FLOW_KEY
@@ -1239,7 +1291,7 @@ class PerformanceComparison:
         """Return beginning market value for approximate return impacts."""
         if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
             if (
-                dataset in {pc_cols.POSITIONS, pc_cols.TRANSACTIONS}
+                dataset in {pc_cols.POSITIONS, pc_cols.TRANSACTIONS, pc_cols.CASH}
                 and portfolio_id is not None
                 and from_date is not None
                 and thru_date is not None
@@ -1513,6 +1565,22 @@ class PerformanceComparison:
             return DIRECT_INPUT
         return CONTEXT
 
+    def _changed_value_evidence_role(
+        self,
+        code: str,
+        dataset: str,
+        source_column: str,
+        transaction_impact_policy: object | None,
+    ) -> EvidenceRole:
+        """Return the evidence role for one changed-value finding."""
+        if (
+            dataset == pc_cols.TRANSACTIONS
+            and source_column == pc_cols.COMMISSION
+            and _is_evidence_only_policy_label(transaction_impact_policy)
+        ):
+            return DIRECT_INPUT
+        return self._evidence_role(code, dataset, source_column)
+
     @staticmethod
     def _numeric_delta(snapshot_a_value: object, snapshot_b_value: object) -> float | None:
         """Return numeric B-minus-A delta, or ``None`` when not comparable."""
@@ -1564,6 +1632,10 @@ class PerformanceComparison:
             policy = self._price_impact_policies.get(source_column)
             if policy is not None:
                 return policy
+        if dataset == pc_cols.CASH:
+            policy = self._cash_impact_policies.get(source_column)
+            if policy is not None:
+                return policy
         policy = self._contribution_impact_policy(dataset, source_column)
         if policy is not None:
             return policy
@@ -1598,7 +1670,13 @@ def _transaction_impact_policies(
             504,
         )
 
-    unsupported_keys = set(methods_value) - {_EXTERNAL_FLOW_KEY, _PERFORMANCE_KEY}
+    unsupported_keys = set(methods_value) - {
+        _EXTERNAL_FLOW_KEY,
+        _PERFORMANCE_KEY,
+        _TRANSACTION_QUANTITY_KEY,
+        _TRANSACTION_PRICE_KEY,
+        _TRANSACTION_COMMISSION_KEY,
+    }
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
@@ -1641,6 +1719,27 @@ def _transaction_impact_policies(
             specification,
             performance_value,
         )
+    for policy_key in (
+        _TRANSACTION_QUANTITY_KEY,
+        _TRANSACTION_PRICE_KEY,
+        _TRANSACTION_COMMISSION_KEY,
+    ):
+        evidence_only_value = methods_value.get(policy_key)
+        if evidence_only_value is not None and not isinstance(evidence_only_value, dict):
+            raise PpaError(
+                (
+                    f"{specification.path}: "
+                    f"{_TRANSACTION_IMPACT_METHODS_KEY}.{policy_key} "
+                    "must be a mapping."
+                ),
+                504,
+            )
+        if isinstance(evidence_only_value, dict):
+            policies[policy_key] = _validated_transaction_evidence_only_policy(
+                specification,
+                policy_key,
+                evidence_only_value,
+            )
     return policies
 
 
@@ -1747,7 +1846,11 @@ def _position_impact_policies(
             504,
         )
 
-    unsupported_keys = set(methods_value) - {_MARKET_VALUE_KEY, pc_cols.ACCRUED}
+    unsupported_keys = set(methods_value) - {
+        _MARKET_VALUE_KEY,
+        pc_cols.ACCRUED,
+        pc_cols.QUANTITY,
+    }
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
@@ -1819,6 +1922,32 @@ def _position_impact_policies(
             _POSITION_ACCRUED_ALLOWED_VALUES,
         )
         policies[pc_cols.ACCRUED] = IMPACT_POLICY_POSITION_ACCRUED
+    quantity = methods_value.get(pc_cols.QUANTITY)
+    if quantity is not None:
+        policy = _require_policy_mapping(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.QUANTITY,
+            quantity,
+        )
+        _validate_policy_keys(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.QUANTITY,
+            policy,
+            _POSITION_EVIDENCE_ONLY_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _POSITION_IMPACT_METHODS_KEY,
+            pc_cols.QUANTITY,
+            policy,
+            _POSITION_EVIDENCE_ONLY_METHOD,
+        )
+        policies[pc_cols.QUANTITY] = _evidence_only_impact_policy_label(
+            pc_cols.POSITIONS,
+            pc_cols.QUANTITY,
+        )
     return policies
 
 
@@ -1892,6 +2021,85 @@ def _price_impact_policies(
             _PRICE_ALLOWED_VALUES,
         )
         policies[pc_cols.PRICE] = IMPACT_POLICY_PRICE_WEIGHTED
+    return policies
+
+
+def _cash_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, str]:
+    """Return validated YAML-selected cash impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by cash source column. Missing configuration
+        returns an empty mapping, which leaves cash rows as evidence-only.
+
+    Raises:
+        PpaError: If cash impact method configuration is malformed or names an
+            unsupported method.
+    """
+    methods_value = specification.values.get(_CASH_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_CASH_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    supported_keys = {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}
+    unsupported_keys = set(methods_value) - supported_keys
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_CASH_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[str, str] = {}
+    for source_column in (pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE):
+        method_value = methods_value.get(source_column)
+        if method_value is None:
+            continue
+        policy = _require_policy_mapping(
+            specification,
+            _CASH_IMPACT_METHODS_KEY,
+            source_column,
+            method_value,
+        )
+        _validate_policy_keys(
+            specification,
+            _CASH_IMPACT_METHODS_KEY,
+            source_column,
+            policy,
+            _CASH_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _CASH_IMPACT_METHODS_KEY,
+            source_column,
+            policy,
+            _CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD,
+        )
+        _validate_allowed_policy_values(
+            specification,
+            _CASH_IMPACT_METHODS_KEY,
+            source_column,
+            policy,
+            _CASH_ALLOWED_VALUES,
+        )
+        if source_column == pc_cols.CASH_BALANCE:
+            policies[source_column] = IMPACT_POLICY_CASH_BALANCE
+        else:
+            policies[source_column] = IMPACT_POLICY_CASH_MARKET_VALUE
     return policies
 
 
@@ -2121,6 +2329,11 @@ def _evidence_only_impact_policy_label(dataset: str, source_column: str) -> str:
     return f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}{dataset}.{source_column}"
 
 
+def _is_evidence_only_policy_label(value: object) -> bool:
+    """Return whether a policy label represents explicit evidence-only setup."""
+    return isinstance(value, str) and value.startswith(IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
+
+
 def _validated_security_return_policy(
     specification: PerformanceComparisonSpecification,
     policy_value: object,
@@ -2331,6 +2544,35 @@ def _validated_performance_amount_policy(
         method=_TRANSACTION_AMOUNT_DELTA_METHOD,
         finding_label=TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
         denominator_source=str(performance_value[_DENOMINATOR_SOURCE_KEY]),
+    )
+
+
+def _validated_transaction_evidence_only_policy(
+    specification: PerformanceComparisonSpecification,
+    policy_key: str,
+    policy_value: Mapping[str, object],
+) -> _TransactionImpactPolicy:
+    """Validate a transaction source-field evidence-only YAML policy."""
+    _validate_policy_keys(
+        specification,
+        _TRANSACTION_IMPACT_METHODS_KEY,
+        policy_key,
+        policy_value,
+        _TRANSACTION_EVIDENCE_ONLY_REQUIRED_KEYS,
+    )
+    _validate_policy_method(
+        specification,
+        _TRANSACTION_IMPACT_METHODS_KEY,
+        policy_key,
+        policy_value,
+        _EVIDENCE_ONLY_METHOD,
+    )
+    return _TransactionImpactPolicy(
+        method=_EVIDENCE_ONLY_METHOD,
+        finding_label=_evidence_only_impact_policy_label(
+            pc_cols.TRANSACTIONS,
+            policy_key,
+        ),
     )
 
 

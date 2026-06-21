@@ -90,9 +90,11 @@ Public YAML impact method values are centralized in:
   `vendor_contribution_delta`, and `security_return_delta_times_weight`.
 - `TransactionImpactMethod`: `evidence_only`, `modified_dietz`, and
   `transaction_amount_delta_over_return_denominator`.
-- `PositionImpactMethod`: `market_value_delta_over_return_denominator` and
+- `PositionImpactMethod`: `evidence_only`,
+  `market_value_delta_over_return_denominator`, and
   `accrued_delta_over_return_denominator`.
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
+- `CashImpactMethod`: `cash_delta_over_return_denominator`.
 
 Transaction sign/flow semantics are centralized in:
 
@@ -356,10 +358,10 @@ valuation datasets.
 - `currency`
 - `broker`
 
-Changed `commission` values are useful review context for fee, net amount, and
-accounting-treatment differences. They should be reported as context evidence
-and should not receive return-impact estimates unless a future explicit YAML
-method models commission treatment.
+Changed `commission` values are useful review evidence for fee, net amount, and
+accounting-treatment differences. By default they remain context evidence. When
+YAML sets `transaction_impact_methods.commission.method: evidence_only`, they
+move to underlying-cause review rows without receiving return-impact estimates.
 
 Future transaction enhancements should consider optional fixed-income and
 income detail fields when real source files provide them:
@@ -439,12 +441,19 @@ transaction_impact_methods:
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
 ```
 
 The supported `transaction_impact_methods` contract is intentionally narrow:
 
 - Top-level value must be a mapping.
-- Supported keys: `external_flow` and `performance`.
+- Supported keys: `external_flow`, `performance`, `quantity`, `price`, and
+  `commission`.
 - `external_flow` must be a mapping.
 - Supported `external_flow.method` values: `evidence_only` and
   `modified_dietz`.
@@ -452,6 +461,9 @@ The supported `transaction_impact_methods` contract is intentionally narrow:
 - Supported `performance.method` value:
   `transaction_amount_delta_over_return_denominator`.
 - Supported `performance.denominator_source` value: `begin_market_value`.
+- `quantity`, `price`, and `commission` must be mappings.
+- Supported `quantity.method`, `price.method`, and `commission.method` value:
+  `evidence_only`.
 
 This policy documents that transaction differences should remain review
 evidence unless YAML explicitly selects a supported estimate or diagnostic
@@ -1257,6 +1269,8 @@ position_impact_methods:
   accrued:
     method: accrued_delta_over_return_denominator
     denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
 price_impact_methods:
   price:
     method: price_delta_over_snapshot_a_price_times_weight
@@ -1265,7 +1279,6 @@ evidence_only_impact_methods:
   positions:
     method: evidence_only
     source_fields:
-      - quantity
       - cost
 ```
 
@@ -1365,6 +1378,32 @@ Current supported impact estimates:
      `begin_market_value`.
    - This is intentionally a low-confidence screening estimate because accrued
      balances depend on source income accrual and pricing conventions.
+8. Cash balance and cash market value delta:
+   - `impact_basis = cash_balance` or `cash_market_value`
+   - `impact_method = cash_delta_over_return_denominator`
+   - `impact_confidence = low`
+   - Formula: `cash_source_field_delta / return_denominator`.
+   - Applies only when YAML explicitly configures
+     `cash_impact_methods.cash_balance.method` or
+     `cash_impact_methods.market_value.method` as
+     `cash_delta_over_return_denominator` and `denominator_source` as
+     `begin_market_value`.
+   - This is intentionally a low-confidence screening estimate because cash
+     balances may reflect transactions, FX, income, fees, or booking changes.
+9. Position quantity evidence:
+   - `position_impact_methods.quantity.method: evidence_only` marks changed
+     position quantity as intentional review evidence.
+   - It does not create `estimated_return_impact`; quantity requires a
+     valuation basis before it can defensibly explain portfolio return.
+10. Transaction quantity, price, and commission evidence:
+   - `transaction_impact_methods.quantity.method: evidence_only` and
+     `transaction_impact_methods.price.method: evidence_only` mark changed
+     transaction units and prices as intentional review evidence.
+   - `transaction_impact_methods.commission.method: evidence_only` marks
+     changed transaction commission as intentional review evidence.
+   - They do not create `estimated_return_impact`; transaction amount is the
+     supported additive transaction field so quantity, price, commission, and
+     amount are not double-counted.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.

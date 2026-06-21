@@ -9,4 +9,6 @@ The restatement demonstrates currently supported explanation paths:
 - `PORT_FULL_D` May return changes because position market value changed.
 - `PORT_FULL_E` May return changes because position accrued changed.
 - `PORT_FULL_F` May return changes because a linked security price changed.
-- `PORT_FULL_G` May includes an explicit evidence-only position quantity change.
+- `PORT_FULL_G` includes an explicit evidence-only position quantity change.
+- `PORT_FULL_H` May return changes because cash balance changed.
+- `PORT_FULL_I` May return changes because cash market value changed.

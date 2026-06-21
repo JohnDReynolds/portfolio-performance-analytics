@@ -417,6 +417,7 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             "security_contribution, security_return",
             result.stdout,
         )
+        self.assertIn("Cash impact methods: none", result.stdout)
         self.assertIn("Transaction rules configured: 0", result.stdout)
         self.assertIn("Transaction impact methods: none", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)

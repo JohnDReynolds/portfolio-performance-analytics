@@ -21,6 +21,8 @@ from ppar.performance_comparison.findings import (
     FINDING_CODE,
     FROM_DATE,
     IMPACT_POLICY,
+    IMPACT_POLICY_CASH_BALANCE,
+    IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_POSITION_ACCRUED,
     IMPACT_POLICY_POSITION_MARKET_VALUE,
@@ -57,6 +59,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.methods import (
+    CashImpactMethod,
     ContributionImpactMethod,
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzInclusionRule,
@@ -157,6 +160,8 @@ IMPACT_CONFIDENCE = "impact_confidence"
 IMPACT_METHOD = "impact_method"
 IMPACT_MESSAGE = "impact_message"
 IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
+IMPACT_BASIS_CASH_BALANCE = "cash_balance"
+IMPACT_BASIS_CASH_MARKET_VALUE = "cash_market_value"
 IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
 IMPACT_BASIS_POSITION_ACCRUED = "position_accrued"
 IMPACT_BASIS_POSITION_MARKET_VALUE = "position_market_value"
@@ -186,6 +191,9 @@ IMPACT_METHOD_POSITION_ACCRUED_DELTA_OVER_DENOMINATOR = (
 )
 IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
+)
+IMPACT_METHOD_CASH_DELTA_OVER_DENOMINATOR = (
+    CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
@@ -1435,6 +1443,28 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "income accrual and pricing conventions."
             ),
         }
+    if _is_cash_impact_candidate(row):
+        delta_float = _number_value(delta)
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        assert delta_float is not None
+        assert denominator is not None
+        impact_basis = (
+            IMPACT_BASIS_CASH_BALANCE
+            if row[SOURCE_COLUMN] == pc_cols.CASH_BALANCE
+            else IMPACT_BASIS_CASH_MARKET_VALUE
+        )
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
+            IMPACT_BASIS: impact_basis,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_CASH_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the cash source-field delta divided "
+                "by the return denominator. Treat as a low-confidence screening "
+                "estimate because cash balances may reflect transactions, FX, "
+                "income, fees, or booking changes."
+            ),
+        }
     if _is_price_weighted_impact_candidate(row):
         delta_float = _number_value(delta)
         snapshot_a_price = _number_value(row[SNAPSHOT_A_VALUE])
@@ -1567,6 +1597,29 @@ def _is_position_accrued_impact_candidate(row: dict[str, object]) -> bool:
     )
 
 
+def _is_cash_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a cash row supports a rough return impact estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    denominator = row[RETURN_DENOMINATOR]
+    source_column = row[SOURCE_COLUMN]
+    if not isinstance(source_column, str):
+        return False
+    expected_policy = {
+        pc_cols.CASH_BALANCE: IMPACT_POLICY_CASH_BALANCE,
+        pc_cols.MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
+    }.get(source_column)
+    return (
+        row[DATASET] == pc_cols.CASH
+        and expected_policy is not None
+        and row.get(IMPACT_POLICY) == expected_policy
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(denominator, (int, float))
+        and not isinstance(denominator, bool)
+        and float(denominator) != 0.0
+    )
+
+
 def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
     """Return whether a price row supports a weighted price-return estimate."""
     delta = row[DELTA_B_MINUS_A]
@@ -1589,8 +1642,14 @@ def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
 
 def _has_evidence_only_impact_policy(row: dict[str, object]) -> bool:
     """Return whether a finding row is explicitly configured as evidence-only."""
-    policy = row.get(IMPACT_POLICY)
-    return isinstance(policy, str) and policy.startswith(IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
+    policies = (
+        row.get(IMPACT_POLICY),
+        row.get(TRANSACTION_IMPACT_POLICY),
+    )
+    return any(
+        isinstance(policy, str) and policy.startswith(IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
+        for policy in policies
+    )
 
 
 def _transaction_performance_amount_impact_message(row: dict[str, object]) -> str:
@@ -1981,6 +2040,10 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_POSITION_MARKET_VALUE
     if IMPACT_BASIS_POSITION_ACCRUED in bases:
         return IMPACT_BASIS_POSITION_ACCRUED
+    if IMPACT_BASIS_CASH_BALANCE in bases:
+        return IMPACT_BASIS_CASH_BALANCE
+    if IMPACT_BASIS_CASH_MARKET_VALUE in bases:
+        return IMPACT_BASIS_CASH_MARKET_VALUE
     if IMPACT_BASIS_PRICE_WEIGHTED in bases:
         return IMPACT_BASIS_PRICE_WEIGHTED
     return IMPACT_BASIS_NO_ESTIMATE

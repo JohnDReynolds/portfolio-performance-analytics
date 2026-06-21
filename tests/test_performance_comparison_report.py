@@ -116,6 +116,50 @@ def _write_transaction_estimate_specification(directory: Path) -> Path:
     return specification_path
 
 
+def _write_transaction_commission_review_specification(directory: Path) -> Path:
+    """Write a minimal transaction commission review-only fixture."""
+    for snapshot_name, commission, portfolio_return in (
+        ("snapshot_a", "5.00", "0.0100"),
+        ("snapshot_b", "7.50", "0.0101"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,"
+            "AMOUNT,COMMISSION,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
+            f"-100.00,{commission},cash out,performance\n",
+            encoding="utf-8",
+        )
+
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(
+        "\n".join(
+            [
+                "snapshots:",
+                "  a:",
+                "    path: snapshot_a",
+                "  b:",
+                "    path: snapshot_b",
+                "files:",
+                "  portfolio_performance: portperf.csv",
+                "  transactions: transactions.csv",
+                "transaction_impact_methods:",
+                "  commission:",
+                "    method: evidence_only",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return specification_path
+
+
 def _write_position_estimate_specification(
     directory: Path,
     *,
@@ -1450,12 +1494,41 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(rules_transaction_quantity["estimated_impact"][0])
         self.assertEqual(
             rules_transaction_quantity["required_yaml_setup"][0],
-            "No supported YAML impact method exists yet for transactions.quantity.",
+            "None; configured as evidence-only in comparison YAML.",
         )
+        self.assertEqual(rules_transaction_quantity["impact_status"][0], "Review only")
         self.assertIsNone(rules_transaction_price["estimated_impact"][0])
         self.assertEqual(
             rules_transaction_price["required_yaml_setup"][0],
-            "No supported YAML impact method exists yet for transactions.price.",
+            "None; configured as evidence-only in comparison YAML.",
+        )
+        self.assertEqual(rules_transaction_price["impact_status"][0], "Review only")
+
+    def test_transaction_commission_policy_marks_underlying_cause_review_only(
+        self,
+    ) -> None:
+        """Commission can appear as a review-only underlying cause."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            comparison_path = _write_transaction_commission_review_specification(
+                Path(temp_dir)
+            )
+
+            causes = _workbook_underlying_causes_table(
+                compare_snapshots(comparison_path),
+                comparison_path=comparison_path,
+            )
+
+        commission = causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "commission")
+        )
+
+        self.assertEqual(commission.height, 1)
+        self.assertIsNone(commission["estimated_impact"][0])
+        self.assertEqual(commission["impact_status"][0], "Review only")
+        self.assertEqual(
+            commission["required_yaml_setup"][0],
+            "None; configured as evidence-only in comparison YAML.",
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -1481,11 +1554,24 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         security_differences = _workbook_security_changes_table(findings)
+        portfolio_differences = _workbook_portfolio_changes_table(findings)
         placeholders = security_differences.filter(
             pl.col("security_id") == "No security performance differences found"
         )
+        actual_security_periods = security_differences.filter(
+            pl.col("security_id") != "No security performance differences found"
+        ).select(["portfolio_id", "from_date", "thru_date"])
+        expected_placeholder_count = (
+            portfolio_differences.select(["portfolio_id", "from_date", "thru_date"])
+            .join(
+                actual_security_periods,
+                on=["portfolio_id", "from_date", "thru_date"],
+                how="anti",
+            )
+            .height
+        )
 
-        self.assertEqual(placeholders.height, 7)
+        self.assertEqual(placeholders.height, expected_placeholder_count)
         self.assertTrue(placeholders["performance_change"].is_null().all())
         self.assertTrue(placeholders["estimated_cause_total"].is_null().all())
         self.assertEqual(set(placeholders["review_status"].to_list()), {"No differences"})
@@ -1595,11 +1681,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             configured_path.write_text(
                 configured_path.read_text(encoding="utf-8")
                 + "\n"
-                + "evidence_only_impact_methods:\n"
-                + "  positions:\n"
-                + "    method: evidence_only\n"
-                + "    source_fields:\n"
-                + "      - quantity\n",
+                + "position_impact_methods:\n"
+                + "  quantity:\n"
+                + "    method: evidence_only\n",
                 encoding="utf-8",
             )
 

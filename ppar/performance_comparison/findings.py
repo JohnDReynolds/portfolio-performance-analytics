@@ -17,6 +17,7 @@ import polars as pl
 
 # Project imports
 from ppar.performance_comparison.methods import (
+    CashImpactMethod,
     ContributionImpactMethod,
     PositionImpactMethod,
     PriceImpactMethod,
@@ -54,6 +55,8 @@ __all__ = [
     "TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED",
     "IMPACT_POLICY",
     "IMPACT_POLICY_EVIDENCE_ONLY_PREFIX",
+    "IMPACT_POLICY_CASH_BALANCE",
+    "IMPACT_POLICY_CASH_MARKET_VALUE",
     "IMPACT_POLICY_POSITION_ACCRUED",
     "IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD",
     "IMPACT_POLICY_POSITION_MARKET_VALUE",
@@ -127,6 +130,12 @@ TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 TRANSACTION_MATCH_STATUS = "transaction_match_status"
 IMPACT_POLICY = "impact_policy"
 IMPACT_POLICY_EVIDENCE_ONLY_PREFIX = "evidence_only:"
+IMPACT_POLICY_CASH_BALANCE = (
+    f"cash_balance:{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}"
+)
+IMPACT_POLICY_CASH_MARKET_VALUE = (
+    f"cash_market_value:{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}"
+)
 IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD = (
     "portfolio_source_field:"
     f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
