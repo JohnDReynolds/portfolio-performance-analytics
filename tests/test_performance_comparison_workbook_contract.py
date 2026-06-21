@@ -17,7 +17,7 @@ from ppar.performance_comparison import (
 )
 
 _FULL_SPEC_COMPARISON_PATH = Path(
-    "ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml"
+    "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
 
 _EXPECTED_SHEETS = [

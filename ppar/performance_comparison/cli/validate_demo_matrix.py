@@ -20,7 +20,7 @@ from ppar.performance_comparison.report import (
     _workbook_underlying_causes_table,
 )
 
-_DEFAULT_DEMO_DIRECTORY = Path(__file__).resolve().parents[2] / "demo_data" / "axys"
+_DEFAULT_DEMO_DIRECTORY = Path(__file__).resolve().parents[2] / "demos" / "data" / "axys"
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _RESTATEMENT_YAML = "ppar_performance_comparison_restatement.yaml"
 _RESTATEMENT_TRANSACTION_RULES_YAML = (

@@ -5,7 +5,7 @@ include scripts/*.py
 
 recursive-include ppar *.py
 recursive-include ppar py.typed
-recursive-include ppar/demo_data *.csv *.yaml *.md
+recursive-include ppar/demos/data *.csv *.yaml *.md
 
 prune images
 prune tests

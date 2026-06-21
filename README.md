@@ -91,7 +91,7 @@ Wide performance files with per-identifier columns such as `AAPL.ret` and
 `AAPL.wgt` are not supported.
 
 For sample input data sources, please refer to the ``ppar-analytics-demo``
-command and the ppar/demo_data directory. Once the input data has been
+command and the ppar/demos/data directory. Once the input data has been
 provided, then the analytics may be requested using different calculation
 parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
@@ -157,7 +157,7 @@ artifacts.
 
 Use these entry points:
 
-- [Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md): exact workbook
+- [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): exact workbook
   demo commands, YAML files, data used, and expected XLSX output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
   validators, generated outputs, and common workflows.
@@ -177,13 +177,13 @@ Source-checkout smoke test:
 ```
 
 For XLSX workbook demos, install the Excel extra and use the commands in the
-[Packaged Axys Demo Matrix](ppar/demo_data/axys/README.md). Start review in
+[Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md). Start review in
 `review_workbook.xlsx`; use `report.html` as a secondary browser-friendly view.
 
 ```bash
 ./.venv/bin/python -m pip install -e ".[excel]"
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_restatement.yaml \
   _demo_output/workbooks/single_restatement \
   --include-workbook
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \

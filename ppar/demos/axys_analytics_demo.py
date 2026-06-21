@@ -20,7 +20,7 @@ def main() -> None:
     """
     time_start = time.perf_counter()
 
-    with as_file(files("ppar.demo_data") / "axys") as axys_data_root:
+    with as_file(files("ppar.demos.data") / "axys") as axys_data_root:
         axys_data = AxysData(axys_data_root / "axys_column_mappings.yaml")
 
         for portfolio_code in ("PORT_SMALL", "PORT_LARGE"):

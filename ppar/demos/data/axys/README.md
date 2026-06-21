@@ -64,7 +64,7 @@ performance differences from underlying input differences and reported checks:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison.yaml \
   _demo_output/workbooks/baseline \
   --include-workbook
 ```
@@ -95,7 +95,7 @@ run without producing false positives. An empty workbook is the expected result.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_restatement.yaml \
   _demo_output/workbooks/single_restatement \
   --include-workbook
 ```
@@ -131,7 +131,7 @@ that would be needed for more complete attribution.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
   _demo_output/workbooks/transaction_rules \
   --include-workbook
 ```
@@ -164,7 +164,7 @@ defines transaction behavior instead of asking the reviewer to infer it.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml \
   _demo_output/workbooks/full_spec \
   --include-workbook \
   --require-causal-attribution

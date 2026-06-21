@@ -19,7 +19,7 @@ _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )
 _FULL_SPEC_COMPARISON_PATH = Path(
-    "ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml"
+    "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
 _REPORT_MODULE = "ppar.performance_comparison.cli.report"
 _HTML_REPORT_MODULE = "ppar.performance_comparison.cli.html_report"

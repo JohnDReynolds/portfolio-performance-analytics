@@ -14,7 +14,7 @@ from ppar.analytics import Analytics
 import ppar.utilities as util
 
 # Directory containing the demo data.
-_DEMO_DATA_DIRECTORY = files("ppar.demo_data")
+_DEMO_DATA_DIRECTORY = files("ppar.demos.data")
 
 
 def _demo_data_path(relative_path: str) -> Path:

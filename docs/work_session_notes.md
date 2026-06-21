@@ -48,7 +48,7 @@ identifies a specific workbook, YAML, or report pain point.
 ## Current Demo Paths
 
 The four user-facing XLSX workbook demos are documented in
-[`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md):
+[`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md):
 
 - `_demo_output/workbooks/baseline`
 - `_demo_output/workbooks/single_restatement`
@@ -133,19 +133,19 @@ Regenerate the four workbook demos after workbook/report presentation changes:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison.yaml \
   _demo_output/workbooks/baseline \
   --include-workbook
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_restatement.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_restatement.yaml \
   _demo_output/workbooks/single_restatement \
   --include-workbook
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
   _demo_output/workbooks/transaction_rules \
   --include-workbook
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_full_spec.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml \
   _demo_output/workbooks/full_spec \
   --include-workbook \
   --require-causal-attribution

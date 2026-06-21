@@ -167,7 +167,7 @@ class TestPackageMetadata(unittest.TestCase):
         manifest = Path("MANIFEST.in").read_text(encoding=util.ENCODING)
 
         self.assertIn("include scripts/*.py", manifest)
-        self.assertIn("recursive-include ppar/demo_data *.csv *.yaml *.md", manifest)
+        self.assertIn("recursive-include ppar/demos/data *.csv *.yaml *.md", manifest)
         self.assertNotIn("prune scripts", manifest)
 
     def test_checkout_scripts_are_sdist_only(self) -> None:
@@ -186,7 +186,7 @@ class TestPackageMetadata(unittest.TestCase):
         package_data_patterns = pyproject["tool"]["setuptools"]["package-data"]["ppar"]
         demo_resource_paths = [
             path.relative_to("ppar").as_posix()
-            for path in Path("ppar/demo_data").rglob("*")
+            for path in Path("ppar/demos/data").rglob("*")
             if path.is_file()
         ]
 
@@ -251,7 +251,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_resources_are_packaged(self) -> None:
         """The Axys demos use packaged resources instead of test fixtures."""
-        axys_demo_data = files("ppar.demo_data") / "axys"
+        axys_demo_data = files("ppar.demos.data") / "axys"
         expected_resources = (
             "README.md",
             "axys_column_mappings.yaml",
@@ -275,7 +275,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_matrix_documents_problem_scenarios(self) -> None:
         """The packaged Axys demo matrix names the expected review scenarios."""
-        matrix = Path("ppar/demo_data/axys/README.md").read_text(encoding=util.ENCODING)
+        matrix = Path("ppar/demos/data/axys/README.md").read_text(encoding=util.ENCODING)
         expected_scenarios = {
             "Clean/no issue": "ppar_performance_comparison.yaml",
             "Missing contribution policy": (
@@ -311,7 +311,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_matrix_documents_supported_yaml_methods(self) -> None:
         """The packaged Axys demo matrix tracks every public YAML method target."""
-        matrix = Path("ppar/demo_data/axys/README.md").read_text(encoding=util.ENCODING)
+        matrix = Path("ppar/demos/data/axys/README.md").read_text(encoding=util.ENCODING)
         expected_methods = {
             ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value,
             ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value,

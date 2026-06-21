@@ -1644,7 +1644,7 @@ validators:
 - `ppar_performance_comparison_suppressed.yaml`: Active-vs-suppressed finding
   behavior and audit visibility.
 
-The compact demo scenario matrix lives in `ppar/demo_data/axys/README.md`.
+The compact demo scenario matrix lives in `ppar/demos/data/axys/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which
 scenarios are intentionally planned rather than covered. It also tracks the
 goal that every supported public YAML impact method should have at least one

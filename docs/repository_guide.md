@@ -11,7 +11,7 @@ many disconnected entry points.
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public demo commands, and common smoke tests. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
 | Axys export shape | [`docs/axys_common_core_export.md`](axys_common_core_export.md) | Starter Axys export template and field-reference notes. |
-| Packaged Axys demos | [`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md) | Four XLSX workbook demos, four validation fixtures, exact commands, and expected outputs. |
+| Packaged Axys demos | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Four XLSX workbook demos, four validation fixtures, exact commands, and expected outputs. |
 | Test Axys fixtures | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic test fixture layout and test-focused comparison YAML files. |
 | Session continuity | [`docs/work_session_notes.md`](work_session_notes.md) | Working notes from recent implementation sessions; useful context, not durable product documentation. |
 
@@ -23,8 +23,8 @@ many disconnected entry points.
 | `ppar/axys/` | Axys-specific ingestion and normalization support. |
 | `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
 | `ppar/demos/` | Installed demo entry points, including `ppar-performance-comparison-demo`. |
-| `ppar/demo_data/` | Packaged demo data shipped with source distributions and wheels. |
-| `ppar/demo_data/axys/` | Packaged Axys demo snapshots and comparison YAML files. Use these for demos and review workflows. |
+| `ppar/demos/data/` | Packaged demo data shipped with source distributions and wheels. |
+| `ppar/demos/data/axys/` | Packaged Axys demo snapshots and comparison YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
 | `scripts/` | Repository-maintenance helpers; Performance Comparison commands live under ppar.performance_comparison.cli. |
@@ -36,9 +36,9 @@ many disconnected entry points.
 | File | Audience | Contents |
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users and maintainers | Package overview, installation, bundled demo commands, performance-comparison smoke tests, and project checks. |
-| [`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md) | Demo reviewers | Packaged Axys scenario matrix, XLSX workbook commands, data/YAML descriptions, and expected workbook outputs. |
+| [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Demo reviewers | Packaged Axys scenario matrix, XLSX workbook commands, data/YAML descriptions, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Test fixture layout, expected test workflows, and fixture-specific notes. |
-| Snapshot README files under `ppar/demo_data/axys/*/README.md` | Fixture readers | Small notes about individual packaged snapshot directories. |
+| Snapshot README files under `ppar/demos/data/axys/*/README.md` | Fixture readers | Small notes about individual packaged snapshot directories. |
 | Snapshot README files under `tests/data/axys/*/README.md` | Fixture readers | Small notes about individual test snapshot directories. |
 
 ## Scripts
@@ -78,7 +78,7 @@ The installed command names are declared in `pyproject.toml`.
 
 Packaged demos and test fixtures intentionally live in different places:
 
-- `ppar/demo_data/axys/` is for packaged examples that users and reviewers can
+- `ppar/demos/data/axys/` is for packaged examples that users and reviewers can
   run. These fixtures should be understandable, documented, and stable enough
   to explain from workbook/report output.
 - `tests/data/axys/` is for tests. These fixtures can be smaller, more
@@ -100,7 +100,7 @@ for tests and validators.
 | Validation fixture | `ppar_performance_comparison_suppressed.yaml` | `axys_a` | `axys_b_restatement` | Suppressed-finding coverage. |
 
 For exact XLSX workbook commands and expected outputs, use
-[`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md).
+[`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md).
 
 ## Common Workflows
 
@@ -119,13 +119,13 @@ non-workbook smoke test.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison_multi_restatement.yaml \
   _demo_output/workbooks/multi_restatement \
   --include-workbook
 ```
 
 Use the full Axys workbook command list in
-[`ppar/demo_data/axys/README.md`](../ppar/demo_data/axys/README.md) when you
+[`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) when you
 want to compare the packaged workbook scenarios. When `--include-workbook` is
 used, start review in `review_workbook.xlsx`; use `report.html` as a secondary
 browser-friendly narrative view.
@@ -152,7 +152,7 @@ Use this after generating report/workbook output.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demo_data/axys/ppar_performance_comparison_multi_restatement.yaml
+  ppar/demos/data/axys/ppar_performance_comparison_multi_restatement.yaml
 ```
 
 Use this before report generation when you are editing YAML.
@@ -227,7 +227,7 @@ Before moving files, prefer clarifying the map:
 
 1. Keep the root README short enough to answer "what is this project and how do
    I run the main workflows?"
-2. Keep detailed packaged demo instructions in `ppar/demo_data/axys/README.md`.
+2. Keep detailed packaged demo instructions in `ppar/demos/data/axys/README.md`.
 3. Keep deep design rationale in `docs/performance_comparison_design.md`.
 4. Keep session notes in `docs/work_session_notes.md`, but treat them as
    temporary working context.

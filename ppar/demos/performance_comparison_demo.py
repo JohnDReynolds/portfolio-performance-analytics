@@ -40,7 +40,7 @@ def _print_table(title: str, table: pl.DataFrame, *, wide: bool = False) -> None
 
 def main() -> None:
     """Run the performance comparison demonstration."""
-    with as_file(files("ppar.demo_data") / "axys") as axys_data_root:
+    with as_file(files("ppar.demos.data") / "axys") as axys_data_root:
         comparison_path = (
             axys_data_root / "ppar_performance_comparison_multi_restatement.yaml"
         )
