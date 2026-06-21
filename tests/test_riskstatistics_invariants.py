@@ -12,8 +12,8 @@ import polars as pl
 # Project Imports
 from ppar.analytics import Analytics
 import ppar.columns as cols
-from ppar.frequency import Frequency
-from ppar.riskstatistics import RiskStatistics
+from ppar.analytics.frequency import Frequency
+from ppar.analytics.riskstatistics import RiskStatistics
 import ppar.utilities as util
 
 

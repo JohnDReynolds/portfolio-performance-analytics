@@ -15,13 +15,13 @@ from typing import cast, Protocol, Sequence
 import polars as pl
 
 # Project Imports
-from ppar.attribution import Attribution
+from ppar.analytics.attribution import Attribution
+from ppar.analytics.frequency import Frequency, date_matches_frequency
+from ppar.analytics.mapping import Mapping
+from ppar.analytics.performance import Performance
+from ppar.analytics.riskstatistics import RiskStatistics
 import ppar.columns as cols
 from ppar.errors import PpaError
-from ppar.frequency import Frequency, date_matches_frequency
-from ppar.mapping import Mapping
-from ppar.performance import Performance
-from ppar.riskstatistics import RiskStatistics
 import ppar.utilities as util
 
 

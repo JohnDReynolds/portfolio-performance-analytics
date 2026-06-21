@@ -14,7 +14,7 @@ import polars as pl
 # Project Imports
 import ppar.columns as cols
 import ppar.errors as errs
-from ppar.performance import Performance
+from ppar.analytics.performance import Performance
 import ppar.utilities as util
 
 _EMPTY_DF = pl.DataFrame(

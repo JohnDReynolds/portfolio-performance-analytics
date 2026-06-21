@@ -1,8 +1,9 @@
 """Format attribution chart data as PNG images.
 
-This module contains helper functions used by :class:`ppar.attribution.Attribution`
-to render cumulative line charts, heatmaps, horizontal bar charts, and vertical bar
-charts from Polars DataFrames. Each public formatter returns PNG image bytes.
+This module contains helper functions used by
+:class:`ppar.analytics.attribution.Attribution` to render cumulative line charts,
+heatmaps, horizontal bar charts, and vertical bar charts from Polars DataFrames.
+Each public formatter returns PNG image bytes.
 """
 
 # Overrides for pylance.  All of the plt and ax methods are "type partially unknown".

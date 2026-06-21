@@ -12,9 +12,9 @@ from tests import test_utilities as test_util
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
-from ppar.frequency import Frequency
-from ppar.html_table import HtmlTable
+from ppar.analytics.attribution import View
+from ppar.analytics.frequency import Frequency
+from ppar.analytics.html_table import HtmlTable
 
 
 class TestAuditIntegration(unittest.TestCase):

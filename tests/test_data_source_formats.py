@@ -18,7 +18,7 @@ from tests import test_utilities as test_util
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 import ppar.columns as cols
 import ppar.utilities as util
 

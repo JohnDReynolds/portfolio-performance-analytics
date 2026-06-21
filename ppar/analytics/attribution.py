@@ -23,13 +23,13 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-from ppar.classification import Classification
+from ppar.analytics.classification import Classification
+from ppar.analytics.frequency import Frequency
+from ppar.analytics import html_table
+from ppar.analytics import output
+from ppar.analytics.performance import Performance
 import ppar.columns as cols
 from ppar.errors import PpaError
-from ppar.frequency import Frequency
-from ppar import html_table
-from ppar import output
-from ppar.performance import Performance
 import ppar.utilities as util
 
 # Constants
@@ -1019,7 +1019,7 @@ class Attribution:
         """
         # Charting dependencies are optional and needed only when chart output is requested.
         try:
-            from ppar import format_chart  # pylint: disable=import-outside-toplevel
+            from ppar.analytics import format_chart  # pylint: disable=import-outside-toplevel
         except ModuleNotFoundError as error:
             raise ModuleNotFoundError(
                 "Chart output requires optional dependencies; install 'ppar[charts]'."

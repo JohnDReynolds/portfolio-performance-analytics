@@ -7,9 +7,9 @@ risk statistics, and exercises the main output-format methods.
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import Chart, View
-import ppar.demo_data_sources as demo_data
-from ppar.frequency import Frequency
+from ppar.analytics.attribution import Chart, View
+import ppar.demos.demo_data_sources as demo_data
+from ppar.analytics.frequency import Frequency
 import ppar.utilities as util
 
 

@@ -9,10 +9,10 @@ import polars as pl
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 import ppar.columns as cols
-import ppar.demo_data_sources as demo_data
-from ppar.performance import Performance
+import ppar.demos.demo_data_sources as demo_data
+from ppar.analytics.performance import Performance
 import ppar.utilities as util
 
 

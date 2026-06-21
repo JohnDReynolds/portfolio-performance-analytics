@@ -21,11 +21,11 @@ from scipy.stats import norm
 
 # Project Imports
 import ppar.columns as cols
+from ppar.analytics.frequency import Frequency, periods_per_year
+from ppar.analytics import html_table
+from ppar.analytics import output
+from ppar.analytics.performance import Performance
 from ppar.errors import PpaError
-from ppar.frequency import Frequency, periods_per_year
-from ppar import html_table
-from ppar import output
-from ppar.performance import Performance
 import ppar.utilities as util
 
 # Constants

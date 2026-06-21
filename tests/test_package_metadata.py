@@ -567,7 +567,7 @@ class TestPackageMetadata(unittest.TestCase):
         }
         command = (
             "import sys; import ppar; "
-            "raise SystemExit(1 if 'ppar.format_chart' in sys.modules else 0)"
+            "raise SystemExit(1 if 'ppar.analytics.format_chart' in sys.modules else 0)"
         )
 
         self.assertEqual(chart_dependencies, {"matplotlib", "seaborn"})

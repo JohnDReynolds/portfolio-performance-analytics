@@ -6,13 +6,13 @@ import unittest
 import polars as pl
 
 from ppar.analytics import Analytics
-from ppar.attribution import View
-from ppar.classification import Classification
+from ppar.analytics.attribution import View
+from ppar.analytics.classification import Classification
 import ppar.columns as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
-from ppar.mapping import Mapping
-from ppar.performance import Performance
+from ppar.analytics.mapping import Mapping
+from ppar.analytics.performance import Performance
 
 
 def _named_performance(

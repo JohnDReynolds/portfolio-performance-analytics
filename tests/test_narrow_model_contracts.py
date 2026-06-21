@@ -10,9 +10,9 @@ import polars as pl
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 import ppar.columns as cols
-from ppar.frequency import Frequency
+from ppar.analytics.frequency import Frequency
 from tests import test_utilities as test_util
 
 _MONTHLY_PERIODS: tuple[test_util.Period, ...] = (

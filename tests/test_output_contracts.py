@@ -16,11 +16,11 @@ import polars as pl
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import Attribution, View
+from ppar.analytics.attribution import Attribution, View
 import ppar.columns as cols
-from ppar.frequency import Frequency
-from ppar.html_table import ColumnSpec, HtmlTable, SpannerSpec, attribution_table
-from ppar.riskstatistics import RiskStatistics
+from ppar.analytics.frequency import Frequency
+from ppar.analytics.html_table import ColumnSpec, HtmlTable, SpannerSpec, attribution_table
+from ppar.analytics.riskstatistics import RiskStatistics
 
 
 def _attribution() -> Attribution:

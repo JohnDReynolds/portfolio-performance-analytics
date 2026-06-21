@@ -12,7 +12,7 @@ import polars as pl
 import ppar.columns as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
-from ppar.performance import Performance
+from ppar.analytics.performance import Performance
 
 _PERIODS = (
     (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),

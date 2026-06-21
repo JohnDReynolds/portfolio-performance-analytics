@@ -7,12 +7,12 @@ import unittest
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 import ppar.columns as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
-from ppar.frequency import Frequency
-from ppar.performance import Performance
+from ppar.analytics.frequency import Frequency
+from ppar.analytics.performance import Performance
 from tests import test_utilities as test_util
 
 

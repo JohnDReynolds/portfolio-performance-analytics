@@ -6,7 +6,7 @@ from importlib.resources import as_file, files
 import time
 
 # Project imports
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 from ppar.axys import AxysData
 import ppar.utilities as util
 

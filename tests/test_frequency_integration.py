@@ -13,10 +13,10 @@ from tests import test_utilities as test_util
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 import ppar.columns as cols
-from ppar.frequency import Frequency
-from ppar.performance import Performance
+from ppar.analytics.frequency import Frequency
+from ppar.analytics.performance import Performance
 import ppar.utilities as util
 
 

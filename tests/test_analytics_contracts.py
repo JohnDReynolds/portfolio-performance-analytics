@@ -9,7 +9,7 @@ import polars as pl
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.attribution import View
+from ppar.analytics.attribution import View
 import ppar.columns as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
