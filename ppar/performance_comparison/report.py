@@ -5,7 +5,6 @@ from __future__ import annotations
 # Python imports
 from collections.abc import Mapping, Sequence
 import datetime as dt
-import json
 from pathlib import Path
 
 # Third-party imports
@@ -479,9 +478,15 @@ def write_performance_comparison_report_bundle(
         top_evidence_limit=top_evidence_limit,
     )
     paths["html_report"] = html_report_path
-    paths["findings"] = _write_csv(findings, bundle_directory / "findings.csv")
+    paths["findings"] = _pc_bundle.write_csv_artifact(
+        findings,
+        bundle_directory / "findings.csv",
+    )
     for name, table in tables.items():
-        paths[name] = _write_csv(table, bundle_directory / f"{name}.csv")
+        paths[name] = _pc_bundle.write_csv_artifact(
+            table,
+            bundle_directory / f"{name}.csv",
+        )
     if include_workbook:
         paths[_REVIEW_WORKBOOK_ARTIFACT] = write_performance_comparison_review_workbook(
             findings,
@@ -489,16 +494,16 @@ def write_performance_comparison_report_bundle(
             top_evidence_limit=top_evidence_limit,
             comparison_path=comparison_path,
         )
-    paths["readme"] = _write_report_bundle_readme(
+    paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
         title=title,
         tables=tables,
         include_workbook=include_workbook,
     )
-
     manifest_path = bundle_directory / "manifest.json"
     paths["manifest"] = manifest_path
-    manifest = _report_bundle_manifest(
+    _pc_bundle.write_report_bundle_manifest(
+        manifest_path,
         findings=findings,
         active_findings=active_findings,
         title=title,
@@ -506,10 +511,6 @@ def write_performance_comparison_report_bundle(
         top_evidence_limit=top_evidence_limit,
         artifact_paths=paths,
         tables=tables,
-    )
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding=util.ENCODING,
     )
     validation_issues = _pc_bundle.report_bundle_validation_issues(bundle_directory)
     if validation_issues:
@@ -1737,149 +1738,6 @@ def _number_or_none(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     return float(value)
-
-
-def _write_csv(table: pl.DataFrame, output_path: Path) -> Path:
-    """Write a CSV table and return the normalized path."""
-    table.write_csv(output_path)
-    return output_path
-
-
-def _write_report_bundle_readme(
-    output_path: Path,
-    *,
-    title: str,
-    tables: Mapping[str, pl.DataFrame],
-    include_workbook: bool,
-) -> Path:
-    """Write a short bundle README and return the normalized path."""
-    workbook_line = (
-        "- `review_workbook.xlsx`: primary Excel review workbook with the Portfolio "
-        "Differences sheet, Security Differences sheet, Underlying Causes sheet, "
-        "Reported Performance Checks sheet, Context sheet, and Raw Audit Trail sheet."
-    )
-    primary_artifact_lines = (
-        [workbook_line]
-        if include_workbook
-        else ["- `report.html`: primary browser review report with reviewer cues and tables."]
-    )
-    opening_line = (
-        "Open `review_workbook.xlsx` first for the workbook review. Use `report.html` "
-        "when you want a browser-friendly narrative view."
-        if include_workbook
-        else "Open `report.html` for the browser report, or `report.md` for a plain-text review."
-    )
-    first_review_step = (
-        "1. Open `review_workbook.xlsx` and start with the Portfolio Differences sheet."
-        if include_workbook
-        else "1. Open `report.html` and start with the Problems grid."
-    )
-    lines = [
-        f"# {_escape_markdown_text(title)}",
-        "",
-        "This directory is a portable performance-comparison review bundle.",
-        opening_line,
-        "",
-        "## Primary Review Artifact",
-        "",
-        *primary_artifact_lines,
-        "",
-        "## Secondary Review Views",
-        "",
-        "- `report.html`: browser-friendly narrative report with reviewer cues and tables.",
-        "- `report.md`: plain-text Markdown version of the same review narrative.",
-        "",
-        "## Recommended Review Order",
-        "",
-        first_review_step,
-        "2. Use `needs_review_summary.csv` to identify changed periods, suggested next "
-        "steps, high-priority context cues, and drilldown artifacts.",
-        "3. Use the `review_key` column to follow a period across CSV artifacts.",
-        "4. Use `context_evidence_summary.csv` to review grouped context priority, then "
-        "open `context_evidence.csv` for row-level support.",
-        "5. Treat high-priority context as review guidance only; it is not included in "
-        "return-impact estimates.",
-        "",
-        "## Audit/Export Files",
-        "",
-        "- `findings.csv`: complete finding-level comparison output.",
-        "- `manifest.json`: machine-readable artifact and row-count metadata.",
-        *_report_bundle_readme_table_lines(tables),
-    ]
-    output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
-    return output_path
-
-
-def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> list[str]:
-    """Return README bullets for report-bundle table artifacts."""
-    descriptions = {
-        "needs_review_summary": (
-            "top triage table for changed periods, suggested next steps, and "
-            "drilldown artifacts"
-        ),
-        "portfolio_period_summary": "portfolio-period return-change summary",
-        "cause_summary": "cause-area summary with explained-change methods",
-        "impact_estimates": "currently quantified impact estimates",
-        "impact_coverage": "period-level estimate coverage and missing inputs",
-        "context_evidence_summary": (
-            "context-only evidence counts, reviewer priority, and affected identifiers"
-        ),
-        "context_evidence": (
-            "row-level context evidence, reviewer priority, and no-impact treatment"
-        ),
-        "transaction_cross_checks": "review-only transaction impact cross-checks",
-        "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
-        "residual_status": "residual caveat status by changed portfolio period",
-        "transaction_activity": "changed transaction activity and missing inputs",
-        "transaction_matching_diagnostics": (
-            "transaction matching status counts and review notes"
-        ),
-        "top_evidence": "ranked evidence rows shown in the report",
-    }
-    return [
-        f"- `{name}.csv`: {descriptions.get(name, 'report helper table')} "
-        f"({table.height} row(s))."
-        for name, table in sorted(tables.items())
-    ]
-
-
-def _report_bundle_manifest(
-    *,
-    findings: pl.DataFrame,
-    active_findings: pl.DataFrame,
-    title: str,
-    include_suppressed_appendix: bool,
-    top_evidence_limit: int,
-    artifact_paths: dict[str, Path],
-    tables: dict[str, pl.DataFrame],
-) -> dict[str, object]:
-    """Return JSON-serializable metadata for a report bundle."""
-    suppressed_count = findings.height - active_findings.height
-    return {
-        "bundle_type": "performance_comparison_report",
-        "created_at": dt.datetime.now(dt.UTC).isoformat(),
-        "title": title,
-        "options": {
-            "include_suppressed_appendix": include_suppressed_appendix,
-            "top_evidence_limit": top_evidence_limit,
-        },
-        "counts": {
-            "findings": findings.height,
-            "active_findings": active_findings.height,
-            "suppressed_findings": suppressed_count,
-        },
-        "artifacts": {
-            name: path.name
-            for name, path in sorted(artifact_paths.items())
-        },
-        "tables": {
-            "findings": {"rows": findings.height},
-            **{
-                name: {"rows": table.height}
-                for name, table in sorted(tables.items())
-            },
-        },
-    }
 
 
 def _run_summary_section(
