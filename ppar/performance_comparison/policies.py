@@ -38,6 +38,12 @@ from ppar.performance_comparison.methods import (
     SecurityMasterImpactMethod,
     TransactionImpactMethod,
 )
+from ppar.performance_comparison.modified_dietz import (
+    modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
+    modified_dietz_float as _modified_dietz_float,
+    usable_modified_dietz_denominator as _usable_modified_dietz_denominator,
+    usable_modified_dietz_number as _usable_modified_dietz_number,
+)
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
@@ -1568,47 +1574,6 @@ def _modified_dietz_external_flow_eligibility(
     )
 
 
-def _modified_dietz_external_flow_impact(
-    *,
-    flow_delta: float,
-    denominator: float,
-    from_date: dt.date,
-    thru_date: dt.date,
-    flow_date: dt.date,
-    inclusion_rule: str,
-) -> float:
-    """Return a Modified Dietz cross-check estimate for one external flow."""
-    flow_weight = _modified_dietz_flow_weight(
-        from_date=from_date,
-        thru_date=thru_date,
-        flow_date=flow_date,
-        inclusion_rule=inclusion_rule,
-    )
-    return flow_delta * flow_weight / denominator
-
-
-def _modified_dietz_flow_weight(
-    *,
-    from_date: dt.date,
-    thru_date: dt.date,
-    flow_date: dt.date,
-    inclusion_rule: str,
-) -> float:
-    """Return the actual-days Modified Dietz flow weight."""
-    period_days = (thru_date - from_date).days + 1
-    if period_days <= 0:
-        raise ValueError("period must include at least one day")
-    if not from_date <= flow_date <= thru_date:
-        raise ValueError("flow_date must be inside the period")
-
-    remaining_days = (thru_date - flow_date).days
-    if inclusion_rule == ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value:
-        remaining_days += 1
-    elif inclusion_rule != ModifiedDietzInclusionRule.END_OF_DAY.value:
-        raise ValueError("inclusion_rule must be beginning_of_day or end_of_day")
-    return remaining_days / period_days
-
-
 def _modified_dietz_flow_date(
     row: Mapping[str, object],
     policy: _TransactionImpactPolicy | None,
@@ -1630,24 +1595,6 @@ def _modified_dietz_flow_date(
         return value.date()
     if isinstance(value, dt.date):
         return value
-    return None
-
-
-def _usable_modified_dietz_denominator(value: object) -> bool:
-    """Return whether a configured Modified Dietz denominator is usable."""
-    number = _modified_dietz_float(value)
-    return number is not None and number != 0
-
-
-def _usable_modified_dietz_number(value: object) -> bool:
-    """Return whether a value can be used in Modified Dietz arithmetic."""
-    return _modified_dietz_float(value) is not None
-
-
-def _modified_dietz_float(value: object) -> float | None:
-    """Return a float for non-boolean numeric Modified Dietz values."""
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
     return None
 
 
