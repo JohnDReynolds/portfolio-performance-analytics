@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 import datetime as dt
 
 # Third-party imports
@@ -11,6 +11,7 @@ import polars as pl
 
 # Project imports
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison import _transaction_diagnostics as tx_diagnostics
 from ppar.performance_comparison.findings import (
     CASH_FLOW_SIGN,
     CONTEXT,
@@ -55,9 +56,6 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_CATEGORY,
     TRANSACTION_MATCH_STATUS,
-    TRANSACTION_MATCH_STATUS_ID_MATCH,
-    TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
-    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.methods import (
@@ -76,10 +74,6 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
-    TRANSACTION_SEMANTICS_SOURCE_MIXED,
-    TRANSACTION_SEMANTICS_SOURCE_SOURCE,
-    TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
-    TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
     transaction_impact_semantics_available,
 )
 
@@ -966,12 +960,15 @@ def transaction_matching_diagnostics(
             {
                 TRANSACTION_MATCH_STATUS: match_status,
                 FINDING_COUNT: row[FINDING_COUNT],
-                TRANSACTION_MATCH_REVIEW_NOTE: _transaction_match_review_note(
-                    match_status
+                TRANSACTION_MATCH_REVIEW_NOTE: (
+                    tx_diagnostics.transaction_match_review_note(match_status)
                 ),
             }
         )
-    sorted_rows = sorted(rows, key=_transaction_matching_diagnostic_sort_key)
+    sorted_rows = sorted(
+        rows,
+        key=tx_diagnostics.transaction_matching_diagnostic_sort_key,
+    )
     return pl.DataFrame(sorted_rows).select(TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS)
 
 
@@ -1732,28 +1729,15 @@ def _has_evidence_only_impact_policy(row: dict[str, object]) -> bool:
 def _transaction_performance_amount_impact_message(row: dict[str, object]) -> str:
     """Return a provenance-aware transaction amount impact message."""
     semantics_source = row.get(TRANSACTION_SEMANTICS_SOURCE)
-    source_text = _readable_transaction_semantics_source(semantics_source)
+    source_text = tx_diagnostics.readable_transaction_semantics_source(
+        semantics_source
+    )
     return (
         "Approximate impact uses the source-signed transaction amount delta "
         "divided by the return denominator. Applies only when normalized "
         "sign/flow semantics mark the transaction as performance-affecting. "
         f"Transaction semantics source: {source_text}."
     )
-
-
-def _readable_transaction_semantics_source(value: object) -> str:
-    """Return reviewer-facing text for a transaction semantics provenance value."""
-    if value == TRANSACTION_SEMANTICS_SOURCE_SOURCE:
-        return "source"
-    if value == TRANSACTION_SEMANTICS_SOURCE_YAML_RULE:
-        return "YAML transaction_rules"
-    if value == TRANSACTION_SEMANTICS_SOURCE_MIXED:
-        return "mixed source and YAML transaction_rules"
-    if value == TRANSACTION_SEMANTICS_SOURCE_UNKNOWN:
-        return "unknown"
-    if value is None or value == "":
-        return "not provided"
-    return str(value)
 
 
 def _has_transaction_impact_method_candidate(rows: list[dict[str, object]]) -> bool:
@@ -2408,11 +2392,11 @@ def _period_transaction_semantics_sources(
     """Return aggregate transaction semantics provenance counts for a period."""
     counts: dict[str, int] = {}
     for transaction in transactions:
-        for source, count in _parse_transaction_semantics_sources(
+        for source, count in tx_diagnostics.parse_transaction_semantics_sources(
             transaction.get(TRANSACTION_SEMANTICS_SOURCES)
         ).items():
             counts[source] = counts.get(source, 0) + count
-    return _format_transaction_semantics_source_counts(counts)
+    return tx_diagnostics.format_transaction_semantics_source_counts(counts)
 
 
 def _transaction_semantics_source_counts(rows: list[dict[str, object]]) -> str:
@@ -2423,7 +2407,7 @@ def _transaction_semantics_source_counts(rows: list[dict[str, object]]) -> str:
         if not isinstance(source, str) or not source:
             continue
         counts[source] = counts.get(source, 0) + 1
-    return _format_transaction_semantics_source_counts(counts)
+    return tx_diagnostics.format_transaction_semantics_source_counts(counts)
 
 
 def _transaction_match_status_counts(rows: list[dict[str, object]]) -> str:
@@ -2434,83 +2418,7 @@ def _transaction_match_status_counts(rows: list[dict[str, object]]) -> str:
         if not isinstance(status, str) or not status:
             continue
         counts[status] = counts.get(status, 0) + 1
-    return _format_label_counts(counts)
-
-
-def _transaction_match_review_note(match_status: object) -> str:
-    """Return a reviewer-facing explanation for one transaction match status."""
-    if match_status == TRANSACTION_MATCH_STATUS_ID_MATCH:
-        return "Changed fields were compared on rows matched by transaction_id."
-    if match_status == TRANSACTION_MATCH_STATUS_ID_UNMATCHED:
-        return "Rows were not paired by transaction_id; review as adds/drops."
-    if match_status == TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED:
-        return (
-            "No stable transaction_id was available; strict fallback keys left "
-            "rows unmatched rather than inferring an edit."
-        )
-    return "Review this transaction matching status before interpreting activity."
-
-
-def _transaction_matching_diagnostic_sort_key(
-    row: Mapping[str, object],
-) -> tuple[int, str]:
-    """Return stable ordering for transaction matching diagnostic rows."""
-    order = {
-        TRANSACTION_MATCH_STATUS_ID_MATCH.value: 0,
-        TRANSACTION_MATCH_STATUS_ID_UNMATCHED.value: 1,
-        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED.value: 2,
-    }
-    match_status = str(row[TRANSACTION_MATCH_STATUS])
-    return order.get(match_status, len(order)), str(match_status)
-
-
-def _format_label_counts(counts: Mapping[str, int]) -> str:
-    """Return stable readable counts for free-form labels."""
-    return ", ".join(
-        f"{label}: {counts[label]}"
-        for label in sorted(counts)
-        if counts.get(label, 0) > 0
-    )
-
-
-def _parse_transaction_semantics_sources(value: object) -> dict[str, int]:
-    """Return provenance counts parsed from a transaction summary string."""
-    if not isinstance(value, str) or not value:
-        return {}
-
-    counts: dict[str, int] = {}
-    for part in value.split(","):
-        source, separator, count_text = part.strip().partition(":")
-        if not source or not separator:
-            continue
-        try:
-            count = int(count_text.strip())
-        except ValueError:
-            continue
-        counts[source.strip()] = counts.get(source.strip(), 0) + count
-    return counts
-
-
-def _format_transaction_semantics_source_counts(counts: Mapping[str, int]) -> str:
-    """Return stable readable transaction semantics provenance counts."""
-    ordered_sources = (
-        TRANSACTION_SEMANTICS_SOURCE_SOURCE,
-        TRANSACTION_SEMANTICS_SOURCE_MIXED,
-        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
-        TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
-    )
-    parts = [
-        f"{source}: {counts[source]}"
-        for source in ordered_sources
-        if counts.get(source, 0) > 0
-    ]
-    other_sources = sorted(source for source in counts if source not in ordered_sources)
-    parts.extend(
-        f"{source}: {counts[source]}"
-        for source in other_sources
-        if counts.get(source, 0) > 0
-    )
-    return ", ".join(parts)
+    return tx_diagnostics.format_label_counts(counts)
 
 
 def _transaction_missing_impact_inputs_message(
@@ -2633,17 +2541,7 @@ def _transaction_impact_diagnostic_inputs(value: object) -> list[str]:
 def _changed_transaction_fields(rows: list[dict[str, object]]) -> list[str]:
     """Return changed transaction source fields in stable order."""
     fields = {str(row[SOURCE_COLUMN]) for row in rows if row[SOURCE_COLUMN] is not None}
-    return sorted(fields, key=_transaction_field_sort_key)
-
-
-def _transaction_field_sort_key(field: str) -> tuple[int, str]:
-    """Return stable business-oriented transaction field ordering."""
-    order = {
-        pc_cols.AMOUNT: 0,
-        pc_cols.QUANTITY: 1,
-        pc_cols.PRICE: 2,
-    }
-    return (order.get(field, 99), field)
+    return sorted(fields, key=tx_diagnostics.transaction_field_sort_key)
 
 
 def _field_delta(rows: list[dict[str, object]], source_column: str) -> float | None:
