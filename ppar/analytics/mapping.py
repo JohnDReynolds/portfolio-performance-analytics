@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Sequence
 
 # Project Imports
-import ppar.columns as cols
+import ppar.schema as cols
 import ppar.errors as errs
 import ppar.utilities as util
 

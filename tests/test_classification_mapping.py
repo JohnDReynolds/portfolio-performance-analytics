@@ -8,7 +8,7 @@ import polars as pl
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 from ppar.analytics.classification import Classification
-import ppar.columns as cols
+import ppar.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.analytics.mapping import Mapping

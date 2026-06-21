@@ -9,7 +9,7 @@ import pandas as pd
 import polars as pl
 
 # Project Imports
-import ppar.columns as cols
+import ppar.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 from ppar.analytics.performance import Performance

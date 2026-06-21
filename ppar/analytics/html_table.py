@@ -11,7 +11,7 @@ from typing import Literal, Sequence, SupportsFloat, SupportsIndex, cast
 import polars as pl
 
 # Project Imports
-import ppar.columns as cols
+import ppar.schema as cols
 import ppar.utilities as util
 
 _ColumnFormat = Literal["text", "number", "currency", "date"]

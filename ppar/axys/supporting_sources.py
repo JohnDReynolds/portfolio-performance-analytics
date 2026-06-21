@@ -13,7 +13,7 @@ import polars as pl
 from ppar.axys.classification_sources import AxysClassificationSourceLoader
 from ppar.axys.portfolios import AxysPortfolio
 from ppar.axys.specification import AxysSpecification
-import ppar.columns as cols
+import ppar.schema as cols
 
 
 @dataclass(frozen=True)

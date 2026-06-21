@@ -25,7 +25,7 @@ import polars as pl
 import seaborn as sns
 
 # Project Imports
-import ppar.columns as cols
+import ppar.schema as cols
 import ppar.utilities as util
 
 # Reasonable chart sizing constraints, just so they don't get too tiny or huge.

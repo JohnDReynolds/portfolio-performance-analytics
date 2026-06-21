@@ -10,7 +10,7 @@ from typing import Final, Sequence
 import polars as pl
 
 # Project imports
-import ppar.columns as cols
+import ppar.schema as cols
 
 _MATCH_TOLERANCE: Final[float] = 1e-12
 _NEAR_ZERO_WEIGHT: Final[float] = 1e-18

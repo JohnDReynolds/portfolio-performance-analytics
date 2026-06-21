@@ -11,7 +11,7 @@ import tomllib
 import unittest
 
 # Project Imports
-import ppar.columns as core_columns
+import ppar.schema as core_schema
 import ppar.errors as core_errors
 import ppar.utilities as util
 from ppar import axys, performance_comparison
@@ -560,7 +560,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_core_public_exports_are_explicit(self) -> None:
         """Core helper modules export every intentional public module name."""
         module_paths = {
-            core_columns: Path("ppar/columns.py"),
+            core_schema: Path("ppar/schema.py"),
             core_errors: Path("ppar/errors.py"),
             util: Path("ppar/utilities.py"),
         }

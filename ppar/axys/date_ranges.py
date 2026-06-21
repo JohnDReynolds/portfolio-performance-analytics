@@ -10,7 +10,7 @@ import datetime as dt
 import polars as pl
 
 # Project imports
-import ppar.columns as cols
+import ppar.schema as cols
 
 
 @dataclass(frozen=True)

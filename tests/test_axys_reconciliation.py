@@ -14,7 +14,7 @@ from ppar.axys.reconciliation import (
     derive_security_performance_for_all_periods,
     filter_to_common_periods,
 )
-import ppar.columns as cols
+import ppar.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
 
