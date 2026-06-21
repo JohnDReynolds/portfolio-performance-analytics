@@ -18,6 +18,7 @@ from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
+from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import runner as _pc_runner
 from ppar.performance_comparison import workbook as _pc_workbook
 
@@ -54,7 +55,7 @@ _RESIDUAL_STATUS_NOTE = (
 _REVIEW_STATUS = "review_status"
 _REVIEW_CUES = "review_cues"
 _SUGGESTED_NEXT_STEP = "suggested_next_step"
-_REVIEW_KEY = "review_key"
+_REVIEW_KEY = _pc_review_keys.REVIEW_KEY
 _REVIEW_DETAIL_ARTIFACTS = "review_detail_artifacts"
 _PRIMARY_REVIEW_CUE = "primary_review_cue"
 _DASHBOARD_COVERAGE_COUNTS = "dashboard_coverage_counts"
@@ -172,6 +173,11 @@ _escape_markdown_text = _pc_rendering.escape_markdown_text
 _escape_html = _pc_rendering.escape_html
 _html_style_block = _pc_rendering.html_style_block
 _html_dashboard_script = _pc_rendering.html_dashboard_script
+_period_key = _pc_review_keys.period_key
+_period_review_key = _pc_review_keys.period_review_key
+_row_review_key = _pc_review_keys.row_review_key
+_with_period_review_key = _pc_review_keys.with_period_review_key
+_with_security_review_key = _pc_review_keys.with_security_review_key
 
 
 def _html_table(
@@ -2084,76 +2090,6 @@ def _period_rows_by_key(
     for row in table.iter_rows(named=True):
         rows_by_key.setdefault(_period_key(row), []).append(row)
     return rows_by_key
-
-
-def _period_key(row: Mapping[str, object]) -> tuple[object, object, object]:
-    """Return the portfolio-period grouping key for a report row."""
-    return (
-        row[_pc_findings.PORTFOLIO_ID],
-        row[_pc_findings.FROM_DATE],
-        row[_pc_findings.THRU_DATE],
-    )
-
-
-def _period_review_key(row: Mapping[str, object]) -> str:
-    """Return a stable text key for joining period-level bundle artifacts."""
-    return "::".join(
-        [
-            _format_value(row.get(_pc_findings.PORTFOLIO_ID)),
-            _format_value(row.get(_pc_findings.FROM_DATE)),
-            _format_value(row.get(_pc_findings.THRU_DATE)),
-        ]
-    )
-
-
-def _with_period_review_key(table: pl.DataFrame) -> pl.DataFrame:
-    """Add ``review_key`` to tables that already carry portfolio-period columns."""
-    period_columns = {
-        _pc_findings.PORTFOLIO_ID,
-        _pc_findings.FROM_DATE,
-        _pc_findings.THRU_DATE,
-    }
-    if _REVIEW_KEY in table.columns or not period_columns.issubset(table.columns):
-        return table
-    table_with_key = table.with_columns(
-        pl.concat_str(
-            [
-                pl.col(_pc_findings.PORTFOLIO_ID).cast(pl.String),
-                pl.col(_pc_findings.FROM_DATE).cast(pl.String),
-                pl.col(_pc_findings.THRU_DATE).cast(pl.String),
-            ],
-            separator="::",
-        ).alias(_REVIEW_KEY)
-    )
-    return table_with_key.select(
-        [_REVIEW_KEY, *[column for column in table.columns if column != _REVIEW_KEY]]
-    )
-
-
-def _with_security_review_key(table: pl.DataFrame) -> pl.DataFrame:
-    """Add ``review_key`` to tables that already carry security-period columns."""
-    security_columns = {
-        _pc_findings.PORTFOLIO_ID,
-        _pc_findings.FROM_DATE,
-        _pc_findings.THRU_DATE,
-        _pc_findings.SECURITY_ID,
-    }
-    if _REVIEW_KEY in table.columns or not security_columns.issubset(table.columns):
-        return table
-    table_with_key = table.with_columns(
-        pl.concat_str(
-            [
-                pl.col(_pc_findings.PORTFOLIO_ID).cast(pl.String),
-                pl.col(_pc_findings.FROM_DATE).cast(pl.String),
-                pl.col(_pc_findings.THRU_DATE).cast(pl.String),
-                pl.col(_pc_findings.SECURITY_ID).cast(pl.String),
-            ],
-            separator="::",
-        ).alias(_REVIEW_KEY)
-    )
-    return table_with_key.select(
-        [_REVIEW_KEY, *[column for column in table.columns if column != _REVIEW_KEY]]
-    )
 
 
 def _positive_count(value: object) -> bool:
@@ -4225,16 +4161,3 @@ def _html_table_row_id(
         return base_row_id
     return f"{base_row_id}-{row_id_count}"
 
-
-def _row_review_key(row: Mapping[str, object]) -> str:
-    """Return a row's review key when enough period fields are available."""
-    if _has_text(row.get(_REVIEW_KEY)):
-        return _format_value(row.get(_REVIEW_KEY))
-    period_columns = {
-        _pc_findings.PORTFOLIO_ID,
-        _pc_findings.FROM_DATE,
-        _pc_findings.THRU_DATE,
-    }
-    if not period_columns.issubset(row.keys()):
-        return ""
-    return _period_review_key(row)
