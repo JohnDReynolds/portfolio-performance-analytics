@@ -1,5 +1,9 @@
 """Compare performance snapshots and explain restatements."""
 
+from ppar.performance_comparison.bundle import (
+    REPORT_BUNDLE_REQUIRED_ARTIFACTS,
+    report_bundle_validation_issues,
+)
 from ppar.performance_comparison.cash import CashLoader
 from ppar.performance_comparison import columns
 from ppar.performance_comparison.compare import PerformanceComparison
@@ -76,6 +80,7 @@ __all__ = [
     "PerformanceComparisonSpecification",
     "PositionsLoader",
     "PricesLoader",
+    "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
     "SecurityPerformanceLoader",
     "SecurityMasterLoader",
     "SuppressionRule",
@@ -97,6 +102,7 @@ __all__ = [
     "performance_comparison_html_report",
     "performance_comparison_markdown_report",
     "rank_portfolio_period_evidence",
+    "report_bundle_validation_issues",
     "security_period_evidence_breakdown",
     "security_period_summary",
     "summarize_findings",

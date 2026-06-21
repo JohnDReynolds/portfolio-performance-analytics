@@ -20,12 +20,14 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import (
     DIRECT_INPUT,
     Finding,
+    REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     TARGET_OUTPUT,
     columns as pc_cols,
     compare_snapshots,
     findings_to_polars,
     performance_comparison_html_report,
     performance_comparison_markdown_report,
+    report_bundle_validation_issues,
     validate_causal_attribution_ready,
     write_performance_comparison_html_report,
     write_performance_comparison_markdown_report,
@@ -39,10 +41,8 @@ from ppar.performance_comparison.findings import (
     SEVERITY_MATERIAL,
 )
 from ppar.performance_comparison.report import (
-    _REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     _markdown_table,
     _problem_table,
-    _report_bundle_validation_issues,
     _review_dashboard_table,
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
@@ -1252,7 +1252,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
         """Report bundles contain Markdown, CSV tables, and manifest metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        expected_keys = set(_REPORT_BUNDLE_REQUIRED_ARTIFACTS)
+        expected_keys = set(REPORT_BUNDLE_REQUIRED_ARTIFACTS)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -1399,7 +1399,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_impact_policy", top_evidence.columns)
             self.assertIn("impact_method", top_evidence.columns)
             self.assertIn("impact_message", top_evidence.columns)
-            self.assertEqual(_report_bundle_validation_issues(output_directory), [])
+            self.assertEqual(report_bundle_validation_issues(output_directory), [])
 
     def test_strict_causal_attribution_rejects_missing_setup(self) -> None:
         """Strict causal attribution mode fails before ambiguous reporting."""
@@ -1816,7 +1816,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             self.assertEqual(
                 set(paths),
-                {*_REPORT_BUNDLE_REQUIRED_ARTIFACTS, "review_workbook"},
+                {*REPORT_BUNDLE_REQUIRED_ARTIFACTS, "review_workbook"},
             )
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(
@@ -2160,7 +2160,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             paths = write_performance_comparison_report_bundle(findings, directory)
 
             paths["needs_review_summary"].unlink()
-            issues = _report_bundle_validation_issues(directory)
+            issues = report_bundle_validation_issues(directory)
 
         self.assertIn("artifact file 'needs_review_summary.csv' is missing", issues)
 
@@ -2178,7 +2178,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
 
             paths["review_workbook"].unlink()
-            issues = _report_bundle_validation_issues(directory)
+            issues = report_bundle_validation_issues(directory)
 
         self.assertIn("artifact file 'review_workbook.xlsx' is missing", issues)
 
@@ -2199,7 +2199,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             del workbook["Portfolio Differences"]
             workbook.save(paths["review_workbook"])
 
-            issues = _report_bundle_validation_issues(directory)
+            issues = report_bundle_validation_issues(directory)
 
         self.assertIn(
             "review_workbook.xlsx is missing sheet 'Portfolio Differences'",
@@ -2214,7 +2214,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             header = paths["top_evidence"].read_text(encoding="utf-8").splitlines()[0]
             paths["top_evidence"].write_text(header + "\n", encoding="utf-8")
 
-            issues = _report_bundle_validation_issues(directory)
+            issues = report_bundle_validation_issues(directory)
 
         self.assertIn("table 'top_evidence' row count is 0, expected 10", issues)
 
@@ -2223,7 +2223,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
 
         with mock.patch(
-            "ppar.performance_comparison.report._report_bundle_validation_issues",
+            "ppar.performance_comparison.report._pc_bundle.report_bundle_validation_issues",
             return_value=["simulated validation issue"],
         ):
             with tempfile.TemporaryDirectory() as directory:

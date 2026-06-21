@@ -53,6 +53,7 @@ from ppar.performance_comparison import (
     PortfolioPerformanceLoader,
     PositionsLoader,
     PricesLoader,
+    REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     RELATED_OUTPUT,
     SecurityMasterLoader,
     SecurityPerformanceLoader,
@@ -74,6 +75,7 @@ from ppar.performance_comparison import (
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
     rank_portfolio_period_evidence,
+    report_bundle_validation_issues,
     security_period_evidence_breakdown,
     security_period_summary,
     summarize_findings,
@@ -420,6 +422,7 @@ class TestPackageMetadata(unittest.TestCase):
             "PerformanceComparisonSpecification": PerformanceComparisonSpecification,
             "PositionsLoader": PositionsLoader,
             "PricesLoader": PricesLoader,
+            "REPORT_BUNDLE_REQUIRED_ARTIFACTS": REPORT_BUNDLE_REQUIRED_ARTIFACTS,
             "SecurityPerformanceLoader": SecurityPerformanceLoader,
             "SecurityMasterLoader": SecurityMasterLoader,
             "SuppressionRule": SuppressionRule,
@@ -451,6 +454,7 @@ class TestPackageMetadata(unittest.TestCase):
                 performance_comparison_markdown_report
             ),
             "rank_portfolio_period_evidence": rank_portfolio_period_evidence,
+            "report_bundle_validation_issues": report_bundle_validation_issues,
             "security_period_evidence_breakdown": security_period_evidence_breakdown,
             "security_period_summary": security_period_summary,
             "summarize_findings": summarize_findings,
@@ -534,7 +538,7 @@ class TestPackageMetadata(unittest.TestCase):
             performance_comparison_report.write_performance_comparison_review_workbook,
         )
         self.assertNotIn(
-            "_report_bundle_validation_issues",
+            "report_bundle_validation_issues",
             performance_comparison_report.__all__,
         )
 

@@ -6,9 +6,7 @@ from pathlib import Path
 import sys
 
 # Project imports
-from ppar.performance_comparison.report import (
-    _report_bundle_validation_issues,
-)
+from ppar.performance_comparison.bundle import report_bundle_validation_issues
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
         bundle has validation issues.
     """
     args = _argument_parser().parse_args(argv)
-    issues = _report_bundle_validation_issues(args.bundle_directory)
+    issues = report_bundle_validation_issues(args.bundle_directory)
     if not issues:
         print(f"Bundle validation passed: {args.bundle_directory}")
         return 0
