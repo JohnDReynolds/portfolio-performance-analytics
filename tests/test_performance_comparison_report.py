@@ -1706,9 +1706,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self.assertEqual(plain_quantity.height, 1)
-        self.assertEqual(
+        self.assertIn(
+            "position_impact_methods.quantity.method",
             plain_quantity["required_yaml_setup"][0],
-            "No supported YAML impact method exists yet for positions.quantity.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Missing impact method")
         self.assertEqual(configured_quantity.height, 1)
@@ -1923,7 +1923,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(
                 [
                     underlying_causes_sheet.cell(row=1, column=column).value
-                    for column in range(1, 12)
+                    for column in range(1, 13)
                 ],
                 [
                     "Portfolio",
@@ -1935,6 +1935,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
+                    "Impact Input Value",
                     "Performance Difference Explained",
                     "Required YAML Setup",
                 ],
@@ -1957,10 +1958,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             numeric_explained_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"K{row}"].value, (int, float))
             )
             self.assertEqual(
-                underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
+                underlying_causes_sheet[f"K{numeric_explained_row}"].number_format,
                 "0.######",
             )
             portfolios = {
@@ -1969,7 +1970,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             }
             self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
             required_setup = [
-                str(underlying_causes_sheet[f"K{row}"].value)
+                str(underlying_causes_sheet[f"L{row}"].value)
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
             self.assertTrue(
@@ -1988,7 +1989,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 [
-                    underlying_causes_sheet[f"L{row}"].value
+                    underlying_causes_sheet[f"M{row}"].value
                     for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",

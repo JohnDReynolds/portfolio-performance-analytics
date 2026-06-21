@@ -184,10 +184,10 @@ Expected workbook:
 - Changed portfolio periods in the `Portfolio Differences` sheet.
 - One changed security-period return in the `Security Differences` sheet.
 - `Underlying Causes` sheet should show additive transaction amount, position market
-  value, position accrued, weighted price, and cash examples.
-- `Underlying Causes` sheet should also show one explicit evidence-only position
-  quantity row with `Required YAML Setup` set to `None; configured as
-  evidence-only in comparison YAML.`
+  value, position accrued, position quantity, weighted price, and cash examples.
+- `Underlying Causes` sheet should also show an explicit evidence-only position
+  cost row with `Required YAML Setup` set to `None; configured as evidence-only
+  in comparison YAML.`
 - `Reported Performance Checks` sheet should show configured
   portfolio/security performance estimates such as security-return weighting,
   vendor contribution delta, and portfolio source-field delta. These confirm
@@ -275,9 +275,10 @@ each currently supported causal-attribution basis:
 - portfolio income/gain-loss source-field delta over beginning market value
 - position market value over beginning market value
 - position accrued over beginning market value
+- position quantity times snapshot A unit market value over beginning market value
 - price delta over snapshot A price, weighted by snapshot A security weight
 - cash balance/market value over beginning market value
-- explicit evidence-only treatment for a known position quantity change
+- explicit evidence-only treatment for known position cost changes
 
 Current public YAML method targets:
 
@@ -291,11 +292,19 @@ Current public YAML method targets:
   `market_value_delta_over_return_denominator` (covered)
 - `position_impact_methods.accrued`:
   `accrued_delta_over_return_denominator` (covered)
+- `position_impact_methods.quantity`:
+  `quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
+  (covered)
 - `position_impact_methods.quantity`: `evidence_only` (covered)
+- `position_impact_methods.cost`: `evidence_only` (covered)
 - `price_impact_methods.price`:
   `price_delta_over_snapshot_a_price_times_weight` (covered)
 - `cash_impact_methods.cash_balance` and `cash_impact_methods.market_value`:
   `cash_delta_over_return_denominator` (covered)
+- `fx_rate_impact_methods.fx_rate`: `evidence_only` (covered)
+- `security_master_impact_methods.<reference_or_classification_field>`:
+  `evidence_only` for known review-only security reference or classification
+  changes (covered)
 - `evidence_only_impact_methods.<dataset>`:
   `evidence_only` with explicit `source_fields` for known review-only fields
   without a dataset-specific method target (covered)

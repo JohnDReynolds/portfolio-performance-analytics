@@ -127,12 +127,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Underlying Causes"])[:12],
+                    _header_values(workbook["Underlying Causes"])[:13],
                     [
                         *_COMMON_LEFT_HEADERS,
                         "Snapshot A Value",
                         "Snapshot B Value",
                         "B - A Difference",
+                        "Impact Input Value",
                         "Performance Difference Explained",
                         "Required YAML Setup",
                         "Review Key",

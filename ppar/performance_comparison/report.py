@@ -1176,6 +1176,7 @@ def _workbook_changed_item_row(
         _pc_findings.SNAPSHOT_A_VALUE: row.get(_pc_findings.SNAPSHOT_A_VALUE),
         _pc_findings.SNAPSHOT_B_VALUE: row.get(_pc_findings.SNAPSHOT_B_VALUE),
         _CHANGE: row.get(_pc_findings.DELTA_B_MINUS_A),
+        _pc_findings.IMPACT_INPUT_VALUE: row.get(_pc_findings.IMPACT_INPUT_VALUE),
         _ESTIMATED_IMPACT: estimated_impact,
         _IMPACT_STATUS: impact_status,
         _NEXT_ACTION: _workbook_next_action(row, estimated_impact, row_use, impact_status),
@@ -1309,7 +1310,11 @@ def _workbook_required_yaml_setup(
             f"transaction_rules for each transaction code in {yaml_path}."
         )
     if dataset == pc_cols.POSITIONS:
-        if source_column not in {pc_cols.MARKET_VALUE, pc_cols.ACCRUED}:
+        if source_column not in {
+            pc_cols.MARKET_VALUE,
+            pc_cols.ACCRUED,
+            pc_cols.QUANTITY,
+        }:
             return f"No supported YAML impact method exists yet for {dataset_column}."
         if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
             return f"No supported YAML impact method exists yet for {dataset_column}."
@@ -1317,6 +1322,12 @@ def _workbook_required_yaml_setup(
             return (
                 "Specify the YAML position_impact_methods.accrued.method and "
                 "position_impact_methods.accrued.denominator_source in "
+                f"{yaml_path}."
+            )
+        if source_column == pc_cols.QUANTITY:
+            return (
+                "Specify the YAML position_impact_methods.quantity.method and "
+                "position_impact_methods.quantity.denominator_source in "
                 f"{yaml_path}."
             )
         return (
@@ -1341,6 +1352,19 @@ def _workbook_required_yaml_setup(
         return (
             f"Specify the YAML cash_impact_methods.{source_column}.method and "
             f"cash_impact_methods.{source_column}.denominator_source in {yaml_path}."
+        )
+    if dataset == pc_cols.FX_RATES:
+        if source_column != pc_cols.FX_RATE:
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        return f"Specify the YAML fx_rate_impact_methods.fx_rate.method in {yaml_path}."
+    if dataset == pc_cols.SECURITY_MASTER:
+        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
+            return f"No supported YAML impact method exists yet for {dataset_column}."
+        return (
+            f"Specify the YAML security_master_impact_methods.{source_column}.method "
+            f"in {yaml_path}."
         )
     return f"No supported YAML impact method exists yet for {dataset_column}."
 
@@ -1422,6 +1446,7 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _pc_findings.SNAPSHOT_A_VALUE: pl.String,
             _pc_findings.SNAPSHOT_B_VALUE: pl.String,
             _CHANGE: pl.Float64,
+            _pc_findings.IMPACT_INPUT_VALUE: pl.Float64,
             _ESTIMATED_IMPACT: pl.Float64,
             _IMPACT_STATUS: pl.String,
             _NEXT_ACTION: pl.String,
@@ -1479,6 +1504,7 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _pc_findings.SNAPSHOT_A_VALUE,
         _pc_findings.SNAPSHOT_B_VALUE,
         _CHANGE,
+        _pc_findings.IMPACT_INPUT_VALUE,
         _ESTIMATED_IMPACT,
         _REQUIRED_YAML_SETUP,
         _REVIEW_KEY,
@@ -1573,6 +1599,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _pc_findings.SNAPSHOT_A_VALUE: "Snapshot A Value",
         _pc_findings.SNAPSHOT_B_VALUE: "Snapshot B Value",
         _pc_findings.DELTA_B_MINUS_A: "Delta B Minus A",
+        _pc_findings.IMPACT_INPUT_VALUE: "Impact Input Value",
         _pc_findings.SUPPRESSED: "Suppressed",
         _pc_explain.ROOT_CAUSE_AREA: "Cause Area",
         _pc_explain.FINDING_COUNT: "Finding Count",
@@ -1672,6 +1699,9 @@ def _workbook_column_tooltip(column: str) -> str:
         ),
         _pc_findings.RETURN_WEIGHT: (
             "Weight used for security return-impact estimates, when available."
+        ),
+        _pc_findings.IMPACT_INPUT_VALUE: (
+            "Additional numeric input used by the selected impact method, when needed."
         ),
         _pc_findings.MESSAGE: "Human-readable finding detail.",
         _pc_findings.SUPPRESSED: "Whether a configured suppression marked this finding hidden.",

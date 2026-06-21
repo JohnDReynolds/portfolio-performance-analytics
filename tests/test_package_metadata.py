@@ -27,7 +27,9 @@ from ppar.performance_comparison import findings as performance_comparison_findi
 from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
+    FxRateImpactMethod,
     PositionImpactMethod,
+    SecurityMasterImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison import (
@@ -295,9 +297,14 @@ class TestPackageMetadata(unittest.TestCase):
             ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value,
             ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value,
             CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value,
+            FxRateImpactMethod.EVIDENCE_ONLY.value,
             PositionImpactMethod.EVIDENCE_ONLY.value,
+            PositionImpactMethod[
+                "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
+            ].value,
             PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value,
             PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value,
+            SecurityMasterImpactMethod.EVIDENCE_ONLY.value,
             TransactionImpactMethod.EVIDENCE_ONLY.value,
             TransactionImpactMethod.MODIFIED_DIETZ.value,
             TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value,

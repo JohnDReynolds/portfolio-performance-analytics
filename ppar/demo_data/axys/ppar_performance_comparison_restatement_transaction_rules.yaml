@@ -44,6 +44,10 @@ contribution_impact_methods:
     method: security_return_delta_times_weight
     weight_source: snapshot_a_weight
 
+fx_rate_impact_methods:
+  fx_rate:
+    method: evidence_only
+
 transaction_rules:
   BUY:
     transaction_category: buy

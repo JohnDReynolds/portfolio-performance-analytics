@@ -318,6 +318,7 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
     expected_bases = {
         _pc_explain.IMPACT_BASIS_POSITION_ACCRUED,
         _pc_explain.IMPACT_BASIS_POSITION_MARKET_VALUE,
+        _pc_explain.IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE,
         _pc_explain.IMPACT_BASIS_PRICE_WEIGHTED,
         _pc_explain.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
         _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION,
@@ -334,7 +335,7 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
     causes = _workbook_underlying_causes_table(findings)
     evidence_only_rows = causes.filter(
         (pl.col("dataset") == "positions")
-        & (pl.col("source_column") == "quantity")
+        & (pl.col("source_column") == "cost")
         & (pl.col("impact_status") == "Review only")
     )
     if evidence_only_rows.is_empty():

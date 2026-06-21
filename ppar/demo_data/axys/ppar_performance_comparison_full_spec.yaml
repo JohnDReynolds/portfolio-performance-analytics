@@ -49,6 +49,9 @@ position_impact_methods:
     method: accrued_delta_over_return_denominator
     denominator_source: begin_market_value
   quantity:
+    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
+    denominator_source: begin_market_value
+  cost:
     method: evidence_only
 
 price_impact_methods:

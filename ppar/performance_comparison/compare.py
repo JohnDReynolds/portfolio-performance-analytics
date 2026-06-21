@@ -24,6 +24,7 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_POSITION_ACCRUED,
     IMPACT_POLICY_POSITION_MARKET_VALUE,
+    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
     EvidenceRole,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
@@ -70,12 +71,14 @@ from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
+    FxRateImpactMethod,
     ModifiedDietzDayCount,
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzFlowTiming,
     ModifiedDietzInclusionRule,
     PositionImpactMethod,
     PriceImpactMethod,
+    SecurityMasterImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison.period_linking import (
@@ -203,6 +206,8 @@ _CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
 _POSITION_IMPACT_METHODS_KEY: Final[str] = "position_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
 _CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
+_FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
+_SECURITY_MASTER_IMPACT_METHODS_KEY: Final[str] = "security_master_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
 _SECURITY_CONTRIBUTION_KEY: Final[str] = "security_contribution"
@@ -237,11 +242,20 @@ _POSITION_ACCRUED_DELTA_METHOD: Final[str] = (
     PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _POSITION_EVIDENCE_ONLY_METHOD: Final[str] = PositionImpactMethod.EVIDENCE_ONLY.value
+_POSITION_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = (
+    PositionImpactMethod[
+        "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
+    ].value
+)
 _PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD: Final[str] = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
 _CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD: Final[str] = (
     CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+_FX_RATE_EVIDENCE_ONLY_METHOD: Final[str] = FxRateImpactMethod.EVIDENCE_ONLY.value
+_SECURITY_MASTER_EVIDENCE_ONLY_METHOD: Final[str] = (
+    SecurityMasterImpactMethod.EVIDENCE_ONLY.value
 )
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
@@ -298,6 +312,12 @@ _POSITION_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _METHOD_KEY,
     }
 )
+_POSITION_QUANTITY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
+    }
+)
 _PRICE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
@@ -308,6 +328,16 @@ _CASH_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
         _DENOMINATOR_SOURCE_KEY,
+    }
+)
+_FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+    }
+)
+_SECURITY_MASTER_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
     }
 )
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
@@ -331,6 +361,9 @@ _POSITION_MARKET_VALUE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
 _POSITION_ACCRUED_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
+}
+_POSITION_QUANTITY_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
 _PRICE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
@@ -475,6 +508,10 @@ class PerformanceComparison:
             keyed by source column.
         _cash_impact_policies: YAML-configured cash impact policy labels keyed
             by source column.
+        _fx_rate_impact_policies: YAML-configured FX rate impact policy labels
+            keyed by source column.
+        _security_master_impact_policies: YAML-configured security master
+            impact policy labels keyed by source column.
         _evidence_only_impact_policies: YAML-configured evidence-only policy
             labels keyed by dataset and source column.
     """
@@ -503,6 +540,10 @@ class PerformanceComparison:
         self._position_impact_policies = _position_impact_policies(specification)
         self._price_impact_policies = _price_impact_policies(specification)
         self._cash_impact_policies = _cash_impact_policies(specification)
+        self._fx_rate_impact_policies = _fx_rate_impact_policies(specification)
+        self._security_master_impact_policies = _security_master_impact_policies(
+            specification
+        )
         self._evidence_only_impact_policies = _evidence_only_impact_policies(
             specification
         )
@@ -880,6 +921,7 @@ class PerformanceComparison:
                 snapshot_b_value = row[f"{column}_b"]
                 if snapshot_a_value == snapshot_b_value:
                     continue
+                impact_policy = self._impact_policy(dataset, column)
                 transaction_impact_policy = self._transaction_impact_policy(
                     row,
                     dataset,
@@ -895,6 +937,7 @@ class PerformanceComparison:
                             compare_columns[column],
                             dataset,
                             column,
+                            impact_policy,
                             transaction_impact_policy,
                         ),
                         portfolio_id=row.get(pc_cols.PORTFOLIO_ID),
@@ -912,6 +955,7 @@ class PerformanceComparison:
                         transaction_semantics_source=(
                             self._transaction_semantics_source(row, dataset)
                         ),
+                        impact_policy=impact_policy,
                         transaction_impact_policy=transaction_impact_policy,
                         transaction_impact_diagnostic=(
                             self._transaction_impact_diagnostic(
@@ -996,6 +1040,7 @@ class PerformanceComparison:
                 if abs(delta) <= self._tolerance(column):
                     continue
                 for portfolio_id, from_date, thru_date in finding_contexts:
+                    impact_policy = self._impact_policy(dataset, column)
                     transaction_impact_policy = self._transaction_impact_policy(
                         row,
                         dataset,
@@ -1019,6 +1064,7 @@ class PerformanceComparison:
                                 compare_columns[column],
                                 dataset,
                                 column,
+                                impact_policy,
                                 transaction_impact_policy,
                             ),
                             portfolio_id=portfolio_id,
@@ -1042,10 +1088,7 @@ class PerformanceComparison:
                                 self._transaction_semantics_source(row, dataset)
                             ),
                             transaction_match_status=transaction_match_status,
-                            impact_policy=self._impact_policy(
-                                dataset,
-                                column,
-                            ),
+                            impact_policy=impact_policy,
                             transaction_impact_policy=transaction_impact_policy,
                             transaction_impact_diagnostic=(
                                 self._transaction_impact_diagnostic(
@@ -1081,6 +1124,12 @@ class PerformanceComparison:
                                 from_date,
                                 thru_date,
                                 return_weights,
+                            ),
+                            impact_input_value=self._impact_input_value(
+                                row,
+                                dataset,
+                                column,
+                                impact_policy,
                             ),
                             message=f"{dataset} {column!r} changed.",
                         )
@@ -1332,6 +1381,32 @@ class PerformanceComparison:
         return float(value)
 
     @staticmethod
+    def _impact_input_value(
+        row: Mapping[str, object],
+        dataset: str,
+        source_column: str,
+        impact_policy: object | None,
+    ) -> float | None:
+        """Return method-specific input value used for impact estimates."""
+        if (
+            dataset != pc_cols.POSITIONS
+            or source_column != pc_cols.QUANTITY
+            or impact_policy != IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE
+        ):
+            return None
+        quantity = row.get(pc_cols.QUANTITY)
+        market_value = row.get(pc_cols.MARKET_VALUE)
+        if (
+            isinstance(quantity, bool)
+            or isinstance(market_value, bool)
+            or not isinstance(quantity, (int, float))
+            or not isinstance(market_value, (int, float))
+            or float(quantity) == 0.0
+        ):
+            return None
+        return float(market_value) / float(quantity)
+
+    @staticmethod
     def _changed_value_contexts(
         row: Mapping[str, object],
         dataset: str,
@@ -1570,13 +1645,24 @@ class PerformanceComparison:
         code: str,
         dataset: str,
         source_column: str,
+        impact_policy: object | None,
         transaction_impact_policy: object | None,
     ) -> EvidenceRole:
         """Return the evidence role for one changed-value finding."""
         if (
+            dataset == pc_cols.POSITIONS
+            and source_column == pc_cols.COST
+            and _is_evidence_only_policy_label(impact_policy)
+        ):
+            return DIRECT_INPUT
+        if (
             dataset == pc_cols.TRANSACTIONS
             and source_column == pc_cols.COMMISSION
             and _is_evidence_only_policy_label(transaction_impact_policy)
+        ):
+            return DIRECT_INPUT
+        if dataset == pc_cols.SECURITY_MASTER and _is_evidence_only_policy_label(
+            impact_policy
         ):
             return DIRECT_INPUT
         return self._evidence_role(code, dataset, source_column)
@@ -1634,6 +1720,14 @@ class PerformanceComparison:
                 return policy
         if dataset == pc_cols.CASH:
             policy = self._cash_impact_policies.get(source_column)
+            if policy is not None:
+                return policy
+        if dataset == pc_cols.FX_RATES:
+            policy = self._fx_rate_impact_policies.get(source_column)
+            if policy is not None:
+                return policy
+        if dataset == pc_cols.SECURITY_MASTER:
+            policy = self._security_master_impact_policies.get(source_column)
             if policy is not None:
                 return policy
         policy = self._contribution_impact_policy(dataset, source_column)
@@ -1850,6 +1944,7 @@ def _position_impact_policies(
         _MARKET_VALUE_KEY,
         pc_cols.ACCRUED,
         pc_cols.QUANTITY,
+        pc_cols.COST,
     }
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
@@ -1922,14 +2017,43 @@ def _position_impact_policies(
             _POSITION_ACCRUED_ALLOWED_VALUES,
         )
         policies[pc_cols.ACCRUED] = IMPACT_POLICY_POSITION_ACCRUED
-    quantity = methods_value.get(pc_cols.QUANTITY)
-    if quantity is not None:
-        policy = _require_policy_mapping(
+    quantity_value = methods_value.get(pc_cols.QUANTITY)
+    if quantity_value is not None:
+        policies[pc_cols.QUANTITY] = _validated_position_quantity_policy(
+            specification,
+            quantity_value,
+        )
+    cost_value = methods_value.get(pc_cols.COST)
+    if cost_value is not None:
+        policies[pc_cols.COST] = _validated_position_evidence_only_policy(
+            specification,
+            pc_cols.COST,
+            cost_value,
+        )
+    return policies
+
+
+def _validated_position_quantity_policy(
+    specification: PerformanceComparisonSpecification,
+    policy_value: object,
+) -> str:
+    """Validate and return the configured position quantity policy label."""
+    policy = _require_policy_mapping(
+        specification,
+        _POSITION_IMPACT_METHODS_KEY,
+        pc_cols.QUANTITY,
+        policy_value,
+    )
+    method = policy.get(_METHOD_KEY)
+    if method is None:
+        _validate_policy_keys(
             specification,
             _POSITION_IMPACT_METHODS_KEY,
             pc_cols.QUANTITY,
-            quantity,
+            policy,
+            _POSITION_QUANTITY_REQUIRED_KEYS,
         )
+    if method == _POSITION_EVIDENCE_ONLY_METHOD:
         _validate_policy_keys(
             specification,
             _POSITION_IMPACT_METHODS_KEY,
@@ -1937,19 +2061,65 @@ def _position_impact_policies(
             policy,
             _POSITION_EVIDENCE_ONLY_REQUIRED_KEYS,
         )
+        return _evidence_only_impact_policy_label(
+            pc_cols.POSITIONS,
+            pc_cols.QUANTITY,
+        )
+    if method != _POSITION_QUANTITY_UNIT_MARKET_VALUE_METHOD:
         _validate_policy_method(
             specification,
             _POSITION_IMPACT_METHODS_KEY,
             pc_cols.QUANTITY,
             policy,
-            _POSITION_EVIDENCE_ONLY_METHOD,
+            _POSITION_QUANTITY_UNIT_MARKET_VALUE_METHOD,
         )
-        policies[pc_cols.QUANTITY] = _evidence_only_impact_policy_label(
-            pc_cols.POSITIONS,
-            pc_cols.QUANTITY,
-        )
-    return policies
+    _validate_policy_keys(
+        specification,
+        _POSITION_IMPACT_METHODS_KEY,
+        pc_cols.QUANTITY,
+        policy,
+        _POSITION_QUANTITY_REQUIRED_KEYS,
+    )
+    _validate_allowed_policy_values(
+        specification,
+        _POSITION_IMPACT_METHODS_KEY,
+        pc_cols.QUANTITY,
+        policy,
+        _POSITION_QUANTITY_ALLOWED_VALUES,
+    )
+    return IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE
 
+
+def _validated_position_evidence_only_policy(
+    specification: PerformanceComparisonSpecification,
+    source_column: str,
+    policy_value: object,
+) -> str:
+    """Validate and return an evidence-only position policy label."""
+    policy = _require_policy_mapping(
+        specification,
+        _POSITION_IMPACT_METHODS_KEY,
+        source_column,
+        policy_value,
+    )
+    _validate_policy_keys(
+        specification,
+        _POSITION_IMPACT_METHODS_KEY,
+        source_column,
+        policy,
+        _POSITION_EVIDENCE_ONLY_REQUIRED_KEYS,
+    )
+    _validate_policy_method(
+        specification,
+        _POSITION_IMPACT_METHODS_KEY,
+        source_column,
+        policy,
+        _POSITION_EVIDENCE_ONLY_METHOD,
+    )
+    return _evidence_only_impact_policy_label(
+        pc_cols.POSITIONS,
+        source_column,
+    )
 
 def _price_impact_policies(
     specification: PerformanceComparisonSpecification,
@@ -2100,6 +2270,147 @@ def _cash_impact_policies(
             policies[source_column] = IMPACT_POLICY_CASH_BALANCE
         else:
             policies[source_column] = IMPACT_POLICY_CASH_MARKET_VALUE
+    return policies
+
+
+def _fx_rate_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, str]:
+    """Return validated YAML-selected FX rate impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by FX rate source column. Missing configuration
+        returns an empty mapping, which leaves FX rows as ordinary review
+        evidence.
+
+    Raises:
+        PpaError: If FX rate impact method configuration is malformed or names
+            an unsupported method.
+    """
+    methods_value = specification.values.get(_FX_RATE_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    unsupported_keys = set(methods_value) - {pc_cols.FX_RATE}
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_FX_RATE_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    fx_rate_value = methods_value.get(pc_cols.FX_RATE)
+    if fx_rate_value is None:
+        return {}
+    policy = _require_policy_mapping(
+        specification,
+        _FX_RATE_IMPACT_METHODS_KEY,
+        pc_cols.FX_RATE,
+        fx_rate_value,
+    )
+    _validate_policy_keys(
+        specification,
+        _FX_RATE_IMPACT_METHODS_KEY,
+        pc_cols.FX_RATE,
+        policy,
+        _FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS,
+    )
+    _validate_policy_method(
+        specification,
+        _FX_RATE_IMPACT_METHODS_KEY,
+        pc_cols.FX_RATE,
+        policy,
+        _FX_RATE_EVIDENCE_ONLY_METHOD,
+    )
+    return {
+        pc_cols.FX_RATE: _evidence_only_impact_policy_label(
+            pc_cols.FX_RATES,
+            pc_cols.FX_RATE,
+        )
+    }
+
+
+def _security_master_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, str]:
+    """Return validated YAML-selected security master impact policies.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy labels keyed by security master source column. Missing
+        configuration returns an empty mapping, which leaves security master
+        differences as context evidence.
+
+    Raises:
+        PpaError: If security master impact method configuration is malformed
+            or names an unsupported method.
+    """
+    methods_value = specification.values.get(_SECURITY_MASTER_IMPACT_METHODS_KEY, {})
+    if methods_value is None:
+        return {}
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_SECURITY_MASTER_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    supported_keys = set(_SECURITY_MASTER_COMPARE_COLUMNS)
+    unsupported_keys = set(methods_value) - supported_keys
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_SECURITY_MASTER_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    policies: dict[str, str] = {}
+    for source_column in sorted(str(key) for key in methods_value):
+        policy = _require_policy_mapping(
+            specification,
+            _SECURITY_MASTER_IMPACT_METHODS_KEY,
+            source_column,
+            methods_value[source_column],
+        )
+        _validate_policy_keys(
+            specification,
+            _SECURITY_MASTER_IMPACT_METHODS_KEY,
+            source_column,
+            policy,
+            _SECURITY_MASTER_EVIDENCE_ONLY_REQUIRED_KEYS,
+        )
+        _validate_policy_method(
+            specification,
+            _SECURITY_MASTER_IMPACT_METHODS_KEY,
+            source_column,
+            policy,
+            _SECURITY_MASTER_EVIDENCE_ONLY_METHOD,
+        )
+        policies[source_column] = _evidence_only_impact_policy_label(
+            pc_cols.SECURITY_MASTER,
+            source_column,
+        )
     return policies
 
 

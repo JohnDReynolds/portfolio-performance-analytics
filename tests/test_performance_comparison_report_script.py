@@ -418,6 +418,8 @@ class TestPerformanceComparisonReportScript(unittest.TestCase):
             result.stdout,
         )
         self.assertIn("Cash impact methods: none", result.stdout)
+        self.assertIn("FX rate impact methods: none", result.stdout)
+        self.assertIn("Security master impact methods: none", result.stdout)
         self.assertIn("Transaction rules configured: 0", result.stdout)
         self.assertIn("Transaction impact methods: none", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)

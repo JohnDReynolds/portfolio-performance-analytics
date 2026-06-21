@@ -21,9 +21,11 @@ from ppar.performance_comparison import (
 from ppar.performance_comparison import columns as pc_cols
 from ppar.performance_comparison.compare import (
     _cash_impact_policies,
+    _fx_rate_impact_policies,
     _modified_dietz_external_flow_eligibility,
     _position_impact_policies,
     _price_impact_policies,
+    _security_master_impact_policies,
     _transaction_impact_policies,
     _validated_modified_dietz_policy,
 )
@@ -45,7 +47,9 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_POSITION_ACCRUED,
     IMPACT_POLICY_POSITION_MARKET_VALUE,
+    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
+    IMPACT_INPUT_VALUE,
     PORTFOLIO_ID,
     PC_CASH_MV,
     PC_FX_RATE,
@@ -926,6 +930,183 @@ class TestPerformanceComparison(unittest.TestCase):
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
             )
 
+    def test_position_quantity_unit_market_value_policy_estimates_impact(self) -> None:
+        """Position quantity can use snapshot A unit market value for estimates."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_position_period_specification(Path(temp_dir))
+            position_path = Path(temp_dir) / "snapshot_b" / "positions.csv"
+            position_path.write_text(
+                position_path.read_text(encoding="utf-8").replace(
+                    "PORT_A,AAPL,2025-05-31,10,1010.00,25.00",
+                    "PORT_A,AAPL,2025-05-31,11,1010.00,25.00",
+                ),
+                encoding="utf-8",
+            )
+            configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
+            configuration["position_impact_methods"] = {
+                "quantity": {
+                    "method": (
+                        "quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator"
+                    ),
+                    "denominator_source": "begin_market_value",
+                },
+            }
+            specification_path.write_text(
+                yaml.safe_dump(configuration),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare()
+            finding_dicts = [finding.to_dict() for finding in findings]
+            quantity_finding = next(
+                finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_POS_QTY
+            )
+            candidates = portfolio_period_contribution_candidates(
+                findings_to_polars(findings)
+            )
+            quantity_candidate = candidates.filter(
+                (pl.col(FINDING_CODE) == PC_POS_QTY)
+                & (pl.col(SOURCE_COLUMN) == pc_cols.QUANTITY)
+            ).row(0, named=True)
+
+            self.assertEqual(
+                quantity_finding[IMPACT_POLICY],
+                IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+            )
+            self.assertEqual(quantity_finding[RETURN_DENOMINATOR], 1000.0)
+            self.assertEqual(quantity_finding[IMPACT_INPUT_VALUE], 100.0)
+            self.assertAlmostEqual(quantity_candidate[ESTIMATED_RETURN_IMPACT], 0.1)
+            policies = _position_impact_policies(specification)
+            self.assertEqual(
+                policies[pc_cols.QUANTITY],
+                IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+            )
+
+    def test_position_cost_evidence_only_policy_is_loaded_from_yaml(self) -> None:
+        """Position cost can be marked review-only in position impact YAML."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            for snapshot_name, cost, portfolio_return in (
+                ("snapshot_a", "900.00", "0.0100"),
+                ("snapshot_b", "925.00", "0.0101"),
+            ):
+                snapshot_path = root / snapshot_name
+                snapshot_path.mkdir()
+                (snapshot_path / "portperf.csv").write_text(
+                    "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+                    f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
+                    encoding="utf-8",
+                )
+                (snapshot_path / "positions.csv").write_text(
+                    "PORT,SEC,POSITION_DATE,QTY,MKT_VAL,COST,ACCRUED\n"
+                    f"PORT_A,AAPL,2025-05-31,10,1000.00,{cost},25.00\n",
+                    encoding="utf-8",
+                )
+            specification_path = root / "ppar_performance_comparison.yaml"
+            specification_path.write_text(
+                yaml.safe_dump(
+                    {
+                        "snapshots": {
+                            "a": {"path": "snapshot_a"},
+                            "b": {"path": "snapshot_b"},
+                        },
+                        "files": {
+                            "portfolio_performance": "portperf.csv",
+                            "positions": "positions.csv",
+                        },
+                        "position_impact_methods": {
+                            "cost": {
+                                "method": "evidence_only",
+                            },
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            policies = _position_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare_positions()
+            cost_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_POS_COST
+            )
+
+            self.assertEqual(
+                policies[pc_cols.COST],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.cost",
+            )
+            self.assertEqual(cost_finding[EVIDENCE_ROLE], DIRECT_INPUT)
+            self.assertEqual(
+                cost_finding[IMPACT_POLICY],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.cost",
+            )
+
+    def test_security_master_evidence_only_policy_is_loaded_from_yaml(self) -> None:
+        """Security master fields can be marked review-only in YAML."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            for snapshot_name, sector in (
+                ("snapshot_a", "TECH"),
+                ("snapshot_b", "TECH_RESTATED"),
+            ):
+                snapshot_path = root / snapshot_name
+                snapshot_path.mkdir()
+                (snapshot_path / "portperf.csv").write_text(
+                    "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+                    "PORT_A,2025-05-01,2025-05-31,1000.00,0.0100\n",
+                    encoding="utf-8",
+                )
+                (snapshot_path / "sec_ref.csv").write_text(
+                    "SECURITY_ID,SECURITY_NAME,SECTOR\n"
+                    f"AAPL,Apple Inc,{sector}\n",
+                    encoding="utf-8",
+                )
+            specification_path = root / "ppar_performance_comparison.yaml"
+            specification_path.write_text(
+                yaml.safe_dump(
+                    {
+                        "snapshots": {
+                            "a": {"path": "snapshot_a"},
+                            "b": {"path": "snapshot_b"},
+                        },
+                        "files": {
+                            "portfolio_performance": "portperf.csv",
+                            "security_master": "sec_ref.csv",
+                        },
+                        "security_master_impact_methods": {
+                            "sector": {
+                                "method": "evidence_only",
+                            },
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            policies = _security_master_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare_security_master()
+            sector_finding = next(
+                finding.to_dict()
+                for finding in findings
+                if finding.to_dict()[FINDING_CODE] == PC_REF_CLASS
+            )
+
+            self.assertEqual(
+                policies[pc_cols.SECTOR],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}security_master.sector",
+            )
+            self.assertEqual(sector_finding[EVIDENCE_ROLE], DIRECT_INPUT)
+            self.assertEqual(
+                sector_finding[IMPACT_POLICY],
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}security_master.sector",
+            )
+
     def test_identical_baseline_snapshots_have_no_cash_findings(self) -> None:
         """The baseline fixture compares identical cash rows."""
         findings = list(self._baseline_cash_findings)
@@ -1161,6 +1342,30 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertAlmostEqual(
             cast(float, fx_rate_findings[0][DELTA_B_MINUS_A]),
             0.005,
+        )
+
+    def test_fx_rate_evidence_only_policy_is_loaded_from_yaml(self) -> None:
+        """Explicit FX rate review-only policy is carried into findings."""
+        specification = PerformanceComparisonSpecification(
+            _RESTATEMENT_TRANSACTION_RULES_PATH
+        )
+
+        policies = _fx_rate_impact_policies(specification)
+        findings = PerformanceComparison(specification).compare_fx_rates()
+        fx_rate_finding = next(
+            finding.to_dict()
+            for finding in findings
+            if finding.to_dict()[FINDING_CODE] == PC_FX_RATE
+            and finding.to_dict()[SOURCE_COLUMN] == pc_cols.FX_RATE
+        )
+
+        self.assertEqual(
+            policies[pc_cols.FX_RATE],
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}fx_rates.fx_rate",
+        )
+        self.assertEqual(
+            fx_rate_finding[IMPACT_POLICY],
+            f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}fx_rates.fx_rate",
         )
 
     def test_identical_baseline_snapshots_have_no_transaction_findings(self) -> None:
@@ -2163,6 +2368,16 @@ class TestPerformanceComparison(unittest.TestCase):
                 {"quantity": {"method": "evidence_only", "denominator_source": "x"}},
                 "quantity has unsupported keys",
             ),
+            ({"cost": "review-only"}, "cost must be a mapping"),
+            ({"cost": {}}, "cost is missing required keys"),
+            (
+                {"cost": {"method": "cost_delta_over_return_denominator"}},
+                "cost.method must be",
+            ),
+            (
+                {"cost": {"method": "evidence_only", "denominator_source": "x"}},
+                "cost has unsupported keys",
+            ),
         ]
 
         for position_impact_methods, expected_message in scenarios:
@@ -2275,6 +2490,122 @@ class TestPerformanceComparison(unittest.TestCase):
                     configuration["cash_impact_methods"] = cash_impact_methods
                     specification_path.write_text(
                         yaml.safe_dump(configuration),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaises(PpaError) as context:
+                        PerformanceComparison(
+                            PerformanceComparisonSpecification(specification_path)
+                        )
+
+                    self.assertIn(expected_message, str(context.exception))
+
+    def test_fx_rate_impact_methods_reject_malformed_yaml(self) -> None:
+        """FX rate impact method YAML must use the supported contract."""
+        scenarios = [
+            ("not-a-mapping", "fx_rate_impact_methods must be a mapping"),
+            ({"unsupported": {"method": "x"}}, "unsupported"),
+            ({"fx_rate": "review-only"}, "fx_rate must be a mapping"),
+            ({"fx_rate": {}}, "fx_rate is missing required keys"),
+            (
+                {"fx_rate": {"method": "fx_delta_over_exposure"}},
+                "fx_rate.method must be",
+            ),
+            (
+                {"fx_rate": {"method": "evidence_only", "denominator_source": "x"}},
+                "fx_rate has unsupported keys",
+            ),
+        ]
+
+        for fx_rate_impact_methods, expected_message in scenarios:
+            with self.subTest(fx_rate_impact_methods=fx_rate_impact_methods):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    specification_path = _write_multi_portfolio_price_specification(
+                        Path(temp_dir)
+                    )
+                    configuration = yaml.safe_load(
+                        specification_path.read_text(encoding="utf-8")
+                    )
+                    configuration["files"]["fx_rates"] = "fx_rates.csv"
+                    for snapshot_name, rate in (
+                        ("snapshot_a", "1.00000000"),
+                        ("snapshot_b", "1.00500000"),
+                    ):
+                        snapshot_path = Path(temp_dir) / snapshot_name
+                        (snapshot_path / "fx_rates.csv").write_text(
+                            "FROM_CURRENCY,TO_CURRENCY,RATE_DATE,FX_RATE\n"
+                            f"EUR,USD,2025-05-31,{rate}\n",
+                            encoding="utf-8",
+                        )
+                    configuration["fx_rate_impact_methods"] = fx_rate_impact_methods
+                    specification_path.write_text(
+                        yaml.safe_dump(configuration),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaises(PpaError) as context:
+                        PerformanceComparison(
+                            PerformanceComparisonSpecification(specification_path)
+                        )
+
+                    self.assertIn(expected_message, str(context.exception))
+
+    def test_security_master_impact_methods_reject_malformed_yaml(self) -> None:
+        """Security master impact method YAML must use the supported contract."""
+        scenarios = [
+            ("not-a-mapping", "security_master_impact_methods must be a mapping"),
+            ({"unsupported": {"method": "x"}}, "unsupported"),
+            ({"sector": "review-only"}, "sector must be a mapping"),
+            ({"sector": {}}, "sector is missing required keys"),
+            (
+                {"sector": {"method": "classification_delta"}},
+                "sector.method must be",
+            ),
+            (
+                {"sector": {"method": "evidence_only", "denominator_source": "x"}},
+                "sector has unsupported keys",
+            ),
+        ]
+
+        for security_master_impact_methods, expected_message in scenarios:
+            with self.subTest(
+                security_master_impact_methods=security_master_impact_methods
+            ):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    for snapshot_name, sector in (
+                        ("snapshot_a", "TECH"),
+                        ("snapshot_b", "TECH_RESTATED"),
+                    ):
+                        snapshot_path = root / snapshot_name
+                        snapshot_path.mkdir()
+                        (snapshot_path / "portperf.csv").write_text(
+                            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+                            "PORT_A,2025-05-01,2025-05-31,1000.00,0.0100\n",
+                            encoding="utf-8",
+                        )
+                        (snapshot_path / "sec_ref.csv").write_text(
+                            "SECURITY_ID,SECURITY_NAME,SECTOR\n"
+                            f"AAPL,Apple Inc,{sector}\n",
+                            encoding="utf-8",
+                        )
+                    specification_path = root / "ppar_performance_comparison.yaml"
+                    specification_path.write_text(
+                        yaml.safe_dump(
+                            {
+                                "snapshots": {
+                                    "a": {"path": "snapshot_a"},
+                                    "b": {"path": "snapshot_b"},
+                                },
+                                "files": {
+                                    "portfolio_performance": "portperf.csv",
+                                    "security_master": "sec_ref.csv",
+                                },
+                                "security_master_impact_methods": (
+                                    security_master_impact_methods
+                                ),
+                            }
+                        ),
                         encoding="utf-8",
                     )
 

@@ -35,6 +35,9 @@ class PositionImpactMethod(StrEnum):
     """Supported `position_impact_methods` YAML method names."""
 
     EVIDENCE_ONLY = "evidence_only"
+    QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR = (
+        "quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator"
+    )
     MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR = (
         "market_value_delta_over_return_denominator"
     )
@@ -55,6 +58,18 @@ class CashImpactMethod(StrEnum):
     """Supported `cash_impact_methods` YAML method names."""
 
     CASH_DELTA_OVER_RETURN_DENOMINATOR = "cash_delta_over_return_denominator"
+
+
+class FxRateImpactMethod(StrEnum):
+    """Supported `fx_rate_impact_methods` YAML method names."""
+
+    EVIDENCE_ONLY = "evidence_only"
+
+
+class SecurityMasterImpactMethod(StrEnum):
+    """Supported `security_master_impact_methods` YAML method names."""
+
+    EVIDENCE_ONLY = "evidence_only"
 
 
 class ModifiedDietzFlowTiming(StrEnum):

@@ -95,6 +95,7 @@ Public YAML impact method values are centralized in:
   `accrued_delta_over_return_denominator`.
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
 - `CashImpactMethod`: `cash_delta_over_return_denominator`.
+- `FxRateImpactMethod`: `evidence_only`.
 
 Transaction sign/flow semantics are centralized in:
 
@@ -635,9 +636,11 @@ digging through lower-level evidence tables.
 - `price`
 - `currency`
 
-Changed `cost` / cost-basis values are useful review context for tax,
-accounting, and downstream unrealized gain/loss questions. They should be
-reported as context evidence, not as direct performance-impact estimates.
+Changed `cost` / cost-basis values are useful review evidence for tax,
+accounting, and downstream unrealized gain/loss questions. By default they
+remain context evidence. When YAML sets
+`position_impact_methods.cost.method: evidence_only`, they move to
+underlying-cause review rows without receiving return-impact estimates.
 
 `cash` required columns:
 
@@ -815,7 +818,9 @@ The first-pass role model should remain intentionally small:
   drive portfolio-level valuation and return inputs.
 - `security_master`: `context` because reference and classification changes
   usually explain how data is grouped or identified, not a numeric TWR driver
-  by themselves.
+  by themselves. YAML may explicitly mark selected reference or classification
+  fields as review-only input evidence with
+  `security_master_impact_methods.<field>.method: evidence_only`.
 
 ## Finding Codes
 
@@ -1270,11 +1275,20 @@ position_impact_methods:
     method: accrued_delta_over_return_denominator
     denominator_source: begin_market_value
   quantity:
+    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
+    denominator_source: begin_market_value
+  cost:
     method: evidence_only
 price_impact_methods:
   price:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
+fx_rate_impact_methods:
+  fx_rate:
+    method: evidence_only
+security_master_impact_methods:
+  sector:
+    method: evidence_only
 evidence_only_impact_methods:
   positions:
     method: evidence_only
@@ -1390,12 +1404,30 @@ Current supported impact estimates:
      `begin_market_value`.
    - This is intentionally a low-confidence screening estimate because cash
      balances may reflect transactions, FX, income, fees, or booking changes.
-9. Position quantity evidence:
-   - `position_impact_methods.quantity.method: evidence_only` marks changed
-     position quantity as intentional review evidence.
-   - It does not create `estimated_return_impact`; quantity requires a
-     valuation basis before it can defensibly explain portfolio return.
-10. Transaction quantity, price, and commission evidence:
+9. Position quantity delta:
+   - `impact_basis = position_quantity_unit_market_value`
+   - `impact_method =
+     quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
+   - `impact_confidence = low`
+   - Formula:
+     `(position_quantity_delta * snapshot_a_position_unit_market_value) /
+     return_denominator`.
+   - Applies only when YAML explicitly configures
+     `position_impact_methods.quantity.method` as
+     `quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
+     and `denominator_source` as `begin_market_value`.
+   - Snapshot A unit market value is calculated from the same position row as
+     `snapshot_a_market_value / snapshot_a_quantity`.
+   - This is intentionally a low-confidence screening estimate because unit
+     market value can embed price, FX, accrued-interest, or booking effects.
+   - `position_impact_methods.quantity.method: evidence_only` remains
+     available when a changed quantity should be visible but not additive.
+10. Position cost evidence:
+   - `position_impact_methods.cost.method: evidence_only` marks changed
+     position cost as intentional review evidence.
+   - It does not create `estimated_return_impact`; cost-basis changes are not
+     direct period-return attribution in the current model.
+11. Transaction quantity, price, and commission evidence:
    - `transaction_impact_methods.quantity.method: evidence_only` and
      `transaction_impact_methods.price.method: evidence_only` mark changed
      transaction units and prices as intentional review evidence.
@@ -1404,6 +1436,18 @@ Current supported impact estimates:
    - They do not create `estimated_return_impact`; transaction amount is the
      supported additive transaction field so quantity, price, commission, and
      amount are not double-counted.
+12. FX rate evidence:
+   - `fx_rate_impact_methods.fx_rate.method: evidence_only` marks changed FX
+     rates as intentional review evidence.
+   - It does not create `estimated_return_impact`; additive FX attribution
+     needs portfolio currency exposure linkage.
+13. Security master reference and classification evidence:
+   - `security_master_impact_methods.<field>.method: evidence_only` marks
+     changed security reference or classification fields as intentional review
+     evidence.
+   - It does not create `estimated_return_impact`; reference data can explain
+     grouping, identity, and mapping issues but is not a direct return formula
+     in the current model.
 
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
@@ -1442,7 +1486,8 @@ First contribution estimates should start only where the math is defensible:
   set to `no_estimate`.
 - FX evidence: FX rate changes should not receive a portfolio-period return
   impact unless they can be linked to affected currency exposure, valuation, or
-  transactions.
+  transactions. Use `fx_rate_impact_methods.fx_rate.method: evidence_only` to
+  document known review-only FX rate differences.
 
 Contribution ranking should not require every finding to receive an estimate.
 A mixed output is acceptable: some rows may have `estimated_return_impact`, and

@@ -26,6 +26,7 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_POSITION_ACCRUED,
     IMPACT_POLICY_POSITION_MARKET_VALUE,
+    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
@@ -38,6 +39,7 @@ from ppar.performance_comparison.findings import (
     RELATED_OUTPUT,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
+    IMPACT_INPUT_VALUE,
     SECURITY_ID,
     SNAPSHOT_A_VALUE,
     SNAPSHOT_B_VALUE,
@@ -165,6 +167,7 @@ IMPACT_BASIS_CASH_MARKET_VALUE = "cash_market_value"
 IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
 IMPACT_BASIS_POSITION_ACCRUED = "position_accrued"
 IMPACT_BASIS_POSITION_MARKET_VALUE = "position_market_value"
+IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE = "position_quantity_unit_market_value"
 IMPACT_BASIS_PRICE_WEIGHTED = "price_weighted"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
@@ -188,6 +191,11 @@ IMPACT_METHOD_POSITION_MARKET_VALUE_DELTA_OVER_DENOMINATOR = (
 )
 IMPACT_METHOD_POSITION_ACCRUED_DELTA_OVER_DENOMINATOR = (
     PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+IMPACT_METHOD_POSITION_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR = (
+    PositionImpactMethod[
+        "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
+    ].value
 )
 IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
@@ -266,6 +274,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     SNAPSHOT_B_VALUE,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
+    IMPACT_INPUT_VALUE,
     ABSOLUTE_DELTA,
     MESSAGE,
 )
@@ -1327,6 +1336,7 @@ def _ranked_evidence_row(
         SNAPSHOT_B_VALUE: finding[SNAPSHOT_B_VALUE],
         RETURN_DENOMINATOR: finding[RETURN_DENOMINATOR],
         RETURN_WEIGHT: finding[RETURN_WEIGHT],
+        IMPACT_INPUT_VALUE: finding[IMPACT_INPUT_VALUE],
         ABSOLUTE_DELTA: absolute_delta,
         MESSAGE: finding[MESSAGE],
     }
@@ -1441,6 +1451,28 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "by the return denominator. Treat as a low-confidence "
                 "screening estimate because accrued balances depend on source "
                 "income accrual and pricing conventions."
+            ),
+        }
+    if _is_position_quantity_unit_market_value_impact_candidate(row):
+        delta_float = _number_value(delta)
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        unit_market_value = _number_value(row[IMPACT_INPUT_VALUE])
+        assert delta_float is not None
+        assert denominator is not None
+        assert unit_market_value is not None
+        return {
+            ESTIMATED_RETURN_IMPACT: (delta_float * unit_market_value) / denominator,
+            IMPACT_BASIS: IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: (
+                IMPACT_METHOD_POSITION_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR
+            ),
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the position quantity delta multiplied "
+                "by snapshot A unit market value, then divided by the return "
+                "denominator. Treat as a low-confidence screening estimate "
+                "because the unit value may embed price, FX, accrual, or "
+                "classification effects."
             ),
         }
     if _is_cash_impact_candidate(row):
@@ -1594,6 +1626,27 @@ def _is_position_accrued_impact_candidate(row: dict[str, object]) -> bool:
         and isinstance(denominator, (int, float))
         and not isinstance(denominator, bool)
         and float(denominator) != 0.0
+    )
+
+
+def _is_position_quantity_unit_market_value_impact_candidate(
+    row: dict[str, object],
+) -> bool:
+    """Return whether a position quantity row supports a rough estimate."""
+    delta = row[DELTA_B_MINUS_A]
+    denominator = row[RETURN_DENOMINATOR]
+    unit_market_value = row[IMPACT_INPUT_VALUE]
+    return (
+        row[DATASET] == pc_cols.POSITIONS
+        and row[SOURCE_COLUMN] == pc_cols.QUANTITY
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE
+        and isinstance(delta, (int, float))
+        and not isinstance(delta, bool)
+        and isinstance(denominator, (int, float))
+        and not isinstance(denominator, bool)
+        and float(denominator) != 0.0
+        and isinstance(unit_market_value, (int, float))
+        and not isinstance(unit_market_value, bool)
     )
 
 
@@ -2040,6 +2093,8 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_POSITION_MARKET_VALUE
     if IMPACT_BASIS_POSITION_ACCRUED in bases:
         return IMPACT_BASIS_POSITION_ACCRUED
+    if IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE in bases:
+        return IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE
     if IMPACT_BASIS_CASH_BALANCE in bases:
         return IMPACT_BASIS_CASH_BALANCE
     if IMPACT_BASIS_CASH_MARKET_VALUE in bases:
@@ -2817,6 +2872,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             SNAPSHOT_B_VALUE: pl.String,
             RETURN_DENOMINATOR: pl.Float64,
             RETURN_WEIGHT: pl.Float64,
+            IMPACT_INPUT_VALUE: pl.Float64,
             ABSOLUTE_DELTA: pl.Float64,
             MESSAGE: pl.String,
         }

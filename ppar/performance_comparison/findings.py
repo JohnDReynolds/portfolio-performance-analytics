@@ -39,6 +39,7 @@ __all__ = [
     "DELTA_B_MINUS_A",
     "RETURN_DENOMINATOR",
     "RETURN_WEIGHT",
+    "IMPACT_INPUT_VALUE",
     "PORTFOLIO_ID",
     "SECURITY_ID",
     "FROM_DATE",
@@ -60,6 +61,7 @@ __all__ = [
     "IMPACT_POLICY_POSITION_ACCRUED",
     "IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD",
     "IMPACT_POLICY_POSITION_MARKET_VALUE",
+    "IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE",
     "IMPACT_POLICY_PRICE_WEIGHTED",
     "IMPACT_POLICY_SECURITY_CONTRIBUTION",
     "IMPACT_POLICY_SECURITY_RETURN_WEIGHTED",
@@ -117,6 +119,7 @@ SNAPSHOT_B_VALUE = "snapshot_b_value"
 DELTA_B_MINUS_A = "delta_b_minus_a"
 RETURN_DENOMINATOR = "return_denominator"
 RETURN_WEIGHT = "return_weight"
+IMPACT_INPUT_VALUE = "impact_input_value"
 PORTFOLIO_ID = "portfolio_id"
 SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
@@ -147,6 +150,10 @@ IMPACT_POLICY_POSITION_MARKET_VALUE = (
 IMPACT_POLICY_POSITION_ACCRUED = (
     "position_accrued:"
     f"{PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value}"
+)
+IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE = (
+    "position_quantity:"
+    f"{PositionImpactMethod.QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR.value}"
 )
 IMPACT_POLICY_PRICE_WEIGHTED = (
     "price_weighted:"
@@ -273,6 +280,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     DELTA_B_MINUS_A,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
+    IMPACT_INPUT_VALUE,
     MESSAGE,
     SUPPRESSED,
 )
@@ -349,6 +357,7 @@ class Finding:
     delta_b_minus_a: float | None = None
     return_denominator: float | None = None
     return_weight: float | None = None
+    impact_input_value: float | None = None
     message: str = ""
     suppressed: bool = False
 
@@ -386,6 +395,7 @@ class Finding:
             DELTA_B_MINUS_A: self.delta_b_minus_a,
             RETURN_DENOMINATOR: self.return_denominator,
             RETURN_WEIGHT: self.return_weight,
+            IMPACT_INPUT_VALUE: self.impact_input_value,
             MESSAGE: self.message,
             SUPPRESSED: self.suppressed,
         }
