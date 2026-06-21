@@ -253,6 +253,33 @@ The current matrix favors a small set of reusable CSV snapshots over many
 near-duplicate directories. Add new CSV snapshots only when a scenario cannot be
 expressed clearly through YAML policy changes against the existing data.
 
+## YAML Policy Decision Guide
+
+Use the YAML policy blocks to state what ppar is allowed to treat as an
+explanation. The values are intentionally explicit because different vendors
+can use the same-looking fields with different sign, timing, denominator, or
+accounting conventions.
+
+Start with these decisions:
+
+| Changed data | YAML policy to consider | When to use it | Workbook result |
+| --- | --- | --- | --- |
+| Portfolio return source fields such as `income` or `gain_loss` | `contribution_impact_methods.portfolio_source_field` | Use when the source field is return-bearing and the beginning market value denominator is appropriate. | Adds `Performance Difference Explained` rows in the `Underlying Causes` sheet. |
+| Security contribution | `contribution_impact_methods.security_contribution` | Use when vendor contribution is trusted as the preferred security-level explanation. | Uses vendor contribution delta as the preferred security explanation. |
+| Security return plus weight | `contribution_impact_methods.security_return` | Use as a fallback/check when contribution is unavailable and snapshot A weight is the intended weight. | Explains with `security_return_delta_times_weight`. |
+| Position market value, accrued, or quantity | `position_impact_methods` | Use when a position field is a reasonable screening explanation and the configured denominator is valid. | Adds low-confidence but additive position explanation rows. |
+| Position cost, transaction commission, FX rates, or security master fields | Dataset-specific `evidence_only` or `evidence_only_impact_methods` | Use when the change should be visible to reviewers but should not receive an additive estimate. | Shows the change with `Required YAML Setup` set to no additional setup. |
+| Price | `price_impact_methods.price` | Use when price delta over snapshot A price times snapshot A weight is a reasonable screening estimate. | Adds price-driven explanation rows for affected portfolio/security periods. |
+| Cash balance or cash market value | `cash_impact_methods` | Use when cash field deltas over the return denominator are a useful screening estimate. | Adds cash explanation rows, usually low confidence. |
+| Performance-treated transactions | `transaction_impact_methods.performance` plus `transaction_rules` | Use only when transaction code rules define performance-flow and cash-flow semantics clearly. | Adds transaction amount explanation rows. |
+| External-flow transactions | `transaction_impact_methods.external_flow` | Use `evidence_only` for review-only visibility or `modified_dietz` for cross-check diagnostics. | Does not add to explained difference unless a future additive method explicitly supports it. |
+
+If a row in the `Underlying Causes` sheet has blank `Performance Difference
+Explained`, the `Required YAML Setup` column should either name the missing YAML
+fields or state that no supported additive method exists yet. Do not add a YAML
+method just to make the cell non-blank; add it only when the formula matches how
+the vendor data should be interpreted.
+
 ## Method Coverage Goal
 
 Each supported public YAML impact method should have at least one packaged demo

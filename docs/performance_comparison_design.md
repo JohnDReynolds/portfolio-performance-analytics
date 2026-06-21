@@ -95,11 +95,13 @@ Public YAML impact method values are centralized in:
 - `TransactionImpactMethod`: `evidence_only`, `modified_dietz`, and
   `transaction_amount_delta_over_return_denominator`.
 - `PositionImpactMethod`: `evidence_only`,
+  `quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`,
   `market_value_delta_over_return_denominator`, and
   `accrued_delta_over_return_denominator`.
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
 - `CashImpactMethod`: `cash_delta_over_return_denominator`.
 - `FxRateImpactMethod`: `evidence_only`.
+- `SecurityMasterImpactMethod`: `evidence_only`.
 
 Transaction sign/flow semantics are centralized in:
 
@@ -1699,8 +1701,27 @@ the same HTML report directly from a comparison YAML file.
 
 ## Near-Term Roadmap
 
-The next design work should focus on explanation quality before adding broad
-new datasets.
+The next design work should move slowly and favor reviewer clarity over broad
+new machinery. The current structural cleanup is complete enough that the next
+work should be data-facing and behavior-facing.
+
+1. Tighten YAML specification documentation and examples.
+   Make it easier to decide when a changed field should be additive,
+   review-only, diagnostic, or unsupported. Keep examples concrete enough that
+   a larger real-data review can start from known policy choices.
+2. Add tests around real-world edge cases before adding new attribution logic.
+   Prefer small fixture rows that capture ambiguous or risky cases: missing
+   denominators, overlapping explanations, unmatched transactions, no
+   underlying causes, evidence-only fields, and strict attribution failures.
+3. Expand and validate against more realistic performance comparison data.
+   Use larger multi-portfolio, multi-period inputs once the expected workbook
+   behavior is clear from smaller fixtures.
+4. Revisit `explain.py` only when a new feature makes a natural split obvious.
+   Avoid splitting it merely because it is large; split only around stable
+   responsibilities such as impact estimates, transaction diagnostics, or
+   summary tables when active work creates that boundary.
+
+Guardrails for all four phases:
 
 - Strengthen the contribution-candidate helper only where the math is
   defensible.
@@ -1708,19 +1729,12 @@ new datasets.
   cross-check-only estimates. Diagnostics should name missing inputs and
   inactive methods without implying that an estimate has been accepted into
   contribution totals.
-- When enabling Modified Dietz, start with `double_count_policy:
-  cross_check_only` so the estimate can be reviewed beside portfolio-level
-  flow deltas before any aggregate treatment is considered.
 - Add a residual concept only after there are enough credible contribution
   estimates. A residual emitted too early would imply precision the system does
   not have.
-- Keep report/export formats separate from comparison logic. CSV, Markdown, or
-  HTML outputs should remain presentation layers over stable helper tables.
-- Add user-facing charts and tables only where they clarify reviewer workflow,
-  such as prioritization, cross-checks, impact coverage, or residual status.
-- Consider a dataset comparison registry if more datasets are added. The
-  current explicit comparison functions are readable; a registry becomes useful
-  only when repeated dataset boilerplate starts to obscure the rules.
+- Keep report/export formats separate from comparison logic. CSV, Markdown,
+  HTML, and XLSX outputs should remain presentation layers over stable helper
+  tables.
 - Avoid adding new datasets unless real source files expose evidence that is
   not adequately represented by the current normalized datasets.
 
