@@ -11,7 +11,7 @@ import polars as pl
 import yaml
 
 # Project imports
-from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.specification import (
     ComparisonSnapshot,
     PerformanceComparisonSpecification,

@@ -61,7 +61,7 @@ from ppar.performance_comparison import (
     TARGET_OUTPUT,
     TransactionsLoader,
     apply_suppressions,
-    columns,
+    schema,
     compact_findings_table,
     compare_snapshots,
     findings_to_polars,
@@ -430,7 +430,7 @@ class TestPackageMetadata(unittest.TestCase):
             "TARGET_OUTPUT": TARGET_OUTPUT,
             "TransactionsLoader": TransactionsLoader,
             "apply_suppressions": apply_suppressions,
-            "columns": columns,
+            "schema": schema,
             "compact_findings_table": compact_findings_table,
             "compare_snapshots": compare_snapshots,
             "findings_to_polars": findings_to_polars,
@@ -545,7 +545,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_performance_comparison_vocabulary_exports_are_explicit(self) -> None:
         """Vocabulary modules export every declared public schema/code name."""
         module_paths = {
-            columns: Path("ppar/performance_comparison/columns.py"),
+            schema: Path("ppar/performance_comparison/schema.py"),
             performance_comparison_findings: Path(
                 "ppar/performance_comparison/findings.py"
             ),

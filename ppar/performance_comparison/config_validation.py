@@ -9,7 +9,7 @@ import sys
 
 # Project imports
 from ppar.errors import PpaError
-from ppar.performance_comparison import columns as _pc_cols
+from ppar.performance_comparison import schema as _pc_cols
 from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.transactions import (

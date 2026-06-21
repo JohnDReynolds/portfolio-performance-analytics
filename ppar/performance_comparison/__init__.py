@@ -5,7 +5,7 @@ from ppar.performance_comparison.bundle import (
     report_bundle_validation_issues,
 )
 from ppar.performance_comparison.cash import CashLoader
-from ppar.performance_comparison import columns
+from ppar.performance_comparison import schema
 from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.explain import (
     IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
@@ -88,7 +88,7 @@ __all__ = [
     "TARGET_OUTPUT",
     "TransactionsLoader",
     "apply_suppressions",
-    "columns",
+    "schema",
     "compact_findings_table",
     "compare_snapshots",
     "findings_to_polars",

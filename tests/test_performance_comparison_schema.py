@@ -4,10 +4,10 @@
 import unittest
 
 # Project imports
-from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison import schema as pc_cols
 
 
-class TestPerformanceComparisonColumns(unittest.TestCase):
+class TestPerformanceComparisonSchema(unittest.TestCase):
     """Verify the first normalized comparison dataset column contract."""
 
     def test_portfolio_performance_required_columns_are_stable(self) -> None:
@@ -24,7 +24,7 @@ class TestPerformanceComparisonColumns(unittest.TestCase):
         )
 
     def test_portfolio_performance_columns_include_optional_context(self) -> None:
-        """Portfolio performance columns include optional explanatory fields."""
+        """Portfolio performance schema include optional explanatory fields."""
         self.assertIn(
             pc_cols.BEGIN_MARKET_VALUE,
             pc_cols.PORTFOLIO_PERFORMANCE_COLUMNS,

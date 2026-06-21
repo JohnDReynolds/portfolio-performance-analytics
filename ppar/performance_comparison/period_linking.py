@@ -11,7 +11,7 @@ from typing import Final
 import polars as pl
 
 # Project imports
-from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison import schema as pc_cols
 
 DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,

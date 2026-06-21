@@ -162,7 +162,7 @@ ppar/performance_comparison/
   __init__.py
   aliases.py
   cash.py
-  columns.py
+  schema.py
   specification.py
   source_loader.py
   compare.py

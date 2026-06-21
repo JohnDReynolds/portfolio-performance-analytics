@@ -15,7 +15,7 @@ from ppar.performance_comparison import (
     PerformanceComparisonSpecification,
     TransactionsLoader,
 )
-from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,

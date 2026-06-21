@@ -11,7 +11,7 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
-from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 import ppar.utilities as util

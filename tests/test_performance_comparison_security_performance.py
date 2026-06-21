@@ -15,7 +15,7 @@ from ppar.performance_comparison import (
     PerformanceComparisonSpecification,
     SecurityPerformanceLoader,
 )
-from ppar.performance_comparison import columns as pc_cols
+from ppar.performance_comparison import schema as pc_cols
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
