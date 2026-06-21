@@ -345,6 +345,9 @@ def _assert_workbook_explained_row_actions(
             if "configured as evidence-only" in str(required_setup):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
+            if row.get("impact_status") == "Missing impact input":
+                test_case.assertIn("Configured", str(required_setup))
+                continue
             test_case.assertEqual(row.get("impact_status"), "Missing impact method")
             setup_text = str(required_setup)
             test_case.assertTrue(
@@ -1505,6 +1508,52 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "None; configured as evidence-only in comparison YAML.",
         )
         self.assertEqual(rules_transaction_price["impact_status"][0], "Review only")
+
+    def test_configured_transaction_method_with_zero_denominator_needs_inputs(
+        self,
+    ) -> None:
+        """Configured transaction methods do not masquerade as missing methods."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            comparison_path = _write_transaction_estimate_specification(Path(temp_dir))
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                portfolio_path = comparison_path.parent / snapshot_name / "portperf.csv"
+                portfolio_path.write_text(
+                    portfolio_path.read_text(encoding="utf-8").replace(
+                        "1000.00",
+                        "0.00",
+                    ),
+                    encoding="utf-8",
+                )
+
+            causes = _workbook_underlying_causes_table(
+                compare_snapshots(comparison_path),
+                comparison_path=comparison_path,
+            )
+
+        transaction_amount = causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "amount")
+        )
+
+        self.assertEqual(transaction_amount.height, 1)
+        self.assertIsNone(transaction_amount["estimated_impact"][0])
+        self.assertEqual(transaction_amount["impact_status"][0], "Missing impact input")
+        self.assertIn(
+            "Configured transaction impact method is present",
+            transaction_amount["required_yaml_setup"][0],
+        )
+        self.assertIn(
+            "return denominator",
+            transaction_amount["required_yaml_setup"][0],
+        )
+        self.assertNotIn(
+            "transaction_impact_methods.performance.method",
+            transaction_amount["required_yaml_setup"][0],
+        )
+        self.assertIn(
+            "Review source inputs needed by the configured YAML method",
+            transaction_amount["next_action"][0],
+        )
 
     def test_transaction_commission_policy_marks_underlying_cause_review_only(
         self,

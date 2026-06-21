@@ -49,6 +49,7 @@ _USE_REVIEW_CONTEXT = "Review Context"
 _USE_DIAGNOSTIC = "Diagnostic"
 _IMPACT_STATUS_ESTIMATED = "Estimated"
 _IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
+_IMPACT_STATUS_MISSING_INPUT = "Missing impact input"
 _IMPACT_STATUS_REVIEW_ONLY = "Review only"
 _NO_UNDERLYING_CAUSE_DATASET = "no_underlying_cause_found"
 _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE = "underlying_cause"
@@ -769,6 +770,8 @@ def _workbook_impact_status(
         or _workbook_has_evidence_only_policy(row)
     ):
         return _IMPACT_STATUS_REVIEW_ONLY
+    if _workbook_has_additive_policy(row):
+        return _IMPACT_STATUS_MISSING_INPUT
     return _IMPACT_STATUS_MISSING_METHOD
 
 
@@ -791,6 +794,11 @@ def _workbook_next_action(
         )
     if _workbook_has_evidence_only_policy(row):
         return "Review this input difference; YAML marks it as evidence-only."
+    if impact_status == _IMPACT_STATUS_MISSING_INPUT:
+        return (
+            "Review source inputs needed by the configured YAML method; no "
+            "estimate is available for this row."
+        )
     if impact_status == _IMPACT_STATUS_MISSING_METHOD:
         return _workbook_missing_impact_method_action(dataset, source_column)
     if row_use == _USE_REVIEW_CONTEXT:
@@ -832,10 +840,10 @@ def _workbook_required_yaml_setup(
     source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
     dataset_column = _workbook_dataset_column_label(dataset, source_column)
     yaml_path = _workbook_yaml_path_label(comparison_path)
+    if _workbook_has_additive_policy(row):
+        return _workbook_missing_impact_input_setup(dataset, source_column)
     if dataset == pc_cols.TRANSACTIONS:
         if source_column != pc_cols.AMOUNT:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        if _has_text(row.get(_pc_findings.TRANSACTION_IMPACT_POLICY)):
             return f"No supported YAML impact method exists yet for {dataset_column}."
         return (
             "Specify the YAML transaction_impact_methods.performance.method, "
@@ -848,8 +856,6 @@ def _workbook_required_yaml_setup(
             pc_cols.ACCRUED,
             pc_cols.QUANTITY,
         }:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
             return f"No supported YAML impact method exists yet for {dataset_column}."
         if source_column == pc_cols.ACCRUED:
             return (
@@ -871,16 +877,12 @@ def _workbook_required_yaml_setup(
     if dataset == pc_cols.PRICES:
         if source_column != pc_cols.PRICE:
             return f"No supported YAML impact method exists yet for {dataset_column}."
-        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
-            return f"No supported YAML impact method exists yet for {dataset_column}."
         return (
             "Specify the YAML price_impact_methods.price.method and "
             f"price_impact_methods.price.weight_source in {yaml_path}."
         )
     if dataset == pc_cols.CASH:
         if source_column not in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
             return f"No supported YAML impact method exists yet for {dataset_column}."
         return (
             f"Specify the YAML cash_impact_methods.{source_column}.method and "
@@ -889,12 +891,8 @@ def _workbook_required_yaml_setup(
     if dataset == pc_cols.FX_RATES:
         if source_column != pc_cols.FX_RATE:
             return f"No supported YAML impact method exists yet for {dataset_column}."
-        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
-            return f"No supported YAML impact method exists yet for {dataset_column}."
         return f"Specify the YAML fx_rate_impact_methods.fx_rate.method in {yaml_path}."
     if dataset == pc_cols.SECURITY_MASTER:
-        if _has_text(row.get(_pc_findings.IMPACT_POLICY)):
-            return f"No supported YAML impact method exists yet for {dataset_column}."
         return (
             f"Specify the YAML security_master_impact_methods.{source_column}.method "
             f"in {yaml_path}."
@@ -922,6 +920,19 @@ def _workbook_has_evidence_only_policy(row: Mapping[str, object]) -> bool:
     )
 
 
+def _workbook_has_additive_policy(row: Mapping[str, object]) -> bool:
+    """Return whether a row has a configured non-evidence-only impact policy."""
+    policies = (
+        row.get(_pc_findings.IMPACT_POLICY),
+        row.get(_pc_findings.TRANSACTION_IMPACT_POLICY),
+    )
+    return any(
+        _has_text(policy)
+        and not str(policy).startswith(_pc_findings.IMPACT_POLICY_EVIDENCE_ONLY_PREFIX)
+        for policy in policies
+    )
+
+
 def _workbook_dataset_column_label(dataset: str, source_column: str) -> str:
     """Return ``dataset.column`` text for impact-method setup messages."""
     if dataset and source_column:
@@ -931,6 +942,37 @@ def _workbook_dataset_column_label(dataset: str, source_column: str) -> str:
     if source_column:
         return source_column
     return "this input field"
+
+
+def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> str:
+    """Return setup text when a configured method lacks usable source inputs."""
+    if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.AMOUNT:
+        return (
+            "Configured transaction impact method is present, but this row still "
+            "cannot be estimated. Review return denominator, transaction sign/flow "
+            "semantics, and transaction date inputs."
+        )
+    if dataset == pc_cols.POSITIONS:
+        return (
+            "Configured position impact method is present, but this row still "
+            "cannot be estimated. Review return denominator and position source "
+            "values."
+        )
+    if dataset == pc_cols.PRICES:
+        return (
+            "Configured price impact method is present, but this row still cannot "
+            "be estimated. Review snapshot A price, snapshot A weight, and price "
+            "source values."
+        )
+    if dataset == pc_cols.CASH:
+        return (
+            "Configured cash impact method is present, but this row still cannot "
+            "be estimated. Review return denominator and cash source values."
+        )
+    return (
+        "Configured YAML impact method is present, but this row still cannot be "
+        "estimated. Review the source inputs required by that method."
+    )
 
 
 def _workbook_missing_impact_method_action(dataset: str, source_column: str) -> str:

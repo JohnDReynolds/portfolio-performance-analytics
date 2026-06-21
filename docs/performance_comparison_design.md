@@ -1713,6 +1713,9 @@ work should be data-facing and behavior-facing.
    Prefer small fixture rows that capture ambiguous or risky cases: missing
    denominators, overlapping explanations, unmatched transactions, no
    underlying causes, evidence-only fields, and strict attribution failures.
+   Initial coverage protects workbook wording for configured methods that
+   still cannot estimate because required source inputs, such as a usable
+   return denominator, are missing.
 3. Expand and validate against more realistic performance comparison data.
    Use larger multi-portfolio, multi-period inputs once the expected workbook
    behavior is clear from smaller fixtures.
