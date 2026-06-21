@@ -662,6 +662,31 @@ def portfolio_period_contribution_candidates(
     return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
 
 
+def top_evidence_table(
+    findings: pl.DataFrame,
+    top_evidence_limit: int,
+) -> pl.DataFrame:
+    """Return top contribution-candidate rows per portfolio period.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        top_evidence_limit: Maximum number of ranked evidence rows to return per
+            portfolio period.
+
+    Returns:
+        Ranked contribution-candidate rows limited within each portfolio period.
+    """
+    candidates = portfolio_period_contribution_candidates(findings)
+    if candidates.is_empty():
+        return candidates
+
+    rows: list[dict[str, object]] = []
+    for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
+        rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
+    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+
+
 def portfolio_period_cause_summary(
     findings: pl.DataFrame,
     *,

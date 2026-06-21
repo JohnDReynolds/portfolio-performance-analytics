@@ -17,6 +17,8 @@ from ppar.performance_comparison.report import (
     _context_evidence_table,
     _problem_table,
     _residual_status_table,
+)
+from ppar.performance_comparison.workbook_tables import (
     _workbook_underlying_causes_table,
 )
 

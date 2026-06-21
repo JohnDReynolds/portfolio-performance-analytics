@@ -44,6 +44,8 @@ from ppar.performance_comparison.report import (
     _markdown_table,
     _problem_table,
     _review_dashboard_table,
+)
+from ppar.performance_comparison.workbook_tables import (
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
