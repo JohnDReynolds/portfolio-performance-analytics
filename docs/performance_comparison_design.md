@@ -1531,21 +1531,20 @@ emitting a numeric residual. Report helper tables include a
 be interpreted as a calculated residual.
 
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
-The bundle contains the HTML report, Markdown report, raw findings, current
-report helper tables as CSV files, a short `README.md`, and a JSON manifest
-with options, counts, artifact names, and row counts. This makes reviewer
+The bundle contains the HTML report, raw findings, current report helper tables
+as CSV files, a short `README.md`, and a JSON manifest with options, counts,
+artifact names, and row counts. This makes reviewer
 handoffs reproducible without coupling the comparison engine to a future
 Axys-specific presentation layer.
 
 The intended bundle review order depends on whether the optional workbook was
 requested:
 
-1. `review_workbook.xlsx`, when present: primary reviewer artifact. Start with
+1. `report.xlsx`, when present: primary reviewer artifact. Start with
    the `Portfolio Differences` sheet, then use the `Underlying Causes` sheet
    to understand what explains each portfolio-period difference.
-2. `report.html`: browser-readable Problems grid and Evidence Appendix. This
-   is the primary view for non-workbook bundles and a secondary narrative view
-   for workbook bundles.
+2. `report.html`: browser-readable version of the same review model and sheet
+   order used by `report.xlsx`.
 3. `needs_review_summary.csv`: changed portfolio periods and suggested next
    steps, plus drilldown artifacts for each triage row.
 4. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
@@ -1618,16 +1617,14 @@ before writing report artifacts if any changed portfolio period still has
 missing YAML setup for supported attribution methods. It does not require every
 performance difference to be fully explained.
 
-The `Needs Review Summary` section and matching `needs_review_summary.csv`
-bundle artifact remain the derived period-level triage source behind the
-Problems grid. The table highlights changed portfolio periods with
-evidence-only areas, missing impact inputs, low-confidence estimates,
-transaction cross-checks, or withheld residuals. It does not add new
-calculation rules; it only summarizes existing report helper tables into
-reviewer cues and suggested next steps. Period-level bundle tables carry a
-stable `review_key` where possible, and `needs_review_summary.csv` includes
-`review_detail_artifacts` to name the CSVs most relevant to each changed
-period.
+The `needs_review_summary.csv` bundle artifact remains a derived period-level
+triage export. It highlights changed portfolio periods with evidence-only
+areas, missing impact inputs, low-confidence estimates, transaction
+cross-checks, or withheld residuals. It does not add new calculation rules; it
+only summarizes existing report helper tables into reviewer cues and suggested
+next steps. Period-level bundle tables carry a stable `review_key` where
+possible, and `needs_review_summary.csv` includes `review_detail_artifacts` to
+name the CSVs most relevant to each changed period.
 
 The packaged Axys fixtures intentionally separate workbook demos from
 validation fixtures. The user-facing workbook demos are:
@@ -1700,10 +1697,10 @@ table as `transaction_matching_diagnostics.csv`.
 
 HTML reports can be rendered with `performance_comparison_html_report()` or
 written with `write_performance_comparison_html_report()`. The HTML report is
-intentionally conservative: it uses the same helper tables and section ordering
-as the Markdown report, with lightweight CSS, a review-basis strip, a compact
-review dashboard, and accessible table captions for review readability rather
-than separate HTML-specific analytics logic.
+intentionally conservative: it uses the same workbook table model, section
+ordering, column labels, and column tooltips as `report.xlsx`, with lightweight
+CSS and accessible table captions for browser review rather than separate
+HTML-specific analytics logic.
 The `ppar.performance_comparison.cli.html_report` package CLI module writes
 the same HTML report directly from a comparison YAML file.
 

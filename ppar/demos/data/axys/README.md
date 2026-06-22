@@ -33,12 +33,12 @@ workbooks.
 Run these commands from the repository root after installing the optional Excel
 dependency with `./.venv/bin/python -m pip install -e ".[excel]"`. Each command
 writes a report bundle and an Excel workbook at
-`_demo_output/workbooks/<demo_name>/review_workbook.xlsx`.
+`_demo_output/workbooks/<demo_name>/report.xlsx`.
 
-For these XLSX demos, start review in `review_workbook.xlsx`. Use `report.html`
-only when you want a browser-friendly narrative view. The workbook is designed
-for review, not for raw data export. It separates portfolio/security
-performance differences from underlying input differences and reported checks:
+For these XLSX demos, start review in `report.xlsx`. Use `report.html` when you
+want the same review model in a browser. The report is designed for review, not
+for raw data export. It separates portfolio/security performance differences
+from underlying input differences and reported checks:
 
 - `Portfolio Differences` sheet: one row per portfolio period with a performance
   difference.

@@ -19,6 +19,8 @@ from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import workbook as _pc_workbook
 
 __all__ = [
+    "performance_comparison_review_workbook_sheets",
+    "workbook_column_tooltip",
     "write_performance_comparison_review_workbook",
 ]
 
@@ -103,65 +105,70 @@ def write_performance_comparison_review_workbook(
     active_findings = _active_findings(findings)
     del top_evidence_limit
     return _pc_workbook.write_review_workbook_sheets(
-        _review_workbook_sheets(
-            portfolio_changes=_workbook_portfolio_changes_table(active_findings),
-            security_changes=_workbook_security_changes_table(active_findings),
-            underlying_causes=_workbook_underlying_causes_table(
-                active_findings,
-                comparison_path=comparison_path,
-            ),
-            derived_checks=_workbook_derived_checks_table(active_findings),
-            context=_workbook_context_table(active_findings),
-            findings=findings,
+        performance_comparison_review_workbook_sheets(
+            findings,
+            comparison_path=comparison_path,
         ),
         output_path,
-        column_tooltip=_workbook_column_tooltip,
+        column_tooltip=workbook_column_tooltip,
     )
 
 
-def _review_workbook_sheets(
-    *,
-    portfolio_changes: pl.DataFrame,
-    security_changes: pl.DataFrame,
-    underlying_causes: pl.DataFrame,
-    derived_checks: pl.DataFrame,
-    context: pl.DataFrame,
+def performance_comparison_review_workbook_sheets(
     findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None = None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
-    """Return workbook sheet specifications in reviewer-first order."""
+    """Return review workbook sheet specifications in reviewer-first order.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        comparison_path: Optional path to the comparison YAML. When provided,
+            the ``Underlying Causes`` sheet can name the exact file to update
+            for missing attribution setup.
+
+    Returns:
+        Ordered sheet specifications used by both the XLSX workbook and the
+        browser report.
+    """
+    active_findings = _active_findings(findings)
     return (
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="portfolio_changes",
             sheet_name="Portfolio Differences",
-            table=portfolio_changes,
+            table=_workbook_portfolio_changes_table(active_findings),
             columns=_workbook_portfolio_changes_columns(),
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="security_changes",
             sheet_name="Security Differences",
-            table=security_changes,
+            table=_workbook_security_changes_table(active_findings),
             columns=_workbook_security_changes_columns(),
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="underlying_causes",
             sheet_name="Underlying Causes",
-            table=underlying_causes,
+            table=_workbook_underlying_causes_table(
+                active_findings,
+                comparison_path=comparison_path,
+            ),
             columns=_workbook_underlying_cause_columns(),
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="derived_checks",
             sheet_name="Reported Performance Checks",
-            table=derived_checks,
+            table=_workbook_derived_checks_table(active_findings),
             columns=_workbook_non_additive_change_columns(),
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="context",
             sheet_name="Context",
-            table=context,
+            table=_workbook_context_table(active_findings),
             columns=_workbook_non_additive_change_columns(),
             labels=_workbook_column_labels(),
         ),
@@ -1186,8 +1193,16 @@ def _workbook_column_labels() -> dict[str, str]:
     }
 
 
-def _workbook_column_tooltip(column: str) -> str:
-    """Return explanatory header text for a workbook column comment."""
+def workbook_column_tooltip(column: str) -> str:
+    """Return explanatory header text for a workbook/report column.
+
+    Args:
+        column: Internal workbook-table column name.
+
+    Returns:
+        Reviewer-facing explanation suitable for XLSX comments and HTML header
+        tooltips.
+    """
     tooltips = {
         _REVIEW_KEY: (
             "Stable portfolio-period key used to connect workbook rows."

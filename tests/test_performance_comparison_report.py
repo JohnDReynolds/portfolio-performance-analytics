@@ -690,118 +690,39 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self._assert_html_report_shell(report)
-        self.assertIn('id="problems"', report)
+        self.assertIn('id="portfolio-differences"', report)
         self.assertLess(
-            report.index('id="problems"'),
-            report.index('id="evidence-appendix"'),
+            report.index('id="portfolio-differences"'),
+            report.index('id="underlying-causes"'),
         )
-        self.assertIn('id="evidence-appendix"', report)
-        self.assertIn('<details class="pc-detail">', report)
-        self.assertIn("<summary>Portfolio-Period Narrative</summary>", report)
-        self.assertIn("<summary>Impact Coverage</summary>", report)
-        self.assertIn("<summary>Top Evidence</summary>", report)
-        self.assertIn("<summary>Run Summary</summary>", report)
+        self.assertIn('id="security-differences"', report)
+        self.assertIn('id="reported-performance-checks"', report)
+        self.assertIn('id="context"', report)
+        self.assertIn('id="raw-audit-trail"', report)
         self.assertLess(
-            report.index('id="evidence-appendix"'),
-            report.index('id="run-summary"'),
+            report.index('id="underlying-causes"'),
+            report.index('id="raw-audit-trail"'),
         )
         self.assertNotIn('id="at-a-glance"', report)
-        problems = _html_section(report, "problems")
-        self.assertIn("Start here", problems)
+        portfolio = _html_section(report, "portfolio-differences")
+        self.assertIn("PORT_A", portfolio)
+        self.assertIn("0.0005", portfolio)
+        self.assertIn("Performance Difference", portfolio)
+        self.assertIn("Explained Difference", portfolio)
+        self.assertIn("Review Key", portfolio)
+        underlying = _html_section(report, "underlying-causes")
+        self.assertIn("transactions", underlying)
+        self.assertIn("transaction_impact_methods", underlying)
+        self.assertIn("Required YAML Setup", underlying)
         self.assertIn(
-            "1 of 1 problem(s) need review across 1 portfolio(s).",
-            problems,
+            'title="Snapshot B portfolio return minus snapshot A portfolio return."',
+            portfolio,
         )
-        self.assertIn(
-            'id="problems--port-a--2025-05-30--2025-05-30"',
-            problems,
-        )
-        self.assertIn('data-dashboard-filters', problems)
-        self.assertIn('data-dashboard-search', problems)
-        self.assertIn('data-dashboard-status', problems)
-        self.assertIn('data-dashboard-missing-only', problems)
-        self.assertIn('data-dashboard-sort="portfolio"', problems)
-        self.assertIn('data-dashboard-sort="return-delta"', problems)
-        self.assertIn("Missing inputs only", problems)
-        self.assertIn("No problem rows match the filters.", problems)
-        self.assertIn('data-dashboard-row', problems)
-        self.assertIn('data-review-status="needs_review"', problems)
-        self.assertIn('data-missing-inputs="true"', problems)
-        self.assertIn("PORT_A", problems)
-        self.assertIn("PORT_A::2025-05-30::2025-05-30", report)
-        self.assertIn('data-dashboard-sort="severity">Severity</button>', problems)
-        self.assertIn('data-dashboard-sort="portfolio">Portfolio</button>', problems)
-        self.assertIn(
-            'data-dashboard-sort="return-delta">Return Delta</button>',
-            problems,
-        )
-        self.assertIn('data-dashboard-sort="problem">Problem</button>', problems)
-        self.assertIn(
-            'data-dashboard-sort="action">Action Required</button>',
-            problems,
-        )
-        self.assertIn("Return-impact estimate is blocked", problems)
-        self.assertIn("Update the comparison YAML", problems)
-        self.assertIn("transaction_impact_methods", problems)
-        self.assertIn("transaction_impact_methods", problems)
-        self.assertIn("transaction sign and flow semantics", problems)
-        self.assertIn("define transaction sign and external-flow semantics", problems)
-        self.assertIn("ppar can show evidence", problems)
-        self.assertIn(
-            'href="#impact-coverage--port-a--2025-05-30--2025-05-30"',
-            problems,
-        )
-        self.assertNotIn('href="#context-evidence--', problems)
-        self.assertNotIn('href="#transaction-activity--', problems)
-        self.assertIn(
-            'id="impact-coverage--port-a--2025-05-30--2025-05-30"',
-            report,
-        )
-        self.assertIn(
-            'id="context-evidence--port-a--2025-05-30--2025-05-30"',
-            report,
-        )
-        self.assertIn(
-            'id="transaction-activity--port-a--2025-05-30--2025-05-30"',
-            report,
-        )
-        self.assertIn(
-            'id="top-evidence--port-a--2025-05-30--2025-05-30"',
-            report,
-        )
-        narrative = _html_section(report, "portfolio-period-narrative")
-        self.assertIn("PORT_A changed by 0.0005", narrative)
-        self.assertIn("The strongest currently estimated impact", narrative)
-        self.assertIn('class="pc-dashboard-table"', problems)
-        self.assertIn("querySelector(\"[data-dashboard-filters]\")", report)
-        self.assertIn("querySelectorAll(\"[data-dashboard-sort]\")", report)
-        self.assertIn("compareValues", report)
-        self.assertIn("row.hidden = !visible", report)
-        self.assertIn('id="impact-coverage"', report)
-        self.assertIn('id="needs-review-summary"', report)
-        self.assertIn("Impact Coverage", report)
-        self.assertIn("Residual Status", report)
-        self.assertIn("Context Evidence Summary", report)
-        self.assertIn("Context Evidence", report)
-        self.assertIn("Transaction Activity", report)
-        self.assertIn('id="context-evidence-summary"', report)
-        self.assertIn('id="context-evidence"', report)
-        self.assertIn("Reviewer Triage", report)
-        self.assertIn("Changed periods", report)
-        self.assertIn("Context evidence groups", report)
-        self.assertIn("High-priority context groups", report)
-        self.assertIn('class="pc-card-row pc-triage-row"', report)
         self.assertIn('<p class="pc-table-meta">Rows: 1</p>', report)
-        self.assertIn("pc-col-portfolio-return-delta", report)
-        self.assertIn("pc-status-needs-review", report)
+        self.assertIn("pc-col-performance-change", report)
         self.assertIn("@media print", report)
         self.assertIn("security_contribution", report)
-        self.assertIn("0.001084292504", report)
         self.assertIn("PC-PORT-MV", report)
-        review_notes = _html_section(report, "review-notes")
-        self.assertIn("Unless noted otherwise", review_notes)
-        self.assertIn("Impact estimates are intentionally conservative", review_notes)
-        self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
 
     def test_review_dashboard_prioritizes_missing_inputs_across_portfolios(self) -> None:
         """Dashboard rows sort urgent multi-portfolio review periods first."""
@@ -938,16 +859,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertIn("Update the comparison YAML", problems["action_required"][0])
         self.assertIn("transaction_impact_methods", problems["action_required"][0])
-        problems_section = _html_section(report, "problems")
-        self.assertEqual(problems_section.count('data-dashboard-row'), 3)
-        self.assertIn("PORT_A", problems_section)
-        self.assertIn("PORT_B", problems_section)
-        self.assertIn("PORT_C", problems_section)
-        self.assertIn("Return-impact estimate is blocked", problems_section)
-        self.assertIn("transaction_impact_methods", problems_section)
-        narrative_section = _html_section(report, "portfolio-period-narrative")
-        self.assertIn("PORT_C changed by 0.0008", narrative_section)
-        self.assertIn("PORT_B changed by 0.0015", narrative_section)
+        portfolio_section = _html_section(report, "portfolio-differences")
+        self.assertIn("PORT_A", portfolio_section)
+        self.assertIn("PORT_B", portfolio_section)
+        self.assertIn("PORT_C", portfolio_section)
+        self.assertIn("Missing YAML Specifications", portfolio_section)
+        underlying_section = _html_section(report, "underlying-causes")
+        self.assertIn("Configured YAML impact method is present", underlying_section)
+        self.assertIn("position_impact_methods", underlying_section)
 
     def test_policy_gap_demo_fixture_surfaces_yaml_actions(self) -> None:
         """The demo policy-gap fixture produces specific YAML remediation rows."""
@@ -986,14 +905,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             problem_rows["PORT_A"]["action_required"],
         )
 
-        problems_section = _html_section(report, "problems")
-        self.assertEqual(problems_section.count('data-dashboard-row'), 3)
-        self.assertIn("contribution_impact_methods", problems_section)
-        self.assertIn("transaction_impact_methods", problems_section)
-        self.assertIn(
-            "define transaction sign and external-flow semantics",
-            problems_section,
-        )
+        underlying_section = _html_section(report, "underlying-causes")
+        self.assertIn("transaction_impact_methods", underlying_section)
+        self.assertIn("position_impact_methods", underlying_section)
+        self.assertIn("transaction_rules for each transaction code", underlying_section)
 
     def _assert_html_report_shell(self, report: str) -> None:
         """Verify stable HTML report framing and review-oriented polish."""
@@ -1005,10 +920,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertNotIn('class="pc-kicker"', report)
         self.assertNotIn('class="pc-subtitle"', report)
         self.assertNotIn('class="pc-header-notes"', report)
-        self.assertIn('id="problems"', report)
-        self.assertIn('id="evidence-appendix"', report)
-        self.assertIn("Review table with", report)
-        self.assertNotIn('<ol class="pc-contents-list">', report)
+        self.assertIn('id="review-order"', report)
+        self.assertIn('id="portfolio-differences"', report)
+        self.assertIn('id="underlying-causes"', report)
+        self.assertIn('id="raw-audit-trail"', report)
+        self.assertIn("Browser view of the same review model used by report.xlsx.", report)
+        self.assertIn('<ol class="pc-contents-list">', report)
 
     def test_markdown_report_limits_top_evidence_per_portfolio_period(self) -> None:
         """Top evidence limit controls displayed contribution candidate rows."""
@@ -1062,14 +979,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         report = performance_comparison_html_report(findings)
 
-        self.assertIn("No portfolio return changes to narrate.", report)
-        self.assertIn("No actionable performance comparison problems.", report)
-        self.assertIn("No changed portfolio periods need review.", report)
-        self.assertIn("No impact estimates are currently available.", report)
-        self.assertIn("No context-only evidence summary.", report)
-        self.assertIn("No context-only evidence.", report)
-        self.assertIn("No changed transaction activity.", report)
-        self.assertIn("No cause summary available.", report)
+        self.assertIn("No portfolio performance differences found", report)
+        self.assertIn("No differences", report)
+        self.assertIn('id="portfolio-differences"', report)
+        self.assertIn('id="underlying-causes"', report)
+        self.assertIn("No rows.", report)
 
     def test_markdown_report_withholds_residual_when_no_estimates_exist(self) -> None:
         """Residual status explains changed periods with evidence but no estimates."""
@@ -1252,10 +1166,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertTrue(output_path.exists())
             report = output_path.read_text(encoding="utf-8")
             self.assertIn("<h1>Controlled HTML Restatement</h1>", report)
-            self.assertIn("Top Evidence", report)
+            self.assertIn("Portfolio Differences", report)
+            self.assertIn("Underlying Causes", report)
 
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
-        """Report bundles contain Markdown, CSV tables, and manifest metadata."""
+        """Report bundles contain HTML, CSV tables, and manifest metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         expected_keys = set(REPORT_BUNDLE_REQUIRED_ARTIFACTS)
         with tempfile.TemporaryDirectory() as directory:
@@ -1271,18 +1186,21 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(set(paths), expected_keys)
             for path in paths.values():
                 self.assertTrue(path.exists(), path)
-            self.assertIn("# Bundle Restatement", paths["report"].read_text())
-            self.assertIn("<h1>Bundle Restatement</h1>", paths["html_report"].read_text())
+            self.assertNotIn("report", paths)
+            self.assertFalse((output_directory / "report.md").exists())
+            html_report = paths["html_report"].read_text(encoding="utf-8")
+            self.assertIn("<h1>Bundle Restatement</h1>", html_report)
+            self.assertIn("Portfolio Differences", html_report)
+            self.assertIn("Underlying Causes", html_report)
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("## Primary Review Artifact", readme)
-            self.assertIn("`report.html`: primary browser review report", readme)
-            self.assertIn("## Secondary Review Views", readme)
-            self.assertIn("`report.html`: browser-friendly narrative report", readme)
+            self.assertIn("`report.html`: browser review report", readme)
+            self.assertNotIn("## Secondary Review Views", readme)
+            self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
-            self.assertIn("start with the Problems grid", readme)
-            self.assertIn("high-priority context cues", readme)
-            self.assertIn("review guidance only", readme)
+            self.assertIn("start with Portfolio Differences", readme)
+            self.assertIn("Use Underlying Causes", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn(
@@ -1308,6 +1226,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertEqual(manifest["artifacts"]["readme"], "README.md")
+            self.assertNotIn("report", manifest["artifacts"])
             self.assertEqual(
                 manifest["artifacts"]["needs_review_summary"],
                 "needs_review_summary.csv",
@@ -1872,22 +1791,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(
                 manifest["artifacts"]["review_workbook"],
-                "review_workbook.xlsx",
+                "report.xlsx",
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("`review_workbook.xlsx`: primary Excel review workbook", readme)
-            self.assertIn("Open `review_workbook.xlsx` first", readme)
-            self.assertIn(
-                "1. Open `review_workbook.xlsx` and start with the Portfolio "
-                "Differences sheet.",
-                readme,
-            )
+            self.assertIn("`report.xlsx`: Excel review workbook", readme)
+            self.assertIn("Open `report.xlsx` first", readme)
+            self.assertIn("1. Open `report.xlsx` or `report.html`", readme)
             self.assertIn("## Primary Review Artifact", readme)
-            self.assertIn("## Secondary Review Views", readme)
+            self.assertNotIn("## Secondary Review Views", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertLess(
-                readme.index("`review_workbook.xlsx`: primary Excel review workbook"),
-                readme.index("`report.html`: browser-friendly narrative report"),
+                readme.index("`report.xlsx`: Excel review workbook"),
+                readme.index("`report.html`: browser review report"),
             )
 
             workbook = openpyxl.load_workbook(
@@ -2139,7 +2054,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 with self.assertRaises(PpaError) as context:
                     write_performance_comparison_review_workbook(
                         findings,
-                        Path(directory) / "review_workbook.xlsx",
+                        Path(directory) / "report.xlsx",
                     )
 
         message = str(context.exception)
@@ -2231,7 +2146,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             paths["review_workbook"].unlink()
             issues = report_bundle_validation_issues(directory)
 
-        self.assertIn("artifact file 'review_workbook.xlsx' is missing", issues)
+        self.assertIn("artifact file 'report.xlsx' is missing", issues)
 
     def test_report_bundle_validation_catches_invalid_review_workbook(self) -> None:
         """Bundle validation checks optional workbook sheet structure."""
@@ -2253,7 +2168,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn(
-            "review_workbook.xlsx is missing sheet 'Portfolio Differences'",
+            "report.xlsx is missing sheet 'Portfolio Differences'",
             issues,
         )
 

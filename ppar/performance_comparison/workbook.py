@@ -20,7 +20,7 @@ from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 
 REVIEW_WORKBOOK_ARTIFACT = "review_workbook"
-REVIEW_WORKBOOK_FILE_NAME = "review_workbook.xlsx"
+REVIEW_WORKBOOK_FILE_NAME = "report.xlsx"
 WORKBOOK_NUMBER_FORMAT = "0.######"
 
 EXPECTED_SHEETS = (
@@ -192,14 +192,14 @@ def workbook_artifact_issues(
         from openpyxl import load_workbook  # type: ignore[import-not-found]
     except ImportError:
         return [
-            "review_workbook.xlsx cannot be validated because optional dependency "
+            "report.xlsx cannot be validated because optional dependency "
             '"ppar[excel]" is not installed'
         ]
 
     try:
         workbook = load_workbook(workbook_path, read_only=True, data_only=True)
     except Exception as error:  # pylint: disable=broad-exception-caught
-        return [f"review_workbook.xlsx could not be opened: {error}"]
+        return [f"report.xlsx could not be opened: {error}"]
 
     issues = _review_workbook_sheet_issues(workbook)
     workbook.close()
@@ -360,7 +360,7 @@ def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
     sheet_names = tuple(str(name) for name in workbook.sheetnames)
     for sheet_name in EXPECTED_SHEETS:
         if sheet_name not in sheet_names:
-            issues.append(f"review_workbook.xlsx is missing sheet {sheet_name!r}")
+            issues.append(f"report.xlsx is missing sheet {sheet_name!r}")
             continue
         issues.extend(_review_workbook_header_issues(workbook[sheet_name], sheet_name))
     return issues
@@ -372,7 +372,7 @@ def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]
     try:
         headers = tuple(str(value) for value in next(rows) if value is not None)
     except StopIteration:
-        return [f"review_workbook.xlsx sheet {sheet_name!r} has no header row"]
+        return [f"report.xlsx sheet {sheet_name!r} has no header row"]
 
     missing_headers = [
         header
@@ -382,7 +382,7 @@ def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]
     if not missing_headers:
         return []
     return [
-        f"review_workbook.xlsx sheet {sheet_name!r} is missing headers "
+        f"report.xlsx sheet {sheet_name!r} is missing headers "
         f"{missing_headers}"
     ]
 

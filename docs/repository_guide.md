@@ -51,7 +51,7 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
-| `ppar.performance_comparison.cli.report_bundle` | Writes Markdown, HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
+| `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates packaged Axys demo scenarios. | Prove demo fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
@@ -128,8 +128,8 @@ non-workbook smoke test.
 Use the full Axys workbook command list in
 [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) when you
 want to compare the packaged workbook scenarios. When `--include-workbook` is
-used, start review in `review_workbook.xlsx`; use `report.html` as a secondary
-browser-friendly narrative view.
+used, start review in `report.xlsx`; use `report.html` when you want the same
+review model in a browser.
 
 ### Validate The Packaged Demo Matrix
 
@@ -203,9 +203,8 @@ When changing demo data or YAML, also run:
 Generated output normally belongs under `_demo_output/`. Report bundles include:
 
 - `report.html`: browser-friendly review report.
-- `report.md`: Markdown report.
-- `review_workbook.xlsx`: primary reviewer artifact when `--include-workbook`
-  is used.
+- `report.xlsx`: primary Excel reviewer artifact when `--include-workbook` is
+  used.
 - `needs_review_summary.csv`: changed periods and next actions.
 - `findings.csv`: complete finding-level audit trail.
 - `manifest.json`: machine-readable artifact inventory.

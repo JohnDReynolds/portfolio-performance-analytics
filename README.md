@@ -152,8 +152,7 @@ The performance comparison feature compares two source-data snapshots and helps
 explain why reported portfolio performance changed between extraction dates. It
 loads normalized portfolio performance, security performance, transactions,
 positions, prices, FX rates, cash, and security-reference data, then writes a
-review bundle with HTML, Markdown, CSV, manifest, and optional XLSX workbook
-artifacts.
+review bundle with HTML, CSV, manifest, and optional XLSX workbook artifacts.
 
 Use these entry points:
 
@@ -178,7 +177,8 @@ Source-checkout smoke test:
 
 For XLSX workbook demos, install the Excel extra and use the commands in the
 [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md). Start review in
-`review_workbook.xlsx`; use `report.html` as a secondary browser-friendly view.
+`report.xlsx`; use `report.html` when you want the same review model in a
+browser.
 
 ```bash
 ./.venv/bin/python -m pip install -e ".[excel]"

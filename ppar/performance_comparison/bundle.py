@@ -26,7 +26,6 @@ __all__ = [
 ]
 
 REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
-    "report",
     "html_report",
     "readme",
     "manifest",
@@ -79,26 +78,30 @@ def write_report_bundle_readme(
     Returns:
         Normalized destination path.
     """
-    workbook_line = (
-        "- `review_workbook.xlsx`: primary Excel review workbook with the Portfolio "
-        "Differences sheet, Security Differences sheet, Underlying Causes sheet, "
-        "Reported Performance Checks sheet, Context sheet, and Raw Audit Trail sheet."
+    excel_line = (
+        "- `report.xlsx`: Excel review workbook with the Portfolio Differences sheet, "
+        "Security Differences sheet, Underlying Causes sheet, Reported Performance "
+        "Checks sheet, Context sheet, and Raw Audit Trail sheet."
+    )
+    html_line = (
+        "- `report.html`: browser review report with the same sections and order as "
+        "`report.xlsx`."
     )
     primary_artifact_lines = (
-        [workbook_line]
+        [excel_line, html_line]
         if include_workbook
-        else ["- `report.html`: primary browser review report with reviewer cues and tables."]
+        else [html_line]
     )
     opening_line = (
-        "Open `review_workbook.xlsx` first for the workbook review. Use `report.html` "
-        "when you want a browser-friendly narrative view."
+        "Open `report.xlsx` first for Excel review. Use `report.html` when you want "
+        "the same review model in a browser."
         if include_workbook
-        else "Open `report.html` for the browser report, or `report.md` for a plain-text review."
+        else "Open `report.html` for the browser review."
     )
     first_review_step = (
-        "1. Open `review_workbook.xlsx` and start with the Portfolio Differences sheet."
+        "1. Open `report.xlsx` or `report.html` and start with Portfolio Differences."
         if include_workbook
-        else "1. Open `report.html` and start with the Problems grid."
+        else "1. Open `report.html` and start with Portfolio Differences."
     )
     lines = [
         f"# {_pc_rendering.escape_markdown_text(title)}",
@@ -110,21 +113,14 @@ def write_report_bundle_readme(
         "",
         *primary_artifact_lines,
         "",
-        "## Secondary Review Views",
-        "",
-        "- `report.html`: browser-friendly narrative report with reviewer cues and tables.",
-        "- `report.md`: plain-text Markdown version of the same review narrative.",
-        "",
         "## Recommended Review Order",
         "",
         first_review_step,
-        "2. Use `needs_review_summary.csv` to identify changed periods, suggested next "
-        "steps, high-priority context cues, and drilldown artifacts.",
-        "3. Use the `review_key` column to follow a period across CSV artifacts.",
-        "4. Use `context_evidence_summary.csv` to review grouped context priority, then "
-        "open `context_evidence.csv` for row-level support.",
-        "5. Treat high-priority context as review guidance only; it is not included in "
-        "return-impact estimates.",
+        "2. Use Underlying Causes to see which source-data differences explain each "
+        "portfolio period.",
+        "3. Use Reported Performance Checks, Context, and Raw Audit Trail as "
+        "supporting detail.",
+        "4. Use the `review_key` column to follow a period across CSV artifacts.",
         "",
         "## Audit/Export Files",
         "",
@@ -154,8 +150,8 @@ def write_report_bundle_manifest(
         findings: Complete findings table.
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
-        include_suppressed_appendix: Whether the narrative reports include
-            suppressed findings.
+        include_suppressed_appendix: Compatibility flag recorded in the
+            manifest for standalone report options.
         top_evidence_limit: Maximum number of evidence rows shown per period.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
@@ -195,8 +191,8 @@ def report_bundle_manifest(
         findings: Complete findings table.
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
-        include_suppressed_appendix: Whether the narrative reports include
-            suppressed findings.
+        include_suppressed_appendix: Compatibility flag recorded in the
+            manifest for standalone report options.
         top_evidence_limit: Maximum number of evidence rows shown per period.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.

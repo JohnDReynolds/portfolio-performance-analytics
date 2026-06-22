@@ -70,7 +70,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--title",
         default="Performance Comparison Report",
-        help="Report title for report.md and report.html.",
+        help="Report title for report.html and optional report.xlsx.",
     )
     parser.add_argument(
         "--top-evidence-limit",
@@ -86,12 +86,12 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-suppressed-appendix",
         action="store_true",
-        help="Omit the suppressed findings appendix from report.md.",
+        help="Reserved for standalone report compatibility.",
     )
     parser.add_argument(
         "--include-workbook",
         action="store_true",
-        help="Write optional review_workbook.xlsx. Requires ppar[excel].",
+        help="Write optional report.xlsx. Requires ppar[excel].",
     )
     parser.add_argument(
         "--require-causal-attribution",

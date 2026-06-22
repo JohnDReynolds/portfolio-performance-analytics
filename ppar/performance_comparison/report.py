@@ -236,68 +236,31 @@ def performance_comparison_html_report(
     title: str = "Performance Comparison Report",
     include_suppressed_appendix: bool = True,
     top_evidence_limit: int = 10,
+    comparison_path: util.PathLike | None = None,
 ) -> str:
-    """Return a standalone HTML report for performance comparison findings.
+    """Return a standalone workbook-style HTML report.
 
     Args:
         findings: Findings table returned by ``compare_snapshots`` or
             ``findings_to_polars``.
         title: HTML document title and visible H1 text.
-        include_suppressed_appendix: Whether to include a compact table of
-            suppressed findings at the end of the report.
-        top_evidence_limit: Maximum number of contribution-candidate evidence
-            rows to show per portfolio period.
+        include_suppressed_appendix: Reserved for compatibility with the older
+            narrative HTML renderer.
+        top_evidence_limit: Reserved for compatibility with the older narrative
+            HTML renderer.
+        comparison_path: Optional path to the comparison YAML. When provided,
+            the ``Underlying Causes`` section can name the exact file to update
+            for missing attribution setup.
 
     Returns:
         Complete HTML document string suitable for writing to disk or opening
         in a browser.
     """
-    active_findings = _active_findings(findings)
-    summaries = _pc_runner.summarize_findings(findings)
-    active_summaries = _pc_runner.summarize_findings(active_findings)
-    evidence_sections = [
-        (
-            "Portfolio-Period Narrative",
-            _html_portfolio_period_narrative_section(active_findings),
-        ),
-        ("Needs Review Summary", _html_needs_review_summary_section(active_findings)),
-        ("Impact Coverage", _html_impact_coverage_section(active_findings)),
-        ("Context Evidence", _html_context_evidence_section(active_findings)),
-        ("Top Evidence", _html_top_evidence_section(active_findings, top_evidence_limit)),
-        ("Review Notes", _html_review_notes_section(active_findings)),
-        ("Impact Estimate Summary", _html_impact_estimate_summary_section(active_findings)),
-        ("Transaction Activity", _html_transaction_activity_section(active_findings)),
-        ("Residual Status", _html_residual_status_section(active_findings)),
-        ("Context Evidence Summary", _html_context_evidence_summary_section(active_findings)),
-        ("Transaction Cross-Checks", _html_transaction_cross_checks_section(active_findings)),
-        (
-            "Flow Cross-Check Reconciliation",
-            _html_flow_cross_check_reconciliation_section(active_findings),
-        ),
-        (
-            "Transaction Matching Diagnostics",
-            _html_transaction_matching_diagnostics_section(active_findings),
-        ),
-        ("Portfolio-Period Changes", _html_portfolio_period_section(active_findings)),
-        ("Cause Summary", _html_cause_summary_section(active_findings)),
-        (
-            "Run Summary",
-            _html_run_summary_section(
-                findings,
-                active_findings,
-                summaries,
-                active_summaries,
-            ),
-        ),
-    ]
-    if include_suppressed_appendix:
-        evidence_sections.append(
-            (
-                "Suppressed Findings Appendix",
-                _html_suppressed_appendix_section(findings, summaries),
-            )
-        )
-
+    del include_suppressed_appendix, top_evidence_limit
+    sheets = _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+        findings,
+        comparison_path=comparison_path,
+    )
     return "\n".join(
         [
             "<!DOCTYPE html>",
@@ -312,11 +275,11 @@ def performance_comparison_html_report(
             '<main class="pc-report">',
             '<header class="pc-header">',
             f"<h1>{_escape_html(title)}</h1>",
+            "<p>Browser view of the same review model used by report.xlsx.</p>",
             "</header>",
-            _html_problems_section(active_findings),
-            _html_evidence_appendix_section(evidence_sections),
+            _html_workbook_contents_section(sheets),
+            *[_html_workbook_sheet_section(sheet) for sheet in sheets],
             "</main>",
-            _html_dashboard_script(),
             "</body>",
             "</html>",
             "",
@@ -360,6 +323,96 @@ def write_performance_comparison_markdown_report(
     return report_path
 
 
+def _html_workbook_contents_section(
+    sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
+) -> str:
+    """Return navigation for workbook-style HTML sections."""
+    items = [
+        f'<li><a href="#{_html_section_id(sheet.sheet_name)}">'
+        f"{_escape_html(sheet.sheet_name)}</a></li>"
+        for sheet in sheets
+    ]
+    return _html_section(
+        "Review Order",
+        "\n".join(
+            [
+                "<p>Start with Portfolio Differences, then use Underlying Causes "
+                "to see which source-data differences explain each period.</p>",
+                '<ol class="pc-contents-list">',
+                *items,
+                "</ol>",
+            ]
+        ),
+    )
+
+
+def _html_workbook_sheet_section(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
+    """Return one HTML section matching a review workbook sheet."""
+    return _html_section(
+        sheet.sheet_name,
+        _html_workbook_sheet_table(sheet),
+    )
+
+
+def _html_workbook_sheet_table(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
+    """Return an HTML table for one workbook sheet specification."""
+    columns = _workbook_sheet_available_columns(sheet)
+    if sheet.table.is_empty() or not columns:
+        return _html_empty("No rows.")
+
+    labels = sheet.labels or {}
+    header_cells = [
+        _html_workbook_header_cell(
+            label=labels.get(column, _display_header(column)),
+            tooltip=_pc_workbook_tables.workbook_column_tooltip(column),
+        )
+        for column in columns
+    ]
+    body_rows = [
+        _html_workbook_body_row(row, columns)
+        for row in sheet.table.select(columns).iter_rows(named=True)
+    ]
+    return "\n".join(
+        [
+            '<div class="pc-table-wrap">',
+            f'<p class="pc-table-meta">Rows: {_escape_html(sheet.table.height)}</p>',
+            '<table class="pc-table">',
+            f"<caption>{_escape_html(sheet.sheet_name)}</caption>",
+            "<thead>",
+            "<tr>" + "".join(header_cells) + "</tr>",
+            "</thead>",
+            "<tbody>",
+            *body_rows,
+            "</tbody>",
+            "</table>",
+            "</div>",
+        ]
+    )
+
+
+def _workbook_sheet_available_columns(
+    sheet: _pc_workbook.ReviewWorkbookSheet,
+) -> list[str]:
+    """Return display columns present in a workbook sheet table."""
+    requested_columns = sheet.columns or tuple(sheet.table.columns)
+    return [column for column in requested_columns if column in sheet.table.columns]
+
+
+def _html_workbook_header_cell(*, label: str, tooltip: str) -> str:
+    """Return one workbook-style HTML header cell."""
+    title_attribute = f' title="{_escape_html(tooltip)}"' if tooltip else ""
+    return f'<th scope="col"{title_attribute}>{_escape_html(label)}</th>'
+
+
+def _html_workbook_body_row(row: Mapping[str, object], columns: Sequence[str]) -> str:
+    """Return one workbook-style HTML table row."""
+    cells = [
+        _pc_rendering.html_table_cell(row[column], column)
+        for column in columns
+    ]
+    return "<tr>" + "".join(cells) + "</tr>"
+
+
 def write_performance_comparison_html_report(
     findings: pl.DataFrame,
     output_path: util.PathLike,
@@ -367,6 +420,7 @@ def write_performance_comparison_html_report(
     title: str = "Performance Comparison Report",
     include_suppressed_appendix: bool = True,
     top_evidence_limit: int = 10,
+    comparison_path: util.PathLike | None = None,
 ) -> Path:
     """Write an HTML performance comparison report to disk.
 
@@ -380,6 +434,9 @@ def write_performance_comparison_html_report(
             appendix section.
         top_evidence_limit: Maximum number of top-evidence rows to show per
             portfolio period.
+        comparison_path: Optional path to the comparison YAML. When provided,
+            the ``Underlying Causes`` section can name the exact file to update
+            for missing attribution setup.
 
     Returns:
         Normalized ``Path`` to the written report file.
@@ -391,6 +448,7 @@ def write_performance_comparison_html_report(
         title=title,
         include_suppressed_appendix=include_suppressed_appendix,
         top_evidence_limit=top_evidence_limit,
+        comparison_path=comparison_path,
     )
     report_path.write_text(report, encoding=util.ENCODING)
     return report_path
@@ -413,11 +471,11 @@ def write_performance_comparison_report_bundle(
         findings: Findings table returned by ``compare_snapshots`` or
             ``findings_to_polars``.
         output_directory: Destination directory. It is created when needed.
-        title: Markdown H1 text for ``report.md``.
-        include_suppressed_appendix: Whether ``report.md`` should include the
-            suppressed findings appendix section.
+        title: Report title for generated review artifacts.
+        include_suppressed_appendix: Reserved for compatibility with standalone
+            Markdown/HTML report writers.
         top_evidence_limit: Maximum number of top-evidence rows to include per
-            portfolio period in both ``report.md`` and ``top_evidence.csv``.
+            portfolio period in ``top_evidence.csv``.
         include_workbook: Whether to include an XLSX review workbook. Requires
             installing the optional ``ppar[excel]`` dependency group.
         require_causal_attribution: Whether changed portfolio periods must have
@@ -442,20 +500,13 @@ def write_performance_comparison_report_bundle(
     tables = _report_bundle_tables(active_findings, top_evidence_limit)
 
     paths: dict[str, Path] = {}
-    report_path = write_performance_comparison_markdown_report(
-        findings,
-        bundle_directory / "report.md",
-        title=title,
-        include_suppressed_appendix=include_suppressed_appendix,
-        top_evidence_limit=top_evidence_limit,
-    )
-    paths["report"] = report_path
     html_report_path = write_performance_comparison_html_report(
         findings,
         bundle_directory / "report.html",
         title=title,
         include_suppressed_appendix=include_suppressed_appendix,
         top_evidence_limit=top_evidence_limit,
+        comparison_path=comparison_path,
     )
     paths["html_report"] = html_report_path
     paths["findings"] = _pc_bundle.write_csv_artifact(
@@ -2593,8 +2644,8 @@ def _html_evidence_appendix_section(sections: Sequence[tuple[str, str]]) -> str:
     return _html_detail_group_section(
         "Evidence Appendix",
         (
-            "Use this appendix only when you need to audit a Problems-grid row. "
-            "The Problems grid is the primary review workflow."
+            "Use this appendix only when you need to audit a review row. "
+            "The workbook-style report sections are the primary review workflow."
         ),
         sections,
     )

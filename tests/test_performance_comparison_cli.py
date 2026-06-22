@@ -187,9 +187,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue(output_path.exists())
             report = output_path.read_text(encoding="utf-8")
             self.assertIn("<h1>Script HTML Report</h1>", report)
-            self.assertIn('id="impact-coverage"', report)
+            self.assertIn('id="portfolio-differences"', report)
+            self.assertIn('id="underlying-causes"', report)
+            self.assertIn('id="raw-audit-trail"', report)
             self.assertIn("security_contribution", report)
-            self.assertNotIn("PC-TXN-AMT", _html_section(report, "top-evidence"))
+            self.assertIn("PC-TXN-AMT", _html_section(report, "raw-audit-trail"))
 
     def test_html_cli_module_can_omit_suppressed_appendix(self) -> None:
         """The HTML CLI module can suppress the suppressed-findings appendix."""
@@ -210,12 +212,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             report = output_path.read_text(encoding="utf-8")
-            self.assertIn("<span>Suppressed findings</span>", report)
-            self.assertIn("<strong>0</strong>", report)
+            self.assertIn('id="portfolio-differences"', report)
+            self.assertIn("Portfolio Differences", report)
             self.assertNotIn("Suppressed Findings Appendix</h2>", report)
 
     def test_bundle_cli_module_writes_report_bundle(self) -> None:
-        """The bundle CLI module writes Markdown, CSV, and manifest artifacts."""
+        """The bundle CLI module writes HTML, CSV, and manifest artifacts."""
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -235,16 +237,17 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(str(output_directory), result.stdout)
-            self.assertTrue((output_directory / "report.md").exists())
+            self.assertTrue((output_directory / "report.html").exists())
+            self.assertFalse((output_directory / "report.md").exists())
             self.assertTrue((output_directory / "findings.csv").exists())
             self.assertTrue((output_directory / "context_evidence_summary.csv").exists())
             self.assertTrue((output_directory / "context_evidence.csv").exists())
             self.assertTrue((output_directory / "impact_coverage.csv").exists())
             self.assertTrue((output_directory / "manifest.json").exists())
-            report = (output_directory / "report.md").read_text(encoding="utf-8")
-            self.assertIn("# Script Bundle Report", report)
-            self.assertIn("## Context Evidence Summary", report)
-            self.assertIn("## Context Evidence", report)
+            report = (output_directory / "report.html").read_text(encoding="utf-8")
+            self.assertIn("<h1>Script Bundle Report</h1>", report)
+            self.assertIn("Portfolio Differences", report)
+            self.assertIn("Underlying Causes", report)
 
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
@@ -261,7 +264,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 manifest["artifacts"]["context_evidence_summary"],
                 "context_evidence_summary.csv",
             )
-            self.assertEqual(manifest["artifacts"]["report"], "report.md")
+            self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
+            self.assertNotIn("report", manifest["artifacts"])
 
     def test_bundle_cli_module_supports_active_only_and_omits_appendix(self) -> None:
         """The bundle CLI module passes active-only and appendix options through."""
@@ -281,12 +285,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            report = (output_directory / "report.md").read_text(encoding="utf-8")
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
-            self.assertIn("- Suppressed findings: 0", report)
-            self.assertNotIn("## Suppressed Findings Appendix", report)
             self.assertEqual(manifest["counts"]["findings"], 21)
             self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
 
@@ -335,7 +336,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 result.stdout.index("Review workbook written to:"),
                 result.stdout.index("HTML report written to:"),
             )
-            self.assertTrue((output_directory / "review_workbook.xlsx").exists())
+            self.assertTrue((output_directory / "report.xlsx").exists())
             self.assertEqual(result.stderr, "")
 
     def test_validate_bundle_cli_module_accepts_valid_bundle(self) -> None:

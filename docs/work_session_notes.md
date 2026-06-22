@@ -4,8 +4,8 @@
 
 The performance comparison XLSX work is now workbook-first. For bundles
 generated with `--include-workbook`, reviewers should start with
-`review_workbook.xlsx`; `report.html` is a secondary browser-friendly narrative
-view, and CSV files are audit/export artifacts.
+`report.xlsx`; `report.html` is a browser-friendly view of the same review
+model, and CSV files are audit/export artifacts.
 
 The current workbook sheets are:
 
@@ -66,9 +66,9 @@ non-workbook smoke-test output from:
 
 ## Key Decisions
 
-- Treat `review_workbook.xlsx` as the primary reviewer artifact when generated.
-- Keep `report.html`, `report.md`, CSV files, and `manifest.json` for narrative,
-  fallback, audit, export, and validation uses.
+- Treat `report.xlsx` as the primary reviewer artifact when generated.
+- Keep `report.html`, CSV files, and `manifest.json` for browser, audit, export,
+  and validation uses.
 - Keep XLSX support optional through the `excel` extra:
 
   ```bash
@@ -153,8 +153,8 @@ Regenerate the four workbook demos after workbook/report presentation changes:
 
 ## Open Questions
 
-- Should `report.md` stay in the root bundle long-term, or eventually move to an
-  exports/audit area with the CSV files?
+- Should standalone Markdown report generation stay as a separate CLI/API, even
+  though `report.md` is no longer part of generated review bundles?
 - Should generated CSV artifacts eventually move under an `exports/`
   subdirectory? This would reduce bundle clutter but would change paths and
   validators.
