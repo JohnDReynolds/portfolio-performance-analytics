@@ -24,7 +24,12 @@ Period = tuple[dt.date, dt.date]
 AssetValues = tuple[Sequence[float], Sequence[float]]
 
 # Directories containing the test data.
-_DATA_DIRECTORIES = (Path("tests/data"), Path("../tests/data"), Path("data"))
+_DATA_DIRECTORIES = (
+    Path("tests/data"),
+    Path("../tests/data"),
+    Path("data"),
+    Path("ppar/demos/data"),
+)
 _AXYS_DIRECTORIES = [directory / "axys" for directory in _DATA_DIRECTORIES]
 _DEFAULT_AXYS_SNAPSHOT_DIRECTORY = "axys_a"
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]

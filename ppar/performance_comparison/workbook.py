@@ -23,14 +23,17 @@ REVIEW_WORKBOOK_ARTIFACT = "review_workbook"
 REVIEW_WORKBOOK_FILE_NAME = "report.xlsx"
 WORKBOOK_NUMBER_FORMAT = "0.######"
 
-EXPECTED_SHEETS = (
+PRIMARY_DIFFERENCE_SHEETS = (
     "Portfolio Differences",
     "Security Differences",
+)
+SHARED_REVIEW_SHEETS = (
     "Underlying Causes",
     "Reported Performance Checks",
     "Context",
     "Raw Audit Trail",
 )
+EXPECTED_SHEETS = (*PRIMARY_DIFFERENCE_SHEETS, *SHARED_REVIEW_SHEETS)
 REQUIRED_HEADERS = {
     "Portfolio Differences": (
         "Portfolio",
@@ -356,9 +359,13 @@ def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
     """Return review workbook sheet and header validation issues."""
     issues: list[str] = []
     sheet_names = tuple(str(name) for name in workbook.sheetnames)
-    for sheet_name in EXPECTED_SHEETS:
+    if not any(sheet_name in sheet_names for sheet_name in PRIMARY_DIFFERENCE_SHEETS):
+        expected = " or ".join(repr(sheet_name) for sheet_name in PRIMARY_DIFFERENCE_SHEETS)
+        issues.append(f"report.xlsx is missing primary sheet {expected}")
+    for sheet_name in (*PRIMARY_DIFFERENCE_SHEETS, *SHARED_REVIEW_SHEETS):
         if sheet_name not in sheet_names:
-            issues.append(f"report.xlsx is missing sheet {sheet_name!r}")
+            if sheet_name in SHARED_REVIEW_SHEETS:
+                issues.append(f"report.xlsx is missing sheet {sheet_name!r}")
             continue
         issues.extend(_review_workbook_header_issues(workbook[sheet_name], sheet_name))
     return issues

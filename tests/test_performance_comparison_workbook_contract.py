@@ -18,9 +18,18 @@ from ppar.performance_comparison import (
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
+_SECURITY_SPEC_COMPARISON_PATH = Path(
+    "ppar/demos/data/axys/ppar_performance_comparison_security_full_spec.yaml"
+)
 
-_EXPECTED_SHEETS = [
+_EXPECTED_PORTFOLIO_SHEETS = [
     "Portfolio Differences",
+    "Underlying Causes",
+    "Reported Performance Checks",
+    "Context",
+    "Raw Audit Trail",
+]
+_EXPECTED_SECURITY_SHEETS = [
     "Security Differences",
     "Underlying Causes",
     "Reported Performance Checks",
@@ -91,7 +100,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 data_only=True,
             )
             try:
-                self.assertEqual(workbook.sheetnames, _EXPECTED_SHEETS)
+                self.assertEqual(workbook.sheetnames, _EXPECTED_PORTFOLIO_SHEETS)
+                self.assertNotIn("Security Differences", workbook.sheetnames)
                 self.assertNotIn("Derived Checks", workbook.sheetnames)
 
                 self.assertEqual(
@@ -100,21 +110,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Portfolio",
                         "From Date",
                         "Thru Date",
-                        "Performance Difference",
-                        "Explained Difference",
-                        "Unexplained Difference",
-                        "Status",
-                        "Next Action",
-                        "Review Key",
-                    ],
-                )
-                self.assertEqual(
-                    _header_values(workbook["Security Differences"]),
-                    [
-                        "Portfolio",
-                        "From Date",
-                        "Thru Date",
-                        "Security",
                         "Performance Difference",
                         "Explained Difference",
                         "Unexplained Difference",
@@ -168,5 +163,48 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     workbook["Portfolio Differences"]["D2"].number_format,
                     "0.######",
                 )
+            finally:
+                workbook.close()
+
+    def test_security_review_workbook_uses_security_as_primary_level(self) -> None:
+        """Security comparison workbooks start with security-period differences."""
+        openpyxl: Any = importlib.import_module("openpyxl")
+
+        findings = compare_snapshots(_SECURITY_SPEC_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                Path(directory) / "bundle",
+                include_workbook=True,
+                comparison_path=_SECURITY_SPEC_COMPARISON_PATH,
+                comparison_level="security",
+            )
+
+            workbook = openpyxl.load_workbook(
+                paths["review_workbook"],
+                read_only=True,
+                data_only=True,
+            )
+            try:
+                self.assertEqual(workbook.sheetnames, _EXPECTED_SECURITY_SHEETS)
+                self.assertNotIn("Portfolio Differences", workbook.sheetnames)
+                self.assertEqual(
+                    _header_values(workbook["Security Differences"]),
+                    [
+                        "Portfolio",
+                        "From Date",
+                        "Thru Date",
+                        "Security",
+                        "Performance Difference",
+                        "Explained Difference",
+                        "Unexplained Difference",
+                        "Status",
+                        "Next Action",
+                        "Review Key",
+                    ],
+                )
+                review_keys = _column_values(workbook["Security Differences"], "J")
+                self.assertTrue(review_keys)
+                self.assertTrue(any(str(key).endswith("::AAA") for key in review_keys))
             finally:
                 workbook.close()

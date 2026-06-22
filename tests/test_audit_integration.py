@@ -7,14 +7,27 @@
 # Python Imports
 import unittest
 
+# Third-Party Imports
+import polars as pl
+
 # Test Imports
 from tests import test_utilities as test_util
 
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
+import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency
 from ppar.analytics.html_table import HtmlTable
+
+
+def _aapl_daily_portfolio() -> pl.DataFrame:
+    """Return a single-security daily AAPL portfolio from the Mag 7 fixture."""
+    return (
+        pl.read_csv(test_util.performance_data_path("mag7_daily"), try_parse_dates=True)
+        .filter(pl.col(cols.IDENTIFIER) == "AAPL")
+        .with_columns(pl.lit(1.0).alias(cols.WEIGHT))
+    )
 
 
 class TestAuditIntegration(unittest.TestCase):
@@ -23,7 +36,7 @@ class TestAuditIntegration(unittest.TestCase):
     def test_daily_attribution_views_and_analytics_audit(self) -> None:
         """Daily calculations audit raw mapped results and cached attributions."""
         analytics = Analytics(
-            test_util.performance_data_path("aapl_daily"),
+            _aapl_daily_portfolio(),
             test_util.performance_data_path("mag7_daily"),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",
@@ -41,7 +54,7 @@ class TestAuditIntegration(unittest.TestCase):
     def test_monthly_consolidated_attribution_views_audit(self) -> None:
         """Monthly calculations audit consolidated mapped result views."""
         analytics = Analytics(
-            test_util.performance_data_path("aapl_daily"),
+            _aapl_daily_portfolio(),
             test_util.performance_data_path("mag7_daily"),
             portfolio_classification_name="Security",
             benchmark_classification_name="Security",

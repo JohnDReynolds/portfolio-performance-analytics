@@ -77,7 +77,8 @@ dev = [
 # Console entry points installed with the package.
 ppar-analytics-demo = "ppar.demos.analytics_demo:main"
 ppar-axys-analytics-demo = "ppar.demos.axys_analytics_demo:main"
-ppar-performance-comparison-demo = "ppar.demos.performance_comparison_demo:main"
+ppar-performance-comparison-portfolio-demo = "ppar.demos.performance_comparison_portfolio_demo:main"
+ppar-performance-comparison-security-demo = "ppar.demos.performance_comparison_security_demo:main"
 
 [tool.mypy]
 python_version = "3.12"

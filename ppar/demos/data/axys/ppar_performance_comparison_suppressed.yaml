@@ -6,6 +6,7 @@
 
 comparison:
   name: Axys fixture controlled restatement comparison with suppressions
+  level: security
 
 snapshots:
   a:

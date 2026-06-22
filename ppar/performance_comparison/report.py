@@ -22,6 +22,7 @@ from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import runner as _pc_runner
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
+from ppar.performance_comparison.specification import PORTFOLIO_COMPARISON_LEVEL
 
 __all__ = [
     "write_performance_comparison_report_bundle",
@@ -139,6 +140,7 @@ def _performance_comparison_html_report(
     *,
     title: str = "Performance Comparison Report",
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> str:
     """Return the workbook-style HTML report used inside review bundles.
 
@@ -149,6 +151,7 @@ def _performance_comparison_html_report(
         comparison_path: Optional path to the comparison YAML. When provided,
             the ``Underlying Causes`` section can name the exact file to update
             for missing attribution setup.
+        comparison_level: Primary performance-result level for presentation.
 
     Returns:
         Complete HTML document string suitable for writing to disk or opening
@@ -157,6 +160,7 @@ def _performance_comparison_html_report(
     sheets = _pc_workbook_tables.performance_comparison_review_workbook_sheets(
         findings,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
     )
     return "\n".join(
         [
@@ -188,6 +192,7 @@ def _html_workbook_contents_section(
     sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
 ) -> str:
     """Return navigation for workbook-style HTML sections."""
+    primary_sheet_name = sheets[0].sheet_name if sheets else "the first sheet"
     items = [
         f'<li><a href="#{_html_section_id(sheet.sheet_name)}">'
         f"{_escape_html(sheet.sheet_name)}</a></li>"
@@ -197,8 +202,9 @@ def _html_workbook_contents_section(
         "Review Order",
         "\n".join(
             [
-                "<p>Start with Portfolio Differences, then use Underlying Causes "
-                "to see which source-data differences explain each period.</p>",
+                f"<p>Start with {_escape_html(primary_sheet_name)}, then use "
+                "Underlying Causes to see which source-data differences explain "
+                "each period.</p>",
                 '<ol class="pc-contents-list">',
                 *items,
                 "</ol>",
@@ -280,6 +286,7 @@ def _write_performance_comparison_html_report(
     *,
     title: str = "Performance Comparison Report",
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> Path:
     """Write the bundle HTML performance comparison report to disk.
 
@@ -292,6 +299,7 @@ def _write_performance_comparison_html_report(
         comparison_path: Optional path to the comparison YAML. When provided,
             the ``Underlying Causes`` section can name the exact file to update
             for missing attribution setup.
+        comparison_level: Primary performance-result level for presentation.
 
     Returns:
         Normalized ``Path`` to the written report file.
@@ -302,6 +310,7 @@ def _write_performance_comparison_html_report(
         findings,
         title=title,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
     )
     report_path.write_text(report, encoding=util.ENCODING)
     return report_path
@@ -316,6 +325,7 @@ def write_performance_comparison_report_bundle(
     include_workbook: bool = False,
     require_causal_attribution: bool = False,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
 
@@ -334,6 +344,7 @@ def write_performance_comparison_report_bundle(
         comparison_path: Optional path to the comparison YAML. When provided,
             the XLSX workbook can name the exact YAML file to update for
             missing attribution setup.
+        comparison_level: Primary performance-result level for presentation.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
@@ -354,6 +365,7 @@ def write_performance_comparison_report_bundle(
         bundle_directory / "report.html",
         title=title,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
     )
     paths["html_report"] = html_report_path
     paths["findings"] = _pc_bundle.write_csv_artifact(
@@ -371,12 +383,14 @@ def write_performance_comparison_report_bundle(
             bundle_directory / _REVIEW_WORKBOOK_FILE_NAME,
             top_evidence_limit=top_evidence_limit,
             comparison_path=comparison_path,
+            comparison_level=comparison_level,
         )
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
         title=title,
         tables=tables,
         include_workbook=include_workbook,
+        comparison_level=comparison_level,
     )
     manifest_path = bundle_directory / "manifest.json"
     paths["manifest"] = manifest_path
@@ -443,6 +457,7 @@ def write_performance_comparison_review_workbook(
     *,
     top_evidence_limit: int = 10,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -455,6 +470,7 @@ def write_performance_comparison_review_workbook(
         comparison_path: Optional path to the comparison YAML. When provided,
             the ``Underlying Causes`` sheet can name the exact file to update
             for missing attribution setup.
+        comparison_level: Primary performance-result level for presentation.
 
     Returns:
         Normalized workbook path.
@@ -464,6 +480,7 @@ def write_performance_comparison_review_workbook(
         output_path,
         top_evidence_limit=top_evidence_limit,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
     )
 
 

@@ -220,8 +220,11 @@ class TestPackageMetadata(unittest.TestCase):
             {
                 "ppar-analytics-demo": "ppar.demos.analytics_demo:main",
                 "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
-                "ppar-performance-comparison-demo": (
-                    "ppar.demos.performance_comparison_demo:main"
+                "ppar-performance-comparison-portfolio-demo": (
+                    "ppar.demos.performance_comparison_portfolio_demo:main"
+                ),
+                "ppar-performance-comparison-security-demo": (
+                    "ppar.demos.performance_comparison_security_demo:main"
                 ),
             },
         )
@@ -236,6 +239,7 @@ class TestPackageMetadata(unittest.TestCase):
             "ppar_performance_comparison_multi_restatement.yaml",
             "ppar_performance_comparison_policy_gap_demo.yaml",
             "ppar_performance_comparison_full_spec.yaml",
+            "ppar_performance_comparison_security_full_spec.yaml",
             "ppar_performance_comparison_modified_dietz.yaml",
             "axys_a/portperf.csv",
             "axys_b_restatement/secperf.csv",
@@ -273,6 +277,9 @@ class TestPackageMetadata(unittest.TestCase):
                 "ppar_performance_comparison_modified_dietz.yaml"
             ),
             "Full YAML specifications": "ppar_performance_comparison_full_spec.yaml",
+            "Security full YAML specifications": (
+                "ppar_performance_comparison_security_full_spec.yaml"
+            ),
             "Suppressed finding": "ppar_performance_comparison_suppressed.yaml",
             "Residual withheld": "ppar_performance_comparison_multi_restatement.yaml",
             "Large clean background": (

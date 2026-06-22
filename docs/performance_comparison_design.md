@@ -62,7 +62,7 @@ Implemented output helpers:
 
 User-facing entry point:
 
-- `ppar-performance-comparison-demo`: installed demo command.
+- `ppar-performance-comparison-portfolio-demo` and `ppar-performance-comparison-security-demo`: installed demo commands.
 
 Developer/internal helper modules:
 
@@ -1631,8 +1631,8 @@ name the CSVs most relevant to each changed period.
 The packaged Axys fixtures intentionally separate user-facing demos from
 validation fixtures. The user-facing path is:
 
-- `ppar.demos.performance_comparison_demo`: compact strict-attribution demo
-  writing `_demo_output/performance_comparison` with `report.xlsx`, `report.html`, CSV artifacts,
+- `ppar.demos.performance_comparison_portfolio_demo`: portfolio strict-attribution demo
+  writing `_demo_output/performance_comparison_portfolio` with `report.xlsx`, `report.html`, CSV artifacts,
   and a manifest.
 
 The remaining YAML files are scenario-coverage fixtures for tests and

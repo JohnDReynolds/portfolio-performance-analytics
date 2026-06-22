@@ -22,7 +22,7 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison import schema as pc_cols
 
-_AXYS_DATA_PATH = Path("tests/data/axys").resolve()
+_AXYS_DATA_PATH = Path("ppar/demos/data/axys").resolve()
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
 )

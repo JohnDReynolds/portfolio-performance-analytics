@@ -11,6 +11,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,6 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
+        specification = PerformanceComparisonSpecification(args.comparison_path)
         findings = compare_snapshots(
             args.comparison_path,
             include_suppressed=not args.active_only,
@@ -37,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
             include_workbook=args.include_workbook,
             require_causal_attribution=args.require_causal_attribution,
             comparison_path=args.comparison_path,
+            comparison_level=specification.comparison_level,
         )
     except PpaError as error:
         print(f"Report bundle failed: {error}", file=sys.stderr)

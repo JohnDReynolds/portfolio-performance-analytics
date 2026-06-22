@@ -18,6 +18,7 @@ _RESTATEMENT_COMPARISON_PATH = Path(
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
+_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys")
 _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
 _VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
@@ -119,7 +120,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["counts"]["findings"], 22)
+            self.assertEqual(manifest["counts"]["findings"], 17)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 4)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 4)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
@@ -351,7 +352,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 def _absolute_restatement_configuration() -> dict[str, object]:
     """Return restatement YAML values with absolute fixture paths."""
     configuration = yaml.safe_load(_RESTATEMENT_COMPARISON_PATH.read_text(encoding="utf-8"))
-    fixture_directory = _RESTATEMENT_COMPARISON_PATH.parent.resolve()
+    fixture_directory = _PACKAGED_AXYS_DATA_PATH.resolve()
     configuration["snapshots"]["a"]["path"] = str(fixture_directory / "axys_a")
     configuration["snapshots"]["b"]["path"] = str(
         fixture_directory / "axys_b_restatement"

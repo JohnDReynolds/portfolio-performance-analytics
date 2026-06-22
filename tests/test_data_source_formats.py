@@ -22,7 +22,7 @@ from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
 import ppar.utilities as util
 
-_DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/")
+_DATA_DIRECTORIES = ("tests/data/", "../tests/data/", "data/", "ppar/demos/data/")
 _CLASSIFICATION_DIRECTORIES = [f"{directory}classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [f"{directory}mappings" for directory in _DATA_DIRECTORIES]
 

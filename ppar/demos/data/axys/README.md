@@ -19,7 +19,8 @@ workbooks.
 
 | Role | Short name | YAML |
 | --- | --- | --- |
-| Workbook demo | `full_spec` | `ppar_performance_comparison_full_spec.yaml` |
+| Workbook demo | `portfolio_full_spec` | `ppar_performance_comparison_full_spec.yaml` |
+| Workbook demo | `security_full_spec` | `ppar_performance_comparison_security_full_spec.yaml` |
 | Validation fixture | `baseline` | `ppar_performance_comparison.yaml` |
 | Validation fixture | `single` | `ppar_performance_comparison_restatement.yaml` |
 | Validation fixture | `transaction_rules` | `ppar_performance_comparison_restatement_transaction_rules.yaml` |
@@ -30,29 +31,44 @@ workbooks.
 
 ## Recommended User-Facing Demo
 
-Run the packaged demo when you want the primary reviewer-facing example:
+Run the packaged portfolio demo when you want the portfolio-period reviewer-facing
+example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.performance_comparison_demo
+./.venv/bin/python -m ppar.demos.performance_comparison_portfolio_demo
 ```
 
 Output:
 
-- `_demo_output/performance_comparison/report.xlsx`
-- `_demo_output/performance_comparison/report.html`
-- `_demo_output/performance_comparison/manifest.json`
-- `_demo_output/performance_comparison/*.csv`
+- `_demo_output/performance_comparison_portfolio/report.xlsx`
+- `_demo_output/performance_comparison_portfolio/report.html`
+- `_demo_output/performance_comparison_portfolio/manifest.json`
+- `_demo_output/performance_comparison_portfolio/*.csv`
+
+Run the packaged security demo when you want the security-period reviewer-facing
+example:
+
+```bash
+./.venv/bin/python -m ppar.demos.performance_comparison_security_demo
+```
+
+Output:
+
+- `_demo_output/performance_comparison_security/report.xlsx`
+- `_demo_output/performance_comparison_security/report.html`
+- `_demo_output/performance_comparison_security/manifest.json`
+- `_demo_output/performance_comparison_security/*.csv`
 
 Start review in `report.xlsx`. Use `report.html` when you want the same review
 model in a browser. The report is designed for review, not for raw data export.
-It separates portfolio/security performance differences from underlying input
-differences and reported checks:
+It separates performance differences from underlying input differences and
+reported checks:
 
 - `Portfolio Differences` sheet: one row per portfolio period with a performance
-  difference.
-- `Security Differences` sheet: one row per security-period return difference, when
-  security performance data exists. Portfolio periods with no security-level
-  return differences get an explicit no-differences row.
+  difference in the portfolio demo.
+- `Security Differences` sheet: one row per security-period return difference in
+  the security demo. Review keys include `Portfolio`, `From Date`, `Thru Date`,
+  and `Security`.
 - `Underlying Causes` sheet: input rows such as positions, transactions, cash, prices,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
@@ -79,16 +95,17 @@ Data used:
 
 Expected workbook:
 
-- Changed portfolio periods in the `Portfolio Differences` sheet.
-- One changed security-period return in the `Security Differences` sheet.
+- Changed portfolio periods in the portfolio demo `Portfolio Differences` sheet.
+- One changed security-period return in the security demo `Security Differences`
+  sheet.
 - `Underlying Causes` sheet should show additive transaction amount, position market
   value, position accrued, position quantity, weighted price, and cash examples.
 - `Underlying Causes` sheet should also show an explicit evidence-only position
   cost row with `Required YAML Setup` set to `None; configured as evidence-only
   in comparison YAML.`
 - `Reported Performance Checks` sheet should show configured
-  portfolio/security performance estimates such as security-return weighting,
-  vendor contribution delta, and portfolio source-field delta. These confirm
+  performance estimates such as security-return weighting and portfolio
+  source-field delta. These confirm
   performance-output differences but are not labeled as root-cause input
   differences.
 - Some portfolio changes may still be unexplained when the changed data falls
@@ -105,7 +122,9 @@ After generating the workbook demo bundle, validate it with:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison
+  _demo_output/performance_comparison_portfolio
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
+  _demo_output/performance_comparison_security
 ```
 
 ## Validation Fixtures
@@ -151,6 +170,7 @@ Validate the full packaged scenario matrix, including these fixtures, with:
 | Context-only evidence | `multi` | Review context without treating it as impact. | Covered |
 | Modified Dietz cross-check | `modified_dietz` | Review cross-check. | Covered |
 | Full YAML specifications | `full_spec` | Run strict causal attribution with all supported policies configured. | Covered |
+| Security full YAML specifications | `security_full_spec` | Review security-period differences with security review keys. | Covered |
 | Suppressed finding | `suppressed` | Exclude from active review; keep audit-visible. | Covered |
 | Residual withheld | `multi` | Resolve partial or missing estimates first. | Covered |
 | Large clean background | `multi` | Confirm unchanged periods do not create false positives. | Covered |

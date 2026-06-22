@@ -6,11 +6,15 @@ from __future__ import annotations
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.portfolio_performance import SnapshotKey
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.specification import (
+    SECURITY_COMPARISON_LEVEL,
+    PerformanceComparisonSpecification,
+)
 import ppar.utilities as util
 
 
@@ -50,6 +54,8 @@ class SecurityPerformanceLoader:
             snapshot_key,
         )
         if path is None or not util.file_path_exists(path):
+            if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
+                raise PpaError(self._error_message(util.file_path_error(path or "")), 802)
             return None
 
         frame = source_loader.read_schema_mapped_csv(
@@ -78,4 +84,11 @@ class SecurityPerformanceLoader:
             dataset_name=pc_cols.SECURITY_PERFORMANCE,
             path=path,
             specification_path=self._specification.path,
+        )
+
+    def _error_message(self, message: str) -> str:
+        """Return an error message with comparison specification context."""
+        return (
+            f"{message}  |  "
+            f"comparison_specification_path={self._specification.path}"
         )

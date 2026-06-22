@@ -23,7 +23,15 @@ _LABEL_KEY: Final[str] = "label"
 _VENDOR_KEY: Final[str] = "vendor"
 _SCHEMA_KEY: Final[str] = "schema"
 _REQUIRED_KEY: Final[str] = "required"
+_COMPARISON_KEY: Final[str] = "comparison"
+_LEVEL_KEY: Final[str] = "level"
 _PORTFOLIO_PERFORMANCE_KEY: Final[str] = "portfolio_performance"
+_SECURITY_PERFORMANCE_KEY: Final[str] = "security_performance"
+PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
+SECURITY_COMPARISON_LEVEL: Final[str] = "security"
+COMPARISON_LEVELS: Final[frozenset[str]] = frozenset(
+    {PORTFOLIO_COMPARISON_LEVEL, SECURITY_COMPARISON_LEVEL}
+)
 
 
 @dataclass(frozen=True)
@@ -73,10 +81,13 @@ class PerformanceComparisonSpecification:
         snapshot_a: Resolved snapshot A settings.
         snapshot_b: Resolved snapshot B settings.
         files: Resolved file settings keyed by normalized dataset name.
+        comparison_level: Primary performance-result level to compare. The
+            default is ``"portfolio"``; ``"security"`` uses
+            ``security_performance`` as the target performance-result dataset.
 
     Notes:
-        ``portfolio_performance`` is always required. Other files are optional
-        unless they are configured with ``required: true``, which only controls
+        The primary performance-result file is always required. Other files are
+        optional unless configured with ``required: true``, which only controls
         preflight file-existence validation.
     """
 
@@ -100,6 +111,7 @@ class PerformanceComparisonSpecification:
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
+        self.comparison_level = self._comparison_level()
         self.snapshot_a = self._snapshot(_SNAPSHOT_A_KEY)
         self.snapshot_b = self._snapshot(_SNAPSHOT_B_KEY)
         self.files = self._files()
@@ -182,9 +194,10 @@ class PerformanceComparisonSpecification:
         files_value = self.values.get(_FILES_KEY)
         if not isinstance(files_value, dict):
             raise PpaError(self._error_message("files must be a mapping."), 504)
-        if _PORTFOLIO_PERFORMANCE_KEY not in files_value:
+        required_performance_file = self._required_performance_file_name()
+        if required_performance_file not in files_value:
             raise PpaError(
-                self._error_message("files.portfolio_performance is required."),
+                self._error_message(f"files.{required_performance_file} is required."),
                 504,
             )
 
@@ -197,7 +210,7 @@ class PerformanceComparisonSpecification:
 
     def _file(self, file_name: str, file_value: object) -> ComparisonFile:
         """Return one resolved comparison file definition."""
-        required = file_name == _PORTFOLIO_PERFORMANCE_KEY
+        required = file_name == self._required_performance_file_name()
         if isinstance(file_value, str):
             relative_path = Path(file_value)
         elif isinstance(file_value, dict):
@@ -208,10 +221,10 @@ class PerformanceComparisonSpecification:
                     504,
                 )
             if _REQUIRED_KEY in file_value:
-                if file_name == _PORTFOLIO_PERFORMANCE_KEY:
+                if file_name == self._required_performance_file_name():
                     raise PpaError(
                         self._error_message(
-                            "files.portfolio_performance must not specify required."
+                            f"files.{file_name} must not specify required."
                         ),
                         504,
                     )
@@ -238,6 +251,30 @@ class PerformanceComparisonSpecification:
             snapshot_b_path=self._snapshot_file_path(self.snapshot_b, relative_path),
             required=required,
         )
+
+    def _comparison_level(self) -> str:
+        """Return the primary comparison level from YAML settings."""
+        comparison_value = self.values.get(_COMPARISON_KEY, {})
+        if comparison_value is None:
+            comparison_value = {}
+        if not isinstance(comparison_value, dict):
+            raise PpaError(self._error_message("comparison must be a mapping."), 504)
+        level_value = comparison_value.get(_LEVEL_KEY, PORTFOLIO_COMPARISON_LEVEL)
+        if not isinstance(level_value, str) or level_value not in COMPARISON_LEVELS:
+            allowed_values = ", ".join(sorted(COMPARISON_LEVELS))
+            raise PpaError(
+                self._error_message(
+                    f"comparison.level must be one of: {allowed_values}."
+                ),
+                504,
+            )
+        return level_value
+
+    def _required_performance_file_name(self) -> str:
+        """Return the required performance-result file for the comparison level."""
+        if self.comparison_level == SECURITY_COMPARISON_LEVEL:
+            return _SECURITY_PERFORMANCE_KEY
+        return _PORTFOLIO_PERFORMANCE_KEY
 
     @staticmethod
     def _snapshot_file_path(

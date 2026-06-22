@@ -137,7 +137,8 @@ Run the bundled demos from an installed environment:
 ```bash
 ppar-analytics-demo
 ppar-axys-analytics-demo
-ppar-performance-comparison-demo
+ppar-performance-comparison-portfolio-demo
+ppar-performance-comparison-security-demo
 ```
 
 ---
@@ -145,10 +146,12 @@ ppar-performance-comparison-demo
 ## Performance Comparison
 
 The performance comparison feature compares two source-data snapshots and helps
-explain why reported portfolio performance changed between extraction dates. It
-loads normalized portfolio performance, security performance, transactions,
-positions, prices, FX rates, cash, and security-reference data, then writes a
-review bundle with HTML, CSV, manifest, and optional XLSX workbook artifacts.
+explain why reported performance changed between extraction dates. Portfolio
+comparison uses `portfolio_performance` as the primary result dataset; security
+comparison uses `security_performance` as the primary result dataset. Both paths
+can use normalized transactions, positions, prices, FX rates, cash, and
+security-reference data, then write a review bundle with HTML, CSV, manifest,
+and XLSX workbook artifacts.
 
 Use these entry points:
 
@@ -166,17 +169,18 @@ Use these entry points:
 Source-checkout smoke test:
 
 ```bash
-./.venv/bin/python -m ppar.demos.performance_comparison_demo
+./.venv/bin/python -m ppar.demos.performance_comparison_portfolio_demo
+./.venv/bin/python -m ppar.demos.performance_comparison_security_demo
 ```
 
 Generated demo artifacts live under `_demo_output/analytics`,
-`_demo_output/axys_analytics`, and `_demo_output/performance_comparison`. The
-core analytics demo prompts for reporting periodicity and writes both tables and
-charts; the Axys analytics demo is noninteractive. All three demos write files
-and print the review paths instead of opening browser windows automatically.
-The performance comparison demo writes both `report.xlsx` and `report.html`;
-start review in
-`_demo_output/performance_comparison/report.xlsx`.
+`_demo_output/axys_analytics`, `_demo_output/performance_comparison_portfolio`,
+and `_demo_output/performance_comparison_security`. The core analytics demo
+prompts for reporting periodicity and writes both tables and charts; the Axys
+analytics demo is noninteractive. All demos write files and print the review
+paths instead of opening browser windows automatically. The performance
+comparison demos write both `report.xlsx` and `report.html`; start review in
+the generated `report.xlsx`.
 
 ---
 

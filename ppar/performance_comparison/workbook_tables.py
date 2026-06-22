@@ -17,6 +17,10 @@ from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import workbook as _pc_workbook
+from ppar.performance_comparison.specification import (
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+)
 
 __all__ = [
     "performance_comparison_review_workbook_sheets",
@@ -72,6 +76,7 @@ def write_performance_comparison_review_workbook(
     *,
     top_evidence_limit: int = 10,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -84,6 +89,7 @@ def write_performance_comparison_review_workbook(
         comparison_path: Optional path to the comparison YAML. When provided,
             the ``Underlying Causes`` sheet can name the exact file to update
             for missing attribution setup.
+        comparison_level: Primary performance-result level for the workbook.
 
     Returns:
         Normalized workbook path.
@@ -102,6 +108,7 @@ def write_performance_comparison_review_workbook(
         performance_comparison_review_workbook_sheets(
             findings,
             comparison_path=comparison_path,
+            comparison_level=comparison_level,
         ),
         output_path,
         column_tooltip=workbook_column_tooltip,
@@ -112,6 +119,7 @@ def performance_comparison_review_workbook_sheets(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return review workbook sheet specifications in reviewer-first order.
 
@@ -121,33 +129,74 @@ def performance_comparison_review_workbook_sheets(
         comparison_path: Optional path to the comparison YAML. When provided,
             the ``Underlying Causes`` sheet can name the exact file to update
             for missing attribution setup.
+        comparison_level: Primary performance-result level for the workbook.
 
     Returns:
         Ordered sheet specifications used by both the XLSX workbook and the
         browser report.
     """
     active_findings = _active_findings(findings)
+    primary_sheet = (
+        _security_differences_sheet(active_findings)
+        if comparison_level == SECURITY_COMPARISON_LEVEL
+        else _portfolio_differences_sheet(active_findings)
+    )
     return (
-        _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="portfolio_changes",
-            sheet_name="Portfolio Differences",
-            table=_workbook_portfolio_changes_table(active_findings),
-            columns=_workbook_portfolio_changes_columns(),
-            labels=_workbook_column_labels(),
+        primary_sheet,
+        *_shared_detail_sheets(
+            findings,
+            active_findings,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
         ),
-        _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="security_changes",
-            sheet_name="Security Differences",
-            table=_workbook_security_changes_table(active_findings),
-            columns=_workbook_security_changes_columns(),
-            labels=_workbook_column_labels(),
+    )
+
+
+def _portfolio_differences_sheet(
+    active_findings: pl.DataFrame,
+) -> _pc_workbook.ReviewWorkbookSheet:
+    """Return the portfolio-level primary differences sheet."""
+    return _pc_workbook.ReviewWorkbookSheet(
+        artifact_name="portfolio_differences",
+        sheet_name="Portfolio Differences",
+        table=_workbook_portfolio_changes_table(active_findings),
+        columns=_workbook_portfolio_changes_columns(),
+        labels=_workbook_column_labels(),
+    )
+
+
+def _security_differences_sheet(
+    active_findings: pl.DataFrame,
+) -> _pc_workbook.ReviewWorkbookSheet:
+    """Return the security-level primary differences sheet."""
+    return _pc_workbook.ReviewWorkbookSheet(
+        artifact_name="security_differences",
+        sheet_name="Security Differences",
+        table=_workbook_security_changes_table(
+            active_findings,
+            comparison_level=SECURITY_COMPARISON_LEVEL,
         ),
+        columns=_workbook_security_changes_columns(),
+        labels=_workbook_column_labels(),
+    )
+
+
+def _shared_detail_sheets(
+    findings: pl.DataFrame,
+    active_findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None,
+    comparison_level: str,
+) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
+    """Return detail sheets shared by portfolio and security workflows."""
+    return (
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="underlying_causes",
             sheet_name="Underlying Causes",
             table=_workbook_underlying_causes_table(
                 active_findings,
                 comparison_path=comparison_path,
+                comparison_level=comparison_level,
             ),
             columns=_workbook_underlying_cause_columns(),
             labels=_workbook_column_labels(),
@@ -155,7 +204,10 @@ def performance_comparison_review_workbook_sheets(
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="derived_checks",
             sheet_name="Reported Performance Checks",
-            table=_workbook_derived_checks_table(active_findings),
+            table=_workbook_derived_checks_table_for_level(
+                active_findings,
+                comparison_level=comparison_level,
+            ),
             columns=_workbook_non_additive_change_columns(),
             labels=_workbook_column_labels(),
         ),
@@ -170,7 +222,7 @@ def performance_comparison_review_workbook_sheets(
             artifact_name="raw_audit_trail",
             sheet_name="Raw Audit Trail",
             table=_workbook_sorted_table(
-                _with_period_review_key(findings),
+                _workbook_with_primary_review_key(findings, comparison_level),
                 _workbook_left_review_sort_columns(),
             ),
             columns=_workbook_findings_columns(findings),
@@ -228,6 +280,62 @@ def _workbook_period_key(row: Mapping[str, object]) -> tuple[object, object, obj
         row.get(_pc_findings.FROM_DATE),
         row.get(_pc_findings.THRU_DATE),
     )
+
+
+def _workbook_primary_key(
+    row: Mapping[str, object],
+    comparison_level: str,
+) -> tuple[object, ...]:
+    """Return the workbook grouping key for the configured comparison level."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return _workbook_security_period_key(row)
+    return _workbook_period_key(row)
+
+
+def _workbook_with_primary_review_key(
+    table: pl.DataFrame,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Add the review key matching the configured comparison level."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return _with_security_review_key(table)
+    return _with_period_review_key(table)
+
+
+def _workbook_top_evidence_table(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Return top evidence rows for the configured comparison level."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return _pc_explain.security_top_evidence_table(
+            findings,
+            top_evidence_limit=findings.height,
+        )
+    return _pc_explain.top_evidence_table(findings, top_evidence_limit=findings.height)
+
+
+def _workbook_primary_cause_summary(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Return cause summary rows for the configured comparison level."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return _pc_explain.security_period_cause_summary(findings)
+    return _pc_explain.portfolio_period_cause_summary(findings)
+
+
+def _workbook_primary_coverage_summary(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Return coverage summary rows for the configured comparison level."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return _pc_explain.security_period_summary(findings)
+    return _pc_explain.portfolio_period_impact_coverage_summary(findings)
 
 
 def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, object]:
@@ -326,10 +434,17 @@ def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
     )
 
 
-def _workbook_security_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
+def _workbook_security_changes_table(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+) -> pl.DataFrame:
     """Return one workbook row per changed security period."""
     summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
-    security_totals = _workbook_security_underlying_impact_totals(findings)
+    security_totals = _workbook_security_underlying_impact_totals(
+        findings,
+        comparison_level=comparison_level,
+    )
     rows: list[dict[str, object]] = []
     if not summary.is_empty():
         rows = [
@@ -355,10 +470,15 @@ def _workbook_security_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
 
 def _workbook_security_underlying_impact_totals(
     findings: pl.DataFrame,
+    *,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> dict[tuple[object, object, object, object], float]:
     """Return security-level explained totals from underlying input rows."""
     totals: dict[tuple[object, object, object, object], float] = {}
-    for row in _workbook_ranked_changed_rows(findings):
+    for row in _workbook_ranked_changed_rows_for_level(
+        findings,
+        comparison_level=comparison_level,
+    ):
         if not _workbook_is_underlying_cause_row(row):
             continue
         if not _has_text(row.get(_pc_findings.SECURITY_ID)):
@@ -467,16 +587,38 @@ def _workbook_empty_security_changes_table() -> pl.DataFrame:
 
 def _workbook_ranked_changed_rows(findings: pl.DataFrame) -> list[dict[str, object]]:
     """Return ranked changed rows with selected additive impacts marked."""
-    evidence = _with_period_review_key(
-        _pc_explain.top_evidence_table(findings, top_evidence_limit=findings.height)
+    return _workbook_ranked_changed_rows_for_level(
+        findings,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
+
+
+def _workbook_ranked_changed_rows_for_level(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> list[dict[str, object]]:
+    """Return ranked changed rows for one primary comparison level."""
+    evidence = _workbook_with_primary_review_key(
+        _workbook_top_evidence_table(findings, comparison_level=comparison_level),
+        comparison_level,
     )
     if evidence.is_empty():
         return []
 
-    selected_impact_bases = _workbook_selected_impact_basis_keys(findings)
+    selected_impact_bases = _workbook_selected_impact_basis_keys(
+        findings,
+        comparison_level=comparison_level,
+    )
     rows: list[dict[str, object]] = []
     for row in evidence.iter_rows(named=True):
-        rows.append(_workbook_selected_impact_row(row, selected_impact_bases))
+        rows.append(
+            _workbook_selected_impact_row(
+                row,
+                selected_impact_bases,
+                comparison_level=comparison_level,
+            )
+        )
     return rows
 
 
@@ -484,14 +626,24 @@ def _workbook_underlying_causes_table(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> pl.DataFrame:
     """Return input rows that may directly explain performance differences."""
     rows = [
         _workbook_changed_item_row(row, comparison_path=comparison_path)
-        for row in _workbook_ranked_changed_rows(findings)
+        for row in _workbook_ranked_changed_rows_for_level(
+            findings,
+            comparison_level=comparison_level,
+        )
         if _workbook_is_underlying_cause_row(row)
     ]
-    rows.extend(_workbook_missing_underlying_cause_rows(findings, rows))
+    rows.extend(
+        _workbook_missing_underlying_cause_rows(
+            findings,
+            rows,
+            comparison_level=comparison_level,
+        )
+    )
     if not rows:
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
@@ -503,21 +655,24 @@ def _workbook_underlying_causes_table(
 def _workbook_missing_underlying_cause_rows(
     findings: pl.DataFrame,
     underlying_rows: Sequence[Mapping[str, object]],
+    *,
+    comparison_level: str,
 ) -> list[dict[str, object]]:
     """Return placeholder rows for changed periods without input causes."""
-    coverage = _with_period_review_key(
-        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    coverage = _workbook_with_primary_review_key(
+        _workbook_primary_coverage_summary(findings, comparison_level=comparison_level),
+        comparison_level,
     )
     if coverage.is_empty():
         return []
 
     underlying_period_keys = {
-        _workbook_period_key(row)
+        _workbook_primary_key(row, comparison_level)
         for row in underlying_rows
     }
     rows: list[dict[str, object]] = []
     for row in coverage.iter_rows(named=True):
-        if _workbook_period_key(row) in underlying_period_keys:
+        if _workbook_primary_key(row, comparison_level) in underlying_period_keys:
             continue
         rows.append(_workbook_missing_underlying_cause_row(row))
     return rows
@@ -533,7 +688,7 @@ def _workbook_missing_underlying_cause_row(
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
         _USE: _USE_DIAGNOSTIC,
         _CHANGE_LABEL: "No underlying input differences found",
-        _pc_findings.SECURITY_ID: None,
+        _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
         _pc_findings.SNAPSHOT_A_VALUE: None,
         _pc_findings.SNAPSHOT_B_VALUE: None,
         _CHANGE: None,
@@ -559,9 +714,24 @@ def _workbook_missing_underlying_cause_row(
 
 def _workbook_derived_checks_table(findings: pl.DataFrame) -> pl.DataFrame:
     """Return derived performance rows used as checks, not root causes."""
+    return _workbook_derived_checks_table_for_level(
+        findings,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
+
+
+def _workbook_derived_checks_table_for_level(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Return derived performance rows for one primary comparison level."""
     rows = [
         _workbook_changed_item_row(_workbook_non_additive_row(row))
-        for row in _workbook_ranked_changed_rows(findings)
+        for row in _workbook_ranked_changed_rows_for_level(
+            findings,
+            comparison_level=comparison_level,
+        )
         if _workbook_is_derived_check_row(row)
     ]
     if not rows:
@@ -601,13 +771,18 @@ def _workbook_left_review_sort_columns() -> tuple[str, ...]:
 
 def _workbook_selected_impact_basis_keys(
     findings: pl.DataFrame,
-) -> set[tuple[object, object, object, object]]:
+    *,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+) -> set[tuple[object, ...]]:
     """Return period/impact-basis keys included in Portfolio Differences totals."""
-    causes = _pc_explain.portfolio_period_cause_summary(findings)
+    causes = _workbook_primary_cause_summary(
+        findings,
+        comparison_level=comparison_level,
+    )
     if causes.is_empty():
         return set()
 
-    keys: set[tuple[object, object, object, object]] = set()
+    keys: set[tuple[object, ...]] = set()
     for row in causes.iter_rows(named=True):
         if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
             continue
@@ -616,9 +791,7 @@ def _workbook_selected_impact_basis_keys(
             continue
         keys.add(
             (
-                row.get(_pc_findings.PORTFOLIO_ID),
-                row.get(_pc_findings.FROM_DATE),
-                row.get(_pc_findings.THRU_DATE),
+                *_workbook_primary_key(row, comparison_level),
                 impact_basis,
             )
         )
@@ -627,7 +800,9 @@ def _workbook_selected_impact_basis_keys(
 
 def _workbook_selected_impact_row(
     row: Mapping[str, object],
-    selected_impact_bases: set[tuple[object, object, object, object]],
+    selected_impact_bases: set[tuple[object, ...]],
+    *,
+    comparison_level: str,
 ) -> dict[str, object]:
     """Return row with unselected candidate estimates cleared for the workbook."""
     row_dict = dict(row)
@@ -635,9 +810,7 @@ def _workbook_selected_impact_row(
         return row_dict
 
     key = (
-        row_dict.get(_pc_findings.PORTFOLIO_ID),
-        row_dict.get(_pc_findings.FROM_DATE),
-        row_dict.get(_pc_findings.THRU_DATE),
+        *_workbook_primary_key(row_dict, comparison_level),
         row_dict.get(_pc_explain.IMPACT_BASIS),
     )
     if key in selected_impact_bases:

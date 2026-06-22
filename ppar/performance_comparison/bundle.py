@@ -14,6 +14,10 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.performance_comparison import workbook as _pc_workbook
+from ppar.performance_comparison.specification import (
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+)
 
 __all__ = [
     "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
@@ -65,6 +69,7 @@ def write_report_bundle_readme(
     title: str,
     tables: Mapping[str, pl.DataFrame],
     include_workbook: bool,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> Path:
     """Write a portable report-bundle README.
 
@@ -73,14 +78,20 @@ def write_report_bundle_readme(
         title: Report title to show as the README heading.
         tables: Named CSV helper tables included in the bundle.
         include_workbook: Whether the bundle includes the XLSX review workbook.
+        comparison_level: Primary performance-result level for presentation.
 
     Returns:
         Normalized destination path.
     """
+    primary_sheet = (
+        "Security Differences"
+        if comparison_level == SECURITY_COMPARISON_LEVEL
+        else "Portfolio Differences"
+    )
     excel_line = (
-        "- `report.xlsx`: Excel review workbook with the Portfolio Differences sheet, "
-        "Security Differences sheet, Underlying Causes sheet, Reported Performance "
-        "Checks sheet, Context sheet, and Raw Audit Trail sheet."
+        f"- `report.xlsx`: Excel review workbook with the {primary_sheet} sheet, "
+        "Underlying Causes sheet, Reported Performance Checks sheet, Context "
+        "sheet, and Raw Audit Trail sheet."
     )
     html_line = (
         "- `report.html`: browser review report with the same sections and order as "
@@ -98,9 +109,9 @@ def write_report_bundle_readme(
         else "Open `report.html` for the browser review."
     )
     first_review_step = (
-        "1. Open `report.xlsx` or `report.html` and start with Portfolio Differences."
+        f"1. Open `report.xlsx` or `report.html` and start with {primary_sheet}."
         if include_workbook
-        else "1. Open `report.html` and start with Portfolio Differences."
+        else f"1. Open `report.html` and start with {primary_sheet}."
     )
     lines = [
         f"# {_escape_readme_text(title)}",
@@ -115,8 +126,8 @@ def write_report_bundle_readme(
         "## Recommended Review Order",
         "",
         first_review_step,
-        "2. Use Underlying Causes to see which source-data differences explain each "
-        "portfolio period.",
+        "2. Use Underlying Causes to see which source-data differences explain "
+        "each performance period.",
         "3. Use Reported Performance Checks, Context, and Raw Audit Trail as "
         "supporting detail.",
         "4. Use the `review_key` column to follow a period across CSV artifacts.",

@@ -291,6 +291,19 @@ PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS = (
     TOP_CODES,
     IMPACT_MESSAGE,
 )
+SECURITY_PERIOD_CAUSE_SUMMARY_COLUMNS = (
+    PORTFOLIO_ID,
+    SECURITY_ID,
+    FROM_DATE,
+    THRU_DATE,
+    ROOT_CAUSE_AREA,
+    FINDING_COUNT,
+    ESTIMATED_RETURN_IMPACT,
+    IMPACT_BASIS,
+    IMPACT_CONFIDENCE,
+    TOP_CODES,
+    IMPACT_MESSAGE,
+)
 ROOT_CAUSE_AREA_COUNT = "root_cause_area_count"
 ESTIMATED_CAUSE_AREA_COUNT = "estimated_cause_area_count"
 EVIDENCE_ONLY_CAUSE_AREA_COUNT = "evidence_only_cause_area_count"
@@ -624,6 +637,55 @@ def rank_portfolio_period_evidence(
     return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
 
 
+def rank_security_period_evidence(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return review-priority evidence rows for security-period deltas.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed findings should be included in
+            the ranked evidence.
+
+    Returns:
+        One row per related non-target finding, ranked within each security
+        period. The score is a review-priority heuristic.
+    """
+    if findings.is_empty():
+        return _empty_portfolio_period_evidence_ranking()
+
+    active_findings = _active_findings(findings, include_suppressed)
+    target_findings = active_findings.filter(
+        (pl.col(FINDING_CODE) == PC_SEC_RET)
+        & (pl.col(DATASET) == pc_cols.SECURITY_PERFORMANCE)
+        & (pl.col(SOURCE_COLUMN) == pc_cols.SECURITY_RETURN)
+    )
+    if target_findings.is_empty():
+        return _empty_portfolio_period_evidence_ranking()
+
+    rows: list[dict[str, object]] = []
+    for target in target_findings.iter_rows(named=True):
+        related_active = _related_security_period_findings(active_findings, target)
+        evidence = related_active.filter(pl.col(EVIDENCE_ROLE) != TARGET_OUTPUT)
+        ranked_rows = sorted(
+            (
+                _ranked_evidence_row(target, finding)
+                for finding in evidence.iter_rows(named=True)
+            ),
+            key=_portfolio_period_evidence_sort_key,
+        )
+        for review_rank, row in enumerate(ranked_rows, start=1):
+            row[REVIEW_RANK] = review_rank
+            rows.append(row)
+
+    if not rows:
+        return _empty_portfolio_period_evidence_ranking()
+    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
+
+
 def portfolio_period_contribution_candidates(
     findings: pl.DataFrame,
     *,
@@ -643,6 +705,37 @@ def portfolio_period_contribution_candidates(
         defensible linkage, denominator, and method are available.
     """
     ranking = rank_portfolio_period_evidence(
+        findings,
+        include_suppressed=include_suppressed,
+    )
+    if ranking.is_empty():
+        return _empty_portfolio_period_contribution_candidates()
+
+    rows = [
+        _contribution_candidate_row(row)
+        for row in ranking.iter_rows(named=True)
+    ]
+    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+
+
+def security_period_contribution_candidates(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return contribution candidates for security-period deltas.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed findings should be included in
+            contribution candidates.
+
+    Returns:
+        Ranked security-period evidence rows with stable contribution-impact
+        columns.
+    """
+    ranking = rank_security_period_evidence(
         findings,
         include_suppressed=include_suppressed,
     )
@@ -677,6 +770,32 @@ def top_evidence_table(
 
     rows: list[dict[str, object]] = []
     for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
+        rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
+    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+
+
+def security_top_evidence_table(
+    findings: pl.DataFrame,
+    top_evidence_limit: int,
+) -> pl.DataFrame:
+    """Return top contribution-candidate rows per security period.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        top_evidence_limit: Maximum number of ranked evidence rows to return per
+            security period.
+
+    Returns:
+        Ranked contribution-candidate rows limited within each security period.
+    """
+    candidates = security_period_contribution_candidates(findings)
+    if candidates.is_empty():
+        return candidates
+
+    rows: list[dict[str, object]] = []
+    group_columns = [PORTFOLIO_ID, SECURITY_ID, FROM_DATE, THRU_DATE]
+    for _, group in candidates.group_by(group_columns):
         rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
     return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
 
@@ -718,6 +837,49 @@ def portfolio_period_cause_summary(
     ]
     sorted_rows = sorted(rows, key=_portfolio_period_cause_summary_sort_key)
     return pl.DataFrame(sorted_rows).select(PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS)
+
+
+def security_period_cause_summary(
+    findings: pl.DataFrame,
+    *,
+    include_suppressed: bool = False,
+) -> pl.DataFrame:
+    """Return cause-area summaries for security-period return deltas.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+        include_suppressed: Whether suppressed findings should be included in
+            contribution candidates and cause-area summaries.
+
+    Returns:
+        One row per portfolio/security/period and coarse root-cause area.
+    """
+    candidates = security_period_contribution_candidates(
+        findings,
+        include_suppressed=include_suppressed,
+    )
+    if candidates.is_empty():
+        return _empty_security_period_cause_summary()
+
+    buckets: dict[tuple[object, object, object, object, str], list[dict[str, object]]] = {}
+    for row in candidates.iter_rows(named=True):
+        cause_area = _root_cause_area(row)
+        key = (
+            row[PORTFOLIO_ID],
+            row[SECURITY_ID],
+            row[FROM_DATE],
+            row[THRU_DATE],
+            cause_area,
+        )
+        buckets.setdefault(key, []).append(row)
+
+    rows = [
+        _security_period_cause_summary_row(key, bucket_rows)
+        for key, bucket_rows in buckets.items()
+    ]
+    sorted_rows = sorted(rows, key=_security_period_cause_summary_sort_key)
+    return pl.DataFrame(sorted_rows).select(SECURITY_PERIOD_CAUSE_SUMMARY_COLUMNS)
 
 
 def portfolio_period_impact_coverage_summary(
@@ -1797,6 +1959,36 @@ def _portfolio_period_cause_summary_row(
     }
 
 
+def _security_period_cause_summary_row(
+    key: tuple[object, object, object, object, str],
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    """Return one security-period cause-area summary row."""
+    portfolio_id, security_id, from_date, thru_date, root_cause_area = key
+    estimated_impact = _summed_estimated_return_impact(rows)
+    impact_basis = _summary_impact_basis(rows)
+    impact_confidence = _summary_impact_confidence(rows)
+    top_codes = _top_codes(rows)
+    return {
+        PORTFOLIO_ID: portfolio_id,
+        SECURITY_ID: security_id,
+        FROM_DATE: from_date,
+        THRU_DATE: thru_date,
+        ROOT_CAUSE_AREA: root_cause_area,
+        FINDING_COUNT: len(rows),
+        ESTIMATED_RETURN_IMPACT: estimated_impact,
+        IMPACT_BASIS: impact_basis,
+        IMPACT_CONFIDENCE: impact_confidence,
+        TOP_CODES: top_codes,
+        IMPACT_MESSAGE: _summary_impact_message(
+            root_cause_area,
+            estimated_impact,
+            top_codes,
+            rows,
+        ),
+    }
+
+
 def _impact_coverage_summary_row(
     period: dict[str, object],
     causes: list[dict[str, object]],
@@ -2144,6 +2336,18 @@ def _portfolio_period_cause_summary_sort_key(
         -absolute_impact,
         -finding_count_sort,
         str(row[ROOT_CAUSE_AREA]),
+    )
+
+
+def _security_period_cause_summary_sort_key(
+    row: dict[str, object],
+) -> tuple[object, ...]:
+    """Return deterministic ordering for security cause-area summaries."""
+    portfolio_key = _portfolio_period_cause_summary_sort_key(row)
+    return (
+        portfolio_key[0],
+        str(row[SECURITY_ID]),
+        *portfolio_key[1:],
     )
 
 
@@ -2771,6 +2975,25 @@ def _empty_portfolio_period_cause_summary() -> pl.DataFrame:
     return pl.DataFrame(
         schema={
             PORTFOLIO_ID: pl.String,
+            FROM_DATE: pl.Date,
+            THRU_DATE: pl.Date,
+            ROOT_CAUSE_AREA: pl.String,
+            FINDING_COUNT: pl.UInt32,
+            ESTIMATED_RETURN_IMPACT: pl.Float64,
+            IMPACT_BASIS: pl.String,
+            IMPACT_CONFIDENCE: pl.String,
+            TOP_CODES: pl.String,
+            IMPACT_MESSAGE: pl.String,
+        }
+    )
+
+
+def _empty_security_period_cause_summary() -> pl.DataFrame:
+    """Return empty security cause-area summary with stable columns."""
+    return pl.DataFrame(
+        schema={
+            PORTFOLIO_ID: pl.String,
+            SECURITY_ID: pl.String,
             FROM_DATE: pl.Date,
             THRU_DATE: pl.Date,
             ROOT_CAUSE_AREA: pl.String,

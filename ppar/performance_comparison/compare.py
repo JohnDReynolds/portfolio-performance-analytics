@@ -88,7 +88,10 @@ from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.security_master import SecurityMasterLoader
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.specification import (
+    SECURITY_COMPARISON_LEVEL,
+    PerformanceComparisonSpecification,
+)
 from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
@@ -309,11 +312,10 @@ class PerformanceComparison:
         """Compare all currently supported normalized datasets.
 
         Returns:
-            Portfolio findings plus security performance findings when the
-            optional security performance dataset is available.
+            Findings for the configured primary performance-result dataset plus
+            shared source-data findings.
         """
-        findings = self.compare_portfolio_performance()
-        findings.extend(self.compare_security_performance())
+        findings = self._primary_performance_findings()
         findings.extend(self.compare_security_master())
         findings.extend(self.compare_positions())
         findings.extend(self.compare_cash())
@@ -321,6 +323,12 @@ class PerformanceComparison:
         findings.extend(self.compare_fx_rates())
         findings.extend(self.compare_transactions())
         return apply_suppressions(findings, self._specification)
+
+    def _primary_performance_findings(self) -> list[Finding]:
+        """Return findings for the configured primary performance-result layer."""
+        if self._specification.comparison_level == SECURITY_COMPARISON_LEVEL:
+            return self.compare_security_performance()
+        return self.compare_portfolio_performance()
 
     def compare_security_performance(self) -> list[Finding]:
         """Compare security performance rows for snapshots A and B.

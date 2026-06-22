@@ -30,6 +30,7 @@ _RESTATEMENT_TRANSACTION_RULES_YAML = (
 )
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
 _FULL_SPEC_YAML = "ppar_performance_comparison_full_spec.yaml"
+_SECURITY_FULL_SPEC_YAML = "ppar_performance_comparison_security_full_spec.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_performance_comparison_suppressed.yaml"
@@ -99,6 +100,9 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
         demo_directory / _FULL_SPEC_YAML,
         require_causal_attribution=True,
     )
+    security_full_spec_findings = compare_snapshots(
+        demo_directory / _SECURITY_FULL_SPEC_YAML,
+    )
     modified_dietz_findings = compare_snapshots(demo_directory / _MODIFIED_DIETZ_YAML)
     policy_gap_findings = compare_snapshots(demo_directory / _POLICY_GAP_YAML)
     suppressed_findings = compare_snapshots(demo_directory / _SUPPRESSED_YAML)
@@ -155,6 +159,7 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
         _check_large_clean_background(demo_directory, multi_findings),
         _check_modified_dietz_cross_check(modified_dietz_cross_checks),
         _check_full_spec_strict_attribution(full_spec_findings),
+        _check_security_full_spec_attribution(security_full_spec_findings),
         _check_suppressed_findings(
             suppressed_findings,
             suppressed_active_findings,
@@ -358,8 +363,6 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         _pc_explain.IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE,
         _pc_explain.IMPACT_BASIS_PRICE_WEIGHTED,
         _pc_explain.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-        _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION,
-        _pc_explain.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
         _pc_explain.IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
     }
     missing = sorted(expected_bases - impact_bases)
@@ -385,6 +388,32 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         name,
         True,
         "strict attribution accepted full YAML and covered all impact bases",
+    )
+
+
+def _check_security_full_spec_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether the security full-spec fixture exercises security impact."""
+    name = "Security full YAML specifications"
+    cause_summary = _pc_explain.security_period_cause_summary(findings)
+    if cause_summary.is_empty():
+        return _ScenarioCheck(name, False, "security cause summary is empty")
+
+    impact_bases = {
+        str(value)
+        for value in cause_summary.get_column(_pc_explain.IMPACT_BASIS).to_list()
+    }
+    expected_bases = {_pc_explain.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED}
+    missing = sorted(expected_bases - impact_bases)
+    if missing:
+        return _ScenarioCheck(
+            name,
+            False,
+            f"security fixture is missing impact basis value(s): {', '.join(missing)}",
+        )
+    return _ScenarioCheck(
+        name,
+        True,
+        "security attribution covered security-period impact bases",
     )
 
 
