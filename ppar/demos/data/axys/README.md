@@ -12,33 +12,41 @@ From a source checkout, validate the covered scenarios with:
 
 ## Comparison YAML Files By Role
 
-There are eight packaged comparison YAML files, but only four are intended as
-user-facing XLSX workbook demos. The others are validation fixtures that keep
-specific edge cases covered without asking reviewers to inspect extra
+There are eight packaged comparison YAML files, but only one is intended as the
+primary user-facing XLSX workbook demo. The others are validation fixtures that
+keep specific edge cases covered without asking reviewers to inspect extra
 workbooks.
 
 | Role | Short name | YAML |
 | --- | --- | --- |
-| Workbook demo | `baseline` | `ppar_performance_comparison.yaml` |
-| Workbook demo | `single` | `ppar_performance_comparison_restatement.yaml` |
-| Workbook demo | `transaction_rules` | `ppar_performance_comparison_restatement_transaction_rules.yaml` |
 | Workbook demo | `full_spec` | `ppar_performance_comparison_full_spec.yaml` |
+| Validation fixture | `baseline` | `ppar_performance_comparison.yaml` |
+| Validation fixture | `single` | `ppar_performance_comparison_restatement.yaml` |
+| Validation fixture | `transaction_rules` | `ppar_performance_comparison_restatement_transaction_rules.yaml` |
 | Validation fixture | `multi` | `ppar_performance_comparison_multi_restatement.yaml` |
 | Validation fixture | `modified_dietz` | `ppar_performance_comparison_modified_dietz.yaml` |
 | Validation fixture | `policy_gap` | `ppar_performance_comparison_policy_gap_demo.yaml` |
 | Validation fixture | `suppressed` | `ppar_performance_comparison_suppressed.yaml` |
 
-## XLSX Workbook Demo Commands
+## Recommended User-Facing Demo
 
-Run these commands from the repository root after installing the optional Excel
-dependency with `./.venv/bin/python -m pip install -e ".[excel]"`. Each command
-writes a report bundle and an Excel workbook at
-`_demo_output/workbooks/<demo_name>/report.xlsx`.
+Run the packaged demo when you want the primary reviewer-facing example:
 
-For these XLSX demos, start review in `report.xlsx`. Use `report.html` when you
-want the same review model in a browser. The report is designed for review, not
-for raw data export. It separates portfolio/security performance differences
-from underlying input differences and reported checks:
+```bash
+./.venv/bin/python -m ppar.demos.performance_comparison_demo
+```
+
+Output:
+
+- `_demo_output/performance_comparison/report.xlsx`
+- `_demo_output/performance_comparison/report.html`
+- `_demo_output/performance_comparison/manifest.json`
+- `_demo_output/performance_comparison/*.csv`
+
+Start review in `report.xlsx`. Use `report.html` when you want the same review
+model in a browser. The report is designed for review, not for raw data export.
+It separates portfolio/security performance differences from underlying input
+differences and reported checks:
 
 - `Portfolio Differences` sheet: one row per portfolio period with a performance
   difference.
@@ -59,116 +67,6 @@ from underlying input differences and reported checks:
 - `Context` sheet: review-only supporting rows that are not used to explain return
   differences.
 - `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
-
-### 1. Baseline / Clean Comparison
-
-```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison.yaml \
-  _demo_output/workbooks/baseline \
-  --include-workbook
-```
-
-Data used:
-
-- Snapshot A: `axys_a`
-- Snapshot B: `axys_b`
-- Files: portfolio performance, security performance, security master, prices,
-  FX rates, transactions, positions, and cash.
-- YAML: intentionally has no causal-attribution policy blocks because the data
-  is expected to compare cleanly.
-
-Expected workbook:
-
-- `Portfolio Differences` sheet: one message row indicating that no portfolio
-  performance differences were found.
-- `Security Differences` sheet: empty
-- `Underlying Causes` sheet: empty
-- `Reported Performance Checks` sheet: empty
-- `Context` sheet: empty
-- `Raw Audit Trail` sheet: empty
-
-Why: this is the clean/no-issue control fixture. It proves the comparison can
-run without producing false positives. An empty workbook is the expected result.
-
-### 2. Single Restatement
-
-```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_restatement.yaml \
-  _demo_output/workbooks/single_restatement \
-  --include-workbook
-```
-
-Data used:
-
-- Snapshot A: `axys_a`
-- Snapshot B: `axys_b_restatement`
-- Files: full Axys-shaped data set: portfolio performance, security
-  performance, security master, prices, FX rates, transactions, positions, and
-  cash.
-- YAML: includes contribution policies for portfolio source fields, vendor
-  contribution, and security-return weighting.
-- YAML gap: does not include transaction rules or transaction impact methods.
-
-Expected workbook:
-
-- A small review workbook with one changed portfolio period and one changed
-  security period.
-- `Underlying Causes` sheet should show restated source values such as positions,
-  transactions, cash, and prices.
-- `Reported Performance Checks` sheet should show portfolio/security performance
-  rows such as gain/loss and contribution changes without treating them as root
-  causes.
-- `Portfolio Differences` sheet should indicate that some setup is missing because
-  transaction semantics are not fully specified.
-
-Why: this fixture shows a controlled restatement, but intentionally leaves
-transaction interpretation incomplete so the reviewer can see the setup action
-that would be needed for more complete attribution.
-
-### 3. Single Restatement With Transaction Rules
-
-```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml \
-  _demo_output/workbooks/transaction_rules \
-  --include-workbook
-```
-
-Data used:
-
-- Snapshot A: `axys_a`
-- Snapshot B: `axys_b_restatement`
-- Files: same full Axys-shaped data set as the single restatement demo.
-- YAML: adds transaction rules for `BUY`, `SELL`, `DIV`, and `INT`.
-- YAML: adds transaction impact methods for performance transactions,
-  evidence-only external flows, and review-only transaction quantity, price,
-  and commission.
-
-Expected workbook:
-
-- Similar changed portfolio/security rows as the single restatement demo.
-- Transaction amount rows should have `Performance Difference Explained` because
-  the YAML supplies sign/flow semantics and a transaction amount impact method.
-- Transaction quantity, price, and configured commission rows remain visible as
-  review-only input differences so they do not double-count the transaction
-  amount explanation.
-- This fixture isolates transaction-related setup. Other non-transaction
-  input differences may still require separate YAML decisions.
-
-Why: this fixture shows how the same data becomes more actionable when YAML
-defines transaction behavior instead of asking the reviewer to infer it.
-
-### 4. Full YAML Specifications / Strict Attribution
-
-```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml \
-  _demo_output/workbooks/full_spec \
-  --include-workbook \
-  --require-causal-attribution
-```
 
 Data used:
 
@@ -203,11 +101,11 @@ Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and the YAML complete while still distinguishing
 underlying input causes from derived performance checks.
 
-After generating any workbook demo bundle, validate it with:
+After generating the workbook demo bundle, validate it with:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/workbooks/<demo_name>
+  _demo_output/performance_comparison
 ```
 
 ## Validation Fixtures
@@ -216,6 +114,12 @@ The remaining comparison YAML files are primarily scenario-coverage fixtures,
 not recommended XLSX workbook demos. They are exercised by
 `ppar.performance_comparison.cli.validate_demo_matrix` and targeted unit tests.
 
+- `baseline`: Tests the clean/no-issue control case and proves the comparison
+  can run without producing false positives.
+- `single`: Tests missing transaction setup guidance on a controlled
+  restatement.
+- `transaction_rules`: Tests that transaction amount rows become explainable
+  when YAML supplies transaction rules and impact methods.
 - `multi`: Stress-tests multiple portfolios, multiple periods, context rows,
   residual/coverage behavior, workbook accounting invariants, and a large
   clean multi-period background portfolio that should not create false

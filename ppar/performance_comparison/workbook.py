@@ -130,7 +130,7 @@ class ReviewWorkbookSheet:
 
 
 def ensure_openpyxl_installed() -> None:
-    """Raise a clear error if the optional Excel dependency is unavailable.
+    """Raise a clear error if the Excel workbook dependency is unavailable.
 
     Raises:
         PpaError: If ``openpyxl`` is not installed.
@@ -155,7 +155,7 @@ def write_review_workbook_sheets(
         Normalized workbook path.
 
     Raises:
-        PpaError: If the optional Excel dependency group is not installed.
+        PpaError: If the Excel workbook dependency is not installed.
     """
     workbook_class, styles = _load_openpyxl()
     workbook = workbook_class()
@@ -187,13 +187,12 @@ def workbook_artifact_issues(
         return [f"artifact file {artifact_file!r} is missing"]
 
     try:
-        # Optional dependency: only needed when validating an optional workbook.
         # pylint: disable=import-outside-toplevel
         from openpyxl import load_workbook  # type: ignore[import-not-found]
     except ImportError:
         return [
-            "report.xlsx cannot be validated because optional dependency "
-            '"ppar[excel]" is not installed'
+            "report.xlsx cannot be validated because dependency 'openpyxl' "
+            "is not installed"
         ]
 
     try:
@@ -207,17 +206,16 @@ def workbook_artifact_issues(
 
 
 def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
-    """Return openpyxl classes or raise a clear optional-dependency error."""
+    """Return openpyxl classes or raise a clear dependency error."""
     try:
-        # Optional dependency: keep base package imports free of Excel libraries.
         # pylint: disable=import-outside-toplevel
         from openpyxl import Workbook  # type: ignore[import-not-found]
         from openpyxl.comments import Comment  # type: ignore[import-not-found]
         from openpyxl.styles import Font, PatternFill  # type: ignore[import-not-found]
     except ImportError as error:
         raise PpaError(
-            "XLSX review workbook export requires the optional Excel dependency. "
-            'Install it with: pip install "ppar[excel]"',
+            "XLSX review workbook export requires dependency 'openpyxl'. "
+            "Install the package with its runtime dependencies.",
             None,
         ) from error
     return (

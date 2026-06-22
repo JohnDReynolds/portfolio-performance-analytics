@@ -138,10 +138,6 @@ Run the bundled demos from an installed environment:
 ppar-analytics-demo
 ppar-axys-analytics-demo
 ppar-performance-comparison-demo
-ppar-performance-comparison-report-bundle
-ppar-performance-comparison-validate-bundle
-ppar-performance-comparison-validate-config
-ppar-performance-comparison-validate-demo-matrix
 ```
 
 ---
@@ -156,8 +152,9 @@ review bundle with HTML, CSV, manifest, and optional XLSX workbook artifacts.
 
 Use these entry points:
 
-- [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): exact workbook
-  demo commands, YAML files, data used, and expected XLSX output.
+- [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): recommended
+  workbook demo command, packaged YAML fixtures, data used, and expected XLSX
+  output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
   validators, generated outputs, and common workflows.
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
@@ -170,25 +167,16 @@ Source-checkout smoke test:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_bundle
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
-For XLSX workbook demos, install the Excel extra and use the commands in the
-[Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md). Start review in
-`report.xlsx`; use `report.html` when you want the same review model in a
-browser.
-
-```bash
-./.venv/bin/python -m pip install -e ".[excel]"
-./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_restatement.yaml \
-  _demo_output/workbooks/single_restatement \
-  --include-workbook
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/workbooks/single_restatement
-```
+Generated demo artifacts live under `_demo_output/analytics`,
+`_demo_output/axys_analytics`, and `_demo_output/performance_comparison`. The
+core analytics demo prompts for reporting periodicity and writes both tables and
+charts; the Axys analytics demo is noninteractive. All three demos write files
+and print the review paths instead of opening browser windows automatically.
+The performance comparison demo writes both `report.xlsx` and `report.html`;
+start review in
+`_demo_output/performance_comparison/report.xlsx`.
 
 ---
 

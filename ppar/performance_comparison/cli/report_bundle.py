@@ -33,7 +33,6 @@ def main(argv: list[str] | None = None) -> int:
             findings,
             args.output_directory,
             title=args.title,
-            include_suppressed_appendix=not args.no_suppressed_appendix,
             top_evidence_limit=args.top_evidence_limit,
             include_workbook=args.include_workbook,
             require_causal_attribution=args.require_causal_attribution,
@@ -84,14 +83,9 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Exclude suppressed findings from the report bundle input.",
     )
     parser.add_argument(
-        "--no-suppressed-appendix",
-        action="store_true",
-        help="Reserved for standalone report compatibility.",
-    )
-    parser.add_argument(
         "--include-workbook",
         action="store_true",
-        help="Write optional report.xlsx. Requires ppar[excel].",
+        help="Write report.xlsx in addition to report.html and CSV artifacts.",
     )
     parser.add_argument(
         "--require-causal-attribution",

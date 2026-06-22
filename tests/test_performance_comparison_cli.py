@@ -1,4 +1,4 @@
-"""Tests for the performance comparison Markdown report CLI."""
+"""Tests for performance comparison command-line modules."""
 
 # Python imports
 import json
@@ -15,14 +15,9 @@ import yaml
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
 )
-_SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
-)
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
-_REPORT_MODULE = "ppar.performance_comparison.cli.report"
-_HTML_REPORT_MODULE = "ppar.performance_comparison.cli.html_report"
 _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
 _VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
@@ -30,13 +25,11 @@ _VALIDATE_DEMO_MATRIX_MODULE = "ppar.performance_comparison.cli.validate_demo_ma
 
 
 class TestPerformanceComparisonCli(unittest.TestCase):
-    """Verify command-line Markdown report generation."""
+    """Verify command-line report generation and validation commands."""
 
     def test_report_cli_modules_expose_help(self) -> None:
         """Report CLI modules expose consistent command-line help."""
         module_expectations = {
-            _REPORT_MODULE: "Write a Markdown performance comparison report.",
-            _HTML_REPORT_MODULE: "Write an HTML performance comparison report.",
             _BUNDLE_MODULE: (
                 "Write a performance comparison review artifact bundle."
             ),
@@ -67,8 +60,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
     def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
         """Report CLI modules reject surprising negative evidence-row limits."""
         module_output_args = {
-            _REPORT_MODULE: ("comparison.md",),
-            _HTML_REPORT_MODULE: ("comparison.html",),
             _BUNDLE_MODULE: ("bundle",),
         }
 
@@ -91,130 +82,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertEqual(result.returncode, 2)
                     self.assertIn("--top-evidence-limit", result.stderr)
                     self.assertIn("must be greater than or equal to 0", result.stderr)
-
-    def test_report_cli_modules_reject_non_integer_top_evidence_limit(self) -> None:
-        """Report CLI modules reject non-integer evidence-row limits."""
-        with tempfile.TemporaryDirectory() as directory:
-            result = subprocess.run(
-                _module_command(
-                    _REPORT_MODULE,
-                    str(_RESTATEMENT_COMPARISON_PATH),
-                    str(Path(directory) / "comparison.md"),
-                    "--top-evidence-limit",
-                    "many",
-                ),
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("--top-evidence-limit", result.stderr)
-        self.assertIn("must be an integer", result.stderr)
-
-    def test_cli_module_writes_markdown_report(self) -> None:
-        """The CLI module writes a report for a comparison YAML file."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "reports" / "comparison.md"
-
-            result = subprocess.run(
-                _module_command(
-                    _REPORT_MODULE,
-                    str(_RESTATEMENT_COMPARISON_PATH),
-                    str(output_path),
-                    "--title",
-                    "Script Restatement Report",
-                    "--top-evidence-limit",
-                    "2",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertIn(str(output_path), result.stdout)
-            self.assertTrue(output_path.exists())
-            report = output_path.read_text(encoding="utf-8")
-            self.assertIn("# Script Restatement Report", report)
-            self.assertIn("## Impact Estimate Summary", report)
-            self.assertIn("## Residual Status", report)
-            self.assertIn("## Transaction Activity", report)
-            self.assertIn("## Top Evidence", report)
-            self.assertIn("PC-PORT-MV", report)
-
-    def test_cli_module_can_omit_suppressed_appendix(self) -> None:
-        """The CLI module can suppress the suppressed-findings appendix section."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "comparison.md"
-
-            subprocess.run(
-                _module_command(
-                    _REPORT_MODULE,
-                    str(_SUPPRESSED_COMPARISON_PATH),
-                    str(output_path),
-                    "--no-suppressed-appendix",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            report = output_path.read_text(encoding="utf-8")
-            self.assertIn("- Suppressed findings: 1", report)
-            self.assertNotIn("## Suppressed Findings Appendix", report)
-
-    def test_html_cli_module_writes_html_report(self) -> None:
-        """The HTML CLI module writes a browser-readable report file."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "reports" / "comparison.html"
-
-            result = subprocess.run(
-                _module_command(
-                    _HTML_REPORT_MODULE,
-                    str(_RESTATEMENT_COMPARISON_PATH),
-                    str(output_path),
-                    "--title",
-                    "Script HTML Report",
-                    "--top-evidence-limit",
-                    "2",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertIn(str(output_path), result.stdout)
-            self.assertTrue(output_path.exists())
-            report = output_path.read_text(encoding="utf-8")
-            self.assertIn("<h1>Script HTML Report</h1>", report)
-            self.assertIn('id="portfolio-differences"', report)
-            self.assertIn('id="underlying-causes"', report)
-            self.assertIn('id="raw-audit-trail"', report)
-            self.assertIn("security_contribution", report)
-            self.assertIn("PC-TXN-AMT", _html_section(report, "raw-audit-trail"))
-
-    def test_html_cli_module_can_omit_suppressed_appendix(self) -> None:
-        """The HTML CLI module can suppress the suppressed-findings appendix."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "comparison.html"
-
-            subprocess.run(
-                _module_command(
-                    _HTML_REPORT_MODULE,
-                    str(_SUPPRESSED_COMPARISON_PATH),
-                    str(output_path),
-                    "--active-only",
-                    "--no-suppressed-appendix",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            report = output_path.read_text(encoding="utf-8")
-            self.assertIn('id="portfolio-differences"', report)
-            self.assertIn("Portfolio Differences", report)
-            self.assertNotIn("Suppressed Findings Appendix</h2>", report)
 
     def test_bundle_cli_module_writes_report_bundle(self) -> None:
         """The bundle CLI module writes HTML, CSV, and manifest artifacts."""
@@ -266,30 +133,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertNotIn("report", manifest["artifacts"])
-
-    def test_bundle_cli_module_supports_active_only_and_omits_appendix(self) -> None:
-        """The bundle CLI module passes active-only and appendix options through."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "bundle"
-
-            subprocess.run(
-                _module_command(
-                    _BUNDLE_MODULE,
-                    str(_SUPPRESSED_COMPARISON_PATH),
-                    str(output_directory),
-                    "--active-only",
-                    "--no-suppressed-appendix",
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            manifest = json.loads(
-                (output_directory / "manifest.json").read_text(encoding="utf-8")
-            )
-            self.assertEqual(manifest["counts"]["findings"], 21)
-            self.assertEqual(manifest["counts"]["suppressed_findings"], 0)
 
     def test_bundle_cli_module_can_require_causal_attribution(self) -> None:
         """The bundle CLI module can fail before writing ambiguous attribution."""
@@ -480,9 +323,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
         self.assertIn("Demo matrix validation passed:", result.stdout)
         self.assertIn("Clean/no issue", result.stdout)
-        self.assertIn("Missing contribution policy", result.stdout)
+        self.assertIn("Missing price impact method", result.stdout)
         self.assertIn("Missing transaction method", result.stdout)
-        self.assertIn("Missing transaction sign/flow semantics", result.stdout)
+        self.assertIn("Missing transaction rules", result.stdout)
         self.assertIn("Multi-portfolio missing specifications", result.stdout)
         self.assertIn("Single-restatement transaction rows", result.stdout)
         self.assertIn("Transaction rules amount explanation", result.stdout)
@@ -520,12 +363,6 @@ def _absolute_restatement_configuration() -> dict[str, object]:
         fixture_directory / "axys_column_mappings.yaml"
     )
     return configuration
-
-
-def _html_section(report: str, section_id: str) -> str:
-    """Return one HTML section by id."""
-    start = f'<section class="pc-section" id="{section_id}">'
-    return report.split(start, maxsplit=1)[1].split("</section>", maxsplit=1)[0]
 
 
 def _module_command(module_name: str, *args: str) -> list[str]:

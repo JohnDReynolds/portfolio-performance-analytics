@@ -13,7 +13,6 @@ import polars as pl
 
 # Project imports
 import ppar.utilities as util
-from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import workbook as _pc_workbook
 
 __all__ = [
@@ -104,7 +103,7 @@ def write_report_bundle_readme(
         else "1. Open `report.html` and start with Portfolio Differences."
     )
     lines = [
-        f"# {_pc_rendering.escape_markdown_text(title)}",
+        f"# {_escape_readme_text(title)}",
         "",
         "This directory is a portable performance-comparison review bundle.",
         opening_line,
@@ -132,13 +131,18 @@ def write_report_bundle_readme(
     return output_path
 
 
+def _escape_readme_text(value: object) -> str:
+    """Return normalized text safe for generated README Markdown."""
+    text = " ".join(str(value).split())
+    return text.replace("|", "\\|")
+
+
 def write_report_bundle_manifest(
     output_path: Path,
     *,
     findings: pl.DataFrame,
     active_findings: pl.DataFrame,
     title: str,
-    include_suppressed_appendix: bool,
     top_evidence_limit: int,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
@@ -150,8 +154,6 @@ def write_report_bundle_manifest(
         findings: Complete findings table.
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
-        include_suppressed_appendix: Compatibility flag recorded in the
-            manifest for standalone report options.
         top_evidence_limit: Maximum number of evidence rows shown per period.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
@@ -163,7 +165,6 @@ def write_report_bundle_manifest(
         findings=findings,
         active_findings=active_findings,
         title=title,
-        include_suppressed_appendix=include_suppressed_appendix,
         top_evidence_limit=top_evidence_limit,
         artifact_paths=artifact_paths,
         tables=tables,
@@ -180,7 +181,6 @@ def report_bundle_manifest(
     findings: pl.DataFrame,
     active_findings: pl.DataFrame,
     title: str,
-    include_suppressed_appendix: bool,
     top_evidence_limit: int,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
@@ -191,8 +191,6 @@ def report_bundle_manifest(
         findings: Complete findings table.
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
-        include_suppressed_appendix: Compatibility flag recorded in the
-            manifest for standalone report options.
         top_evidence_limit: Maximum number of evidence rows shown per period.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
@@ -206,7 +204,6 @@ def report_bundle_manifest(
         "created_at": dt.datetime.now(dt.UTC).isoformat(),
         "title": title,
         "options": {
-            "include_suppressed_appendix": include_suppressed_appendix,
             "top_evidence_limit": top_evidence_limit,
         },
         "counts": {

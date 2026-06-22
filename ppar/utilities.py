@@ -8,12 +8,8 @@ path, tolerance, data-source, and linking semantics used internally.
 import datetime as dt
 from enum import Enum
 import math
-import os
 from pathlib import Path
-import tempfile
-import time
-from typing import Iterable, Sequence, TypeAlias
-import webbrowser
+from typing import Sequence, TypeAlias
 
 # Third-Party Imports
 import numpy as np
@@ -45,15 +41,12 @@ __all__ = [
     "file_basename_without_extension",
     "file_path_error",
     "file_path_exists",
-    "has_directory",
     "normalize_optional_string",
     "load_datasource",
     "logarithmic_linking_coefficients",
     "logarithmic_linking_coefficient_series",
     "logarithmic_smoothing_coefficients",
     "near_zero",
-    "open_in_browser",
-    "to_tuple_or_none",
 ]
 
 # Types for type-checking.
@@ -214,19 +207,6 @@ def file_path_exists(file_path: PathLike) -> bool:
     if isinstance(file_path, str) and not file_path.strip():
         return False
     return Path(file_path).is_file()
-
-
-def has_directory(path_str: PathLike) -> bool:
-    """Return whether a path includes an explicit directory component.
-
-    Args:
-        path_str: The path string to test.
-
-    Returns:
-        True if ``path_str`` has a parent directory other than the current
-        directory; otherwise, False.
-    """
-    return Path(path_str).parent != Path(".")
 
 
 def normalize_optional_string(value: str | None) -> str | None:
@@ -413,67 +393,3 @@ def near_zero(f: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:
         True if ``f`` is within ``tolerance`` of zero; otherwise, False.
     """
     return are_near(f, 0, tolerance)
-
-
-def open_in_browser(html_or_png: str | bytes) -> None:
-    """Write HTML or PNG content to a temp file and open it in a browser.
-
-    Args:
-        html_or_png: HTML content as a string, or PNG content as bytes.
-
-    Raises:
-        Exception: Re-raises the final exception from ``webbrowser.open`` after
-            all retry attempts fail.
-    """
-    # Determine if the file is html or png
-    suffix = ".html" if isinstance(html_or_png, str) else ".png"
-
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
-        # Write html_or_png to a temp_file.
-        if isinstance(html_or_png, str):  # suffix == ".html":
-            with open(temp_file.name, "w", encoding=ENCODING) as f:
-                f.write(html_or_png)
-        else:
-            with open(temp_file.name, "wb") as f:
-                f.write(html_or_png)
-
-        # Some web browsers need the local file name prefixed.  It depends on which web browser
-        # (e.g. Safari or Chrome) and the settings and security restrictions.
-        url = f"file://{os.path.abspath(temp_file.name)}"
-
-        # Open the file in a browser. Sometimes it takes a while for the file to be fully written
-        # and accesible to the browser, so give it 2 seconds before failing.  If you are
-        # rapid-firing multiple files to this function, the image browser can get overwhelmed,
-        # especially on old win10 machines.  So sleep 0.7 seconds after opening the file.  Note
-        # that the os will delete the temp file.
-        qty_trys = 10
-        for i in range(qty_trys):
-            try:
-                webbrowser.open(url)
-                time.sleep(0.7)
-                break
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                if i == qty_trys - 1:
-                    print(f"Could not open the file {url}.  {e}")
-                    raise  # Re-raise the exception
-                time.sleep(0.2)
-
-
-def to_tuple_or_none(value: Iterable[str] | str | None) -> tuple[str, ...] | None:
-    """Normalize a string iterable, single string, or None to a tuple or None.
-
-    Args:
-        value: The value to normalize.
-
-    Returns:
-        None if ``value`` is None or an empty string; a one-item tuple if
-        ``value`` is a non-empty string; otherwise, ``value`` converted to a
-        tuple.
-    """
-    if value is None:
-        return None
-    if isinstance(value, str):
-        if not value:
-            return None
-        return (value,)
-    return tuple(value)

@@ -66,8 +66,6 @@ from ppar.performance_comparison import (
     compact_findings_table,
     compare_snapshots,
     findings_to_polars,
-    performance_comparison_html_report,
-    performance_comparison_markdown_report,
     portfolio_period_cause_summary,
     portfolio_period_contribution_candidates,
     portfolio_period_evidence_breakdown,
@@ -83,8 +81,6 @@ from ppar.performance_comparison import (
     transaction_activity_summary,
     transaction_matching_diagnostics,
     validate_causal_attribution_ready,
-    write_performance_comparison_html_report,
-    write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
     write_performance_comparison_review_workbook,
 )
@@ -138,10 +134,6 @@ class TestPackageMetadata(unittest.TestCase):
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in optional_dependencies["charts"]
         }
-        excel_dependencies = {
-            dependency.split(">=", maxsplit=1)[0].lower()
-            for dependency in optional_dependencies["excel"]
-        }
         dev_dependencies = {
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in optional_dependencies["dev"]
@@ -149,11 +141,11 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
+        self.assertIn("openpyxl", pyproject_dependencies)
         self.assertNotIn("matplotlib", pyproject_dependencies)
         self.assertIn("matplotlib", chart_dependencies)
         self.assertIn("seaborn", chart_dependencies)
-        self.assertEqual(excel_dependencies, {"openpyxl"})
-        self.assertTrue(excel_dependencies.isdisjoint(pyproject_dependencies))
+        self.assertNotIn("excel", optional_dependencies)
         self.assertIn("pytest", dev_dependencies)
 
     def test_distribution_metadata_includes_license_and_build_backend(self) -> None:
@@ -230,24 +222,6 @@ class TestPackageMetadata(unittest.TestCase):
                 "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
                 "ppar-performance-comparison-demo": (
                     "ppar.demos.performance_comparison_demo:main"
-                ),
-                "ppar-performance-comparison-html-report": (
-                    "ppar.performance_comparison.cli.html_report:main"
-                ),
-                "ppar-performance-comparison-report": (
-                    "ppar.performance_comparison.cli.report:main"
-                ),
-                "ppar-performance-comparison-report-bundle": (
-                    "ppar.performance_comparison.cli.report_bundle:main"
-                ),
-                "ppar-performance-comparison-validate-bundle": (
-                    "ppar.performance_comparison.cli.validate_bundle:main"
-                ),
-                "ppar-performance-comparison-validate-config": (
-                    "ppar.performance_comparison.cli.validate_config:main"
-                ),
-                "ppar-performance-comparison-validate-demo-matrix": (
-                    "ppar.performance_comparison.cli.validate_demo_matrix:main"
                 ),
             },
         )
@@ -453,10 +427,6 @@ class TestPackageMetadata(unittest.TestCase):
             "portfolio_period_transaction_cross_checks": (
                 portfolio_period_transaction_cross_checks
             ),
-            "performance_comparison_html_report": performance_comparison_html_report,
-            "performance_comparison_markdown_report": (
-                performance_comparison_markdown_report
-            ),
             "rank_portfolio_period_evidence": rank_portfolio_period_evidence,
             "report_bundle_validation_issues": report_bundle_validation_issues,
             "security_period_evidence_breakdown": security_period_evidence_breakdown,
@@ -465,12 +435,6 @@ class TestPackageMetadata(unittest.TestCase):
             "validate_causal_attribution_ready": validate_causal_attribution_ready,
             "transaction_activity_summary": transaction_activity_summary,
             "transaction_matching_diagnostics": transaction_matching_diagnostics,
-            "write_performance_comparison_html_report": (
-                write_performance_comparison_html_report
-            ),
-            "write_performance_comparison_markdown_report": (
-                write_performance_comparison_markdown_report
-            ),
             "write_performance_comparison_report_bundle": (
                 write_performance_comparison_report_bundle
             ),
@@ -508,31 +472,11 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_performance_comparison_report_import_contract(self) -> None:
         """The report module exposes only report rendering and writing helpers."""
         expected_exports = {
-            "performance_comparison_html_report",
-            "performance_comparison_markdown_report",
-            "write_performance_comparison_html_report",
-            "write_performance_comparison_markdown_report",
             "write_performance_comparison_report_bundle",
             "write_performance_comparison_review_workbook",
         }
 
         self.assertEqual(set(performance_comparison_report.__all__), expected_exports)
-        self.assertIs(
-            performance_comparison_html_report,
-            performance_comparison_report.performance_comparison_html_report,
-        )
-        self.assertIs(
-            performance_comparison_markdown_report,
-            performance_comparison_report.performance_comparison_markdown_report,
-        )
-        self.assertIs(
-            write_performance_comparison_html_report,
-            performance_comparison_report.write_performance_comparison_html_report,
-        )
-        self.assertIs(
-            write_performance_comparison_markdown_report,
-            performance_comparison_report.write_performance_comparison_markdown_report,
-        )
         self.assertIs(
             write_performance_comparison_report_bundle,
             performance_comparison_report.write_performance_comparison_report_bundle,

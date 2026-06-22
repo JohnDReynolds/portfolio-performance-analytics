@@ -1,9 +1,12 @@
 """Demonstrate ppar analytics, attribution, chart, and output features.
 
 This module builds a sample ``Analytics`` instance from bundled demonstration
-data, displays selected attribution tables or charts in a web browser, displays
-risk statistics, and exercises the main output-format methods.
+data, writes attribution tables, charts, and risk statistics to demo output
+files, and exercises the main output-format methods.
 """
+
+# Python imports
+from pathlib import Path
 
 # Project Imports
 from ppar.analytics import Analytics
@@ -12,23 +15,22 @@ import ppar.demos.demo_data_sources as demo_data
 from ppar.analytics.frequency import Frequency
 import ppar.utilities as util
 
+_OUTPUT_DIRECTORY = Path("_demo_output") / "analytics"
 
-def run_demo(periodicity: str, tables_or_charts: str) -> None:
+
+def run_demo(periodicity: str) -> None:
     """Run the bundled ppar demonstration.
 
     The demo loads sample portfolio and benchmark performance data, optionally
     filters the monthly demo date range, creates attribution results by security
-    and economic sector, and opens either formatted tables or charts in the
-    default web browser. When tables are displayed, ex-post risk statistics are
-    also displayed.
+    and economic sector, and writes formatted tables, charts, and ex-post risk
+    statistics to ``_demo_output/analytics``.
 
     Args:
         periodicity: Reporting periodicity selector. Values from with
             ``"q"`` or ``"Q"`` use quarterly reporting, values from with
             ``"y"`` or ``"Y"`` use yearly reporting, and all other values use
             monthly reporting.
-        tables_or_charts: Output selector. Values from with ``"c"`` or
-            ``"C"`` display charts; all other values display tables.
 
     Raises:
         PpaError: Propagated from ppar analytics, attribution, performance,
@@ -44,8 +46,7 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
     else:
         frequency = Frequency.YEARLY
 
-    # Determine whether to display tables or charts.
-    display_tables = len(tables_or_charts) < 1 or (tables_or_charts[0] not in ("c", "C"))
+    written_paths: list[Path] = []
 
     # Portfolio and benchmark data sources use narrow rows. The weights for each
     # time period must sum to 1.0. The time periods can be of any duration, and
@@ -90,15 +91,13 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
             frequency=frequency,
         )
 
-    if display_tables:
-        # Get the Attribution instance by Security.
-        attribution_by_security = analytics.get_attribution()
+    # Get the Attribution instance by Security.
+    attribution_by_security = analytics.get_attribution()
 
-        # Get an html string of the overall attribution results by Security.
-        html = attribution_by_security.to_html(View.OVERALL_ATTRIBUTION)
+    # Get an html string of the overall attribution results by Security.
+    html = attribution_by_security.to_html(View.OVERALL_ATTRIBUTION)
 
-        # Display the html string in a browser.
-        util.open_in_browser(html)
+    written_paths.append(_write_html("security_overall_attribution.html", html))
 
     # Set the classification_name for another Attribution.
     classification_name = "Economic Sector"
@@ -141,32 +140,28 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
         mapping_data_sources,
     )
 
-    # Display the ouput in a webbrowser.
-    if display_tables:
-        # Display selected attribution views in a browser.
-        for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
-            html = attribution_by_sector.to_html(view)
-            util.open_in_browser(html)
-    else:
-        # Display some of the attribution charts in a browser.
-        for chart in (
-            Chart.OVERALL_CONTRIBUTION,
-            Chart.OVERALL_ATTRIBUTION,
-            Chart.SUBPERIOD_ATTRIBUTION,
-            Chart.HEATMAP_ACTIVE_CONTRIBUTION,
-            Chart.HEATMAP_ATTRIBUTION,
-            Chart.CUMULATIVE_ATTRIBUTION,
-            Chart.CUMULATIVE_RETURN,
-        ):
-            png = attribution_by_sector.to_chart(chart)
-            util.open_in_browser(png)
+    # Write selected attribution views.
+    for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
+        html = attribution_by_sector.to_html(view)
+        written_paths.append(_write_html(f"sector_{view.name.lower()}.html", html))
 
-    if display_tables:
-        # Get the RiskStatistics instance.
-        risk_statistics = analytics.get_riskstatistics()
+    # Write selected attribution charts.
+    for chart in (
+        Chart.OVERALL_CONTRIBUTION,
+        Chart.OVERALL_ATTRIBUTION,
+        Chart.SUBPERIOD_ATTRIBUTION,
+        Chart.HEATMAP_ACTIVE_CONTRIBUTION,
+        Chart.HEATMAP_ATTRIBUTION,
+        Chart.CUMULATIVE_ATTRIBUTION,
+        Chart.CUMULATIVE_RETURN,
+    ):
+        png = attribution_by_sector.to_chart(chart)
+        written_paths.append(_write_png(f"sector_{chart.name.lower()}.png", png))
 
-        # Display the risk statistics html in a browser.
-        util.open_in_browser(risk_statistics.to_html())
+    # Get the RiskStatistics instance.
+    risk_statistics = analytics.get_riskstatistics()
+
+    written_paths.append(_write_html("risk_statistics.html", risk_statistics.to_html()))
 
     # Get different formats of the OVERALL_ATTRIBUTION view output.
     view = View.OVERALL_ATTRIBUTION
@@ -180,10 +175,36 @@ def run_demo(periodicity: str, tables_or_charts: str) -> None:
 
     # Write a csv file of the attribution results by sector
     # attribution_by_sector.write_csv(view, file_path="demo_attribution_by_sector.csv")
+    _print_demo_handoff(written_paths)
+
+
+def _write_html(file_name: str, html: str) -> Path:
+    """Write one demo HTML artifact."""
+    path = _OUTPUT_DIRECTORY / file_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding=util.ENCODING)
+    return path
+
+
+def _write_png(file_name: str, png: bytes) -> Path:
+    """Write one demo PNG artifact."""
+    path = _OUTPUT_DIRECTORY / file_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(png)
+    return path
+
+
+def _print_demo_handoff(paths: list[Path]) -> None:
+    """Print generated analytics demo artifact paths."""
+    print(f"Analytics demo output written to: {_OUTPUT_DIRECTORY.resolve()}")
+    if paths:
+        print("Open these files to review the demo output:")
+        for path in paths:
+            print(f"- {path.resolve()}")
 
 
 def main() -> None:
-    """Prompt for demo options and run the bundled ppar demonstration.
+    """Prompt for reporting periodicity and run the bundled ppar demonstration.
 
     Raises:
         PpaError: If analytics or output calculation fails for the bundled
@@ -191,8 +212,7 @@ def main() -> None:
         OSError: If demonstration output cannot be written or displayed.
     """
     reporting_periodicity = input("Monthly (m), Quarterly (q), or Yearly (y): ")
-    display_tables_or_charts = input("Would you like to see tables (t) or charts (c): ")
-    run_demo(reporting_periodicity, display_tables_or_charts)
+    run_demo(reporting_periodicity)
 
 
 if __name__ == "__main__":

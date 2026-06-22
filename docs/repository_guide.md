@@ -55,8 +55,6 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates packaged Axys demo scenarios. | Prove demo fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
-| `ppar.performance_comparison.cli.html_report` | Writes a standalone HTML report. | Lower-level report smoke testing. |
-| `ppar.performance_comparison.cli.report` | Writes a standalone Markdown report. | Lower-level report smoke testing. |
 | `scripts/render_readme_images.py` | Regenerates README image artifacts. | Documentation image maintenance. |
 
 ## Installed Commands
@@ -68,12 +66,6 @@ The installed command names are declared in `pyproject.toml`.
 | `ppar-analytics-demo` | Runs the core analytics demo. |
 | `ppar-axys-analytics-demo` | Runs the Axys analytics demo. |
 | `ppar-performance-comparison-demo` | Runs the packaged performance comparison demo and writes a bundle under `_demo_output/`. |
-| `ppar-performance-comparison-html-report` | Writes a standalone HTML performance comparison report. |
-| `ppar-performance-comparison-report` | Writes a standalone Markdown performance comparison report. |
-| `ppar-performance-comparison-report-bundle` | Writes a portable performance comparison review bundle. |
-| `ppar-performance-comparison-validate-bundle` | Validates a generated performance comparison review bundle. |
-| `ppar-performance-comparison-validate-config` | Validates a performance comparison YAML file. |
-| `ppar-performance-comparison-validate-demo-matrix` | Validates packaged Axys demo scenario coverage. |
 
 ## Demo Data
 
@@ -85,51 +77,63 @@ Packaged demos and test fixtures intentionally live in different places:
 - `tests/data/axys/` is for tests. These fixtures can be smaller, more
   specialized, and shaped around edge cases.
 
-The packaged Axys YAML files are split by role. The workbook demos are intended
-for user-facing review; the validation fixtures are scenario coverage inputs
-for tests and validators.
+The packaged Axys YAML files are split by role. The full-spec workbook demo is
+intended for user-facing review; the validation fixtures are scenario coverage
+inputs for tests and validators.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
-| Workbook demo | `ppar_performance_comparison.yaml` | `axys_a` | `axys_b` | Clean baseline with no expected findings. |
-| Workbook demo | `ppar_performance_comparison_restatement.yaml` | `axys_a` | `axys_b_restatement` | Controlled single restatement. |
-| Workbook demo | `ppar_performance_comparison_restatement_transaction_rules.yaml` | `axys_a` | `axys_b_restatement` | Same data with explicit transaction rules. |
 | Workbook demo | `ppar_performance_comparison_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Compact strict-attribution demo with all supported causal policies. |
+| Validation fixture | `ppar_performance_comparison.yaml` | `axys_a` | `axys_b` | Clean baseline with no expected findings. |
+| Validation fixture | `ppar_performance_comparison_restatement.yaml` | `axys_a` | `axys_b_restatement` | Controlled single restatement with missing setup guidance. |
+| Validation fixture | `ppar_performance_comparison_restatement_transaction_rules.yaml` | `axys_a` | `axys_b_restatement` | Same data with explicit transaction rules. |
 | Validation fixture | `ppar_performance_comparison_multi_restatement.yaml` | `axys_a` | `axys_b_multi_restatement` | Multiple portfolios/periods, context rows, and residual coverage. |
 | Validation fixture | `ppar_performance_comparison_modified_dietz.yaml` | `axys_modified_dietz_a` | `axys_modified_dietz_b` | External-flow Modified Dietz cross-check diagnostics. |
 | Validation fixture | `ppar_performance_comparison_policy_gap_demo.yaml` | `axys_a` | `axys_b_multi_restatement` | Missing-YAML-specification coverage. |
 | Validation fixture | `ppar_performance_comparison_suppressed.yaml` | `axys_a` | `axys_b_restatement` | Suppressed-finding coverage. |
 
-For exact XLSX workbook commands and expected outputs, use
+For the recommended XLSX workbook command and expected output, use
 [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md).
 
 ## Common Workflows
 
-### Run The Main Performance Comparison Demo
+### Run Demo Commands
+
+The three installed demo commands write durable artifacts under `_demo_output/`:
+
+| Command | Output Directory | Notes |
+| --- | --- | --- |
+| `ppar.demos.analytics_demo` | `_demo_output/analytics` | Interactive periodicity prompt; writes table and chart artifacts. |
+| `ppar.demos.axys_analytics_demo` | `_demo_output/axys_analytics` | Axys-backed analytics demo. |
+| `ppar.demos.performance_comparison_demo` | `_demo_output/performance_comparison` | Review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
+
+All three demos print the generated artifact paths and leave browser opening to
+the reviewer.
+
+The performance comparison demo can be smoke-tested noninteractively:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.performance_comparison_demo
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_bundle
+  _demo_output/performance_comparison
 ```
 
-Open `_demo_output/performance_comparison_bundle/report.html` first for this
-non-workbook smoke test.
+Open `_demo_output/performance_comparison/report.xlsx` first. Use `report.html`
+when you want the same review model in a browser.
 
-### Generate An XLSX Workbook Bundle
+### Generate A Custom Review Bundle
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_multi_restatement.yaml \
-  _demo_output/workbooks/multi_restatement \
-  --include-workbook
+  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml \
+  _demo_output/custom_full_spec \
+  --include-workbook \
+  --require-causal-attribution
 ```
 
-Use the full Axys workbook command list in
-[`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) when you
-want to compare the packaged workbook scenarios. When `--include-workbook` is
-used, start review in `report.xlsx`; use `report.html` when you want the same
-review model in a browser.
+Use this lower-level command when you want to choose a YAML file or output
+directory yourself. The packaged demo command above is the recommended
+user-facing demo.
 
 ### Validate The Packaged Demo Matrix
 
@@ -144,7 +148,7 @@ that packaged fixtures still demonstrate the documented review situations.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/workbooks/multi_restatement
+  _demo_output/performance_comparison
 ```
 
 Use this after generating report/workbook output.
@@ -153,7 +157,7 @@ Use this after generating report/workbook output.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demos/data/axys/ppar_performance_comparison_multi_restatement.yaml
+  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml
 ```
 
 Use this before report generation when you are editing YAML.
@@ -200,11 +204,16 @@ When changing demo data or YAML, also run:
 
 ## Generated Output
 
-Generated output normally belongs under `_demo_output/`. Report bundles include:
+Generated output normally belongs under `_demo_output/`:
+
+- `_demo_output/analytics`: Core analytics demo HTML/PNG artifacts.
+- `_demo_output/axys_analytics`: Axys-backed analytics demo HTML artifacts.
+- `_demo_output/performance_comparison`: Performance comparison review bundle.
+
+Performance comparison report bundles include:
 
 - `report.html`: browser-friendly review report.
-- `report.xlsx`: primary Excel reviewer artifact when `--include-workbook` is
-  used.
+- `report.xlsx`: primary Excel reviewer artifact when generated.
 - `needs_review_summary.csv`: changed periods and next actions.
 - `findings.csv`: complete finding-level audit trail.
 - `manifest.json`: machine-readable artifact inventory.

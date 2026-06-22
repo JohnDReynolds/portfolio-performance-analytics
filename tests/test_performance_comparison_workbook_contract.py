@@ -4,7 +4,6 @@ from __future__ import annotations
 
 # Python imports
 import importlib
-import importlib.util
 from pathlib import Path
 import tempfile
 from typing import Any
@@ -66,8 +65,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
 
     def test_review_workbook_contract_remains_reviewer_oriented(self) -> None:
         """Generated workbook uses stable, action-oriented sheets and columns."""
-        if importlib.util.find_spec("openpyxl") is None:
-            self.skipTest("Workbook checks require optional ppar[excel].")
         openpyxl: Any = importlib.import_module("openpyxl")
 
         findings = compare_snapshots(

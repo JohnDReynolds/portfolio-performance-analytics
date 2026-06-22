@@ -15,10 +15,10 @@ from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison.report import (
     _context_evidence_table,
-    _problem_table,
     _residual_status_table,
 )
 from ppar.performance_comparison.workbook_tables import (
+    _workbook_portfolio_changes_table,
     _workbook_underlying_causes_table,
 )
 
@@ -107,11 +107,11 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
         include_suppressed=False,
     )
 
-    baseline_problems = _problem_table(baseline_findings)
+    baseline_portfolio_changes = _workbook_portfolio_changes_table(baseline_findings)
     restatement_causes = _workbook_underlying_causes_table(restatement_findings)
     transaction_rules_causes = _workbook_underlying_causes_table(transaction_rules_findings)
-    multi_problems = _problem_table(multi_findings)
-    policy_gap_problems = _problem_table(policy_gap_findings)
+    multi_causes = _workbook_underlying_causes_table(multi_findings)
+    policy_gap_causes = _workbook_underlying_causes_table(policy_gap_findings)
     context_evidence = _context_evidence_table(multi_findings)
     modified_dietz_cross_checks = (
         _pc_explain.portfolio_period_transaction_cross_checks(modified_dietz_findings)
@@ -120,26 +120,30 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     suppressed_summary = summarize_findings(suppressed_findings)["by_suppressed"]
 
     return [
-        _check_no_problems(baseline_problems),
-        _check_problem_action(
-            "Missing contribution policy",
-            policy_gap_problems,
-            "contribution_impact_methods",
+        _check_no_portfolio_differences(baseline_portfolio_changes),
+        _check_workbook_column(
+            "Missing price impact method",
+            policy_gap_causes,
+            "required_yaml_setup",
+            "price_impact_methods",
         ),
-        _check_problem_action(
+        _check_workbook_column(
             "Missing transaction method",
-            policy_gap_problems,
+            policy_gap_causes,
+            "required_yaml_setup",
             "transaction_impact_methods",
         ),
-        _check_problem_action(
-            "Missing transaction sign/flow semantics",
-            policy_gap_problems,
-            "transaction sign and external-flow semantics",
+        _check_workbook_column(
+            "Missing transaction rules",
+            policy_gap_causes,
+            "required_yaml_setup",
+            "transaction_rules",
         ),
-        _check_problem_action(
+        _check_workbook_column(
             "Multi-portfolio missing specifications",
-            multi_problems,
-            "transaction_impact_methods",
+            multi_causes,
+            "required_yaml_setup",
+            "position_impact_methods",
         ),
         _check_transaction_rows_visible(restatement_causes),
         _check_transaction_rules_explain_amount(transaction_rules_causes),
@@ -174,33 +178,35 @@ def _argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _check_no_problems(problems: pl.DataFrame) -> _ScenarioCheck:
-    """Return whether the baseline fixture produces no Problems-grid rows."""
-    if problems.is_empty():
-        return _ScenarioCheck("Clean/no issue", True, "baseline produced no problems")
+def _check_no_portfolio_differences(portfolio_changes: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether the baseline fixture produces no portfolio differences."""
+    portfolio_ids = [
+        str(value) for value in portfolio_changes.get_column("portfolio_id").to_list()
+    ]
+    if "No portfolio performance differences found" in portfolio_ids:
+        return _ScenarioCheck(
+            "Clean/no issue",
+            True,
+            "baseline produced no portfolio differences",
+        )
     return _ScenarioCheck(
         "Clean/no issue",
         False,
-        f"baseline produced {problems.height} problem row(s)",
+        f"baseline produced {portfolio_changes.height} portfolio-difference row(s)",
     )
 
 
-def _check_problem_action(
+def _check_workbook_column(
     name: str,
-    problems: pl.DataFrame,
+    table: pl.DataFrame,
+    column: str,
     expected_text: str,
 ) -> _ScenarioCheck:
-    """Return whether a Problems-grid action contains expected text."""
-    return _check_problem_column(name, problems, "action_required", expected_text)
-
-
-def _check_problem_text(
-    name: str,
-    problems: pl.DataFrame,
-    expected_text: str,
-) -> _ScenarioCheck:
-    """Return whether a Problems-grid problem statement contains expected text."""
-    return _check_problem_column(name, problems, "problem", expected_text)
+    """Return whether any workbook row contains expected text in a column."""
+    values = [str(value) for value in table.get_column(column).to_list()]
+    if any(expected_text in value for value in values):
+        return _ScenarioCheck(name, True, f"found `{expected_text}` in `{column}`")
+    return _ScenarioCheck(name, False, f"missing `{expected_text}` in `{column}`")
 
 
 def _check_transaction_rows_visible(causes: pl.DataFrame) -> _ScenarioCheck:
@@ -240,19 +246,6 @@ def _check_transaction_rules_explain_amount(causes: pl.DataFrame) -> _ScenarioCh
         False,
         "transaction amount row does not have a performance explanation",
     )
-
-
-def _check_problem_column(
-    name: str,
-    problems: pl.DataFrame,
-    column: str,
-    expected_text: str,
-) -> _ScenarioCheck:
-    """Return whether any Problems-grid row contains expected text in a column."""
-    values = [str(value) for value in problems.get_column(column).to_list()]
-    if any(expected_text in value for value in values):
-        return _ScenarioCheck(name, True, f"found `{expected_text}` in `{column}`")
-    return _ScenarioCheck(name, False, f"missing `{expected_text}` in `{column}`")
 
 
 def _check_non_empty_table(

@@ -3,12 +3,15 @@
 # Python imports
 import datetime as dt
 from importlib.resources import as_file, files
+from pathlib import Path
 import time
 
 # Project imports
 from ppar.analytics.attribution import View
 from ppar.axys import AxysData
 import ppar.utilities as util
+
+_OUTPUT_DIRECTORY = Path("_demo_output") / "axys_analytics"
 
 
 def main() -> None:
@@ -41,9 +44,24 @@ def main() -> None:
         analytics = portfolio.to_analytics(benchmark)
         attribution = analytics.get_attribution()
         html = attribution.to_html(View.OVERALL_ATTRIBUTION)
-        util.open_in_browser(html)  # Total -0.0145 0.0460 0.0315
+        output_path = _write_html("overall_attribution.html", html)
+        _print_demo_handoff(output_path)
 
     print("Time:", time.perf_counter() - time_start)
+
+
+def _write_html(file_name: str, html: str) -> Path:
+    """Write one Axys analytics demo HTML artifact."""
+    path = _OUTPUT_DIRECTORY / file_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding=util.ENCODING)
+    return path
+
+
+def _print_demo_handoff(path: Path) -> None:
+    """Print generated Axys analytics demo artifact path."""
+    print(f"Axys analytics demo output written to: {path.parent.resolve()}")
+    print(f"Open {path.resolve()} to review the demo output.")
 
 
 if __name__ == "__main__":

@@ -29,12 +29,6 @@ _REVIEW_CUES = "review_cues"
 _SUGGESTED_NEXT_STEP = "suggested_next_step"
 _REVIEW_KEY = _pc_review_keys.REVIEW_KEY
 _REVIEW_DETAIL_ARTIFACTS = "review_detail_artifacts"
-_DASHBOARD_MISSING_INPUTS = "dashboard_missing_inputs"
-_DASHBOARD_OPEN_SECTION = "dashboard_open_section"
-_PROBLEM = "problem"
-_ACTION_REQUIRED = "action_required"
-_WHY_IT_MATTERS = "why_it_matters"
-_EVIDENCE_SECTION = "evidence_section"
 _PERFORMANCE_CHANGE = "performance_change"
 _ESTIMATED_CAUSE_TOTAL = "estimated_cause_total"
 _UNEXPLAINED_CHANGE = "unexplained_change"
@@ -95,7 +89,7 @@ def write_performance_comparison_review_workbook(
         Normalized workbook path.
 
     Raises:
-        PpaError: If the optional Excel dependency group is not installed.
+        PpaError: If the Excel workbook dependency is not installed.
 
     Notes:
         The workbook is a presentation layer over the same impact coverage,
@@ -1157,12 +1151,6 @@ def _workbook_column_labels() -> dict[str, str]:
         _REQUIRED_YAML_SETUP: "Required YAML Setup",
         _pc_explain.PORTFOLIO_RETURN_DELTA: "Return Delta",
         _REVIEW_STATUS: "Status",
-        _PROBLEM: "Problem",
-        _ACTION_REQUIRED: "Action Required",
-        _WHY_IT_MATTERS: "Why It Matters",
-        _EVIDENCE_SECTION: "Evidence Section",
-        _DASHBOARD_MISSING_INPUTS: "Missing Inputs",
-        _DASHBOARD_OPEN_SECTION: "Open Section",
         _REVIEW_CUES: "Review Cues",
         _SUGGESTED_NEXT_STEP: "Suggested Next Step",
         _REVIEW_DETAIL_ARTIFACTS: "Review Detail Artifacts",
@@ -1238,13 +1226,7 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_explain.PORTFOLIO_RETURN_DELTA: (
             "Snapshot B portfolio return minus snapshot A portfolio return."
         ),
-        _REVIEW_STATUS: "Reviewer triage status for this portfolio-period problem.",
-        _PROBLEM: "Plain-English statement of the issue to review.",
-        _ACTION_REQUIRED: "Recommended next action for the reviewer or configuration owner.",
-        _WHY_IT_MATTERS: "Why this issue affects interpretation of the return change.",
-        _DASHBOARD_MISSING_INPUTS: (
-            "Configuration or source inputs needed before ppar can estimate impact."
-        ),
+        _REVIEW_STATUS: "Reviewer triage status for this portfolio-period difference.",
         _pc_explain.ROOT_CAUSE_AREA: "Coarse explanation bucket for a group of findings.",
         _pc_explain.FINDING_COUNT: "Number of finding rows grouped into this cause.",
         _pc_explain.IMPACT_BASIS: "Method basis used to estimate return impact.",

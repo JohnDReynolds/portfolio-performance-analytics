@@ -39,10 +39,6 @@ from ppar.performance_comparison.portfolio_performance import PortfolioPerforman
 from ppar.performance_comparison.positions import PositionsLoader
 from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.report import (
-    performance_comparison_html_report,
-    performance_comparison_markdown_report,
-    write_performance_comparison_html_report,
-    write_performance_comparison_markdown_report,
     write_performance_comparison_report_bundle,
     write_performance_comparison_review_workbook,
 )
@@ -99,8 +95,6 @@ __all__ = [
     "portfolio_period_impact_coverage_summary",
     "portfolio_period_summary",
     "portfolio_period_transaction_cross_checks",
-    "performance_comparison_html_report",
-    "performance_comparison_markdown_report",
     "rank_portfolio_period_evidence",
     "report_bundle_validation_issues",
     "security_period_evidence_breakdown",
@@ -109,8 +103,6 @@ __all__ = [
     "validate_causal_attribution_ready",
     "transaction_activity_summary",
     "transaction_matching_diagnostics",
-    "write_performance_comparison_html_report",
-    "write_performance_comparison_markdown_report",
     "write_performance_comparison_report_bundle",
     "write_performance_comparison_review_workbook",
 ]

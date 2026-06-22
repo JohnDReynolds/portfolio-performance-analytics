@@ -30,7 +30,7 @@ The current implementation has crossed from pure design into a usable
 comparison, explanation, and report checkpoint. It can load two snapshot
 directories, compare the first set of normalized datasets, emit stable finding
 records, apply explicit suppressions, and produce reviewer-oriented tables,
-Markdown, HTML, and handoff bundles.
+HTML, XLSX, CSV, and handoff bundles.
 
 Implemented normalized comparison datasets:
 
@@ -57,20 +57,23 @@ Implemented output helpers:
 - context evidence summaries and context evidence detail
 - security-period summaries
 - security-period evidence breakdowns
-- Markdown and HTML review reports
+- HTML and XLSX review reports
 - reproducible report bundles with manifest and validation helpers
 
-User-facing entry points:
+User-facing entry point:
 
 - `ppar-performance-comparison-demo`: installed demo command.
-- `ppar-performance-comparison-report-bundle`: installed command for writing a
-  report bundle from a comparison YAML file.
-- `ppar-performance-comparison-validate-bundle`: installed command for
-  validating an existing report bundle.
+
+Developer/internal helper modules:
+
 - `ppar.performance_comparison.cli.report_bundle`: source-checkout command
   for writing a report bundle from a comparison YAML file.
 - `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
   for validating an existing report bundle.
+- `ppar.performance_comparison.cli.validate_config`: source-checkout command
+  for validating a comparison YAML file.
+- `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
+  command for validating packaged scenario coverage.
 - [Axys Common-Core Export Reference](axys_common_core_export.md): starter
   export shape for Axys-oriented source data.
 
@@ -129,7 +132,7 @@ Finding and review classification values are centralized in:
 - `TransactionMatchStatus`: `transaction_id_match`,
   `transaction_id_unmatched`, and `strict_fallback_unmatched`.
 
-When a value crosses into Polars tables, CSVs, Markdown, HTML, or YAML, it
+When a value crosses into Polars tables, CSVs, HTML, XLSX, or YAML, it
 should be serialized as its plain string value. Enum members are primarily for
 construction, validation, and package-internal type clarity.
 
@@ -201,7 +204,7 @@ Current responsibilities:
   ordering used by explanation tables.
 - `runner.py`: Public execution helpers, compact output tables, and summary
   tables.
-- `report.py`: Markdown, HTML, and bundle report rendering over stable helper
+- `report.py`: HTML, XLSX, and bundle report rendering over stable helper
   tables.
 
 Report rendering is now inside the package, but remains a presentation layer
@@ -628,9 +631,9 @@ portfolio performance formula's flow handling. Until an applicable method is
 available, transaction summaries should expose missing impact inputs instead of
 implying an estimate.
 
-Markdown reports should include a compact Transaction Activity section so
-reviewers can see changed fields, deltas, and missing impact inputs without
-digging through lower-level evidence tables.
+Workbook and HTML reports should include compact transaction activity review
+rows so reviewers can see changed fields, deltas, and missing impact inputs
+without digging through lower-level evidence tables.
 
 `positions` required columns:
 
@@ -1175,8 +1178,8 @@ Current output layers:
   `related_output`.
 
 This is intentionally not a final report format. It gives callers stable
-building blocks for a future CSV, Markdown, HTML, or portfolio-period bridge
-report without committing the project to one presentation too early.
+building blocks for CSV, HTML, XLSX, or portfolio-period bridge reports without
+committing the project to presentation details too early.
 
 ## Evidence Linking
 
@@ -1537,8 +1540,7 @@ artifact names, and row counts. This makes reviewer
 handoffs reproducible without coupling the comparison engine to a future
 Axys-specific presentation layer.
 
-The intended bundle review order depends on whether the optional workbook was
-requested:
+The intended bundle review order depends on whether a workbook was included:
 
 1. `report.xlsx`, when present: primary reviewer artifact. Start with
    the `Portfolio Differences` sheet, then use the `Underlying Causes` sheet
@@ -1586,10 +1588,10 @@ missing-input flags only; they do not change report data or require a server.
 The default HTML presentation should stay short at the top: Problems first,
 with backing tables inside an Evidence Appendix.
 
-The optional XLSX workbook is a second presentation over the same review
-tables, not a separate report product. It is generated only when requested with
-`include_workbook=True` or `--include-workbook`, and requires the optional
-`ppar[excel]` dependency group. The workbook starts with the `Portfolio
+The XLSX workbook is the primary reviewer presentation over the same review
+tables used by the HTML/CSV bundle artifacts. Lower-level bundle calls generate
+it when requested with `include_workbook=True` or `--include-workbook`; the
+packaged demo writes it by default. The workbook starts with the `Portfolio
 Differences` sheet: one row per changed portfolio period, showing the decimal
 return difference, explained difference, and any unexplained remainder. The
 `Security Differences` sheet shows security-level return differences when
@@ -1626,20 +1628,21 @@ next steps. Period-level bundle tables carry a stable `review_key` where
 possible, and `needs_review_summary.csv` includes `review_detail_artifacts` to
 name the CSVs most relevant to each changed period.
 
-The packaged Axys fixtures intentionally separate workbook demos from
-validation fixtures. The user-facing workbook demos are:
+The packaged Axys fixtures intentionally separate user-facing demos from
+validation fixtures. The user-facing path is:
+
+- `ppar.demos.performance_comparison_demo`: compact strict-attribution demo
+  writing `_demo_output/performance_comparison` with `report.xlsx`, `report.html`, CSV artifacts,
+  and a manifest.
+
+The remaining YAML files are scenario-coverage fixtures for tests and
+validators:
 
 - `ppar_performance_comparison.yaml`: Clean baseline.
 - `ppar_performance_comparison_restatement.yaml`: Controlled single
   restatement with missing transaction setup.
 - `ppar_performance_comparison_restatement_transaction_rules.yaml`: Same data
   with explicit transaction rules and transaction impact setup.
-- `ppar_performance_comparison_full_spec.yaml`: Compact strict-attribution
-  fixture with every currently supported causal-attribution policy.
-
-The remaining YAML files are scenario-coverage fixtures for tests and
-validators:
-
 - `ppar_performance_comparison_multi_restatement.yaml`: Multiple portfolios,
   multiple periods, context rows, and residual/coverage behavior.
 - `ppar_performance_comparison_policy_gap_demo.yaml`: Missing-YAML actions such
@@ -1695,14 +1698,13 @@ notes explaining whether rows were paired by stable transaction ID or left
 unmatched by conservative strict fallback keys. Report bundles include this
 table as `transaction_matching_diagnostics.csv`.
 
-HTML reports can be rendered with `performance_comparison_html_report()` or
-written with `write_performance_comparison_html_report()`. The HTML report is
-intentionally conservative: it uses the same workbook table model, section
-ordering, column labels, and column tooltips as `report.xlsx`, with lightweight
-CSS and accessible table captions for browser review rather than separate
-HTML-specific analytics logic.
-The `ppar.performance_comparison.cli.html_report` package CLI module writes
-the same HTML report directly from a comparison YAML file.
+Report bundles include `report.html` as the browser view of the same review
+model used by `report.xlsx`. The HTML artifact is intentionally conservative:
+it uses the same workbook table model, section ordering, column labels, and
+column tooltips as the workbook, with lightweight CSS and accessible table
+captions for browser review rather than separate HTML-specific analytics logic.
+The bundle writer is the only user-facing report path; standalone HTML
+rendering helpers remain internal implementation details.
 
 ## Near-Term Roadmap
 
@@ -1745,8 +1747,8 @@ Guardrails for all four phases:
 - Add a residual concept only after there are enough credible contribution
   estimates. A residual emitted too early would imply precision the system does
   not have.
-- Keep report/export formats separate from comparison logic. CSV, Markdown,
-  HTML, and XLSX outputs should remain presentation layers over stable helper
+- Keep report/export formats separate from comparison logic. CSV, HTML, and
+  XLSX outputs should remain presentation layers over stable helper
   tables.
 - Avoid adding new datasets unless real source files expose evidence that is
   not adequately represented by the current normalized datasets.
@@ -1771,20 +1773,20 @@ surface.
 
 ### Milestone 2: Human Report - Implemented
 
-The first reviewer-facing report layer is implemented.
+The reviewer-facing report layer is implemented.
 
-- Add Markdown and HTML output using the current findings helpers.
+- Add HTML and XLSX output using the current findings helpers.
 - Group by portfolio and period.
 - Rank largest return and contribution deltas.
 - Include impact summaries, cross-check summaries, evidence sections, and
-  suppressed findings appendices.
+  audit appendices.
 - Surface context-only evidence separately from modeled impact estimates.
 - Summarize context evidence by dataset, source column, context use, affected
   identifiers, and reviewer priority.
 - Include residual withheld statuses and residual review notes without
   calculating numeric residuals from incomplete estimates.
-- Include an HTML review-basis strip, a compact review dashboard, and accessible
-  table captions while keeping HTML presentation separate from analytics logic.
+- Include accessible table captions while keeping HTML presentation separate
+  from analytics logic.
 - Write reproducible report bundles with manifest and validation helpers.
   Current bundles include `context_evidence_summary.csv` and
   `context_evidence.csv` alongside impact, transaction, residual, and

@@ -1,4 +1,4 @@
-"""Render shared Markdown and HTML fragments for performance comparison reports."""
+"""Render shared text and HTML fragments for performance comparison reports."""
 
 from __future__ import annotations
 
@@ -11,40 +11,6 @@ import html as html_lib
 import polars as pl
 
 RowIdCallback = Callable[[Mapping[str, object], str | None, dict[str, int]], str]
-
-
-def markdown_table(
-    table: pl.DataFrame,
-    columns: Sequence[str],
-    *,
-    empty_message: str = "No rows.",
-) -> str:
-    """Return a compact Markdown pipe table for selected columns.
-
-    Args:
-        table: Source table.
-        columns: Columns to show, in display order.
-        empty_message: Message to render when no requested columns have rows.
-
-    Returns:
-        Markdown table text, or an italic empty-state message.
-    """
-    if table.is_empty():
-        return f"_{escape_markdown_text(empty_message)}_"
-
-    available_columns = [column for column in columns if column in table.columns]
-    if not available_columns:
-        return f"_{escape_markdown_text(empty_message)}_"
-
-    header = "| " + " | ".join(display_header(column) for column in available_columns) + " |"
-    separator = "| " + " | ".join("---" for _ in available_columns) + " |"
-    body = [
-        "| "
-        + " | ".join(format_markdown_cell(row[column]) for column in available_columns)
-        + " |"
-        for row in table.select(available_columns).iter_rows(named=True)
-    ]
-    return "\n".join([header, separator, *body])
 
 
 def html_section(title: str, content: str) -> str:
@@ -331,18 +297,6 @@ def display_header(column: str) -> str:
     return column.replace("_", " ").title()
 
 
-def format_markdown_cell(value: object) -> str:
-    """Return one escaped Markdown table cell.
-
-    Args:
-        value: Cell value.
-
-    Returns:
-        Escaped Markdown table cell text.
-    """
-    return escape_markdown_text(format_value(value))
-
-
 def format_value(value: object) -> str:
     """Return a compact display value for report cells.
 
@@ -392,19 +346,6 @@ def unique_nonblank_values(values: Iterable[object]) -> list[str]:
     return sorted(unique_values)
 
 
-def escape_markdown_text(value: object) -> str:
-    """Escape Markdown table delimiters and normalize whitespace.
-
-    Args:
-        value: Text value.
-
-    Returns:
-        Escaped Markdown text.
-    """
-    text = " ".join(str(value).split())
-    return text.replace("|", "\\|")
-
-
 def escape_html(value: object) -> str:
     """Escape text for HTML element content.
 
@@ -419,7 +360,7 @@ def escape_html(value: object) -> str:
 
 
 def html_style_block() -> str:
-    """Return CSS for the standalone performance comparison HTML report.
+    """Return CSS for the bundle performance comparison HTML report.
 
     Returns:
         HTML ``style`` element.
@@ -557,98 +498,6 @@ body {
 .pc-triage-row .pc-card {
   border-left-color: var(--pc-accent);
 }
-.pc-dashboard-summary {
-  font-weight: 700;
-}
-.pc-dashboard-filters {
-  align-items: end;
-  border: 1px solid var(--pc-border-light);
-  display: grid;
-  gap: 6px 8px;
-  grid-template-columns: minmax(180px, 1fr) minmax(150px, 220px) auto auto;
-  margin: 8px 0 10px;
-  padding: 8px;
-}
-.pc-dashboard-filters label {
-  color: var(--pc-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.pc-dashboard-filters input[type="search"],
-.pc-dashboard-filters select {
-  border: 1px solid var(--pc-border);
-  color: var(--pc-text);
-  font: inherit;
-  min-height: 28px;
-  padding: 3px 6px;
-}
-.pc-dashboard-checkbox {
-  align-items: center;
-  display: flex;
-  gap: 5px;
-  min-height: 28px;
-}
-.pc-dashboard-filters button {
-  background: var(--pc-panel);
-  border: 1px solid var(--pc-border);
-  color: var(--pc-accent);
-  font: inherit;
-  font-weight: 700;
-  min-height: 28px;
-  padding: 3px 8px;
-}
-.pc-dashboard-table-wrap {
-  overflow-x: auto;
-}
-.pc-dashboard-table {
-  font-size: 12px;
-}
-.pc-dashboard-table th,
-.pc-dashboard-table td {
-  padding: 4px 5px;
-}
-.pc-dashboard-table th button {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0;
-  text-align: left;
-}
-.pc-dashboard-table th button::after {
-  color: var(--pc-muted);
-  content: " sort";
-  font-size: 10px;
-  font-weight: 400;
-}
-.pc-dashboard-row {
-  border-left: 5px solid var(--pc-accent);
-}
-.pc-dashboard-needs-review {
-  border-left-color: var(--pc-status-review);
-}
-.pc-dashboard-monitor {
-  border-left-color: var(--pc-status-monitor);
-}
-.pc-dashboard-clear {
-  border-left-color: var(--pc-status-clear);
-}
-.pc-problem-evidence-link {
-  border: 1px solid var(--pc-border);
-  display: inline-block;
-  font-weight: 700;
-  padding: 3px 6px;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.pc-dashboard-no-results {
-  border: 1px dashed var(--pc-border);
-  color: var(--pc-muted);
-  padding: 8px;
-}
 .pc-detail {
   border: 1px solid var(--pc-border-light);
   margin: 7px 0;
@@ -765,9 +614,6 @@ tbody tr:hover {
   .pc-contents-list {
     columns: 1;
   }
-  .pc-dashboard-filters {
-    grid-template-columns: 1fr;
-  }
 }
 @media print {
   body {
@@ -802,91 +648,6 @@ tbody tr:hover {
   }
 }
 </style>""".strip()
-
-
-def html_dashboard_script() -> str:
-    """Return progressive dashboard filtering script.
-
-    Returns:
-        HTML ``script`` element.
-    """
-    return """
-<script>
-(() => {
-  const filters = document.querySelector("[data-dashboard-filters]");
-  if (!filters) {
-    return;
-  }
-  const tableBody = document.querySelector(".pc-dashboard-table tbody");
-  let rows = Array.from(document.querySelectorAll("[data-dashboard-row]"));
-  const search = filters.querySelector("[data-dashboard-search]");
-  const status = filters.querySelector("[data-dashboard-status]");
-  const missingOnly = filters.querySelector("[data-dashboard-missing-only]");
-  const noResults = document.querySelector(".pc-dashboard-no-results");
-  let currentSort = {key: "", direction: "asc"};
-
-  const applyFilters = () => {
-    const query = (search?.value || "").trim().toLowerCase();
-    const selectedStatus = status?.value || "";
-    const requireMissing = Boolean(missingOnly?.checked);
-    let visibleCount = 0;
-
-    for (const row of rows) {
-      const matchesSearch = !query || row.dataset.dashboardSearch.includes(query);
-      const matchesStatus = !selectedStatus || row.dataset.reviewStatus === selectedStatus;
-      const matchesMissing = !requireMissing || row.dataset.missingInputs === "true";
-      const visible = matchesSearch && matchesStatus && matchesMissing;
-      row.hidden = !visible;
-      if (visible) {
-        visibleCount += 1;
-      }
-    }
-    if (noResults) {
-      noResults.hidden = visibleCount !== 0;
-    }
-  };
-
-  filters.addEventListener("input", applyFilters);
-  filters.addEventListener("change", applyFilters);
-  filters.addEventListener("reset", () => {
-    window.setTimeout(applyFilters, 0);
-  });
-  for (const button of document.querySelectorAll("[data-dashboard-sort]")) {
-    button.addEventListener("click", () => {
-      const key = button.dataset.dashboardSort || "";
-      const sameKey = currentSort.key === key;
-      const direction = sameKey && currentSort.direction === "asc" ? "desc" : "asc";
-      currentSort = {key, direction};
-      rows = [...rows].sort((left, right) => {
-        const leftValue = left.dataset[`sort${toDatasetSuffix(key)}`] || "";
-        const rightValue = right.dataset[`sort${toDatasetSuffix(key)}`] || "";
-        return compareValues(leftValue, rightValue, direction);
-      });
-      tableBody?.append(...rows);
-      applyFilters();
-    });
-  }
-  applyFilters();
-
-  function toDatasetSuffix(key) {
-    return key
-      .split("-")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join("");
-  }
-
-  function compareValues(leftValue, rightValue, direction) {
-    const leftNumber = Number(leftValue);
-    const rightNumber = Number(rightValue);
-    const bothNumeric = Number.isFinite(leftNumber) && Number.isFinite(rightNumber);
-    const comparison = bothNumeric
-      ? leftNumber - rightNumber
-      : leftValue.localeCompare(rightValue);
-    return direction === "asc" ? comparison : -comparison;
-  }
-})();
-</script>
-""".strip()
 
 
 def _is_residual_withheld_status(value: object) -> bool:
