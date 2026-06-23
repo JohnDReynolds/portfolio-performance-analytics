@@ -17,6 +17,8 @@ _DEFAULT_PERIODICITY = "q"
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.demos.analytics_outputs import (
+    frequency_display_name,
+    parse_demo_frequency_argument,
     print_analytics_demo_handoff,
     write_analytics_demo_outputs,
 )
@@ -44,13 +46,7 @@ def run_demo(periodicity: str) -> None:
             data or requested calculations are invalid.
         OSError: Propagated if writing the demonstration CSV output fails.
     """
-    # Determine the frequency.
-    if len(periodicity) < 1 or periodicity[0] not in ("q", "Q", "y", "Y"):
-        frequency = Frequency.MONTHLY
-    elif periodicity[0] in ("q", "Q"):
-        frequency = Frequency.QUARTERLY
-    else:
-        frequency = Frequency.YEARLY
+    frequency = _frequency_from_periodicity(periodicity)
 
     # Portfolio and benchmark data sources use narrow rows. The weights for each
     # time period must sum to 1.0. The time periods can be of any duration, and
@@ -132,15 +128,28 @@ def run_demo(periodicity: str) -> None:
 
 
 def main() -> None:
-    """Run the bundled ppar demonstration with quarterly reporting.
+    """Run the bundled ppar demonstration with optional frequency selection.
 
     Raises:
         PpaError: If analytics or output calculation fails for the bundled
             demonstration data.
         OSError: If demonstration output cannot be written or displayed.
     """
-    print("Using quarterly reporting.")
-    run_demo(_DEFAULT_PERIODICITY)
+    frequency = parse_demo_frequency_argument(
+        description="Run the bundled analytics demo.",
+    )
+    print(f"Using {frequency_display_name(frequency)} reporting.")
+    run_demo(frequency.value)
+
+
+def _frequency_from_periodicity(periodicity: str) -> Frequency:
+    """Return the reporting frequency for an existing demo periodicity string."""
+    first_character = (periodicity or _DEFAULT_PERIODICITY).strip().lower()[:1]
+    if first_character == "m":
+        return Frequency.MONTHLY
+    if first_character == "y":
+        return Frequency.YEARLY
+    return Frequency.QUARTERLY
 
 
 if __name__ == "__main__":

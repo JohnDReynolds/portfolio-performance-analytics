@@ -3,13 +3,88 @@
 from __future__ import annotations
 
 # Python imports
+import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
 # Project imports
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import Attribution, Chart, View
+from ppar.analytics.frequency import Frequency
 import ppar.utilities as util
+
+DEFAULT_DEMO_FREQUENCY = Frequency.QUARTERLY
+
+
+def demo_frequency_from_string(value: str | None) -> Frequency:
+    """Return a demo reporting frequency from a lenient user string.
+
+    Args:
+        value: Optional frequency string. Values whose first nonblank character
+            is ``"m"``, ``"q"``, or ``"y"`` map to monthly, quarterly, or
+            yearly reporting. Blank values default to quarterly.
+
+    Returns:
+        Reporting frequency for analytics demo output.
+
+    Raises:
+        ValueError: If ``value`` does not start with ``m``, ``q``, or ``y``.
+    """
+    normalized = "" if value is None else value.strip().lower()
+    if not normalized:
+        return DEFAULT_DEMO_FREQUENCY
+    first_character = normalized[0]
+    if first_character == "m":
+        return Frequency.MONTHLY
+    if first_character == "q":
+        return Frequency.QUARTERLY
+    if first_character == "y":
+        return Frequency.YEARLY
+    raise ValueError(
+        "frequency must start with 'm', 'q', or 'y' "
+        "(monthly, quarterly, or yearly)"
+    )
+
+
+def parse_demo_frequency_argument(
+    argv: Sequence[str] | None = None,
+    *,
+    description: str,
+) -> Frequency:
+    """Parse a common analytics-demo frequency argument.
+
+    Args:
+        argv: Optional argument sequence. ``None`` reads from ``sys.argv``.
+        description: Argument parser description for the calling demo.
+
+    Returns:
+        Parsed reporting frequency. Defaults to quarterly.
+    """
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "-f",
+        "--frequency",
+        default="quarterly",
+        help=(
+            "Reporting frequency. Any value starting with m, q, or y is accepted. "
+            "Defaults to quarterly."
+        ),
+    )
+    args = parser.parse_args(argv)
+    try:
+        return demo_frequency_from_string(args.frequency)
+    except ValueError as error:
+        parser.error(str(error))
+        raise AssertionError("argparse should exit before this point") from error
+
+
+def frequency_display_name(frequency: Frequency) -> str:
+    """Return a concise display name for a demo reporting frequency."""
+    if frequency == Frequency.MONTHLY:
+        return "monthly"
+    if frequency == Frequency.YEARLY:
+        return "yearly"
+    return "quarterly"
 
 
 def write_analytics_demo_outputs(

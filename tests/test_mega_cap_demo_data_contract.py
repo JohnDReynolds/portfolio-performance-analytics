@@ -12,6 +12,7 @@ from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 from ppar.analytics.frequency import Frequency
 from ppar.axys import AxysData
+from ppar.demos.analytics_outputs import demo_frequency_from_string
 
 
 _PERFORMANCE_DIRECTORY = "ppar/demos/data/performance"
@@ -142,6 +143,19 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             View.OVERALL_ATTRIBUTION
         )
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
+
+    def test_demo_frequency_parser_accepts_lenient_values(self) -> None:
+        """Analytics demo frequency parsing accepts first-letter shortcuts."""
+        self.assertEqual(demo_frequency_from_string(None), Frequency.QUARTERLY)
+        self.assertEqual(demo_frequency_from_string(""), Frequency.QUARTERLY)
+        self.assertEqual(demo_frequency_from_string("monthly"), Frequency.MONTHLY)
+        self.assertEqual(demo_frequency_from_string("M"), Frequency.MONTHLY)
+        self.assertEqual(demo_frequency_from_string("quarterly"), Frequency.QUARTERLY)
+        self.assertEqual(demo_frequency_from_string("q"), Frequency.QUARTERLY)
+        self.assertEqual(demo_frequency_from_string("yearly"), Frequency.YEARLY)
+        self.assertEqual(demo_frequency_from_string("Y"), Frequency.YEARLY)
+        with self.assertRaises(ValueError):
+            demo_frequency_from_string("weekly")
 
 
 def _read_performance(path: str) -> pd.DataFrame:

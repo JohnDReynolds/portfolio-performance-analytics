@@ -154,6 +154,10 @@ ppar-performance-comparison-portfolio-demo
 ppar-performance-comparison-security-demo
 ```
 
+The analytics demos default to quarterly reporting. Pass `--frequency monthly`,
+`--frequency quarterly`, or `--frequency yearly` to change the reporting
+frequency; the short forms `m`, `q`, and `y` are also accepted.
+
 ---
 
 ## Performance Comparison
