@@ -18,40 +18,35 @@ the user-facing demo files.
 - `snapshots/axys_modified_dietz_a`: Modified Dietz baseline snapshot.
 - `snapshots/axys_modified_dietz_b`: Modified Dietz comparison snapshot.
 
-## Unit-Test YAML Files
+## Comparison YAML Files
 
-- `ppar_performance_comparison.yaml`: Baseline performance comparison config.
-  It compares `snapshots/axys_a` to `snapshots/axys_b` and should produce no
-  findings.
-- `ppar_performance_comparison_restatement.yaml`: Controlled restatement config.
-  It compares `snapshots/axys_a` to `snapshots/axys_b_restatement`.
-- `ppar_performance_comparison_restatement_transaction_rules.yaml`: Restatement
-  config with explicit transaction rules and impact methods.
-- `ppar_performance_comparison_suppressed.yaml`: Restatement config with a
-  suppression rule applied for suppression-specific tests.
+The `validation/` directory is the single home for test-only performance
+comparison YAML scenarios. These files are used by targeted unit tests and by
+`ppar.performance_comparison.cli.validate_demo_matrix`. They are not
+user-facing demos; they exist to keep specific edge cases covered without
+asking reviewers to inspect extra workbooks.
 
-## Validation Matrix YAML Files
-
-The `validation/` directory contains broader scenario-coverage fixtures used by
-`ppar.performance_comparison.cli.validate_demo_matrix`. These files are not
-user-facing demos; they exist to keep specific edge cases covered without asking
-reviewers to inspect extra workbooks.
-
-- `baseline`: Tests the clean/no-issue control case and proves the comparison
+- `validation/ppar_performance_comparison.yaml`: Tests the clean/no-issue
+  control case and proves the comparison
   can run without producing false positives.
-- `single`: Tests missing transaction setup guidance on a controlled
-  restatement.
-- `transaction_rules`: Tests that transaction amount rows become explainable
-  when YAML supplies transaction rules and impact methods.
-- `multi`: Stress-tests multiple portfolios, multiple periods, context rows,
-  residual/coverage behavior, workbook accounting invariants, and a large
-  clean multi-period background portfolio that should not create false
-  positives.
-- `modified_dietz`: Tests Modified Dietz external-flow cross-check diagnostics.
-- `policy_gap`: Tests missing-YAML setup guidance for omitted contribution,
-  transaction-rule, and transaction-impact specifications.
-- `suppressed`: Tests active-vs-suppressed finding behavior and audit
-  visibility.
+- `validation/ppar_performance_comparison_restatement.yaml`: Tests missing
+  transaction setup guidance on a controlled restatement.
+- `validation/ppar_performance_comparison_restatement_transaction_rules.yaml`:
+  Tests that transaction amount rows become explainable when YAML supplies
+  transaction rules and impact methods.
+- `validation/ppar_performance_comparison_security_restatement.yaml`: Tests
+  security-level result comparison with security review keys.
+- `validation/ppar_performance_comparison_multi_restatement.yaml`: Stress-tests
+  multiple portfolios, multiple periods, context rows, residual/coverage
+  behavior, workbook accounting invariants, and a large clean multi-period
+  background portfolio that should not create false positives.
+- `validation/ppar_performance_comparison_modified_dietz.yaml`: Tests Modified
+  Dietz external-flow cross-check diagnostics.
+- `validation/ppar_performance_comparison_policy_gap_demo.yaml`: Tests
+  missing-YAML setup guidance for omitted contribution, transaction-rule, and
+  transaction-impact specifications.
+- `validation/ppar_performance_comparison_suppressed.yaml`: Tests
+  active-vs-suppressed finding behavior and audit visibility.
 
 Validate the scenario matrix with:
 

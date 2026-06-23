@@ -17,9 +17,9 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import schema as pc_cols
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 
 

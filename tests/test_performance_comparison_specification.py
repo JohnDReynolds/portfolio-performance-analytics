@@ -12,7 +12,7 @@ import yaml
 from ppar.errors import PpaError
 from ppar.performance_comparison import PerformanceComparisonSpecification
 
-_AXYS_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_AXYS_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
 _TEST_AXYS_SCHEMA_PATH = Path("tests/data/axys/axys_column_mappings.yaml")
 

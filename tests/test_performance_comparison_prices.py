@@ -17,7 +17,7 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import schema as pc_cols
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:

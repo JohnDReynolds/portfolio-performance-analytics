@@ -43,7 +43,7 @@ from ppar.performance_comparison.transactions import (
     transaction_category_from_code,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:

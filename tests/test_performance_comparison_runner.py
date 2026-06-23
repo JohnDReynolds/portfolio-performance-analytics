@@ -34,12 +34,12 @@ from ppar.performance_comparison.findings import (
     THRU_DATE,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
 )
 _COMPACT_FINDING_COLUMNS = [
     FINDING_CODE,

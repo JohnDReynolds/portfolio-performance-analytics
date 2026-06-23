@@ -13,7 +13,7 @@ import unittest
 import yaml
 
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"

@@ -148,18 +148,18 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_SEMANTICS_SOURCE,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _SECURITY_RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_security_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_security_restatement.yaml"
 )
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
 )
 
 

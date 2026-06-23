@@ -40,15 +40,15 @@ from ppar.performance_comparison.workbook_tables import (
     _workbook_underlying_causes_table,
 )
 
-_BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
+_BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _SECURITY_RESTATEMENT_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_security_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_security_restatement.yaml"
 )
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
@@ -60,7 +60,7 @@ _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
-    "tests/data/axys/ppar_performance_comparison_suppressed.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_suppressed.yaml"
 )
 _original_import = __import__
 
