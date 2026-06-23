@@ -349,28 +349,40 @@ def _check_modified_dietz_cross_check(cross_checks: pl.DataFrame) -> _ScenarioCh
 def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
     """Return whether full-spec YAML exercises every strict attribution basis."""
     name = "Full YAML specifications"
-    cause_summary = _pc_explain.portfolio_period_cause_summary(findings)
-    if cause_summary.is_empty():
-        return _ScenarioCheck(name, False, "cause summary is empty")
-
-    impact_bases = {
+    expected_policy_prefixes = {
+        "portfolio_source_field:source_field_delta_over_begin_market_value",
+        "position_accrued:accrued_delta_over_return_denominator",
+        "position_market_value:market_value_delta_over_return_denominator",
+        "position_quantity:quantity_delta_times_snapshot_a_unit_market_value",
+        "price_weighted:price_delta_over_snapshot_a_price_times_weight",
+    }
+    impact_policies = {
         str(value)
-        for value in cause_summary.get_column(_pc_explain.IMPACT_BASIS).to_list()
+        for value in findings.get_column("impact_policy").drop_nulls().to_list()
     }
-    expected_bases = {
-        _pc_explain.IMPACT_BASIS_POSITION_ACCRUED,
-        _pc_explain.IMPACT_BASIS_POSITION_MARKET_VALUE,
-        _pc_explain.IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE,
-        _pc_explain.IMPACT_BASIS_PRICE_WEIGHTED,
-        _pc_explain.IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-        _pc_explain.IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
-    }
-    missing = sorted(expected_bases - impact_bases)
+    missing = sorted(
+        expected
+        for expected in expected_policy_prefixes
+        if not any(policy.startswith(expected) for policy in impact_policies)
+    )
     if missing:
         return _ScenarioCheck(
             name,
             False,
-            f"strict fixture is missing impact basis value(s): {', '.join(missing)}",
+            f"strict fixture is missing impact policy value(s): {', '.join(missing)}",
+        )
+    transaction_policies = {
+        str(value)
+        for value in findings.get_column("transaction_impact_policy").drop_nulls().to_list()
+    }
+    if not any(
+        policy.startswith("performance:transaction_amount_delta_over_return_denominator")
+        for policy in transaction_policies
+    ):
+        return _ScenarioCheck(
+            name,
+            False,
+            "strict fixture is missing transaction performance amount policy",
         )
     causes = _workbook_underlying_causes_table(findings)
     evidence_only_rows = causes.filter(
@@ -394,26 +406,31 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
 def _check_security_full_spec_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
     """Return whether the security full-spec fixture exercises security impact."""
     name = "Security full YAML specifications"
-    cause_summary = _pc_explain.security_period_cause_summary(findings)
-    if cause_summary.is_empty():
-        return _ScenarioCheck(name, False, "security cause summary is empty")
-
-    impact_bases = {
+    security_policies = {
         str(value)
-        for value in cause_summary.get_column(_pc_explain.IMPACT_BASIS).to_list()
+        for value in findings.filter(pl.col("dataset") == "security_performance")
+        .get_column("impact_policy")
+        .drop_nulls()
+        .to_list()
     }
-    expected_bases = {_pc_explain.IMPACT_BASIS_SECURITY_RETURN_WEIGHTED}
-    missing = sorted(expected_bases - impact_bases)
-    if missing:
+    has_weighted_return = any(
+        policy.startswith("security_return:security_return_delta_times_weight")
+        for policy in security_policies
+    )
+    has_vendor_contribution = any(
+        policy.startswith("security_contribution:vendor_contribution_delta")
+        for policy in security_policies
+    )
+    if not has_weighted_return or not has_vendor_contribution:
         return _ScenarioCheck(
             name,
             False,
-            f"security fixture is missing impact basis value(s): {', '.join(missing)}",
+            "security fixture is missing security return or contribution policy",
         )
     return _ScenarioCheck(
         name,
         True,
-        "security attribution covered security-period impact bases",
+        "security attribution covered security-period return and contribution policies",
     )
 
 

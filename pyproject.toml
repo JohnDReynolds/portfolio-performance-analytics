@@ -135,6 +135,7 @@ packages = [
     "ppar.demos.data.axys.axys_b",
     "ppar.demos.data.axys.axys_b_multi_restatement",
     "ppar.demos.data.axys.axys_b_restatement",
+    "ppar.demos.data.axys.axys_analytics",
     "ppar.demos.data.axys.axys_full_spec_a",
     "ppar.demos.data.axys.axys_full_spec_b",
     "ppar.demos.data.axys.axys_modified_dietz_a",

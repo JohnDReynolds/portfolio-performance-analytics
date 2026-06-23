@@ -1,8 +1,8 @@
 # =========================
 # PPAR Performance Comparison Configuration
 # =========================
-# This compact fixture demonstrates strict causal attribution with every
-# currently supported impact policy configured in YAML.
+# This Mega-Cap operational fixture demonstrates strict causal attribution with
+# every currently supported impact policy configured in YAML.
 
 comparison:
   name: Axys full-spec causal attribution demo

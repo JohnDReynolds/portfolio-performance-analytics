@@ -2,6 +2,7 @@
 
 # Python Imports
 import ast
+import csv
 from fnmatch import fnmatch
 import importlib.util
 from importlib.resources import files
@@ -235,6 +236,7 @@ class TestPackageMetadata(unittest.TestCase):
         expected_resources = (
             "README.md",
             "axys_column_mappings.yaml",
+            "axys_analytics.yaml",
             "ppar_performance_comparison_restatement.yaml",
             "ppar_performance_comparison_multi_restatement.yaml",
             "ppar_performance_comparison_policy_gap_demo.yaml",
@@ -244,8 +246,13 @@ class TestPackageMetadata(unittest.TestCase):
             "axys_a/portperf.csv",
             "axys_b_restatement/secperf.csv",
             "axys_b_multi_restatement/secperf.csv",
+            "axys_analytics/portperf.csv",
+            "axys_analytics/secperf.csv",
+            "axys_analytics/sec_ref.csv",
             "axys_full_spec_a/portperf.csv",
+            "axys_full_spec_a/sec_ref.csv",
             "axys_full_spec_b/transactions.csv",
+            "axys_full_spec_b/sec_ref.csv",
             "axys_modified_dietz_a/transactions.csv",
             "axys_modified_dietz_b/transactions.csv",
         )
@@ -253,6 +260,27 @@ class TestPackageMetadata(unittest.TestCase):
         for resource_path in expected_resources:
             with self.subTest(resource_path=resource_path):
                 self.assertTrue((axys_demo_data / resource_path).is_file())
+
+    def test_axys_full_spec_demo_uses_operational_mega_cap_data(self) -> None:
+        """The user-facing comparison demo packages the promoted operational data."""
+        axys_demo_data = files("ppar.demos.data") / "axys"
+        positions_path = Path(
+            str(axys_demo_data / "axys_full_spec_a" / "positions_holdings.csv")
+        )
+        sec_ref_path = Path(str(axys_demo_data / "axys_full_spec_a" / "sec_ref.csv"))
+
+        with positions_path.open(encoding=util.ENCODING, newline="") as file:
+            position_ids = {row["SEC"] for row in csv.DictReader(file)}
+        with sec_ref_path.open(encoding=util.ENCODING, newline="") as file:
+            security_ids = {row["SECURITY_ID"] for row in csv.DictReader(file)}
+
+        self.assertIn("AAPL", position_ids)
+        self.assertIn("NVDA", position_ids)
+        self.assertIn("CASHBAL", position_ids)
+        self.assertIn("TBILL13W", position_ids)
+        self.assertIn("TNOTE2Y", position_ids)
+        self.assertIn("TNOTE5Y", position_ids)
+        self.assertTrue(position_ids.issubset(security_ids))
 
     def test_axys_demo_matrix_documents_problem_scenarios(self) -> None:
         """The packaged Axys demo matrix names the expected review scenarios."""

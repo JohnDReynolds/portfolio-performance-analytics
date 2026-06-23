@@ -1,6 +1,7 @@
 """Contract tests for the packaged Mega-Cap analytics demo data."""
 
 # Python Imports
+from pathlib import Path
 import unittest
 
 # Third-Party Imports
@@ -10,6 +11,7 @@ import pandas as pd
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 from ppar.analytics.frequency import Frequency
+from ppar.axys import AxysData
 
 
 _PERFORMANCE_DIRECTORY = "ppar/demos/data/performance"
@@ -23,6 +25,7 @@ _BENCHMARK_PATH = f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Benchmark.csv"
 _SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
 _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
+_AXYS_ANALYTICS_YAML = Path("ppar/demos/data/axys/axys_analytics.yaml").resolve()
 
 
 class TestMegaCapDemoDataContract(unittest.TestCase):
@@ -114,10 +117,65 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertGreater(len(sector_attribution), 0)
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
 
+    def test_axys_analytics_fixture_matches_canonical_performance(self) -> None:
+        """Axys analytics demo data is a lossless wrapper around Mega-Cap data."""
+        axys_data = AxysData(_AXYS_ANALYTICS_YAML)
+        axys_portfolio = axys_data.get_portfolio("MEGA_ALPHA")
+        axys_benchmark = axys_data.get_portfolio("MEGA_BENCH")
+
+        _assert_same_performance(
+            self,
+            axys_portfolio.security_performance.to_pandas(),
+            _canonical_security_performance(_PORTFOLIO_PATH),
+        )
+        _assert_same_performance(
+            self,
+            axys_benchmark.security_performance.to_pandas(),
+            _canonical_security_performance(_BENCHMARK_PATH),
+        )
+
+        analytics = axys_portfolio.to_analytics(
+            axys_benchmark,
+            frequency=Frequency.MONTHLY,
+        )
+        sector_attribution = analytics.get_attribution().to_pandas(
+            View.OVERALL_ATTRIBUTION
+        )
+        self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
+
 
 def _read_performance(path: str) -> pd.DataFrame:
     """Return one Mega-Cap performance file with parsed dates."""
     return pd.read_csv(path, parse_dates=["from_date", "thru_date"])
+
+
+def _canonical_security_performance(path: str) -> pd.DataFrame:
+    """Return canonical performance rows in AxysPortfolio output shape."""
+    return _read_performance(path)[
+        ["from_date", "thru_date", "identifier", "return", "weight"]
+    ]
+
+
+def _assert_same_performance(
+    test_case: unittest.TestCase,
+    actual: pd.DataFrame,
+    expected: pd.DataFrame,
+) -> None:
+    """Assert that two security-performance tables contain the same economics."""
+    sort_columns = ["from_date", "thru_date", "identifier"]
+    actual_sorted = (
+        actual[expected.columns].sort_values(sort_columns).reset_index(drop=True)
+    )
+    expected_sorted = expected.sort_values(sort_columns).reset_index(drop=True)
+
+    test_case.assertEqual(len(actual_sorted), len(expected_sorted))
+    pd.testing.assert_frame_equal(
+        actual_sorted,
+        expected_sorted,
+        check_dtype=False,
+        atol=1e-12,
+        rtol=1e-12,
+    )
 
 
 def _period_months(performance: pd.DataFrame) -> pd.PeriodIndex:

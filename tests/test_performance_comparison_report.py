@@ -925,8 +925,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
         self.assertEqual(configured_price["required_yaml_setup"][0], "None")
 
-    def test_full_spec_workbook_marks_periods_without_underlying_causes(self) -> None:
-        """Changed periods without source-data causes receive diagnostic rows."""
+    def test_full_spec_workbook_links_changed_periods_to_underlying_causes(self) -> None:
+        """Changed full-spec portfolio periods have matching cause rows."""
         findings = compare_snapshots(
             _FULL_SPEC_COMPARISON_PATH,
             require_causal_attribution=True,
@@ -937,25 +937,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         placeholders = underlying_causes.filter(
             pl.col("dataset") == "no_underlying_cause_found"
         )
-        placeholder_keys = set(placeholders["review_key"].to_list())
+        portfolio_keys = set(portfolio_changes["review_key"].to_list())
+        cause_keys = set(underlying_causes["review_key"].to_list())
 
-        self.assertEqual(placeholders.height, 2)
-        self.assertEqual(
-            placeholder_keys,
-            {
-                "PORT_FULL_A::2025-05-01::2025-05-31",
-                "PORT_FULL_C::2025-05-01::2025-05-31",
-            },
-        )
-        self.assertTrue(
-            placeholders["estimated_impact"].is_null().all(),
-        )
-        self.assertTrue(
-            all(
-                "No underlying input differences were found" in value
-                for value in placeholders["required_yaml_setup"].to_list()
-            )
-        )
+        self.assertTrue(portfolio_keys)
+        self.assertTrue(portfolio_keys.issubset(cause_keys))
+        self.assertEqual(placeholders.height, 0)
         _assert_workbook_explained_rows_reconcile(
             self,
             portfolio_changes,

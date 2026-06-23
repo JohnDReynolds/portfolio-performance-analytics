@@ -12,13 +12,16 @@ from pathlib import Path
 _OUTPUT_DIRECTORY = Path("_demo_output") / "analytics"
 os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
+_DEFAULT_PERIODICITY = "q"
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.analytics.attribution import Chart, View
+from ppar.demos.analytics_outputs import (
+    print_analytics_demo_handoff,
+    write_analytics_demo_outputs,
+)
 import ppar.demos.demo_data_sources as demo_data
 from ppar.analytics.frequency import Frequency
-import ppar.utilities as util
 
 
 def run_demo(periodicity: str) -> None:
@@ -48,8 +51,6 @@ def run_demo(periodicity: str) -> None:
         frequency = Frequency.QUARTERLY
     else:
         frequency = Frequency.YEARLY
-
-    written_paths: list[Path] = []
 
     # Portfolio and benchmark data sources use narrow rows. The weights for each
     # time period must sum to 1.0. The time periods can be of any duration, and
@@ -82,14 +83,6 @@ def run_demo(periodicity: str) -> None:
         benchmark_classification_name=benchmark_classification_name,
         frequency=frequency,
     )
-
-    # Get the Attribution instance by Security.
-    attribution_by_security = analytics.get_attribution()
-
-    # Get an html string of the overall attribution results by Security.
-    html = attribution_by_security.to_html(View.OVERALL_ATTRIBUTION)
-
-    written_paths.append(_write_html("security_overall_attribution.html", html))
 
     # Set the classification_name for another Attribution.
     classification_name = "Economic Sector"
@@ -125,86 +118,29 @@ def run_demo(periodicity: str) -> None:
     #     4. A polars DataFrame containing the Mapping data.
     mapping_data_sources = demo_data.mapping_data_sources(analytics, classification_name)
 
-    # Get the Attribution by economic sector.
-    attribution_by_sector = analytics.get_attribution(
-        classification_name,
-        classification_data_source,
-        mapping_data_sources,
+    written_paths = write_analytics_demo_outputs(
+        analytics,
+        _OUTPUT_DIRECTORY,
+        sector_classification_name=classification_name,
+        sector_classification_data_source=classification_data_source,
+        sector_mapping_data_sources=mapping_data_sources,
     )
-
-    # Write selected attribution views.
-    for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
-        html = attribution_by_sector.to_html(view)
-        written_paths.append(_write_html(f"sector_{view.name.lower()}.html", html))
-
-    # Write selected attribution charts.
-    for chart in (
-        Chart.OVERALL_CONTRIBUTION,
-        Chart.OVERALL_ATTRIBUTION,
-        Chart.SUBPERIOD_ATTRIBUTION,
-        Chart.HEATMAP_ACTIVE_CONTRIBUTION,
-        Chart.HEATMAP_ATTRIBUTION,
-        Chart.CUMULATIVE_ATTRIBUTION,
-        Chart.CUMULATIVE_RETURN,
-    ):
-        png = attribution_by_sector.to_chart(chart)
-        written_paths.append(_write_png(f"sector_{chart.name.lower()}.png", png))
-
-    # Get the RiskStatistics instance.
-    risk_statistics = analytics.get_riskstatistics()
-
-    written_paths.append(_write_html("risk_statistics.html", risk_statistics.to_html()))
-
-    # Get different formats of the OVERALL_ATTRIBUTION view output.
-    view = View.OVERALL_ATTRIBUTION
-    _ = attribution_by_sector.to_html(view)  # An html string
-    _ = attribution_by_sector.to_json(view)  # A json string
-    _ = attribution_by_sector.to_pandas(view)  # A pandas DataFrame
-    _ = attribution_by_sector.to_polars(view)  # A polars DataFrame
-    table = attribution_by_sector.to_table(view)  # A lightweight HTML table object.
-    _ = table.as_raw_html(make_page=False)  # An html fragment without <html>/<body> tags.
-    _ = attribution_by_sector.to_xml(view)  # An xml string
 
     # Write a csv file of the attribution results by sector
     # attribution_by_sector.write_csv(view, file_path="demo_attribution_by_sector.csv")
-    _print_demo_handoff(written_paths)
-
-
-def _write_html(file_name: str, html: str) -> Path:
-    """Write one demo HTML artifact."""
-    path = _OUTPUT_DIRECTORY / file_name
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(html, encoding=util.ENCODING)
-    return path
-
-
-def _write_png(file_name: str, png: bytes) -> Path:
-    """Write one demo PNG artifact."""
-    path = _OUTPUT_DIRECTORY / file_name
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(png)
-    return path
-
-
-def _print_demo_handoff(paths: list[Path]) -> None:
-    """Print generated analytics demo artifact paths."""
-    print(f"Analytics demo output written to: {_OUTPUT_DIRECTORY.resolve()}")
-    if paths:
-        print("Open these files to review the demo output:")
-        for path in paths:
-            print(f"- {path.resolve()}")
+    print_analytics_demo_handoff(_OUTPUT_DIRECTORY, written_paths)
 
 
 def main() -> None:
-    """Prompt for reporting periodicity and run the bundled ppar demonstration.
+    """Run the bundled ppar demonstration with quarterly reporting.
 
     Raises:
         PpaError: If analytics or output calculation fails for the bundled
             demonstration data.
         OSError: If demonstration output cannot be written or displayed.
     """
-    reporting_periodicity = input("Monthly (m), Quarterly (q), or Yearly (y): ")
-    run_demo(reporting_periodicity)
+    print("Using quarterly reporting.")
+    run_demo(_DEFAULT_PERIODICITY)
 
 
 if __name__ == "__main__":

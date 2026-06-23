@@ -205,6 +205,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 review_keys = _column_values(workbook["Security Differences"], "J")
                 self.assertTrue(review_keys)
-                self.assertTrue(any(str(key).endswith("::AAA") for key in review_keys))
+                self.assertTrue(any(str(key).endswith("::AAPL") for key in review_keys))
+                self.assertTrue(any(str(key).endswith("::TNOTE2Y") for key in review_keys))
             finally:
                 workbook.close()

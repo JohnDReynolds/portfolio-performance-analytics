@@ -1,8 +1,8 @@
 # =========================
 # PPAR Security Performance Comparison Configuration
 # =========================
-# This compact fixture demonstrates security-level performance comparison with
-# the same source-data snapshots used by the portfolio full-spec demo.
+# This Mega-Cap operational fixture demonstrates security-level performance
+# comparison with the same source-data snapshots used by the portfolio demo.
 
 comparison:
   name: Axys security full-spec causal attribution demo

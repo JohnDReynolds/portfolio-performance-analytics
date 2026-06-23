@@ -1,0 +1,112 @@
+SECURITY_ID,SECURITY_NAME,ASSET_CLASS_CODE,ASSET_CLASS_DESC,SECTOR_CODE,SECTOR_DESC,COUNTRY_CODE,COUNTRY_DESC,CURRENCY_CODE,CURRENCY_DESC
+AAPL,Apple Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+ABBV,Abbvie Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+ABT,Abbott Laboratories,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+ACN,Accenture Plc Class A,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+ADBE,Adobe Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+AIG,American International Group Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+AMAT,Applied Material Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+AMD,Advanced Micro Devices Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+AMGN,Amgen Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+AMT,American Tower Reit Corp,EQ,Equity,RE,Real Estate,US,United States,USD,US Dollar
+AMZN,Amazon.Com Inc,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+AVGO,Broadcom Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+AXP,American Express,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+BA,Boeing,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+BAC,Bank Of America Corp,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+BIIB,Biogen Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+BK,Bank Of New York Mellon Corp,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+BKNG,Booking Holdings Inc,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+BLK,Blackrock Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+BMY,Bristol Myers Squibb,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+BRKB,Berkshire Hathaway Inc Class B,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+C,Citigroup Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+CASHBAL,Cash Balance,CASH,Cash,CA,Cash,US,United States,USD,US Dollar
+CAT,Caterpillar Inc,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+CHTR,Charter Communications Inc Class A,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+CL,Colgate-Palmolive,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+CMCSA,Comcast Corp Class A,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+COF,Capital One Financial Corp,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+COP,Conocophillips,EQ,Equity,EN,Energy,US,United States,USD,US Dollar
+COST,Costco Wholesale Corp,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+CRM,Salesforce Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+CSCO,Cisco Systems Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+CVS,Cvs Health Corp,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+CVX,Chevron Corp,EQ,Equity,EN,Energy,US,United States,USD,US Dollar
+DD,Dupont De Nemours Inc,EQ,Equity,MA,Materials,US,United States,USD,US Dollar
+DE,Deere,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+DHR,Danaher Corp,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+DIS,Walt Disney,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+DOW,Dow Inc,EQ,Equity,MA,Materials,US,United States,USD,US Dollar
+DUK,Duke Energy Corp,EQ,Equity,UT,Utilities,US,United States,USD,US Dollar
+EMR,Emerson Electric,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+EXC,Exelon Corp,EQ,Equity,UT,Utilities,US,United States,USD,US Dollar
+F,Ford Motor Co,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+FDX,Fedex Corp,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+GD,General Dynamics Corp,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+GE,Ge Aerospace,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+GILD,Gilead Sciences Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+GM,General Motors,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+GOOG,Alphabet Inc Class C,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+GOOGL,Alphabet Inc Class A,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+GS,Goldman Sachs Group Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+HD,Home Depot Inc,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+HON,Honeywell International Inc,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+IBM,International Business Machines Co,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+INTC,Intel Corporation,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+INTU,Intuit Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+ISRG,Intuitive Surgical Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+JNJ,Johnson & Johnson,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+JPM,Jpmorgan Chase & Co,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+KHC,Kraft Heinz,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+KO,Coca-Cola,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+LIN,Linde Plc,EQ,Equity,MA,Materials,US,United States,USD,US Dollar
+LLY,Eli Lilly,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+LMT,Lockheed Martin Corp,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+LOW,Lowes Companies Inc,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+LRCX,Lam Research Corp,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+MA,Mastercard Inc Class A,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+MCD,Mcdonalds Corp,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+MDLZ,Mondelez International Inc Class A,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+MDT,Medtronic Plc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+MET,Metlife Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+META,Meta Platforms Inc Class A,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+MMM,3M,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+MO,Altria Group Inc,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+MRK,Merck & Co Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+MS,Morgan Stanley,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+MSFT,Microsoft Corp,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+MU,Micron Technology Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+NEE,Nextera Energy Inc,EQ,Equity,UT,Utilities,US,United States,USD,US Dollar
+NFLX,Netflix Inc,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+NKE,Nike Inc Class B,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+NOW,Servicenow Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+NVDA,Nvidia Corp,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+ORCL,Oracle Corp,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+PEP,Pepsico Inc,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+PFE,Pfizer Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+PG,Procter & Gamble,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+PM,Philip Morris International Inc,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+PYPL,Paypal Holdings Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+QCOM,Qualcomm Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+RTX,Rtx Corp,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+SBUX,Starbucks Corp,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+SCHW,Charles Schwab Corp,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+SO,Southern,EQ,Equity,UT,Utilities,US,United States,USD,US Dollar
+SPG,Simon Property Group Reit Inc,EQ,Equity,RE,Real Estate,US,United States,USD,US Dollar
+T,At&T Inc,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+TGT,Target Corp,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+TMO,Thermo Fisher Scientific Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+TMUS,T Mobile Us Inc,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+TSLA,Tesla Inc,EQ,Equity,CD,Consumer Discretionary,US,United States,USD,US Dollar
+TXN,Texas Instrument Inc,EQ,Equity,IT,Information Technology,US,United States,USD,US Dollar
+UBER,Uber Technologies Inc,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+UNH,Unitedhealth Group Inc,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
+UNP,Union Pacific Corp,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+UPS,United Parcel Service Inc Class B,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
+USB,Us Bancorp,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+V,Visa Inc Class A,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+VZ,Verizon Communications Inc,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
+WFC,Wells Fargo,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
+WMT,Walmart Inc,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar
+XOM,Exxon Mobil Corp,EQ,Equity,EN,Energy,US,United States,USD,US Dollar

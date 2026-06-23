@@ -88,16 +88,18 @@ Data used:
 
 - Snapshot A: `axys_full_spec_a`
 - Snapshot B: `axys_full_spec_b`
-- Files: compact set of portfolio performance, security performance,
-  transactions, positions, prices, and cash.
+- Files: Axys-style portfolio performance, security performance,
+  transactions, positions, prices, cash, and security reference data.
+- Scope: one Mega-Cap Alpha operational portfolio, six monthly periods, ten
+  mega-cap equities, `CASHBAL`, `TBILL13W`, `TNOTE2Y`, and `TNOTE5Y`.
 - YAML: includes every currently supported causal-attribution policy.
 - YAML: strict mode is enabled with `--require-causal-attribution`.
 
 Expected workbook:
 
 - Changed portfolio periods in the portfolio demo `Portfolio Differences` sheet.
-- One changed security-period return in the security demo `Security Differences`
-  sheet.
+- Changed AAPL and TNOTE2Y security-period returns in the security demo
+  `Security Differences` sheet.
 - `Underlying Causes` sheet should show additive transaction amount, position market
   value, position accrued, position quantity, weighted price, and cash examples.
 - `Underlying Causes` sheet should also show an explicit evidence-only position
@@ -108,11 +110,12 @@ Expected workbook:
   source-field delta. These confirm
   performance-output differences but are not labeled as root-cause input
   differences.
-- Some portfolio changes may still be unexplained when the changed data falls
-  outside currently supported attribution methods; strict mode verifies setup
-  completeness for supported methods, not perfect explanatory coverage. These
-  periods appear in the `Underlying Causes` sheet as `no_underlying_cause_found`
-  diagnostic rows.
+- The controlled restatement includes AAPL price/security-return changes, NVDA
+  quantity/market-value/cost changes, TNOTE2Y accrued/security-return changes,
+  CASHBAL cash changes, and one AMZN dividend transaction amount change.
+- If a future portfolio period has no matching input differences, the
+  `Underlying Causes` sheet should add a `no_underlying_cause_found`
+  diagnostic row.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and the YAML complete while still distinguishing
@@ -219,9 +222,10 @@ The supported string vocabulary is summarized in
 with enums, but YAML examples intentionally show the plain string values users
 edit.
 
-The `full_spec` fixture is intentionally compact and action-oriented. It
-contains changed portfolio periods so reviewers can see one occurrence of
-each currently supported causal-attribution basis:
+The `full_spec` fixture is intentionally action-oriented. It contains a
+Mega-Cap Alpha operational portfolio with changed portfolio/security periods so
+reviewers can see one occurrence of each currently supported
+causal-attribution basis:
 
 - security return weighted by beginning weight
 - transaction amount over beginning market value

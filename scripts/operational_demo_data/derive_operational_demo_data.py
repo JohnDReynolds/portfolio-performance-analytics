@@ -205,6 +205,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
 
     _adjust_latest_price(snapshot["prices"], latest_date, "AAPL", 1.02)
     _adjust_latest_position(snapshot["positions_holdings"], "NVDA", quantity_multiplier=1.01)
+    _adjust_latest_cost(snapshot["positions_holdings"], "NVDA", cost_delta=100.0)
     _adjust_latest_accrual(snapshot["positions_holdings"], "TNOTE2Y", accrued_delta=25.0)
     _adjust_latest_cash(snapshot["cash"], latest_date, cash_delta=1_500.0)
     _adjust_transaction_amount(snapshot["transactions"], "DIV", amount_delta=125.0)
@@ -503,6 +504,17 @@ def _adjust_latest_accrual(
     """Apply one fixed-income accrued-interest restatement in place."""
     mask = positions["SEC"].eq(identifier)
     positions.loc[mask, "ACCRUED"] = (positions.loc[mask, "ACCRUED"] + accrued_delta).round(2)
+
+
+def _adjust_latest_cost(
+    positions: pd.DataFrame,
+    identifier: str,
+    *,
+    cost_delta: float,
+) -> None:
+    """Apply one evidence-only position cost restatement in place."""
+    mask = positions["SEC"].eq(identifier)
+    positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cost_delta).round(2)
 
 
 def _adjust_latest_cash(cash: pd.DataFrame, latest_date: object, *, cash_delta: float) -> None:

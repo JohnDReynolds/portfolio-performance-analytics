@@ -188,12 +188,14 @@ Source-checkout smoke test:
 
 Generated demo artifacts live under `_demo_output/analytics`,
 `_demo_output/axys_analytics`, `_demo_output/performance_comparison_portfolio`,
-and `_demo_output/performance_comparison_security`. The core analytics demo
-prompts for reporting periodicity and writes both tables and charts; the Axys
-analytics demo is noninteractive. All demos write files and print the review
-paths instead of opening browser windows automatically. The performance
-comparison demos write both `report.xlsx` and `report.html`; start review in
-the generated `report.xlsx`.
+and `_demo_output/performance_comparison_security`. The core analytics demo and
+the Axys analytics demo use the same Mega-Cap Alpha portfolio and benchmark;
+the Axys demo reads the data through Axys-shaped exports before handing the
+same analytics object shape to the shared renderer. Both analytics demos use
+quarterly reporting and write tables and charts. All demos write files and
+print the review paths instead of opening browser windows automatically. The
+performance comparison demos write both `report.xlsx` and `report.html`; start
+review in the generated `report.xlsx`.
 
 ---
 

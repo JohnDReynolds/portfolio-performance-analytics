@@ -1,15 +1,17 @@
 # Full-Spec Restatement Notes
 
-The restatement demonstrates currently supported explanation paths:
+Snapshot B intentionally restates selected rows from the Mega-Cap Alpha
+operational snapshot:
 
-- `PORT_FULL_A` May return changes because the `AAA` security return changed.
-- `PORT_FULL_B` May return changes because a performance transaction amount changed.
-- `PORT_FULL_C` May return changes because vendor contribution changed.
-- `PORT_FULL_A` June return changes because portfolio income changed.
-- `PORT_FULL_D` May return changes because position market value changed.
-- `PORT_FULL_E` May return changes because position accrued changed.
-- `PORT_FULL_F` May return changes because a linked security price changed.
-- `PORT_FULL_G` includes an additive position quantity estimate and an explicit
-  evidence-only position cost change.
-- `PORT_FULL_H` May return changes because cash balance changed.
-- `PORT_FULL_I` May return changes because cash market value changed.
+- Latest AAPL price increases, creating a weighted price explanation.
+- Latest AAPL security return and contribution increase for security-level
+  review.
+- Latest NVDA quantity and market value increase, with cost changed as
+  review-only evidence.
+- Latest TNOTE2Y accrued income and security return increase.
+- Latest CASHBAL cash balance and market value increase.
+- One AMZN dividend transaction amount increases.
+
+The corresponding YAML files configure every currently supported additive or
+review-only impact policy, so the workbook can distinguish true underlying
+causes from reported performance checks.

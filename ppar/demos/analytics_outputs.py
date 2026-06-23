@@ -1,0 +1,145 @@
+"""Shared output rendering for bundled analytics demos."""
+
+from __future__ import annotations
+
+# Python imports
+from collections.abc import Sequence
+from pathlib import Path
+
+# Project imports
+from ppar.analytics import Analytics
+from ppar.analytics.attribution import Attribution, Chart, View
+import ppar.utilities as util
+
+
+def write_analytics_demo_outputs(
+    analytics: Analytics,
+    output_directory: Path,
+    *,
+    sector_classification_name: str = "Economic Sector",
+    sector_classification_data_source: util.ClassificationDataSource | None = None,
+    sector_mapping_data_sources: Sequence[util.MappingDataSource | None] | None = None,
+) -> list[Path]:
+    """Write the common analytics demo tables, charts, and risk report.
+
+    Args:
+        analytics: Analytics object already initialized from the desired data
+            ingestion path.
+        output_directory: Directory where demo artifacts should be written.
+        sector_classification_name: Reporting classification used for the
+            sector-level attribution artifacts.
+        sector_classification_data_source: Optional classification source for
+            sector-level attribution. Omit when ``analytics`` was created with
+            default attribution sources, such as through ``AxysData``.
+        sector_mapping_data_sources: Optional portfolio and benchmark mappings
+            from security to sector. Omit when ``analytics`` was created with
+            default attribution sources.
+
+    Returns:
+        Paths written by the renderer.
+    """
+    written_paths: list[Path] = []
+
+    attribution_by_security = analytics.get_attribution("Security")
+    written_paths.append(
+        _write_html(
+            output_directory,
+            "security_overall_attribution.html",
+            attribution_by_security.to_html(View.OVERALL_ATTRIBUTION),
+        )
+    )
+
+    attribution_by_sector = _sector_attribution(
+        analytics,
+        sector_classification_name,
+        sector_classification_data_source,
+        sector_mapping_data_sources,
+    )
+    for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
+        written_paths.append(
+            _write_html(
+                output_directory,
+                f"sector_{view.name.lower()}.html",
+                attribution_by_sector.to_html(view),
+            )
+        )
+
+    for chart in (
+        Chart.OVERALL_CONTRIBUTION,
+        Chart.OVERALL_ATTRIBUTION,
+        Chart.SUBPERIOD_ATTRIBUTION,
+        Chart.HEATMAP_ACTIVE_CONTRIBUTION,
+        Chart.HEATMAP_ATTRIBUTION,
+        Chart.CUMULATIVE_ATTRIBUTION,
+        Chart.CUMULATIVE_RETURN,
+    ):
+        written_paths.append(
+            _write_png(
+                output_directory,
+                f"sector_{chart.name.lower()}.png",
+                attribution_by_sector.to_chart(chart),
+            )
+        )
+
+    risk_statistics = analytics.get_riskstatistics()
+    written_paths.append(
+        _write_html(output_directory, "risk_statistics.html", risk_statistics.to_html())
+    )
+
+    # Exercise alternate output formats that applications commonly use for
+    # their own presentation layers.
+    view = View.OVERALL_ATTRIBUTION
+    _ = attribution_by_sector.to_html(view)
+    _ = attribution_by_sector.to_json(view)
+    _ = attribution_by_sector.to_pandas(view)
+    _ = attribution_by_sector.to_polars(view)
+    table = attribution_by_sector.to_table(view)
+    _ = table.as_raw_html(make_page=False)
+    _ = attribution_by_sector.to_xml(view)
+
+    return written_paths
+
+
+def print_analytics_demo_handoff(output_directory: Path, paths: Sequence[Path]) -> None:
+    """Print generated analytics demo artifact paths.
+
+    Args:
+        output_directory: Directory that received the rendered demo artifacts.
+        paths: Paths written by ``write_analytics_demo_outputs``.
+    """
+    print(f"Analytics demo output written to: {output_directory.resolve()}")
+    if paths:
+        print("Open these files to review the demo output:")
+        for path in paths:
+            print(f"- {path.resolve()}")
+
+
+def _sector_attribution(
+    analytics: Analytics,
+    sector_classification_name: str,
+    sector_classification_data_source: util.ClassificationDataSource | None,
+    sector_mapping_data_sources: Sequence[util.MappingDataSource | None] | None,
+) -> Attribution:
+    """Return sector attribution from explicit or Analytics-default sources."""
+    if sector_classification_data_source is None and sector_mapping_data_sources is None:
+        return analytics.get_attribution()
+    return analytics.get_attribution(
+        sector_classification_name,
+        sector_classification_data_source,
+        sector_mapping_data_sources,
+    )
+
+
+def _write_html(output_directory: Path, file_name: str, html: str) -> Path:
+    """Write one demo HTML artifact."""
+    path = output_directory / file_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding=util.ENCODING)
+    return path
+
+
+def _write_png(output_directory: Path, file_name: str, png: bytes) -> Path:
+    """Write one demo PNG artifact."""
+    path = output_directory / file_name
+    path.write_bytes(png)
+    return path

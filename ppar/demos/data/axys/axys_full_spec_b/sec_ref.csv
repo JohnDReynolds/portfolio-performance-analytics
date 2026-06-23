@@ -1,0 +1,15 @@
+SECURITY_ID,SECURITY_NAME,ASSET_CLASS_CODE,ASSET_CLASS_DESC,SECTOR_CODE,SECTOR_DESC,COUNTRY_CODE,COUNTRY_DESC,CURRENCY_CODE,CURRENCY_DESC,INDUSTRY_CODE,INDUSTRY_DESC
+AAPL,Apple Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+AMZN,Amazon.Com Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+AVGO,Broadcom Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+BRKB,Berkshire Hathaway Inc Class B,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+CASHBAL,Cash Balance,CASH,Cash,CA,Cash,US,United States,USD,US Dollar,CA,Cash
+GOOG,Alphabet Inc Class C,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+GOOGL,Alphabet Inc Class A,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+META,Meta Platforms Inc Class A,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+MSFT,Microsoft Corp,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+NVDA,Nvidia Corp,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+TBILL13W,13 Week Treasury Bill,TBILL,Treasury Bills,CA,Cash,US,United States,USD,US Dollar,CA,Cash
+TNOTE2Y,2 Year Treasury Note,TNOTE,Treasury Notes,CA,Cash,US,United States,USD,US Dollar,CA,Cash
+TNOTE5Y,5 Year Treasury Note,TNOTE,Treasury Notes,CA,Cash,US,United States,USD,US Dollar,CA,Cash
+TSLA,Tesla Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity

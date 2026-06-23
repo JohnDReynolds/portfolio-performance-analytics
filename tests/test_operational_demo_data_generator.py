@@ -114,9 +114,20 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
             "ACCRUED",
         )
+        nvda_cost_a = _value(
+            snapshot_a["positions_holdings"],
+            snapshot_a["positions_holdings"]["SEC"].eq("NVDA"),
+            "COST",
+        )
+        nvda_cost_b = _value(
+            snapshot_b["positions_holdings"],
+            snapshot_b["positions_holdings"]["SEC"].eq("NVDA"),
+            "COST",
+        )
 
         self.assertGreater(aapl_price_b, aapl_price_a)
         self.assertGreater(tnote_accrued_b, tnote_accrued_a)
+        self.assertGreater(nvda_cost_b, nvda_cost_a)
         self.assertGreater(
             snapshot_b["portperf"]["PORT_RETURN"].iloc[-1],
             snapshot_a["portperf"]["PORT_RETURN"].iloc[-1],
