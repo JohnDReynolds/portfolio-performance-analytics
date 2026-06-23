@@ -133,6 +133,7 @@ from ppar.performance_comparison.findings import (
     SECURITY_ID,
     SEVERITY_MATERIAL,
     SOURCE_COLUMN,
+    SUPPRESSED,
     TARGET_OUTPUT,
     THRU_DATE,
     TRANSACTION_IMPACT_DIAGNOSTIC,
@@ -151,6 +152,9 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.ya
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
 )
+_SECURITY_RESTATEMENT_COMPARISON_PATH = Path(
+    "tests/data/axys/ppar_performance_comparison_security_restatement.yaml"
+)
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
@@ -164,6 +168,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
     _baseline_findings: pl.DataFrame
     _restatement_findings: pl.DataFrame
+    _security_restatement_findings: pl.DataFrame
     _suppressed_findings: pl.DataFrame
 
     @classmethod
@@ -171,6 +176,9 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         """Cache expensive snapshot comparisons for explanation tests."""
         cls._baseline_findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
         cls._restatement_findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        cls._security_restatement_findings = compare_snapshots(
+            _SECURITY_RESTATEMENT_COMPARISON_PATH
+        )
         cls._suppressed_findings = compare_snapshots(_SUPPRESSED_COMPARISON_PATH)
 
     def _baseline(self) -> pl.DataFrame:
@@ -181,9 +189,22 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         """Return restatement findings for one test."""
         return self._restatement_findings.clone()
 
+    def _security_restatement(self) -> pl.DataFrame:
+        """Return security-level restatement findings for one test."""
+        return self._security_restatement_findings.clone()
+
     def _suppressed(self) -> pl.DataFrame:
         """Return suppressed fixture findings for one test."""
         return self._suppressed_findings.clone()
+
+    def _portfolio_suppressed(self) -> pl.DataFrame:
+        """Return portfolio findings with one source-data row marked suppressed."""
+        return self._restatement().with_columns(
+            pl.when(pl.col(FINDING_CODE) == PC_TXN_AMT)
+            .then(pl.lit(True))
+            .otherwise(pl.col(SUPPRESSED))
+            .alias(SUPPRESSED)
+        )
 
     def _transaction_estimate_findings(
         self,
@@ -292,7 +313,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertAlmostEqual(row[PORTFOLIO_RETURN_DELTA], 0.0005)
         self.assertEqual(row[PORTFOLIO_FINDING_COUNT], 3)
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 11)
-        self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 5)
+        self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 0)
         self.assertEqual(row[CONTEXT_FINDING_COUNT], 1)
         self.assertEqual(row[POSITION_FINDING_COUNT], 4)
         self.assertEqual(row[CASH_FINDING_COUNT], 2)
@@ -300,19 +321,19 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[PRICE_FINDING_COUNT], 1)
         self.assertEqual(row[FX_RATE_FINDING_COUNT], 0)
         self.assertEqual(row[REFERENCE_FINDING_COUNT], 0)
-        self.assertEqual(row[FINDING_COUNT], 18)
+        self.assertEqual(row[FINDING_COUNT], 13)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 
     def test_portfolio_period_summary_tracks_suppressed_related_evidence(self) -> None:
         """Portfolio-period summary flags suppressed related findings."""
-        findings = self._suppressed()
+        findings = self._portfolio_suppressed()
 
         active_summary = portfolio_period_summary(findings)
         audit_summary = portfolio_period_summary(findings, include_suppressed=True)
 
         self.assertTrue(active_summary.row(0, named=True)[HAS_SUPPRESSED_FINDINGS])
-        self.assertEqual(active_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 4)
-        self.assertEqual(audit_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 5)
+        self.assertEqual(active_summary.row(0, named=True)[DIRECT_INPUT_FINDING_COUNT], 10)
+        self.assertEqual(audit_summary.row(0, named=True)[DIRECT_INPUT_FINDING_COUNT], 11)
 
     def test_portfolio_period_evidence_breakdown_returns_role_and_dataset_counts(
         self,
@@ -326,10 +347,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             breakdown.columns,
             list(PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS),
         )
-        self.assertEqual(breakdown.height, 11)
+        self.assertEqual(breakdown.height, 10)
         self.assertEqual(_breakdown_count(breakdown, TARGET_OUTPUT, None), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, None), 11)
-        self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 5)
+        self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 0)
         self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 1)
         self.assertEqual(
             _breakdown_count(breakdown, TARGET_OUTPUT, "portfolio_performance"),
@@ -343,14 +364,9 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "transactions"), 3)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "positions"), 3)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "cash"), 2)
-        self.assertEqual(
-            _breakdown_count(breakdown, RELATED_OUTPUT, "security_performance"),
-            5,
-        )
-
     def test_portfolio_period_evidence_breakdown_tracks_suppressed_counts(self) -> None:
         """Evidence breakdown counts suppressed rows only when requested."""
-        findings = self._suppressed()
+        findings = self._portfolio_suppressed()
 
         active_breakdown = portfolio_period_evidence_breakdown(findings)
         audit_breakdown = portfolio_period_evidence_breakdown(
@@ -358,8 +374,8 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             include_suppressed=True,
         )
 
-        self.assertEqual(_breakdown_count(active_breakdown, RELATED_OUTPUT, None), 4)
-        self.assertEqual(_breakdown_count(audit_breakdown, RELATED_OUTPUT, None), 5)
+        self.assertEqual(_breakdown_count(active_breakdown, DIRECT_INPUT, None), 10)
+        self.assertEqual(_breakdown_count(audit_breakdown, DIRECT_INPUT, None), 11)
 
     def test_portfolio_period_evidence_breakdown_returns_stable_empty_table(self) -> None:
         """No portfolio return deltas produce an empty breakdown table."""
@@ -390,47 +406,31 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             ranking.columns,
             list(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS),
         )
-        self.assertEqual(ranking.height, 17)
+        self.assertEqual(ranking.height, 12)
         self.assertEqual(first_row[REVIEW_RANK], 1)
         self.assertEqual(first_row[EVIDENCE_ROLE], DIRECT_INPUT)
         direct_input_score_values = [int(value) for value in direct_input_scores.to_list()]
         related_output_score_values = [
             int(value) for value in related_output_scores.to_list()
         ]
-        self.assertGreater(
-            min(direct_input_score_values),
-            max(related_output_score_values),
-        )
+        self.assertGreater(len(direct_input_score_values), 0)
+        self.assertEqual(related_output_score_values, [])
         self.assertNotIn(TARGET_OUTPUT, ranking.get_column(EVIDENCE_ROLE).to_list())
 
     def test_portfolio_period_contribution_candidates_estimates_contribution(
         self,
     ) -> None:
-        """Contribution candidates estimate vendor contribution deltas."""
+        """Portfolio contribution candidates omit security contribution deltas."""
         findings = self._restatement()
 
         candidates = portfolio_period_contribution_candidates(findings)
-        contribution = candidates.filter(pl.col(FINDING_CODE) == PC_SEC_CONTR).row(
-            0,
-            named=True,
-        )
 
         self.assertEqual(
             candidates.columns,
             list(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS),
         )
-        self.assertEqual(candidates.height, 17)
-        self.assertAlmostEqual(contribution[ESTIMATED_RETURN_IMPACT], 0.00058425)
-        self.assertEqual(
-            contribution[IMPACT_POLICY],
-            "security_contribution:vendor_contribution_delta",
-        )
-        self.assertEqual(contribution[IMPACT_BASIS], IMPACT_BASIS_SECURITY_CONTRIBUTION)
-        self.assertEqual(contribution[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_MEDIUM)
-        self.assertEqual(
-            contribution[IMPACT_METHOD],
-            IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
-        )
+        self.assertEqual(candidates.height, 12)
+        self.assertTrue(candidates.filter(pl.col(FINDING_CODE) == PC_SEC_CONTR).is_empty())
 
     def test_portfolio_period_contribution_candidates_estimates_source_field(
         self,
@@ -458,25 +458,12 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
     def test_portfolio_period_contribution_candidates_estimates_security_return(
         self,
     ) -> None:
-        """Contribution candidates estimate weighted security return deltas."""
+        """Portfolio contribution candidates omit security return deltas."""
         findings = self._restatement()
 
         candidates = portfolio_period_contribution_candidates(findings)
-        security_return = candidates.filter(
-            (pl.col(FINDING_CODE) == PC_SEC_RET)
-            & (pl.col(IMPACT_BASIS) == IMPACT_BASIS_SECURITY_RETURN_WEIGHTED)
-        ).row(0, named=True)
 
-        self.assertAlmostEqual(
-            security_return[ESTIMATED_RETURN_IMPACT],
-            0.01 * 0.05319463,
-        )
-        self.assertEqual(
-            security_return[IMPACT_POLICY],
-            "security_return:security_return_delta_times_weight",
-        )
-        self.assertEqual(security_return[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
-        self.assertIn("portfolio weight", security_return[IMPACT_MESSAGE])
+        self.assertTrue(candidates.filter(pl.col(FINDING_CODE) == PC_SEC_RET).is_empty())
 
     def test_contribution_candidates_require_explicit_yaml_policy(self) -> None:
         """Portfolio and security contribution estimates require YAML policy."""
@@ -518,7 +505,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         row = no_estimate.row(0, named=True)
 
-        self.assertEqual(no_estimate.height, 14)
+        self.assertEqual(no_estimate.height, 11)
         self.assertIsNone(row[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIsNone(row[IMPACT_METHOD])
@@ -540,68 +527,50 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
     def test_portfolio_period_cause_summary_rolls_up_contribution_estimates(
         self,
     ) -> None:
-        """Cause summary rolls up currently defensible contribution estimates."""
+        """Cause summary rolls up currently defensible portfolio-source estimates."""
         findings = self._restatement()
 
         summary = portfolio_period_cause_summary(findings)
-        contribution_row = summary.filter(
-            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
+        portfolio_row = summary.filter(
+            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT
         ).row(0, named=True)
 
         self.assertEqual(
             summary.columns,
             list(PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS),
         )
-        self.assertEqual(summary.height, 6)
-        self.assertEqual(contribution_row[FINDING_COUNT], 5)
-        self.assertAlmostEqual(contribution_row[ESTIMATED_RETURN_IMPACT], 0.00058425)
+        self.assertEqual(summary.height, 5)
+        self.assertEqual(portfolio_row[FINDING_COUNT], 2)
+        self.assertAlmostEqual(portfolio_row[ESTIMATED_RETURN_IMPACT], 0.0005000425036128067)
         self.assertEqual(
-            contribution_row[IMPACT_BASIS],
-            IMPACT_BASIS_SECURITY_CONTRIBUTION,
+            portfolio_row[IMPACT_BASIS],
+            IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
         )
-        self.assertEqual(contribution_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_MEDIUM)
-        self.assertIn("PC-SEC-CONTR", contribution_row[TOP_CODES])
-        self.assertIn("vendor contribution deltas", contribution_row[IMPACT_MESSAGE])
-        self.assertIn("review cross-checks", contribution_row[IMPACT_MESSAGE])
+        self.assertEqual(portfolio_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
+        self.assertIn("PC-PORT-FLOW", portfolio_row[TOP_CODES])
+        self.assertIn("currently supported contribution candidate", portfolio_row[IMPACT_MESSAGE])
 
     def test_portfolio_period_cause_summary_prefers_vendor_contribution(
         self,
     ) -> None:
-        """Security cause summary avoids double-counting weighted returns."""
+        """Portfolio cause summary omits security-performance output rows."""
         findings = self._restatement()
 
         summary = portfolio_period_cause_summary(findings)
-        contribution_row = summary.filter(
-            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
-        ).row(0, named=True)
+        cause_areas = set(summary.get_column(ROOT_CAUSE_AREA).to_list())
 
-        self.assertAlmostEqual(contribution_row[ESTIMATED_RETURN_IMPACT], 0.00058425)
-        self.assertEqual(
-            contribution_row[IMPACT_BASIS],
-            IMPACT_BASIS_SECURITY_CONTRIBUTION,
-        )
+        self.assertNotIn(ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION, cause_areas)
 
     def test_portfolio_period_cause_summary_uses_weighted_return_fallback(
         self,
     ) -> None:
-        """Security cause summary uses weighted return when contribution is absent."""
+        """Portfolio cause summary remains stable without security contribution rows."""
         findings = self._restatement().filter(pl.col(FINDING_CODE) != PC_SEC_CONTR)
 
         summary = portfolio_period_cause_summary(findings)
-        contribution_row = summary.filter(
-            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION
-        ).row(0, named=True)
+        cause_areas = set(summary.get_column(ROOT_CAUSE_AREA).to_list())
 
-        self.assertAlmostEqual(
-            contribution_row[ESTIMATED_RETURN_IMPACT],
-            0.01 * 0.05319463,
-        )
-        self.assertEqual(
-            contribution_row[IMPACT_BASIS],
-            IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
-        )
-        self.assertEqual(contribution_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
-        self.assertNotIn("vendor contribution deltas", contribution_row[IMPACT_MESSAGE])
+        self.assertNotIn(ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION, cause_areas)
 
     def test_portfolio_period_cause_summary_keeps_transactions_evidence_only(
         self,
@@ -642,7 +611,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
                 ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
                 ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
                 ROOT_CAUSE_PRICE,
-                ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY,
             },
         )
@@ -681,7 +649,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
                 ROOT_CAUSE_MARKET_VALUE_OR_POSITION: 4,
                 ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT: 2,
                 ROOT_CAUSE_PRICE: 1,
-                ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION: 5,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY: 3,
             },
         )
@@ -702,14 +669,14 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(coverage.height, 1)
         self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
         self.assertAlmostEqual(row[PORTFOLIO_RETURN_DELTA], 0.0005)
-        self.assertEqual(row[ROOT_CAUSE_AREA_COUNT], 6)
-        self.assertEqual(row[ESTIMATED_CAUSE_AREA_COUNT], 2)
+        self.assertEqual(row[ROOT_CAUSE_AREA_COUNT], 5)
+        self.assertEqual(row[ESTIMATED_CAUSE_AREA_COUNT], 1)
         self.assertEqual(row[EVIDENCE_ONLY_CAUSE_AREA_COUNT], 4)
         self.assertEqual(row[LOW_CONFIDENCE_ESTIMATE_COUNT], 1)
-        self.assertEqual(row[MEDIUM_CONFIDENCE_ESTIMATE_COUNT], 1)
+        self.assertEqual(row[MEDIUM_CONFIDENCE_ESTIMATE_COUNT], 0)
         self.assertAlmostEqual(
             row[ESTIMATED_RETURN_IMPACT_TOTAL],
-            0.0010842925036128068,
+            0.0005000425036128067,
         )
         self.assertIn(ROOT_CAUSE_TRANSACTION_ACTIVITY, row[EVIDENCE_ONLY_AREAS])
         self.assertIn(ROOT_CAUSE_PRICE, row[EVIDENCE_ONLY_AREAS])
@@ -725,7 +692,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             row[IMPACT_COVERAGE_REVIEW_NOTE],
             "Resolve missing inputs before relying on impact totals.",
         )
-        self.assertIn("2 cause area(s) have estimates", row[IMPACT_MESSAGE])
+        self.assertIn("1 cause area(s) have estimates", row[IMPACT_MESSAGE])
 
     def test_portfolio_period_impact_coverage_summary_returns_stable_empty_table(
         self,
@@ -1302,7 +1269,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
     def test_rank_portfolio_period_evidence_tracks_suppressed_findings(self) -> None:
         """Evidence ranking includes suppressed evidence only when requested."""
-        findings = self._suppressed()
+        findings = self._portfolio_suppressed()
 
         active_ranking = rank_portfolio_period_evidence(findings)
         audit_ranking = rank_portfolio_period_evidence(
@@ -1310,14 +1277,14 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             include_suppressed=True,
         )
 
-        self.assertEqual(active_ranking.height, 16)
-        self.assertEqual(audit_ranking.height, 17)
+        self.assertEqual(active_ranking.height, 11)
+        self.assertEqual(audit_ranking.height, 12)
         self.assertEqual(
-            active_ranking.filter(pl.col(FINDING_CODE) == PC_SEC_RET).height,
+            active_ranking.filter(pl.col(FINDING_CODE) == PC_TXN_AMT).height,
             0,
         )
         self.assertEqual(
-            audit_ranking.filter(pl.col(FINDING_CODE) == PC_SEC_RET).height,
+            audit_ranking.filter(pl.col(FINDING_CODE) == PC_TXN_AMT).height,
             1,
         )
 
@@ -1368,7 +1335,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
     def test_security_period_summary_groups_related_evidence(self) -> None:
         """Security-period summary groups findings around security returns."""
-        findings = self._restatement()
+        findings = self._security_restatement()
 
         summary = security_period_summary(findings)
         row = summary.row(0, named=True)
@@ -1415,7 +1382,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self,
     ) -> None:
         """Security evidence breakdown returns role and dataset count rows."""
-        findings = self._restatement()
+        findings = self._security_restatement()
 
         breakdown = security_period_evidence_breakdown(findings)
 
@@ -1482,8 +1449,11 @@ def _breakdown_count(
     )
     row = breakdown.filter(
         (pl.col(EVIDENCE_GROUP) == evidence_group) & dataset_filter
-    ).row(0, named=True)
-    return int(row[FINDING_COUNT])
+    )
+    if row.is_empty():
+        return 0
+    row_values = row.row(0, named=True)
+    return int(row_values[FINDING_COUNT])
 
 
 def _portfolio_flow_finding(*, delta: float, denominator: float | None) -> Finding:

@@ -44,6 +44,9 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.ya
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement.yaml"
 )
+_SECURITY_RESTATEMENT_COMPARISON_PATH = Path(
+    "tests/data/axys/ppar_performance_comparison_security_restatement.yaml"
+)
 _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
@@ -416,8 +419,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
             self.assertEqual(manifest["title"], "Bundle Restatement")
-            self.assertEqual(manifest["counts"]["findings"], 22)
-            self.assertEqual(manifest["counts"]["active_findings"], 22)
+            self.assertEqual(manifest["counts"]["findings"], 17)
+            self.assertEqual(manifest["counts"]["active_findings"], 17)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
@@ -473,7 +476,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertIn("impact_coverage_status", impact_coverage.columns)
             self.assertIn("impact_coverage_review_note", impact_coverage.columns)
-            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
+            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 1)
             self.assertEqual(impact_coverage["impact_coverage_status"][0], "missing_inputs")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
@@ -698,19 +701,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
-        """Security Differences shows explained amounts from security causes."""
-        findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+        """Security Differences shows security-level performance changes."""
+        findings = compare_snapshots(_SECURITY_RESTATEMENT_COMPARISON_PATH)
 
         security_differences = _workbook_security_changes_table(findings)
         aapl = security_differences.filter(pl.col("security_id") == "AAPL")
 
         self.assertEqual(aapl.height, 1)
         self.assertAlmostEqual(aapl["performance_change"][0], 0.01)
-        self.assertAlmostEqual(aapl["estimated_cause_total"][0], -100.0 / 999915.0)
-        self.assertAlmostEqual(
-            aapl["unexplained_change"][0],
-            0.01 - (-100.0 / 999915.0),
-        )
+        self.assertAlmostEqual(aapl["estimated_cause_total"][0], 0.0)
+        self.assertAlmostEqual(aapl["unexplained_change"][0], 0.01)
 
     def test_security_differences_marks_periods_without_security_rows(self) -> None:
         """Portfolio periods without security differences get explicit rows."""
@@ -1006,7 +1006,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 workbook.sheetnames,
                 [
                     "Portfolio Differences",
-                    "Security Differences",
                     "Underlying Causes",
                     "Reported Performance Checks",
                     "Context",
@@ -1048,35 +1047,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "Portfolio identifier",
                 performance_change_sheet["A1"].comment.text,
-            )
-
-            security_changes_sheet = workbook["Security Differences"]
-            self.assertEqual(
-                [
-                    security_changes_sheet.cell(row=1, column=column).value
-                    for column in range(1, 11)
-                ],
-                [
-                    "Portfolio",
-                    "From Date",
-                    "Thru Date",
-                    "Security",
-                    "Performance Difference",
-                    "Explained Difference",
-                    "Unexplained Difference",
-                    "Status",
-                    "Next Action",
-                    "Review Key",
-                ],
-            )
-            self.assertGreater(security_changes_sheet.max_row, 2)
-            self.assertEqual(security_changes_sheet["E2"].number_format, "0.######")
-            self.assertEqual(
-                security_changes_sheet.cell(
-                    row=1,
-                    column=security_changes_sheet.max_column,
-                ).value,
-                "Review Key",
             )
 
             underlying_causes_sheet = workbook["Underlying Causes"]
@@ -1357,7 +1327,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn(
-            "report.xlsx is missing sheet 'Portfolio Differences'",
+            "report.xlsx is missing primary sheet 'Portfolio Differences' or "
+            "'Security Differences'",
             issues,
         )
 

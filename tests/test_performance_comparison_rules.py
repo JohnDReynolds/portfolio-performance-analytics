@@ -14,7 +14,6 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import compare_snapshots, summarize_findings
 from ppar.performance_comparison.findings import (
     FINDING_CODE,
-    PC_PORT_RET,
     PC_SEC_RET,
     SECURITY_ID,
     SOURCE_COLUMN,
@@ -60,16 +59,19 @@ class TestPerformanceComparisonRules(unittest.TestCase):
             & (pl.col(SECURITY_ID) == "AAPL")
             & (pl.col(SOURCE_COLUMN) == pc_cols.SECURITY_RETURN)
         )
-        portfolio_return_findings = findings.filter(pl.col(FINDING_CODE) == PC_PORT_RET)
+        unsuppressed_security_findings = findings.filter(
+            (pl.col(FINDING_CODE) != PC_SEC_RET)
+            & (pl.col(SECURITY_ID) == "AAPL")
+        )
 
         self.assertEqual(security_return_findings.height, 1)
         self.assertEqual(
             security_return_findings.get_column(SUPPRESSED).to_list(),
             [True],
         )
-        self.assertGreater(portfolio_return_findings.height, 0)
+        self.assertGreater(unsuppressed_security_findings.height, 0)
         self.assertEqual(
-            portfolio_return_findings.get_column(SUPPRESSED).unique().to_list(),
+            unsuppressed_security_findings.get_column(SUPPRESSED).unique().to_list(),
             [False],
         )
 

@@ -155,6 +155,7 @@ include-package-data = true
 # Include demo CSVs used by examples so installed package is usable offline.
 ppar = [
     "py.typed",
+    "demos/data/*.md",
     "demos/data/classifications/*.csv",
     "demos/data/mappings/*.csv",
     "demos/data/performance/*.csv",

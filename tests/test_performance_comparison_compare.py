@@ -659,17 +659,17 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(len(add_findings), 1)
         self.assertEqual(len(drop_findings), 1)
 
-    def test_compare_combines_portfolio_and_security_findings(self) -> None:
-        """Combined comparison returns all currently supported finding groups."""
+    def test_compare_combines_primary_portfolio_and_source_findings(self) -> None:
+        """Portfolio comparison returns portfolio-result and source-data findings."""
         finding_dicts = [
             finding.to_dict() for finding in self._restatement_combined_findings
         ]
         finding_codes = {finding[FINDING_CODE] for finding in finding_dicts}
 
         self.assertIn(PC_PORT_RET, finding_codes)
-        self.assertIn(PC_SEC_RET, finding_codes)
-        self.assertIn(PC_SEC_ADD, finding_codes)
-        self.assertIn(PC_SEC_DROP, finding_codes)
+        self.assertNotIn(PC_SEC_RET, finding_codes)
+        self.assertNotIn(PC_SEC_ADD, finding_codes)
+        self.assertNotIn(PC_SEC_DROP, finding_codes)
         self.assertIn(PC_POS_QTY, finding_codes)
         self.assertIn(PC_POS_COST, finding_codes)
         self.assertIn(PC_POS_ACCR, finding_codes)
@@ -704,7 +704,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
         self.assertEqual(role_by_code[PC_PORT_RET], TARGET_OUTPUT)
         self.assertEqual(role_by_code[PC_PORT_MV], DIRECT_INPUT)
-        self.assertEqual(role_by_code[PC_SEC_RET], RELATED_OUTPUT)
+        self.assertNotIn(PC_SEC_RET, role_by_code)
         self.assertEqual(role_by_code[PC_POS_QTY], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_POS_COST], CONTEXT)
         self.assertEqual(role_by_code[PC_CASH_MV], DIRECT_INPUT)

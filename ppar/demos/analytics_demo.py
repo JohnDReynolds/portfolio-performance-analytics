@@ -6,7 +6,12 @@ files, and exercises the main output-format methods.
 """
 
 # Python imports
+import os
 from pathlib import Path
+
+_OUTPUT_DIRECTORY = Path("_demo_output") / "analytics"
+os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
+os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
 
 # Project Imports
 from ppar.analytics import Analytics
@@ -15,20 +20,18 @@ import ppar.demos.demo_data_sources as demo_data
 from ppar.analytics.frequency import Frequency
 import ppar.utilities as util
 
-_OUTPUT_DIRECTORY = Path("_demo_output") / "analytics"
-
 
 def run_demo(periodicity: str) -> None:
     """Run the bundled ppar demonstration.
 
-    The demo loads sample portfolio and benchmark performance data, optionally
-    filters the monthly demo date range, creates attribution results by security
-    and economic sector, and writes formatted tables, charts, and ex-post risk
-    statistics to ``_demo_output/analytics``.
+    The demo loads sample Mega-Cap portfolio and benchmark performance data,
+    creates attribution results by security and economic sector, and writes
+    formatted tables, charts, and ex-post risk statistics to
+    ``_demo_output/analytics``.
 
     Args:
-        periodicity: Reporting periodicity selector. Values from with
-            ``"q"`` or ``"Q"`` use quarterly reporting, values from with
+        periodicity: Reporting periodicity selector. Values starting with
+            ``"q"`` or ``"Q"`` use quarterly reporting, values starting with
             ``"y"`` or ``"Y"`` use yearly reporting, and all other values use
             monthly reporting.
 
@@ -62,34 +65,23 @@ def run_demo(periodicity: str) -> None:
     #     1. The path of a csv file containing the performance data.
     #     2. A pandas DataFrame containing the performance data.
     #     3. A polars DataFrame containing the performance data.
-    portfolio_data_source = demo_data.performance_data_source("Large-Cap Alpha Portfolio.csv")
-    benchmark_data_source = demo_data.performance_data_source("Large-Cap Benchmark.csv")
+    portfolio_data_source = demo_data.performance_data_source(
+        "Mega-Cap Alpha Portfolio.csv"
+    )
+    benchmark_data_source = demo_data.performance_data_source("Mega-Cap Benchmark.csv")
 
-    # Set the classificcation names of the portfolio and benchmark data sources.
-    portfolio_classification_name = "Security"
-    benchmark_classification_name = "Security"
+    # Set the classification names of the portfolio and benchmark data sources.
+    portfolio_classification_name = "Mega-Cap Security"
+    benchmark_classification_name = "Mega-Cap Security"
 
     # Get the Analytics instance.
-    if frequency == Frequency.MONTHLY:
-        # Filter on dates.
-        analytics = Analytics(
-            portfolio_data_source,
-            benchmark_data_source,
-            portfolio_classification_name=portfolio_classification_name,
-            benchmark_classification_name=benchmark_classification_name,
-            from_date="2023-01-01",
-            thru_date="2024-02-29",
-            frequency=frequency,
-        )
-    else:
-        # Do not filter on dates.
-        analytics = Analytics(
-            portfolio_data_source,
-            benchmark_data_source,
-            portfolio_classification_name=portfolio_classification_name,
-            benchmark_classification_name=benchmark_classification_name,
-            frequency=frequency,
-        )
+    analytics = Analytics(
+        portfolio_data_source,
+        benchmark_data_source,
+        portfolio_classification_name=portfolio_classification_name,
+        benchmark_classification_name=benchmark_classification_name,
+        frequency=frequency,
+    )
 
     # Get the Attribution instance by Security.
     attribution_by_security = analytics.get_attribution()
@@ -100,7 +92,7 @@ def run_demo(periodicity: str) -> None:
     written_paths.append(_write_html("security_overall_attribution.html", html))
 
     # Set the classification_name for another Attribution.
-    classification_name = "Economic Sector"
+    classification_name = "Mega-Cap Economic Sector"
 
     # Get the classification data source.  Here is sample input data for the classification data
     # source of an "Economic Sector" classification.  The unique identifier is in the first column,
@@ -171,7 +163,7 @@ def run_demo(periodicity: str) -> None:
     _ = attribution_by_sector.to_polars(view)  # A polars DataFrame
     table = attribution_by_sector.to_table(view)  # A lightweight HTML table object.
     _ = table.as_raw_html(make_page=False)  # An html fragment without <html>/<body> tags.
-    _ = attribution_by_sector.to_xml(view)  # Am xml string
+    _ = attribution_by_sector.to_xml(view)  # An xml string
 
     # Write a csv file of the attribution results by sector
     # attribution_by_sector.write_csv(view, file_path="demo_attribution_by_sector.csv")

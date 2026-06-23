@@ -13,6 +13,7 @@ refresh the table screenshots referenced by ``README.md``.
 
 # Python Imports
 import io
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -26,10 +27,13 @@ from PIL import Image, ImageChops
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT))
 Image.MAX_IMAGE_PIXELS = None
+_CACHE_DIR = _REPO_ROOT / "_demo_output" / "readme_image_cache"
+os.environ.setdefault("MPLCONFIGDIR", str(_CACHE_DIR / "matplotlib"))
+os.environ.setdefault("XDG_CACHE_HOME", str(_CACHE_DIR / "xdg"))
 
 # Project Imports
 from ppar.analytics import Analytics  # noqa: E402
-from ppar.analytics.attribution import View  # noqa: E402
+from ppar.analytics.attribution import Attribution, Chart, View  # noqa: E402
 import ppar.demos.demo_data_sources as demo_data  # noqa: E402
 from ppar.analytics.frequency import Frequency  # noqa: E402
 import ppar.utilities as util  # noqa: E402
@@ -61,18 +65,85 @@ def main() -> None:
     chrome_path = _find_chrome()
     with tempfile.TemporaryDirectory(prefix="ppar_readme_images_") as temp_dir_name:
         temp_dir = Path(temp_dir_name)
-        html_paths = _write_html_inputs(temp_dir)
+        analytics, sector = _analytics_outputs()
+        _write_chart_images(sector)
+        html_paths = _write_html_inputs(temp_dir, analytics, sector)
         for name, html_path in html_paths.items():
             png_path = temp_dir / f"{name}.png"
-            _render_png(chrome_path, html_path, png_path, _RENDER_CONFIG[name])
+            user_data_dir = temp_dir / f"{name}_chrome_profile"
+            _render_png(
+                chrome_path,
+                html_path,
+                png_path,
+                _RENDER_CONFIG[name],
+                user_data_dir,
+            )
             _crop_and_save_jpg(png_path, _IMAGE_DIR / f"{name}.jpg")
 
 
-def _write_html_inputs(temp_dir: Path) -> dict[str, Path]:
+def _analytics_outputs() -> tuple[Analytics, Attribution]:
+    """Return Analytics and sector-attribution outputs for README rendering.
+
+    Returns:
+        The packaged Mega-Cap analytics object and its economic-sector
+        attribution output.
+
+    Raises:
+        PpaError: If construction of demonstration analytics output fails.
+    """
+    analytics = Analytics(
+        demo_data.performance_data_source("Mega-Cap Alpha Portfolio.csv"),
+        demo_data.performance_data_source("Mega-Cap Benchmark.csv"),
+        portfolio_classification_name="Mega-Cap Security",
+        benchmark_classification_name="Mega-Cap Security",
+        frequency=Frequency.MONTHLY,
+    )
+    classification_name = "Mega-Cap Economic Sector"
+    sector = analytics.get_attribution(
+        classification_name,
+        demo_data.classification_data_source(classification_name),
+        demo_data.mapping_data_sources(analytics, classification_name),
+    )
+    return analytics, sector
+
+
+def _write_chart_images(sector: Attribution) -> None:
+    """Write README chart PNG images from sector attribution output.
+
+    Args:
+        sector: Attribution output grouped by Mega-Cap Economic Sector.
+
+    Raises:
+        OSError: If generated image files cannot be written.
+        PpaError: If chart rendering fails.
+    """
+    chart_files = {
+        Chart.OVERALL_ATTRIBUTION: "OverallAttributionByEconomicSector.png",
+        Chart.OVERALL_CONTRIBUTION: "OverallContributionByEconomicSector.png",
+        Chart.SUBPERIOD_ATTRIBUTION: "SubPeriodAttributionEffectsByEconomicSector.png",
+        Chart.SUBPERIOD_RETURN: "SubPeriodReturns.png",
+        Chart.HEATMAP_ACTIVE_CONTRIBUTION: "ActiveContributionsByEconomicSector.png",
+        Chart.HEATMAP_ATTRIBUTION: "TotalAttributionEffectsByEconomicSector.png",
+        Chart.CUMULATIVE_ATTRIBUTION: "CumulativeAttributionEffectsByEconomicSector.png",
+        Chart.CUMULATIVE_RETURN: "CumulativeReturns.png",
+    }
+    for chart, file_name in chart_files.items():
+        path = _IMAGE_DIR / file_name
+        path.write_bytes(sector.to_chart(chart))
+        print(f"{path.relative_to(_REPO_ROOT)}")
+
+
+def _write_html_inputs(
+    temp_dir: Path,
+    analytics: Analytics,
+    sector: Attribution,
+) -> dict[str, Path]:
     """Write temporary HTML inputs for the README table images.
 
     Args:
         temp_dir: Temporary directory in which to write HTML files.
+        analytics: Packaged Mega-Cap analytics output.
+        sector: Attribution output grouped by Mega-Cap Economic Sector.
 
     Returns:
         Mapping from README image stem to its temporary HTML input path.
@@ -81,22 +152,7 @@ def _write_html_inputs(temp_dir: Path) -> dict[str, Path]:
         OSError: If an HTML input file cannot be written.
         PpaError: If construction of demonstration analytics output fails.
     """
-    analytics = Analytics(
-        demo_data.performance_data_source("Large-Cap Alpha Portfolio.csv"),
-        demo_data.performance_data_source("Large-Cap Benchmark.csv"),
-        portfolio_classification_name="Security",
-        benchmark_classification_name="Security",
-        from_date="2023-01-01",
-        thru_date="2024-02-29",
-        frequency=Frequency.MONTHLY,
-    )
     security = analytics.get_attribution()
-    classification_name = "Economic Sector"
-    sector = analytics.get_attribution(
-        classification_name,
-        demo_data.classification_data_source(classification_name),
-        demo_data.mapping_data_sources(analytics, classification_name),
-    )
     html_by_name = {
         "OverallAttributionBySecurity": security.to_html(View.OVERALL_ATTRIBUTION),
         "CumulativeAttributionByEconomicSector": sector.to_html(View.CUMULATIVE_ATTRIBUTION),
@@ -118,6 +174,7 @@ def _render_png(
     html_path: Path,
     png_path: Path,
     window_size: Sequence[int],
+    user_data_dir: Path,
 ) -> None:
     """Render one HTML file to PNG using headless Chrome.
 
@@ -126,6 +183,7 @@ def _render_png(
         html_path: HTML document to render.
         png_path: PNG output path.
         window_size: Browser viewport width and height in pixels.
+        user_data_dir: Isolated Chrome profile directory for this render.
 
     Raises:
         subprocess.CalledProcessError: If the Chrome rendering process fails.
@@ -134,13 +192,30 @@ def _render_png(
         chrome_path,
         "--headless=new",
         "--disable-gpu",
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-sync",
         "--hide-scrollbars",
         "--force-device-scale-factor=2",
+        f"--user-data-dir={user_data_dir}",
         f"--screenshot={png_path}",
         f"--window-size={window_size[0]},{window_size[1]}",
         html_path.resolve().as_uri(),
     ]
-    subprocess.run(command, check=True)
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            timeout=30,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired:
+        if png_path.exists() and png_path.stat().st_size > 0:
+            return
+        raise
 
 
 def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:

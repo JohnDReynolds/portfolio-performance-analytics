@@ -27,7 +27,24 @@ portfolio-performance-analytics is a python package (https://pypi.org/project/pp
 
 ## Features
 
-The below sample outputs portray a large-cap alpha strategy that has achieved a high active return of 1737 bps over the benchmark.  In the total lines of the Economic Sector Attribution reports, you can see that this active return can be broken down into 359 bps in sector allocation and 1378 bps in selecting securities.  From the Risk Statistics report, you can see that this has been accomplished with a lower downside probabilty than the benchmark (29% vs 36%), and a higher annualized sharpe ratio than the benchmark (2.02 vs 1.27).  The largest contributor to active performance was in the Information Technology Sector.  Although the portfolio was slightly under-allocated in the Information Technology sector (by -0.05%), it did an excellent job of selecting securities for a total active contribution of 431 bps in the sector.
+The sample outputs below portray a Mega-Cap alpha portfolio measured against a
+Mega-Cap benchmark. The rendered reports show monthly attribution and risk from
+June 2021 through April 2026, using packaged demo data derived from historical
+iShares S&P 100 ETF holdings, with a small cash balance included as `CASHBAL`.
+
+Over the full period, the portfolio returned 111.7% versus 103.6% for the
+benchmark, producing an active return of about 806 bps. In the total line of
+the Economic Sector Attribution reports, that active return is explained mostly
+by security selection: about 21 bps from sector allocation and about 784 bps
+from security selection. Information Technology was the largest source of active
+performance, contributing about 417 bps of total attribution effect.
+
+The Risk Statistics report shows a similar but modest risk-adjusted advantage:
+annualized Sharpe ratio of 1.07 for the portfolio versus 1.02 for the benchmark,
+and annualized Sortino ratio of 1.82 versus 1.75. The point of the demo is not a
+perfect index-replication study; it is a realistic, inspectable example of how
+holdings-based attribution and ex-post risk statistics explain a believable
+portfolio/benchmark result.
 
 <!--
 Image sources are repository-relative so they render for authorized GitHub
