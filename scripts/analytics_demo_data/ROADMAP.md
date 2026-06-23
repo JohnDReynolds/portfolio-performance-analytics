@@ -42,20 +42,20 @@ Create a script that downloads or assembles a current large-cap universe,
 downloads recent monthly adjusted prices, constructs benchmark and alpha
 portfolio performance rows, and writes new CSV files under distinct names.
 
-Candidate script:
+Current maintained script:
 
 ```text
-scripts/analytics_demo_data/generate_analytics_demo_data.py
+scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py
 ```
 
 Candidate generated files:
 
 ```text
-ppar/demos/data/performance/Generated Large-Cap Alpha Portfolio.csv
-ppar/demos/data/performance/Generated Large-Cap Benchmark.csv
-ppar/demos/data/classifications/Generated Security.csv
-ppar/demos/data/classifications/Generated Economic Sector.csv
-ppar/demos/data/mappings/Generated Security--to--Generated Economic Sector.csv
+_demo_output/analytics_data_generation/generated_oef_files/performance/Generated OEF Alpha Portfolio.csv
+_demo_output/analytics_data_generation/generated_oef_files/performance/Generated OEF Benchmark.csv
+_demo_output/analytics_data_generation/generated_oef_files/classifications/Generated OEF Security.csv
+_demo_output/analytics_data_generation/generated_oef_files/classifications/Generated OEF Economic Sector.csv
+_demo_output/analytics_data_generation/generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
 ```
 
 The script should also print summary metrics:
@@ -145,21 +145,18 @@ Once all three demo families use the generated source universe:
 
 ## Current Choices And Open Questions
 
-- Current universe choice: current SPY holdings, top 200 by source weight, with
-  usable securities retained after 10 years of monthly adjusted price history.
-- Should the holdings source be downloaded live or provided as a checked-in
-  seed CSV?
-- Current benchmark-weight choice: calibrated static nonnegative weights fitted
-  to public SPY adjusted returns over the generated monthly window. This is a
-  proxy for historical beginning weights, not real historical holdings.
-- Open question: should the promoted version use a checked-in seed holdings CSV
-  to avoid relying on issuer download availability?
-- Open question: should the calibrated benchmark proxy be retained, or should we
-  accept a broader top-N universe with less calibration once reviewed?
-- Current active-weight tilt: `--alpha-tilt-multiplier 2.0`, which produces a
-  believable positive active-return and Sharpe story without sector allocation
-  becoming the headline.
-- Where should raw download caches live during generation?
+- Current universe choice: historical BlackRock OEF holdings as a public proxy
+  for a U.S. mega-cap benchmark.
+- Current history length: 5 years, because monthly continuity is
+  non-negotiable and the 10-year OEF archive has non-repairable early gaps.
+- Current cash treatment: aggregate BlackRock cash/derivative rows into
+  `CASHBAL`, mapped to the `Cash` sector.
+- Current cash return proxy: BIL adjusted monthly returns.
+- Current alpha-tilt approach: synthetic hindsight tilt toward stronger
+  realized risk-adjusted return names, while preserving a believable
+  portfolio/benchmark story.
+- Open question: should future refreshes keep using live BlackRock/yfinance
+  downloads, or should accepted source snapshots be checked in as seed data?
 
 ## Current Local Notes
 

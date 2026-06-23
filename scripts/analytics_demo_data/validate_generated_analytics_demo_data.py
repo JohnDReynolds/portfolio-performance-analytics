@@ -1,4 +1,4 @@
-"""Validate temporary generated analytics demo data through ppar APIs."""
+"""Validate generated Mega-Cap analytics demo data through ppar APIs."""
 
 from __future__ import annotations
 
@@ -12,18 +12,18 @@ from ppar.analytics.frequency import Frequency
 
 
 WORKSPACE = Path("_demo_output") / "analytics_data_generation"
-GENERATED = WORKSPACE / "generated_files"
+GENERATED = WORKSPACE / "generated_oef_files"
 
 
 def main() -> None:
     """Run a compact package-level validation for generated demo files."""
-    portfolio_path = GENERATED / "performance" / "Generated Large-Cap Alpha Portfolio.csv"
-    benchmark_path = GENERATED / "performance" / "Generated Large-Cap Benchmark.csv"
-    sector_path = GENERATED / "classifications" / "Generated Economic Sector.csv"
+    portfolio_path = GENERATED / "performance" / "Generated OEF Alpha Portfolio.csv"
+    benchmark_path = GENERATED / "performance" / "Generated OEF Benchmark.csv"
+    sector_path = GENERATED / "classifications" / "Generated OEF Economic Sector.csv"
     mapping_path = (
         GENERATED
         / "mappings"
-        / "Generated Security--to--Generated Economic Sector.csv"
+        / "Generated OEF Security--to--Generated OEF Economic Sector.csv"
     )
 
     analytics = Analytics(

@@ -28,16 +28,16 @@ but the README images are rendered quarterly to keep date-heavy charts readable.
 
 ### 1. Generate Candidate Data
 
-Use the maintained data-refresh helper for exploratory downloads and calibration:
+Use the maintained data-refresh helper for candidate generation:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/generate_oef_analytics_demo_data.py
+./.venv/bin/python scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py
 ```
 
 Useful options:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/generate_oef_analytics_demo_data.py \
+./.venv/bin/python scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py \
   --years 5 \
   --alpha-tilt 0.8
 ```

@@ -1,4 +1,4 @@
-"""Audit OEF holdings-date continuity and price coverage."""
+"""Audit Mega-Cap source holdings-date continuity and price coverage."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Final
 import pandas as pd
 from pandas.tseries.offsets import BMonthEnd
 
-import generate_oef_analytics_demo_data as generator
+import generate_mega_cap_analytics_demo_data as generator
 
 
 WORKSPACE: Final = Path("_demo_output") / "analytics_data_generation"
@@ -18,7 +18,7 @@ OUTPUT_DIRECTORY: Final = WORKSPACE / "generated_oef_files"
 
 
 def main() -> None:
-    """Audit candidate OEF history and write a compact JSON report."""
+    """Audit candidate Mega-Cap source history and write a compact JSON report."""
     CACHE_DIRECTORY.mkdir(parents=True, exist_ok=True)
     requested = generator._business_month_ends(10)
     requested_status = []
