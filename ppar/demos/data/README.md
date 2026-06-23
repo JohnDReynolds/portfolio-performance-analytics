@@ -13,9 +13,9 @@ Files:
 
 - `performance/Mega-Cap Alpha Portfolio.csv`
 - `performance/Mega-Cap Benchmark.csv`
-- `classifications/Mega-Cap Security.csv`
-- `classifications/Mega-Cap Economic Sector.csv`
-- `mappings/Mega-Cap Security--to--Mega-Cap Economic Sector.csv`
+- `classifications/Security.csv`
+- `classifications/Economic Sector.csv`
+- `mappings/Security--to--Economic Sector.csv`
 
 The data covers 60 consecutive monthly periods from June 2021 through May 2026.
 The March 2024 holdings snapshot uses March 28, 2024 because U.S. equity markets
@@ -28,9 +28,10 @@ returns as its cash-return proxy.
 ## Refresh Notes
 
 The packaged CSVs are the source of truth for `ppar-analytics-demo`,
-`README.md`, and the README images under `images/`. Temporary generation files
-under `_demo_output/analytics_data_generation/` are provenance and refresh aids,
-not packaged demo inputs.
+`README.md`, and the README images under `images/`. Refresh helpers live under
+`scripts/analytics_demo_data/`; generated files under
+`_demo_output/analytics_data_generation/` are cache/provenance output, not
+packaged demo inputs.
 
 When regenerating this dataset, follow
 [`docs/analytics_demo_refresh.md`](../../../docs/analytics_demo_refresh.md).

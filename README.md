@@ -29,8 +29,7 @@ portfolio-performance-analytics is a python package (https://pypi.org/project/pp
 
 The sample outputs below portray a Mega-Cap alpha portfolio measured against a
 Mega-Cap benchmark. The rendered reports show quarterly attribution and risk from
-June 2021 through March 2026, using packaged demo data derived from historical
-iShares S&P 100 ETF holdings, with a small cash balance included as `CASHBAL`.
+June 2021 through March 2026.
 
 Over the full period, the portfolio returned 89.3% versus 82.4% for the
 benchmark, producing an active return of about 684 bps. In the total line of
@@ -41,10 +40,7 @@ performance, contributing about 351 bps of total attribution effect.
 
 The Risk Statistics report shows a similar but modest risk-adjusted advantage:
 annualized Sharpe ratio of 0.70 for the portfolio versus 0.67 for the benchmark,
-and annualized Sortino ratio of 1.82 versus 1.74. The point of the demo is not a
-perfect index-replication study; it is a realistic, inspectable example of how
-holdings-based attribution and ex-post risk statistics explain a believable
-portfolio/benchmark result.
+and annualized Sortino ratio of 1.82 versus 1.74.
 
 <!--
 Image sources are repository-relative so they render for authorized GitHub

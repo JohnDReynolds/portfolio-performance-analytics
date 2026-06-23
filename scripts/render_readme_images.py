@@ -94,11 +94,11 @@ def _analytics_outputs() -> tuple[Analytics, Attribution]:
     analytics = Analytics(
         demo_data.performance_data_source("Mega-Cap Alpha Portfolio.csv"),
         demo_data.performance_data_source("Mega-Cap Benchmark.csv"),
-        portfolio_classification_name="Mega-Cap Security",
-        benchmark_classification_name="Mega-Cap Security",
+        portfolio_classification_name="Security",
+        benchmark_classification_name="Security",
         frequency=Frequency.QUARTERLY,
     )
-    classification_name = "Mega-Cap Economic Sector"
+    classification_name = "Economic Sector"
     sector = analytics.get_attribution(
         classification_name,
         demo_data.classification_data_source(classification_name),
@@ -111,7 +111,7 @@ def _write_chart_images(sector: Attribution) -> None:
     """Write README chart PNG images from sector attribution output.
 
     Args:
-        sector: Attribution output grouped by Mega-Cap Economic Sector.
+        sector: Attribution output grouped by Economic Sector.
 
     Raises:
         OSError: If generated image files cannot be written.
@@ -143,7 +143,7 @@ def _write_html_inputs(
     Args:
         temp_dir: Temporary directory in which to write HTML files.
         analytics: Packaged Mega-Cap analytics output.
-        sector: Attribution output grouped by Mega-Cap Economic Sector.
+        sector: Attribution output grouped by Economic Sector.
 
     Returns:
         Mapping from README image stem to its temporary HTML input path.

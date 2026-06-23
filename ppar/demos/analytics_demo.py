@@ -71,8 +71,8 @@ def run_demo(periodicity: str) -> None:
     benchmark_data_source = demo_data.performance_data_source("Mega-Cap Benchmark.csv")
 
     # Set the classification names of the portfolio and benchmark data sources.
-    portfolio_classification_name = "Mega-Cap Security"
-    benchmark_classification_name = "Mega-Cap Security"
+    portfolio_classification_name = "Security"
+    benchmark_classification_name = "Security"
 
     # Get the Analytics instance.
     analytics = Analytics(
@@ -92,7 +92,7 @@ def run_demo(periodicity: str) -> None:
     written_paths.append(_write_html("security_overall_attribution.html", html))
 
     # Set the classification_name for another Attribution.
-    classification_name = "Mega-Cap Economic Sector"
+    classification_name = "Economic Sector"
 
     # Get the classification data source.  Here is sample input data for the classification data
     # source of an "Economic Sector" classification.  The unique identifier is in the first column,

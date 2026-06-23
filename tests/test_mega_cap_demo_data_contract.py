@@ -20,11 +20,9 @@ _PORTFOLIO_PATH = (
     f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Alpha Portfolio.csv"
 )
 _BENCHMARK_PATH = f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Benchmark.csv"
-_SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Mega-Cap Security.csv"
-_SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Mega-Cap Economic Sector.csv"
-_MAPPING_PATH = (
-    f"{_MAPPING_DIRECTORY}/Mega-Cap Security--to--Mega-Cap Economic Sector.csv"
-)
+_SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
+_SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
+_MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
 
 
 class TestMegaCapDemoDataContract(unittest.TestCase):
@@ -91,15 +89,15 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         analytics = Analytics(
             _PORTFOLIO_PATH,
             _BENCHMARK_PATH,
-            portfolio_classification_name="Mega-Cap Security",
-            benchmark_classification_name="Mega-Cap Security",
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
             frequency=Frequency.MONTHLY,
         )
         security_attribution = analytics.get_attribution().to_pandas(
             View.OVERALL_ATTRIBUTION
         )
         sector_attribution = analytics.get_attribution(
-            "Mega-Cap Economic Sector",
+            "Economic Sector",
             _SECTOR_PATH,
             (_MAPPING_PATH, _MAPPING_PATH),
         ).to_pandas(View.OVERALL_ATTRIBUTION)

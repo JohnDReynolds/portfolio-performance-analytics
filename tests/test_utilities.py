@@ -303,7 +303,7 @@ class TestUtilities(unittest.TestCase):
 
     def test_demo_data_sources_return_paths(self) -> None:
         """Packaged demo data helpers resolve existing Path instances."""
-        performance_path = demo_data.performance_data_source("Large-Cap Benchmark.csv")
+        performance_path = demo_data.performance_data_source("Mega-Cap Benchmark.csv")
         classification_path = demo_data.classification_data_source("Security")
 
         self.assertIsInstance(performance_path, Path)

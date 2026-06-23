@@ -10,9 +10,9 @@ The user-facing analytics demo uses packaged CSV files under `ppar/demos/data/`:
 
 - `performance/Mega-Cap Alpha Portfolio.csv`
 - `performance/Mega-Cap Benchmark.csv`
-- `classifications/Mega-Cap Security.csv`
-- `classifications/Mega-Cap Economic Sector.csv`
-- `mappings/Mega-Cap Security--to--Mega-Cap Economic Sector.csv`
+- `classifications/Security.csv`
+- `classifications/Economic Sector.csv`
+- `mappings/Security--to--Economic Sector.csv`
 
 The current files are generated from historical iShares S&P 100 ETF holdings as
 a public proxy for a U.S. mega-cap benchmark. The user-facing name is
@@ -28,24 +28,24 @@ but the README images are rendered quarterly to keep date-heavy charts readable.
 
 ### 1. Generate Candidate Data
 
-Use the local generation workspace for exploratory downloads and calibration:
+Use the maintained data-refresh helper for exploratory downloads and calibration:
 
 ```bash
-./.venv/bin/python _demo_output/analytics_data_generation/generate_oef_analytics_demo_data.py
+./.venv/bin/python scripts/analytics_demo_data/generate_oef_analytics_demo_data.py
 ```
 
 Useful options:
 
 ```bash
-./.venv/bin/python _demo_output/analytics_data_generation/generate_oef_analytics_demo_data.py \
+./.venv/bin/python scripts/analytics_demo_data/generate_oef_analytics_demo_data.py \
   --years 5 \
   --alpha-tilt 0.8
 ```
 
 Notes:
 
-- The generator is intentionally outside packaged code while the data source is
-  still a refresh/provenance tool rather than a public API.
+- The generator lives under `scripts/analytics_demo_data/` because it is a
+  maintained refresh/provenance tool, not a package runtime API.
 - It may require network access, `requests`, and local `yfinance`.
 - It writes generated files under
   `_demo_output/analytics_data_generation/generated_oef_files/`.
@@ -70,7 +70,7 @@ Before promotion, inspect at least:
 Run or update the candidate validation helper if it still exists:
 
 ```bash
-./.venv/bin/python _demo_output/analytics_data_generation/validate_generated_analytics_data.py
+./.venv/bin/python scripts/analytics_demo_data/validate_generated_analytics_demo_data.py
 ```
 
 ### 3. Promote Packaged CSVs
@@ -86,13 +86,13 @@ generated_oef_files/performance/Generated OEF Benchmark.csv
   -> ppar/demos/data/performance/Mega-Cap Benchmark.csv
 
 generated_oef_files/classifications/Generated OEF Security.csv
-  -> ppar/demos/data/classifications/Mega-Cap Security.csv
+  -> ppar/demos/data/classifications/Security.csv
 
 generated_oef_files/classifications/Generated OEF Economic Sector.csv
-  -> ppar/demos/data/classifications/Mega-Cap Economic Sector.csv
+  -> ppar/demos/data/classifications/Economic Sector.csv
 
 generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
-  -> ppar/demos/data/mappings/Mega-Cap Security--to--Mega-Cap Economic Sector.csv
+  -> ppar/demos/data/mappings/Security--to--Economic Sector.csv
 ```
 
 After promotion, update:
@@ -180,10 +180,12 @@ Before committing, check:
   substitutions.
 - No generated `_demo_output/` files are accidentally staged.
 
-## When To Promote The Generator
+## Refresh Helper Location
 
-The generator can remain in `_demo_output/analytics_data_generation/` while it
-is a local refresh aid. Consider moving it into `scripts/` only if we want a
-maintained, documented, reproducible data-refresh command. If promoted, avoid
-adding new package dependencies solely for data refresh unless that is an
-explicit product decision.
+Reusable refresh helpers live in `scripts/analytics_demo_data/`. Generated
+candidate CSVs, downloaded holdings, price caches, and audit output stay under
+`_demo_output/analytics_data_generation/` and should not be packaged as demo
+inputs until explicitly promoted.
+
+Avoid adding new package runtime dependencies solely for data refresh unless
+that is an explicit product decision.
