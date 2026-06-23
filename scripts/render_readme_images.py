@@ -96,7 +96,7 @@ def _analytics_outputs() -> tuple[Analytics, Attribution]:
         demo_data.performance_data_source("Mega-Cap Benchmark.csv"),
         portfolio_classification_name="Mega-Cap Security",
         benchmark_classification_name="Mega-Cap Security",
-        frequency=Frequency.MONTHLY,
+        frequency=Frequency.QUARTERLY,
     )
     classification_name = "Mega-Cap Economic Sector"
     sector = analytics.get_attribution(

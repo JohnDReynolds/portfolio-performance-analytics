@@ -24,3 +24,16 @@ were closed on March 29, 2024 for Good Friday.
 Cash and derivative rows from the source holdings are aggregated into
 `CASHBAL`, mapped to the `Cash` sector. `CASHBAL` uses BIL adjusted monthly
 returns as its cash-return proxy.
+
+## Refresh Notes
+
+The packaged CSVs are the source of truth for `ppar-analytics-demo`,
+`README.md`, and the README images under `images/`. Temporary generation files
+under `_demo_output/analytics_data_generation/` are provenance and refresh aids,
+not packaged demo inputs.
+
+When regenerating this dataset, follow
+[`docs/analytics_demo_refresh.md`](../../../docs/analytics_demo_refresh.md).
+That guide covers candidate data generation, validation, promotion into this
+directory, README story updates, image regeneration with
+`scripts/render_readme_images.py`, and final test verification.

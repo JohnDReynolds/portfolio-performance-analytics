@@ -28,20 +28,20 @@ portfolio-performance-analytics is a python package (https://pypi.org/project/pp
 ## Features
 
 The sample outputs below portray a Mega-Cap alpha portfolio measured against a
-Mega-Cap benchmark. The rendered reports show monthly attribution and risk from
-June 2021 through April 2026, using packaged demo data derived from historical
+Mega-Cap benchmark. The rendered reports show quarterly attribution and risk from
+June 2021 through March 2026, using packaged demo data derived from historical
 iShares S&P 100 ETF holdings, with a small cash balance included as `CASHBAL`.
 
-Over the full period, the portfolio returned 111.7% versus 103.6% for the
-benchmark, producing an active return of about 806 bps. In the total line of
+Over the full period, the portfolio returned 89.3% versus 82.4% for the
+benchmark, producing an active return of about 684 bps. In the total line of
 the Economic Sector Attribution reports, that active return is explained mostly
-by security selection: about 21 bps from sector allocation and about 784 bps
+by security selection: about 19 bps from sector allocation and about 665 bps
 from security selection. Information Technology was the largest source of active
-performance, contributing about 417 bps of total attribution effect.
+performance, contributing about 351 bps of total attribution effect.
 
 The Risk Statistics report shows a similar but modest risk-adjusted advantage:
-annualized Sharpe ratio of 1.07 for the portfolio versus 1.02 for the benchmark,
-and annualized Sortino ratio of 1.82 versus 1.75. The point of the demo is not a
+annualized Sharpe ratio of 0.70 for the portfolio versus 0.67 for the benchmark,
+and annualized Sortino ratio of 1.82 versus 1.74. The point of the demo is not a
 perfect index-replication study; it is a realistic, inspectable example of how
 holdings-based attribution and ex-post risk statistics explain a believable
 portfolio/benchmark result.

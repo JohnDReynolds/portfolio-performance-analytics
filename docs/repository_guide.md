@@ -9,6 +9,7 @@ many disconnected entry points.
 | Need | Start With | Why |
 | --- | --- | --- |
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public demo commands, and common smoke tests. |
+| Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
 | Axys export shape | [`docs/axys_common_core_export.md`](axys_common_core_export.md) | Starter Axys export template and field-reference notes. |
 | Packaged Axys demos | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Four XLSX workbook demos, four validation fixtures, exact commands, and expected outputs. |
@@ -37,6 +38,7 @@ many disconnected entry points.
 | File | Audience | Contents |
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users and maintainers | Package overview, installation, bundled demo commands, performance-comparison smoke tests, and project checks. |
+| [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
 | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Demo reviewers | Packaged Axys scenario matrix, XLSX workbook commands, data/YAML descriptions, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Test-only comparison YAML files and their packaged snapshot references. |
 | Snapshot README files under `ppar/demos/data/axys/*/README.md` | Fixture readers | Small notes about individual packaged snapshot directories. |
@@ -50,11 +52,11 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
+| `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates packaged Axys demo scenarios. | Prove demo fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
-| `scripts/render_readme_images.py` | Regenerates README image artifacts. | Documentation image maintenance. |
 
 ## Installed Commands
 
