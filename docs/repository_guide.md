@@ -12,8 +12,8 @@ many disconnected entry points.
 | Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
 | Axys export shape | [`docs/axys_common_core_export.md`](axys_common_core_export.md) | Starter Axys export template and field-reference notes. |
-| Packaged Axys demos | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Four XLSX workbook demos, four validation fixtures, exact commands, and expected outputs. |
-| Test Axys configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test-focused comparison YAML files that reuse packaged Axys snapshots. |
+| Packaged Axys demos | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | User-facing Axys analytics and performance comparison demo inputs. |
+| Test Axys configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
 | Session continuity | [`docs/work_session_notes.md`](work_session_notes.md) | Working notes from recent implementation sessions; useful context, not durable product documentation. |
 
 ## Directory Map
@@ -26,7 +26,7 @@ many disconnected entry points.
 | `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
 | `ppar/demos/` | Installed demo entry points, including the performance comparison demo commands. |
 | `ppar/demos/data/` | Packaged demo data shipped with source distributions and wheels. |
-| `ppar/demos/data/axys/` | Packaged Axys demo snapshots and comparison YAML files. Use these for demos and review workflows. |
+| `ppar/demos/data/axys/` | Packaged user-facing Axys demo snapshots and comparison YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
 | `scripts/` | Repository-maintenance helpers; Performance Comparison commands live under ppar.performance_comparison.cli. |
@@ -39,9 +39,9 @@ many disconnected entry points.
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users and maintainers | Package overview, installation, bundled demo commands, performance-comparison smoke tests, and project checks. |
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
-| [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Demo reviewers | Packaged Axys scenario matrix, XLSX workbook commands, data/YAML descriptions, and expected workbook outputs. |
-| [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Test-only comparison YAML files and their packaged snapshot references. |
-| Snapshot README files under `ppar/demos/data/axys/*/README.md` | Fixture readers | Small notes about individual packaged snapshot directories. |
+| [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Demo reviewers | Packaged Axys demo commands, data/YAML descriptions, and expected workbook outputs. |
+| [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys snapshots, test-only comparison YAML files, and validation matrix fixtures. |
+| Snapshot README files under `tests/data/axys/snapshots/*/README.md` | Test authors | Small notes about individual synthetic snapshot directories. |
 
 ## Scripts
 
@@ -55,7 +55,7 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
-| `ppar.performance_comparison.cli.validate_demo_matrix` | Validates packaged Axys demo scenarios. | Prove demo fixtures still cover documented scenarios. |
+| `ppar.performance_comparison.cli.validate_demo_matrix` | Validates performance comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
 
 ## Installed Commands
@@ -77,37 +77,31 @@ places:
 - `ppar/demos/data/axys/` is for packaged examples that users and reviewers can
   run. These fixtures should be understandable, documented, and stable enough
   to explain from workbook/report output.
-- `tests/data/axys/` is for test-only comparison YAML files. Those YAML files
-  reuse the packaged Axys snapshots instead of carrying duplicate CSV data.
+- `tests/data/axys/` is for synthetic Axys snapshots, test-only comparison YAML
+  files, and validation matrix fixtures.
 
-The packaged Axys YAML files are split by role. The full-spec workbook demos
-are intended for user-facing review; the validation fixtures are scenario
-coverage inputs for tests and validators.
+The packaged Axys YAML files are limited to user-facing workflows. Broader
+scenario coverage lives under `tests/data/axys`.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
 | Workbook demo | `ppar_performance_comparison_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Portfolio-level strict-attribution demo with supported causal policies. |
 | Workbook demo | `ppar_performance_comparison_security_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Security-level demo using security performance as the primary result dataset. |
-| Validation fixture | `ppar_performance_comparison.yaml` | `axys_a` | `axys_b` | Clean baseline with no expected findings. |
-| Validation fixture | `ppar_performance_comparison_restatement.yaml` | `axys_a` | `axys_b_restatement` | Controlled single restatement with missing setup guidance. |
-| Validation fixture | `ppar_performance_comparison_restatement_transaction_rules.yaml` | `axys_a` | `axys_b_restatement` | Same data with explicit transaction rules. |
-| Validation fixture | `ppar_performance_comparison_multi_restatement.yaml` | `axys_a` | `axys_b_multi_restatement` | Multiple portfolios/periods, context rows, and residual coverage. |
-| Validation fixture | `ppar_performance_comparison_modified_dietz.yaml` | `axys_modified_dietz_a` | `axys_modified_dietz_b` | External-flow Modified Dietz cross-check diagnostics. |
-| Validation fixture | `ppar_performance_comparison_policy_gap_demo.yaml` | `axys_a` | `axys_b_multi_restatement` | Missing-YAML-specification coverage. |
-| Validation fixture | `ppar_performance_comparison_suppressed.yaml` | `axys_a` | `axys_b_restatement` | Suppressed-finding coverage. |
 
 For the recommended XLSX workbook command and expected output, use
 [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md).
+For the validation fixture matrix, use
+[`tests/data/axys/README.md`](../tests/data/axys/README.md).
 
 ## Common Workflows
 
 ### Run Demo Commands
 
-The three installed demo commands write durable artifacts under `_demo_output/`:
+The installed demo commands write durable artifacts under `_demo_output/`:
 
 | Command | Output Directory | Notes |
 | --- | --- | --- |
-| `ppar.demos.analytics_demo` | `_demo_output/analytics` | Interactive periodicity prompt; writes table and chart artifacts. |
+| `ppar.demos.analytics_demo` | `_demo_output/analytics` | Writes table and chart artifacts; default frequency is quarterly. |
 | `ppar.demos.axys_analytics_demo` | `_demo_output/axys_analytics` | Axys-backed analytics demo. |
 | `ppar.demos.performance_comparison_portfolio_demo` | `_demo_output/performance_comparison_portfolio` | Portfolio review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
 | `ppar.demos.performance_comparison_security_demo` | `_demo_output/performance_comparison_security` | Security review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
@@ -189,7 +183,7 @@ Think of tests and validators as different tools:
 - Unit and integration tests under `tests/` protect code behavior.
 - Metadata tests protect packaging, public exports, and documentation promises.
 - Bundle validation checks generated artifact structure.
-- Demo matrix validation checks that packaged demo scenarios still explain the
+- Demo matrix validation checks that test-only scenario fixtures still explain the
   intended review cases.
 - YAML validation checks configuration completeness and vocabulary before a
   comparison is run.

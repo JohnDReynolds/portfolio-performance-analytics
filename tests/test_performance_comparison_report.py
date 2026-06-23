@@ -51,13 +51,13 @@ _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_multi_restatement.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
 )
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_policy_gap_demo.yaml"
+    "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
 )
 _SUPPRESSED_COMPARISON_PATH = Path(
     "tests/data/axys/ppar_performance_comparison_suppressed.yaml"

@@ -10,15 +10,15 @@ comparison:
 snapshots:
   a:
     label: axys_a
-    path: ../../../ppar/demos/data/axys/axys_a
+    path: snapshots/axys_a
     vendor: axys
-    schema: ../../../ppar/demos/data/axys/axys_column_mappings.yaml
+    schema: axys_column_mappings.yaml
 
   b:
     label: axys_b_restatement
-    path: ../../../ppar/demos/data/axys/axys_b_restatement
+    path: snapshots/axys_b_restatement
     vendor: axys
-    schema: ../../../ppar/demos/data/axys/axys_column_mappings.yaml
+    schema: axys_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv

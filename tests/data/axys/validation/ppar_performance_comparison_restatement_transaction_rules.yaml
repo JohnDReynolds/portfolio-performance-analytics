@@ -1,24 +1,25 @@
 # =========================
 # PPAR Performance Comparison Configuration
 # =========================
-# This fixture compares the baseline Axys snapshot with a richer multi-portfolio
-# restatement snapshot for demo/report review.
+# This fixture compares the baseline Axys snapshot with the controlled
+# restatement snapshot, using YAML transaction rules to supply sign/flow
+# semantics that are not present in the Axys transaction CSVs.
 
 comparison:
-  name: Axys fixture multi-portfolio restatement comparison
+  name: Axys fixture restatement comparison with transaction rules
 
 snapshots:
   a:
     label: axys_a
-    path: axys_a
+    path: ../snapshots/axys_a
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: ../axys_column_mappings.yaml
 
   b:
-    label: axys_b_multi_restatement
-    path: axys_b_multi_restatement
+    label: axys_b_restatement
+    path: ../snapshots/axys_b_restatement
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: ../axys_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
@@ -43,6 +44,10 @@ contribution_impact_methods:
     method: security_return_delta_times_weight
     weight_source: snapshot_a_weight
 
+fx_rate_impact_methods:
+  fx_rate:
+    method: evidence_only
+
 transaction_rules:
   BUY:
     transaction_category: buy
@@ -62,11 +67,21 @@ transaction_rules:
     performance_flow_sign: performance
 
 transaction_impact_methods:
+  # External-flow rows remain review evidence unless a supported diagnostic
+  # cross-check such as modified_dietz is explicitly configured.
   external_flow:
     method: evidence_only
+  # Performance-treated amount deltas are estimated only when this method and
+  # denominator source are explicitly selected.
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value
+  quantity:
+    method: evidence_only
+  price:
+    method: evidence_only
+  commission:
+    method: evidence_only
 
 tolerances:
   return: 0.000001

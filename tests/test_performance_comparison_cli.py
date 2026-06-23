@@ -19,6 +19,7 @@ _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
 )
 _PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys")
+_AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
 _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
 _VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
@@ -41,7 +42,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Validate a performance comparison YAML configuration."
             ),
             _VALIDATE_DEMO_MATRIX_MODULE: (
-                "Validate packaged performance comparison demo scenario coverage."
+                "Validate performance comparison scenario coverage."
             ),
         }
 
@@ -352,16 +353,17 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 def _absolute_restatement_configuration() -> dict[str, object]:
     """Return restatement YAML values with absolute fixture paths."""
     configuration = yaml.safe_load(_RESTATEMENT_COMPARISON_PATH.read_text(encoding="utf-8"))
-    fixture_directory = _PACKAGED_AXYS_DATA_PATH.resolve()
+    fixture_directory = _AXYS_SNAPSHOT_PATH.resolve()
     configuration["snapshots"]["a"]["path"] = str(fixture_directory / "axys_a")
     configuration["snapshots"]["b"]["path"] = str(
         fixture_directory / "axys_b_restatement"
     )
+    schema_path = _PACKAGED_AXYS_DATA_PATH.resolve() / "axys_column_mappings.yaml"
     configuration["snapshots"]["a"]["schema"] = str(
-        fixture_directory / "axys_column_mappings.yaml"
+        schema_path
     )
     configuration["snapshots"]["b"]["schema"] = str(
-        fixture_directory / "axys_column_mappings.yaml"
+        schema_path
     )
     return configuration
 

@@ -1,4 +1,4 @@
-"""Validate packaged performance comparison demo scenario coverage."""
+"""Validate performance comparison scenario coverage."""
 
 # Python imports
 import argparse
@@ -22,7 +22,10 @@ from ppar.performance_comparison.workbook_tables import (
     _workbook_underlying_causes_table,
 )
 
-_DEFAULT_DEMO_DIRECTORY = Path(__file__).resolve().parents[2] / "demos" / "data" / "axys"
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_DEFAULT_DEMO_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
+_DEFAULT_SCENARIO_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "validation"
+_DEFAULT_SNAPSHOT_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "snapshots"
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _RESTATEMENT_YAML = "ppar_performance_comparison_restatement.yaml"
 _RESTATEMENT_TRANSACTION_RULES_YAML = (
@@ -46,7 +49,7 @@ class _ScenarioCheck:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Validate packaged demo fixtures against the documented scenario matrix.
+    """Validate scenario fixtures against the documented matrix.
 
     Args:
         argv: Optional command-line arguments excluding the executable name.
@@ -56,13 +59,17 @@ def main(argv: list[str] | None = None) -> int:
         means one or more matrix expectations drifted.
     """
     args = _argument_parser().parse_args(argv)
-    checks = _validate_demo_matrix(args.demo_directory)
+    checks = _validate_demo_matrix(
+        args.scenario_directory,
+        args.snapshot_directory,
+        args.demo_directory,
+    )
     failures = [check for check in checks if not check.passed]
 
     if not failures:
         print(
             f"Demo matrix validation passed: {len(checks)} scenario(s) checked "
-            f"under {args.demo_directory}"
+            f"under {args.scenario_directory}"
         )
         for check in checks:
             print(f"- {check.name}: {check.detail}")
@@ -70,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         f"Demo matrix validation failed: {len(failures)} of {len(checks)} "
-        f"scenario(s) failed under {args.demo_directory}",
+        f"scenario(s) failed under {args.scenario_directory}",
         file=sys.stderr,
     )
     for check in failures:
@@ -78,11 +85,17 @@ def main(argv: list[str] | None = None) -> int:
     return 1
 
 
-def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
-    """Return scenario validation checks for the packaged Axys demo directory.
+def _validate_demo_matrix(
+    scenario_directory: Path,
+    snapshot_directory: Path,
+    demo_directory: Path,
+) -> list[_ScenarioCheck]:
+    """Return scenario validation checks for the Axys fixture directories.
 
     Args:
-        demo_directory: Directory containing the packaged Axys demo YAML files.
+        scenario_directory: Directory containing test-only validation YAML files.
+        snapshot_directory: Directory containing test-only Axys CSV snapshots.
+        demo_directory: Directory containing packaged user-facing demo data.
 
     Returns:
         One result per covered scenario in the demo matrix.
@@ -90,12 +103,12 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     Raises:
         FileNotFoundError: If one of the required YAML fixtures is missing.
     """
-    baseline_findings = compare_snapshots(demo_directory / _BASELINE_YAML)
-    restatement_findings = compare_snapshots(demo_directory / _RESTATEMENT_YAML)
+    baseline_findings = compare_snapshots(scenario_directory / _BASELINE_YAML)
+    restatement_findings = compare_snapshots(scenario_directory / _RESTATEMENT_YAML)
     transaction_rules_findings = compare_snapshots(
-        demo_directory / _RESTATEMENT_TRANSACTION_RULES_YAML
+        scenario_directory / _RESTATEMENT_TRANSACTION_RULES_YAML
     )
-    multi_findings = compare_snapshots(demo_directory / _MULTI_YAML)
+    multi_findings = compare_snapshots(scenario_directory / _MULTI_YAML)
     full_spec_findings = compare_snapshots(
         demo_directory / _FULL_SPEC_YAML,
         require_causal_attribution=True,
@@ -103,11 +116,13 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
     security_full_spec_findings = compare_snapshots(
         demo_directory / _SECURITY_FULL_SPEC_YAML,
     )
-    modified_dietz_findings = compare_snapshots(demo_directory / _MODIFIED_DIETZ_YAML)
-    policy_gap_findings = compare_snapshots(demo_directory / _POLICY_GAP_YAML)
-    suppressed_findings = compare_snapshots(demo_directory / _SUPPRESSED_YAML)
+    modified_dietz_findings = compare_snapshots(
+        scenario_directory / _MODIFIED_DIETZ_YAML
+    )
+    policy_gap_findings = compare_snapshots(scenario_directory / _POLICY_GAP_YAML)
+    suppressed_findings = compare_snapshots(scenario_directory / _SUPPRESSED_YAML)
     suppressed_active_findings = compare_snapshots(
-        demo_directory / _SUPPRESSED_YAML,
+        scenario_directory / _SUPPRESSED_YAML,
         include_suppressed=False,
     )
 
@@ -156,7 +171,7 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
             context_evidence,
             "context evidence row(s) remain available",
         ),
-        _check_large_clean_background(demo_directory, multi_findings),
+        _check_large_clean_background(snapshot_directory, multi_findings),
         _check_modified_dietz_cross_check(modified_dietz_cross_checks),
         _check_full_spec_strict_attribution(full_spec_findings),
         _check_security_full_spec_attribution(security_full_spec_findings),
@@ -172,13 +187,25 @@ def _validate_demo_matrix(demo_directory: Path) -> list[_ScenarioCheck]:
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Validate packaged performance comparison demo scenario coverage.",
+        description="Validate performance comparison scenario coverage.",
+    )
+    parser.add_argument(
+        "--scenario-directory",
+        type=Path,
+        default=_DEFAULT_SCENARIO_DIRECTORY,
+        help="Directory containing test-only scenario YAML files.",
     )
     parser.add_argument(
         "--demo-directory",
         type=Path,
         default=_DEFAULT_DEMO_DIRECTORY,
-        help="Directory containing packaged Axys demo YAML files.",
+        help="Directory containing packaged user-facing Axys demo data.",
+    )
+    parser.add_argument(
+        "--snapshot-directory",
+        type=Path,
+        default=_DEFAULT_SNAPSHOT_DIRECTORY,
+        help="Directory containing test-only Axys CSV snapshots.",
     )
     return parser
 
@@ -265,17 +292,17 @@ def _check_non_empty_table(
 
 
 def _check_large_clean_background(
-    demo_directory: Path,
+    snapshot_directory: Path,
     findings: pl.DataFrame,
 ) -> _ScenarioCheck:
     """Return whether the multi fixture includes clean multi-period scale data."""
     name = "Large multi-period clean background"
     try:
         snapshot_a_periods = _large_background_period_count(
-            demo_directory / "axys_a" / "portperf.csv"
+            snapshot_directory / "axys_a" / "portperf.csv"
         )
         snapshot_b_periods = _large_background_period_count(
-            demo_directory / "axys_b_multi_restatement" / "portperf.csv"
+            snapshot_directory / "axys_b_multi_restatement" / "portperf.csv"
         )
     except (OSError, pl.exceptions.PolarsError) as error:
         return _ScenarioCheck(name, False, f"could not read PORT_LARGE rows: {error}")

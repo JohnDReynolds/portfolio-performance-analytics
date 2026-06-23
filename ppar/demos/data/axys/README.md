@@ -1,33 +1,17 @@
-# Axys Performance Comparison Demo Matrix
+# Axys Demo Data
 
-The packaged Axys demo data is intentionally separate from the unit-test
-fixtures. Demo files are shaped for reviewer workflow examples; tests may still
-smoke-test them so the examples do not drift.
-
-From a source checkout, validate the covered scenarios with:
-
-```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
-```
+The packaged Axys demo data contains only user-facing demo inputs. Test-only
+performance comparison scenarios live under `tests/data/axys`.
 
 ## Comparison YAML Files By Role
 
-There are eight packaged comparison YAML files, but only one is intended as the
-primary user-facing XLSX workbook demo. The others are validation fixtures that
-keep specific edge cases covered without asking reviewers to inspect extra
-workbooks.
+There are two packaged comparison YAML files. They use the same operational
+Mega-Cap source snapshots but review different primary result levels.
 
 | Role | Short name | YAML |
 | --- | --- | --- |
 | Workbook demo | `portfolio_full_spec` | `ppar_performance_comparison_full_spec.yaml` |
 | Workbook demo | `security_full_spec` | `ppar_performance_comparison_security_full_spec.yaml` |
-| Validation fixture | `baseline` | `ppar_performance_comparison.yaml` |
-| Validation fixture | `single` | `ppar_performance_comparison_restatement.yaml` |
-| Validation fixture | `transaction_rules` | `ppar_performance_comparison_restatement_transaction_rules.yaml` |
-| Validation fixture | `multi` | `ppar_performance_comparison_multi_restatement.yaml` |
-| Validation fixture | `modified_dietz` | `ppar_performance_comparison_modified_dietz.yaml` |
-| Validation fixture | `policy_gap` | `ppar_performance_comparison_policy_gap_demo.yaml` |
-| Validation fixture | `suppressed` | `ppar_performance_comparison_suppressed.yaml` |
 
 ## Recommended User-Facing Demo
 
@@ -130,59 +114,6 @@ After generating the workbook demo bundle, validate it with:
   _demo_output/performance_comparison_security
 ```
 
-## Validation Fixtures
-
-The remaining comparison YAML files are primarily scenario-coverage fixtures,
-not recommended XLSX workbook demos. They are exercised by
-`ppar.performance_comparison.cli.validate_demo_matrix` and targeted unit tests.
-
-- `baseline`: Tests the clean/no-issue control case and proves the comparison
-  can run without producing false positives.
-- `single`: Tests missing transaction setup guidance on a controlled
-  restatement.
-- `transaction_rules`: Tests that transaction amount rows become explainable
-  when YAML supplies transaction rules and impact methods.
-- `multi`: Stress-tests multiple portfolios, multiple periods, context rows,
-  residual/coverage behavior, workbook accounting invariants, and a large
-  clean multi-period background portfolio that should not create false
-  positives.
-- `modified_dietz`: Tests Modified Dietz external-flow cross-check diagnostics.
-  The relevant outputs are `transaction_cross_checks.csv`, transaction summary
-  tables, and HTML transaction sections rather than workbook review sheets.
-- `policy_gap`: Tests Problems-grid and missing-YAML setup guidance for omitted
-  contribution, transaction-rule, and transaction-impact specifications.
-- `suppressed`: Tests active-vs-suppressed finding behavior and audit
-  visibility.
-
-Validate the full packaged scenario matrix, including these fixtures, with:
-
-```bash
-./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
-```
-
-## Scenario Matrix
-
-| Scenario | YAML | Expected reviewer action | Status |
-| --- | --- | --- | --- |
-| Clean/no issue | `baseline` | No Problems-grid row. | Covered |
-| Missing contribution policy | `policy_gap` | Select `contribution_impact_methods`. | Covered |
-| Missing transaction method | `policy_gap` | Configure `transaction_impact_methods`. | Covered |
-| Missing denominator | `policy_gap` | Set `denominator_source`. | Covered |
-| Missing transaction sign/flow semantics | `policy_gap` | Define sign/flow semantics. | Covered |
-| Low-confidence estimate | `multi` | Decide whether the estimate is acceptable. | Covered |
-| Context-only evidence | `multi` | Review context without treating it as impact. | Covered |
-| Modified Dietz cross-check | `modified_dietz` | Review cross-check. | Covered |
-| Full YAML specifications | `full_spec` | Run strict causal attribution with all supported policies configured. | Covered |
-| Security full YAML specifications | `security_full_spec` | Review security-period differences with security review keys. | Covered |
-| Suppressed finding | `suppressed` | Exclude from active review; keep audit-visible. | Covered |
-| Residual withheld | `multi` | Resolve partial or missing estimates first. | Covered |
-| Large clean background | `multi` | Confirm unchanged periods do not create false positives. | Covered |
-| Large issue scale | Future generated fixture | Test hundreds of problem rows. | Planned |
-
-The current matrix favors a small set of reusable CSV snapshots over many
-near-duplicate directories. Add new CSV snapshots only when a scenario cannot be
-expressed clearly through YAML policy changes against the existing data.
-
 ## YAML Policy Decision Guide
 
 Use the YAML policy blocks to state what ppar is allowed to treat as an
@@ -212,10 +143,10 @@ the vendor data should be interpreted.
 
 ## Method Coverage Goal
 
-Each supported public YAML impact method should have at least one packaged demo
-scenario and one validator assertion. Tests can still cover narrow edge cases,
-but the demos should prove that each method is understandable from reviewer
-outputs.
+Each supported public YAML impact method should have at least one user-facing
+demo example or test-only validation fixture, plus one validator assertion.
+Tests can still cover narrow edge cases, but the packaged demos should stay
+focused on reviewer-facing workflows.
 
 The supported string vocabulary is summarized in
 `docs/performance_comparison_design.md`. The package code backs those strings

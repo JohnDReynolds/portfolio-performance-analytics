@@ -237,15 +237,8 @@ class TestPackageMetadata(unittest.TestCase):
             "README.md",
             "axys_column_mappings.yaml",
             "axys_analytics.yaml",
-            "ppar_performance_comparison_restatement.yaml",
-            "ppar_performance_comparison_multi_restatement.yaml",
-            "ppar_performance_comparison_policy_gap_demo.yaml",
             "ppar_performance_comparison_full_spec.yaml",
             "ppar_performance_comparison_security_full_spec.yaml",
-            "ppar_performance_comparison_modified_dietz.yaml",
-            "axys_a/portperf.csv",
-            "axys_b_restatement/secperf.csv",
-            "axys_b_multi_restatement/secperf.csv",
             "axys_analytics/portperf.csv",
             "axys_analytics/secperf.csv",
             "axys_analytics/sec_ref.csv",
@@ -253,8 +246,6 @@ class TestPackageMetadata(unittest.TestCase):
             "axys_full_spec_a/sec_ref.csv",
             "axys_full_spec_b/transactions.csv",
             "axys_full_spec_b/sec_ref.csv",
-            "axys_modified_dietz_a/transactions.csv",
-            "axys_modified_dietz_b/transactions.csv",
         )
 
         for resource_path in expected_resources:
@@ -282,37 +273,23 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("TNOTE5Y", position_ids)
         self.assertTrue(position_ids.issubset(security_ids))
 
-    def test_axys_demo_matrix_documents_problem_scenarios(self) -> None:
-        """The packaged Axys demo matrix names the expected review scenarios."""
-        matrix = Path("ppar/demos/data/axys/README.md").read_text(encoding=util.ENCODING)
+    def test_axys_validation_matrix_documents_problem_scenarios(self) -> None:
+        """The Axys validation matrix names the expected review scenarios."""
+        matrix = Path("tests/data/axys/README.md").read_text(encoding=util.ENCODING)
         expected_scenarios = {
-            "Clean/no issue": "ppar_performance_comparison.yaml",
-            "Missing contribution policy": (
-                "ppar_performance_comparison_policy_gap_demo.yaml"
-            ),
-            "Missing transaction method": (
-                "ppar_performance_comparison_policy_gap_demo.yaml"
-            ),
-            "Missing denominator": "ppar_performance_comparison_policy_gap_demo.yaml",
-            "Missing transaction sign/flow semantics": (
-                "ppar_performance_comparison_policy_gap_demo.yaml"
-            ),
-            "Low-confidence estimate": (
-                "ppar_performance_comparison_multi_restatement.yaml"
-            ),
-            "Context-only evidence": "ppar_performance_comparison_multi_restatement.yaml",
-            "Modified Dietz cross-check": (
-                "ppar_performance_comparison_modified_dietz.yaml"
-            ),
-            "Full YAML specifications": "ppar_performance_comparison_full_spec.yaml",
-            "Security full YAML specifications": (
-                "ppar_performance_comparison_security_full_spec.yaml"
-            ),
-            "Suppressed finding": "ppar_performance_comparison_suppressed.yaml",
-            "Residual withheld": "ppar_performance_comparison_multi_restatement.yaml",
-            "Large clean background": (
-                "ppar_performance_comparison_multi_restatement.yaml"
-            ),
+            "Clean/no issue": "baseline",
+            "Missing contribution policy": "policy_gap",
+            "Missing transaction method": "policy_gap",
+            "Missing denominator": "policy_gap",
+            "Missing transaction sign/flow semantics": "policy_gap",
+            "Low-confidence estimate": "multi",
+            "Context-only evidence": "multi",
+            "Modified Dietz cross-check": "modified_dietz",
+            "Full YAML specifications": "full_spec",
+            "Security full YAML specifications": "security_full_spec",
+            "Suppressed finding": "suppressed",
+            "Residual withheld": "multi",
+            "Large clean background": "multi",
             "Large issue scale": "Future generated fixture",
         }
 
@@ -324,8 +301,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Covered", matrix)
         self.assertIn("Planned", matrix)
 
-    def test_axys_demo_matrix_documents_supported_yaml_methods(self) -> None:
-        """The packaged Axys demo matrix tracks every public YAML method target."""
+    def test_axys_demo_readme_documents_supported_yaml_methods(self) -> None:
+        """The packaged Axys demo README tracks every public YAML method target."""
         matrix = Path("ppar/demos/data/axys/README.md").read_text(encoding=util.ENCODING)
         expected_methods = {
             ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value,

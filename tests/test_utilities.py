@@ -31,7 +31,7 @@ _DATA_DIRECTORIES = (
     Path("ppar/demos/data"),
 )
 _AXYS_DIRECTORIES = [directory / "axys" for directory in _DATA_DIRECTORIES]
-_DEFAULT_AXYS_SNAPSHOT_DIRECTORY = "axys_a"
+_DEFAULT_AXYS_SNAPSHOT_DIRECTORY = "snapshots/axys_a"
 _CLASSIFICATION_DIRECTORIES = [directory / "classifications" for directory in _DATA_DIRECTORIES]
 _MAPPING_DIRECTORIES = [directory / "mappings" for directory in _DATA_DIRECTORIES]
 _PERFORMANCE_DIRECTORIES = [directory / "performance" for directory in _DATA_DIRECTORIES]
@@ -71,7 +71,8 @@ def axys_data_path(file_name: str, suffix: str = ".csv") -> Path:
 
     Args:
         file_name: Base name of the Axys fixture. Simple file names resolve
-            from the Axys fixture root or the default ``axys_a`` snapshot.
+            from the Axys fixture root or the default ``snapshots/axys_a``
+            snapshot.
         suffix: File suffix to append when not already present.
 
     Returns:

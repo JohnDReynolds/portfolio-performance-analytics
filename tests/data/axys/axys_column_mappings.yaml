@@ -35,7 +35,7 @@ defaults:
 # Portfolio Performance Export
 # =========================
 # Path to the Axys portfolio-level performance export.
-portfolio_performance_path: axys_full_spec_a/portperf.csv
+portfolio_performance_path: snapshots/axys_a/portperf.csv
 
 # Optional: Portfolio Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -62,7 +62,7 @@ portfolio_performance_path: axys_full_spec_a/portperf.csv
 # Security Performance Export
 # =========================
 # Path to the Axys security-level performance export.
-security_performance_path: axys_full_spec_a/secperf.csv
+security_performance_path: snapshots/axys_a/secperf.csv
 
 # Optional: Security Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -94,7 +94,7 @@ security_performance_path: axys_full_spec_a/secperf.csv
 # Security Master
 # =========================
 # Path to the Axys security master or security reference export.
-security_master_path: axys_full_spec_a/sec_ref.csv
+security_master_path: snapshots/axys_a/sec_ref.csv
 
 # Optional: Security Master Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -106,6 +106,24 @@ security_master_path: axys_full_spec_a/sec_ref.csv
 #
 #   # Security display name used in reports.
 #   name_column: SECURITY_NAME
+
+# =========================
+# Classifications
+# =========================
+# Optional: Lookup Table Classifications
+# Add entries here when your Axys grouping codes need to be translated through
+# a separate lookup export. Groupings already present on the security master
+# can usually be configured in the mappings section instead.
+classifications:
+  # Optional lookup-table-based sector classification.
+  SectorLookup:
+    file_path: snapshots/axys_a/classification_lookup.csv
+    display_name: Sector
+    identifier_column: CODE
+    name_column: DESCRIPTION
+    filter_column: CLASSIFICATION_TYPE
+    filter_value: SECTOR
+    mapping: Sector
 
 # =========================
 # Mappings

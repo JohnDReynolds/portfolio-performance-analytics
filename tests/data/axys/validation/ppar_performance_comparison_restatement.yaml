@@ -1,25 +1,24 @@
 # =========================
 # PPAR Performance Comparison Configuration
 # =========================
-# This demo intentionally leaves selected YAML policy inputs incomplete. It is
-# meant to exercise reviewer-facing Problems-grid actions, not to model a fully
-# resolved client configuration.
+# This fixture compares the baseline Axys snapshot with a controlled
+# restatement snapshot containing intentional differences.
 
 comparison:
-  name: Axys fixture policy-gap review demo
+  name: Axys fixture controlled restatement comparison
 
 snapshots:
   a:
     label: axys_a
-    path: axys_a
+    path: ../snapshots/axys_a
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: ../axys_column_mappings.yaml
 
   b:
-    label: axys_b_multi_restatement
-    path: axys_b_multi_restatement
+    label: axys_b_restatement
+    path: ../snapshots/axys_b_restatement
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: ../axys_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
@@ -32,8 +31,17 @@ files:
   cash: cash.csv
 
 contribution_impact_methods:
+  portfolio_source_field:
+    method: source_field_delta_over_begin_market_value
+    denominator_source: begin_market_value
+    source_fields:
+      - income
+      - gain_loss
   security_contribution:
     method: vendor_contribution_delta
+  security_return:
+    method: security_return_delta_times_weight
+    weight_source: snapshot_a_weight
 
 tolerances:
   return: 0.000001

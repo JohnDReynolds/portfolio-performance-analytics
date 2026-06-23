@@ -13,7 +13,8 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import PerformanceComparisonSpecification
 
 _AXYS_COMPARISON_PATH = Path("tests/data/axys/ppar_performance_comparison.yaml")
-_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys")
+_AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
+_TEST_AXYS_SCHEMA_PATH = Path("tests/data/axys/axys_column_mappings.yaml")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
@@ -50,11 +51,11 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
         self.assertEqual(specification.snapshot_b.label, "axys_b")
         self.assertEqual(
             specification.snapshot_a.path.resolve(),
-            (_PACKAGED_AXYS_DATA_PATH / "axys_a").resolve(),
+            (_AXYS_SNAPSHOT_PATH / "axys_a").resolve(),
         )
         self.assertEqual(
             specification.snapshot_b.schema_path.resolve(),
-            (_PACKAGED_AXYS_DATA_PATH / "axys_column_mappings.yaml").resolve(),
+            _TEST_AXYS_SCHEMA_PATH.resolve(),
         )
 
         portfolio_file = specification.files["portfolio_performance"]
@@ -62,11 +63,11 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
         self.assertEqual(portfolio_file.relative_path, Path("portperf.csv"))
         self.assertEqual(
             portfolio_file.snapshot_a_path.resolve(),
-            (_PACKAGED_AXYS_DATA_PATH / "axys_a" / "portperf.csv").resolve(),
+            (_AXYS_SNAPSHOT_PATH / "axys_a" / "portperf.csv").resolve(),
         )
         self.assertEqual(
             specification.files["transactions"].snapshot_b_path.resolve(),
-            (_PACKAGED_AXYS_DATA_PATH / "axys_b" / "transactions.csv").resolve(),
+            (_AXYS_SNAPSHOT_PATH / "axys_b" / "transactions.csv").resolve(),
         )
 
     def test_optional_missing_file_does_not_raise(self) -> None:
