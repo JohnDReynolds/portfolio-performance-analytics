@@ -1,46 +1,65 @@
-# portfolio-performance-analytics
-portfolio-performance-analytics (ppar) is a python package that produces holdings-based multi-period performance attribution, contribution, and benchmark-relative ex-post risk statistics.
+# Portfolio Performance Analytics
+
+Portfolio Performance Analytics (`ppar`) is a Python package for explaining
+investment performance. It has two main workflows:
+
+| Feature | Question It Answers |
+| --- | --- |
+| **Analytics** | Why did this portfolio outperform or underperform its benchmark? |
+| **Performance Comparison** | Why did reported performance change between two source-data snapshots? |
 
 [License](LICENSE)
 
-## Table of Contents
+## Table Of Contents
 
-- [Description](#description)
-- [Features](#features)
-- [Inputs](#inputs)
-- [Outputs](#outputs)
 - [Installation](#installation)
-- [Usage](#usage)
+- [Analytics](#analytics)
 - [Performance Comparison](#performance-comparison)
-- [Repository Guide](#repository-guide)
-- [Technical](#technical)
-- [Enhancements](#enhancements)
-- [Support](#support)
+- [Vendor Support](#vendor-support)
+- [Documentation](#documentation)
+- [Project Checks](#project-checks)
 
----
+## Installation
 
-## Description
+```bash
+pip install ppar
+```
 
-portfolio-performance-analytics is a python package (https://pypi.org/project/ppar/) that produces holdings-based multi-period performance attribution, contribution, and benchmark-relative ex-post risk statistics. It uses the Brinson-Fachler methodology for calculating attribution effects, and uses the Carino method for logarithmically-smoothing cumulative effects over multi-period time frames.
+For chart rendering support:
 
----
+```bash
+pip install "ppar[charts]"
+```
 
-## Features
+## Analytics
 
-The sample outputs below portray a Mega-Cap alpha portfolio measured against a
-Mega-Cap benchmark. The rendered reports show quarterly attribution and risk from
-June 2021 through March 2026.
+The analytics workflow explains portfolio performance versus a benchmark using
+holdings-based attribution, contribution, and ex-post risk statistics.
+
+`ppar` supports:
+
+- Brinson-Fachler attribution effects.
+- Carino smoothing for multi-period attribution.
+- Contribution analysis.
+- Benchmark-relative ex-post risk statistics.
+- Monthly, quarterly, yearly, or source-period reporting.
+- CSV, HTML, JSON, PNG, Pandas, Polars, and lightweight HTML-table outputs.
+
+### Example: Mega-Cap Alpha Portfolio
+
+The analytics demo shown below compares a Mega-Cap alpha portfolio against a
+Mega-Cap benchmark from June 2021 through March 2026.
 
 Over the full period, the portfolio returned 89.3% versus 82.4% for the
-benchmark, producing an active return of about 684 bps. In the total line of
-the Economic Sector Attribution reports, that active return is explained mostly
-by security selection: about 19 bps from sector allocation and about 665 bps
-from security selection. Information Technology was the largest source of active
-performance, contributing about 351 bps of total attribution effect.
+benchmark, producing an active return of about 684 bps. The Economic Sector
+Attribution reports explain most of that active return through security
+selection: about 19 bps from sector allocation and about 665 bps from security
+selection. Information Technology was the largest source of active performance,
+contributing about 351 bps of total attribution effect.
 
-The Risk Statistics report shows a similar but modest risk-adjusted advantage:
-annualized Sharpe ratio of 0.70 for the portfolio versus 0.67 for the benchmark,
-and annualized Sortino ratio of 1.82 versus 1.74.
+The Risk Statistics report shows a modest risk-adjusted advantage: annualized
+Sharpe ratio of 0.70 for the portfolio versus 0.67 for the benchmark, and
+annualized Sortino ratio of 1.82 versus 1.74.
 
 <!--
 Image sources are repository-relative so they render for authorized GitHub
@@ -48,51 +67,45 @@ viewers when this repository is private. PyPI cannot render these private
 assets; public image URLs are required there if image display is needed.
 -->
 
-- **Attribution & Contribution**:
 <img src="images/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
-<br><br><br>
-<img src="images/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
-<br><br><br>
-<img src="images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
-<br><br><br>
-<img src="images/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
-<br><br><br>
-<img src="images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
-<br><br><br>
-<img src="images/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
-<br><br><br>
-<img src="images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
-<br><br><br>
-<img src="images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
-<br><br><br>
-<img src="images/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
-<br><br><br>
-<img src="images/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
-<br><br><br>
-<img src="images/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
-<br><br><br>
 
-- **Ex-Post Risk Statistics**:
-<img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
 <br>
 
----
+<img src="images/CumulativeReturns.png" alt="Cumulative Returns Chart" width="100%" />
 
-## Inputs
+<br>
 
-The inputs required to produce the analytics fall into three categories:
-1. Periodic "classification-level" weights and returns for a portfolio and its benchmark.  A "classification" can be any category such as region, country, economic sector, industry, security, etc.  The weights and returns must satisfy the formula: *SumOf(weights * returns) = Total Return*. They will typically be from-of-period weights and period returns. (Required)
-2. Classification items and descriptions. (Optional)
-3. Mappings from the classification scheme of the weights and returns to a reporting classification. (Optional)
+<img src="images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
 
-The input data may be provided directly as either:
-1. Pandas DataFrames.
-2. Polars DataFrames.
-3. Python dictionaries (for Classifications and Mappings).
-4. csv files.
+<br>
+
+<img src="images/RiskStatistics.jpg" alt="Risk Statistics Table" width="100%" />
+
+### Run The Analytics Demo
+
+```bash
+ppar-analytics-demo
+```
+
+The demo writes tables and charts to:
+
+```text
+_demo_output/analytics
+```
+
+The analytics demos default to quarterly reporting. Pass any value beginning
+with `m`, `q`, or `y` to select monthly, quarterly, or yearly reporting:
+
+```bash
+ppar-analytics-demo --frequency monthly
+ppar-analytics-demo --frequency quarterly
+ppar-analytics-demo --frequency yearly
+```
+
+### Analytics Inputs
 
 Portfolio and benchmark performance sources use narrow rows. The `name` column
-is optional; `contribution` and total return are calculated by the package.
+is optional; contribution and total return are calculated by the package.
 
 ```csv
 from_date,thru_date,identifier,weight,return,name
@@ -100,154 +113,119 @@ from_date,thru_date,identifier,weight,return,name
 2023-12-31,2024-01-31,MSFT,0.6,0.0572811503,Microsoft
 ```
 
-Wide performance files with per-identifier columns such as `AAPL.ret` and
-`AAPL.wgt` are not supported.
-
-For sample input data sources, please refer to the ``ppar-analytics-demo``
-command and the ppar/demos/data directory. Once the input data has been
-provided, then the analytics may be requested using different calculation
-parameters, time-periods, and frequencies:
-1. Daily (or for whatever data frequency is provided).
-2. Monthly
-3. Quarterly
-4. Yearly
-
-Typically, a user will develop their own "data source" functions that provide
-the data in one of the above formats. The ``ppar-analytics-demo`` command uses
-sample data source functions.
-
----
-
-## Outputs
-
-The outputs are represented by different views and charts.  See [Features](#features) above.  They may be delivered in different formats:
-1. csv files
-2. html strings
-3. json strings
-4. Pandas DataFrames
-5. png files
-6. Polars DataFrames
-7. Lightweight Python HTML table objects
-8. xml strings
-
-The ``to_html()`` methods return complete HTML document strings. The ``to_table()`` methods return lightweight table objects whose ``as_raw_html()`` method can emit either a complete HTML document or a table fragment. Users can also develop their own "presentation layer" using the various output formats as the inputs to their presentation layer.
-
----
-
-## Installation
-pip install ppar
-
-For chart output, including the chart option in ``ppar-analytics-demo``:
-```
-pip install "ppar[charts]"
-```
-
----
-
-## Usage
-Run the bundled demos from an installed environment:
-
-```bash
-ppar-analytics-demo
-ppar-axys-analytics-demo
-ppar-performance-comparison-portfolio-demo
-ppar-performance-comparison-security-demo
-```
-
-The analytics demos default to quarterly reporting. Pass `--frequency monthly`,
-`--frequency quarterly`, or `--frequency yearly` to change the reporting
-frequency; the short forms `m`, `q`, and `y` are also accepted.
-
----
+Inputs may be provided as CSV files, Pandas DataFrames, Polars DataFrames, or
+Python dictionaries for classifications and mappings.
 
 ## Performance Comparison
 
-The performance comparison feature compares two source-data snapshots and helps
-explain why reported performance changed between extraction dates. Portfolio
-comparison uses `portfolio_performance` as the primary result dataset; security
-comparison uses `security_performance` as the primary result dataset. Both paths
-can use normalized transactions, positions, prices, FX rates, cash, and
-security-reference data, then write a review bundle with HTML, CSV, manifest,
-and XLSX workbook artifacts.
+The performance comparison workflow compares two source-data snapshots and
+explains why reported performance changed between extraction dates.
 
-Use these entry points:
+It can compare:
 
-- [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): recommended
-  workbook demo command, packaged YAML fixtures, data used, and expected XLSX
-  output.
-- [Repository Guide](docs/repository_guide.md): map of README files, commands,
-  validators, generated outputs, and common workflows.
+- Portfolio-period performance.
+- Security-period performance.
+- Holdings, market values, quantities, accrued interest, and cash.
+- Transactions, prices, FX rates, and security-reference data.
+
+The output is a review bundle with `report.xlsx`, `report.html`, CSV audit
+files, and a manifest. Start review in the generated Excel workbook.
+
+<img src="images/PerformanceComparisonWorkflow.svg" alt="Performance Comparison Review Workflow" width="100%" />
+
+### Portfolio-Level Demo
+
+```bash
+ppar-performance-comparison-portfolio-demo
+```
+
+Output:
+
+```text
+_demo_output/performance_comparison_portfolio/report.xlsx
+_demo_output/performance_comparison_portfolio/report.html
+```
+
+### Security-Level Demo
+
+```bash
+ppar-performance-comparison-security-demo
+```
+
+Output:
+
+```text
+_demo_output/performance_comparison_security/report.xlsx
+_demo_output/performance_comparison_security/report.html
+```
+
+### Review Workflow
+
+1. Open `report.xlsx`.
+2. Start with the `Portfolio Differences` or `Security Differences` sheet.
+3. Use the `Underlying Causes` sheet to see which input differences explain the
+   reported performance difference.
+4. Use `Required YAML Setup` when the workbook needs explicit attribution rules
+   before it can calculate an explanation.
+
+### Performance Comparison Resources
+
+- [Packaged Axys Demo Data](ppar/demos/data/axys/README.md): demo commands,
+  data used, YAML setup, and expected workbook output.
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
-  internal model, YAML vocabulary, attribution setup, and report/workbook
-  design rationale.
+  model details, YAML vocabulary, and workbook/report design notes.
 - [Axys Common-Core Export Reference](docs/axys_common_core_export.md): starter
   Axys export template and field-reference tables.
 
-Source-checkout smoke test:
+## Vendor Support
+
+The core analytics model is vendor-neutral. Vendor interfaces adapt exported
+vendor files into the same internal analytics and comparison workflows.
+
+### Axys Analytics Demo
 
 ```bash
-./.venv/bin/python -m ppar.demos.performance_comparison_portfolio_demo
-./.venv/bin/python -m ppar.demos.performance_comparison_security_demo
+ppar-axys-analytics-demo
 ```
 
-Generated demo artifacts live under `_demo_output/analytics`,
-`_demo_output/axys_analytics`, `_demo_output/performance_comparison_portfolio`,
-and `_demo_output/performance_comparison_security`. The core analytics demo and
-the Axys analytics demo use the same Mega-Cap Alpha portfolio and benchmark;
-the Axys demo reads the data through Axys-shaped exports before handing the
-same analytics object shape to the shared renderer. Both analytics demos use
-quarterly reporting and write tables and charts. All demos write files and
-print the review paths instead of opening browser windows automatically. The
-performance comparison demos write both `report.xlsx` and `report.html`; start
-review in the generated `report.xlsx`.
+The Axys analytics demo reads Axys-shaped exports for the same Mega-Cap Alpha
+portfolio and benchmark used by `ppar-analytics-demo`, then renders the same
+analytics output model.
 
----
+Output:
 
-## Repository Guide
+```text
+_demo_output/axys_analytics
+```
 
-If the README files, demo fixtures, commands, validators, and tests start to feel
-too scattered, start with the [Repository Guide](docs/repository_guide.md). It
-maps the major directories, explains which README owns which topic, summarizes
-the source-checkout commands and installed commands, and gives common workflows
-for generating and validating performance comparison reports and XLSX
-workbooks.
-
----
-
-## Technical
-Being built on top of Polars dataframes, ppar is able to efficiently process large datasets through parallel processing, vectorization, lazy evaluation, and using Apache Arrow as its underlying data format.
-
-Run local project checks from a source checkout with the repository virtual
-environment:
+Frequency selection works the same way:
 
 ```bash
-./.venv/bin/python scripts/check_project.py
+ppar-axys-analytics-demo --frequency monthly
+ppar-axys-analytics-demo --frequency quarterly
+ppar-axys-analytics-demo --frequency yearly
 ```
 
-For faster routine feedback during small changes:
+The performance comparison demos also use Axys-shaped source data. See the
+[Axys Common-Core Export Reference](docs/axys_common_core_export.md) for the
+starter export shape.
+
+## Documentation
+
+- [Repository Guide](docs/repository_guide.md): project map, demo commands,
+  generated outputs, and common workflows.
+- [Analytics Demo Refresh](docs/analytics_demo_refresh.md): how to regenerate
+  the Mega-Cap demo data and README images.
+- [Performance Comparison Design Notes](docs/performance_comparison_design.md):
+  detailed model and workbook design notes.
+- [Axys Common-Core Export Reference](docs/axys_common_core_export.md): vendor
+  export template and field reference.
+
+## Project Checks
+
+From a source checkout with the repository virtual environment:
 
 ```bash
 ./.venv/bin/python scripts/check_project.py --quick
+./.venv/bin/python -m pytest -q
 ```
-
-To include a temporary wheel and source-distribution build check:
-
-```bash
-./.venv/bin/python scripts/check_project.py --build
-```
-
----
-
-## Enhancements
-Future enhancements may include:
-1. Break out the interaction (cross-product) effect.  It is currently included in the selection effect.
-2. Break out the currency effect.
-3. Break out the long and short sides.
-4. Add additional multi-period smoothing algorithms (e.g. Menchero).
-5. Support time-series of risk-free rates (as opposed to a single annual rate).
-6. Calculate additional risk statistics.
-
----
-
-## Support
-If you find this project helpful, consider sponsoring it at https://github.com/sponsors/JohnDReynolds to help keep it going!
