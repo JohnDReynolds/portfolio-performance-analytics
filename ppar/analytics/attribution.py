@@ -1015,14 +1015,14 @@ class Attribution:
         Raises:
             PpaError: If the underlying view construction or table retrieval fails
                 validation.
-            ModuleNotFoundError: If optional chart dependencies are not installed.
+            ModuleNotFoundError: If chart rendering dependencies are not installed.
         """
-        # Charting dependencies are optional and needed only when chart output is requested.
+        # Keep chart rendering code out of normal imports until chart output is requested.
         try:
             from ppar.analytics import format_chart  # pylint: disable=import-outside-toplevel
         except ModuleNotFoundError as error:
             raise ModuleNotFoundError(
-                "Chart output requires optional dependencies; install 'ppar[charts]'."
+                "Chart output requires matplotlib and seaborn."
             ) from error
 
         # Get the title_lines.

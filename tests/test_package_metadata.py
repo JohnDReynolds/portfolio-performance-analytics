@@ -131,10 +131,6 @@ class TestPackageMetadata(unittest.TestCase):
             for dependency in pyproject["project"]["dependencies"]
         }
         optional_dependencies = pyproject["project"]["optional-dependencies"]
-        chart_dependencies = {
-            dependency.split(">=", maxsplit=1)[0].lower()
-            for dependency in optional_dependencies["charts"]
-        }
         dev_dependencies = {
             dependency.split(">=", maxsplit=1)[0].lower()
             for dependency in optional_dependencies["dev"]
@@ -143,9 +139,9 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
         self.assertIn("openpyxl", pyproject_dependencies)
-        self.assertNotIn("matplotlib", pyproject_dependencies)
-        self.assertIn("matplotlib", chart_dependencies)
-        self.assertIn("seaborn", chart_dependencies)
+        self.assertIn("matplotlib", pyproject_dependencies)
+        self.assertIn("seaborn", pyproject_dependencies)
+        self.assertNotIn("charts", optional_dependencies)
         self.assertNotIn("excel", optional_dependencies)
         self.assertIn("pytest", dev_dependencies)
 
@@ -540,26 +536,13 @@ class TestPackageMetadata(unittest.TestCase):
         """Analytics schema constants live only under the analytics package."""
         self.assertIsNone(importlib.util.find_spec("ppar.schema"))
 
-    def test_chart_dependencies_are_optional(self) -> None:
-        """Normal package imports do not load optional chart rendering code."""
-        with open("pyproject.toml", "rb") as file:
-            pyproject = tomllib.load(file)
-
-        chart_dependencies = {
-            dependency.split(">=", maxsplit=1)[0].lower()
-            for dependency in pyproject["project"]["optional-dependencies"]["charts"]
-        }
-        core_dependencies = {
-            dependency.split(">=", maxsplit=1)[0].lower()
-            for dependency in pyproject["project"]["dependencies"]
-        }
+    def test_chart_rendering_module_is_not_eagerly_loaded(self) -> None:
+        """Normal package imports do not eagerly load chart rendering code."""
         command = (
             "import sys; import ppar; "
             "raise SystemExit(1 if 'ppar.analytics.format_chart' in sys.modules else 0)"
         )
 
-        self.assertEqual(chart_dependencies, {"matplotlib", "seaborn"})
-        self.assertTrue(chart_dependencies.isdisjoint(core_dependencies))
         subprocess.run([sys.executable, "-c", command], check=True)
 
 

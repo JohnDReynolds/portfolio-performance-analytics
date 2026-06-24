@@ -154,7 +154,7 @@ class TestRegressionResults(unittest.TestCase):
 
             if classification_name == "Economic Sector":
                 if not _CHART_DEPENDENCIES_AVAILABLE:
-                    self.skipTest("Chart regression checks require optional ppar[charts].")
+                    self.skipTest("Chart regression checks require matplotlib and seaborn.")
                 for chart in Chart:
                     columns_to_sort = None
                     sort_descendings = False

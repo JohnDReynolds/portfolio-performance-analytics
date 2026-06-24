@@ -25,12 +25,6 @@ investment performance. It has two main workflows:
 pip install ppar
 ```
 
-For chart rendering support:
-
-```bash
-pip install "ppar[charts]"
-```
-
 ## Analytics
 
 The analytics workflow explains portfolio performance versus a benchmark using
@@ -52,10 +46,9 @@ Mega-Cap benchmark from June 2021 through March 2026.
 
 Over the full period, the portfolio returned 89.3% versus 82.4% for the
 benchmark, producing an active return of about 684 bps. The Economic Sector
-Attribution reports explain most of that active return through security
-selection: about 19 bps from sector allocation and about 665 bps from security
-selection. Information Technology was the largest source of active performance,
-contributing about 351 bps of total attribution effect.
+Attribution reports attribute about 19 bps to sector allocation and about 665
+bps to security selection. Information Technology was the largest source of
+active performance, contributing about 351 bps of total attribution effect.
 
 The Risk Statistics report shows a modest risk-adjusted advantage: annualized
 Sharpe ratio of 0.70 for the portfolio versus 0.67 for the benchmark, and
@@ -79,6 +72,10 @@ assets; public image URLs are required there if image display is needed.
 
 <br>
 
+<img src="images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
+
+<br>
+
 <img src="images/RiskStatistics.jpg" alt="Risk Statistics Table" width="100%" />
 
 ### Run The Analytics Demo
@@ -93,7 +90,7 @@ The demo writes tables and charts to:
 _demo_output/analytics
 ```
 
-The analytics demos default to quarterly reporting. Pass any value beginning
+The analytics demo defaults to quarterly reporting. Pass any value beginning
 with `m`, `q`, or `y` to select monthly, quarterly, or yearly reporting:
 
 ```bash
@@ -104,8 +101,9 @@ ppar-analytics-demo --frequency yearly
 
 ### Analytics Inputs
 
-Portfolio and benchmark performance sources use narrow rows. The `name` column
-is optional; contribution and total return are calculated by the package.
+Portfolio and benchmark performance sources use one row per identifier and
+period. The `name` column is optional; contribution and total return are
+calculated by the package.
 
 ```csv
 from_date,thru_date,identifier,weight,return,name
@@ -115,6 +113,21 @@ from_date,thru_date,identifier,weight,return,name
 
 Inputs may be provided as CSV files, Pandas DataFrames, Polars DataFrames, or
 Python dictionaries for classifications and mappings.
+
+Optional classifications and mappings can translate security-level performance
+into higher-level reports such as economic sector attribution:
+
+```csv
+identifier,name
+Information Technology,Information Technology
+Cash,Cash
+```
+
+```csv
+from_identifier,to_identifier
+AAPL,Information Technology
+CASHBAL,Cash
+```
 
 ## Performance Comparison
 
@@ -132,6 +145,14 @@ The output is a review bundle with `report.xlsx`, `report.html`, CSV audit
 files, and a manifest. Start review in the generated Excel workbook.
 
 <img src="images/PerformanceComparisonWorkflow.svg" alt="Performance Comparison Review Workflow" width="100%" />
+
+<br>
+
+<img src="images/PortfolioDifferencesHtmlReport.svg" alt="Portfolio Differences HTML Report Preview" width="100%" />
+
+<br>
+
+<img src="images/UnderlyingCausesHtmlReport.svg" alt="Underlying Causes HTML Report Preview" width="100%" />
 
 ### Portfolio-Level Demo
 
