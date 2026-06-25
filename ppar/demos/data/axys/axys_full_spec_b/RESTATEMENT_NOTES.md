@@ -1,17 +1,25 @@
 # Full-Spec Restatement Notes
 
-Snapshot B intentionally restates selected rows from the Mega-Cap Alpha
-operational snapshot:
+Snapshot B intentionally restates selected rows from the operational snapshot:
 
-- Latest AAPL price increases, creating a weighted price explanation.
-- Latest AAPL security return and contribution increase for security-level
-  review.
-- Latest NVDA quantity and market value increase, with cost changed as
-  review-only evidence.
-- Latest TNOTE2Y accrued income and security return increase.
-- Latest CASHBAL cash balance and market value increase.
-- One AMZN dividend transaction amount increases.
+- `ALPHA`, latest period: AAPL price and security return increase; the
+  `CASH_USD` position increases. Together these fully explain the portfolio-period
+  performance difference.
+- `ALPHA`, earlier period: one dividend transaction amount increases. This
+  fully explains another portfolio-period performance difference.
+- `BALANCED`, middle period: one dividend transaction amount increases. This
+  fully explains the portfolio-period performance difference.
+- `BALANCED`, earlier period: one buy transaction has changed quantity, price,
+  and commission fields. Those fields are intentionally review-only, so the
+  period is unexplained by additive rows but still has visible `Underlying
+  Causes` sheet evidence.
+- `INCOME`, latest period: TNOTE2Y accrued income and reported security return
+  increase; the same AAPL price change is also visible as an input difference.
+  TNOTE2Y quantity and market value are visible as related input differences,
+  and cost remains context. This period is partly explained.
+- `INCOME`, middle period: the `CASH_USD` position increases. This fully
+  explains the portfolio-period performance difference.
 
-The corresponding YAML files configure every currently supported additive or
-review-only impact policy, so the workbook can distinguish true underlying
-causes from reported performance checks.
+The corresponding YAML files define transaction semantics. Standard field roles
+distinguish performance inputs, related input components, reported performance
+checks, and context rows.

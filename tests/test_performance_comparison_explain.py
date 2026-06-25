@@ -432,28 +432,22 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(candidates.height, 12)
         self.assertTrue(candidates.filter(pl.col(FINDING_CODE) == PC_SEC_CONTR).is_empty())
 
-    def test_portfolio_period_contribution_candidates_estimates_source_field(
+    def test_portfolio_period_contribution_candidates_treats_source_field_as_check(
         self,
     ) -> None:
-        """Contribution candidates estimate supported portfolio source fields."""
+        """Portfolio source fields are reported-performance checks, not causes."""
         findings = self._restatement()
 
         candidates = portfolio_period_contribution_candidates(findings)
         source_field = candidates.filter(
             (pl.col(SOURCE_COLUMN) == pc_cols.GAIN_LOSS)
-            & (pl.col(IMPACT_BASIS) == IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD)
+            & (pl.col(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE)
         ).row(0, named=True)
 
-        self.assertAlmostEqual(
-            source_field[ESTIMATED_RETURN_IMPACT],
-            500.0 / 999915.0,
-        )
+        self.assertIsNone(source_field[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(source_field[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
-        self.assertEqual(
-            source_field[IMPACT_POLICY],
-            "portfolio_source_field:source_field_delta_over_begin_market_value",
-        )
-        self.assertIn("beginning market value", source_field[IMPACT_MESSAGE])
+        self.assertIsNone(source_field[IMPACT_POLICY])
+        self.assertIn("No defensible return-impact estimate", source_field[IMPACT_MESSAGE])
 
     def test_portfolio_period_contribution_candidates_estimates_security_return(
         self,
@@ -505,7 +499,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         row = no_estimate.row(0, named=True)
 
-        self.assertEqual(no_estimate.height, 11)
+        self.assertEqual(no_estimate.height, 7)
         self.assertIsNone(row[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
         self.assertIsNone(row[IMPACT_METHOD])
@@ -524,31 +518,21 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             list(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS),
         )
 
-    def test_portfolio_period_cause_summary_rolls_up_contribution_estimates(
+    def test_portfolio_period_cause_summary_excludes_reported_performance_checks(
         self,
     ) -> None:
-        """Cause summary rolls up currently defensible portfolio-source estimates."""
+        """Cause summary excludes reported-performance component rows."""
         findings = self._restatement()
 
         summary = portfolio_period_cause_summary(findings)
-        portfolio_row = summary.filter(
-            pl.col(ROOT_CAUSE_AREA) == ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT
-        ).row(0, named=True)
+        cause_areas = set(summary.get_column(ROOT_CAUSE_AREA).to_list())
 
         self.assertEqual(
             summary.columns,
             list(PORTFOLIO_PERIOD_CAUSE_SUMMARY_COLUMNS),
         )
-        self.assertEqual(summary.height, 5)
-        self.assertEqual(portfolio_row[FINDING_COUNT], 2)
-        self.assertAlmostEqual(portfolio_row[ESTIMATED_RETURN_IMPACT], 0.0005000425036128067)
-        self.assertEqual(
-            portfolio_row[IMPACT_BASIS],
-            IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
-        )
-        self.assertEqual(portfolio_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
-        self.assertIn("PC-PORT-FLOW", portfolio_row[TOP_CODES])
-        self.assertIn("currently supported contribution candidate", portfolio_row[IMPACT_MESSAGE])
+        self.assertEqual(summary.height, 4)
+        self.assertNotIn(ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT, cause_areas)
 
     def test_portfolio_period_cause_summary_prefers_vendor_contribution(
         self,
@@ -587,12 +571,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertIsNone(transaction_row[ESTIMATED_RETURN_IMPACT])
         self.assertEqual(transaction_row[IMPACT_BASIS], IMPACT_BASIS_NO_ESTIMATE)
         self.assertEqual(transaction_row[IMPACT_CONFIDENCE], IMPACT_CONFIDENCE_LOW)
-        self.assertIn("Missing impact inputs", transaction_row[IMPACT_MESSAGE])
-        self.assertNotIn("return denominator", transaction_row[IMPACT_MESSAGE])
-        self.assertIn(
-            "transaction sign and flow semantics",
-            transaction_row[IMPACT_MESSAGE],
-        )
+        self.assertIn("Configured as evidence-only", transaction_row[IMPACT_MESSAGE])
         self.assertNotIn("normalized transaction category", transaction_row[IMPACT_MESSAGE])
 
     def test_portfolio_period_cause_summary_includes_direct_input_buckets(
@@ -609,7 +588,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             {
                 ROOT_CAUSE_CASH,
                 ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
-                ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
                 ROOT_CAUSE_PRICE,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY,
             },
@@ -647,7 +625,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             {
                 ROOT_CAUSE_CASH: 2,
                 ROOT_CAUSE_MARKET_VALUE_OR_POSITION: 4,
-                ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT: 2,
                 ROOT_CAUSE_PRICE: 1,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY: 3,
             },
@@ -669,30 +646,26 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(coverage.height, 1)
         self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
         self.assertAlmostEqual(row[PORTFOLIO_RETURN_DELTA], 0.0005)
-        self.assertEqual(row[ROOT_CAUSE_AREA_COUNT], 5)
-        self.assertEqual(row[ESTIMATED_CAUSE_AREA_COUNT], 1)
-        self.assertEqual(row[EVIDENCE_ONLY_CAUSE_AREA_COUNT], 4)
-        self.assertEqual(row[LOW_CONFIDENCE_ESTIMATE_COUNT], 1)
+        self.assertEqual(row[ROOT_CAUSE_AREA_COUNT], 4)
+        self.assertEqual(row[ESTIMATED_CAUSE_AREA_COUNT], 2)
+        self.assertEqual(row[EVIDENCE_ONLY_CAUSE_AREA_COUNT], 2)
+        self.assertEqual(row[LOW_CONFIDENCE_ESTIMATE_COUNT], 2)
         self.assertEqual(row[MEDIUM_CONFIDENCE_ESTIMATE_COUNT], 0)
         self.assertAlmostEqual(
             row[ESTIMATED_RETURN_IMPACT_TOTAL],
-            0.0005000425036128067,
+            0.0036551206852582516,
         )
         self.assertIn(ROOT_CAUSE_TRANSACTION_ACTIVITY, row[EVIDENCE_ONLY_AREAS])
         self.assertIn(ROOT_CAUSE_PRICE, row[EVIDENCE_ONLY_AREAS])
         self.assertEqual(row[TRANSACTION_SEMANTICS_SOURCES], "unknown: 3")
         self.assertNotIn("return denominator", row[MISSING_IMPACT_INPUTS])
-        self.assertIn(
-            "transaction sign and flow semantics",
-            row[MISSING_IMPACT_INPUTS],
-        )
         self.assertIn("return-impact method", row[MISSING_IMPACT_INPUTS])
         self.assertEqual(row[IMPACT_COVERAGE_STATUS], IMPACT_COVERAGE_STATUS_MISSING_INPUTS)
         self.assertEqual(
             row[IMPACT_COVERAGE_REVIEW_NOTE],
             "Resolve missing inputs before relying on impact totals.",
         )
-        self.assertIn("1 cause area(s) have estimates", row[IMPACT_MESSAGE])
+        self.assertIn("2 cause area(s) have estimates", row[IMPACT_MESSAGE])
 
     def test_portfolio_period_impact_coverage_summary_returns_stable_empty_table(
         self,
@@ -720,13 +693,12 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         summary = portfolio_period_cause_summary(portfolio_only_findings)
         cause_areas = set(summary.get_column(ROOT_CAUSE_AREA).to_list())
 
-        self.assertEqual(summary.height, 5)
+        self.assertEqual(summary.height, 4)
         self.assertEqual(
             cause_areas,
             {
                 ROOT_CAUSE_CASH,
                 ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
-                ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
                 ROOT_CAUSE_PRICE,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY,
             },

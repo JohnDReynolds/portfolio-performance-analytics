@@ -35,6 +35,7 @@ from ppar.performance_comparison.findings import (
     SEVERITY_MATERIAL,
 )
 from ppar.performance_comparison.workbook_tables import (
+    _workbook_context_table,
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
@@ -332,9 +333,13 @@ def _assert_workbook_explained_row_actions(
             if row.get("dataset") == "no_underlying_cause_found":
                 test_case.assertEqual(row.get("use"), "Diagnostic")
                 test_case.assertEqual(row.get("impact_status"), "Review only")
-                test_case.assertIn("No underlying input", str(required_setup))
+                test_case.assertIn("No additive underlying cause", str(required_setup))
                 continue
-            if "configured as evidence-only" in str(required_setup):
+            if (
+                "configured as evidence-only" in str(required_setup)
+                or "not included in explained difference" in str(required_setup)
+                or "related performance input row is selected" in str(required_setup)
+            ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
             if row.get("impact_status") == "Missing impact input":
@@ -380,6 +385,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 output_directory,
                 title="Bundle Restatement",
                 top_evidence_limit=2,
+                require_complete_yaml_setup=False,
             )
 
             self.assertEqual(set(paths), expected_keys)
@@ -440,8 +446,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
-            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 4)
-            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 4)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 5)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 5)
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
             self.assertEqual(needs_review.height, 1)
@@ -476,11 +482,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertIn("impact_coverage_status", impact_coverage.columns)
             self.assertIn("impact_coverage_review_note", impact_coverage.columns)
-            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 1)
+            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
             self.assertEqual(impact_coverage["impact_coverage_status"][0], "missing_inputs")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
-            self.assertEqual(context_evidence.height, 4)
+            self.assertEqual(context_evidence.height, 5)
             self.assertIn("review_key", context_evidence.columns)
             self.assertIn("context_use", context_evidence.columns)
             self.assertIn("review_priority", context_evidence.columns)
@@ -494,7 +500,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
 
             context_evidence_summary = pl.read_csv(paths["context_evidence_summary"])
-            self.assertEqual(context_evidence_summary.height, 4)
+            self.assertEqual(context_evidence_summary.height, 5)
             self.assertIn("review_priority", context_evidence_summary.columns)
             self.assertIn("review_priority_reason", context_evidence_summary.columns)
             self.assertIn("finding_count", context_evidence_summary.columns)
@@ -523,6 +529,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("impact_method", top_evidence.columns)
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
+
+    def test_write_report_bundle_requires_complete_yaml_by_default(self) -> None:
+        """User-facing bundles fail when changed source fields lack YAML policy."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(PpaError, "YAML setup is incomplete"):
+                write_performance_comparison_report_bundle(findings, directory)
 
     def test_strict_causal_attribution_rejects_missing_setup(self) -> None:
         """Strict causal attribution mode fails before ambiguous reporting."""
@@ -614,18 +628,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             -100.0 / 999915.0,
         )
         self.assertEqual(rules_transaction_amount["required_yaml_setup"][0], "None")
-        self.assertIsNone(rules_transaction_quantity["estimated_impact"][0])
         self.assertEqual(
-            rules_transaction_quantity["required_yaml_setup"][0],
-            "None; configured as evidence-only in comparison YAML.",
+            rules_transaction_quantity["next_action"][0],
+            "Review this input difference; it is not included in explained difference.",
         )
-        self.assertEqual(rules_transaction_quantity["impact_status"][0], "Review only")
-        self.assertIsNone(rules_transaction_price["estimated_impact"][0])
         self.assertEqual(
-            rules_transaction_price["required_yaml_setup"][0],
-            "None; configured as evidence-only in comparison YAML.",
+            rules_transaction_price["next_action"][0],
+            "Review this input difference; it is not included in explained difference.",
         )
-        self.assertEqual(rules_transaction_price["impact_status"][0], "Review only")
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
         self,
@@ -684,7 +694,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             causes = _workbook_underlying_causes_table(
                 compare_snapshots(comparison_path),
-                comparison_path=comparison_path,
             )
 
         commission = causes.filter(
@@ -694,10 +703,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(commission.height, 1)
         self.assertIsNone(commission["estimated_impact"][0])
-        self.assertEqual(commission["impact_status"][0], "Review only")
         self.assertEqual(
-            commission["required_yaml_setup"][0],
-            "None; configured as evidence-only in comparison YAML.",
+            commission["next_action"][0],
+            "Review this input difference; it is not included in explained difference.",
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -714,10 +722,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
     def test_security_differences_marks_periods_without_security_rows(self) -> None:
         """Portfolio periods without security differences get explicit rows."""
-        findings = compare_snapshots(
-            _FULL_SPEC_COMPARISON_PATH,
-            require_causal_attribution=True,
-        )
+        findings = compare_snapshots(_FULL_SPEC_COMPARISON_PATH)
 
         security_differences = _workbook_security_changes_table(findings)
         portfolio_differences = _workbook_portfolio_changes_table(findings)
@@ -744,7 +749,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(set(placeholders["next_action"].to_list()), {"None"})
 
     def test_position_impact_method_explains_market_value_row(self) -> None:
-        """Position market value YAML exposes the modeled position impact."""
+        """Position market value uses the default performance-input impact."""
         with tempfile.TemporaryDirectory() as temp_dir:
             plain_path = _write_position_estimate_specification(
                 Path(temp_dir) / "plain",
@@ -774,17 +779,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self.assertEqual(plain_position.height, 1)
-        self.assertIsNone(plain_position["estimated_impact"][0])
-        self.assertIn(
-            "position_impact_methods.market_value.method",
-            plain_position["required_yaml_setup"][0],
-        )
+        self.assertAlmostEqual(plain_position["estimated_impact"][0], 0.01)
+        self.assertEqual(plain_position["required_yaml_setup"][0], "None")
         self.assertEqual(configured_position.height, 1)
         self.assertAlmostEqual(configured_position["estimated_impact"][0], 0.01)
         self.assertEqual(configured_position["required_yaml_setup"][0], "None")
 
     def test_position_accrued_impact_method_explains_accrued_row(self) -> None:
-        """Position accrued YAML exposes the modeled accrued-balance impact."""
+        """Position accrued uses the default performance-input impact."""
         with tempfile.TemporaryDirectory() as temp_dir:
             plain_path = _write_position_estimate_specification(
                 Path(temp_dir) / "plain",
@@ -815,11 +817,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self.assertEqual(plain_accrued.height, 1)
-        self.assertIsNone(plain_accrued["estimated_impact"][0])
-        self.assertIn(
-            "position_impact_methods.accrued.method",
-            plain_accrued["required_yaml_setup"][0],
-        )
+        self.assertAlmostEqual(plain_accrued["estimated_impact"][0], 0.005)
+        self.assertEqual(plain_accrued["required_yaml_setup"][0], "None")
         self.assertEqual(configured_accrued.height, 1)
         self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
         self.assertEqual(configured_accrued["required_yaml_setup"][0], "None")
@@ -858,8 +857,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 comparison_path=plain_path,
             )
             configured_causes = _workbook_underlying_causes_table(
-                compare_snapshots(configured_path),
-                comparison_path=configured_path,
+                compare_snapshots(configured_path)
             )
 
         plain_quantity = plain_causes.filter(
@@ -872,21 +870,20 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self.assertEqual(plain_quantity.height, 1)
-        self.assertIn(
-            "position_impact_methods.quantity.method",
-            plain_quantity["required_yaml_setup"][0],
-        )
-        self.assertEqual(plain_quantity["impact_status"][0], "Missing impact method")
-        self.assertEqual(configured_quantity.height, 1)
-        self.assertEqual(configured_quantity["estimated_impact"][0], None)
-        self.assertEqual(configured_quantity["impact_status"][0], "Review only")
         self.assertEqual(
-            configured_quantity["required_yaml_setup"][0],
-            "None; configured as evidence-only in comparison YAML.",
+            plain_quantity["required_yaml_setup"][0],
+            "None; related performance input row is selected.",
+        )
+        self.assertEqual(plain_quantity["impact_status"][0], "Review only")
+        self.assertEqual(configured_quantity.height, 1)
+        self.assertIsNone(configured_quantity["estimated_impact"][0])
+        self.assertEqual(
+            configured_quantity["next_action"][0],
+            "Review this input difference; it is not included in explained difference.",
         )
 
     def test_price_impact_method_explains_price_row(self) -> None:
-        """Price YAML exposes the modeled weighted price impact."""
+        """Price uses the default weighted price impact."""
         with tempfile.TemporaryDirectory() as temp_dir:
             plain_path = _write_price_estimate_specification(
                 Path(temp_dir) / "plain",
@@ -916,11 +913,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
 
         self.assertEqual(plain_price.height, 1)
-        self.assertIsNone(plain_price["estimated_impact"][0])
-        self.assertIn(
-            "price_impact_methods.price.method",
-            plain_price["required_yaml_setup"][0],
-        )
+        self.assertAlmostEqual(plain_price["estimated_impact"][0], 0.002)
+        self.assertEqual(plain_price["required_yaml_setup"][0], "None")
         self.assertEqual(configured_price.height, 1)
         self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
         self.assertEqual(configured_price["required_yaml_setup"][0], "None")
@@ -934,15 +928,26 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         portfolio_changes = _workbook_portfolio_changes_table(findings)
         underlying_causes = _workbook_underlying_causes_table(findings)
-        placeholders = underlying_causes.filter(
-            pl.col("dataset") == "no_underlying_cause_found"
-        )
         portfolio_keys = set(portfolio_changes["review_key"].to_list())
         cause_keys = set(underlying_causes["review_key"].to_list())
+        promoted_fields = {
+            (str(row["dataset"]), str(row["source_column"]))
+            for row in underlying_causes.select(["dataset", "source_column"]).iter_rows(
+                named=True
+            )
+        }
 
         self.assertTrue(portfolio_keys)
         self.assertTrue(portfolio_keys.issubset(cause_keys))
-        self.assertEqual(placeholders.height, 0)
+        self.assertTrue(
+            {
+                ("positions", "market_value"),
+                ("positions", "quantity"),
+                ("transactions", "commission"),
+                ("transactions", "price"),
+                ("transactions", "quantity"),
+            }.issubset(promoted_fields)
+        )
         _assert_workbook_explained_rows_reconcile(
             self,
             portfolio_changes,
@@ -963,6 +968,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 include_workbook=True,
                 top_evidence_limit=2,
                 comparison_path=_MULTI_RESTATEMENT_COMPARISON_PATH,
+                require_complete_yaml_setup=False,
             )
 
             self.assertEqual(
@@ -1090,13 +1096,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 str(underlying_causes_sheet[f"L{row}"].value)
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
-            self.assertTrue(
-                any(
-                    "price_impact_methods.price.method"
-                    in setup
-                    for setup in required_setup
-                )
-            )
+            self.assertTrue(any(setup == "None" for setup in required_setup))
             self.assertEqual(
                 underlying_causes_sheet.cell(
                     row=1,
@@ -1216,7 +1216,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Report bundles write stable CSV headers for baseline empty tables."""
         findings = compare_snapshots(_BASELINE_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(findings, directory)
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["counts"]["findings"], 0)
@@ -1274,7 +1278,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation reports required artifact files that are absent."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(findings, directory)
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
 
             paths["needs_review_summary"].unlink()
             issues = report_bundle_validation_issues(directory)
@@ -1289,6 +1297,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 findings,
                 directory,
                 include_workbook=True,
+                require_complete_yaml_setup=False,
             )
 
             paths["review_workbook"].unlink()
@@ -1306,6 +1315,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 findings,
                 directory,
                 include_workbook=True,
+                require_complete_yaml_setup=False,
             )
             workbook = openpyxl.load_workbook(paths["review_workbook"])
             del workbook["Portfolio Differences"]
@@ -1323,7 +1333,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         """Bundle validation compares manifest row counts to CSV row counts."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
-            paths = write_performance_comparison_report_bundle(findings, directory)
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
             header = paths["top_evidence"].read_text(encoding="utf-8").splitlines()[0]
             paths["top_evidence"].write_text(header + "\n", encoding="utf-8")
 
@@ -1341,7 +1355,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         ):
             with tempfile.TemporaryDirectory() as directory:
                 with self.assertRaisesRegex(PpaError, "simulated validation issue"):
-                    write_performance_comparison_report_bundle(findings, directory)
+                    write_performance_comparison_report_bundle(
+                        findings,
+                        directory,
+                        require_complete_yaml_setup=False,
+                    )
 
 
 def _section(report: str, start: str, end: str) -> str:

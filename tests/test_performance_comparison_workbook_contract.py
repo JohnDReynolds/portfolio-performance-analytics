@@ -69,6 +69,11 @@ def _column_values(worksheet: Any, column: str) -> list[object]:
     ]
 
 
+def _sheet_rows(worksheet: Any) -> list[tuple[object, ...]]:
+    """Return worksheet data rows."""
+    return list(worksheet.iter_rows(min_row=2, values_only=True))
+
+
 class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
     """Validate reviewer-facing workbook presentation invariants."""
 
@@ -76,17 +81,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
         """Generated workbook uses stable, action-oriented sheets and columns."""
         openpyxl: Any = importlib.import_module("openpyxl")
 
-        findings = compare_snapshots(
-            _FULL_SPEC_COMPARISON_PATH,
-            require_causal_attribution=True,
-        )
+        findings = compare_snapshots(_FULL_SPEC_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             paths = write_performance_comparison_report_bundle(
                 findings,
                 Path(directory) / "bundle",
                 include_workbook=True,
                 comparison_path=_FULL_SPEC_COMPARISON_PATH,
-                require_causal_attribution=True,
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
@@ -152,7 +153,20 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     workbook["Portfolio Differences"],
                     "D",
                 )
+                portfolio_rows = _sheet_rows(workbook["Portfolio Differences"])
+                portfolio_codes = {row[0] for row in portfolio_rows}
+                statuses = {row[6] for row in portfolio_rows}
                 self.assertTrue(portfolio_differences)
+                self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
+                self.assertEqual(
+                    statuses,
+                    {"Fully Explained", "Partly Explained", "Unexplained"},
+                )
+                self.assertEqual(len(portfolio_rows), 6)
+                self.assertEqual(
+                    sum(1 for row in portfolio_rows if row[6] == "Fully Explained"),
+                    4,
+                )
                 self.assertTrue(
                     all(
                         isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -162,6 +176,37 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     workbook["Portfolio Differences"]["D2"].number_format,
                     "0.######",
+                )
+                underlying_rows = _sheet_rows(workbook["Underlying Causes"])
+                self.assertFalse(
+                    any(row[3] == "no_underlying_cause_found" for row in underlying_rows)
+                )
+                self.assertTrue(
+                    all(
+                        row[11] in (None, "None")
+                        or "No additive underlying cause" in str(row[11])
+                        or "not included in explained difference" in str(row[11])
+                        or "related performance input row is selected" in str(row[11])
+                        for row in underlying_rows
+                    )
+                )
+                underlying_fields = {(row[3], row[4]) for row in underlying_rows}
+                self.assertTrue(
+                    {
+                        ("positions", "market_value"),
+                        ("positions", "quantity"),
+                        ("transactions", "commission"),
+                        ("transactions", "price"),
+                        ("transactions", "quantity"),
+                    }.issubset(underlying_fields)
+                )
+                context_rows = _sheet_rows(workbook["Context"])
+                context_fields = {(row[3], row[4]) for row in context_rows}
+                self.assertEqual(
+                    {
+                        ("positions", "cost"),
+                    },
+                    context_fields,
                 )
             finally:
                 workbook.close()
@@ -206,6 +251,33 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 review_keys = _column_values(workbook["Security Differences"], "J")
                 self.assertTrue(review_keys)
                 self.assertTrue(any(str(key).endswith("::AAPL") for key in review_keys))
-                self.assertTrue(any(str(key).endswith("::TNOTE2Y") for key in review_keys))
+                self.assertTrue(
+                    any(str(key).endswith("::TNOTE2Y") for key in review_keys)
+                )
+                security_rows = _sheet_rows(workbook["Security Differences"])
+                self.assertEqual(
+                    {row[0] for row in security_rows},
+                    {"ALPHA", "INCOME"},
+                )
+                self.assertEqual(
+                    {row[3] for row in security_rows},
+                    {"AAPL", "TNOTE2Y"},
+                )
+                context_rows = _sheet_rows(workbook["Context"])
+                self.assertEqual(
+                    {(row[3], row[4], row[5]) for row in context_rows},
+                    {
+                        ("positions", "cost", "TNOTE2Y"),
+                    },
+                )
+                underlying_rows = _sheet_rows(workbook["Underlying Causes"])
+                self.assertTrue(
+                    {
+                        ("positions", "market_value", "TNOTE2Y"),
+                        ("positions", "quantity", "TNOTE2Y"),
+                    }.issubset(
+                        {(row[3], row[4], row[5]) for row in underlying_rows}
+                    )
+                )
             finally:
                 workbook.close()

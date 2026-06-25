@@ -66,9 +66,9 @@ January-May 2017.
 - Benchmark source: OEF month-end holdings weights and adjusted constituent
   returns
 - Cash source: BlackRock cash and derivative rows are aggregated into
-  `CASHBAL` under the `Cash` sector.
+  `CASH_USD` under the `Cash` sector.
 - Cash return proxy: `BIL` adjusted monthly returns from yfinance.
-- Usable securities across history: 117, including `CASHBAL`
+- Usable securities across history: 117, including `CASH_USD`
 - Period count: 60
 - Missing performance months: none
 - Benchmark cumulative return: 1.165913
@@ -76,8 +76,8 @@ January-May 2017.
 - Active return: 0.085850
 - Portfolio annualized Sharpe from generator: 1.082316
 - Benchmark annualized Sharpe from generator: 1.041324
-- Average `CASHBAL` weight in generated performance rows: approximately 0.268%
-- Maximum `CASHBAL` weight in generated performance rows: approximately 0.466%
+- Average `CASH_USD` weight in generated performance rows: approximately 0.268%
+- Maximum `CASH_USD` weight in generated performance rows: approximately 0.466%
 
 One requested holdings date in the 5-year window, 2024-03-29, returns no rows
 from BlackRock. The generator substitutes 2024-03-28, which is one day earlier

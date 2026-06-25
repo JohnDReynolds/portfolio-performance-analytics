@@ -25,16 +25,12 @@ def run_performance_comparison_demo(
         title: Report title for generated artifacts and console output.
     """
     specification = PerformanceComparisonSpecification(comparison_path)
-    findings = compare_snapshots(
-        comparison_path,
-        require_causal_attribution=specification.comparison_level == "portfolio",
-    )
+    findings = compare_snapshots(comparison_path)
     written_bundle_paths = write_performance_comparison_report_bundle(
         findings,
         bundle_path,
         title=title,
         include_workbook=True,
-        require_causal_attribution=specification.comparison_level == "portfolio",
         comparison_path=comparison_path,
         comparison_level=specification.comparison_level,
     )

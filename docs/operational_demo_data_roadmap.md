@@ -12,10 +12,10 @@ Axys-demo review.
 The operational demos should eventually include:
 
 - a handful of Mega-Cap Alpha Portfolio equities;
-- `CASHBAL`;
+- `CASH_USD` cash-position rows;
 - a few T-bill and T-note style instruments with accrued interest;
-- 3-6 monthly periods;
-- one or two small portfolios where multi-portfolio behavior is needed;
+- six monthly periods;
+- three small portfolios (`ALPHA`, `BALANCED`, and `INCOME`);
 - controlled restatements for performance-comparison examples.
 
 ## Phase 1: Prototype Generated Source Data
@@ -38,10 +38,12 @@ The generator currently:
 
 - reads `ppar/demos/data/performance/Mega-Cap Alpha Portfolio.csv`;
 - keeps a small set of high-weight equities over recent monthly periods;
-- splits the original `CASHBAL` sleeve into `CASHBAL`, `TBILL13W`, `TNOTE2Y`,
-  and `TNOTE5Y`;
-- creates Axys-style `portperf`, `secperf`, `sec_ref`, positions, prices, cash,
-  and transactions CSVs;
+- splits the analytics cash sleeve into `CASH_USD`, `TBILL13W`, `TNOTE2Y`,
+  and `TNOTE5Y` operational securities;
+- creates the ALPHA, BALANCED, and INCOME portfolio variants from the same
+  security universe;
+- creates Axys-style `portperf`, `secperf`, `sec_ref`, positions, prices, and
+  transactions CSVs;
 - writes `summary.json` for quick inspection.
 
 The fixed-income rows are intentionally synthetic. They are designed to produce
@@ -90,16 +92,20 @@ wrapper around the canonical Mega-Cap portfolio and benchmark CSV files.
 
 ## Phase 4: Performance Comparison Snapshots
 
-Status: generated prototype in progress.
+Status: complete.
 
 Create snapshot A and snapshot B directories from the generated operational
-data. Snapshot B should introduce small, controlled changes such as:
+data. Snapshot B introduces controlled changes that produce:
 
-- one equity price change;
-- one Treasury accrued-interest change;
-- one cash balance change;
-- one transaction amount or commission change;
-- one position quantity or market-value change.
+- mostly fully explained ALPHA, BALANCED, and INCOME portfolio-period
+  differences;
+- one partly explained INCOME period with TNOTE2Y quantity and market value
+  visible as related input differences, and cost shown as context;
+- one unexplained BALANCED period with transaction quantity, price, and
+  commission shown as context;
+- matching security-level examples for AAPL and TNOTE2Y;
+- transaction-rule YAML plus default field-role treatment for performance
+  inputs, input components, reported performance checks, and context fields.
 
 The current generator writes:
 
@@ -108,9 +114,12 @@ The current generator writes:
 - `ppar_performance_comparison_portfolio.yaml`;
 - `ppar_performance_comparison_security.yaml`.
 
-The generated YAML files validate and run through `compare_snapshots` in strict
-causal-attribution mode. They also build portfolio and security report bundles
-under `_demo_output/operational_demo_data_generation/` for manual review.
+The generated YAML files validate and run through `compare_snapshots`. The
+portfolio demo intentionally does not use strict causal-attribution mode because
+it includes one review-only unexplained period. The accepted snapshot files are promoted into
+`ppar/demos/data/axys/axys_full_spec_a/` and
+`ppar/demos/data/axys/axys_full_spec_b/`, where the user-facing portfolio and
+security comparison demos consume them.
 
 The workbook should answer:
 
@@ -121,10 +130,7 @@ differences explain it.
 
 ## Phase 5: Package And Test
 
-Once accepted:
+Status: complete.
 
-- move selected generated files into `ppar/demos/data/axys/`;
-- update demo YAML files;
-- update README/demo docs;
-- add contract tests for the generated operational data;
-- validate the Axys analytics demo and both performance-comparison demos.
+The packaged fixture is covered by generator tests, package-data checks,
+performance-comparison workbook contract tests, and the demo bundle validators.

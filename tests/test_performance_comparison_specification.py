@@ -53,8 +53,11 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
             specification.snapshot_a.path.resolve(),
             (_AXYS_SNAPSHOT_PATH / "axys_a").resolve(),
         )
+        snapshot_b_schema_path = specification.snapshot_b.schema_path
+        if snapshot_b_schema_path is None:
+            raise AssertionError("Expected snapshot B schema path to be resolved.")
         self.assertEqual(
-            specification.snapshot_b.schema_path.resolve(),
+            snapshot_b_schema_path.resolve(),
             _TEST_AXYS_SCHEMA_PATH.resolve(),
         )
 

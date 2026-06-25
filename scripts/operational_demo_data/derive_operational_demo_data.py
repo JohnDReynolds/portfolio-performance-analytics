@@ -25,15 +25,18 @@ _DEFAULT_OUTPUT_DIRECTORY: Final = (
 _AXYS_SCHEMA_PATH: Final = (
     _REPO_ROOT / "ppar" / "demos" / "data" / "axys" / "axys_column_mappings.yaml"
 )
-_PORTFOLIO_CODE: Final = "MEGA_ALPHA_OPS"
-_PORTFOLIO_NAME: Final = "Mega-Cap Alpha Operational Demo"
+_PORTFOLIOS: Final = (
+    ("ALPHA", "Mega-Cap Alpha", 1.00, 0.04),
+    ("BALANCED", "Mega-Cap Balanced", 0.72, 0.16),
+    ("INCOME", "Mega-Cap Income", 0.48, 0.32),
+)
 _BASE_MARKET_VALUE: Final = 1_000_000.0
 _EQUITY_COUNT: Final = 10
 _PERIOD_COUNT: Final = 6
-_CASHBAL_IDENTIFIER: Final = "CASHBAL"
+_CASH_IDENTIFIER: Final = "CASH_USD"
 _CASH_SLEEVE_FLOOR: Final = 0.04
 _FIXED_INCOME_SLEEVE: Final = (
-    ("CASHBAL", "Cash Balance", "Cash", 0.40, 0.00025, 1.0, 0.0),
+    (_CASH_IDENTIFIER, "US Dollar Cash", "Cash", 0.40, 0.00025, 1.0, 0.0),
     ("TBILL13W", "13 Week Treasury Bill", "Treasury Bills", 0.25, 0.0038, 99.35, 0.0),
     ("TNOTE2Y", "2 Year Treasury Note", "Treasury Notes", 0.20, 0.0032, 100.15, 65.0),
     ("TNOTE5Y", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027, 98.80, 95.0),
@@ -103,61 +106,76 @@ def derive_operational_performance(
     ].copy()
     selected_equities = select_equity_identifiers(recent, equity_count)
     rows: list[dict[str, object]] = []
-    for period in periods.itertuples(index=False):
-        period_rows = recent[
-            recent["from_date"].eq(period.from_date)
-            & recent["thru_date"].eq(period.thru_date)
-        ]
-        equity_rows = period_rows[period_rows["identifier"].isin(selected_equities)]
-        if equity_rows.empty:
-            raise ValueError("No selected equity rows found for period.")
-        original_cash_weight = float(
-            period_rows.loc[
-                period_rows["identifier"].eq(_CASHBAL_IDENTIFIER),
-                "weight",
-            ].sum()
-        )
-        sleeve_weight = max(original_cash_weight, cash_sleeve_floor)
-        equity_scale = (1.0 - sleeve_weight) / float(equity_rows["weight"].sum())
-        for _, equity in equity_rows.sort_values("identifier").iterrows():
-            rows.append(
-                {
-                    "from_date": period.from_date,
-                    "thru_date": period.thru_date,
-                    "identifier": equity["identifier"],
-                    "weight": float(equity["weight"]) * equity_scale,
-                    "return": float(equity["return"]),
-                    "name": equity["name"],
-                    "asset_class": "Equity",
-                    "sector": "Equity",
-                    "source": "Mega-Cap Alpha Portfolio",
-                }
+    for portfolio_code, portfolio_name, equity_return_scale, sleeve_floor in _PORTFOLIOS:
+        for period in periods.itertuples(index=False):
+            period_rows = recent[
+                recent["from_date"].eq(period.from_date)
+                & recent["thru_date"].eq(period.thru_date)
+            ]
+            equity_rows = period_rows[period_rows["identifier"].isin(selected_equities)]
+            if equity_rows.empty:
+                raise ValueError("No selected equity rows found for period.")
+            original_cash_weight = float(
+                period_rows.loc[
+                    period_rows["identifier"].eq(_CASH_IDENTIFIER),
+                    "weight",
+                ].sum()
             )
-        for identifier, name, asset_class, share, synthetic_return, _, _ in _FIXED_INCOME_SLEEVE:
-            rows.append(
-                {
-                    "from_date": period.from_date,
-                    "thru_date": period.thru_date,
-                    "identifier": identifier,
-                    "weight": sleeve_weight * share,
-                    "return": synthetic_return,
-                    "name": name,
-                    "asset_class": asset_class,
-                    "sector": "Cash",
-                    "source": "Synthetic cash/fixed-income sleeve",
-                }
-            )
+            sleeve_weight = max(original_cash_weight, cash_sleeve_floor, sleeve_floor)
+            equity_scale = (1.0 - sleeve_weight) / float(equity_rows["weight"].sum())
+            for _, equity in equity_rows.sort_values("identifier").iterrows():
+                rows.append(
+                    {
+                        "portfolio_code": portfolio_code,
+                        "portfolio_name": portfolio_name,
+                        "from_date": period.from_date,
+                        "thru_date": period.thru_date,
+                        "identifier": equity["identifier"],
+                        "weight": float(equity["weight"]) * equity_scale,
+                        "return": float(equity["return"]) * equity_return_scale,
+                        "name": equity["name"],
+                        "asset_class": "Equity",
+                        "sector": "Equity",
+                        "source": "Mega-Cap Alpha Portfolio",
+                    }
+                )
+            for (
+                identifier,
+                name,
+                asset_class,
+                share,
+                synthetic_return,
+                _,
+                _,
+            ) in _FIXED_INCOME_SLEEVE:
+                rows.append(
+                    {
+                        "portfolio_code": portfolio_code,
+                        "portfolio_name": portfolio_name,
+                        "from_date": period.from_date,
+                        "thru_date": period.thru_date,
+                        "identifier": identifier,
+                        "weight": sleeve_weight * share,
+                        "return": synthetic_return,
+                        "name": name,
+                        "asset_class": asset_class,
+                        "sector": "Cash",
+                        "source": "Synthetic cash/fixed-income sleeve",
+                    }
+                )
 
     performance = pd.DataFrame(rows)
     _validate_period_weights(performance)
-    return performance.sort_values(["from_date", "identifier"]).reset_index(drop=True)
+    return performance.sort_values(
+        ["portfolio_code", "from_date", "identifier"],
+    ).reset_index(drop=True)
 
 
 def select_equity_identifiers(source: pd.DataFrame, equity_count: int) -> list[str]:
     """Return high-weight non-cash identifiers from source rows."""
     if equity_count <= 0:
         raise ValueError("equity_count must be positive.")
-    candidates = source[~source["identifier"].eq(_CASHBAL_IDENTIFIER)]
+    candidates = source[~source["identifier"].eq(_CASH_IDENTIFIER)]
     identifiers = (
         candidates.groupby("identifier", as_index=False)["weight"]
         .mean()
@@ -177,7 +195,6 @@ def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
     portperf = _portfolio_performance(performance)
     positions = _positions(performance)
     prices = _prices(performance)
-    cash = _cash(performance)
     transactions = _transactions(performance)
     return {
         "sec_ref": sec_ref,
@@ -185,7 +202,6 @@ def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
         "portperf": portperf,
         "positions_holdings": positions,
         "prices": prices,
-        "cash": cash,
         "transactions": transactions,
     }
 
@@ -198,20 +214,134 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
 
     Returns:
         Snapshot B frames with small deterministic restatements across prices,
-        positions, cash, transactions, and performance rows.
+        positions, transactions, and performance rows.
     """
     snapshot = {name: frame.copy(deep=True) for name, frame in axys.items()}
-    latest_date = snapshot["portperf"]["THRU_DATE"].max()
+    dates = sorted(snapshot["portperf"]["THRU_DATE"].unique())
+    if len(dates) < 3:
+        raise ValueError("Restatement scenarios require at least three periods.")
+    early_date = dates[-3]
+    middle_date = dates[-2]
+    latest_date = dates[-1]
 
-    _adjust_latest_price(snapshot["prices"], latest_date, "AAPL", 1.02)
-    _adjust_latest_position(snapshot["positions_holdings"], "NVDA", quantity_multiplier=1.01)
-    _adjust_latest_cost(snapshot["positions_holdings"], "NVDA", cost_delta=100.0)
-    _adjust_latest_accrual(snapshot["positions_holdings"], "TNOTE2Y", accrued_delta=25.0)
-    _adjust_latest_cash(snapshot["cash"], latest_date, cash_delta=1_500.0)
-    _adjust_transaction_amount(snapshot["transactions"], "DIV", amount_delta=125.0)
-    _adjust_security_performance(snapshot["secperf"], latest_date, "AAPL", return_delta=0.0020)
-    _adjust_security_performance(snapshot["secperf"], latest_date, "TNOTE2Y", return_delta=0.0005)
-    _recalculate_portfolio_performance_from_security(snapshot["portperf"], snapshot["secperf"])
+    # Fully explained: price movement explains the reported ALPHA period change.
+    _adjust_price(snapshot["prices"], latest_date, "AAPL", 1.01)
+    alpha_aapl_weight = _security_weight(snapshot["secperf"], "ALPHA", latest_date, "AAPL")
+    _adjust_security_performance(
+        snapshot["secperf"],
+        "ALPHA",
+        latest_date,
+        "AAPL",
+        return_delta=0.01,
+    )
+
+    # Fully explained: transaction amount explains the BALANCED period change.
+    _adjust_transaction_amount(
+        snapshot["transactions"],
+        "BALANCED",
+        middle_date,
+        "DIV",
+        amount_delta=225.0,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "BALANCED",
+        middle_date,
+        return_delta=0.000225,
+    )
+
+    # Fully explained: another transaction amount explains an ALPHA period
+    # change, giving reviewers a second clean period with the same source data
+    # shape shared by the security demo.
+    _adjust_transaction_amount(
+        snapshot["transactions"],
+        "ALPHA",
+        early_date,
+        "DIV",
+        amount_delta=180.0,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "ALPHA",
+        early_date,
+        return_delta=0.00018,
+    )
+
+    # Fully explained: cash-as-position market value explains a separate
+    # INCOME period change.
+    _adjust_cash_position(
+        snapshot["positions_holdings"],
+        "INCOME",
+        middle_date,
+        cash_delta=300.0,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "INCOME",
+        middle_date,
+        return_delta=300.0 / _BASE_MARKET_VALUE,
+    )
+
+    # Fully explained: accrued interest explains the INCOME period change.
+    _adjust_position(
+        snapshot["positions_holdings"],
+        "INCOME",
+        "TNOTE2Y",
+        quantity_multiplier=1.002,
+        cost_delta=200.0,
+        accrued_delta=50.0,
+    )
+    income_aapl_weight = _security_weight(snapshot["secperf"], "INCOME", latest_date, "AAPL")
+    _adjust_security_performance(
+        snapshot["secperf"],
+        "INCOME",
+        latest_date,
+        "TNOTE2Y",
+        return_delta=0.0004,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "INCOME",
+        latest_date,
+        return_delta=round(
+            income_aapl_weight * 0.01 + 50.0 / _BASE_MARKET_VALUE + 0.0004,
+            10,
+        ),
+    )
+
+    # Unexplained numerically, but reviewable: transaction quantity, price, and
+    # commission changed without a supported additive transaction amount change.
+    _adjust_transaction_fields(
+        snapshot["transactions"],
+        "BALANCED",
+        early_date,
+        "BUY",
+        quantity_delta=2.0,
+        price_delta=0.25,
+        commission_delta=25.0,
+    )
+    _apply_reported_portfolio_return_delta(
+        snapshot["portperf"],
+        "BALANCED",
+        early_date,
+        return_delta=0.0001,
+    )
+
+    _adjust_cash_position(
+        snapshot["positions_holdings"],
+        "ALPHA",
+        latest_date,
+        cash_delta=1_500.0,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "ALPHA",
+        latest_date,
+        return_delta=round(
+            alpha_aapl_weight * 0.01 + 1_500.0 / _BASE_MARKET_VALUE,
+            10,
+        ),
+    )
     return snapshot
 
 
@@ -258,7 +388,7 @@ def summarize_outputs(
     )
     sleeve = performance[performance["sector"].eq("Cash")]
     return {
-        "portfolio_code": _PORTFOLIO_CODE,
+        "portfolio_codes": sorted(performance["portfolio_code"].unique()),
         "period_count": int(performance[["from_date", "thru_date"]].drop_duplicates().shape[0]),
         "security_count": int(performance["identifier"].nunique()),
         "equity_count": int(
@@ -310,8 +440,8 @@ def _security_performance(performance: pd.DataFrame) -> pd.DataFrame:
                     begin_mv * (sec_return - _income_component(row["identifier"], sec_return)),
                     2,
                 ),
-                "PORTFOLIO_CODE": _PORTFOLIO_CODE,
-                "PORTFOLIO_NAME": _PORTFOLIO_NAME,
+                "PORTFOLIO_CODE": row["portfolio_code"],
+                "PORTFOLIO_NAME": row["portfolio_name"],
                 "SECURITY_ID": row["identifier"],
                 "SECURITY_NAME": row["name"],
                 "ASSET_CLASS": row["asset_class"],
@@ -339,8 +469,11 @@ def _security_performance(performance: pd.DataFrame) -> pd.DataFrame:
 
 def _portfolio_performance(performance: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    for period, group in performance.groupby(["from_date", "thru_date"], sort=True):
-        from_date, thru_date = period
+    for period, group in performance.groupby(
+        ["portfolio_code", "portfolio_name", "from_date", "thru_date"],
+        sort=True,
+    ):
+        portfolio_code, portfolio_name, from_date, thru_date = period
         contribution = group["weight"] * group["return"]
         portfolio_return = float(contribution.sum())
         income = sum(
@@ -356,8 +489,8 @@ def _portfolio_performance(performance: pd.DataFrame) -> pd.DataFrame:
                 "FLOW": 0.0,
                 "INCOME": round(income, 2),
                 "GAIN_LOSS": round(_BASE_MARKET_VALUE * portfolio_return - income, 2),
-                "PORTFOLIO_CODE": _PORTFOLIO_CODE,
-                "PORTFOLIO_NAME": _PORTFOLIO_NAME,
+                "PORTFOLIO_CODE": portfolio_code,
+                "PORTFOLIO_NAME": portfolio_name,
                 "PERIOD_ID": "",
                 "CALENDAR_MONTH": "",
                 "FROM_DATE": from_date.date(),
@@ -379,11 +512,13 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
     rows = []
     latest = performance[performance["thru_date"].eq(performance["thru_date"].max())]
     for row in latest.itertuples(index=False):
+        if row.identifier == _CASH_IDENTIFIER:
+            continue
         price = _price_for(row.identifier)
         market_value = _BASE_MARKET_VALUE * float(row.weight)
         rows.append(
             {
-                "PORT": _PORTFOLIO_CODE,
+                "PORT": row.portfolio_code,
                 "SEC": row.identifier,
                 "POSITION_DATE": row.thru_date.date(),
                 "QTY": round(market_value / price, 4),
@@ -392,12 +527,29 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
                 "ACCRUED": round(_accrued_for(row.identifier, market_value), 2),
             }
         )
+    cash_rows = performance[performance["identifier"].eq(_CASH_IDENTIFIER)]
+    for row in cash_rows.itertuples(index=False):
+        market_value = _BASE_MARKET_VALUE * float(row.weight)
+        rows.append(
+            {
+                "PORT": row.portfolio_code,
+                "SEC": _CASH_IDENTIFIER,
+                "POSITION_DATE": row.thru_date.date(),
+                "QTY": round(market_value, 4),
+                "MKT_VAL": round(market_value, 2),
+                "COST": round(market_value, 2),
+                "ACCRUED": 0.0,
+            }
+        )
     return pd.DataFrame(rows)
 
 
 def _prices(performance: pd.DataFrame) -> pd.DataFrame:
     dates = performance["thru_date"].drop_duplicates().sort_values()
-    identifiers = sorted(performance["identifier"].unique())
+    identifiers = sorted(
+        _position_security_id(identifier)
+        for identifier in performance["identifier"].unique()
+    )
     rows = []
     for date_index, date in enumerate(dates):
         for identifier in identifiers:
@@ -411,45 +563,48 @@ def _prices(performance: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _cash(performance: pd.DataFrame) -> pd.DataFrame:
-    cash_rows = performance[performance["identifier"].eq(_CASHBAL_IDENTIFIER)]
-    return pd.DataFrame(
-        {
-            "PORT": _PORTFOLIO_CODE,
-            "CASH_DATE": cash_rows["thru_date"].dt.date,
-            "CURRENCY": "USD",
-            "CASH_BALANCE": (cash_rows["weight"] * _BASE_MARKET_VALUE).round(2),
-            "MARKET_VALUE": (cash_rows["weight"] * _BASE_MARKET_VALUE).round(2),
-        }
-    )
-
-
 def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
-    first_period = performance["from_date"].min()
-    equities = (
-        performance[performance["asset_class"].eq("Equity")]
-        .drop_duplicates("identifier")
-        .sort_values("identifier")
-        .head(2)
-    )
     rows = []
-    for index, row in enumerate(equities.itertuples(index=False), start=1):
-        amount = 10_000.0 * index
-        rows.append(
-            {
-                "TRANSACTION_ID": f"OPS{index:03d}",
-                "PORT": _PORTFOLIO_CODE,
-                "TRANSACTION_DATE": first_period.date(),
-                "SETTLE_DATE": (first_period + pd.Timedelta(days=1)).date(),
-                "SEC": row.identifier,
-                "TRAN": "BUY" if index == 1 else "DIV",
-                "QTY": round(amount / _price_for(row.identifier), 4) if index == 1 else 0.0,
-                "PRICE": _price_for(row.identifier) if index == 1 else 0.0,
-                "AMOUNT": -amount if index == 1 else round(amount * 0.0125, 2),
-                "COMMISSION": 4.95 if index == 1 else 0.0,
-                "BROKER": "DEMO",
-            }
+    for portfolio_code, group in performance.groupby("portfolio_code", sort=True):
+        equities = (
+            group[group["asset_class"].eq("Equity")]
+            .drop_duplicates("identifier")
+            .sort_values("identifier")
+            .head(2)
         )
+        periods = (
+            group[["from_date", "thru_date"]]
+            .drop_duplicates()
+            .sort_values("from_date")
+            .itertuples(index=False)
+        )
+        for period_index, period in enumerate(periods, start=1):
+            for index, row in enumerate(equities.itertuples(index=False), start=1):
+                amount = 4_000.0 * index
+                transaction_code = "BUY" if index == 1 else "DIV"
+                rows.append(
+                    {
+                        "TRANSACTION_ID": f"{portfolio_code}{period_index:02d}{index:02d}",
+                        "PORT": portfolio_code,
+                        "TRANSACTION_DATE": (
+                            period.from_date + pd.Timedelta(days=5)
+                        ).date(),
+                        "SETTLE_DATE": (
+                            period.from_date + pd.Timedelta(days=6)
+                        ).date(),
+                        "SEC": row.identifier,
+                        "TRAN": transaction_code,
+                        "QTY": (
+                            round(amount / _price_for(row.identifier), 4)
+                            if transaction_code == "BUY"
+                            else 0.0
+                        ),
+                        "PRICE": _price_for(row.identifier) if transaction_code == "BUY" else 0.0,
+                        "AMOUNT": -amount if transaction_code == "BUY" else round(amount * 0.0125, 2),
+                        "COMMISSION": 4.95 if transaction_code == "BUY" else 0.0,
+                        "BROKER": "DEMO",
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -464,74 +619,99 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _validate_period_weights(performance: pd.DataFrame) -> None:
-    errors = performance.groupby(["from_date", "thru_date"])["weight"].sum().sub(1.0).abs()
+    errors = (
+        performance.groupby(["portfolio_code", "from_date", "thru_date"])["weight"]
+        .sum()
+        .sub(1.0)
+        .abs()
+    )
     max_error = float(errors.max())
     if max_error > 1e-12:
         raise ValueError(f"Generated period weights do not sum to 1.0: {max_error}")
 
 
-def _adjust_latest_price(
+def _adjust_price(
     prices: pd.DataFrame,
-    latest_date: object,
+    target_date: object,
     identifier: str,
     multiplier: float,
 ) -> None:
-    """Apply one latest-period price restatement in place."""
-    mask = prices["PRICE_DATE"].astype(str).eq(str(latest_date)) & prices["SEC"].eq(identifier)
+    """Apply one price restatement in place."""
+    mask = prices["PRICE_DATE"].astype(str).eq(str(target_date)) & prices["SEC"].eq(identifier)
+    if not bool(mask.any()):
+        raise ValueError(f"Could not find price row for {identifier} on {target_date}.")
     prices.loc[mask, "PRICE"] = (prices.loc[mask, "PRICE"] * multiplier).round(4)
 
 
-def _adjust_latest_position(
+def _adjust_position(
     positions: pd.DataFrame,
+    portfolio_code: str,
     identifier: str,
     *,
-    quantity_multiplier: float,
+    quantity_multiplier: float | None = None,
+    cost_delta: float = 0.0,
+    accrued_delta: float = 0.0,
 ) -> None:
-    """Apply one position quantity and market-value restatement in place."""
-    mask = positions["SEC"].eq(identifier)
-    positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] * quantity_multiplier).round(4)
-    positions.loc[mask, "MKT_VAL"] = (
-        positions.loc[mask, "MKT_VAL"] * quantity_multiplier
-    ).round(2)
+    """Apply one position restatement in place."""
+    mask = positions["PORT"].eq(portfolio_code) & positions["SEC"].eq(identifier)
+    if not bool(mask.any()):
+        raise ValueError(f"Could not find position row for {portfolio_code} {identifier}.")
+    if quantity_multiplier is not None:
+        positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] * quantity_multiplier).round(4)
+        positions.loc[mask, "MKT_VAL"] = (
+            positions.loc[mask, "MKT_VAL"] * quantity_multiplier
+        ).round(2)
+    if cost_delta:
+        positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cost_delta).round(2)
+    if accrued_delta:
+        positions.loc[mask, "ACCRUED"] = (
+            positions.loc[mask, "ACCRUED"] + accrued_delta
+        ).round(2)
 
 
-def _adjust_latest_accrual(
+def _adjust_cash_position(
     positions: pd.DataFrame,
-    identifier: str,
+    portfolio_code: str,
+    target_date: object,
     *,
-    accrued_delta: float,
+    cash_delta: float,
 ) -> None:
-    """Apply one fixed-income accrued-interest restatement in place."""
-    mask = positions["SEC"].eq(identifier)
-    positions.loc[mask, "ACCRUED"] = (positions.loc[mask, "ACCRUED"] + accrued_delta).round(2)
-
-
-def _adjust_latest_cost(
-    positions: pd.DataFrame,
-    identifier: str,
-    *,
-    cost_delta: float,
-) -> None:
-    """Apply one evidence-only position cost restatement in place."""
-    mask = positions["SEC"].eq(identifier)
-    positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cost_delta).round(2)
-
-
-def _adjust_latest_cash(cash: pd.DataFrame, latest_date: object, *, cash_delta: float) -> None:
-    """Apply one latest-period cash balance restatement in place."""
-    mask = cash["CASH_DATE"].astype(str).eq(str(latest_date))
-    for column in ("CASH_BALANCE", "MARKET_VALUE"):
-        cash.loc[mask, column] = (cash.loc[mask, column] + cash_delta).round(2)
+    """Apply one cash-position market value restatement in place."""
+    mask = (
+        positions["PORT"].eq(portfolio_code)
+        & positions["SEC"].eq(_CASH_IDENTIFIER)
+        & positions["POSITION_DATE"].astype(str).eq(str(target_date))
+    )
+    if not bool(mask.any()):
+        raise ValueError(
+            f"Could not find cash position for {portfolio_code} on {target_date}."
+        )
+    positions.loc[mask, "MKT_VAL"] = (positions.loc[mask, "MKT_VAL"] + cash_delta).round(2)
+    positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] + cash_delta).round(4)
+    positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cash_delta).round(2)
 
 
 def _adjust_transaction_amount(
     transactions: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
     transaction_code: str,
     *,
     amount_delta: float,
 ) -> None:
     """Apply one transaction amount restatement in place."""
-    mask = transactions["TRAN"].eq(transaction_code)
+    transaction_dates = pd.to_datetime(transactions["TRANSACTION_DATE"])
+    target = pd.Timestamp(target_date)
+    mask = (
+        transactions["PORT"].eq(portfolio_code)
+        & transactions["TRAN"].eq(transaction_code)
+        & transaction_dates.dt.to_period("M").eq(target.to_period("M"))
+    )
+    if not bool(mask.any()):
+        raise ValueError(
+            f"Could not find {transaction_code} transaction for {portfolio_code} "
+            f"in {target:%Y-%m}."
+        )
     first_index = transactions.index[mask][0]
     transactions.loc[first_index, "AMOUNT"] = round(
         float(transactions.loc[first_index, "AMOUNT"]) + amount_delta,
@@ -539,20 +719,62 @@ def _adjust_transaction_amount(
     )
 
 
+def _adjust_transaction_fields(
+    transactions: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
+    transaction_code: str,
+    *,
+    quantity_delta: float = 0.0,
+    price_delta: float = 0.0,
+    commission_delta: float = 0.0,
+) -> None:
+    """Apply review-context transaction field restatements in place."""
+    transaction_dates = pd.to_datetime(transactions["TRANSACTION_DATE"])
+    target = pd.Timestamp(target_date)
+    mask = (
+        transactions["PORT"].eq(portfolio_code)
+        & transactions["TRAN"].eq(transaction_code)
+        & transaction_dates.dt.to_period("M").eq(target.to_period("M"))
+    )
+    if not bool(mask.any()):
+        raise ValueError(
+            f"Could not find {transaction_code} transaction for {portfolio_code} "
+            f"in {target:%Y-%m}."
+        )
+    first_index = transactions.index[mask][0]
+    transactions.loc[first_index, "QTY"] = round(
+        float(transactions.loc[first_index, "QTY"]) + quantity_delta,
+        4,
+    )
+    transactions.loc[first_index, "PRICE"] = round(
+        float(transactions.loc[first_index, "PRICE"]) + price_delta,
+        4,
+    )
+    transactions.loc[first_index, "COMMISSION"] = round(
+        float(transactions.loc[first_index, "COMMISSION"]) + commission_delta,
+        2,
+    )
+
+
 def _adjust_security_performance(
     security_performance: pd.DataFrame,
-    latest_date: object,
+    portfolio_code: str,
+    target_date: object,
     identifier: str,
     *,
     return_delta: float,
 ) -> None:
     """Apply one security-performance restatement in place."""
     mask = (
-        security_performance["THRU_DATE"].astype(str).eq(str(latest_date))
+        security_performance["PORTFOLIO_CODE"].eq(portfolio_code)
+        & security_performance["THRU_DATE"].astype(str).eq(str(target_date))
         & security_performance["SECURITY_ID"].eq(identifier)
     )
     if not bool(mask.any()):
-        raise ValueError(f"Could not find latest security row for {identifier}.")
+        raise ValueError(
+            f"Could not find security row for {portfolio_code} {identifier} on {target_date}."
+        )
     begin_mv = security_performance.loc[mask, "BEGIN_MV"].astype(float)
     security_performance.loc[mask, "SEC_RETURN"] = (
         security_performance.loc[mask, "SEC_RETURN"].astype(float) + return_delta
@@ -570,33 +792,73 @@ def _adjust_security_performance(
     ).round(2)
 
 
-def _recalculate_portfolio_performance_from_security(
-    portfolio_performance: pd.DataFrame,
+def _security_weight(
     security_performance: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
+    identifier: str,
+) -> float:
+    """Return the beginning weight for one security-performance row."""
+    mask = (
+        security_performance["PORTFOLIO_CODE"].eq(portfolio_code)
+        & security_performance["THRU_DATE"].astype(str).eq(str(target_date))
+        & security_performance["SECURITY_ID"].eq(identifier)
+    )
+    if not bool(mask.any()):
+        raise ValueError(
+            f"Could not find security weight for {portfolio_code} {identifier} on {target_date}."
+        )
+    return float(security_performance.loc[mask, "BEGIN_WEIGHT"].iloc[0])
+
+
+def _apply_portfolio_return_delta(
+    portfolio_performance: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
+    *,
+    return_delta: float,
 ) -> None:
-    """Recalculate portfolio rows from security rows in place."""
-    grouped = security_performance.groupby(["FROM_DATE", "THRU_DATE"], sort=True)
-    for (from_date, thru_date), group in grouped:
-        mask = (
-            portfolio_performance["FROM_DATE"].astype(str).eq(str(from_date))
-            & portfolio_performance["THRU_DATE"].astype(str).eq(str(thru_date))
-        )
-        if not bool(mask.any()):
-            continue
-        income = float(group["INCOME"].astype(float).sum())
-        gain_loss = float(group["GAIN_LOSS"].astype(float).sum())
-        portfolio_return = float(group["CONTRIBUTION"].astype(float).sum())
-        current_return = float(portfolio_performance.loc[mask, "PORT_RETURN"].iloc[0])
-        if abs(portfolio_return - current_return) < 1e-10:
-            continue
-        portfolio_performance.loc[mask, "INCOME"] = round(income, 2)
-        portfolio_performance.loc[mask, "GAIN_LOSS"] = round(gain_loss, 2)
-        portfolio_performance.loc[mask, "END_MV"] = round(
-            _BASE_MARKET_VALUE * (1.0 + portfolio_return),
-            2,
-        )
-        portfolio_performance.loc[mask, "PORT_RETURN"] = round(portfolio_return, 10)
-        portfolio_performance.loc[mask, "SEC_SUM_WT_X_RET"] = round(portfolio_return, 10)
+    """Apply a reported portfolio return restatement in place."""
+    mask = (
+        portfolio_performance["PORTFOLIO_CODE"].eq(portfolio_code)
+        & portfolio_performance["THRU_DATE"].astype(str).eq(str(target_date))
+    )
+    if not bool(mask.any()):
+        raise ValueError(f"Could not find portfolio row for {portfolio_code} on {target_date}.")
+    portfolio_performance.loc[mask, "PORT_RETURN"] = (
+        portfolio_performance.loc[mask, "PORT_RETURN"].astype(float) + return_delta
+    ).round(10)
+    portfolio_performance.loc[mask, "SEC_SUM_WT_X_RET"] = (
+        portfolio_performance.loc[mask, "SEC_SUM_WT_X_RET"].astype(float) + return_delta
+    ).round(10)
+    portfolio_performance.loc[mask, "END_MV"] = (
+        _BASE_MARKET_VALUE
+        * (1.0 + portfolio_performance.loc[mask, "PORT_RETURN"].astype(float))
+    ).round(2)
+    portfolio_performance.loc[mask, "GAIN_LOSS"] = (
+        portfolio_performance.loc[mask, "END_MV"].astype(float)
+        - _BASE_MARKET_VALUE
+        - portfolio_performance.loc[mask, "INCOME"].astype(float)
+    ).round(2)
+
+
+def _apply_reported_portfolio_return_delta(
+    portfolio_performance: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
+    *,
+    return_delta: float,
+) -> None:
+    """Apply a reported return restatement without changing additive source fields."""
+    mask = (
+        portfolio_performance["PORTFOLIO_CODE"].eq(portfolio_code)
+        & portfolio_performance["THRU_DATE"].astype(str).eq(str(target_date))
+    )
+    if not bool(mask.any()):
+        raise ValueError(f"Could not find portfolio row for {portfolio_code} on {target_date}.")
+    portfolio_performance.loc[mask, "PORT_RETURN"] = (
+        portfolio_performance.loc[mask, "PORT_RETURN"].astype(float) + return_delta
+    ).round(10)
 
 
 def _comparison_yaml(level: str | None) -> str:
@@ -625,7 +887,6 @@ files:
   positions: positions_holdings.csv
   prices: prices.csv
   transactions: transactions.csv
-  cash: cash.csv
 
 contribution_impact_methods:
   portfolio_source_field:
@@ -641,14 +902,8 @@ contribution_impact_methods:
     weight_source: snapshot_a_weight
 
 position_impact_methods:
-  market_value:
-    method: market_value_delta_over_return_denominator
-    denominator_source: begin_market_value
   accrued:
     method: accrued_delta_over_return_denominator
-    denominator_source: begin_market_value
-  quantity:
-    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
     denominator_source: begin_market_value
   cost:
     method: evidence_only
@@ -657,14 +912,6 @@ price_impact_methods:
   price:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
-
-cash_impact_methods:
-  cash_balance:
-    method: cash_delta_over_return_denominator
-    denominator_source: begin_market_value
-  market_value:
-    method: cash_delta_over_return_denominator
-    denominator_source: begin_market_value
 
 transaction_rules:
   BUY:
@@ -688,6 +935,13 @@ transaction_impact_methods:
     method: evidence_only
   commission:
     method: evidence_only
+
+evidence_only_impact_methods:
+  positions:
+    method: evidence_only
+    source_fields:
+      - quantity
+      - market_value
 
 tolerances:
   return: 0.000001
@@ -716,10 +970,19 @@ def _sector_code(sector: str) -> str:
 
 
 def _price_for(identifier: str) -> float:
+    if identifier == _CASH_IDENTIFIER:
+        return 1.0
     for sleeve_identifier, _, _, _, _, price, _ in _FIXED_INCOME_SLEEVE:
         if identifier == sleeve_identifier:
             return price
     return 100.0 + (sum(ord(char) for char in identifier) % 75)
+
+
+def _position_security_id(identifier: str) -> str:
+    """Return the security identifier used by holdings-style position exports."""
+    if identifier == _CASH_IDENTIFIER:
+        return _CASH_IDENTIFIER
+    return identifier
 
 
 def _accrued_for(identifier: str, market_value: float) -> float:
@@ -730,7 +993,7 @@ def _accrued_for(identifier: str, market_value: float) -> float:
 
 
 def _income_component(identifier: str, security_return: float) -> float:
-    if identifier in {"TBILL13W", "TNOTE2Y", "TNOTE5Y", _CASHBAL_IDENTIFIER}:
+    if identifier in {"TBILL13W", "TNOTE2Y", "TNOTE5Y", _CASH_IDENTIFIER}:
         return min(security_return, max(security_return, 0.0))
     return 0.0
 

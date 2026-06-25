@@ -17,7 +17,7 @@ The user-facing analytics demo uses packaged CSV files under `ppar/demos/data/`:
 The current files are generated from historical iShares S&P 100 ETF holdings as
 a public proxy for a U.S. mega-cap benchmark. The user-facing name is
 `Mega-Cap`; `OEF` is only source provenance. Cash and derivative rows are
-aggregated into `CASHBAL`, mapped to the `Cash` sector, and use BIL adjusted
+aggregated into `CASH_USD`, mapped to the `Cash` sector, and use BIL adjusted
 monthly returns as a cash-return proxy.
 
 The root README images and story are generated from these packaged files, not

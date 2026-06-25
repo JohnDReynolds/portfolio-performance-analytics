@@ -323,6 +323,7 @@ def write_performance_comparison_report_bundle(
     title: str = "Performance Comparison Report",
     top_evidence_limit: int = 10,
     include_workbook: bool = False,
+    require_complete_yaml_setup: bool = True,
     require_causal_attribution: bool = False,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
@@ -337,6 +338,10 @@ def write_performance_comparison_report_bundle(
         top_evidence_limit: Maximum number of top-evidence rows to include per
             portfolio period in ``top_evidence.csv``.
         include_workbook: Whether to include an XLSX review workbook.
+        require_complete_yaml_setup: Whether every changed source-data field
+            that ppar knows how to classify must have explicit additive,
+            evidence-only, or suppression YAML before bundle artifacts are
+            written.
         require_causal_attribution: Whether changed portfolio periods must have
             all YAML setup needed by supported attribution methods before
             writing bundle artifacts. This does not require every performance
@@ -352,11 +357,14 @@ def write_performance_comparison_report_bundle(
     if include_workbook:
         _pc_workbook.ensure_openpyxl_installed()
 
-    bundle_directory = Path(output_directory)
-    bundle_directory.mkdir(parents=True, exist_ok=True)
     active_findings = _active_findings(findings)
+    if require_complete_yaml_setup:
+        _pc_runner.validate_yaml_setup_complete(active_findings)
     if require_causal_attribution:
         _pc_runner.validate_causal_attribution_ready(active_findings)
+
+    bundle_directory = Path(output_directory)
+    bundle_directory.mkdir(parents=True, exist_ok=True)
     tables = _report_bundle_tables(active_findings, top_evidence_limit)
 
     paths: dict[str, Path] = {}

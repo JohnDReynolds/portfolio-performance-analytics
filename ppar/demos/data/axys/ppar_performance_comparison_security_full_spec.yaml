@@ -2,7 +2,8 @@
 # PPAR Security Performance Comparison Configuration
 # =========================
 # This Mega-Cap operational fixture demonstrates security-level performance
-# comparison with the same source-data snapshots used by the portfolio demo.
+# comparison using the default field-role model plus explicit transaction
+# semantics.
 
 comparison:
   name: Axys security full-spec causal attribution demo
@@ -27,46 +28,6 @@ files:
   positions: positions_holdings.csv
   prices: prices.csv
   transactions: transactions.csv
-  cash: cash.csv
-
-contribution_impact_methods:
-  portfolio_source_field:
-    method: source_field_delta_over_begin_market_value
-    denominator_source: begin_market_value
-    source_fields:
-      - income
-      - gain_loss
-  security_contribution:
-    method: vendor_contribution_delta
-  security_return:
-    method: security_return_delta_times_weight
-    weight_source: snapshot_a_weight
-
-position_impact_methods:
-  market_value:
-    method: market_value_delta_over_return_denominator
-    denominator_source: begin_market_value
-  accrued:
-    method: accrued_delta_over_return_denominator
-    denominator_source: begin_market_value
-  quantity:
-    method: quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator
-    denominator_source: begin_market_value
-  cost:
-    method: evidence_only
-
-price_impact_methods:
-  price:
-    method: price_delta_over_snapshot_a_price_times_weight
-    weight_source: snapshot_a_weight
-
-cash_impact_methods:
-  cash_balance:
-    method: cash_delta_over_return_denominator
-    denominator_source: begin_market_value
-  market_value:
-    method: cash_delta_over_return_denominator
-    denominator_source: begin_market_value
 
 transaction_rules:
   BUY:
@@ -77,19 +38,6 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
-
-transaction_impact_methods:
-  external_flow:
-    method: evidence_only
-  performance:
-    method: transaction_amount_delta_over_return_denominator
-    denominator_source: begin_market_value
-  quantity:
-    method: evidence_only
-  price:
-    method: evidence_only
-  commission:
-    method: evidence_only
 
 tolerances:
   return: 0.000001

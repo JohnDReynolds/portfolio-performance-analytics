@@ -68,6 +68,30 @@ Developer/internal helper modules:
 
 - `ppar.performance_comparison.cli.report_bundle`: source-checkout command
   for writing a report bundle from a comparison YAML file.
+
+Current workbook field roles:
+
+- `performance_input`: source fields that directly feed return calculation,
+  such as `positions.market_value`, `positions.accrued`, and
+  `transactions.amount`. These can receive `Performance Difference Explained`
+  values when the required denominator or weight inputs are available.
+- `input_component`: fields that explain or reconcile a performance input, such
+  as position quantity/price, standalone prices, and transaction
+  quantity/price/commission. These may appear on the `Underlying Causes` sheet
+  beside a related performance input or for unresolved periods, often without a
+  separate explained amount.
+- `reported_performance_component`: portfolio/security performance output
+  fields such as return, income, gain/loss, contribution, weight, and market
+  value. These are checks shown on the `Reported Performance Checks` sheet, not
+  underlying causes.
+- `context`: review-only supporting fields such as position cost, FX rates,
+  security reference fields, and unknown fields. These normally remain on the
+  `Context` sheet.
+
+The packaged user-facing performance-comparison demos represent cash as a
+`CASH_USD` row in the positions file rather than as a separate `cash.csv` file.
+The generic comparison engine still supports a normalized `cash` dataset for
+other integrations and test fixtures.
 - `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
   for validating an existing report bundle.
 - `ppar.performance_comparison.cli.validate_config`: source-checkout command
@@ -1600,10 +1624,16 @@ changed portfolio periods with no security-level return difference. The
 `Underlying Causes` sheet lists input rows such as positions, transactions,
 cash, prices, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
-ppar has a defensible input-level explanation. `Required YAML Setup` is `None`
-for rows that are already explainable and otherwise names the YAML fields or
-unsupported impact method blocking attribution. Changed periods without
-input-cause rows get a `no_underlying_cause_found` diagnostic row. The
+ppar has a defensible input-level explanation. User-facing bundle generation
+now requires every changed source-data field that ppar knows how to classify to
+be explicitly configured as additive, evidence-only, or suppressed in YAML
+before any report artifacts are written. Evidence-only input rows normally stay
+in the `Context` sheet, but plausible evidence-only rows for a period or
+security with a meaningful unexplained remainder are promoted into the
+`Underlying Causes` sheet with blank `Performance Difference Explained` values.
+This promotion is a workbook presentation rule, not a new attribution model.
+Changed periods without any visible cause or promoted evidence row get a
+`no_underlying_cause_found` diagnostic row. The
 `Reported Performance Checks` sheet lists portfolio-performance and
 security-performance rows that confirm reporting differences but are not root
 causes. The `Context` sheet lists review-only supporting rows. The `Raw Audit
@@ -1612,12 +1642,15 @@ Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.
 
-Strict supported-attribution setup is available as an opt-in guardrail through
-`require_causal_attribution=True`, `--require-causal-attribution`, or
-`--require-supported-attribution-setup`. In strict mode, bundle generation fails
-before writing report artifacts if any changed portfolio period still has
-missing YAML setup for supported attribution methods. It does not require every
-performance difference to be fully explained.
+YAML setup completeness is the default report-bundle guardrail. The API option
+`require_complete_yaml_setup=True` and the CLI default fail before writing
+artifacts if a changed source field lacks additive, evidence-only, or
+suppression YAML. The CLI flag `--allow-incomplete-yaml` exists only for
+diagnostic bundles and tests. Strict supported-attribution setup remains an
+additional opt-in guardrail through `require_causal_attribution=True`,
+`--require-causal-attribution`, or `--require-supported-attribution-setup`.
+Strict causal attribution does not require every performance difference to be
+fully explained; it only rejects missing setup for supported attribution methods.
 
 The `needs_review_summary.csv` bundle artifact remains a derived period-level
 triage export. It highlights changed portfolio periods with evidence-only
@@ -1673,6 +1706,11 @@ reviewers can see immediately when context evidence needs early attention.
 Row-level `context_evidence.csv` detail carries the same priority labels and
 reasons as the grouped summary so reviewers do not need to infer priority by
 joining artifacts manually.
+In the workbook, plausible evidence-only input rows for unresolved periods are
+shown on the `Underlying Causes` sheet instead of the `Context` sheet so the
+reviewer can see likely explanations and calculated explanations together. Cost
+basis and security-reference changes remain context unless a later model gives
+them a defensible return-impact interpretation.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group

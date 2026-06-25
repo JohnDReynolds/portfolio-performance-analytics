@@ -18,6 +18,8 @@ from ppar.performance_comparison.report import (
     _residual_status_table,
 )
 from ppar.performance_comparison.workbook_tables import (
+    _workbook_context_table,
+    _workbook_derived_checks_table_for_level,
     _workbook_portfolio_changes_table,
     _workbook_underlying_causes_table,
 )
@@ -141,12 +143,6 @@ def _validate_demo_matrix(
     return [
         _check_no_portfolio_differences(baseline_portfolio_changes),
         _check_workbook_column(
-            "Missing price impact method",
-            policy_gap_causes,
-            "required_yaml_setup",
-            "price_impact_methods",
-        ),
-        _check_workbook_column(
             "Missing transaction method",
             policy_gap_causes,
             "required_yaml_setup",
@@ -157,12 +153,6 @@ def _validate_demo_matrix(
             policy_gap_causes,
             "required_yaml_setup",
             "transaction_rules",
-        ),
-        _check_workbook_column(
-            "Multi-portfolio missing specifications",
-            multi_causes,
-            "required_yaml_setup",
-            "position_impact_methods",
         ),
         _check_transaction_rows_visible(restatement_causes),
         _check_transaction_rules_explain_amount(transaction_rules_causes),
@@ -374,13 +364,11 @@ def _check_modified_dietz_cross_check(cross_checks: pl.DataFrame) -> _ScenarioCh
 
 
 def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
-    """Return whether full-spec YAML exercises every strict attribution basis."""
-    name = "Full YAML specifications"
+    """Return whether the full-spec fixture exercises field-role attribution."""
+    name = "Full field-role specifications"
     expected_policy_prefixes = {
-        "portfolio_source_field:source_field_delta_over_begin_market_value",
-        "position_accrued:accrued_delta_over_return_denominator",
         "position_market_value:market_value_delta_over_return_denominator",
-        "position_quantity:quantity_delta_times_snapshot_a_unit_market_value",
+        "position_accrued:accrued_delta_over_return_denominator",
         "price_weighted:price_delta_over_snapshot_a_price_times_weight",
     }
     impact_policies = {
@@ -396,7 +384,10 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         return _ScenarioCheck(
             name,
             False,
-            f"strict fixture is missing impact policy value(s): {', '.join(missing)}",
+            (
+                "full fixture is missing default field-role policy value(s): "
+                + ", ".join(missing)
+            ),
         )
     transaction_policies = {
         str(value)
@@ -409,55 +400,75 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         return _ScenarioCheck(
             name,
             False,
-            "strict fixture is missing transaction performance amount policy",
+            "full fixture is missing transaction performance amount policy",
         )
     causes = _workbook_underlying_causes_table(findings)
-    evidence_only_rows = causes.filter(
-        (pl.col("dataset") == "positions")
-        & (pl.col("source_column") == "cost")
-        & (pl.col("impact_status") == "Review only")
-    )
-    if evidence_only_rows.is_empty():
+    promoted_fields = {
+        (str(row["dataset"]), str(row["source_column"]))
+        for row in causes.select(["dataset", "source_column"]).iter_rows(named=True)
+    }
+    expected_promoted_fields = {
+        ("positions", "market_value"),
+        ("positions", "quantity"),
+        ("transactions", "commission"),
+        ("transactions", "price"),
+        ("transactions", "quantity"),
+    }
+    missing_promoted_fields = sorted(expected_promoted_fields - promoted_fields)
+    if missing_promoted_fields:
         return _ScenarioCheck(
             name,
             False,
-            "strict fixture is missing explicit evidence-only position row",
+            "full-spec fixture is missing promoted evidence-only field(s): "
+            + ", ".join(
+                f"{dataset}.{column}" for dataset, column in missing_promoted_fields
+            ),
+        )
+    context = _workbook_context_table(findings)
+    context_fields = {
+        (str(row["dataset"]), str(row["source_column"]))
+        for row in context.select(["dataset", "source_column"]).iter_rows(named=True)
+    }
+    expected_context_fields = {
+        ("positions", "cost"),
+    }
+    missing_context_fields = sorted(expected_context_fields - context_fields)
+    if missing_context_fields:
+        return _ScenarioCheck(
+            name,
+            False,
+            "full-spec fixture is missing context field(s): "
+            + ", ".join(f"{dataset}.{column}" for dataset, column in missing_context_fields),
         )
     return _ScenarioCheck(
         name,
         True,
-        "strict attribution accepted full YAML and covered all impact bases",
+        "field roles cover additive causes plus intentional context-only examples",
     )
 
 
 def _check_security_full_spec_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
-    """Return whether the security full-spec fixture exercises security impact."""
-    name = "Security full YAML specifications"
-    security_policies = {
-        str(value)
-        for value in findings.filter(pl.col("dataset") == "security_performance")
-        .get_column("impact_policy")
-        .drop_nulls()
-        .to_list()
+    """Return whether the security full-spec fixture exercises security review."""
+    name = "Security full field-role specifications"
+    checks = _workbook_derived_checks_table_for_level(findings, comparison_level="security")
+    check_fields = {
+        (str(row["dataset"]), str(row["source_column"]))
+        for row in checks.select(["dataset", "source_column"]).iter_rows(named=True)
     }
-    has_weighted_return = any(
-        policy.startswith("security_return:security_return_delta_times_weight")
-        for policy in security_policies
-    )
-    has_vendor_contribution = any(
-        policy.startswith("security_contribution:vendor_contribution_delta")
-        for policy in security_policies
-    )
-    if not has_weighted_return or not has_vendor_contribution:
+    expected_check_fields = {
+        ("security_performance", "security_return"),
+        ("security_performance", "contribution"),
+    }
+    if not expected_check_fields.issubset(check_fields):
         return _ScenarioCheck(
             name,
             False,
-            "security fixture is missing security return or contribution policy",
+            "security fixture is missing reported performance check rows",
         )
     return _ScenarioCheck(
         name,
         True,
-        "security attribution covered security-period return and contribution policies",
+        "security review covered reported return and contribution checks",
     )
 
 

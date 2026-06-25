@@ -48,6 +48,7 @@ from ppar.performance_comparison.runner import (
     compare_snapshots,
     summarize_findings,
     validate_causal_attribution_ready,
+    validate_yaml_setup_complete,
 )
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.security_master import SecurityMasterLoader
@@ -101,6 +102,7 @@ __all__ = [
     "security_period_summary",
     "summarize_findings",
     "validate_causal_attribution_ready",
+    "validate_yaml_setup_complete",
     "transaction_activity_summary",
     "transaction_matching_diagnostics",
     "write_performance_comparison_report_bundle",

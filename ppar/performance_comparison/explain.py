@@ -10,6 +10,7 @@ import datetime as dt
 import polars as pl
 
 # Project imports
+from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import _transaction_diagnostics as tx_diagnostics
 from ppar.performance_comparison.findings import (
@@ -827,9 +828,16 @@ def portfolio_period_cause_summary(
 
     buckets: dict[tuple[object, object, object, str], list[dict[str, object]]] = {}
     for row in candidates.iter_rows(named=True):
+        if _field_roles.is_reported_performance_component(
+            row.get(DATASET),
+            row.get(SOURCE_COLUMN),
+        ):
+            continue
         cause_area = _root_cause_area(row)
         key = (row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE], cause_area)
         buckets.setdefault(key, []).append(row)
+    if not buckets:
+        return _empty_portfolio_period_cause_summary()
 
     rows = [
         _portfolio_period_cause_summary_row(key, bucket_rows)
@@ -864,6 +872,11 @@ def security_period_cause_summary(
 
     buckets: dict[tuple[object, object, object, object, str], list[dict[str, object]]] = {}
     for row in candidates.iter_rows(named=True):
+        if _field_roles.is_reported_performance_component(
+            row.get(DATASET),
+            row.get(SOURCE_COLUMN),
+        ):
+            continue
         cause_area = _root_cause_area(row)
         key = (
             row[PORTFOLIO_ID],
@@ -873,6 +886,8 @@ def security_period_cause_summary(
             cause_area,
         )
         buckets.setdefault(key, []).append(row)
+    if not buckets:
+        return _empty_security_period_cause_summary()
 
     rows = [
         _security_period_cause_summary_row(key, bucket_rows)
@@ -1862,7 +1877,7 @@ def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
     snapshot_a_price = row[SNAPSHOT_A_VALUE]
     weight = row[RETURN_WEIGHT]
     return (
-        row[DATASET] == pc_cols.PRICES
+        row[DATASET] in {pc_cols.POSITIONS, pc_cols.PRICES}
         and row[SOURCE_COLUMN] == pc_cols.PRICE
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_PRICE_WEIGHTED
         and isinstance(delta, (int, float))
@@ -2214,13 +2229,34 @@ def _summed_estimated_return_impact(rows: list[dict[str, object]]) -> float | No
 
 
 def _preferred_estimate_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Return estimate rows, preferring vendor contribution over weighted return."""
+    """Return estimate rows selected for additive summary totals.
+
+    Notes:
+        Performance inputs are the accounting fields that directly feed the
+        return calculation. Input components can help explain those inputs, but
+        should not also be summed when a related performance input is already
+        available for the same cause bucket.
+    """
     if any(row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION for row in rows):
         return [
             row
             for row in rows
             if row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION
         ]
+    performance_input_rows = [
+        row
+        for row in rows
+        if _field_roles.is_performance_input(row.get(DATASET), row.get(SOURCE_COLUMN))
+    ]
+    if performance_input_rows:
+        return performance_input_rows
+    holdings_price_rows = [
+        row
+        for row in rows
+        if row.get(DATASET) == pc_cols.POSITIONS and row.get(SOURCE_COLUMN) == pc_cols.PRICE
+    ]
+    if holdings_price_rows:
+        return holdings_price_rows
     return rows
 
 
@@ -2291,15 +2327,15 @@ def _summary_impact_message(
             "Estimated impact is based on currently supported contribution "
             f"candidate methods. Representative codes: {top_codes}."
         )
-    if root_cause_area == ROOT_CAUSE_TRANSACTION_ACTIVITY:
-        return (
-            "Transaction differences are grouped as evidence only. Missing "
-            f"impact inputs: {_transaction_missing_impact_inputs_message(rows)}."
-        )
     if any(_has_evidence_only_impact_policy(row) for row in rows):
         return (
             "Configured as evidence-only in comparison YAML; this cause area "
             f"is review evidence. Representative codes: {top_codes}."
+        )
+    if root_cause_area == ROOT_CAUSE_TRANSACTION_ACTIVITY:
+        return (
+            "Transaction differences are grouped as evidence only. Missing "
+            f"impact inputs: {_transaction_missing_impact_inputs_message(rows)}."
         )
     return (
         "Grouped evidence only; no defensible return-impact estimate is "

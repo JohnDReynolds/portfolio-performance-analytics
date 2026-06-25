@@ -9,12 +9,14 @@ import polars as pl
 from ppar.errors import PpaError
 from ppar.performance_comparison.compare import PerformanceComparison
 import ppar.performance_comparison.explain as _pc_explain
+import ppar.performance_comparison.field_roles as _field_roles
 from ppar.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
     EVIDENCE_ROLE,
     FINDING_CODE,
     FROM_DATE,
+    IMPACT_POLICY,
     MESSAGE,
     PORTFOLIO_ID,
     SECURITY_ID,
@@ -22,9 +24,11 @@ from ppar.performance_comparison.findings import (
     SOURCE_FILE,
     SUPPRESSED,
     THRU_DATE,
+    TRANSACTION_IMPACT_POLICY,
     findings_to_polars,
 )
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+import ppar.performance_comparison.schema as pc_cols
 import ppar.utilities as util
 
 __all__ = [
@@ -32,6 +36,7 @@ __all__ = [
     "compare_snapshots",
     "summarize_findings",
     "validate_causal_attribution_ready",
+    "validate_yaml_setup_complete",
 ]
 
 
@@ -103,6 +108,98 @@ def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
     raise PpaError(
         "Causal attribution setup is incomplete: " + "; ".join(details),
         504,
+    )
+
+
+def validate_yaml_setup_complete(findings: pl.DataFrame) -> None:
+    """Raise if changed source-data fields lack explicit YAML policy.
+
+    Args:
+        findings: Findings table returned by ``compare_snapshots`` or
+            ``findings_to_polars``.
+
+    Raises:
+        PpaError: If a changed source-data field that ppar knows how to classify
+            is not explicitly configured as additive, evidence-only, or
+            suppressed by YAML.
+    """
+    active_findings = findings
+    if SUPPRESSED in active_findings.columns:
+        active_findings = active_findings.filter(~pl.col(SUPPRESSED))
+    if active_findings.is_empty():
+        return
+
+    missing = [
+        row
+        for row in active_findings.iter_rows(named=True)
+        if _finding_requires_yaml_policy(row) and not _finding_has_yaml_policy(row)
+    ]
+    if not missing:
+        return
+
+    details = [_missing_yaml_policy_issue(row) for row in missing]
+    raise PpaError(
+        "YAML setup is incomplete: " + "; ".join(dict.fromkeys(details)),
+        504,
+    )
+
+
+def _finding_requires_yaml_policy(row: dict[str, object]) -> bool:
+    """Return whether a finding must be explicitly classified in YAML."""
+    evidence_role = row.get(EVIDENCE_ROLE)
+    if evidence_role not in {"direct_input", "context"}:
+        return False
+
+    dataset = row.get(DATASET)
+    source_column = row.get(SOURCE_COLUMN)
+    if _field_roles.is_reported_performance_component(dataset, source_column):
+        return False
+    if _field_roles.is_context(dataset, source_column):
+        return False
+    if dataset == pc_cols.TRANSACTIONS:
+        return source_column in {
+            pc_cols.AMOUNT,
+            pc_cols.QUANTITY,
+            pc_cols.PRICE,
+            pc_cols.COMMISSION,
+        }
+    if dataset == pc_cols.POSITIONS:
+        return source_column in {
+            pc_cols.MARKET_VALUE,
+            pc_cols.ACCRUED,
+            pc_cols.QUANTITY,
+            pc_cols.COST,
+        }
+    if dataset == pc_cols.PRICES:
+        return source_column == pc_cols.PRICE
+    if dataset == pc_cols.CASH:
+        return source_column in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}
+    if dataset == pc_cols.FX_RATES:
+        return source_column == pc_cols.FX_RATE
+    if dataset == pc_cols.SECURITY_MASTER:
+        return source_column is not None
+    if dataset == pc_cols.PORTFOLIO_PERFORMANCE:
+        return source_column in {pc_cols.INCOME, pc_cols.GAIN_LOSS}
+    return False
+
+
+def _finding_has_yaml_policy(row: dict[str, object]) -> bool:
+    """Return whether a finding has additive or evidence-only YAML treatment."""
+    return any(
+        isinstance(row.get(column), str) and bool(str(row.get(column)).strip())
+        for column in (IMPACT_POLICY, TRANSACTION_IMPACT_POLICY)
+    )
+
+
+def _missing_yaml_policy_issue(row: dict[str, object]) -> str:
+    """Return one concise missing-YAML issue."""
+    review_key = f"{row.get(PORTFOLIO_ID)}::{row.get(FROM_DATE)}::{row.get(THRU_DATE)}"
+    security_id = row.get(SECURITY_ID)
+    if security_id is not None:
+        review_key = f"{review_key}::{security_id}"
+    return (
+        f"{review_key} {row.get(DATASET)}.{row.get(SOURCE_COLUMN)} needs "
+        "additive, evidence-only, or suppression YAML"
     )
 
 

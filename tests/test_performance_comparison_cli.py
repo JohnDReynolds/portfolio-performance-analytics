@@ -99,6 +99,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     "Script Bundle Report",
                     "--top-evidence-limit",
                     "2",
+                    "--allow-incomplete-yaml",
                 ),
                 check=True,
                 capture_output=True,
@@ -122,8 +123,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
             self.assertEqual(manifest["counts"]["findings"], 17)
-            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 4)
-            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 4)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 5)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 5)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(
                 manifest["artifacts"]["context_evidence"],
@@ -136,6 +137,26 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertNotIn("report", manifest["artifacts"])
 
+    def test_bundle_cli_module_requires_complete_yaml_by_default(self) -> None:
+        """The bundle CLI fails before writing reports from incomplete YAML."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "bundle"
+
+            result = subprocess.run(
+                _module_command(
+                    _BUNDLE_MODULE,
+                    str(_RESTATEMENT_COMPARISON_PATH),
+                    str(output_directory),
+                ),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("YAML setup is incomplete", result.stderr)
+        self.assertFalse(output_directory.exists())
+
     def test_bundle_cli_module_can_require_causal_attribution(self) -> None:
         """The bundle CLI module can fail before writing ambiguous attribution."""
         with tempfile.TemporaryDirectory() as directory:
@@ -146,6 +167,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     _BUNDLE_MODULE,
                     str(_RESTATEMENT_COMPARISON_PATH),
                     str(output_directory),
+                    "--allow-incomplete-yaml",
                     "--require-causal-attribution",
                 ),
                 check=False,
@@ -325,13 +347,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
         self.assertIn("Demo matrix validation passed:", result.stdout)
         self.assertIn("Clean/no issue", result.stdout)
-        self.assertIn("Missing price impact method", result.stdout)
         self.assertIn("Missing transaction method", result.stdout)
         self.assertIn("Missing transaction rules", result.stdout)
-        self.assertIn("Multi-portfolio missing specifications", result.stdout)
         self.assertIn("Single-restatement transaction rows", result.stdout)
         self.assertIn("Transaction rules amount explanation", result.stdout)
         self.assertIn("Context-only evidence", result.stdout)
+        self.assertIn("Full field-role specifications", result.stdout)
+        self.assertIn("Security full field-role specifications", result.stdout)
         self.assertIn("Suppressed finding", result.stdout)
         self.assertIn("Residual withheld", result.stdout)
         self.assertEqual(result.stderr, "")
@@ -343,6 +365,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 _BUNDLE_MODULE,
                 str(_RESTATEMENT_COMPARISON_PATH),
                 str(output_directory),
+                "--allow-incomplete-yaml",
             ),
             check=True,
             capture_output=True,

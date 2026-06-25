@@ -2,6 +2,7 @@
 
 # Python Imports
 from pathlib import Path
+from typing import cast
 import unittest
 
 # Third-Party Imports
@@ -50,13 +51,13 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertEqual(portfolio_months.tolist(), expected_months.tolist())
 
     def test_period_weights_sum_to_one_and_cash_is_present(self) -> None:
-        """Every period includes CASHBAL and sums to a complete portfolio."""
+        """Every period includes CASH_USD and sums to a complete portfolio."""
         for path in (_PORTFOLIO_PATH, _BENCHMARK_PATH):
             performance = _read_performance(path)
             period_weight_sums = performance.groupby(["from_date", "thru_date"])[
                 "weight"
             ].sum()
-            cash_rows = performance[performance["identifier"].eq("CASHBAL")]
+            cash_rows = performance[performance["identifier"].eq("CASH_USD")]
 
             self.assertLess(float((period_weight_sums - 1.0).abs().max()), 1e-12)
             self.assertEqual(len(cash_rows), 60)
@@ -81,10 +82,10 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertTrue(identifiers.issubset(set(securities["identifier"])))
         self.assertTrue(identifiers.issubset(set(mappings["identifier"])))
         self.assertTrue(set(mappings["sector"]).issubset(set(sectors["sector"])))
-        self.assertIn("CASHBAL", set(securities["identifier"]))
+        self.assertIn("CASH_USD", set(securities["identifier"]))
         self.assertIn("Cash", set(sectors["name"]))
         self.assertEqual(
-            mappings.loc[mappings["identifier"].eq("CASHBAL"), "sector"].item(),
+            mappings.loc[mappings["identifier"].eq("CASH_USD"), "sector"].item(),
             "CA",
         )
 
@@ -205,8 +206,10 @@ def _cumulative_return(performance: pd.DataFrame) -> float:
         performance.assign(contribution=performance["weight"] * performance["return"])
         .groupby(["from_date", "thru_date"], sort=True)["contribution"]
         .sum()
+        .astype(float)
     )
-    return float((1.0 + period_returns).prod() - 1.0)
+    cumulative_growth = cast(float, period_returns.add(1.0).prod())
+    return cumulative_growth - 1.0
 
 
 def _risk_value(risk: pd.DataFrame, statistic: str, column: str) -> float:

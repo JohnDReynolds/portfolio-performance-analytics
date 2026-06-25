@@ -37,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
             title=args.title,
             top_evidence_limit=args.top_evidence_limit,
             include_workbook=args.include_workbook,
+            require_complete_yaml_setup=not args.allow_incomplete_yaml,
             require_causal_attribution=args.require_causal_attribution,
             comparison_path=args.comparison_path,
             comparison_level=specification.comparison_level,
@@ -89,6 +90,15 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--include-workbook",
         action="store_true",
         help="Write report.xlsx in addition to report.html and CSV artifacts.",
+    )
+    parser.add_argument(
+        "--allow-incomplete-yaml",
+        action="store_true",
+        help=(
+            "Write a diagnostic bundle even when changed source-data fields are "
+            "not explicitly classified by additive, evidence-only, or suppression "
+            "YAML."
+        ),
     )
     parser.add_argument(
         "--require-causal-attribution",

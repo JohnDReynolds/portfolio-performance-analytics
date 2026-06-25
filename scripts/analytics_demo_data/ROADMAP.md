@@ -150,7 +150,7 @@ Once all three demo families use the generated source universe:
 - Current history length: 5 years, because monthly continuity is
   non-negotiable and the 10-year OEF archive has non-repairable early gaps.
 - Current cash treatment: aggregate BlackRock cash/derivative rows into
-  `CASHBAL`, mapped to the `Cash` sector.
+  `CASH_USD`, mapped to the `Cash` sector.
 - Current cash return proxy: BIL adjusted monthly returns.
 - Current alpha-tilt approach: synthetic hindsight tilt toward stronger
   realized risk-adjusted return names, while preserving a believable

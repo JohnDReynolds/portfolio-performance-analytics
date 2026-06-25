@@ -51,20 +51,21 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         )
 
         period_count = performance[["from_date", "thru_date"]].drop_duplicates().shape[0]
-        weights = performance.groupby(["from_date", "thru_date"])["weight"].sum()
+        weights = performance.groupby(["portfolio_code", "from_date", "thru_date"])["weight"].sum()
 
         self.assertEqual(period_count, 4)
+        self.assertEqual(set(performance["portfolio_code"]), {"ALPHA", "BALANCED", "INCOME"})
         self.assertLess(float((weights - 1.0).abs().max()), 1e-12)
         self.assertEqual(
             set(performance[performance["sector"].eq("Cash")]["identifier"]),
-            {"CASHBAL", "TBILL13W", "TNOTE2Y", "TNOTE5Y"},
+            {"CASH_USD", "TBILL13W", "TNOTE2Y", "TNOTE5Y"},
         )
         self.assertEqual(
             performance[performance["asset_class"].eq("Equity")]["identifier"].nunique(),
             8,
         )
 
-    def test_axys_exports_include_accrual_and_cash_rows(self) -> None:
+    def test_axys_exports_include_accrual_and_cash_position_rows(self) -> None:
         """Generated Axys-style frames contain expected operational examples."""
         performance = self.generator.derive_operational_performance(
             self.source,
@@ -74,10 +75,10 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         axys = self.generator.build_axys_exports(performance)
 
         self.assertIn("positions_holdings", axys)
-        self.assertIn("cash", axys)
+        self.assertNotIn("cash", axys)
         self.assertIn("transactions", axys)
         self.assertGreater(float(axys["positions_holdings"]["ACCRUED"].max()), 0.0)
-        self.assertEqual(set(axys["cash"]["CURRENCY"]), {"USD"})
+        self.assertIn("CASH_USD", set(axys["positions_holdings"]["SEC"]))
         self.assertGreater(len(axys["transactions"]), 0)
         self.assertIn("TNOTE2Y", set(axys["sec_ref"]["SECURITY_ID"]))
 
@@ -106,28 +107,84 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         )
         tnote_accrued_a = _value(
             snapshot_a["positions_holdings"],
-            snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
+            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
             "ACCRUED",
         )
         tnote_accrued_b = _value(
             snapshot_b["positions_holdings"],
-            snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
+            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
             "ACCRUED",
         )
-        nvda_cost_a = _value(
+        tnote_quantity_a = _value(
             snapshot_a["positions_holdings"],
-            snapshot_a["positions_holdings"]["SEC"].eq("NVDA"),
+            snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
+            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            "QTY",
+        )
+        tnote_quantity_b = _value(
+            snapshot_b["positions_holdings"],
+            snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
+            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            "QTY",
+        )
+        tnote_cost_a = _value(
+            snapshot_a["positions_holdings"],
+            snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
+            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
             "COST",
         )
-        nvda_cost_b = _value(
+        tnote_cost_b = _value(
             snapshot_b["positions_holdings"],
-            snapshot_b["positions_holdings"]["SEC"].eq("NVDA"),
+            snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
+            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
             "COST",
+        )
+        cash_market_value_a = _value(
+            snapshot_a["positions_holdings"],
+            snapshot_a["positions_holdings"]["PORT"].eq("ALPHA")
+            & snapshot_a["positions_holdings"]["SEC"].eq("CASH_USD")
+            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
+            "MKT_VAL",
+        )
+        cash_market_value_b = _value(
+            snapshot_b["positions_holdings"],
+            snapshot_b["positions_holdings"]["PORT"].eq("ALPHA")
+            & snapshot_b["positions_holdings"]["SEC"].eq("CASH_USD")
+            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
+            "MKT_VAL",
+        )
+        balanced_buy_a = (
+            snapshot_a["transactions"]["PORT"].eq("BALANCED")
+            & snapshot_a["transactions"]["TRAN"].eq("BUY")
+        )
+        balanced_buy_b = (
+            snapshot_b["transactions"]["PORT"].eq("BALANCED")
+            & snapshot_b["transactions"]["TRAN"].eq("BUY")
         )
 
         self.assertGreater(aapl_price_b, aapl_price_a)
         self.assertGreater(tnote_accrued_b, tnote_accrued_a)
-        self.assertGreater(nvda_cost_b, nvda_cost_a)
+        self.assertGreater(tnote_quantity_b, tnote_quantity_a)
+        self.assertGreater(tnote_cost_b, tnote_cost_a)
+        self.assertGreater(cash_market_value_b, cash_market_value_a)
+        self.assertGreater(
+            float(snapshot_b["transactions"].loc[balanced_buy_b, "QTY"].max()),
+            float(snapshot_a["transactions"].loc[balanced_buy_a, "QTY"].max()),
+        )
+        self.assertGreater(
+            float(snapshot_b["transactions"].loc[balanced_buy_b, "PRICE"].max()),
+            float(snapshot_a["transactions"].loc[balanced_buy_a, "PRICE"].max()),
+        )
+        self.assertGreater(
+            float(snapshot_b["transactions"].loc[balanced_buy_b, "COMMISSION"].max()),
+            float(snapshot_a["transactions"].loc[balanced_buy_a, "COMMISSION"].max()),
+        )
         self.assertGreater(
             snapshot_b["portperf"]["PORT_RETURN"].iloc[-1],
             snapshot_a["portperf"]["PORT_RETURN"].iloc[-1],
@@ -159,6 +216,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             self.assertTrue(Path(paths["security_comparison_yaml"]).exists())
             self.assertEqual(summary["period_count"], 3)
             self.assertEqual(summary["equity_count"], 5)
+            self.assertEqual(summary["portfolio_codes"], ["ALPHA", "BALANCED", "INCOME"])
 
     def test_generated_comparison_yamls_produce_expected_findings(self) -> None:
         """Generated A/B snapshots run through performance comparison."""
@@ -177,18 +235,12 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
                 snapshot_b,
                 Path(temp_directory),
             )
-            portfolio_findings = compare_snapshots(
-                Path(paths["portfolio_comparison_yaml"]),
-                require_causal_attribution=True,
-            )
-            security_findings = compare_snapshots(
-                Path(paths["security_comparison_yaml"]),
-                require_causal_attribution=True,
-            )
+            portfolio_findings = compare_snapshots(Path(paths["portfolio_comparison_yaml"]))
+            security_findings = compare_snapshots(Path(paths["security_comparison_yaml"]))
 
             self.assertEqual(
                 set(portfolio_findings["dataset"]),
-                {"cash", "portfolio_performance", "positions", "prices", "transactions"},
+                {"portfolio_performance", "positions", "prices", "transactions"},
             )
             self.assertIn("security_performance", set(security_findings["dataset"]))
             self.assertGreater(len(portfolio_findings), 0)

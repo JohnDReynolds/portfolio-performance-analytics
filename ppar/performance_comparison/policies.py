@@ -364,7 +364,38 @@ def _transaction_impact_policies(
             504,
         )
 
-    policies: dict[str, _TransactionImpactPolicy] = {}
+    policies: dict[str, _TransactionImpactPolicy] = {
+        _EXTERNAL_FLOW_KEY: _TransactionImpactPolicy(
+            method=_EVIDENCE_ONLY_METHOD,
+            finding_label=TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
+        ),
+        _PERFORMANCE_KEY: _TransactionImpactPolicy(
+            method=_TRANSACTION_AMOUNT_DELTA_METHOD,
+            finding_label=TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+            denominator_source="begin_market_value",
+        ),
+        _TRANSACTION_QUANTITY_KEY: _TransactionImpactPolicy(
+            method=_EVIDENCE_ONLY_METHOD,
+            finding_label=_evidence_only_impact_policy_label(
+                pc_cols.TRANSACTIONS,
+                _TRANSACTION_QUANTITY_KEY,
+            ),
+        ),
+        _TRANSACTION_PRICE_KEY: _TransactionImpactPolicy(
+            method=_EVIDENCE_ONLY_METHOD,
+            finding_label=_evidence_only_impact_policy_label(
+                pc_cols.TRANSACTIONS,
+                _TRANSACTION_PRICE_KEY,
+            ),
+        ),
+        _TRANSACTION_COMMISSION_KEY: _TransactionImpactPolicy(
+            method=_EVIDENCE_ONLY_METHOD,
+            finding_label=_evidence_only_impact_policy_label(
+                pc_cols.TRANSACTIONS,
+                _TRANSACTION_COMMISSION_KEY,
+            ),
+        ),
+    }
     external_flow_value = methods_value.get(_EXTERNAL_FLOW_KEY)
     if external_flow_value is not None and not isinstance(external_flow_value, dict):
         raise PpaError(
@@ -539,7 +570,15 @@ def _position_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {}
+    policies: dict[str, str] = {
+        pc_cols.MARKET_VALUE: IMPACT_POLICY_POSITION_MARKET_VALUE,
+        pc_cols.ACCRUED: IMPACT_POLICY_POSITION_ACCRUED,
+        pc_cols.QUANTITY: IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+        pc_cols.COST: _evidence_only_impact_policy_label(
+            pc_cols.POSITIONS,
+            pc_cols.COST,
+        ),
+    }
     market_value = methods_value.get(_MARKET_VALUE_KEY)
     if market_value is not None:
         policy = _require_policy_mapping(
@@ -743,7 +782,7 @@ def _price_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {}
+    policies: dict[str, str] = {pc_cols.PRICE: IMPACT_POLICY_PRICE_WEIGHTED}
     price_value = methods_value.get(pc_cols.PRICE)
     if price_value is not None:
         policy = _require_policy_mapping(
@@ -817,7 +856,10 @@ def _cash_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {}
+    policies: dict[str, str] = {
+        pc_cols.CASH_BALANCE: IMPACT_POLICY_CASH_BALANCE,
+        pc_cols.MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
+    }
     for source_column in (pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE):
         method_value = methods_value.get(source_column)
         if method_value is None:
@@ -898,7 +940,12 @@ def _fx_rate_impact_policies(
 
     fx_rate_value = methods_value.get(pc_cols.FX_RATE)
     if fx_rate_value is None:
-        return {}
+        return {
+            pc_cols.FX_RATE: _evidence_only_impact_policy_label(
+                pc_cols.FX_RATES,
+                pc_cols.FX_RATE,
+            )
+        }
     policy = _require_policy_mapping(
         specification,
         _FX_RATE_IMPACT_METHODS_KEY,
@@ -968,7 +1015,15 @@ def _security_master_impact_policies(
             504,
         )
 
-    policies: dict[str, str] = {}
+    policies: dict[str, str] = {
+        source_column: _evidence_only_impact_policy_label(
+            pc_cols.SECURITY_MASTER,
+            source_column,
+        )
+        for source_column in sorted(
+            _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS[pc_cols.SECURITY_MASTER]
+        )
+    }
     for source_column in sorted(str(key) for key in methods_value):
         policy = _require_policy_mapping(
             specification,

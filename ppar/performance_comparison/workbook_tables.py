@@ -12,6 +12,7 @@ import polars as pl
 # Project imports
 import ppar.utilities as util
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
@@ -65,6 +66,20 @@ _CONTEXT_USE = "context_use"
 _REVIEW_PRIORITY = "review_priority"
 _REVIEW_PRIORITY_REASON = "review_priority_reason"
 _RETURN_IMPACT_TREATMENT = "return_impact_treatment"
+_WORKBOOK_UNSELECTED_RELATED_ESTIMATE = "_workbook_unselected_related_estimate"
+_WORKBOOK_UNEXPLAINED_TOLERANCE = 0.00000001
+_WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
+    pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
+    pc_cols.FX_RATES: {pc_cols.FX_RATE},
+    pc_cols.POSITIONS: {pc_cols.ACCRUED, pc_cols.MARKET_VALUE, pc_cols.QUANTITY},
+    pc_cols.PRICES: {pc_cols.PRICE},
+    pc_cols.TRANSACTIONS: {
+        pc_cols.AMOUNT,
+        pc_cols.COMMISSION,
+        pc_cols.PRICE,
+        pc_cols.QUANTITY,
+    },
+}
 _format_value = _pc_rendering.format_value
 _with_period_review_key = _pc_review_keys.with_period_review_key
 _with_security_review_key = _pc_review_keys.with_security_review_key
@@ -214,7 +229,10 @@ def _shared_detail_sheets(
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="context",
             sheet_name="Context",
-            table=_workbook_context_table(active_findings),
+            table=_workbook_context_table(
+                active_findings,
+                comparison_level=comparison_level,
+            ),
             columns=_workbook_non_additive_change_columns(),
             labels=_workbook_column_labels(),
         ),
@@ -629,14 +647,37 @@ def _workbook_underlying_causes_table(
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> pl.DataFrame:
     """Return input rows that may directly explain performance differences."""
-    rows = [
-        _workbook_changed_item_row(row, comparison_path=comparison_path)
-        for row in _workbook_ranked_changed_rows_for_level(
-            findings,
+    unexplained_keys = _workbook_unexplained_primary_keys(
+        findings,
+        comparison_level=comparison_level,
+    )
+    performance_input_keys = _workbook_performance_input_family_keys(
+        findings,
+        comparison_level=comparison_level,
+    )
+    rows: list[dict[str, object]] = []
+    for row in _workbook_ranked_changed_rows_for_level(
+        findings,
+        comparison_level=comparison_level,
+    ):
+        if _workbook_is_underlying_cause_row(row):
+            workbook_row = _workbook_changed_item_row(
+                row,
+                comparison_path=comparison_path,
+            )
+        elif _workbook_should_promote_context_row(
+            row,
+            unexplained_keys,
+            performance_input_keys,
             comparison_level=comparison_level,
-        )
-        if _workbook_is_underlying_cause_row(row)
-    ]
+        ):
+            workbook_row = _workbook_changed_item_row(
+                _workbook_non_additive_row(row),
+                comparison_path=comparison_path,
+            )
+        else:
+            continue
+        rows.append(workbook_row)
     rows.extend(
         _workbook_missing_underlying_cause_rows(
             findings,
@@ -687,7 +728,7 @@ def _workbook_missing_underlying_cause_row(
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
         _USE: _USE_DIAGNOSTIC,
-        _CHANGE_LABEL: "No underlying input differences found",
+        _CHANGE_LABEL: "No additive underlying cause found",
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
         _pc_findings.SNAPSHOT_A_VALUE: None,
         _pc_findings.SNAPSHOT_B_VALUE: None,
@@ -695,13 +736,13 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _NEXT_ACTION: (
-            "Review the Reported Performance Checks sheet, Raw Audit Trail sheet, "
-            "missing datasets, or vendor methodology."
+            "Review the Context sheet, Reported Performance Checks sheet, "
+            "Raw Audit Trail sheet, missing datasets, or vendor methodology."
         ),
         _REQUIRED_YAML_SETUP: (
-            "No underlying input differences were found. Review the Reported "
-            "Performance Checks sheet, Raw Audit Trail sheet, missing datasets, "
-            "or vendor methodology."
+            "No additive underlying cause was found. Review the Context sheet, "
+            "Reported Performance Checks sheet, Raw Audit Trail sheet, missing "
+            "datasets, or vendor methodology."
         ),
         _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
         _pc_findings.SOURCE_COLUMN: None,
@@ -742,19 +783,104 @@ def _workbook_derived_checks_table_for_level(
     )
 
 
-def _workbook_context_table(findings: pl.DataFrame) -> pl.DataFrame:
+def _workbook_context_table(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+) -> pl.DataFrame:
     """Return review-context rows that are not additive return explanations."""
-    rows = [
-        _workbook_changed_item_row(_workbook_non_additive_row(row))
-        for row in _workbook_ranked_changed_rows(findings)
-        if _workbook_is_context_row(row)
-    ]
+    unexplained_keys = _workbook_unexplained_primary_keys(
+        findings,
+        comparison_level=comparison_level,
+    )
+    performance_input_keys = _workbook_performance_input_family_keys(
+        findings,
+        comparison_level=comparison_level,
+    )
+    rows = []
+    for row in _workbook_ranked_changed_rows_for_level(
+        findings,
+        comparison_level=comparison_level,
+    ):
+        if not _workbook_is_context_row(row):
+            continue
+        if _workbook_should_promote_context_row(
+            row,
+            unexplained_keys,
+            performance_input_keys,
+            comparison_level=comparison_level,
+        ):
+            continue
+        rows.append(_workbook_changed_item_row(_workbook_non_additive_row(row)))
     if not rows:
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
         pl.DataFrame(rows),
         _workbook_left_review_sort_columns(),
     )
+
+
+def _workbook_unexplained_primary_keys(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> set[tuple[object, ...]]:
+    """Return primary review keys with a meaningful unexplained remainder."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        summary = _workbook_security_changes_table(
+            findings,
+            comparison_level=comparison_level,
+        )
+    else:
+        summary = _workbook_portfolio_changes_table(findings)
+
+    keys: set[tuple[object, ...]] = set()
+    for row in summary.iter_rows(named=True):
+        unexplained_change = _number_or_none(row.get(_UNEXPLAINED_CHANGE))
+        if (
+            unexplained_change is None
+            or abs(unexplained_change) <= _WORKBOOK_UNEXPLAINED_TOLERANCE
+        ):
+            continue
+        keys.add(_workbook_primary_key(row, comparison_level))
+    return keys
+
+
+def _workbook_should_promote_context_row(
+    row: Mapping[str, object],
+    unexplained_keys: set[tuple[object, ...]],
+    performance_input_keys: set[tuple[object, ...]],
+    *,
+    comparison_level: str,
+) -> bool:
+    """Return whether review-only evidence belongs with unresolved causes.
+
+    Notes:
+        This is a workbook presentation rule, not an attribution model. It keeps
+        fully explained periods clean while surfacing plausible evidence-only
+        input changes on the ``Underlying Causes`` sheet when a period still has
+        a performance difference that additive rows did not explain.
+    """
+    if not _workbook_is_context_row(row) or not _workbook_has_evidence_only_policy(row):
+        return False
+    if not _workbook_is_promotable_evidence_only_row(row):
+        return False
+    if _workbook_primary_key(row, comparison_level) in unexplained_keys:
+        return True
+    return (
+        _field_roles.is_input_component(
+            row.get(_pc_findings.DATASET),
+            row.get(_pc_findings.SOURCE_COLUMN),
+        )
+        and _workbook_cause_family_key(row, comparison_level) in performance_input_keys
+    )
+
+
+def _workbook_is_promotable_evidence_only_row(row: Mapping[str, object]) -> bool:
+    """Return whether an evidence-only row is plausibly return-explanatory."""
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    return source_column in _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS.get(dataset, set())
 
 
 def _workbook_left_review_sort_columns() -> tuple[str, ...]:
@@ -783,19 +909,117 @@ def _workbook_selected_impact_basis_keys(
         return set()
 
     keys: set[tuple[object, ...]] = set()
-    for row in causes.iter_rows(named=True):
+    del causes
+    rows = _workbook_with_primary_review_key(
+        _workbook_top_evidence_table(findings, comparison_level=comparison_level),
+        comparison_level,
+    )
+    grouped_rows: dict[tuple[object, ...], list[dict[str, object]]] = {}
+    for row in rows.iter_rows(named=True):
         if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
             continue
-        impact_basis = row.get(_pc_explain.IMPACT_BASIS)
-        if impact_basis == _pc_explain.IMPACT_BASIS_NO_ESTIMATE:
-            continue
-        keys.add(
-            (
-                *_workbook_primary_key(row, comparison_level),
-                impact_basis,
+        group_key = _workbook_cause_family_key(row, comparison_level)
+        grouped_rows.setdefault(group_key, []).append(row)
+    for group_rows in grouped_rows.values():
+        for row in _workbook_preferred_estimate_rows(group_rows):
+            impact_basis = row.get(_pc_explain.IMPACT_BASIS)
+            if impact_basis == _pc_explain.IMPACT_BASIS_NO_ESTIMATE:
+                continue
+            keys.add(
+                (
+                    *_workbook_cause_family_key(row, comparison_level),
+                    impact_basis,
+                )
             )
-        )
     return keys
+
+
+def _workbook_performance_input_family_keys(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> set[tuple[object, ...]]:
+    """Return cause-family keys with selected performance input rows."""
+    keys: set[tuple[object, ...]] = set()
+    for row in _workbook_ranked_changed_rows_for_level(
+        findings,
+        comparison_level=comparison_level,
+    ):
+        if not _field_roles.is_performance_input(
+            row.get(_pc_findings.DATASET),
+            row.get(_pc_findings.SOURCE_COLUMN),
+        ):
+            continue
+        if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
+            continue
+        keys.add(_workbook_cause_family_key(row, comparison_level))
+    return keys
+
+
+def _workbook_cause_family_key(
+    row: Mapping[str, object],
+    comparison_level: str,
+) -> tuple[object, ...]:
+    """Return the source-input family where estimates should not double count."""
+    family = _workbook_cause_family(row)
+    return (
+        *_workbook_primary_key(row, comparison_level),
+        row.get(_pc_findings.SECURITY_ID),
+        family,
+    )
+
+
+def _workbook_cause_family(row: Mapping[str, object]) -> object:
+    """Return the broad accounting family for a changed input row."""
+    dataset = row.get(_pc_findings.DATASET)
+    source_column = row.get(_pc_findings.SOURCE_COLUMN)
+    if dataset in {pc_cols.POSITIONS, pc_cols.PRICES} and source_column in {
+        pc_cols.MARKET_VALUE,
+        pc_cols.ACCRUED,
+        pc_cols.QUANTITY,
+        pc_cols.PRICE,
+    }:
+        return "position_value"
+    if dataset == pc_cols.TRANSACTIONS:
+        return pc_cols.TRANSACTIONS
+    return dataset
+
+
+def _workbook_preferred_estimate_rows(
+    rows: Sequence[Mapping[str, object]],
+) -> list[Mapping[str, object]]:
+    """Return estimate rows selected for workbook additive totals."""
+    if any(
+        row.get(_pc_explain.IMPACT_BASIS)
+        == _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION
+        for row in rows
+    ):
+        return [
+            row
+            for row in rows
+            if row.get(_pc_explain.IMPACT_BASIS)
+            == _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION
+        ]
+    position_inputs = [
+        row
+        for row in rows
+        if row.get(_pc_findings.DATASET) == pc_cols.POSITIONS
+        and _field_roles.is_performance_input(
+            row.get(_pc_findings.DATASET),
+            row.get(_pc_findings.SOURCE_COLUMN),
+        )
+    ]
+    if position_inputs:
+        return position_inputs
+    holdings_price_rows = [
+        row
+        for row in rows
+        if row.get(_pc_findings.DATASET) == pc_cols.POSITIONS
+        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.PRICE
+    ]
+    if holdings_price_rows:
+        return holdings_price_rows
+    return list(rows)
 
 
 def _workbook_selected_impact_row(
@@ -810,7 +1034,7 @@ def _workbook_selected_impact_row(
         return row_dict
 
     key = (
-        *_workbook_primary_key(row_dict, comparison_level),
+        *_workbook_cause_family_key(row_dict, comparison_level),
         row_dict.get(_pc_explain.IMPACT_BASIS),
     )
     if key in selected_impact_bases:
@@ -819,6 +1043,7 @@ def _workbook_selected_impact_row(
     row_dict[_pc_explain.ESTIMATED_RETURN_IMPACT] = None
     row_dict[_pc_explain.IMPACT_BASIS] = _pc_explain.IMPACT_BASIS_NO_ESTIMATE
     row_dict[_pc_explain.IMPACT_METHOD] = None
+    row_dict[_WORKBOOK_UNSELECTED_RELATED_ESTIMATE] = True
     row_dict[_pc_explain.IMPACT_MESSAGE] = (
         "Another estimate was selected for this portfolio-period cause area."
     )
@@ -853,7 +1078,14 @@ def _workbook_row_kind(row: Mapping[str, object]) -> str:
     """Return the workbook presentation role for a finding row."""
     if row.get(_pc_findings.DATASET) == _NO_UNDERLYING_CAUSE_DATASET:
         return _WORKBOOK_ROW_KIND_DIAGNOSTIC
+    if _field_roles.is_reported_performance_component(
+        row.get(_pc_findings.DATASET),
+        row.get(_pc_findings.SOURCE_COLUMN),
+    ):
+        return _WORKBOOK_ROW_KIND_DERIVED_CHECK
     if row.get(_pc_findings.EVIDENCE_ROLE) == _pc_findings.CONTEXT.value:
+        return _WORKBOOK_ROW_KIND_CONTEXT
+    if _workbook_has_evidence_only_policy(row):
         return _WORKBOOK_ROW_KIND_CONTEXT
     if row.get(_pc_findings.DATASET) in {
         pc_cols.PORTFOLIO_PERFORMANCE,
@@ -938,6 +1170,8 @@ def _workbook_impact_status(
     if estimated_impact is not None:
         return _IMPACT_STATUS_ESTIMATED
     if (
+        row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE)
+        or
         _workbook_is_context_row(row)
         or _workbook_is_derived_check_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
@@ -967,7 +1201,9 @@ def _workbook_next_action(
             "the Underlying Causes sheet to see what explains it."
         )
     if _workbook_has_evidence_only_policy(row):
-        return "Review this input difference; YAML marks it as evidence-only."
+        return "Review this input difference; it is not included in explained difference."
+    if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
+        return "Review this input component; a related performance input is selected."
     if impact_status == _IMPACT_STATUS_MISSING_INPUT:
         return (
             "Review source inputs needed by the configured YAML method; no "
@@ -1001,14 +1237,16 @@ def _workbook_required_yaml_setup(
     """Return the YAML setup required before this row can explain performance."""
     if estimated_impact is not None:
         return "None"
+    if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
+        return "None; related performance input row is selected."
+    if _workbook_has_evidence_only_policy(row):
+        return "None; this review-only row is not included in explained difference."
     if (
         _workbook_is_context_row(row)
         or _workbook_is_derived_check_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
     ):
         return "None; this row is review context, not an underlying input difference."
-    if _workbook_has_evidence_only_policy(row):
-        return "None; configured as evidence-only in comparison YAML."
 
     dataset = _format_value(row.get(_pc_findings.DATASET))
     source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))

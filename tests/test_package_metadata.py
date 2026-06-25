@@ -82,6 +82,7 @@ from ppar.performance_comparison import (
     transaction_activity_summary,
     transaction_matching_diagnostics,
     validate_causal_attribution_ready,
+    validate_yaml_setup_complete,
     write_performance_comparison_report_bundle,
     write_performance_comparison_review_workbook,
 )
@@ -254,16 +255,20 @@ class TestPackageMetadata(unittest.TestCase):
         positions_path = Path(
             str(axys_demo_data / "axys_full_spec_a" / "positions_holdings.csv")
         )
+        portperf_path = Path(str(axys_demo_data / "axys_full_spec_a" / "portperf.csv"))
         sec_ref_path = Path(str(axys_demo_data / "axys_full_spec_a" / "sec_ref.csv"))
 
+        with portperf_path.open(encoding=util.ENCODING, newline="") as file:
+            portfolio_codes = {row["PORTFOLIO_CODE"] for row in csv.DictReader(file)}
         with positions_path.open(encoding=util.ENCODING, newline="") as file:
             position_ids = {row["SEC"] for row in csv.DictReader(file)}
         with sec_ref_path.open(encoding=util.ENCODING, newline="") as file:
             security_ids = {row["SECURITY_ID"] for row in csv.DictReader(file)}
 
+        self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
         self.assertIn("AAPL", position_ids)
         self.assertIn("NVDA", position_ids)
-        self.assertIn("CASHBAL", position_ids)
+        self.assertIn("CASH_USD", position_ids)
         self.assertIn("TBILL13W", position_ids)
         self.assertIn("TNOTE2Y", position_ids)
         self.assertIn("TNOTE5Y", position_ids)
@@ -297,31 +302,23 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Covered", matrix)
         self.assertIn("Planned", matrix)
 
-    def test_axys_demo_readme_documents_supported_yaml_methods(self) -> None:
-        """The packaged Axys demo README tracks every public YAML method target."""
+    def test_axys_demo_readme_documents_field_role_model(self) -> None:
+        """The packaged Axys demo README describes the user-facing role model."""
         matrix = Path("ppar/demos/data/axys/README.md").read_text(encoding=util.ENCODING)
-        expected_methods = {
-            ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value,
-            ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value,
-            ContributionImpactMethod.SECURITY_RETURN_DELTA_TIMES_WEIGHT.value,
-            CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value,
-            FxRateImpactMethod.EVIDENCE_ONLY.value,
-            PositionImpactMethod.EVIDENCE_ONLY.value,
-            PositionImpactMethod[
-                "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
-            ].value,
-            PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value,
-            PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value,
-            SecurityMasterImpactMethod.EVIDENCE_ONLY.value,
-            TransactionImpactMethod.EVIDENCE_ONLY.value,
+        expected_terms = {
+            "performance_input",
+            "input_component",
+            "reported_performance_component",
+            "context",
+            "transaction_rules",
             TransactionImpactMethod.MODIFIED_DIETZ.value,
             TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value,
         }
 
-        self.assertIn("## Method Coverage Goal", matrix)
-        for method in expected_methods:
-            with self.subTest(method=method):
-                self.assertIn(method, matrix)
+        self.assertIn("## YAML Policy Decision Guide", matrix)
+        for term in expected_terms:
+            with self.subTest(term=term):
+                self.assertIn(term, matrix)
 
     def test_performance_comparison_method_constants_use_enum_values(self) -> None:
         """Report and finding constants stay aligned with YAML method enums."""
@@ -441,6 +438,7 @@ class TestPackageMetadata(unittest.TestCase):
             "security_period_summary": security_period_summary,
             "summarize_findings": summarize_findings,
             "validate_causal_attribution_ready": validate_causal_attribution_ready,
+            "validate_yaml_setup_complete": validate_yaml_setup_complete,
             "transaction_activity_summary": transaction_activity_summary,
             "transaction_matching_diagnostics": transaction_matching_diagnostics,
             "write_performance_comparison_report_bundle": (
@@ -463,6 +461,7 @@ class TestPackageMetadata(unittest.TestCase):
             "compare_snapshots",
             "summarize_findings",
             "validate_causal_attribution_ready",
+            "validate_yaml_setup_complete",
         }
 
         self.assertEqual(set(performance_comparison_runner.__all__), expected_exports)
@@ -475,6 +474,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIs(
             validate_causal_attribution_ready,
             performance_comparison_runner.validate_causal_attribution_ready,
+        )
+        self.assertIs(
+            validate_yaml_setup_complete,
+            performance_comparison_runner.validate_yaml_setup_complete,
         )
 
     def test_public_performance_comparison_report_import_contract(self) -> None:

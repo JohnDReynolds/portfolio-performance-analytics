@@ -13,6 +13,7 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison.cash import CashLoader
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
@@ -170,6 +171,7 @@ _SECURITY_MASTER_COMPARE_COLUMNS: Final[dict[str, str]] = {
 }
 _POSITIONS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.QUANTITY: PC_POS_QTY,
+    pc_cols.PRICE: PC_PRICE,
     pc_cols.MARKET_VALUE: PC_POS_MV,
     pc_cols.COST: PC_POS_COST,
     pc_cols.ACCRUED: PC_POS_ACCR,
@@ -984,6 +986,10 @@ class PerformanceComparison:
         """Return YAML-configured transaction impact policy for a row."""
         if dataset != pc_cols.TRANSACTIONS:
             return None
+        if _field_roles.is_input_component(dataset, source_column):
+            policy = self._transaction_impact_policies.get(source_column)
+            if policy is not None:
+                return policy.finding_label
         if source_column in {
             _TRANSACTION_QUANTITY_KEY,
             _TRANSACTION_PRICE_KEY,
@@ -1415,18 +1421,8 @@ class PerformanceComparison:
         transaction_impact_policy: object | None,
     ) -> EvidenceRole:
         """Return the evidence role for one changed-value finding."""
-        if (
-            dataset == pc_cols.POSITIONS
-            and source_column == pc_cols.COST
-            and _is_evidence_only_policy_label(impact_policy)
-        ):
-            return DIRECT_INPUT
-        if (
-            dataset == pc_cols.TRANSACTIONS
-            and source_column == pc_cols.COMMISSION
-            and _is_evidence_only_policy_label(transaction_impact_policy)
-        ):
-            return DIRECT_INPUT
+        if _field_roles.is_context(dataset, source_column):
+            return CONTEXT
         if dataset == pc_cols.SECURITY_MASTER and _is_evidence_only_policy_label(
             impact_policy
         ):
@@ -1476,7 +1472,16 @@ class PerformanceComparison:
         source_column: str,
     ) -> str | None:
         """Return the YAML-selected non-transaction impact policy for a field."""
+        evidence_only_policy = self._evidence_only_impact_policies.get(
+            (dataset, source_column)
+        )
+        if evidence_only_policy is not None:
+            return evidence_only_policy
         if dataset == pc_cols.POSITIONS:
+            if source_column == pc_cols.PRICE:
+                policy = self._price_impact_policies.get(source_column)
+                if policy is not None:
+                    return policy
             policy = self._position_impact_policies.get(source_column)
             if policy is not None:
                 return policy
@@ -1496,7 +1501,9 @@ class PerformanceComparison:
             policy = self._security_master_impact_policies.get(source_column)
             if policy is not None:
                 return policy
+        if _field_roles.is_reported_performance_component(dataset, source_column):
+            return None
         policy = self._contribution_impact_policy(dataset, source_column)
         if policy is not None:
             return policy
-        return self._evidence_only_impact_policies.get((dataset, source_column))
+        return None

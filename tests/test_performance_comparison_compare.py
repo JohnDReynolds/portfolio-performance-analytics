@@ -709,7 +709,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(role_by_code[PC_POS_COST], CONTEXT)
         self.assertEqual(role_by_code[PC_CASH_MV], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_PRICE], DIRECT_INPUT)
-        self.assertEqual(role_by_code[PC_FX_RATE], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_FX_RATE], CONTEXT)
         self.assertEqual(role_by_code[PC_TXN_AMT], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_REF_ID], CONTEXT)
 
@@ -1125,7 +1125,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 policies[pc_cols.COST],
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.cost",
             )
-            self.assertEqual(cost_finding[EVIDENCE_ROLE], DIRECT_INPUT)
+            self.assertEqual(cost_finding[EVIDENCE_ROLE], CONTEXT)
             self.assertEqual(
                 cost_finding[IMPACT_POLICY],
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.cost",
@@ -1186,7 +1186,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 policies[pc_cols.SECTOR],
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}security_master.sector",
             )
-            self.assertEqual(sector_finding[EVIDENCE_ROLE], DIRECT_INPUT)
+            self.assertEqual(sector_finding[EVIDENCE_ROLE], CONTEXT)
             self.assertEqual(
                 sector_finding[IMPACT_POLICY],
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}security_master.sector",
@@ -1610,7 +1610,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 policies[pc_cols.COMMISSION].finding_label,
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.commission",
             )
-            self.assertEqual(commission_finding[EVIDENCE_ROLE], DIRECT_INPUT)
+            self.assertEqual(commission_finding[EVIDENCE_ROLE], CONTEXT)
             self.assertEqual(
                 commission_finding[TRANSACTION_IMPACT_POLICY],
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.commission",

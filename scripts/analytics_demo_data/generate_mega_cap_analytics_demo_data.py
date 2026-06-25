@@ -46,7 +46,7 @@ SECTOR_ALIASES: Final = {
     "Communication": "Communication Services",
     "Communications": "Communication Services",
 }
-CASH_IDENTIFIER: Final = "CASHBAL"
+CASH_IDENTIFIER: Final = "CASH_USD"
 CASH_RETURN_PROXY: Final = "BIL"
 
 
@@ -306,7 +306,7 @@ def _holdings_frame_from_payload(payload: dict) -> pd.DataFrame:
     frame["sector"] = frame["sector"].astype(str).str.strip().replace(SECTOR_ALIASES)
     cash_rows = frame["sector"].eq("Cash")
     frame.loc[cash_rows, "identifier"] = CASH_IDENTIFIER
-    frame.loc[cash_rows, "name"] = "Cash Balance"
+    frame.loc[cash_rows, "name"] = "US Dollar Cash"
     frame["weight"] = pd.to_numeric(frame["weight"], errors="coerce") / 100.0
     frame["market_value"] = pd.to_numeric(frame["market_value"], errors="coerce")
     frame["shares"] = pd.to_numeric(frame["shares"], errors="coerce")
