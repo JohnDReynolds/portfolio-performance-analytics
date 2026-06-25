@@ -224,18 +224,30 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     middle_date = dates[-2]
     latest_date = dates[-1]
 
-    # Fully explained: price movement explains the reported ALPHA period change.
+    # Fully explained: a global price correction affects every portfolio that
+    # holds AAPL, with the portfolio-level effect scaled by each portfolio's
+    # beginning weight in the security.
+    aapl_weights = {
+        portfolio_code: _security_weight(
+            snapshot["secperf"],
+            portfolio_code,
+            latest_date,
+            "AAPL",
+        )
+        for portfolio_code, _, _, _ in _PORTFOLIOS
+    }
     _adjust_price(snapshot["prices"], latest_date, "AAPL", 1.01)
-    alpha_aapl_weight = _security_weight(snapshot["secperf"], "ALPHA", latest_date, "AAPL")
-    _adjust_security_performance(
-        snapshot["secperf"],
-        "ALPHA",
-        latest_date,
-        "AAPL",
-        return_delta=0.01,
-    )
+    for portfolio_code in aapl_weights:
+        _adjust_security_performance(
+            snapshot["secperf"],
+            portfolio_code,
+            latest_date,
+            "AAPL",
+            return_delta=0.01,
+        )
 
-    # Fully explained: transaction amount explains the BALANCED period change.
+    # Fully explained: transaction amount changes by itself, as when a dividend
+    # correction changes the performance input but no trade components exist.
     _adjust_transaction_amount(
         snapshot["transactions"],
         "BALANCED",
@@ -250,21 +262,30 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         return_delta=0.000225,
     )
 
-    # Fully explained: another transaction amount explains an ALPHA period
-    # change, giving reviewers a second clean period with the same source data
-    # shape shared by the security demo.
+    # Partly explained: the trade amount changed and explains part of the
+    # period, while changed trade components give a realistic review clue for
+    # the remaining difference without being additive on their own.
+    _adjust_transaction_fields(
+        snapshot["transactions"],
+        "ALPHA",
+        early_date,
+        "BUY",
+        quantity_delta=1.0,
+        price_delta=0.15,
+        commission_delta=10.0,
+    )
     _adjust_transaction_amount(
         snapshot["transactions"],
         "ALPHA",
         early_date,
-        "DIV",
-        amount_delta=180.0,
+        "BUY",
+        amount_delta=-180.0,
     )
     _apply_portfolio_return_delta(
         snapshot["portperf"],
         "ALPHA",
         early_date,
-        return_delta=0.00018,
+        return_delta=-0.00028,
     )
 
     # Fully explained: cash-as-position market value explains a separate
@@ -283,15 +304,29 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     )
 
     # Fully explained: accrued interest explains the INCOME period change.
+    tnote_market_value_a = _position_value(
+        snapshot["positions_holdings"],
+        "INCOME",
+        "TNOTE2Y",
+        latest_date,
+        "MKT_VAL",
+    )
     _adjust_position(
         snapshot["positions_holdings"],
         "INCOME",
         "TNOTE2Y",
+        target_date=latest_date,
         quantity_multiplier=1.002,
         cost_delta=200.0,
         accrued_delta=50.0,
     )
-    income_aapl_weight = _security_weight(snapshot["secperf"], "INCOME", latest_date, "AAPL")
+    tnote_market_value_b = _position_value(
+        snapshot["positions_holdings"],
+        "INCOME",
+        "TNOTE2Y",
+        latest_date,
+        "MKT_VAL",
+    )
     _adjust_security_performance(
         snapshot["secperf"],
         "INCOME",
@@ -304,7 +339,9 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         "INCOME",
         latest_date,
         return_delta=round(
-            income_aapl_weight * 0.01 + 50.0 / _BASE_MARKET_VALUE + 0.0004,
+            aapl_weights["INCOME"] * 0.01
+            + (tnote_market_value_b - tnote_market_value_a) / _BASE_MARKET_VALUE
+            + 50.0 / _BASE_MARKET_VALUE,
             10,
         ),
     )
@@ -327,6 +364,36 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         return_delta=0.0001,
     )
 
+    # Fully explained: position market value changed by itself, as when a vendor
+    # restates a holding value but leaves component quantity and price unchanged.
+    _adjust_position(
+        snapshot["positions_holdings"],
+        "BALANCED",
+        "MSFT",
+        target_date=latest_date,
+        market_value_delta=425.0,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "BALANCED",
+        latest_date,
+        return_delta=round(
+            aapl_weights["BALANCED"] * 0.01 + 425.0 / _BASE_MARKET_VALUE,
+            10,
+        ),
+    )
+
+    # Reviewable component-only position difference: price changed on the
+    # holdings row while market value stayed the same. The standalone prices
+    # file is unchanged, exercising the holdings-price precedence path.
+    _adjust_position(
+        snapshot["positions_holdings"],
+        "INCOME",
+        "TNOTE5Y",
+        target_date=middle_date,
+        price_delta=0.35,
+    )
+
     _adjust_cash_position(
         snapshot["positions_holdings"],
         "ALPHA",
@@ -338,7 +405,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         "ALPHA",
         latest_date,
         return_delta=round(
-            alpha_aapl_weight * 0.01 + 1_500.0 / _BASE_MARKET_VALUE,
+            aapl_weights["ALPHA"] * 0.01 + 1_500.0 / _BASE_MARKET_VALUE,
             10,
         ),
     )
@@ -510,8 +577,7 @@ def _portfolio_performance(performance: pd.DataFrame) -> pd.DataFrame:
 
 def _positions(performance: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    latest = performance[performance["thru_date"].eq(performance["thru_date"].max())]
-    for row in latest.itertuples(index=False):
+    for row in performance.itertuples(index=False):
         if row.identifier == _CASH_IDENTIFIER:
             continue
         price = _price_for(row.identifier)
@@ -522,6 +588,7 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
                 "SEC": row.identifier,
                 "POSITION_DATE": row.thru_date.date(),
                 "QTY": round(market_value / price, 4),
+                "PRICE": round(price, 4),
                 "MKT_VAL": round(market_value, 2),
                 "COST": round(market_value * 0.985, 2),
                 "ACCRUED": round(_accrued_for(row.identifier, market_value), 2),
@@ -536,6 +603,7 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
                 "SEC": _CASH_IDENTIFIER,
                 "POSITION_DATE": row.thru_date.date(),
                 "QTY": round(market_value, 4),
+                "PRICE": 1.0,
                 "MKT_VAL": round(market_value, 2),
                 "COST": round(market_value, 2),
                 "ACCRUED": 0.0,
@@ -648,18 +716,32 @@ def _adjust_position(
     portfolio_code: str,
     identifier: str,
     *,
+    target_date: object | None = None,
     quantity_multiplier: float | None = None,
+    quantity_delta: float = 0.0,
+    price_delta: float = 0.0,
+    market_value_delta: float = 0.0,
     cost_delta: float = 0.0,
     accrued_delta: float = 0.0,
 ) -> None:
     """Apply one position restatement in place."""
     mask = positions["PORT"].eq(portfolio_code) & positions["SEC"].eq(identifier)
+    if target_date is not None:
+        mask &= positions["POSITION_DATE"].astype(str).eq(str(target_date))
     if not bool(mask.any()):
         raise ValueError(f"Could not find position row for {portfolio_code} {identifier}.")
     if quantity_multiplier is not None:
         positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] * quantity_multiplier).round(4)
         positions.loc[mask, "MKT_VAL"] = (
             positions.loc[mask, "MKT_VAL"] * quantity_multiplier
+        ).round(2)
+    if quantity_delta:
+        positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] + quantity_delta).round(4)
+    if price_delta:
+        positions.loc[mask, "PRICE"] = (positions.loc[mask, "PRICE"] + price_delta).round(4)
+    if market_value_delta:
+        positions.loc[mask, "MKT_VAL"] = (
+            positions.loc[mask, "MKT_VAL"] + market_value_delta
         ).round(2)
     if cost_delta:
         positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cost_delta).round(2)
@@ -811,6 +893,27 @@ def _security_weight(
     return float(security_performance.loc[mask, "BEGIN_WEIGHT"].iloc[0])
 
 
+def _position_value(
+    positions: pd.DataFrame,
+    portfolio_code: str,
+    identifier: str,
+    target_date: object,
+    column: str,
+) -> float:
+    """Return one numeric value from a dated position row."""
+    mask = (
+        positions["PORT"].eq(portfolio_code)
+        & positions["SEC"].eq(identifier)
+        & positions["POSITION_DATE"].astype(str).eq(str(target_date))
+    )
+    if not bool(mask.any()):
+        raise ValueError(
+            f"Could not find position value for {portfolio_code} {identifier} "
+            f"on {target_date}."
+        )
+    return float(positions.loc[mask, column].iloc[0])
+
+
 def _apply_portfolio_return_delta(
     portfolio_performance: pd.DataFrame,
     portfolio_code: str,
@@ -888,31 +991,6 @@ files:
   prices: prices.csv
   transactions: transactions.csv
 
-contribution_impact_methods:
-  portfolio_source_field:
-    method: source_field_delta_over_begin_market_value
-    denominator_source: begin_market_value
-    source_fields:
-      - income
-      - gain_loss
-  security_contribution:
-    method: vendor_contribution_delta
-  security_return:
-    method: security_return_delta_times_weight
-    weight_source: snapshot_a_weight
-
-position_impact_methods:
-  accrued:
-    method: accrued_delta_over_return_denominator
-    denominator_source: begin_market_value
-  cost:
-    method: evidence_only
-
-price_impact_methods:
-  price:
-    method: price_delta_over_snapshot_a_price_times_weight
-    weight_source: snapshot_a_weight
-
 transaction_rules:
   BUY:
     transaction_category: buy
@@ -922,26 +1000,6 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
-
-transaction_impact_methods:
-  external_flow:
-    method: evidence_only
-  performance:
-    method: transaction_amount_delta_over_return_denominator
-    denominator_source: begin_market_value
-  quantity:
-    method: evidence_only
-  price:
-    method: evidence_only
-  commission:
-    method: evidence_only
-
-evidence_only_impact_methods:
-  positions:
-    method: evidence_only
-    source_fields:
-      - quantity
-      - market_value
 
 tolerances:
   return: 0.000001

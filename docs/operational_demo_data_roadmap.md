@@ -99,10 +99,12 @@ data. Snapshot B introduces controlled changes that produce:
 
 - mostly fully explained ALPHA, BALANCED, and INCOME portfolio-period
   differences;
-- one partly explained INCOME period with TNOTE2Y quantity and market value
-  visible as related input differences, and cost shown as context;
+- one partly explained ALPHA period with a changed transaction amount plus
+  review-only transaction quantity, price, and commission clues;
 - one unexplained BALANCED period with transaction quantity, price, and
-  commission shown as context;
+  commission shown as review-only `Underlying Causes` sheet evidence;
+- related position-component examples where quantity rows sit beside selected
+  market-value rows and cost remains on the `Context` sheet;
 - matching security-level examples for AAPL and TNOTE2Y;
 - transaction-rule YAML plus default field-role treatment for performance
   inputs, input components, reported performance checks, and context fields.

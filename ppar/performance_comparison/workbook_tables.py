@@ -1366,9 +1366,8 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
         )
     if dataset == pc_cols.POSITIONS:
         return (
-            "Configured position impact method is present, but this row still "
-            "cannot be estimated. Review return denominator and position source "
-            "values."
+            "None; this position input difference is shown for review, but no "
+            "supported performance estimate is available for this row."
         )
     if dataset == pc_cols.PRICES:
         return (

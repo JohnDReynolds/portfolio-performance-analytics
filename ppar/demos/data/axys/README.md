@@ -94,25 +94,27 @@ Expected workbook:
   `Security Differences` sheet.
 - `Underlying Causes` sheet should show understandable additive transaction
   amount, position market value, position accrued, and weighted price examples.
-  It should also show plausible input-component rows for unresolved periods without assigning
-  them `Performance Difference Explained` values.
+  It should also show plausible input-component rows for unresolved periods
+  without assigning them `Performance Difference Explained` values.
 - Most portfolio-period differences should reconcile to rows in the
-  `Underlying Causes` sheet. One INCOME period is partly explained, and one
-  BALANCED period is intentionally unexplained with supporting evidence-only
-  rows promoted into the `Underlying Causes` sheet.
+  `Underlying Causes` sheet. One ALPHA period is partly explained, and one
+  BALANCED period is intentionally unexplained with supporting review-only rows
+  promoted into the `Underlying Causes` sheet.
 - `Reported Performance Checks` sheet should show portfolio-performance and
   security-performance component differences. These confirm performance-output
   differences but are not labeled as root-cause input differences.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
     `CASH_USD` position changes;
-  - fully explained ALPHA and BALANCED periods with dividend transaction amount
-    changes;
+  - a partly explained ALPHA period with a changed buy transaction amount plus
+    changed transaction quantity, price, and commission components;
+  - a fully explained BALANCED period with a dividend transaction amount change;
+  - a fully explained BALANCED period with both an AAPL price correction and a
+    standalone MSFT position market-value correction;
   - a fully explained INCOME period with `CASH_USD` position changes;
-  - a partly explained INCOME period with TNOTE2Y accrued/security-return
-    changes, the same AAPL price change visible as an input difference, and
-    position quantity and market value promoted into the `Underlying Causes`
-    sheet, and position cost in the `Context` sheet;
+  - a fully explained INCOME period with the same AAPL price correction plus
+    TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
+    evidence, and TNOTE2Y cost in the `Context` sheet;
   - an unexplained BALANCED period with transaction quantity, price, and
     commission rows promoted into the `Underlying Causes` sheet.
 

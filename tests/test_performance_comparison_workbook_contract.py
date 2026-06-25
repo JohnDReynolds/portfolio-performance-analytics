@@ -162,10 +162,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     statuses,
                     {"Fully Explained", "Partly Explained", "Unexplained"},
                 )
-                self.assertEqual(len(portfolio_rows), 6)
+                self.assertEqual(len(portfolio_rows), 7)
                 self.assertEqual(
                     sum(1 for row in portfolio_rows if row[6] == "Fully Explained"),
-                    4,
+                    5,
                 )
                 self.assertTrue(
                     all(
@@ -185,6 +185,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     all(
                         row[11] in (None, "None")
                         or "No additive underlying cause" in str(row[11])
+                        or "shown for review" in str(row[11])
                         or "not included in explained difference" in str(row[11])
                         or "related performance input row is selected" in str(row[11])
                         for row in underlying_rows
@@ -257,7 +258,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 security_rows = _sheet_rows(workbook["Security Differences"])
                 self.assertEqual(
                     {row[0] for row in security_rows},
-                    {"ALPHA", "INCOME"},
+                    {"ALPHA", "BALANCED", "INCOME"},
                 )
                 self.assertEqual(
                     {row[3] for row in security_rows},

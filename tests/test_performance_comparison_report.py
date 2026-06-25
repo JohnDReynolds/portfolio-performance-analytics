@@ -343,7 +343,11 @@ def _assert_workbook_explained_row_actions(
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
             if row.get("impact_status") == "Missing impact input":
-                test_case.assertIn("Configured", str(required_setup))
+                setup_text = str(required_setup)
+                test_case.assertTrue(
+                    "Configured" in setup_text or "shown for review" in setup_text,
+                    msg=f"{row.get('review_key')} has unclear setup: {setup_text}",
+                )
                 continue
             test_case.assertEqual(row.get("impact_status"), "Missing impact method")
             setup_text = str(required_setup)

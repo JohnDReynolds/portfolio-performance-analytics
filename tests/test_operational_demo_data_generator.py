@@ -108,37 +108,55 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_accrued_a = _value(
             snapshot_a["positions_holdings"],
             snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
             "ACCRUED",
         )
         tnote_accrued_b = _value(
             snapshot_b["positions_holdings"],
             snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
             "ACCRUED",
         )
         tnote_quantity_a = _value(
             snapshot_a["positions_holdings"],
             snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
             "QTY",
         )
         tnote_quantity_b = _value(
             snapshot_b["positions_holdings"],
             snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
             "QTY",
         )
         tnote_cost_a = _value(
             snapshot_a["positions_holdings"],
             snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
             "COST",
         )
         tnote_cost_b = _value(
             snapshot_b["positions_holdings"],
             snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y"),
+            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+                str(latest_date)
+            ),
             "COST",
         )
         cash_market_value_a = _value(
