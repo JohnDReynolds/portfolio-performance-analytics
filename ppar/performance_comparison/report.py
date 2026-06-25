@@ -19,6 +19,7 @@ from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
+from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import runner as _pc_runner
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
@@ -199,12 +200,12 @@ def _html_workbook_contents_section(
         for sheet in sheets
     ]
     return _html_section(
-        "Review Order",
+        _pc_review_model.REVIEW_ORDER_SECTION,
         "\n".join(
             [
                 f"<p>Start with {_escape_html(primary_sheet_name)}, then use "
-                "Identifiable Causes to see which source-data differences explain "
-                "each period.</p>",
+                f"{_escape_html(_pc_review_model.IDENTIFIABLE_CAUSES_SHEET)} "
+                "to see which source-data differences explain each period.</p>",
                 '<ol class="pc-contents-list">',
                 *items,
                 "</ol>",

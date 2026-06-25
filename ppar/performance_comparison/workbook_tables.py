@@ -17,6 +17,7 @@ from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
+from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
@@ -174,8 +175,8 @@ def _portfolio_differences_sheet(
     labels = _workbook_column_labels()
     labels[_REVIEW_NOTE] = "Comments"
     return _pc_workbook.ReviewWorkbookSheet(
-        artifact_name="performance_differences",
-        sheet_name="Performance Differences",
+        artifact_name=_pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
+        sheet_name=_pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
         table=_workbook_portfolio_changes_table(active_findings),
         columns=_workbook_portfolio_changes_columns(),
         labels=labels,
@@ -189,8 +190,8 @@ def _security_differences_sheet(
     labels = _workbook_column_labels()
     labels[_REVIEW_NOTE] = "Comments"
     return _pc_workbook.ReviewWorkbookSheet(
-        artifact_name="performance_differences",
-        sheet_name="Performance Differences",
+        artifact_name=_pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
+        sheet_name=_pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
         table=_workbook_security_changes_table(
             active_findings,
             comparison_level=SECURITY_COMPARISON_LEVEL,
@@ -210,8 +211,8 @@ def _shared_detail_sheets(
     """Return detail sheets shared by portfolio and security workflows."""
     detail_sheets = [
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="identifiable_causes",
-            sheet_name="Identifiable Causes",
+            artifact_name=_pc_review_model.IDENTIFIABLE_CAUSES_ARTIFACT,
+            sheet_name=_pc_review_model.IDENTIFIABLE_CAUSES_SHEET,
             table=_workbook_underlying_causes_table(
                 active_findings,
                 comparison_path=comparison_path,
@@ -221,8 +222,8 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="other_evidence",
-            sheet_name="Other Evidence",
+            artifact_name=_pc_review_model.OTHER_EVIDENCE_ARTIFACT,
+            sheet_name=_pc_review_model.OTHER_EVIDENCE_SHEET,
             table=_workbook_context_table(
                 active_findings,
                 comparison_level=comparison_level,
@@ -231,8 +232,8 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="raw_audit_trail",
-            sheet_name="Raw Audit Trail",
+            artifact_name=_pc_review_model.RAW_AUDIT_TRAIL_ARTIFACT,
+            sheet_name=_pc_review_model.RAW_AUDIT_TRAIL_SHEET,
             table=_workbook_sorted_table(
                 _workbook_with_primary_review_key(findings, comparison_level),
                 _workbook_left_review_sort_columns(),

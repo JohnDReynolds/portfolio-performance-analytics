@@ -14,6 +14,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison import review_model as _pc_review_model
 
 _FULL_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
@@ -22,18 +23,8 @@ _SECURITY_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_security_full_spec.yaml"
 )
 
-_EXPECTED_PORTFOLIO_SHEETS = [
-    "Performance Differences",
-    "Identifiable Causes",
-    "Other Evidence",
-    "Raw Audit Trail",
-]
-_EXPECTED_SECURITY_SHEETS = [
-    "Performance Differences",
-    "Identifiable Causes",
-    "Other Evidence",
-    "Raw Audit Trail",
-]
+_EXPECTED_PORTFOLIO_SHEETS = list(_pc_review_model.EXPECTED_REVIEW_SHEETS)
+_EXPECTED_SECURITY_SHEETS = list(_pc_review_model.EXPECTED_REVIEW_SHEETS)
 _COMMON_LEFT_HEADERS = [
     "Portfolio",
     "From Date",

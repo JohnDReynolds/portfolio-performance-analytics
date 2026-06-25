@@ -11,6 +11,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
 
@@ -47,8 +48,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"Report bundle written to: {bundle_paths['manifest'].parent}")
     print(f"README written to: {bundle_paths['readme']}")
-    if "review_workbook" in bundle_paths:
-        print(f"Review workbook written to: {bundle_paths['review_workbook']}")
+    if _pc_review_model.REVIEW_WORKBOOK_ARTIFACT in bundle_paths:
+        print(
+            "Review workbook written to: "
+            f"{bundle_paths[_pc_review_model.REVIEW_WORKBOOK_ARTIFACT]}"
+        )
     print(f"HTML report written to: {bundle_paths['html_report']}")
     print(f"Needs review summary written to: {bundle_paths['needs_review_summary']}")
     print(f"Manifest written to: {bundle_paths['manifest']}")

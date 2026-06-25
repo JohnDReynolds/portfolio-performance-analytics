@@ -19,22 +19,17 @@ from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
+from ppar.performance_comparison import review_model as _pc_review_model
 
-REVIEW_WORKBOOK_ARTIFACT = "review_workbook"
-REVIEW_WORKBOOK_FILE_NAME = "report.xlsx"
+REVIEW_WORKBOOK_ARTIFACT = _pc_review_model.REVIEW_WORKBOOK_ARTIFACT
+REVIEW_WORKBOOK_FILE_NAME = _pc_review_model.REVIEW_WORKBOOK_FILE_NAME
 WORKBOOK_NUMBER_FORMAT = "0.000000"
 
-PRIMARY_DIFFERENCE_SHEETS = (
-    "Performance Differences",
-)
-SHARED_REVIEW_SHEETS = (
-    "Identifiable Causes",
-    "Other Evidence",
-    "Raw Audit Trail",
-)
-EXPECTED_SHEETS = (*PRIMARY_DIFFERENCE_SHEETS, *SHARED_REVIEW_SHEETS)
+PRIMARY_DIFFERENCE_SHEETS = _pc_review_model.PRIMARY_REVIEW_SHEETS
+SHARED_REVIEW_SHEETS = _pc_review_model.SHARED_REVIEW_SHEETS
+EXPECTED_SHEETS = _pc_review_model.EXPECTED_REVIEW_SHEETS
 REQUIRED_HEADERS = {
-    "Performance Differences": (
+    _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -45,7 +40,7 @@ REQUIRED_HEADERS = {
         "Comments",
         "Review Key",
     ),
-    "Identifiable Causes": (
+    _pc_review_model.IDENTIFIABLE_CAUSES_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -59,7 +54,7 @@ REQUIRED_HEADERS = {
         "Review Guidance",
         "Review Key",
     ),
-    "Other Evidence": (
+    _pc_review_model.OTHER_EVIDENCE_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -73,7 +68,7 @@ REQUIRED_HEADERS = {
         "Review Guidance",
         "Review Key",
     ),
-    "Raw Audit Trail": (
+    _pc_review_model.RAW_AUDIT_TRAIL_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -332,8 +327,11 @@ def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
     """Return review workbook sheet and header validation issues."""
     issues: list[str] = []
     sheet_names = tuple(str(name) for name in workbook.sheetnames)
-    if "Performance Differences" not in sheet_names:
-        issues.append("report.xlsx is missing primary sheet 'Performance Differences'")
+    if _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET not in sheet_names:
+        issues.append(
+            "report.xlsx is missing primary sheet "
+            f"{_pc_review_model.PERFORMANCE_DIFFERENCES_SHEET!r}"
+        )
     required_sheets: list[str] = list(SHARED_REVIEW_SHEETS)
     for sheet_name in (*PRIMARY_DIFFERENCE_SHEETS, *required_sheets):
         if sheet_name not in sheet_names:

@@ -13,6 +13,7 @@ import polars as pl
 
 # Project imports
 import ppar.utilities as util
+from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
@@ -83,9 +84,11 @@ def write_report_bundle_readme(
     Returns:
         Normalized destination path.
     """
-    primary_sheet = "Performance Differences"
+    primary_sheet = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
     detail_sheets = (
-        "Identifiable Causes sheet, Other Evidence sheet, and Raw Audit Trail sheet"
+        f"{_pc_review_model.IDENTIFIABLE_CAUSES_SHEET} sheet, "
+        f"{_pc_review_model.OTHER_EVIDENCE_SHEET} sheet, and "
+        f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} sheet"
     )
     excel_line = (
         f"- `report.xlsx`: Excel review workbook with the {primary_sheet} sheet, "
@@ -124,9 +127,10 @@ def write_report_bundle_readme(
         "## Recommended Review Order",
         "",
         first_review_step,
-        "2. Use Identifiable Causes to see which source-data differences explain "
-        "each performance period.",
-        "3. Use Other Evidence and Raw Audit Trail as supporting detail.",
+        f"2. Use {_pc_review_model.IDENTIFIABLE_CAUSES_SHEET} to see which "
+        "source-data differences explain each performance period.",
+        f"3. Use {_pc_review_model.OTHER_EVIDENCE_SHEET} and "
+        f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} as supporting detail.",
         "4. Use the `review_key` column to follow a period across CSV artifacts.",
         "",
         "## Audit/Export Files",
