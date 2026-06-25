@@ -88,10 +88,15 @@ def write_report_bundle_readme(
         if comparison_level == SECURITY_COMPARISON_LEVEL
         else "Portfolio Differences"
     )
+    detail_sheets = (
+        "Underlying Causes sheet, Reported Performance Checks sheet, Context "
+        "sheet, and Raw Audit Trail sheet"
+        if comparison_level == SECURITY_COMPARISON_LEVEL
+        else "Underlying Causes sheet, Context sheet, and Raw Audit Trail sheet"
+    )
     excel_line = (
         f"- `report.xlsx`: Excel review workbook with the {primary_sheet} sheet, "
-        "Underlying Causes sheet, Reported Performance Checks sheet, Context "
-        "sheet, and Raw Audit Trail sheet."
+        f"{detail_sheets}."
     )
     html_line = (
         "- `report.html`: browser review report with the same sections and order as "

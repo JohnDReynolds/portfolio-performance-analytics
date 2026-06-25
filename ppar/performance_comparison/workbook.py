@@ -29,10 +29,10 @@ PRIMARY_DIFFERENCE_SHEETS = (
 )
 SHARED_REVIEW_SHEETS = (
     "Underlying Causes",
-    "Reported Performance Checks",
     "Context",
     "Raw Audit Trail",
 )
+SECURITY_REVIEW_SHEETS = ("Reported Performance Checks",)
 EXPECTED_SHEETS = (*PRIMARY_DIFFERENCE_SHEETS, *SHARED_REVIEW_SHEETS)
 REQUIRED_HEADERS = {
     "Portfolio Differences": (
@@ -43,7 +43,7 @@ REQUIRED_HEADERS = {
         "Explained Difference",
         "Unexplained Difference",
         "Status",
-        "Next Action",
+        "Comments",
         "Review Key",
     ),
     "Security Differences": (
@@ -362,7 +362,10 @@ def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
     if not any(sheet_name in sheet_names for sheet_name in PRIMARY_DIFFERENCE_SHEETS):
         expected = " or ".join(repr(sheet_name) for sheet_name in PRIMARY_DIFFERENCE_SHEETS)
         issues.append(f"report.xlsx is missing primary sheet {expected}")
-    for sheet_name in (*PRIMARY_DIFFERENCE_SHEETS, *SHARED_REVIEW_SHEETS):
+    required_sheets: list[str] = list(SHARED_REVIEW_SHEETS)
+    if "Security Differences" in sheet_names:
+        required_sheets.extend(SECURITY_REVIEW_SHEETS)
+    for sheet_name in (*PRIMARY_DIFFERENCE_SHEETS, *required_sheets):
         if sheet_name not in sheet_names:
             if sheet_name in SHARED_REVIEW_SHEETS:
                 issues.append(f"report.xlsx is missing sheet {sheet_name!r}")

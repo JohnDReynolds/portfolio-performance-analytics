@@ -25,7 +25,6 @@ _SECURITY_SPEC_COMPARISON_PATH = Path(
 _EXPECTED_PORTFOLIO_SHEETS = [
     "Portfolio Differences",
     "Underlying Causes",
-    "Reported Performance Checks",
     "Context",
     "Raw Audit Trail",
 ]
@@ -91,7 +90,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("Reported Performance Checks sheet", readme)
+            self.assertNotIn("Reported Performance Checks sheet", readme)
             self.assertIn("Raw Audit Trail sheet", readme)
             self.assertNotIn("Derived Checks", readme)
 
@@ -103,6 +102,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             try:
                 self.assertEqual(workbook.sheetnames, _EXPECTED_PORTFOLIO_SHEETS)
                 self.assertNotIn("Security Differences", workbook.sheetnames)
+                self.assertNotIn("Reported Performance Checks", workbook.sheetnames)
                 self.assertNotIn("Derived Checks", workbook.sheetnames)
 
                 self.assertEqual(
@@ -115,7 +115,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Explained Difference",
                         "Unexplained Difference",
                         "Status",
-                        "Next Action",
+                        "Comments",
                         "Review Key",
                     ],
                 )
@@ -131,10 +131,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Required YAML Setup",
                         "Review Key",
                     ],
-                )
-                self.assertEqual(
-                    _header_values(workbook["Reported Performance Checks"]),
-                    _NON_ADDITIVE_HEADERS,
                 )
                 self.assertEqual(
                     _header_values(workbook["Context"]),

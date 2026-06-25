@@ -171,12 +171,14 @@ def _portfolio_differences_sheet(
     active_findings: pl.DataFrame,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the portfolio-level primary differences sheet."""
+    labels = _workbook_column_labels()
+    labels[_NEXT_ACTION] = "Comments"
     return _pc_workbook.ReviewWorkbookSheet(
         artifact_name="portfolio_differences",
         sheet_name="Portfolio Differences",
         table=_workbook_portfolio_changes_table(active_findings),
         columns=_workbook_portfolio_changes_columns(),
-        labels=_workbook_column_labels(),
+        labels=labels,
     )
 
 
@@ -204,7 +206,7 @@ def _shared_detail_sheets(
     comparison_level: str,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return detail sheets shared by portfolio and security workflows."""
-    return (
+    detail_sheets = [
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name="underlying_causes",
             sheet_name="Underlying Causes",
@@ -214,16 +216,6 @@ def _shared_detail_sheets(
                 comparison_level=comparison_level,
             ),
             columns=_workbook_underlying_cause_columns(),
-            labels=_workbook_column_labels(),
-        ),
-        _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="derived_checks",
-            sheet_name="Reported Performance Checks",
-            table=_workbook_derived_checks_table_for_level(
-                active_findings,
-                comparison_level=comparison_level,
-            ),
-            columns=_workbook_non_additive_change_columns(),
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
@@ -246,7 +238,22 @@ def _shared_detail_sheets(
             columns=_workbook_findings_columns(findings),
             labels=_workbook_column_labels(),
         ),
-    )
+    ]
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        detail_sheets.insert(
+            1,
+            _pc_workbook.ReviewWorkbookSheet(
+                artifact_name="derived_checks",
+                sheet_name="Reported Performance Checks",
+                table=_workbook_derived_checks_table_for_level(
+                    active_findings,
+                    comparison_level=comparison_level,
+                ),
+                columns=_workbook_non_additive_change_columns(),
+                labels=_workbook_column_labels(),
+            ),
+        )
+    return tuple(detail_sheets)
 
 
 def _workbook_portfolio_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
@@ -374,7 +381,7 @@ def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, obj
         _ESTIMATED_CAUSE_TOTAL: estimated_total,
         _UNEXPLAINED_CHANGE: unexplained_change,
         _REVIEW_STATUS: _workbook_explanation_status(row),
-        _NEXT_ACTION: _workbook_performance_next_action(row),
+        _NEXT_ACTION: _workbook_performance_comments(row),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
 
@@ -400,26 +407,32 @@ def _workbook_explanation_status(row: Mapping[str, object]) -> str:
     return _STATUS_UNEXPLAINED
 
 
-def _workbook_performance_next_action(row: Mapping[str, object]) -> str:
-    """Return a plain-language next action for a portfolio period."""
+def _workbook_performance_comments(row: Mapping[str, object]) -> str:
+    """Return plain-language comments for a portfolio-period difference."""
     missing_inputs = row.get(_pc_explain.MISSING_IMPACT_INPUTS)
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if _has_text(missing_inputs):
-        return f"Add missing YAML specifications: {_format_value(missing_inputs)}."
+        return f"Missing YAML specifications: {_format_value(missing_inputs)}."
     underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
     performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
     if underlying_estimated_total is not None and performance_change is not None:
         residual = performance_change - underlying_estimated_total
         if abs(residual) <= 0.00000001:
-            return "None"
+            return "Reported return difference is explained by source-data changes."
         if abs(underlying_estimated_total) > 0:
-            return "Review the Underlying Causes sheet for this portfolio and period."
-        return "Review the Underlying Causes sheet for this portfolio and period."
+            return (
+                "Source-data changes explain part of the reported return "
+                "difference; review remaining evidence."
+            )
+        return (
+            "Reported return difference is not numerically explained; review "
+            "visible source-data evidence."
+        )
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
-        return "None"
+        return "Reported return difference is explained by source-data changes."
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
-        return "Review unexplained difference rows and add setup if needed."
-    return "Add setup so rows can explain the performance difference."
+        return "Source-data changes explain part of the reported return difference."
+    return "Reported return difference is not numerically explained by source-data rows."
 
 
 def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
@@ -434,7 +447,7 @@ def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
                 _ESTIMATED_CAUSE_TOTAL: None,
                 _UNEXPLAINED_CHANGE: None,
                 _REVIEW_STATUS: "No differences",
-                _NEXT_ACTION: "None",
+                _NEXT_ACTION: "No reported portfolio return differences.",
                 _REVIEW_KEY: "NO_PORTFOLIO_PERFORMANCE_DIFFERENCES",
             }
         ],
@@ -736,13 +749,12 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _NEXT_ACTION: (
-            "Review the Context sheet, Reported Performance Checks sheet, "
-            "Raw Audit Trail sheet, missing datasets, or vendor methodology."
+            "Review the Context sheet, Raw Audit Trail sheet, missing datasets, "
+            "or vendor methodology."
         ),
         _REQUIRED_YAML_SETUP: (
             "No additive underlying cause was found. Review the Context sheet, "
-            "Reported Performance Checks sheet, Raw Audit Trail sheet, missing "
-            "datasets, or vendor methodology."
+            "Raw Audit Trail sheet, missing datasets, or vendor methodology."
         ),
         _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
         _pc_findings.SOURCE_COLUMN: None,

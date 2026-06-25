@@ -590,7 +590,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "No portfolio performance differences found",
         )
         self.assertEqual(portfolio_changes["review_status"][0], "No differences")
-        self.assertEqual(portfolio_changes["next_action"][0], "None")
+        self.assertEqual(
+            portfolio_changes["next_action"][0],
+            "No reported portfolio return differences.",
+        )
         self.assertEqual(
             portfolio_changes["review_key"][0],
             "NO_PORTFOLIO_PERFORMANCE_DIFFERENCES",
@@ -1004,7 +1007,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 [
                     "Portfolio Differences",
                     "Underlying Causes",
-                    "Reported Performance Checks",
                     "Context",
                     "Raw Audit Trail",
                 ],
@@ -1025,7 +1027,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ],
             )
             self.assertEqual(performance_change_sheet["G1"].value, "Status")
-            self.assertEqual(performance_change_sheet["H1"].value, "Next Action")
+            self.assertEqual(performance_change_sheet["H1"].value, "Comments")
             self.assertEqual(performance_change_sheet["I1"].value, "Review Key")
             self.assertEqual(
                 [performance_change_sheet[f"I{row}"].value for row in range(2, 5)],
@@ -1116,34 +1118,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "PORT_A::2025-05-30::2025-05-30",
             )
 
-            derived_checks_sheet = workbook["Reported Performance Checks"]
-            self.assertGreater(derived_checks_sheet.max_row, 1)
-            self.assertEqual(
-                [cell.value for cell in derived_checks_sheet[1]],
-                [
-                    "Portfolio",
-                    "From Date",
-                    "Thru Date",
-                    "Dataset",
-                    "Source Column",
-                    "Security",
-                    "Snapshot A Value",
-                    "Snapshot B Value",
-                    "B - A Difference",
-                    "What Changed",
-                    "Next Action",
-                    "Review Key",
-                ],
-            )
-            self.assertNotIn(
-                "Performance Difference Explained",
-                [cell.value for cell in derived_checks_sheet[1]],
-            )
-            self.assertNotIn("Code", [cell.value for cell in derived_checks_sheet[1]])
-            self.assertNotIn(
-                "Review Rank",
-                [cell.value for cell in derived_checks_sheet[1]],
-            )
+            self.assertNotIn("Reported Performance Checks", workbook.sheetnames)
 
             context_sheet = workbook["Context"]
             self.assertGreater(context_sheet.max_row, 1)
