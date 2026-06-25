@@ -117,24 +117,24 @@ mappings:
   # Security -> asset class.
   AssetClass:
     classification_column: ASSET_CLASS_CODE
-    display_name_column: ASSET_CLASS_DESC
+    display_name_column: ASSET_CLASS_CODE
 
   # Security -> country.
   Country:
     classification_column: COUNTRY_CODE
-    display_name_column: COUNTRY_DESC
+    display_name_column: COUNTRY_CODE
 
   # Security -> currency.
   Currency:
     classification_column: CURRENCY_CODE
-    display_name_column: CURRENCY_DESC
+    display_name_column: CURRENCY_CODE
 
   # Security -> industry.
   Industry:
     classification_column: INDUSTRY_CODE
-    display_name_column: INDUSTRY_DESC
+    display_name_column: INDUSTRY_CODE
 
   # Security -> sector.
   Sector:
     classification_column: SECTOR_CODE
-    display_name_column: SECTOR_DESC
+    display_name_column: SECTOR_CODE

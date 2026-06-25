@@ -43,8 +43,8 @@ _CHANGE_LABEL = "change_label"
 _CHANGE = "change"
 _ESTIMATED_IMPACT = "estimated_impact"
 _IMPACT_STATUS = "impact_status"
-_NEXT_ACTION = "next_action"
-_REQUIRED_YAML_SETUP = "required_yaml_setup"
+_REVIEW_NOTE = "review_note"
+_REVIEW_GUIDANCE = "review_guidance"
 _USE_EXPLAINS_CHANGE = "Explains Change"
 _USE_REVIEW_CONTEXT = "Review Context"
 _USE_DIAGNOSTIC = "Diagnostic"
@@ -54,7 +54,7 @@ _IMPACT_STATUS_MISSING_INPUT = "Missing impact input"
 _IMPACT_STATUS_REVIEW_ONLY = "Review only"
 _NO_UNDERLYING_CAUSE_DATASET = "no_underlying_cause_found"
 _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE = "underlying_cause"
-_WORKBOOK_ROW_KIND_DERIVED_CHECK = "derived_check"
+_WORKBOOK_ROW_KIND_REPORTED_DIAGNOSTIC = "reported_diagnostic"
 _WORKBOOK_ROW_KIND_CONTEXT = "context"
 _WORKBOOK_ROW_KIND_DIAGNOSTIC = "diagnostic"
 _WORKBOOK_ROW_KIND_OTHER = "other"
@@ -102,7 +102,7 @@ def write_performance_comparison_review_workbook(
             when needed.
         top_evidence_limit: Reserved for parity with bundle/report writers.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Underlying Causes`` sheet can name the exact file to update
+            the ``Identifiable Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for the workbook.
 
@@ -142,7 +142,7 @@ def performance_comparison_review_workbook_sheets(
         findings: Findings table returned by ``compare_snapshots`` or
             ``findings_to_polars``.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Underlying Causes`` sheet can name the exact file to update
+            the ``Identifiable Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for the workbook.
 
@@ -170,12 +170,12 @@ def performance_comparison_review_workbook_sheets(
 def _portfolio_differences_sheet(
     active_findings: pl.DataFrame,
 ) -> _pc_workbook.ReviewWorkbookSheet:
-    """Return the portfolio-level primary differences sheet."""
+    """Return the portfolio-level performance differences sheet."""
     labels = _workbook_column_labels()
-    labels[_NEXT_ACTION] = "Comments"
+    labels[_REVIEW_NOTE] = "Comments"
     return _pc_workbook.ReviewWorkbookSheet(
-        artifact_name="portfolio_differences",
-        sheet_name="Portfolio Differences",
+        artifact_name="performance_differences",
+        sheet_name="Performance Differences",
         table=_workbook_portfolio_changes_table(active_findings),
         columns=_workbook_portfolio_changes_columns(),
         labels=labels,
@@ -185,16 +185,18 @@ def _portfolio_differences_sheet(
 def _security_differences_sheet(
     active_findings: pl.DataFrame,
 ) -> _pc_workbook.ReviewWorkbookSheet:
-    """Return the security-level primary differences sheet."""
+    """Return the security-level performance differences sheet."""
+    labels = _workbook_column_labels()
+    labels[_REVIEW_NOTE] = "Comments"
     return _pc_workbook.ReviewWorkbookSheet(
-        artifact_name="security_differences",
-        sheet_name="Security Differences",
+        artifact_name="performance_differences",
+        sheet_name="Performance Differences",
         table=_workbook_security_changes_table(
             active_findings,
             comparison_level=SECURITY_COMPARISON_LEVEL,
         ),
         columns=_workbook_security_changes_columns(),
-        labels=_workbook_column_labels(),
+        labels=labels,
     )
 
 
@@ -208,8 +210,8 @@ def _shared_detail_sheets(
     """Return detail sheets shared by portfolio and security workflows."""
     detail_sheets = [
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="underlying_causes",
-            sheet_name="Underlying Causes",
+            artifact_name="identifiable_causes",
+            sheet_name="Identifiable Causes",
             table=_workbook_underlying_causes_table(
                 active_findings,
                 comparison_path=comparison_path,
@@ -219,8 +221,8 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name="context",
-            sheet_name="Context",
+            artifact_name="other_evidence",
+            sheet_name="Other Evidence",
             table=_workbook_context_table(
                 active_findings,
                 comparison_level=comparison_level,
@@ -239,20 +241,6 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
     ]
-    if comparison_level == SECURITY_COMPARISON_LEVEL:
-        detail_sheets.insert(
-            1,
-            _pc_workbook.ReviewWorkbookSheet(
-                artifact_name="derived_checks",
-                sheet_name="Reported Performance Checks",
-                table=_workbook_derived_checks_table_for_level(
-                    active_findings,
-                    comparison_level=comparison_level,
-                ),
-                columns=_workbook_non_additive_change_columns(),
-                labels=_workbook_column_labels(),
-            ),
-        )
     return tuple(detail_sheets)
 
 
@@ -381,7 +369,7 @@ def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, obj
         _ESTIMATED_CAUSE_TOTAL: estimated_total,
         _UNEXPLAINED_CHANGE: unexplained_change,
         _REVIEW_STATUS: _workbook_explanation_status(row),
-        _NEXT_ACTION: _workbook_performance_comments(row),
+        _REVIEW_NOTE: _workbook_performance_comments(row),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
 
@@ -436,7 +424,7 @@ def _workbook_performance_comments(row: Mapping[str, object]) -> str:
 
 
 def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
-    """Return a reviewer-facing Portfolio Differences row for clean comparisons."""
+    """Return a reviewer-facing performance-difference row for clean comparisons."""
     return pl.DataFrame(
         [
             {
@@ -447,7 +435,7 @@ def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
                 _ESTIMATED_CAUSE_TOTAL: None,
                 _UNEXPLAINED_CHANGE: None,
                 _REVIEW_STATUS: "No differences",
-                _NEXT_ACTION: "No reported portfolio return differences.",
+                _REVIEW_NOTE: "No reported portfolio return differences.",
                 _REVIEW_KEY: "NO_PORTFOLIO_PERFORMANCE_DIFFERENCES",
             }
         ],
@@ -459,7 +447,7 @@ def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
             _ESTIMATED_CAUSE_TOTAL: pl.Float64,
             _UNEXPLAINED_CHANGE: pl.Float64,
             _REVIEW_STATUS: pl.String,
-            _NEXT_ACTION: pl.String,
+            _REVIEW_NOTE: pl.String,
             _REVIEW_KEY: pl.String,
         },
     )
@@ -550,8 +538,8 @@ def _workbook_security_change_row(row: Mapping[str, object]) -> dict[str, object
         _ESTIMATED_CAUSE_TOTAL: explained_change,
         _UNEXPLAINED_CHANGE: unexplained_change,
         _REVIEW_STATUS: "Security Difference",
-        _NEXT_ACTION: (
-            "Review Underlying Causes for this security and period."
+        _REVIEW_NOTE: (
+            "Review Identifiable Causes for this security and period."
         ),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
@@ -593,13 +581,13 @@ def _workbook_missing_security_change_row(
         _ESTIMATED_CAUSE_TOTAL: None,
         _UNEXPLAINED_CHANGE: None,
         _REVIEW_STATUS: "No differences",
-        _NEXT_ACTION: "None",
+        _REVIEW_NOTE: "None",
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
 
 
 def _workbook_empty_security_changes_table() -> pl.DataFrame:
-    """Return an empty workbook Security Differences table."""
+    """Return an empty workbook security-level performance differences table."""
     return pl.DataFrame(
         schema={
             _pc_findings.PORTFOLIO_ID: pl.String,
@@ -610,7 +598,7 @@ def _workbook_empty_security_changes_table() -> pl.DataFrame:
             _ESTIMATED_CAUSE_TOTAL: pl.Float64,
             _UNEXPLAINED_CHANGE: pl.Float64,
             _REVIEW_STATUS: pl.String,
-            _NEXT_ACTION: pl.String,
+            _REVIEW_NOTE: pl.String,
             _REVIEW_KEY: pl.String,
         }
     )
@@ -748,12 +736,12 @@ def _workbook_missing_underlying_cause_row(
         _CHANGE: None,
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
-        _NEXT_ACTION: (
-            "Review the Context sheet, Raw Audit Trail sheet, missing datasets, "
+        _REVIEW_NOTE: (
+            "Review the Other Evidence sheet, Raw Audit Trail sheet, missing datasets, "
             "or vendor methodology."
         ),
-        _REQUIRED_YAML_SETUP: (
-            "No additive underlying cause was found. Review the Context sheet, "
+        _REVIEW_GUIDANCE: (
+            "No additive identifiable cause was found. Review the Other Evidence sheet, "
             "Raw Audit Trail sheet, missing datasets, or vendor methodology."
         ),
         _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
@@ -763,36 +751,6 @@ def _workbook_missing_underlying_cause_row(
         _USE_PRIORITY: _workbook_use_priority(_USE_DIAGNOSTIC),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
-
-
-def _workbook_derived_checks_table(findings: pl.DataFrame) -> pl.DataFrame:
-    """Return derived performance rows used as checks, not root causes."""
-    return _workbook_derived_checks_table_for_level(
-        findings,
-        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
-    )
-
-
-def _workbook_derived_checks_table_for_level(
-    findings: pl.DataFrame,
-    *,
-    comparison_level: str,
-) -> pl.DataFrame:
-    """Return derived performance rows for one primary comparison level."""
-    rows = [
-        _workbook_changed_item_row(_workbook_non_additive_row(row))
-        for row in _workbook_ranked_changed_rows_for_level(
-            findings,
-            comparison_level=comparison_level,
-        )
-        if _workbook_is_derived_check_row(row)
-    ]
-    if not rows:
-        return _workbook_empty_changed_item_table()
-    return _workbook_sorted_table(
-        pl.DataFrame(rows),
-        _workbook_left_review_sort_columns(),
-    )
 
 
 def _workbook_context_table(
@@ -870,7 +828,7 @@ def _workbook_should_promote_context_row(
     Notes:
         This is a workbook presentation rule, not an attribution model. It keeps
         fully explained periods clean while surfacing plausible evidence-only
-        input changes on the ``Underlying Causes`` sheet when a period still has
+        input changes on the ``Identifiable Causes`` sheet when a period still has
         a performance difference that additive rows did not explain.
     """
     if not _workbook_is_context_row(row) or not _workbook_has_evidence_only_policy(row):
@@ -912,7 +870,7 @@ def _workbook_selected_impact_basis_keys(
     *,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> set[tuple[object, ...]]:
-    """Return period/impact-basis keys included in Portfolio Differences totals."""
+    """Return period/impact-basis keys included in Performance Differences totals."""
     causes = _workbook_primary_cause_summary(
         findings,
         comparison_level=comparison_level,
@@ -933,13 +891,13 @@ def _workbook_selected_impact_basis_keys(
         group_key = _workbook_cause_family_key(row, comparison_level)
         grouped_rows.setdefault(group_key, []).append(row)
     for group_rows in grouped_rows.values():
-        for row in _workbook_preferred_estimate_rows(group_rows):
-            impact_basis = row.get(_pc_explain.IMPACT_BASIS)
+        for selected_row in _workbook_preferred_estimate_rows(group_rows):
+            impact_basis = selected_row.get(_pc_explain.IMPACT_BASIS)
             if impact_basis == _pc_explain.IMPACT_BASIS_NO_ESTIMATE:
                 continue
             keys.add(
                 (
-                    *_workbook_cause_family_key(row, comparison_level),
+                    *_workbook_cause_family_key(selected_row, comparison_level),
                     impact_basis,
                 )
             )
@@ -1072,13 +1030,13 @@ def _workbook_non_additive_row(row: Mapping[str, object]) -> dict[str, object]:
 
 
 def _workbook_is_underlying_cause_row(row: Mapping[str, object]) -> bool:
-    """Return whether row is an underlying input-cause candidate."""
+    """Return whether row is an identifiable input-cause candidate."""
     return _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE
 
 
-def _workbook_is_derived_check_row(row: Mapping[str, object]) -> bool:
-    """Return whether row is a derived performance check, not a root cause."""
-    return _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DERIVED_CHECK
+def _workbook_is_reported_diagnostic_row(row: Mapping[str, object]) -> bool:
+    """Return whether row is a reported-performance diagnostic, not a root cause."""
+    return _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_REPORTED_DIAGNOSTIC
 
 
 def _workbook_is_context_row(row: Mapping[str, object]) -> bool:
@@ -1094,7 +1052,7 @@ def _workbook_row_kind(row: Mapping[str, object]) -> str:
         row.get(_pc_findings.DATASET),
         row.get(_pc_findings.SOURCE_COLUMN),
     ):
-        return _WORKBOOK_ROW_KIND_DERIVED_CHECK
+        return _WORKBOOK_ROW_KIND_REPORTED_DIAGNOSTIC
     if row.get(_pc_findings.EVIDENCE_ROLE) == _pc_findings.CONTEXT.value:
         return _WORKBOOK_ROW_KIND_CONTEXT
     if _workbook_has_evidence_only_policy(row):
@@ -1103,7 +1061,7 @@ def _workbook_row_kind(row: Mapping[str, object]) -> str:
         pc_cols.PORTFOLIO_PERFORMANCE,
         pc_cols.SECURITY_PERFORMANCE,
     }:
-        return _WORKBOOK_ROW_KIND_DERIVED_CHECK
+        return _WORKBOOK_ROW_KIND_REPORTED_DIAGNOSTIC
     if row.get(_pc_findings.EVIDENCE_ROLE) == _pc_findings.DIRECT_INPUT.value:
         return _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE
     return _WORKBOOK_ROW_KIND_OTHER
@@ -1131,8 +1089,8 @@ def _workbook_changed_item_row(
         _pc_findings.IMPACT_INPUT_VALUE: row.get(_pc_findings.IMPACT_INPUT_VALUE),
         _ESTIMATED_IMPACT: estimated_impact,
         _IMPACT_STATUS: impact_status,
-        _NEXT_ACTION: _workbook_next_action(row, estimated_impact, row_use, impact_status),
-        _REQUIRED_YAML_SETUP: _workbook_required_yaml_setup(
+        _REVIEW_NOTE: _workbook_review_note(row, estimated_impact, row_use, impact_status),
+        _REVIEW_GUIDANCE: _workbook_review_guidance(
             row,
             estimated_impact,
             comparison_path=comparison_path,
@@ -1185,7 +1143,7 @@ def _workbook_impact_status(
         row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE)
         or
         _workbook_is_context_row(row)
-        or _workbook_is_derived_check_row(row)
+        or _workbook_is_reported_diagnostic_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
         or _workbook_has_evidence_only_policy(row)
     ):
@@ -1195,13 +1153,13 @@ def _workbook_impact_status(
     return _IMPACT_STATUS_MISSING_METHOD
 
 
-def _workbook_next_action(
+def _workbook_review_note(
     row: Mapping[str, object],
     estimated_impact: float | None,
     row_use: str,
     impact_status: str,
 ) -> str:
-    """Return one action-oriented note for a changed workbook row."""
+    """Return one reviewer-facing note for a changed workbook row."""
     if estimated_impact is not None:
         return "None"
 
@@ -1210,7 +1168,7 @@ def _workbook_next_action(
     if dataset in {pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.SECURITY_PERFORMANCE}:
         return (
             "This is simply a difference in the raw performance datasets. Check "
-            "the Underlying Causes sheet to see what explains it."
+            "the Identifiable Causes sheet to see what explains it."
         )
     if _workbook_has_evidence_only_policy(row):
         return "Review this input difference; it is not included in explained difference."
@@ -1240,13 +1198,13 @@ def _workbook_next_action(
     )
 
 
-def _workbook_required_yaml_setup(
+def _workbook_review_guidance(
     row: Mapping[str, object],
     estimated_impact: float | None,
     *,
     comparison_path: util.PathLike | None,
 ) -> str:
-    """Return the YAML setup required before this row can explain performance."""
+    """Return review guidance for why this row does or does not explain performance."""
     if estimated_impact is not None:
         return "None"
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
@@ -1255,7 +1213,7 @@ def _workbook_required_yaml_setup(
         return "None; this review-only row is not included in explained difference."
     if (
         _workbook_is_context_row(row)
-        or _workbook_is_derived_check_row(row)
+        or _workbook_is_reported_diagnostic_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
     ):
         return "None; this row is review context, not an underlying input difference."
@@ -1447,8 +1405,8 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _pc_findings.IMPACT_INPUT_VALUE: pl.Float64,
             _ESTIMATED_IMPACT: pl.Float64,
             _IMPACT_STATUS: pl.String,
-            _NEXT_ACTION: pl.String,
-            _REQUIRED_YAML_SETUP: pl.String,
+            _REVIEW_NOTE: pl.String,
+            _REVIEW_GUIDANCE: pl.String,
             _pc_findings.DATASET: pl.String,
             _pc_findings.SOURCE_COLUMN: pl.String,
             _pc_findings.FINDING_CODE: pl.String,
@@ -1460,7 +1418,7 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
 
 
 def _workbook_portfolio_changes_columns() -> tuple[str, ...]:
-    """Return Portfolio Differences worksheet columns."""
+    """Return portfolio-level Performance Differences worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -1469,13 +1427,13 @@ def _workbook_portfolio_changes_columns() -> tuple[str, ...]:
         _ESTIMATED_CAUSE_TOTAL,
         _UNEXPLAINED_CHANGE,
         _REVIEW_STATUS,
-        _NEXT_ACTION,
+        _REVIEW_NOTE,
         _REVIEW_KEY,
     )
 
 
 def _workbook_security_changes_columns() -> tuple[str, ...]:
-    """Return Security Differences worksheet columns."""
+    """Return security-level Performance Differences worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -1485,13 +1443,13 @@ def _workbook_security_changes_columns() -> tuple[str, ...]:
         _ESTIMATED_CAUSE_TOTAL,
         _UNEXPLAINED_CHANGE,
         _REVIEW_STATUS,
-        _NEXT_ACTION,
+        _REVIEW_NOTE,
         _REVIEW_KEY,
     )
 
 
 def _workbook_underlying_cause_columns() -> tuple[str, ...]:
-    """Return Underlying Causes worksheet columns."""
+    """Return Identifiable Causes worksheet columns."""
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -1504,7 +1462,7 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _CHANGE,
         _pc_findings.IMPACT_INPUT_VALUE,
         _ESTIMATED_IMPACT,
-        _REQUIRED_YAML_SETUP,
+        _REVIEW_GUIDANCE,
         _REVIEW_KEY,
     )
 
@@ -1522,7 +1480,7 @@ def _workbook_non_additive_change_columns() -> tuple[str, ...]:
         _pc_findings.SNAPSHOT_B_VALUE,
         _CHANGE,
         _CHANGE_LABEL,
-        _NEXT_ACTION,
+        _REVIEW_NOTE,
         _REVIEW_KEY,
     )
 
@@ -1569,8 +1527,8 @@ def _workbook_column_labels() -> dict[str, str]:
         _CHANGE: "B - A Difference",
         _ESTIMATED_IMPACT: "Performance Difference Explained",
         _IMPACT_STATUS: "Impact Status",
-        _NEXT_ACTION: "Next Action",
-        _REQUIRED_YAML_SETUP: "Required YAML Setup",
+        _REVIEW_NOTE: "Review Guidance",
+        _REVIEW_GUIDANCE: "Review Guidance",
         _pc_explain.PORTFOLIO_RETURN_DELTA: "Return Delta",
         _REVIEW_STATUS: "Status",
         _REVIEW_CUES: "Review Cues",
@@ -1626,7 +1584,7 @@ def workbook_column_tooltip(column: str) -> str:
             "Snapshot B portfolio return minus snapshot A portfolio return."
         ),
         _ESTIMATED_CAUSE_TOTAL: (
-            "Total performance difference explained by Underlying Causes sheet rows."
+            "Total performance difference explained by Identifiable Causes sheet rows."
         ),
         _UNEXPLAINED_CHANGE: "Performance difference less explained difference.",
         _USE: "Workbook row category used for sorting and compatibility.",
@@ -1640,10 +1598,10 @@ def workbook_column_tooltip(column: str) -> str:
             "Whether this row has an additive estimate, is missing an impact method, "
             "or is review-only."
         ),
-        _NEXT_ACTION: "Recommended reviewer action for this changed item.",
-        _REQUIRED_YAML_SETUP: (
-            "YAML setup needed before this input row can receive a performance "
-            "difference explanation."
+        _REVIEW_NOTE: "Recommended review guidance for this changed item.",
+        _REVIEW_GUIDANCE: (
+            "Why this row is or is not included in the quantified explanation, "
+            "and what the reviewer should check next."
         ),
         _pc_explain.PORTFOLIO_RETURN_DELTA: (
             "Snapshot B portfolio return minus snapshot A portfolio return."

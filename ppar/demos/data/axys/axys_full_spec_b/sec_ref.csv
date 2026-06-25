@@ -1,15 +1,15 @@
-SECURITY_ID,SECURITY_NAME,ASSET_CLASS_CODE,ASSET_CLASS_DESC,SECTOR_CODE,SECTOR_DESC,COUNTRY_CODE,COUNTRY_DESC,CURRENCY_CODE,CURRENCY_DESC,INDUSTRY_CODE,INDUSTRY_DESC
-AAPL,Apple Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-AMZN,Amazon.Com Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-AVGO,Broadcom Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-BRKB,Berkshire Hathaway Inc Class B,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-CASH_USD,US Dollar Cash,CASH,Cash,CA,Cash,US,United States,USD,US Dollar,CA,Cash
-GOOG,Alphabet Inc Class C,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-GOOGL,Alphabet Inc Class A,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-META,Meta Platforms Inc Class A,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-MSFT,Microsoft Corp,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-NVDA,Nvidia Corp,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
-TBILL13W,13 Week Treasury Bill,TBILL,Treasury Bills,CA,Cash,US,United States,USD,US Dollar,CA,Cash
-TNOTE2Y,2 Year Treasury Note,TNOTE,Treasury Notes,CA,Cash,US,United States,USD,US Dollar,CA,Cash
-TNOTE5Y,5 Year Treasury Note,TNOTE,Treasury Notes,CA,Cash,US,United States,USD,US Dollar,CA,Cash
-TSLA,Tesla Inc,EQ,Equity,EQ,Equity,US,United States,USD,US Dollar,EQ,Equity
+SECURITY_ID,SECURITY_NAME,ASSET_CLASS_CODE,SECTOR_CODE,COUNTRY_CODE,CURRENCY_CODE,INDUSTRY_CODE
+AAPL,Apple Inc,EQ,EQ,US,USD,EQ
+AMZN,Amazon.Com Inc,EQ,EQ,US,USD,EQ
+AVGO,Broadcom Inc,EQ,EQ,US,USD,EQ
+BRKB,Berkshire Hathaway Inc Class B,EQ,EQ,US,USD,EQ
+CASH_USD,US Dollar Cash,CASH,CA,US,USD,CA
+GOOG,Alphabet Inc Class C,EQ,EQ,US,USD,EQ
+GOOGL,Alphabet Inc Class A,EQ,EQ,US,USD,EQ
+META,Meta Platforms Inc Class A,EQ,EQ,US,USD,EQ
+MSFT,Microsoft Corp,EQ,EQ,US,USD,EQ
+NVDA,Nvidia Corp,EQ,EQ,US,USD,EQ
+TBILL13W,13 Week Treasury Bill,TBILL,CA,US,USD,CA
+TNOTE2Y,2 Year Treasury Note,TNOTE,CA,US,USD,CA
+TNOTE5Y,5 Year Treasury Note,TNOTE,CA,US,USD,CA
+TSLA,Tesla Inc,EQ,EQ,US,USD,EQ

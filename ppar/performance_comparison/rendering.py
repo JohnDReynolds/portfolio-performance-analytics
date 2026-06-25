@@ -309,7 +309,7 @@ def format_value(value: object) -> str:
     if value is None:
         return ""
     if isinstance(value, float):
-        return f"{value:.10g}"
+        return f"{value:.6f}"
     if isinstance(value, bool):
         return "yes" if value else "no"
     if isinstance(value, (dt.date, dt.datetime)):
@@ -554,8 +554,11 @@ th {
   color: #263033;
   font-size: 11px;
   font-weight: 700;
+  position: sticky;
+  top: 0;
   text-align: left;
   white-space: nowrap;
+  z-index: 1;
 }
 td {
   border-color: var(--pc-border-light);

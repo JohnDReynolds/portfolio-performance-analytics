@@ -12,6 +12,7 @@ import polars as pl
 # Project imports
 from ppar.performance_comparison import compare_snapshots, summarize_findings
 from ppar.performance_comparison import explain as _pc_explain
+from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison.report import (
     _context_evidence_table,
@@ -19,7 +20,6 @@ from ppar.performance_comparison.report import (
 )
 from ppar.performance_comparison.workbook_tables import (
     _workbook_context_table,
-    _workbook_derived_checks_table_for_level,
     _workbook_portfolio_changes_table,
     _workbook_underlying_causes_table,
 )
@@ -145,13 +145,13 @@ def _validate_demo_matrix(
         _check_workbook_column(
             "Missing transaction method",
             policy_gap_causes,
-            "required_yaml_setup",
+            "review_guidance",
             "transaction_impact_methods",
         ),
         _check_workbook_column(
             "Missing transaction rules",
             policy_gap_causes,
-            "required_yaml_setup",
+            "review_guidance",
             "transaction_rules",
         ),
         _check_transaction_rows_visible(restatement_causes),
@@ -450,11 +450,7 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
 def _check_security_full_spec_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
     """Return whether the security full-spec fixture exercises security review."""
     name = "Security full field-role specifications"
-    checks = _workbook_derived_checks_table_for_level(findings, comparison_level="security")
-    check_fields = {
-        (str(row["dataset"]), str(row["source_column"]))
-        for row in checks.select(["dataset", "source_column"]).iter_rows(named=True)
-    }
+    check_fields = _reported_performance_component_fields(findings)
     expected_check_fields = {
         ("security_performance", "security_return"),
         ("security_performance", "contribution"),
@@ -468,8 +464,19 @@ def _check_security_full_spec_attribution(findings: pl.DataFrame) -> _ScenarioCh
     return _ScenarioCheck(
         name,
         True,
-        "security review covered reported return and contribution checks",
+        "security review covered reported return and contribution diagnostics",
     )
+
+
+def _reported_performance_component_fields(findings: pl.DataFrame) -> set[tuple[str, str]]:
+    """Return reported-performance component fields present in findings."""
+    fields: set[tuple[str, str]] = set()
+    for row in findings.select(["dataset", "source_column"]).iter_rows(named=True):
+        dataset = row["dataset"]
+        source_column = row["source_column"]
+        if _field_roles.is_reported_performance_component(dataset, source_column):
+            fields.add((str(dataset), str(source_column)))
+    return fields
 
 
 def _check_suppressed_findings(

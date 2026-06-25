@@ -83,16 +83,9 @@ def write_report_bundle_readme(
     Returns:
         Normalized destination path.
     """
-    primary_sheet = (
-        "Security Differences"
-        if comparison_level == SECURITY_COMPARISON_LEVEL
-        else "Portfolio Differences"
-    )
+    primary_sheet = "Performance Differences"
     detail_sheets = (
-        "Underlying Causes sheet, Reported Performance Checks sheet, Context "
-        "sheet, and Raw Audit Trail sheet"
-        if comparison_level == SECURITY_COMPARISON_LEVEL
-        else "Underlying Causes sheet, Context sheet, and Raw Audit Trail sheet"
+        "Identifiable Causes sheet, Other Evidence sheet, and Raw Audit Trail sheet"
     )
     excel_line = (
         f"- `report.xlsx`: Excel review workbook with the {primary_sheet} sheet, "
@@ -131,10 +124,9 @@ def write_report_bundle_readme(
         "## Recommended Review Order",
         "",
         first_review_step,
-        "2. Use Underlying Causes to see which source-data differences explain "
+        "2. Use Identifiable Causes to see which source-data differences explain "
         "each performance period.",
-        "3. Use Reported Performance Checks, Context, and Raw Audit Trail as "
-        "supporting detail.",
+        "3. Use Other Evidence and Raw Audit Trail as supporting detail.",
         "4. Use the `review_key` column to follow a period across CSV artifacts.",
         "",
         "## Audit/Export Files",

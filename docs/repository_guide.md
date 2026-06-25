@@ -217,7 +217,7 @@ Performance comparison report bundles include:
 
 - `report.html`: browser-friendly review report.
 - `report.xlsx`: primary Excel reviewer artifact when generated.
-- `needs_review_summary.csv`: changed periods and next actions.
+- `needs_review_summary.csv`: changed periods and suggested review notes.
 - `findings.csv`: complete finding-level audit trail.
 - `manifest.json`: machine-readable artifact inventory.
 - `README.md`: generated bundle handoff notes.
@@ -225,14 +225,12 @@ Performance comparison report bundles include:
 The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
-The portfolio workbook starts with the `Portfolio Differences` sheet. The
-security workbook starts with the `Security Differences` sheet. Both then use
-the `Underlying Causes` sheet, `Reported Performance Checks` sheet, `Context`
-sheet, and `Raw Audit Trail` sheet. Explained amounts appear on `Underlying
-Causes` sheet rows when ppar has a defensible input-level explanation. The
-`Required YAML Setup` column is `None` for rows that are already explainable and
-otherwise names the YAML fields or unsupported impact method blocking
-attribution.
+Both portfolio and security workbooks start with the `Performance Differences`
+sheet. They then use the `Identifiable Causes` sheet, `Other Evidence` sheet,
+and `Raw Audit Trail` sheet. Explained amounts appear on `Identifiable Causes`
+sheet rows when ppar has a defensible input-level explanation. The `Review
+Guidance` column is `None` for rows that are already explainable and otherwise
+names the setup or unsupported impact method blocking attribution.
 
 ## Suggested Consolidation Rules
 

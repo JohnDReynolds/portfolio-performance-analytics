@@ -76,12 +76,14 @@ from ppar.performance_comparison.policies import (
     _fx_rate_impact_policies,
     _is_evidence_only_policy_label,
     _modified_dietz_external_flow_eligibility,
-    _modified_dietz_external_flow_impact,
-    _modified_dietz_float,
     _position_impact_policies,
     _price_impact_policies,
     _security_master_impact_policies,
     _transaction_impact_policies,
+)
+from ppar.performance_comparison.modified_dietz import (
+    modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
+    modified_dietz_float as _modified_dietz_float,
 )
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
 from ppar.performance_comparison.positions import PositionsLoader

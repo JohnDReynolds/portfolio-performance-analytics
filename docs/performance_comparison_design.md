@@ -77,16 +77,16 @@ Current workbook field roles:
   values when the required denominator or weight inputs are available.
 - `input_component`: fields that explain or reconcile a performance input, such
   as position quantity/price, standalone prices, and transaction
-  quantity/price/commission. These may appear on the `Underlying Causes` sheet
+  quantity/price/commission. These may appear on the `Identifiable Causes` sheet
   beside a related performance input or for unresolved periods, often without a
   separate explained amount.
 - `reported_performance_component`: portfolio/security performance output
   fields such as return, income, gain/loss, contribution, weight, and market
-  value. These are checks shown on the `Reported Performance Checks` sheet, not
-  underlying causes.
+  value. These remain reporting diagnostics and are not treated as underlying
+  causes.
 - `context`: review-only supporting fields such as position cost, FX rates,
   security reference fields, and unknown fields. These normally remain on the
-  `Context` sheet.
+  `Other Evidence` sheet.
 
 The packaged user-facing performance-comparison demos represent cash as a
 `CASH_USD` row in the positions file rather than as a separate `cash.csv` file.
@@ -1495,7 +1495,7 @@ denominator, and linkage are available.
 
 `evidence_only_impact_methods` is the explicit unsupported-but-known escape
 hatch. It does not create `estimated_return_impact`; instead, workbook rows are
-marked review-only and `Required YAML Setup` says the row is configured as
+marked review-only and `Review Guidance` says the row is configured as
 evidence-only. This keeps intentionally review-only changes from looking like
 missing setup. Supported dataset keys are `cash`, `fx_rates`, `positions`,
 `prices`, `security_master`, and `transactions`; each dataset may list only
@@ -1567,7 +1567,7 @@ Axys-specific presentation layer.
 The intended bundle review order depends on whether a workbook was included:
 
 1. `report.xlsx`, when present: primary reviewer artifact. Start with
-   the `Portfolio Differences` sheet, then use the `Underlying Causes` sheet
+   the `Performance Differences` sheet, then use the `Identifiable Causes` sheet
    to understand what explains each portfolio-period difference.
 2. `report.html`: browser-readable version of the same review model and sheet
    order used by `report.xlsx`.
@@ -1615,29 +1615,29 @@ with backing tables inside an Evidence Appendix.
 The XLSX workbook is the primary reviewer presentation over the same review
 tables used by the HTML/CSV bundle artifacts. Lower-level bundle calls generate
 it when requested with `include_workbook=True` or `--include-workbook`; the
-packaged demo writes it by default. The workbook starts with the `Portfolio
-Differences` sheet: one row per changed portfolio period, showing the decimal
-return difference, explained difference, and any unexplained remainder. The
-`Security Differences` sheet shows security-level return differences when
-security-performance rows changed, and it adds explicit no-difference rows for
-changed portfolio periods with no security-level return difference. The
-`Underlying Causes` sheet lists input rows such as positions, transactions,
+packaged demo writes it by default. The workbook starts with the `Performance
+Differences` sheet. In the portfolio demo, it has one row per changed portfolio
+period, showing the decimal return difference, explained difference, and any
+unexplained remainder. In the security demo, it shows security-level return
+differences when security-performance rows changed, and it adds explicit
+no-difference rows for changed portfolio periods with no security-level return
+difference. The
+`Identifiable Causes` sheet lists input rows such as positions, transactions,
 cash, prices, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
 now requires every changed source-data field that ppar knows how to classify to
 be explicitly configured as additive, evidence-only, or suppressed in YAML
 before any report artifacts are written. Evidence-only input rows normally stay
-in the `Context` sheet, but plausible evidence-only rows for a period or
+in the `Other Evidence` sheet, but plausible evidence-only rows for a period or
 security with a meaningful unexplained remainder are promoted into the
-`Underlying Causes` sheet with blank `Performance Difference Explained` values.
+`Identifiable Causes` sheet with blank `Performance Difference Explained` values.
 This promotion is a workbook presentation rule, not a new attribution model.
 Changed periods without any visible cause or promoted evidence row get a
-`no_underlying_cause_found` diagnostic row. The
-`Reported Performance Checks` sheet lists portfolio-performance and
-security-performance rows that confirm reporting differences but are not root
-causes. The `Context` sheet lists review-only supporting rows. The `Raw Audit
-Trail` sheet preserves the full finding-level detail.
+`no_underlying_cause_found` diagnostic row. The `Other Evidence` sheet lists
+review-only supporting rows. The `Raw Audit Trail` sheet preserves the full
+finding-level detail, including reported-performance diagnostics that confirm
+reporting differences but are not root causes.
 Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.
@@ -1707,7 +1707,7 @@ Row-level `context_evidence.csv` detail carries the same priority labels and
 reasons as the grouped summary so reviewers do not need to infer priority by
 joining artifacts manually.
 In the workbook, plausible evidence-only input rows for unresolved periods are
-shown on the `Underlying Causes` sheet instead of the `Context` sheet so the
+shown on the `Identifiable Causes` sheet instead of the `Other Evidence` sheet so the
 reviewer can see likely explanations and calculated explanations together. Cost
 basis and security-reference changes remain context unless a later model gives
 them a defensible return-impact interpretation.

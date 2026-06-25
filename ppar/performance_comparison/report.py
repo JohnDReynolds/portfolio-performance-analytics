@@ -149,7 +149,7 @@ def _performance_comparison_html_report(
             ``findings_to_polars``.
         title: HTML document title and visible H1 text.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Underlying Causes`` section can name the exact file to update
+            the ``Identifiable Causes`` section can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
 
@@ -203,7 +203,7 @@ def _html_workbook_contents_section(
         "\n".join(
             [
                 f"<p>Start with {_escape_html(primary_sheet_name)}, then use "
-                "Underlying Causes to see which source-data differences explain "
+                "Identifiable Causes to see which source-data differences explain "
                 "each period.</p>",
                 '<ol class="pc-contents-list">',
                 *items,
@@ -297,7 +297,7 @@ def _write_performance_comparison_html_report(
             created when needed.
         title: HTML document title and visible H1 text.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Underlying Causes`` section can name the exact file to update
+            the ``Identifiable Causes`` section can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
 
@@ -476,7 +476,7 @@ def write_performance_comparison_review_workbook(
             when needed.
         top_evidence_limit: Reserved for parity with bundle/report writers.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Underlying Causes`` sheet can name the exact file to update
+            the ``Identifiable Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
 
@@ -661,7 +661,7 @@ def _needs_review_status(cues: Sequence[str]) -> str:
 
 
 def _suggested_next_step(cues: Sequence[str]) -> str:
-    """Return a conservative next action for a period's reviewer cues."""
+    """Return conservative review guidance for a period's reviewer cues."""
     if any(cue.startswith("missing inputs:") for cue in cues):
         return "Resolve missing impact inputs before interpreting estimates."
     if any(cue.startswith("high-priority context:") for cue in cues):

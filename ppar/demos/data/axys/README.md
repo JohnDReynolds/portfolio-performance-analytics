@@ -45,27 +45,24 @@ Output:
 
 Start review in `report.xlsx`. Use `report.html` when you want the same review
 model in a browser. The report is designed for review, not for raw data export.
-It separates performance differences from underlying input differences and
-reported checks:
+It separates performance differences from identifiable input differences and
+other evidence:
 
-- `Portfolio Differences` sheet: one row per portfolio period with a performance
+- `Performance Differences` sheet: one row per portfolio period with a performance
   difference in the portfolio demo.
-- `Security Differences` sheet: one row per security-period return difference in
+- `Performance Differences` sheet: one row per security-period return difference in
   the security demo. Review keys include `Portfolio`, `From Date`, `Thru Date`,
   and `Security`.
-- `Underlying Causes` sheet: input rows such as positions, transactions, prices,
+- `Identifiable Causes` sheet: input rows such as positions, transactions, prices,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
-- Evidence-only input rows normally appear in the `Context` sheet. If a
+- Evidence-only input rows normally appear in the `Other Evidence` sheet. If a
   portfolio or security period still has an unexplained difference, plausible
   evidence-only input rows for that same review key are promoted into the
-  `Underlying Causes` sheet with blank `Performance Difference Explained`
+  `Identifiable Causes` sheet with blank `Performance Difference Explained`
   values so the likely explanation is visible in one place.
-- `Reported Performance Checks` sheet: portfolio-performance and
-  security-performance rows that confirm reporting differences but are not
-  treated as root causes.
-- `Context` sheet: review-only supporting rows that are not used to explain return
+- `Other Evidence` sheet: review-only supporting rows that are not used to explain return
   differences and are not needed to review an unresolved period.
 - `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
 
@@ -89,20 +86,17 @@ Data used:
 Expected workbook:
 
 - Changed ALPHA, BALANCED, and INCOME periods in the portfolio demo
-  `Portfolio Differences` sheet.
+  `Performance Differences` sheet.
 - Changed AAPL and TNOTE2Y security-period returns in the security demo
-  `Security Differences` sheet.
-- `Underlying Causes` sheet should show understandable additive transaction
+  `Performance Differences` sheet.
+- `Identifiable Causes` sheet should show understandable additive transaction
   amount, position market value, position accrued, and weighted price examples.
   It should also show plausible input-component rows for unresolved periods
   without assigning them `Performance Difference Explained` values.
 - Most portfolio-period differences should reconcile to rows in the
-  `Underlying Causes` sheet. One ALPHA period is partly explained, and one
+  `Identifiable Causes` sheet. One ALPHA period is partly explained, and one
   BALANCED period is intentionally unexplained with supporting review-only rows
-  promoted into the `Underlying Causes` sheet.
-- `Reported Performance Checks` sheet should show portfolio-performance and
-  security-performance component differences. These confirm performance-output
-  differences but are not labeled as root-cause input differences.
+  promoted into the `Identifiable Causes` sheet.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
     `CASH_USD` position changes;
@@ -114,13 +108,13 @@ Expected workbook:
   - a fully explained INCOME period with `CASH_USD` position changes;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
-    evidence, and TNOTE2Y cost in the `Context` sheet;
+    evidence, and TNOTE2Y cost in the `Other Evidence` sheet;
   - an unexplained BALANCED period with transaction quantity, price, and
-    commission rows promoted into the `Underlying Causes` sheet.
+    commission rows promoted into the `Identifiable Causes` sheet.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and transaction semantics explicit while still
-distinguishing underlying input causes from derived performance checks.
+distinguishing identifiable input causes from reported-performance diagnostics.
 
 After generating the workbook demo bundle, validate it with:
 
@@ -142,10 +136,10 @@ The workbook uses a small field-role model:
 
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
-| `performance_input` | `positions.market_value`, `positions.accrued`, `transactions.amount` | Additive rows on the `Underlying Causes` sheet when enough inputs are available. |
+| `performance_input` | `positions.market_value`, `positions.accrued`, `transactions.amount` | Additive rows on the `Identifiable Causes` sheet when enough inputs are available. |
 | `input_component` | `positions.quantity`, `positions.price`, `prices.price`, transaction quantity/price/commission | Shown beside related performance inputs, or promoted for unresolved periods, usually without its own explained amount. |
-| `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Shown on the `Reported Performance Checks` sheet. |
-| `context` | position cost, FX rates, security reference data, unsupported fields | Shown on the `Context` sheet unless promoted for review of an unresolved period. |
+| `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
+| `context` | position cost, FX rates, security reference data, unsupported fields | Shown on the `Other Evidence` sheet unless promoted for review of an unresolved period. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code
@@ -178,7 +172,7 @@ Most portfolio-period differences are fully explained. One INCOME period is
 partly explained by AAPL price and TNOTE2Y accrued-interest differences, with
 TNOTE2Y quantity, market value, and cost shown as context. One BALANCED period
 is unexplained by additive rows but has transaction quantity, price, and
-commission changes in the `Underlying Causes` sheet so the likely review path
+commission changes in the `Identifiable Causes` sheet so the likely review path
 is visible.
 
 Current public YAML targets are intentionally narrow:

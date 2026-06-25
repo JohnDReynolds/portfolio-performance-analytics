@@ -23,16 +23,15 @@ _SECURITY_SPEC_COMPARISON_PATH = Path(
 )
 
 _EXPECTED_PORTFOLIO_SHEETS = [
-    "Portfolio Differences",
-    "Underlying Causes",
-    "Context",
+    "Performance Differences",
+    "Identifiable Causes",
+    "Other Evidence",
     "Raw Audit Trail",
 ]
 _EXPECTED_SECURITY_SHEETS = [
-    "Security Differences",
-    "Underlying Causes",
-    "Reported Performance Checks",
-    "Context",
+    "Performance Differences",
+    "Identifiable Causes",
+    "Other Evidence",
     "Raw Audit Trail",
 ]
 _COMMON_LEFT_HEADERS = [
@@ -49,7 +48,7 @@ _NON_ADDITIVE_HEADERS = [
     "Snapshot B Value",
     "B - A Difference",
     "What Changed",
-    "Next Action",
+    "Review Guidance",
     "Review Key",
 ]
 
@@ -90,9 +89,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertNotIn("Reported Performance Checks sheet", readme)
             self.assertIn("Raw Audit Trail sheet", readme)
-            self.assertNotIn("Derived Checks", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
@@ -101,12 +98,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
             try:
                 self.assertEqual(workbook.sheetnames, _EXPECTED_PORTFOLIO_SHEETS)
-                self.assertNotIn("Security Differences", workbook.sheetnames)
-                self.assertNotIn("Reported Performance Checks", workbook.sheetnames)
-                self.assertNotIn("Derived Checks", workbook.sheetnames)
-
                 self.assertEqual(
-                    _header_values(workbook["Portfolio Differences"]),
+                    _header_values(workbook["Performance Differences"]),
                     [
                         "Portfolio",
                         "From Date",
@@ -120,7 +113,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Underlying Causes"])[:13],
+                    _header_values(workbook["Identifiable Causes"])[:13],
                     [
                         *_COMMON_LEFT_HEADERS,
                         "Snapshot A Value",
@@ -128,12 +121,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "B - A Difference",
                         "Impact Input Value",
                         "Performance Difference Explained",
-                        "Required YAML Setup",
+                        "Review Guidance",
                         "Review Key",
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Context"]),
+                    _header_values(workbook["Other Evidence"]),
                     _NON_ADDITIVE_HEADERS,
                 )
                 self.assertEqual(
@@ -146,10 +139,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
 
                 portfolio_differences = _column_values(
-                    workbook["Portfolio Differences"],
+                    workbook["Performance Differences"],
                     "D",
                 )
-                portfolio_rows = _sheet_rows(workbook["Portfolio Differences"])
+                portfolio_rows = _sheet_rows(workbook["Performance Differences"])
                 portfolio_codes = {row[0] for row in portfolio_rows}
                 statuses = {row[6] for row in portfolio_rows}
                 self.assertTrue(portfolio_differences)
@@ -170,10 +163,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     )
                 )
                 self.assertEqual(
-                    workbook["Portfolio Differences"]["D2"].number_format,
-                    "0.######",
+                    workbook["Performance Differences"]["D2"].number_format,
+                    "0.000000",
                 )
-                underlying_rows = _sheet_rows(workbook["Underlying Causes"])
+                underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
                 self.assertFalse(
                     any(row[3] == "no_underlying_cause_found" for row in underlying_rows)
                 )
@@ -197,7 +190,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("transactions", "quantity"),
                     }.issubset(underlying_fields)
                 )
-                context_rows = _sheet_rows(workbook["Context"])
+                context_rows = _sheet_rows(workbook["Other Evidence"])
                 context_fields = {(row[3], row[4]) for row in context_rows}
                 self.assertEqual(
                     {
@@ -229,9 +222,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
             try:
                 self.assertEqual(workbook.sheetnames, _EXPECTED_SECURITY_SHEETS)
-                self.assertNotIn("Portfolio Differences", workbook.sheetnames)
                 self.assertEqual(
-                    _header_values(workbook["Security Differences"]),
+                    _header_values(workbook["Performance Differences"]),
                     [
                         "Portfolio",
                         "From Date",
@@ -241,17 +233,17 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Explained Difference",
                         "Unexplained Difference",
                         "Status",
-                        "Next Action",
+                        "Comments",
                         "Review Key",
                     ],
                 )
-                review_keys = _column_values(workbook["Security Differences"], "J")
+                review_keys = _column_values(workbook["Performance Differences"], "J")
                 self.assertTrue(review_keys)
                 self.assertTrue(any(str(key).endswith("::AAPL") for key in review_keys))
                 self.assertTrue(
                     any(str(key).endswith("::TNOTE2Y") for key in review_keys)
                 )
-                security_rows = _sheet_rows(workbook["Security Differences"])
+                security_rows = _sheet_rows(workbook["Performance Differences"])
                 self.assertEqual(
                     {row[0] for row in security_rows},
                     {"ALPHA", "BALANCED", "INCOME"},
@@ -260,14 +252,14 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     {row[3] for row in security_rows},
                     {"AAPL", "TNOTE2Y"},
                 )
-                context_rows = _sheet_rows(workbook["Context"])
+                context_rows = _sheet_rows(workbook["Other Evidence"])
                 self.assertEqual(
                     {(row[3], row[4], row[5]) for row in context_rows},
                     {
                         ("positions", "cost", "TNOTE2Y"),
                     },
                 )
-                underlying_rows = _sheet_rows(workbook["Underlying Causes"])
+                underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
                 self.assertTrue(
                     {
                         ("positions", "market_value", "TNOTE2Y"),

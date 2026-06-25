@@ -18,24 +18,23 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
+from ppar.performance_comparison import rendering as _pc_rendering
 
 REVIEW_WORKBOOK_ARTIFACT = "review_workbook"
 REVIEW_WORKBOOK_FILE_NAME = "report.xlsx"
-WORKBOOK_NUMBER_FORMAT = "0.######"
+WORKBOOK_NUMBER_FORMAT = "0.000000"
 
 PRIMARY_DIFFERENCE_SHEETS = (
-    "Portfolio Differences",
-    "Security Differences",
+    "Performance Differences",
 )
 SHARED_REVIEW_SHEETS = (
-    "Underlying Causes",
-    "Context",
+    "Identifiable Causes",
+    "Other Evidence",
     "Raw Audit Trail",
 )
-SECURITY_REVIEW_SHEETS = ("Reported Performance Checks",)
 EXPECTED_SHEETS = (*PRIMARY_DIFFERENCE_SHEETS, *SHARED_REVIEW_SHEETS)
 REQUIRED_HEADERS = {
-    "Portfolio Differences": (
+    "Performance Differences": (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -46,19 +45,7 @@ REQUIRED_HEADERS = {
         "Comments",
         "Review Key",
     ),
-    "Security Differences": (
-        "Portfolio",
-        "From Date",
-        "Thru Date",
-        "Security",
-        "Performance Difference",
-        "Explained Difference",
-        "Unexplained Difference",
-        "Status",
-        "Next Action",
-        "Review Key",
-    ),
-    "Underlying Causes": (
+    "Identifiable Causes": (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -69,10 +56,10 @@ REQUIRED_HEADERS = {
         "Snapshot B Value",
         "B - A Difference",
         "Performance Difference Explained",
-        "Required YAML Setup",
+        "Review Guidance",
         "Review Key",
     ),
-    "Reported Performance Checks": (
+    "Other Evidence": (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -83,21 +70,7 @@ REQUIRED_HEADERS = {
         "Snapshot B Value",
         "B - A Difference",
         "What Changed",
-        "Next Action",
-        "Review Key",
-    ),
-    "Context": (
-        "Portfolio",
-        "From Date",
-        "Thru Date",
-        "Dataset",
-        "Source Column",
-        "Security",
-        "Snapshot A Value",
-        "Snapshot B Value",
-        "B - A Difference",
-        "What Changed",
-        "Next Action",
+        "Review Guidance",
         "Review Key",
     ),
     "Raw Audit Trail": (
@@ -191,7 +164,7 @@ def workbook_artifact_issues(
 
     try:
         # pylint: disable=import-outside-toplevel
-        from openpyxl import load_workbook  # type: ignore[import-not-found]
+        from openpyxl import load_workbook  # type: ignore[import-untyped]
     except ImportError:
         return [
             "report.xlsx cannot be validated because dependency 'openpyxl' "
@@ -212,9 +185,9 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
     """Return openpyxl classes or raise a clear dependency error."""
     try:
         # pylint: disable=import-outside-toplevel
-        from openpyxl import Workbook  # type: ignore[import-not-found]
-        from openpyxl.comments import Comment  # type: ignore[import-not-found]
-        from openpyxl.styles import Font, PatternFill  # type: ignore[import-not-found]
+        from openpyxl import Workbook
+        from openpyxl.comments import Comment  # type: ignore[import-untyped]
+        from openpyxl.styles import Font, PatternFill  # type: ignore[import-untyped]
     except ImportError as error:
         raise PpaError(
             "XLSX review workbook export requires dependency 'openpyxl'. "
@@ -275,8 +248,8 @@ def _workbook_sheet_columns(sheet: ReviewWorkbookSheet) -> tuple[str, ...]:
 def _workbook_column_label(column: str, labels: Mapping[str, str] | None) -> str:
     """Return the display label for a workbook column."""
     if labels is None:
-        return column
-    return labels.get(column, column)
+        return _pc_rendering.display_header(column)
+    return labels.get(column, _pc_rendering.display_header(column))
 
 
 def _workbook_cell_value(value: object, *, column_name: str) -> object:
@@ -359,12 +332,9 @@ def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
     """Return review workbook sheet and header validation issues."""
     issues: list[str] = []
     sheet_names = tuple(str(name) for name in workbook.sheetnames)
-    if not any(sheet_name in sheet_names for sheet_name in PRIMARY_DIFFERENCE_SHEETS):
-        expected = " or ".join(repr(sheet_name) for sheet_name in PRIMARY_DIFFERENCE_SHEETS)
-        issues.append(f"report.xlsx is missing primary sheet {expected}")
+    if "Performance Differences" not in sheet_names:
+        issues.append("report.xlsx is missing primary sheet 'Performance Differences'")
     required_sheets: list[str] = list(SHARED_REVIEW_SHEETS)
-    if "Security Differences" in sheet_names:
-        required_sheets.extend(SECURITY_REVIEW_SHEETS)
     for sheet_name in (*PRIMARY_DIFFERENCE_SHEETS, *required_sheets):
         if sheet_name not in sheet_names:
             if sheet_name in SHARED_REVIEW_SHEETS:

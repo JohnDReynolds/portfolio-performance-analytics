@@ -102,12 +102,12 @@ data. Snapshot B introduces controlled changes that produce:
 - one partly explained ALPHA period with a changed transaction amount plus
   review-only transaction quantity, price, and commission clues;
 - one unexplained BALANCED period with transaction quantity, price, and
-  commission shown as review-only `Underlying Causes` sheet evidence;
+  commission shown as review-only `Identifiable Causes` sheet evidence;
 - related position-component examples where quantity rows sit beside selected
-  market-value rows and cost remains on the `Context` sheet;
+  market-value rows and cost remains on the `Other Evidence` sheet;
 - matching security-level examples for AAPL and TNOTE2Y;
 - transaction-rule YAML plus default field-role treatment for performance
-  inputs, input components, reported performance checks, and context fields.
+  inputs, input components, reported-performance diagnostics, and context fields.
 
 The current generator writes:
 

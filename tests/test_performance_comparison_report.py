@@ -308,7 +308,7 @@ def _assert_workbook_explained_rows_reconcile(
             row_explained_change,
             explained_change,
             msg=(
-                f"{review_key} visible Underlying Causes rows do not match "
+                f"{review_key} visible Identifiable Causes rows do not match "
                 "Explained Difference."
             ),
         )
@@ -327,7 +327,7 @@ def _assert_workbook_explained_row_actions(
     """Assert explained workbook rows have clear YAML setup wording."""
     for row in underlying_causes.iter_rows(named=True):
         estimated_impact = _float_or_none(row.get("estimated_impact"))
-        required_setup = row.get("required_yaml_setup")
+        required_setup = row.get("review_guidance")
         if estimated_impact is None:
             test_case.assertNotEqual(required_setup, "None")
             if row.get("dataset") == "no_underlying_cause_found":
@@ -399,8 +399,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertFalse((output_directory / "report.md").exists())
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("<h1>Bundle Restatement</h1>", html_report)
-            self.assertIn("Portfolio Differences", html_report)
-            self.assertIn("Underlying Causes", html_report)
+            self.assertIn("Performance Differences", html_report)
+            self.assertIn("Identifiable Causes", html_report)
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("## Primary Review Artifact", readme)
@@ -408,8 +408,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertNotIn("## Secondary Review Views", readme)
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
-            self.assertIn("start with Portfolio Differences", readme)
-            self.assertIn("Use Underlying Causes", readme)
+            self.assertIn("start with Performance Differences", readme)
+            self.assertIn("Use Identifiable Causes", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn(
@@ -591,7 +591,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(portfolio_changes["review_status"][0], "No differences")
         self.assertEqual(
-            portfolio_changes["next_action"][0],
+            portfolio_changes["review_note"][0],
             "No reported portfolio return differences.",
         )
         self.assertEqual(
@@ -612,7 +612,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(plain_transaction_amount["estimated_impact"][0])
         self.assertIn(
             "transaction_impact_methods.performance.method",
-            plain_transaction_amount["required_yaml_setup"][0],
+            plain_transaction_amount["review_guidance"][0],
         )
 
         rules_findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
@@ -634,13 +634,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             rules_transaction_amount["estimated_impact"][0],
             -100.0 / 999915.0,
         )
-        self.assertEqual(rules_transaction_amount["required_yaml_setup"][0], "None")
+        self.assertEqual(rules_transaction_amount["review_guidance"][0], "None")
         self.assertEqual(
-            rules_transaction_quantity["next_action"][0],
+            rules_transaction_quantity["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
         )
         self.assertEqual(
-            rules_transaction_price["next_action"][0],
+            rules_transaction_price["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
         )
 
@@ -675,19 +675,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(transaction_amount["impact_status"][0], "Missing impact input")
         self.assertIn(
             "Configured transaction impact method is present",
-            transaction_amount["required_yaml_setup"][0],
+            transaction_amount["review_guidance"][0],
         )
         self.assertIn(
             "return denominator",
-            transaction_amount["required_yaml_setup"][0],
+            transaction_amount["review_guidance"][0],
         )
         self.assertNotIn(
             "transaction_impact_methods.performance.method",
-            transaction_amount["required_yaml_setup"][0],
+            transaction_amount["review_guidance"][0],
         )
         self.assertIn(
             "Review source inputs needed by the configured YAML method",
-            transaction_amount["next_action"][0],
+            transaction_amount["review_note"][0],
         )
 
     def test_transaction_commission_policy_marks_underlying_cause_review_only(
@@ -711,12 +711,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(commission.height, 1)
         self.assertIsNone(commission["estimated_impact"][0])
         self.assertEqual(
-            commission["next_action"][0],
+            commission["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
-        """Security Differences shows security-level performance changes."""
+        """Performance Differences shows security-level performance changes."""
         findings = compare_snapshots(_SECURITY_RESTATEMENT_COMPARISON_PATH)
 
         security_differences = _workbook_security_changes_table(findings)
@@ -753,7 +753,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertTrue(placeholders["performance_change"].is_null().all())
         self.assertTrue(placeholders["estimated_cause_total"].is_null().all())
         self.assertEqual(set(placeholders["review_status"].to_list()), {"No differences"})
-        self.assertEqual(set(placeholders["next_action"].to_list()), {"None"})
+        self.assertEqual(set(placeholders["review_note"].to_list()), {"None"})
 
     def test_position_impact_method_explains_market_value_row(self) -> None:
         """Position market value uses the default performance-input impact."""
@@ -787,10 +787,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_position.height, 1)
         self.assertAlmostEqual(plain_position["estimated_impact"][0], 0.01)
-        self.assertEqual(plain_position["required_yaml_setup"][0], "None")
+        self.assertEqual(plain_position["review_guidance"][0], "None")
         self.assertEqual(configured_position.height, 1)
         self.assertAlmostEqual(configured_position["estimated_impact"][0], 0.01)
-        self.assertEqual(configured_position["required_yaml_setup"][0], "None")
+        self.assertEqual(configured_position["review_guidance"][0], "None")
 
     def test_position_accrued_impact_method_explains_accrued_row(self) -> None:
         """Position accrued uses the default performance-input impact."""
@@ -825,10 +825,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_accrued.height, 1)
         self.assertAlmostEqual(plain_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(plain_accrued["required_yaml_setup"][0], "None")
+        self.assertEqual(plain_accrued["review_guidance"][0], "None")
         self.assertEqual(configured_accrued.height, 1)
         self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(configured_accrued["required_yaml_setup"][0], "None")
+        self.assertEqual(configured_accrued["review_guidance"][0], "None")
 
     def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
         """Evidence-only YAML removes missing-method guidance for known fields."""
@@ -878,14 +878,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
-            plain_quantity["required_yaml_setup"][0],
+            plain_quantity["review_guidance"][0],
             "None; related performance input row is selected.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
         self.assertIsNone(configured_quantity["estimated_impact"][0])
         self.assertEqual(
-            configured_quantity["next_action"][0],
+            configured_quantity["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
         )
 
@@ -921,10 +921,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_price.height, 1)
         self.assertAlmostEqual(plain_price["estimated_impact"][0], 0.002)
-        self.assertEqual(plain_price["required_yaml_setup"][0], "None")
+        self.assertEqual(plain_price["review_guidance"][0], "None")
         self.assertEqual(configured_price.height, 1)
         self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
-        self.assertEqual(configured_price["required_yaml_setup"][0], "None")
+        self.assertEqual(configured_price["review_guidance"][0], "None")
 
     def test_full_spec_workbook_links_changed_periods_to_underlying_causes(self) -> None:
         """Changed full-spec portfolio periods have matching cause rows."""
@@ -1005,13 +1005,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(
                 workbook.sheetnames,
                 [
-                    "Portfolio Differences",
-                    "Underlying Causes",
-                    "Context",
+                    "Performance Differences",
+                    "Identifiable Causes",
+                    "Other Evidence",
                     "Raw Audit Trail",
                 ],
             )
-            performance_change_sheet = workbook["Portfolio Differences"]
+            performance_change_sheet = workbook["Performance Differences"]
             self.assertEqual(
                 [
                     performance_change_sheet.cell(row=1, column=column).value
@@ -1038,9 +1038,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ],
             )
             self.assertEqual(performance_change_sheet.max_row, 4)
-            self.assertEqual(performance_change_sheet["D2"].number_format, "0.######")
-            self.assertEqual(performance_change_sheet["E2"].number_format, "0.######")
-            self.assertEqual(performance_change_sheet["F2"].number_format, "0.######")
+            self.assertEqual(performance_change_sheet["D2"].number_format, "0.000000")
+            self.assertEqual(performance_change_sheet["E2"].number_format, "0.000000")
+            self.assertEqual(performance_change_sheet["F2"].number_format, "0.000000")
             self.assertIsNotNone(performance_change_sheet["A1"].comment)
             assert performance_change_sheet["A1"].comment is not None
             self.assertIn(
@@ -1048,7 +1048,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 performance_change_sheet["A1"].comment.text,
             )
 
-            underlying_causes_sheet = workbook["Underlying Causes"]
+            underlying_causes_sheet = workbook["Identifiable Causes"]
             self.assertEqual(
                 [
                     underlying_causes_sheet.cell(row=1, column=column).value
@@ -1066,7 +1066,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "B - A Difference",
                     "Impact Input Value",
                     "Performance Difference Explained",
-                    "Required YAML Setup",
+                    "Review Guidance",
                 ],
             )
             self.assertGreater(underlying_causes_sheet.max_row, 5)
@@ -1078,11 +1078,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 underlying_causes_sheet[f"G{numeric_source_row}"].number_format,
-                "0.######",
+                "0.000000",
             )
             self.assertEqual(
                 underlying_causes_sheet[f"H{numeric_source_row}"].number_format,
-                "0.######",
+                "0.000000",
             )
             numeric_explained_row = next(
                 row
@@ -1091,7 +1091,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 underlying_causes_sheet[f"K{numeric_explained_row}"].number_format,
-                "0.######",
+                "0.000000",
             )
             portfolios = {
                 str(underlying_causes_sheet[f"A{row}"].value)
@@ -1118,9 +1118,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "PORT_A::2025-05-30::2025-05-30",
             )
 
-            self.assertNotIn("Reported Performance Checks", workbook.sheetnames)
-
-            context_sheet = workbook["Context"]
+            context_sheet = workbook["Other Evidence"]
             self.assertGreater(context_sheet.max_row, 1)
             self.assertEqual(
                 [cell.value for cell in context_sheet[1]],
@@ -1135,7 +1133,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot B Value",
                     "B - A Difference",
                     "What Changed",
-                    "Next Action",
+                    "Review Guidance",
                     "Review Key",
                 ],
             )
@@ -1297,14 +1295,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 require_complete_yaml_setup=False,
             )
             workbook = openpyxl.load_workbook(paths["review_workbook"])
-            del workbook["Portfolio Differences"]
+            del workbook["Performance Differences"]
             workbook.save(paths["review_workbook"])
 
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn(
-            "report.xlsx is missing primary sheet 'Portfolio Differences' or "
-            "'Security Differences'",
+            "report.xlsx is missing primary sheet 'Performance Differences'",
             issues,
         )
 
