@@ -30,7 +30,7 @@ from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
     FxRateImpactMethod,
-    PositionImpactMethod,
+    HoldingImpactMethod,
     SecurityMasterImpactMethod,
     TransactionImpactMethod,
 )
@@ -53,7 +53,7 @@ from ppar.performance_comparison import (
     PerformanceComparison,
     PerformanceComparisonSpecification,
     PortfolioPerformanceLoader,
-    PositionsLoader,
+    HoldingsLoader,
     PricesLoader,
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     RELATED_OUTPUT,
@@ -252,27 +252,27 @@ class TestPackageMetadata(unittest.TestCase):
     def test_axys_portfolio_demo_uses_operational_mega_cap_data(self) -> None:
         """The user-facing comparison demo packages the promoted operational data."""
         axys_demo_data = files("ppar.demos.data") / "axys"
-        positions_path = Path(
-            str(axys_demo_data / "axys_full_spec_a" / "positions_holdings.csv")
+        holdings_path = Path(
+            str(axys_demo_data / "axys_full_spec_a" / "holdings.csv")
         )
         portperf_path = Path(str(axys_demo_data / "axys_full_spec_a" / "portperf.csv"))
         sec_ref_path = Path(str(axys_demo_data / "axys_full_spec_a" / "sec_ref.csv"))
 
         with portperf_path.open(encoding=util.ENCODING, newline="") as file:
             portfolio_codes = {row["PORTFOLIO_CODE"] for row in csv.DictReader(file)}
-        with positions_path.open(encoding=util.ENCODING, newline="") as file:
-            position_ids = {row["SEC"] for row in csv.DictReader(file)}
+        with holdings_path.open(encoding=util.ENCODING, newline="") as file:
+            holding_ids = {row["SEC"] for row in csv.DictReader(file)}
         with sec_ref_path.open(encoding=util.ENCODING, newline="") as file:
             security_ids = {row["SECURITY_ID"] for row in csv.DictReader(file)}
 
         self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
-        self.assertIn("AAPL", position_ids)
-        self.assertIn("NVDA", position_ids)
-        self.assertIn("CASH_USD", position_ids)
-        self.assertIn("TBILL13W", position_ids)
-        self.assertIn("TNOTE2Y", position_ids)
-        self.assertIn("TNOTE5Y", position_ids)
-        self.assertTrue(position_ids.issubset(security_ids))
+        self.assertIn("AAPL", holding_ids)
+        self.assertIn("NVDA", holding_ids)
+        self.assertIn("CASH_USD", holding_ids)
+        self.assertIn("TBILL13W", holding_ids)
+        self.assertIn("TNOTE2Y", holding_ids)
+        self.assertIn("TNOTE5Y", holding_ids)
+        self.assertTrue(holding_ids.issubset(security_ids))
 
     def test_axys_validation_matrix_documents_problem_scenarios(self) -> None:
         """The Axys validation matrix names the expected review scenarios."""
@@ -403,7 +403,7 @@ class TestPackageMetadata(unittest.TestCase):
             "PerformanceComparison": PerformanceComparison,
             "PortfolioPerformanceLoader": PortfolioPerformanceLoader,
             "PerformanceComparisonSpecification": PerformanceComparisonSpecification,
-            "PositionsLoader": PositionsLoader,
+            "HoldingsLoader": HoldingsLoader,
             "PricesLoader": PricesLoader,
             "REPORT_BUNDLE_REQUIRED_ARTIFACTS": REPORT_BUNDLE_REQUIRED_ARTIFACTS,
             "SecurityPerformanceLoader": SecurityPerformanceLoader,

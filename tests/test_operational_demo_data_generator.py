@@ -65,7 +65,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             8,
         )
 
-    def test_axys_exports_include_accrual_and_cash_position_rows(self) -> None:
+    def test_axys_exports_include_accrual_and_cash_holding_rows(self) -> None:
         """Generated Axys-style frames contain expected operational examples."""
         performance = self.generator.derive_operational_performance(
             self.source,
@@ -74,11 +74,11 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         )
         axys = self.generator.build_axys_exports(performance)
 
-        self.assertIn("positions_holdings", axys)
+        self.assertIn("holdings", axys)
         self.assertNotIn("cash", axys)
         self.assertIn("transactions", axys)
-        self.assertGreater(float(axys["positions_holdings"]["ACCRUED"].max()), 0.0)
-        self.assertIn("CASH_USD", set(axys["positions_holdings"]["SEC"]))
+        self.assertGreater(float(axys["holdings"]["ACCRUED"].max()), 0.0)
+        self.assertIn("CASH_USD", set(axys["holdings"]["SEC"]))
         self.assertGreater(len(axys["transactions"]), 0)
         self.assertIn("TNOTE2Y", set(axys["sec_ref"]["SECURITY_ID"]))
 
@@ -106,73 +106,73 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             "PRICE",
         )
         tnote_accrued_a = _value(
-            snapshot_a["positions_holdings"],
-            snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y")
-            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_a["holdings"],
+            snapshot_a["holdings"]["PORT"].eq("INCOME")
+            & snapshot_a["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "ACCRUED",
         )
         tnote_accrued_b = _value(
-            snapshot_b["positions_holdings"],
-            snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y")
-            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_b["holdings"],
+            snapshot_b["holdings"]["PORT"].eq("INCOME")
+            & snapshot_b["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "ACCRUED",
         )
         tnote_quantity_a = _value(
-            snapshot_a["positions_holdings"],
-            snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y")
-            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_a["holdings"],
+            snapshot_a["holdings"]["PORT"].eq("INCOME")
+            & snapshot_a["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "QTY",
         )
         tnote_quantity_b = _value(
-            snapshot_b["positions_holdings"],
-            snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y")
-            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_b["holdings"],
+            snapshot_b["holdings"]["PORT"].eq("INCOME")
+            & snapshot_b["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "QTY",
         )
         tnote_cost_a = _value(
-            snapshot_a["positions_holdings"],
-            snapshot_a["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["positions_holdings"]["SEC"].eq("TNOTE2Y")
-            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_a["holdings"],
+            snapshot_a["holdings"]["PORT"].eq("INCOME")
+            & snapshot_a["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "COST",
         )
         tnote_cost_b = _value(
-            snapshot_b["positions_holdings"],
-            snapshot_b["positions_holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["positions_holdings"]["SEC"].eq("TNOTE2Y")
-            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_b["holdings"],
+            snapshot_b["holdings"]["PORT"].eq("INCOME")
+            & snapshot_b["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "COST",
         )
         cash_market_value_a = _value(
-            snapshot_a["positions_holdings"],
-            snapshot_a["positions_holdings"]["PORT"].eq("ALPHA")
-            & snapshot_a["positions_holdings"]["SEC"].eq("CASH_USD")
-            & snapshot_a["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_a["holdings"],
+            snapshot_a["holdings"]["PORT"].eq("ALPHA")
+            & snapshot_a["holdings"]["SEC"].eq("CASH_USD")
+            & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "MKT_VAL",
         )
         cash_market_value_b = _value(
-            snapshot_b["positions_holdings"],
-            snapshot_b["positions_holdings"]["PORT"].eq("ALPHA")
-            & snapshot_b["positions_holdings"]["SEC"].eq("CASH_USD")
-            & snapshot_b["positions_holdings"]["POSITION_DATE"].astype(str).eq(
+            snapshot_b["holdings"],
+            snapshot_b["holdings"]["PORT"].eq("ALPHA")
+            & snapshot_b["holdings"]["SEC"].eq("CASH_USD")
+            & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
             "MKT_VAL",
@@ -228,8 +228,8 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             summary = self.generator.summarize_outputs(performance, paths)
 
             self.assertTrue(Path(paths["source_performance"]).exists())
-            self.assertTrue(Path(paths["axys_a_positions_holdings"]).exists())
-            self.assertTrue(Path(paths["axys_b_positions_holdings"]).exists())
+            self.assertTrue(Path(paths["axys_a_holdings"]).exists())
+            self.assertTrue(Path(paths["axys_b_holdings"]).exists())
             self.assertTrue(Path(paths["portfolio_comparison_yaml"]).exists())
             self.assertTrue(Path(paths["security_comparison_yaml"]).exists())
             self.assertEqual(summary["period_count"], 3)
@@ -258,7 +258,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
 
             self.assertEqual(
                 set(portfolio_findings["dataset"]),
-                {"portfolio_performance", "positions", "prices", "transactions"},
+                {"portfolio_performance", "holdings", "prices", "transactions"},
             )
             self.assertIn("security_performance", set(security_findings["dataset"]))
             self.assertGreater(len(portfolio_findings), 0)

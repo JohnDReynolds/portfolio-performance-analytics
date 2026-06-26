@@ -14,13 +14,13 @@ CONTEXT: Final[str] = "context"
 REPORTED_PERFORMANCE_COMPONENT: Final[str] = "reported_performance_component"
 
 _FIELD_ROLES: Final[dict[tuple[str, str], str]] = {
-    (pc_cols.POSITIONS, pc_cols.MARKET_VALUE): PERFORMANCE_INPUT,
-    (pc_cols.POSITIONS, pc_cols.ACCRUED): PERFORMANCE_INPUT,
+    (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE): PERFORMANCE_INPUT,
+    (pc_cols.HOLDINGS, pc_cols.ACCRUED): PERFORMANCE_INPUT,
     (pc_cols.TRANSACTIONS, pc_cols.AMOUNT): PERFORMANCE_INPUT,
     (pc_cols.CASH, pc_cols.CASH_BALANCE): PERFORMANCE_INPUT,
     (pc_cols.CASH, pc_cols.MARKET_VALUE): PERFORMANCE_INPUT,
-    (pc_cols.POSITIONS, pc_cols.QUANTITY): INPUT_COMPONENT,
-    (pc_cols.POSITIONS, pc_cols.PRICE): INPUT_COMPONENT,
+    (pc_cols.HOLDINGS, pc_cols.QUANTITY): INPUT_COMPONENT,
+    (pc_cols.HOLDINGS, pc_cols.PRICE): INPUT_COMPONENT,
     (pc_cols.PRICES, pc_cols.PRICE): INPUT_COMPONENT,
     (pc_cols.TRANSACTIONS, pc_cols.QUANTITY): INPUT_COMPONENT,
     (pc_cols.TRANSACTIONS, pc_cols.PRICE): INPUT_COMPONENT,
@@ -53,7 +53,7 @@ _FIELD_ROLES: Final[dict[tuple[str, str], str]] = {
     (pc_cols.SECURITY_PERFORMANCE, pc_cols.INCOME): REPORTED_PERFORMANCE_COMPONENT,
     (pc_cols.SECURITY_PERFORMANCE, pc_cols.GAIN_LOSS): REPORTED_PERFORMANCE_COMPONENT,
     (pc_cols.FX_RATES, pc_cols.FX_RATE): CONTEXT,
-    (pc_cols.POSITIONS, pc_cols.COST): CONTEXT,
+    (pc_cols.HOLDINGS, pc_cols.COST): CONTEXT,
 }
 
 

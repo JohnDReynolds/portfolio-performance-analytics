@@ -50,7 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Configured datasets: {summary['dataset_names']}")
     print(f"Missing optional files: {summary['missing_optional_files']}")
     print(f"Contribution impact methods: {summary['contribution_impact_methods']}")
-    print(f"Position impact methods: {summary['position_impact_methods']}")
+    print(f"Holding impact methods: {summary['holding_impact_methods']}")
     print(f"Price impact methods: {summary['price_impact_methods']}")
     print(f"Cash impact methods: {summary['cash_impact_methods']}")
     print(f"FX rate impact methods: {summary['fx_rate_impact_methods']}")
@@ -90,7 +90,7 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "dataset_names": dataset_names,
         "missing_optional_files": _missing_optional_files(specification),
         "contribution_impact_methods": _contribution_impact_methods(specification),
-        "position_impact_methods": _position_impact_methods(specification),
+        "holding_impact_methods": _holding_impact_methods(specification),
         "price_impact_methods": _price_impact_methods(specification),
         "cash_impact_methods": _cash_impact_methods(specification),
         "fx_rate_impact_methods": _fx_rate_impact_methods(specification),
@@ -174,11 +174,11 @@ def _contribution_impact_methods(
     return ", ".join(sorted(str(key) for key in methods_value))
 
 
-def _position_impact_methods(
+def _holding_impact_methods(
     specification: PerformanceComparisonSpecification,
 ) -> str:
-    """Return configured position impact method keys."""
-    methods_value = specification.values.get("position_impact_methods", {})
+    """Return configured holding impact method keys."""
+    methods_value = specification.values.get("holding_impact_methods", {})
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))

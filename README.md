@@ -173,7 +173,7 @@ The performance comparison feature compares two source-data snapshots and helps
 explain why reported performance changed between extraction dates. Portfolio
 comparison uses `portfolio_performance` as the primary result dataset; security
 comparison uses `security_performance` as the primary result dataset. Both paths
-can use normalized transactions, positions, prices, FX rates, cash, and
+can use normalized transactions, holdings, prices, FX rates, cash, and
 security-reference data, then write a review bundle with HTML, CSV, manifest,
 and XLSX workbook artifacts.
 

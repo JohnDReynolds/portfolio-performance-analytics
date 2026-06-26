@@ -23,7 +23,7 @@ from ppar.performance_comparison.policies import (
     _cash_impact_policies,
     _fx_rate_impact_policies,
     _modified_dietz_external_flow_eligibility,
-    _position_impact_policies,
+    _holding_impact_policies,
     _price_impact_policies,
     _security_master_impact_policies,
     _transaction_impact_policies,
@@ -45,20 +45,20 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_CASH_BALANCE,
     IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
-    IMPACT_POLICY_POSITION_ACCRUED,
-    IMPACT_POLICY_POSITION_MARKET_VALUE,
-    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_ACCRUED,
+    IMPACT_POLICY_HOLDING_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_INPUT_VALUE,
     PORTFOLIO_ID,
     PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_MV,
-    PC_POS_ACCR,
-    PC_POS_COST,
+    PC_HOLD_ACCR,
+    PC_HOLD_COST,
     PC_PORT_RET,
-    PC_POS_MV,
-    PC_POS_QTY,
+    PC_HOLD_MV,
+    PC_HOLD_QTY,
     PC_PRICE,
     PC_SEC_ADD,
     PC_SEC_CONTR,
@@ -266,8 +266,8 @@ def _write_transaction_changed_period_fallback_specification(
     return specification_path
 
 
-def _write_position_period_specification(directory: Path) -> Path:
-    """Write a minimal position comparison fixture with a containing period."""
+def _write_holding_period_specification(directory: Path) -> Path:
+    """Write a minimal holding comparison fixture with a containing period."""
     for snapshot_name, market_value, portfolio_return in (
         ("snapshot_a", "1000.00", "0.0100"),
         ("snapshot_b", "1010.00", "0.0110"),
@@ -279,8 +279,8 @@ def _write_position_period_specification(directory: Path) -> Path:
             f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
             encoding="utf-8",
         )
-        (snapshot_path / "positions.csv").write_text(
-            "PORT,SEC,POSITION_DATE,QTY,MKT_VAL,ACCRUED\n"
+        (snapshot_path / "holdings.csv").write_text(
+            "PORT,SEC,HOLDING_DATE,QTY,MKT_VAL,ACCRUED\n"
             f"PORT_A,AAPL,2025-05-31,10,{market_value},25.00\n",
             encoding="utf-8",
         )
@@ -292,7 +292,7 @@ def _write_position_period_specification(directory: Path) -> Path:
         },
         "files": {
             "portfolio_performance": "portperf.csv",
-            "positions": "positions.csv",
+            "holdings": "holdings.csv",
         },
     }
     specification_path = directory / "ppar_performance_comparison.yaml"
@@ -439,8 +439,8 @@ def _write_blank_portfolio_key_specification(directory: Path) -> Path:
     return specification_path
 
 
-def _write_blank_position_key_specification(directory: Path) -> Path:
-    """Write a fixture with a blank optional position comparison key value."""
+def _write_blank_holding_key_specification(directory: Path) -> Path:
+    """Write a fixture with a blank optional holding comparison key value."""
     for snapshot_name in ("snapshot_a", "snapshot_b"):
         snapshot_path = directory / snapshot_name
         snapshot_path.mkdir()
@@ -450,8 +450,8 @@ def _write_blank_position_key_specification(directory: Path) -> Path:
             encoding="utf-8",
         )
         security_id = "" if snapshot_name == "snapshot_a" else "AAPL"
-        (snapshot_path / "positions.csv").write_text(
-            "PORT,SEC,POSITION_DATE,QTY,MKT_VAL\n"
+        (snapshot_path / "holdings.csv").write_text(
+            "PORT,SEC,HOLDING_DATE,QTY,MKT_VAL\n"
             f"PORT_A,{security_id},2025-05-31,10,1000.00\n",
             encoding="utf-8",
         )
@@ -463,7 +463,7 @@ def _write_blank_position_key_specification(directory: Path) -> Path:
         },
         "files": {
             "portfolio_performance": "portperf.csv",
-            "positions": "positions.csv",
+            "holdings": "holdings.csv",
         },
     }
     specification_path = directory / "ppar_performance_comparison.yaml"
@@ -484,8 +484,8 @@ class TestPerformanceComparison(unittest.TestCase):
     _restatement_security_findings: list[Finding]
     _baseline_security_master_findings: list[Finding]
     _restatement_security_master_findings: list[Finding]
-    _baseline_position_findings: list[Finding]
-    _restatement_position_findings: list[Finding]
+    _baseline_holding_findings: list[Finding]
+    _restatement_holding_findings: list[Finding]
     _baseline_cash_findings: list[Finding]
     _restatement_cash_findings: list[Finding]
     _baseline_price_findings: list[Finding]
@@ -515,8 +515,8 @@ class TestPerformanceComparison(unittest.TestCase):
         cls._restatement_security_findings = restatement.compare_security_performance()
         cls._baseline_security_master_findings = baseline.compare_security_master()
         cls._restatement_security_master_findings = restatement.compare_security_master()
-        cls._baseline_position_findings = baseline.compare_positions()
-        cls._restatement_position_findings = restatement.compare_positions()
+        cls._baseline_holding_findings = baseline.compare_holdings()
+        cls._restatement_holding_findings = restatement.compare_holdings()
         cls._baseline_cash_findings = baseline.compare_cash()
         cls._restatement_cash_findings = restatement.compare_cash()
         cls._baseline_price_findings = baseline.compare_prices()
@@ -582,18 +582,18 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertIn("missing snapshot A comparison key values", message)
             self.assertIn("portfolio_id", message)
 
-    def test_blank_position_comparison_key_raises_error_112(self) -> None:
+    def test_blank_holding_comparison_key_raises_error_112(self) -> None:
         """Blank optional evidence keys fail clearly before unmatched findings."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = _write_blank_position_key_specification(Path(temp_dir))
+            path = _write_blank_holding_key_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(path)
 
             with self.assertRaises(PpaError) as context:
-                PerformanceComparison(specification).compare_positions()
+                PerformanceComparison(specification).compare_holdings()
 
             message = str(context.exception)
             self.assertTrue(message.startswith("Error 112"))
-            self.assertIn("positions", message)
+            self.assertIn("holdings", message)
             self.assertIn("missing snapshot A comparison key values", message)
             self.assertIn("security_id", message)
 
@@ -670,9 +670,9 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertNotIn(PC_SEC_RET, finding_codes)
         self.assertNotIn(PC_SEC_ADD, finding_codes)
         self.assertNotIn(PC_SEC_DROP, finding_codes)
-        self.assertIn(PC_POS_QTY, finding_codes)
-        self.assertIn(PC_POS_COST, finding_codes)
-        self.assertIn(PC_POS_ACCR, finding_codes)
+        self.assertIn(PC_HOLD_QTY, finding_codes)
+        self.assertIn(PC_HOLD_COST, finding_codes)
+        self.assertIn(PC_HOLD_ACCR, finding_codes)
         self.assertIn(PC_CASH_MV, finding_codes)
         self.assertIn(PC_PRICE, finding_codes)
         self.assertIn(PC_FX_RATE, finding_codes)
@@ -705,8 +705,8 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(role_by_code[PC_PORT_RET], TARGET_OUTPUT)
         self.assertEqual(role_by_code[PC_PORT_MV], DIRECT_INPUT)
         self.assertNotIn(PC_SEC_RET, role_by_code)
-        self.assertEqual(role_by_code[PC_POS_QTY], DIRECT_INPUT)
-        self.assertEqual(role_by_code[PC_POS_COST], CONTEXT)
+        self.assertEqual(role_by_code[PC_HOLD_QTY], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_HOLD_COST], CONTEXT)
         self.assertEqual(role_by_code[PC_CASH_MV], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_PRICE], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_FX_RATE], CONTEXT)
@@ -764,41 +764,41 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(aapl_sector_findings[0]["snapshot_b_value"], "TECH_RESTATED")
         self.assertEqual(len(added_reference_findings), 1)
 
-    def test_identical_baseline_snapshots_have_no_position_findings(self) -> None:
-        """The baseline fixture compares identical position rows."""
-        findings = list(self._baseline_position_findings)
+    def test_identical_baseline_snapshots_have_no_holding_findings(self) -> None:
+        """The baseline fixture compares identical holding rows."""
+        findings = list(self._baseline_holding_findings)
 
         self.assertEqual(findings, [])
 
-    def test_restatement_fixture_reports_position_changes(self) -> None:
-        """The restatement fixture reports controlled position-level changes."""
-        findings = list(self._restatement_position_findings)
+    def test_restatement_fixture_reports_holding_changes(self) -> None:
+        """The restatement fixture reports controlled holding-level changes."""
+        findings = list(self._restatement_holding_findings)
         finding_dicts = [finding.to_dict() for finding in findings]
         quantity_findings = [
             finding
             for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_POS_QTY
+            if finding[FINDING_CODE] == PC_HOLD_QTY
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.QUANTITY
         ]
         market_value_findings = [
             finding
             for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_POS_MV
+            if finding[FINDING_CODE] == PC_HOLD_MV
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
         ]
         cost_findings = [
             finding
             for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_POS_COST
+            if finding[FINDING_CODE] == PC_HOLD_COST
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.COST
         ]
         accrued_findings = [
             finding
             for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_POS_ACCR
+            if finding[FINDING_CODE] == PC_HOLD_ACCR
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.ACCRUED
         ]
@@ -825,29 +825,29 @@ class TestPerformanceComparison(unittest.TestCase):
             6.25,
         )
 
-    def test_position_changes_link_to_containing_portfolio_period(self) -> None:
-        """Changed position rows inherit the containing portfolio period."""
+    def test_holding_changes_link_to_containing_portfolio_period(self) -> None:
+        """Changed holding rows inherit the containing portfolio period."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_position_period_specification(Path(temp_dir))
+            specification_path = _write_holding_period_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
 
-            findings = PerformanceComparison(specification).compare_positions()
+            findings = PerformanceComparison(specification).compare_holdings()
             finding_dicts = [finding.to_dict() for finding in findings]
             market_value_finding = next(
                 finding
                 for finding in finding_dicts
-                if finding[FINDING_CODE] == PC_POS_MV
+                if finding[FINDING_CODE] == PC_HOLD_MV
             )
 
             self.assertEqual(str(market_value_finding[FROM_DATE]), "2025-05-01")
             self.assertEqual(str(market_value_finding[THRU_DATE]), "2025-05-31")
 
-    def test_position_market_value_policy_is_loaded_from_yaml(self) -> None:
-        """Explicit position market value impact policy is carried into findings."""
+    def test_holding_market_value_policy_is_loaded_from_yaml(self) -> None:
+        """Explicit holding market value impact policy is carried into findings."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_position_period_specification(Path(temp_dir))
+            specification_path = _write_holding_period_specification(Path(temp_dir))
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["position_impact_methods"] = {
+            configuration["holding_impact_methods"] = {
                 "market_value": {
                     "method": "market_value_delta_over_return_denominator",
                     "denominator_source": "begin_market_value",
@@ -864,46 +864,46 @@ class TestPerformanceComparison(unittest.TestCase):
             market_value_finding = next(
                 finding
                 for finding in finding_dicts
-                if finding[FINDING_CODE] == PC_POS_MV
+                if finding[FINDING_CODE] == PC_HOLD_MV
             )
             candidates = portfolio_period_contribution_candidates(
                 findings_to_polars(findings)
             )
-            position_candidate = candidates.filter(
-                (pl.col(FINDING_CODE) == PC_POS_MV)
+            holding_candidate = candidates.filter(
+                (pl.col(FINDING_CODE) == PC_HOLD_MV)
                 & (pl.col(SOURCE_COLUMN) == pc_cols.MARKET_VALUE)
             ).row(0, named=True)
 
             self.assertEqual(
                 market_value_finding[IMPACT_POLICY],
-                IMPACT_POLICY_POSITION_MARKET_VALUE,
+                IMPACT_POLICY_HOLDING_MARKET_VALUE,
             )
             self.assertEqual(market_value_finding[RETURN_DENOMINATOR], 1000.0)
-            self.assertAlmostEqual(position_candidate[ESTIMATED_RETURN_IMPACT], 0.01)
-            policies = _position_impact_policies(specification)
+            self.assertAlmostEqual(holding_candidate[ESTIMATED_RETURN_IMPACT], 0.01)
+            policies = _holding_impact_policies(specification)
             self.assertEqual(
                 policies[pc_cols.MARKET_VALUE],
-                IMPACT_POLICY_POSITION_MARKET_VALUE,
+                IMPACT_POLICY_HOLDING_MARKET_VALUE,
             )
 
-    def test_position_accrued_policy_is_loaded_from_yaml(self) -> None:
-        """Explicit position accrued impact policy is carried into findings."""
+    def test_holding_accrued_policy_is_loaded_from_yaml(self) -> None:
+        """Explicit holding accrued impact policy is carried into findings."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_position_period_specification(Path(temp_dir))
+            specification_path = _write_holding_period_specification(Path(temp_dir))
             for snapshot_name, accrued in (
                 ("snapshot_a", "25.00"),
                 ("snapshot_b", "30.00"),
             ):
-                position_path = Path(temp_dir) / snapshot_name / "positions.csv"
-                position_path.write_text(
-                    position_path.read_text(encoding="utf-8").replace(
+                holding_path = Path(temp_dir) / snapshot_name / "holdings.csv"
+                holding_path.write_text(
+                    holding_path.read_text(encoding="utf-8").replace(
                         "25.00\n",
                         f"{accrued}\n",
                     ),
                     encoding="utf-8",
                 )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["position_impact_methods"] = {
+            configuration["holding_impact_methods"] = {
                 "accrued": {
                     "method": "accrued_delta_over_return_denominator",
                     "denominator_source": "begin_market_value",
@@ -920,19 +920,19 @@ class TestPerformanceComparison(unittest.TestCase):
             accrued_finding = next(
                 finding
                 for finding in finding_dicts
-                if finding[FINDING_CODE] == PC_POS_ACCR
+                if finding[FINDING_CODE] == PC_HOLD_ACCR
             )
             candidates = portfolio_period_contribution_candidates(
                 findings_to_polars(findings)
             )
             accrued_candidate = candidates.filter(
-                (pl.col(FINDING_CODE) == PC_POS_ACCR)
+                (pl.col(FINDING_CODE) == PC_HOLD_ACCR)
                 & (pl.col(SOURCE_COLUMN) == pc_cols.ACCRUED)
             ).row(0, named=True)
 
             self.assertEqual(
                 accrued_finding[IMPACT_POLICY],
-                IMPACT_POLICY_POSITION_ACCRUED,
+                IMPACT_POLICY_HOLDING_ACCRUED,
             )
             self.assertEqual(accrued_finding[RETURN_DENOMINATOR], 1000.0)
             self.assertAlmostEqual(accrued_candidate[ESTIMATED_RETURN_IMPACT], 0.005)
@@ -940,10 +940,10 @@ class TestPerformanceComparison(unittest.TestCase):
     def test_evidence_only_policy_is_loaded_from_yaml(self) -> None:
         """Explicit evidence-only policy is carried into source-data findings."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_position_period_specification(Path(temp_dir))
-            position_path = Path(temp_dir) / "snapshot_b" / "positions.csv"
-            position_path.write_text(
-                position_path.read_text(encoding="utf-8").replace(
+            specification_path = _write_holding_period_specification(Path(temp_dir))
+            holding_path = Path(temp_dir) / "snapshot_b" / "holdings.csv"
+            holding_path.write_text(
+                holding_path.read_text(encoding="utf-8").replace(
                     "PORT_A,AAPL,2025-05-31,10,1010.00,25.00",
                     "PORT_A,AAPL,2025-05-31,11,1010.00,25.00",
                 ),
@@ -951,7 +951,7 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["evidence_only_impact_methods"] = {
-                "positions": {
+                "holdings": {
                     "method": "evidence_only",
                     "source_fields": ["quantity"],
                 },
@@ -962,32 +962,32 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             specification = PerformanceComparisonSpecification(specification_path)
 
-            findings = PerformanceComparison(specification).compare_positions()
+            findings = PerformanceComparison(specification).compare_holdings()
             quantity_finding = next(
                 finding.to_dict()
                 for finding in findings
-                if finding.to_dict()[FINDING_CODE] == PC_POS_QTY
+                if finding.to_dict()[FINDING_CODE] == PC_HOLD_QTY
             )
 
             self.assertEqual(
                 quantity_finding[IMPACT_POLICY],
-                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}holdings.quantity",
             )
 
-    def test_position_quantity_evidence_only_policy_is_loaded_from_yaml(self) -> None:
-        """Position quantity can be marked review-only in position impact YAML."""
+    def test_holding_quantity_evidence_only_policy_is_loaded_from_yaml(self) -> None:
+        """Holding quantity can be marked review-only in holding impact YAML."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_position_period_specification(Path(temp_dir))
-            position_path = Path(temp_dir) / "snapshot_b" / "positions.csv"
-            position_path.write_text(
-                position_path.read_text(encoding="utf-8").replace(
+            specification_path = _write_holding_period_specification(Path(temp_dir))
+            holding_path = Path(temp_dir) / "snapshot_b" / "holdings.csv"
+            holding_path.write_text(
+                holding_path.read_text(encoding="utf-8").replace(
                     "PORT_A,AAPL,2025-05-31,10,1010.00,25.00",
                     "PORT_A,AAPL,2025-05-31,11,1010.00,25.00",
                 ),
                 encoding="utf-8",
             )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["position_impact_methods"] = {
+            configuration["holding_impact_methods"] = {
                 "quantity": {
                     "method": "evidence_only",
                 },
@@ -998,37 +998,37 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             specification = PerformanceComparisonSpecification(specification_path)
 
-            policies = _position_impact_policies(specification)
-            findings = PerformanceComparison(specification).compare_positions()
+            policies = _holding_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare_holdings()
             quantity_finding = next(
                 finding.to_dict()
                 for finding in findings
-                if finding.to_dict()[FINDING_CODE] == PC_POS_QTY
+                if finding.to_dict()[FINDING_CODE] == PC_HOLD_QTY
             )
 
             self.assertEqual(
                 policies[pc_cols.QUANTITY],
-                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}holdings.quantity",
             )
             self.assertEqual(
                 quantity_finding[IMPACT_POLICY],
-                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.quantity",
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}holdings.quantity",
             )
 
-    def test_position_quantity_unit_market_value_policy_estimates_impact(self) -> None:
-        """Position quantity can use snapshot A unit market value for estimates."""
+    def test_holding_quantity_unit_market_value_policy_estimates_impact(self) -> None:
+        """Holding quantity can use snapshot A unit market value for estimates."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_position_period_specification(Path(temp_dir))
-            position_path = Path(temp_dir) / "snapshot_b" / "positions.csv"
-            position_path.write_text(
-                position_path.read_text(encoding="utf-8").replace(
+            specification_path = _write_holding_period_specification(Path(temp_dir))
+            holding_path = Path(temp_dir) / "snapshot_b" / "holdings.csv"
+            holding_path.write_text(
+                holding_path.read_text(encoding="utf-8").replace(
                     "PORT_A,AAPL,2025-05-31,10,1010.00,25.00",
                     "PORT_A,AAPL,2025-05-31,11,1010.00,25.00",
                 ),
                 encoding="utf-8",
             )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
-            configuration["position_impact_methods"] = {
+            configuration["holding_impact_methods"] = {
                 "quantity": {
                     "method": (
                         "quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator"
@@ -1047,31 +1047,31 @@ class TestPerformanceComparison(unittest.TestCase):
             quantity_finding = next(
                 finding
                 for finding in finding_dicts
-                if finding[FINDING_CODE] == PC_POS_QTY
+                if finding[FINDING_CODE] == PC_HOLD_QTY
             )
             candidates = portfolio_period_contribution_candidates(
                 findings_to_polars(findings)
             )
             quantity_candidate = candidates.filter(
-                (pl.col(FINDING_CODE) == PC_POS_QTY)
+                (pl.col(FINDING_CODE) == PC_HOLD_QTY)
                 & (pl.col(SOURCE_COLUMN) == pc_cols.QUANTITY)
             ).row(0, named=True)
 
             self.assertEqual(
                 quantity_finding[IMPACT_POLICY],
-                IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+                IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
             )
             self.assertEqual(quantity_finding[RETURN_DENOMINATOR], 1000.0)
             self.assertEqual(quantity_finding[IMPACT_INPUT_VALUE], 100.0)
             self.assertAlmostEqual(quantity_candidate[ESTIMATED_RETURN_IMPACT], 0.1)
-            policies = _position_impact_policies(specification)
+            policies = _holding_impact_policies(specification)
             self.assertEqual(
                 policies[pc_cols.QUANTITY],
-                IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+                IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
             )
 
-    def test_position_cost_evidence_only_policy_is_loaded_from_yaml(self) -> None:
-        """Position cost can be marked review-only in position impact YAML."""
+    def test_holding_cost_evidence_only_policy_is_loaded_from_yaml(self) -> None:
+        """Holding cost can be marked review-only in holding impact YAML."""
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             for snapshot_name, cost, portfolio_return in (
@@ -1085,8 +1085,8 @@ class TestPerformanceComparison(unittest.TestCase):
                     f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
                     encoding="utf-8",
                 )
-                (snapshot_path / "positions.csv").write_text(
-                    "PORT,SEC,POSITION_DATE,QTY,MKT_VAL,COST,ACCRUED\n"
+                (snapshot_path / "holdings.csv").write_text(
+                    "PORT,SEC,HOLDING_DATE,QTY,MKT_VAL,COST,ACCRUED\n"
                     f"PORT_A,AAPL,2025-05-31,10,1000.00,{cost},25.00\n",
                     encoding="utf-8",
                 )
@@ -1100,9 +1100,9 @@ class TestPerformanceComparison(unittest.TestCase):
                         },
                         "files": {
                             "portfolio_performance": "portperf.csv",
-                            "positions": "positions.csv",
+                            "holdings": "holdings.csv",
                         },
-                        "position_impact_methods": {
+                        "holding_impact_methods": {
                             "cost": {
                                 "method": "evidence_only",
                             },
@@ -1113,22 +1113,22 @@ class TestPerformanceComparison(unittest.TestCase):
             )
             specification = PerformanceComparisonSpecification(specification_path)
 
-            policies = _position_impact_policies(specification)
-            findings = PerformanceComparison(specification).compare_positions()
+            policies = _holding_impact_policies(specification)
+            findings = PerformanceComparison(specification).compare_holdings()
             cost_finding = next(
                 finding.to_dict()
                 for finding in findings
-                if finding.to_dict()[FINDING_CODE] == PC_POS_COST
+                if finding.to_dict()[FINDING_CODE] == PC_HOLD_COST
             )
 
             self.assertEqual(
                 policies[pc_cols.COST],
-                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.cost",
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}holdings.cost",
             )
             self.assertEqual(cost_finding[EVIDENCE_ROLE], CONTEXT)
             self.assertEqual(
                 cost_finding[IMPACT_POLICY],
-                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}positions.cost",
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}holdings.cost",
             )
 
     def test_security_master_evidence_only_policy_is_loaded_from_yaml(self) -> None:
@@ -2398,10 +2398,10 @@ class TestPerformanceComparison(unittest.TestCase):
 
                     self.assertIn(expected_message, str(context.exception))
 
-    def test_position_impact_methods_reject_malformed_yaml(self) -> None:
-        """Position impact method YAML must use the supported contract."""
+    def test_holding_impact_methods_reject_malformed_yaml(self) -> None:
+        """Holding impact method YAML must use the supported contract."""
         scenarios = [
-            ("not-a-mapping", "position_impact_methods must be a mapping"),
+            ("not-a-mapping", "holding_impact_methods must be a mapping"),
             ({"unsupported": {"method": "x"}}, "unsupported"),
             ({"market_value": "estimate"}, "market_value must be a mapping"),
             ({"market_value": {}}, "market_value is missing required keys"),
@@ -2465,16 +2465,16 @@ class TestPerformanceComparison(unittest.TestCase):
             ),
         ]
 
-        for position_impact_methods, expected_message in scenarios:
-            with self.subTest(position_impact_methods=position_impact_methods):
+        for holding_impact_methods, expected_message in scenarios:
+            with self.subTest(holding_impact_methods=holding_impact_methods):
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    specification_path = _write_position_period_specification(
+                    specification_path = _write_holding_period_specification(
                         Path(temp_dir)
                     )
                     configuration = yaml.safe_load(
                         specification_path.read_text(encoding="utf-8")
                     )
-                    configuration["position_impact_methods"] = position_impact_methods
+                    configuration["holding_impact_methods"] = holding_impact_methods
                     specification_path.write_text(
                         yaml.safe_dump(configuration),
                         encoding="utf-8",
@@ -2706,23 +2706,23 @@ class TestPerformanceComparison(unittest.TestCase):
         scenarios = [
             ("not-a-mapping", "evidence_only_impact_methods must be a mapping"),
             ({"unsupported": {"method": "evidence_only"}}, "unsupported"),
-            ({"positions": "quantity"}, "positions must be a mapping"),
-            ({"positions": {}}, "positions is missing required keys"),
+            ({"holdings": "quantity"}, "holdings must be a mapping"),
+            ({"holdings": {}}, "holdings is missing required keys"),
             (
-                {"positions": {"method": "unsupported", "source_fields": ["quantity"]}},
-                "positions.method must be",
+                {"holdings": {"method": "unsupported", "source_fields": ["quantity"]}},
+                "holdings.method must be",
             ),
             (
-                {"positions": {"method": "evidence_only", "source_fields": []}},
+                {"holdings": {"method": "evidence_only", "source_fields": []}},
                 "source_fields must be a non-empty list",
             ),
             (
-                {"positions": {"method": "evidence_only", "source_fields": [1]}},
+                {"holdings": {"method": "evidence_only", "source_fields": [1]}},
                 "source_fields values must be strings",
             ),
             (
                 {
-                    "positions": {
+                    "holdings": {
                         "method": "evidence_only",
                         "source_fields": ["unsupported"],
                     }
@@ -2736,7 +2736,7 @@ class TestPerformanceComparison(unittest.TestCase):
                 evidence_only_impact_methods=evidence_only_impact_methods
             ):
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    specification_path = _write_position_period_specification(
+                    specification_path = _write_holding_period_specification(
                         Path(temp_dir)
                     )
                     configuration = yaml.safe_load(

@@ -163,7 +163,7 @@ def _finding_requires_yaml_policy(row: dict[str, object]) -> bool:
             pc_cols.PRICE,
             pc_cols.COMMISSION,
         }
-    if dataset == pc_cols.POSITIONS:
+    if dataset == pc_cols.HOLDINGS:
         return source_column in {
             pc_cols.MARKET_VALUE,
             pc_cols.ACCRUED,

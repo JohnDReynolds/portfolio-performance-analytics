@@ -31,8 +31,8 @@ class TransactionImpactMethod(StrEnum):
     )
 
 
-class PositionImpactMethod(StrEnum):
-    """Supported `position_impact_methods` YAML method names."""
+class HoldingImpactMethod(StrEnum):
+    """Supported `holding_impact_methods` YAML method names."""
 
     EVIDENCE_ONLY = "evidence_only"
     QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR = (

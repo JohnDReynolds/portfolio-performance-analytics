@@ -26,9 +26,9 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_CASH_BALANCE,
     IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
-    IMPACT_POLICY_POSITION_ACCRUED,
-    IMPACT_POLICY_POSITION_MARKET_VALUE,
-    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_ACCRUED,
+    IMPACT_POLICY_HOLDING_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
@@ -63,7 +63,7 @@ from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
     ModifiedDietzDoubleCountPolicy,
-    PositionImpactMethod,
+    HoldingImpactMethod,
     PriceImpactMethod,
     TransactionImpactMethod,
 )
@@ -90,7 +90,7 @@ EVIDENCE_GROUP = "evidence_group"
 PRICE_FINDING_COUNT = "price_finding_count"
 FX_RATE_FINDING_COUNT = "fx_rate_finding_count"
 TRANSACTION_FINDING_COUNT = "transaction_finding_count"
-POSITION_FINDING_COUNT = "position_finding_count"
+HOLDING_FINDING_COUNT = "holding_finding_count"
 CASH_FINDING_COUNT = "cash_finding_count"
 REFERENCE_FINDING_COUNT = "reference_finding_count"
 HAS_SUPPRESSED_FINDINGS = "has_suppressed_findings"
@@ -107,7 +107,7 @@ PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     PRICE_FINDING_COUNT,
     FX_RATE_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
-    POSITION_FINDING_COUNT,
+    HOLDING_FINDING_COUNT,
     CASH_FINDING_COUNT,
     REFERENCE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
@@ -133,7 +133,7 @@ SECURITY_PERIOD_SUMMARY_COLUMNS = (
     CONTEXT_FINDING_COUNT,
     PRICE_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
-    POSITION_FINDING_COUNT,
+    HOLDING_FINDING_COUNT,
     REFERENCE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
 )
@@ -159,9 +159,9 @@ IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
 IMPACT_BASIS_CASH_BALANCE = "cash_balance"
 IMPACT_BASIS_CASH_MARKET_VALUE = "cash_market_value"
 IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
-IMPACT_BASIS_POSITION_ACCRUED = "position_accrued"
-IMPACT_BASIS_POSITION_MARKET_VALUE = "position_market_value"
-IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE = "position_quantity_unit_market_value"
+IMPACT_BASIS_HOLDING_ACCRUED = "holding_accrued"
+IMPACT_BASIS_HOLDING_MARKET_VALUE = "holding_market_value"
+IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE = "holding_quantity_unit_market_value"
 IMPACT_BASIS_PRICE_WEIGHTED = "price_weighted"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
@@ -180,14 +180,14 @@ IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-IMPACT_METHOD_POSITION_MARKET_VALUE_DELTA_OVER_DENOMINATOR = (
-    PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
+IMPACT_METHOD_HOLDING_MARKET_VALUE_DELTA_OVER_DENOMINATOR = (
+    HoldingImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-IMPACT_METHOD_POSITION_ACCRUED_DELTA_OVER_DENOMINATOR = (
-    PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
+IMPACT_METHOD_HOLDING_ACCRUED_DELTA_OVER_DENOMINATOR = (
+    HoldingImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-IMPACT_METHOD_POSITION_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR = (
-    PositionImpactMethod[
+IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR = (
+    HoldingImpactMethod[
         "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
     ].value
 )
@@ -199,7 +199,7 @@ IMPACT_METHOD_CASH_DELTA_OVER_DENOMINATOR = (
 )
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
-ROOT_CAUSE_MARKET_VALUE_OR_POSITION = "market_value_or_position"
+ROOT_CAUSE_MARKET_VALUE_OR_HOLDING = "market_value_or_holding"
 ROOT_CAUSE_TRANSACTION_ACTIVITY = "transaction_activity"
 ROOT_CAUSE_PRICE = "price"
 ROOT_CAUSE_FX_RATE = "fx_rate"
@@ -438,7 +438,7 @@ def portfolio_period_summary(
                     related_active,
                     pc_cols.TRANSACTIONS,
                 ),
-                POSITION_FINDING_COUNT: _dataset_count(related_active, pc_cols.POSITIONS),
+                HOLDING_FINDING_COUNT: _dataset_count(related_active, pc_cols.HOLDINGS),
                 CASH_FINDING_COUNT: _dataset_count(related_active, pc_cols.CASH),
                 REFERENCE_FINDING_COUNT: _dataset_count(
                     related_active,
@@ -540,7 +540,7 @@ def security_period_summary(
                     related_active,
                     pc_cols.TRANSACTIONS,
                 ),
-                POSITION_FINDING_COUNT: _dataset_count(related_active, pc_cols.POSITIONS),
+                HOLDING_FINDING_COUNT: _dataset_count(related_active, pc_cols.HOLDINGS),
                 REFERENCE_FINDING_COUNT: _dataset_count(
                     related_active,
                     pc_cols.SECURITY_MASTER,
@@ -1340,8 +1340,8 @@ def _evidence_breakdown_rows(
         ),
         (
             DIRECT_INPUT,
-            pc_cols.POSITIONS,
-            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.POSITIONS),
+            pc_cols.HOLDINGS,
+            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.HOLDINGS),
         ),
         (
             DIRECT_INPUT,
@@ -1417,8 +1417,8 @@ def _security_evidence_breakdown_rows(
         ),
         (
             DIRECT_INPUT,
-            pc_cols.POSITIONS,
-            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.POSITIONS),
+            pc_cols.HOLDINGS,
+            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.HOLDINGS),
         ),
         (
             RELATED_OUTPUT,
@@ -1617,41 +1617,41 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
             IMPACT_MESSAGE: _transaction_performance_amount_impact_message(row),
         }
-    if _is_position_market_value_impact_candidate(row):
+    if _is_holding_market_value_impact_candidate(row):
         delta_float = _number_value(delta)
         denominator = _number_value(row[RETURN_DENOMINATOR])
         assert delta_float is not None
         assert denominator is not None
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
-            IMPACT_BASIS: IMPACT_BASIS_POSITION_MARKET_VALUE,
+            IMPACT_BASIS: IMPACT_BASIS_HOLDING_MARKET_VALUE,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_POSITION_MARKET_VALUE_DELTA_OVER_DENOMINATOR,
+            IMPACT_METHOD: IMPACT_METHOD_HOLDING_MARKET_VALUE_DELTA_OVER_DENOMINATOR,
             IMPACT_MESSAGE: (
-                "Approximate impact uses the position market value delta "
+                "Approximate impact uses the holding market value delta "
                 "divided by the return denominator. Treat as a low-confidence "
                 "screening estimate because market value can reflect price, "
                 "quantity, FX, accrued-interest, or booking changes."
             ),
         }
-    if _is_position_accrued_impact_candidate(row):
+    if _is_holding_accrued_impact_candidate(row):
         delta_float = _number_value(delta)
         denominator = _number_value(row[RETURN_DENOMINATOR])
         assert delta_float is not None
         assert denominator is not None
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
-            IMPACT_BASIS: IMPACT_BASIS_POSITION_ACCRUED,
+            IMPACT_BASIS: IMPACT_BASIS_HOLDING_ACCRUED,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_POSITION_ACCRUED_DELTA_OVER_DENOMINATOR,
+            IMPACT_METHOD: IMPACT_METHOD_HOLDING_ACCRUED_DELTA_OVER_DENOMINATOR,
             IMPACT_MESSAGE: (
-                "Approximate impact uses the position accrued delta divided "
+                "Approximate impact uses the holding accrued delta divided "
                 "by the return denominator. Treat as a low-confidence "
                 "screening estimate because accrued balances depend on source "
                 "income accrual and pricing conventions."
             ),
         }
-    if _is_position_quantity_unit_market_value_impact_candidate(row):
+    if _is_holding_quantity_unit_market_value_impact_candidate(row):
         delta_float = _number_value(delta)
         denominator = _number_value(row[RETURN_DENOMINATOR])
         unit_market_value = _number_value(row[IMPACT_INPUT_VALUE])
@@ -1660,13 +1660,13 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
         assert unit_market_value is not None
         return {
             ESTIMATED_RETURN_IMPACT: (delta_float * unit_market_value) / denominator,
-            IMPACT_BASIS: IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+            IMPACT_BASIS: IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
             IMPACT_METHOD: (
-                IMPACT_METHOD_POSITION_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR
+                IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR
             ),
             IMPACT_MESSAGE: (
-                "Approximate impact uses the position quantity delta multiplied "
+                "Approximate impact uses the holding quantity delta multiplied "
                 "by snapshot A unit market value, then divided by the return "
                 "denominator. Treat as a low-confidence screening estimate "
                 "because the unit value may embed price, FX, accrual, or "
@@ -1795,14 +1795,14 @@ def _is_transaction_performance_amount_impact_candidate(
     )
 
 
-def _is_position_market_value_impact_candidate(row: dict[str, object]) -> bool:
-    """Return whether a position market value row supports a rough estimate."""
+def _is_holding_market_value_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a holding market value row supports a rough estimate."""
     delta = row[DELTA_B_MINUS_A]
     denominator = row[RETURN_DENOMINATOR]
     return (
-        row[DATASET] == pc_cols.POSITIONS
+        row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_POSITION_MARKET_VALUE
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_MARKET_VALUE
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
         and isinstance(denominator, (int, float))
@@ -1811,14 +1811,14 @@ def _is_position_market_value_impact_candidate(row: dict[str, object]) -> bool:
     )
 
 
-def _is_position_accrued_impact_candidate(row: dict[str, object]) -> bool:
-    """Return whether a position accrued row supports a rough estimate."""
+def _is_holding_accrued_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether a holding accrued row supports a rough estimate."""
     delta = row[DELTA_B_MINUS_A]
     denominator = row[RETURN_DENOMINATOR]
     return (
-        row[DATASET] == pc_cols.POSITIONS
+        row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] == pc_cols.ACCRUED
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_POSITION_ACCRUED
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_ACCRUED
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
         and isinstance(denominator, (int, float))
@@ -1827,17 +1827,17 @@ def _is_position_accrued_impact_candidate(row: dict[str, object]) -> bool:
     )
 
 
-def _is_position_quantity_unit_market_value_impact_candidate(
+def _is_holding_quantity_unit_market_value_impact_candidate(
     row: dict[str, object],
 ) -> bool:
-    """Return whether a position quantity row supports a rough estimate."""
+    """Return whether a holding quantity row supports a rough estimate."""
     delta = row[DELTA_B_MINUS_A]
     denominator = row[RETURN_DENOMINATOR]
     unit_market_value = row[IMPACT_INPUT_VALUE]
     return (
-        row[DATASET] == pc_cols.POSITIONS
+        row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] == pc_cols.QUANTITY
-        and row.get(IMPACT_POLICY) == IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
         and isinstance(denominator, (int, float))
@@ -1877,7 +1877,7 @@ def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
     snapshot_a_price = row[SNAPSHOT_A_VALUE]
     weight = row[RETURN_WEIGHT]
     return (
-        row[DATASET] in {pc_cols.POSITIONS, pc_cols.PRICES}
+        row[DATASET] in {pc_cols.HOLDINGS, pc_cols.PRICES}
         and row[SOURCE_COLUMN] == pc_cols.PRICE
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_PRICE_WEIGHTED
         and isinstance(delta, (int, float))
@@ -1931,7 +1931,7 @@ def _root_cause_area(row: dict[str, object]) -> str:
     """Return the coarse explanation bucket for a contribution candidate."""
     root_cause_area_by_dataset = {
         pc_cols.SECURITY_PERFORMANCE: ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
-        pc_cols.POSITIONS: ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+        pc_cols.HOLDINGS: ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
         pc_cols.TRANSACTIONS: ROOT_CAUSE_TRANSACTION_ACTIVITY,
         pc_cols.PRICES: ROOT_CAUSE_PRICE,
         pc_cols.FX_RATES: ROOT_CAUSE_FX_RATE,
@@ -2149,7 +2149,7 @@ def _coverage_missing_impact_inputs(
                     _split_transaction_cause_missing_inputs(cause.get(IMPACT_MESSAGE)),
                 )
         elif cause_area in {
-            ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+            ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
             ROOT_CAUSE_PRICE,
             ROOT_CAUSE_CASH,
             ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
@@ -2253,7 +2253,7 @@ def _preferred_estimate_rows(rows: list[dict[str, object]]) -> list[dict[str, ob
     holdings_price_rows = [
         row
         for row in rows
-        if row.get(DATASET) == pc_cols.POSITIONS and row.get(SOURCE_COLUMN) == pc_cols.PRICE
+        if row.get(DATASET) == pc_cols.HOLDINGS and row.get(SOURCE_COLUMN) == pc_cols.PRICE
     ]
     if holdings_price_rows:
         return holdings_price_rows
@@ -2275,12 +2275,12 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
         return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
-    if IMPACT_BASIS_POSITION_MARKET_VALUE in bases:
-        return IMPACT_BASIS_POSITION_MARKET_VALUE
-    if IMPACT_BASIS_POSITION_ACCRUED in bases:
-        return IMPACT_BASIS_POSITION_ACCRUED
-    if IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE in bases:
-        return IMPACT_BASIS_POSITION_QUANTITY_UNIT_MARKET_VALUE
+    if IMPACT_BASIS_HOLDING_MARKET_VALUE in bases:
+        return IMPACT_BASIS_HOLDING_MARKET_VALUE
+    if IMPACT_BASIS_HOLDING_ACCRUED in bases:
+        return IMPACT_BASIS_HOLDING_ACCRUED
+    if IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE in bases:
+        return IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE
     if IMPACT_BASIS_CASH_BALANCE in bases:
         return IMPACT_BASIS_CASH_BALANCE
     if IMPACT_BASIS_CASH_MARKET_VALUE in bases:
@@ -2846,7 +2846,7 @@ def _dataset_priority_score(dataset: str) -> int:
     return {
         pc_cols.PORTFOLIO_PERFORMANCE: 40,
         pc_cols.TRANSACTIONS: 35,
-        pc_cols.POSITIONS: 35,
+        pc_cols.HOLDINGS: 35,
         pc_cols.CASH: 30,
         pc_cols.PRICES: 25,
         pc_cols.FX_RATES: 25,
@@ -2895,7 +2895,7 @@ def _empty_portfolio_period_summary() -> pl.DataFrame:
             PRICE_FINDING_COUNT: pl.UInt32,
             FX_RATE_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
-            POSITION_FINDING_COUNT: pl.UInt32,
+            HOLDING_FINDING_COUNT: pl.UInt32,
             CASH_FINDING_COUNT: pl.UInt32,
             REFERENCE_FINDING_COUNT: pl.UInt32,
             HAS_SUPPRESSED_FINDINGS: pl.Boolean,
@@ -2933,7 +2933,7 @@ def _empty_security_period_summary() -> pl.DataFrame:
             CONTEXT_FINDING_COUNT: pl.UInt32,
             PRICE_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
-            POSITION_FINDING_COUNT: pl.UInt32,
+            HOLDING_FINDING_COUNT: pl.UInt32,
             REFERENCE_FINDING_COUNT: pl.UInt32,
             HAS_SUPPRESSED_FINDINGS: pl.Boolean,
         }

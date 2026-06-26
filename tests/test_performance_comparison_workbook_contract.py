@@ -174,8 +174,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 underlying_fields = {(row[3], row[4]) for row in underlying_rows}
                 self.assertTrue(
                     {
-                        ("positions", "market_value"),
-                        ("positions", "quantity"),
+                        ("holdings", "market_value"),
+                        ("holdings", "quantity"),
                         ("transactions", "commission"),
                         ("transactions", "price"),
                         ("transactions", "quantity"),
@@ -185,7 +185,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 context_fields = {(row[3], row[4]) for row in context_rows}
                 self.assertEqual(
                     {
-                        ("positions", "cost"),
+                        ("holdings", "cost"),
                     },
                     context_fields,
                 )
@@ -247,14 +247,14 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     {(row[3], row[4], row[5]) for row in context_rows},
                     {
-                        ("positions", "cost", "TNOTE2Y"),
+                        ("holdings", "cost", "TNOTE2Y"),
                     },
                 )
                 underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
                 self.assertTrue(
                     {
-                        ("positions", "market_value", "TNOTE2Y"),
-                        ("positions", "quantity", "TNOTE2Y"),
+                        ("holdings", "market_value", "TNOTE2Y"),
+                        ("holdings", "quantity", "TNOTE2Y"),
                     }.issubset(
                         {(row[3], row[4], row[5]) for row in underlying_rows}
                     )

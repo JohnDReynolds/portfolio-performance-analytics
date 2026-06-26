@@ -53,7 +53,7 @@ other evidence:
 - `Performance Differences` sheet: one row per security-period return difference in
   the security demo. Review keys include `Portfolio`, `From Date`, `Thru Date`,
   and `Security`.
-- `Identifiable Causes` sheet: input rows such as positions, transactions, prices,
+- `Identifiable Causes` sheet: input rows such as holdings, transactions, prices,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
@@ -71,7 +71,7 @@ Data used:
 - Snapshot A: `axys_full_spec_a`
 - Snapshot B: `axys_full_spec_b`
 - Files: Axys-style portfolio performance, security performance,
-  transactions, positions, prices, and security reference data.
+  transactions, holdings, prices, and security reference data.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and
   `TNOTE5Y`. `ALPHA` is the closest match to the Mega-Cap Alpha analytics
@@ -90,7 +90,7 @@ Expected workbook:
 - Changed AAPL and TNOTE2Y security-period returns in the security demo
   `Performance Differences` sheet.
 - `Identifiable Causes` sheet should show understandable additive transaction
-  amount, position market value, position accrued, and weighted price examples.
+  amount, holding market value, holding accrued, and weighted price examples.
   It should also show plausible input-component rows for unresolved periods
   without assigning them `Performance Difference Explained` values.
 - Most portfolio-period differences should reconcile to rows in the
@@ -99,13 +99,13 @@ Expected workbook:
   promoted into the `Identifiable Causes` sheet.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
-    `CASH_USD` position changes;
+    `CASH_USD` holding changes;
   - a partly explained ALPHA period with a changed buy transaction amount plus
     changed transaction quantity, price, and commission components;
   - a fully explained BALANCED period with a dividend transaction amount change;
   - a fully explained BALANCED period with both an AAPL price correction and a
-    standalone MSFT position market-value correction;
-  - a fully explained INCOME period with `CASH_USD` position changes;
+    standalone MSFT holding market-value correction;
+  - a fully explained INCOME period with `CASH_USD` holding changes;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Other Evidence` sheet;
@@ -136,10 +136,10 @@ The workbook uses a small field-role model:
 
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
-| `performance_input` | `positions.market_value`, `positions.accrued`, `transactions.amount` | Additive rows on the `Identifiable Causes` sheet when enough inputs are available. |
-| `input_component` | `positions.quantity`, `positions.price`, `prices.price`, transaction quantity/price/commission | Shown beside related performance inputs, or promoted for unresolved periods, usually without its own explained amount. |
+| `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Identifiable Causes` sheet when enough inputs are available. |
+| `input_component` | `holdings.quantity`, `holdings.price`, `prices.price`, transaction quantity/price/commission | Shown beside related performance inputs, or promoted for unresolved periods, usually without its own explained amount. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | position cost, FX rates, security reference data, unsupported fields | Shown on the `Other Evidence` sheet unless promoted for review of an unresolved period. |
+| `context` | holding cost, FX rates, security reference data, unsupported fields | Shown on the `Other Evidence` sheet unless promoted for review of an unresolved period. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code
@@ -164,8 +164,8 @@ BALANCED, and INCOME operational portfolios with changed portfolio/security
 periods so reviewers can see the most understandable causal-attribution bases:
 
 - transaction amount over beginning market value
-- position market value over beginning market value
-- position accrued over beginning market value
+- holding market value over beginning market value
+- holding accrued over beginning market value
 - price delta over snapshot A price, weighted by snapshot A security weight
 
 Most portfolio-period differences are fully explained. One INCOME period is

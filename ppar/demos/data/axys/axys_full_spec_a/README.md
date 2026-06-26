@@ -11,5 +11,5 @@ Axys-style operational files. It includes three compact portfolios:
 - `INCOME`: a lower-equity version with the largest cash/fixed-income sleeve.
 
 Each portfolio has six monthly periods, ten mega-cap equities, a `CASH_USD`
-position row, and short Treasury bill/note rows so the workbook has realistic cash,
-accrued-income, price, position, transaction, and security-return examples.
+holding row, and short Treasury bill/note rows so the workbook has realistic cash,
+accrued-income, price, holding, transaction, and security-return examples.

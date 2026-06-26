@@ -155,13 +155,13 @@ def _write_transaction_commission_review_specification(directory: Path) -> Path:
     return specification_path
 
 
-def _write_position_estimate_specification(
+def _write_holding_estimate_specification(
     directory: Path,
     *,
-    include_position_impact_methods: bool,
+    include_holding_impact_methods: bool,
     include_accrued_impact_methods: bool = False,
 ) -> Path:
-    """Write a minimal source-loaded fixture with position market value changes."""
+    """Write a minimal source-loaded fixture with holding market value changes."""
     for snapshot_name, portfolio_return, market_value, accrued in (
         ("snapshot_a", "0.0100", "1000.00", "25.00"),
         ("snapshot_b", "0.0110", "1010.00", "30.00"),
@@ -173,8 +173,8 @@ def _write_position_estimate_specification(
             f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
             encoding="utf-8",
         )
-        (snapshot_path / "positions.csv").write_text(
-            "PORT,SEC,POSITION_DATE,QTY,MKT_VAL,ACCRUED\n"
+        (snapshot_path / "holdings.csv").write_text(
+            "PORT,SEC,HOLDING_DATE,QTY,MKT_VAL,ACCRUED\n"
             f"PORT_A,AAPL,2025-05-31,10,{market_value},{accrued}\n",
             encoding="utf-8",
         )
@@ -187,20 +187,20 @@ def _write_position_estimate_specification(
         "    path: snapshot_b",
         "files:",
         "  portfolio_performance: portperf.csv",
-        "  positions: positions.csv",
+        "  holdings: holdings.csv",
     ]
-    if include_position_impact_methods:
+    if include_holding_impact_methods:
         lines.extend(
             [
-                "position_impact_methods:",
+                "holding_impact_methods:",
                 "  market_value:",
                 "    method: market_value_delta_over_return_denominator",
                 "    denominator_source: begin_market_value",
             ]
         )
     if include_accrued_impact_methods:
-        if not include_position_impact_methods:
-            lines.append("position_impact_methods:")
+        if not include_holding_impact_methods:
+            lines.append("holding_impact_methods:")
         lines.extend(
             [
                 "  accrued:",
@@ -465,7 +465,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("review_status", needs_review.columns)
             self.assertEqual(needs_review["review_status"][0], "needs_review")
             self.assertIn(
-                "high-priority context: positions/cost",
+                "high-priority context: holdings/cost",
                 needs_review["review_cues"][0],
             )
             self.assertIn(
@@ -497,7 +497,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("review_priority", context_evidence.columns)
             self.assertIn("review_priority_reason", context_evidence.columns)
             self.assertIn("return_impact_treatment", context_evidence.columns)
-            self.assertIn("PC-POS-COST", context_evidence["code"].to_list())
+            self.assertIn("PC-HOLD-COST", context_evidence["code"].to_list())
             self.assertEqual(context_evidence["review_priority"][0], "high")
             self.assertEqual(
                 set(context_evidence["return_impact_treatment"]),
@@ -756,16 +756,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(set(placeholders["review_status"].to_list()), {"No differences"})
         self.assertEqual(set(placeholders["review_note"].to_list()), {"None"})
 
-    def test_position_impact_method_explains_market_value_row(self) -> None:
-        """Position market value uses the default performance-input impact."""
+    def test_holding_impact_method_explains_market_value_row(self) -> None:
+        """Holding market value uses the default performance-input impact."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_position_estimate_specification(
+            plain_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "plain",
-                include_position_impact_methods=False,
+                include_holding_impact_methods=False,
             )
-            configured_path = _write_position_estimate_specification(
+            configured_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "configured",
-                include_position_impact_methods=True,
+                include_holding_impact_methods=True,
             )
 
             plain_causes = _workbook_underlying_causes_table(
@@ -777,32 +777,32 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 comparison_path=configured_path,
             )
 
-        plain_position = plain_causes.filter(
-            (pl.col("dataset") == "positions")
+        plain_holding = plain_causes.filter(
+            (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "market_value")
         )
-        configured_position = configured_causes.filter(
-            (pl.col("dataset") == "positions")
+        configured_holding = configured_causes.filter(
+            (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "market_value")
         )
 
-        self.assertEqual(plain_position.height, 1)
-        self.assertAlmostEqual(plain_position["estimated_impact"][0], 0.01)
-        self.assertEqual(plain_position["review_guidance"][0], "")
-        self.assertEqual(configured_position.height, 1)
-        self.assertAlmostEqual(configured_position["estimated_impact"][0], 0.01)
-        self.assertEqual(configured_position["review_guidance"][0], "")
+        self.assertEqual(plain_holding.height, 1)
+        self.assertAlmostEqual(plain_holding["estimated_impact"][0], 0.01)
+        self.assertEqual(plain_holding["review_guidance"][0], "")
+        self.assertEqual(configured_holding.height, 1)
+        self.assertAlmostEqual(configured_holding["estimated_impact"][0], 0.01)
+        self.assertEqual(configured_holding["review_guidance"][0], "")
 
-    def test_position_accrued_impact_method_explains_accrued_row(self) -> None:
-        """Position accrued uses the default performance-input impact."""
+    def test_holding_accrued_impact_method_explains_accrued_row(self) -> None:
+        """Holding accrued uses the default performance-input impact."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_position_estimate_specification(
+            plain_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "plain",
-                include_position_impact_methods=False,
+                include_holding_impact_methods=False,
             )
-            configured_path = _write_position_estimate_specification(
+            configured_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "configured",
-                include_position_impact_methods=False,
+                include_holding_impact_methods=False,
                 include_accrued_impact_methods=True,
             )
 
@@ -816,11 +816,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
 
         plain_accrued = plain_causes.filter(
-            (pl.col("dataset") == "positions")
+            (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "accrued")
         )
         configured_accrued = configured_causes.filter(
-            (pl.col("dataset") == "positions")
+            (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "accrued")
         )
 
@@ -834,18 +834,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
     def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
         """Evidence-only YAML removes missing-method guidance for known fields."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_position_estimate_specification(
+            plain_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "plain",
-                include_position_impact_methods=False,
+                include_holding_impact_methods=False,
             )
-            configured_path = _write_position_estimate_specification(
+            configured_path = _write_holding_estimate_specification(
                 Path(temp_dir) / "configured",
-                include_position_impact_methods=False,
+                include_holding_impact_methods=False,
             )
             for comparison_path in (plain_path, configured_path):
-                position_path = comparison_path.parent / "snapshot_b" / "positions.csv"
-                position_path.write_text(
-                    position_path.read_text(encoding="utf-8").replace(
+                holding_path = comparison_path.parent / "snapshot_b" / "holdings.csv"
+                holding_path.write_text(
+                    holding_path.read_text(encoding="utf-8").replace(
                         "PORT_A,AAPL,2025-05-31,10,1010.00,30.00",
                         "PORT_A,AAPL,2025-05-31,11,1010.00,30.00",
                     ),
@@ -854,7 +854,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             configured_path.write_text(
                 configured_path.read_text(encoding="utf-8")
                 + "\n"
-                + "position_impact_methods:\n"
+                + "holding_impact_methods:\n"
                 + "  quantity:\n"
                 + "    method: evidence_only\n",
                 encoding="utf-8",
@@ -869,11 +869,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
 
         plain_quantity = plain_causes.filter(
-            (pl.col("dataset") == "positions")
+            (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "quantity")
         )
         configured_quantity = configured_causes.filter(
-            (pl.col("dataset") == "positions")
+            (pl.col("dataset") == "holdings")
             & (pl.col("source_column") == "quantity")
         )
 
@@ -949,8 +949,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertTrue(portfolio_keys.issubset(cause_keys))
         self.assertTrue(
             {
-                ("positions", "market_value"),
-                ("positions", "quantity"),
+                ("holdings", "market_value"),
+                ("holdings", "quantity"),
                 ("transactions", "commission"),
                 ("transactions", "price"),
                 ("transactions", "quantity"),

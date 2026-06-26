@@ -72,7 +72,7 @@ _WORKBOOK_UNEXPLAINED_TOLERANCE = 0.00000001
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
     pc_cols.FX_RATES: {pc_cols.FX_RATE},
-    pc_cols.POSITIONS: {pc_cols.ACCRUED, pc_cols.MARKET_VALUE, pc_cols.QUANTITY},
+    pc_cols.HOLDINGS: {pc_cols.ACCRUED, pc_cols.MARKET_VALUE, pc_cols.QUANTITY},
     pc_cols.PRICES: {pc_cols.PRICE},
     pc_cols.TRANSACTIONS: {
         pc_cols.AMOUNT,
@@ -954,13 +954,13 @@ def _workbook_cause_family(row: Mapping[str, object]) -> object:
     """Return the broad accounting family for a changed input row."""
     dataset = row.get(_pc_findings.DATASET)
     source_column = row.get(_pc_findings.SOURCE_COLUMN)
-    if dataset in {pc_cols.POSITIONS, pc_cols.PRICES} and source_column in {
+    if dataset in {pc_cols.HOLDINGS, pc_cols.PRICES} and source_column in {
         pc_cols.MARKET_VALUE,
         pc_cols.ACCRUED,
         pc_cols.QUANTITY,
         pc_cols.PRICE,
     }:
-        return "position_value"
+        return "holding_value"
     if dataset == pc_cols.TRANSACTIONS:
         return pc_cols.TRANSACTIONS
     return dataset
@@ -981,21 +981,21 @@ def _workbook_preferred_estimate_rows(
             if row.get(_pc_explain.IMPACT_BASIS)
             == _pc_explain.IMPACT_BASIS_SECURITY_CONTRIBUTION
         ]
-    position_inputs = [
+    holding_inputs = [
         row
         for row in rows
-        if row.get(_pc_findings.DATASET) == pc_cols.POSITIONS
+        if row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
         and _field_roles.is_performance_input(
             row.get(_pc_findings.DATASET),
             row.get(_pc_findings.SOURCE_COLUMN),
         )
     ]
-    if position_inputs:
-        return position_inputs
+    if holding_inputs:
+        return holding_inputs
     holdings_price_rows = [
         row
         for row in rows
-        if row.get(_pc_findings.DATASET) == pc_cols.POSITIONS
+        if row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
         and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.PRICE
     ]
     if holdings_price_rows:
@@ -1200,7 +1200,7 @@ def _workbook_review_note(
             "transaction",
             source_column,
         ),
-        pc_cols.POSITIONS: _workbook_review_change_action("position", source_column),
+        pc_cols.HOLDINGS: _workbook_review_change_action("holding", source_column),
         pc_cols.CASH: _workbook_review_change_action("cash", source_column),
     }
     return dataset_actions.get(
@@ -1249,7 +1249,7 @@ def _workbook_review_guidance(
             "transaction_impact_methods.performance.denominator_source, and "
             f"transaction_rules for each transaction code in {yaml_path}."
         )
-    if dataset == pc_cols.POSITIONS:
+    if dataset == pc_cols.HOLDINGS:
         if source_column not in {
             pc_cols.MARKET_VALUE,
             pc_cols.ACCRUED,
@@ -1258,19 +1258,19 @@ def _workbook_review_guidance(
             return f"No supported YAML impact method exists yet for {dataset_column}."
         if source_column == pc_cols.ACCRUED:
             return (
-                "Specify the YAML position_impact_methods.accrued.method and "
-                "position_impact_methods.accrued.denominator_source in "
+                "Specify the YAML holding_impact_methods.accrued.method and "
+                "holding_impact_methods.accrued.denominator_source in "
                 f"{yaml_path}."
             )
         if source_column == pc_cols.QUANTITY:
             return (
-                "Specify the YAML position_impact_methods.quantity.method and "
-                "position_impact_methods.quantity.denominator_source in "
+                "Specify the YAML holding_impact_methods.quantity.method and "
+                "holding_impact_methods.quantity.denominator_source in "
                 f"{yaml_path}."
             )
         return (
-            "Specify the YAML position_impact_methods.market_value.method and "
-            "position_impact_methods.market_value.denominator_source in "
+            "Specify the YAML holding_impact_methods.market_value.method and "
+            "holding_impact_methods.market_value.denominator_source in "
             f"{yaml_path}."
         )
     if dataset == pc_cols.PRICES:
@@ -1351,9 +1351,9 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
             "cannot be estimated. Review return denominator, transaction sign/flow "
             "semantics, and transaction date inputs."
         )
-    if dataset == pc_cols.POSITIONS:
+    if dataset == pc_cols.HOLDINGS:
         return (
-            "None; this position input difference is shown for review, but no "
+            "None; this holding input difference is shown for review, but no "
             "supported performance estimate is available for this row."
         )
     if dataset == pc_cols.PRICES:
@@ -1379,8 +1379,8 @@ def _workbook_missing_impact_method_action(dataset: str, source_column: str) -> 
         return "Review price change; add price impact method before estimating."
     if dataset == pc_cols.TRANSACTIONS:
         return _workbook_add_method_action("transaction", source_column)
-    if dataset == pc_cols.POSITIONS:
-        return _workbook_add_method_action("position", source_column)
+    if dataset == pc_cols.HOLDINGS:
+        return _workbook_add_method_action("holding", source_column)
     if dataset == pc_cols.CASH:
         return _workbook_add_method_action("cash", source_column)
     return _workbook_add_method_action("input", source_column)

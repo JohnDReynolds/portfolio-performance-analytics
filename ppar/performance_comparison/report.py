@@ -1087,7 +1087,7 @@ def _context_use(finding: Mapping[str, object]) -> str:
     """Return reviewer-facing use text for a context finding."""
     dataset = finding.get(_pc_findings.DATASET)
     source_column = finding.get(_pc_findings.SOURCE_COLUMN)
-    if dataset == pc_cols.POSITIONS and source_column == pc_cols.COST:
+    if dataset == pc_cols.HOLDINGS and source_column == pc_cols.COST:
         return "cost-basis review context; not a performance input"
     if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.COMMISSION:
         return "commission and fee review context; not modeled without explicit policy"

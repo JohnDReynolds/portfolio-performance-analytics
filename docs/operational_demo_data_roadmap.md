@@ -12,7 +12,7 @@ Axys-demo review.
 The operational demos should eventually include:
 
 - a handful of Mega-Cap Alpha Portfolio equities;
-- `CASH_USD` cash-position rows;
+- `CASH_USD` cash-holding rows;
 - a few T-bill and T-note style instruments with accrued interest;
 - six monthly periods;
 - three small portfolios (`ALPHA`, `BALANCED`, and `INCOME`);
@@ -42,7 +42,7 @@ The generator currently:
   and `TNOTE5Y` operational securities;
 - creates the ALPHA, BALANCED, and INCOME portfolio variants from the same
   security universe;
-- creates Axys-style `portperf`, `secperf`, `sec_ref`, positions, prices, and
+- creates Axys-style `portperf`, `secperf`, `sec_ref`, holdings, prices, and
   transactions CSVs;
 - writes `summary.json` for quick inspection.
 
@@ -103,7 +103,7 @@ data. Snapshot B introduces controlled changes that produce:
   review-only transaction quantity, price, and commission clues;
 - one unexplained BALANCED period with transaction quantity, price, and
   commission shown as review-only `Identifiable Causes` sheet evidence;
-- related position-component examples where quantity rows sit beside selected
+- related holding-component examples where quantity rows sit beside selected
   market-value rows and cost remains on the `Other Evidence` sheet;
 - matching security-level examples for AAPL and TNOTE2Y;
 - transaction-rule YAML plus default field-role treatment for performance

@@ -19,7 +19,7 @@ import polars as pl
 from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
-    PositionImpactMethod,
+    HoldingImpactMethod,
     PriceImpactMethod,
     TransactionImpactMethod,
 )
@@ -58,10 +58,10 @@ __all__ = [
     "IMPACT_POLICY_EVIDENCE_ONLY_PREFIX",
     "IMPACT_POLICY_CASH_BALANCE",
     "IMPACT_POLICY_CASH_MARKET_VALUE",
-    "IMPACT_POLICY_POSITION_ACCRUED",
+    "IMPACT_POLICY_HOLDING_ACCRUED",
     "IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD",
-    "IMPACT_POLICY_POSITION_MARKET_VALUE",
-    "IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE",
+    "IMPACT_POLICY_HOLDING_MARKET_VALUE",
+    "IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE",
     "IMPACT_POLICY_PRICE_WEIGHTED",
     "IMPACT_POLICY_SECURITY_CONTRIBUTION",
     "IMPACT_POLICY_SECURITY_RETURN_WEIGHTED",
@@ -84,10 +84,10 @@ __all__ = [
     "PC_SEC_DROP",
     "PC_REF_ID",
     "PC_REF_CLASS",
-    "PC_POS_QTY",
-    "PC_POS_MV",
-    "PC_POS_COST",
-    "PC_POS_ACCR",
+    "PC_HOLD_QTY",
+    "PC_HOLD_MV",
+    "PC_HOLD_COST",
+    "PC_HOLD_ACCR",
     "PC_CASH_MV",
     "PC_PRICE",
     "PC_FX_RATE",
@@ -143,17 +143,17 @@ IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD = (
     "portfolio_source_field:"
     f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
 )
-IMPACT_POLICY_POSITION_MARKET_VALUE = (
-    "position_market_value:"
-    f"{PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value}"
+IMPACT_POLICY_HOLDING_MARKET_VALUE = (
+    "holding_market_value:"
+    f"{HoldingImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value}"
 )
-IMPACT_POLICY_POSITION_ACCRUED = (
-    "position_accrued:"
-    f"{PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value}"
+IMPACT_POLICY_HOLDING_ACCRUED = (
+    "holding_accrued:"
+    f"{HoldingImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value}"
 )
-IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE = (
-    "position_quantity:"
-    f"{PositionImpactMethod.QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR.value}"
+IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
+    "holding_quantity:"
+    f"{HoldingImpactMethod.QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR.value}"
 )
 IMPACT_POLICY_PRICE_WEIGHTED = (
     "price_weighted:"
@@ -191,10 +191,10 @@ PC_SEC_ADD: Final[str] = "PC-SEC-ADD"
 PC_SEC_DROP: Final[str] = "PC-SEC-DROP"
 PC_REF_ID: Final[str] = "PC-REF-ID"
 PC_REF_CLASS: Final[str] = "PC-REF-CLASS"
-PC_POS_QTY: Final[str] = "PC-POS-QTY"
-PC_POS_MV: Final[str] = "PC-POS-MV"
-PC_POS_COST: Final[str] = "PC-POS-COST"
-PC_POS_ACCR: Final[str] = "PC-POS-ACCR"
+PC_HOLD_QTY: Final[str] = "PC-HOLD-QTY"
+PC_HOLD_MV: Final[str] = "PC-HOLD-MV"
+PC_HOLD_COST: Final[str] = "PC-HOLD-COST"
+PC_HOLD_ACCR: Final[str] = "PC-HOLD-ACCR"
 PC_CASH_MV: Final[str] = "PC-CASH-MV"
 PC_PRICE: Final[str] = "PC-PRICE"
 PC_FX_RATE: Final[str] = "PC-FX-RATE"

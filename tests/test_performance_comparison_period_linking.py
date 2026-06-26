@@ -167,17 +167,17 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
             (dt.date(2025, 5, 1), dt.date(2025, 5, 31)),
         )
 
-    def test_period_context_for_dated_evidence_links_position_period(self) -> None:
-        """Position rows are linked to the portfolio period containing position date."""
+    def test_period_context_for_dated_evidence_links_holding_period(self) -> None:
+        """Holding rows are linked to the portfolio period containing holding date."""
         row = {
             pc_cols.PORTFOLIO_ID: "PORT_A",
-            pc_cols.POSITION_DATE: dt.date(2025, 5, 31),
+            pc_cols.HOLDING_DATE: dt.date(2025, 5, 31),
         }
         portfolio_periods = _portfolio_periods()
 
         period_context = period_context_for_dated_evidence(
             row,
-            pc_cols.POSITIONS,
+            pc_cols.HOLDINGS,
             portfolio_periods,
         )
 

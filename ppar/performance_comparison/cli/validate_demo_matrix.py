@@ -367,8 +367,8 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
     """Return whether the portfolio fixture exercises field-role attribution."""
     name = "Portfolio field-role specifications"
     expected_policy_prefixes = {
-        "position_market_value:market_value_delta_over_return_denominator",
-        "position_accrued:accrued_delta_over_return_denominator",
+        "holding_market_value:market_value_delta_over_return_denominator",
+        "holding_accrued:accrued_delta_over_return_denominator",
         "price_weighted:price_delta_over_snapshot_a_price_times_weight",
     }
     impact_policies = {
@@ -408,8 +408,8 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         for row in causes.select(["dataset", "source_column"]).iter_rows(named=True)
     }
     expected_promoted_fields = {
-        ("positions", "market_value"),
-        ("positions", "quantity"),
+        ("holdings", "market_value"),
+        ("holdings", "quantity"),
         ("transactions", "commission"),
         ("transactions", "price"),
         ("transactions", "quantity"),
@@ -430,7 +430,7 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         for row in context.select(["dataset", "source_column"]).iter_rows(named=True)
     }
     expected_context_fields = {
-        ("positions", "cost"),
+        ("holdings", "cost"),
     }
     missing_context_fields = sorted(expected_context_fields - context_fields)
     if missing_context_fields:

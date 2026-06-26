@@ -19,9 +19,9 @@ from ppar.performance_comparison.findings import (
     MESSAGE,
     PC_CASH_MV,
     PC_FX_RATE,
-    PC_POS_ACCR,
+    PC_HOLD_ACCR,
     PC_PORT_RET,
-    PC_POS_QTY,
+    PC_HOLD_QTY,
     PC_PRICE,
     PC_TXN_AMT,
     PC_TXN_PRICE,
@@ -75,8 +75,8 @@ class TestPerformanceComparisonRunner(unittest.TestCase):
         self.assertTrue(
             {
                 PC_PORT_RET,
-                PC_POS_QTY,
-                PC_POS_ACCR,
+                PC_HOLD_QTY,
+                PC_HOLD_ACCR,
                 PC_CASH_MV,
                 PC_PRICE,
                 PC_FX_RATE,

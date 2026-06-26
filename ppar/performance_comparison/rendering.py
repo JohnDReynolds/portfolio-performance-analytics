@@ -537,7 +537,7 @@ table {
 caption {
   height: 1px;
   overflow: hidden;
-  position: absolute;
+  holding: absolute;
   white-space: nowrap;
   width: 1px;
 }
@@ -554,7 +554,7 @@ th {
   color: #263033;
   font-size: 11px;
   font-weight: 700;
-  position: sticky;
+  holding: sticky;
   top: 0;
   text-align: left;
   white-space: nowrap;

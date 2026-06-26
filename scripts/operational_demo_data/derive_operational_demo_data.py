@@ -193,14 +193,14 @@ def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
     sec_ref = _security_master(performance)
     secperf = _security_performance(performance)
     portperf = _portfolio_performance(performance)
-    positions = _positions(performance)
+    holdings = _positions(performance)
     prices = _prices(performance)
     transactions = _transactions(performance)
     return {
         "sec_ref": sec_ref,
         "secperf": secperf,
         "portperf": portperf,
-        "positions_holdings": positions,
+        "holdings": holdings,
         "prices": prices,
         "transactions": transactions,
     }
@@ -214,7 +214,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
 
     Returns:
         Snapshot B frames with small deterministic restatements across prices,
-        positions, transactions, and performance rows.
+        holdings, transactions, and performance rows.
     """
     snapshot = {name: frame.copy(deep=True) for name, frame in axys.items()}
     dates = sorted(snapshot["portperf"]["THRU_DATE"].unique())
@@ -288,10 +288,10 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         return_delta=-0.00028,
     )
 
-    # Fully explained: cash-as-position market value explains a separate
+    # Fully explained: cash-as-holding market value explains a separate
     # INCOME period change.
-    _adjust_cash_position(
-        snapshot["positions_holdings"],
+    _adjust_cash_holding(
+        snapshot["holdings"],
         "INCOME",
         middle_date,
         cash_delta=300.0,
@@ -304,15 +304,15 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     )
 
     # Fully explained: accrued interest explains the INCOME period change.
-    tnote_market_value_a = _position_value(
-        snapshot["positions_holdings"],
+    tnote_market_value_a = _holding_value(
+        snapshot["holdings"],
         "INCOME",
         "TNOTE2Y",
         latest_date,
         "MKT_VAL",
     )
-    _adjust_position(
-        snapshot["positions_holdings"],
+    _adjust_holding(
+        snapshot["holdings"],
         "INCOME",
         "TNOTE2Y",
         target_date=latest_date,
@@ -320,8 +320,8 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         cost_delta=200.0,
         accrued_delta=50.0,
     )
-    tnote_market_value_b = _position_value(
-        snapshot["positions_holdings"],
+    tnote_market_value_b = _holding_value(
+        snapshot["holdings"],
         "INCOME",
         "TNOTE2Y",
         latest_date,
@@ -364,10 +364,10 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         return_delta=0.0001,
     )
 
-    # Fully explained: position market value changed by itself, as when a vendor
+    # Fully explained: holding market value changed by itself, as when a vendor
     # restates a holding value but leaves component quantity and price unchanged.
-    _adjust_position(
-        snapshot["positions_holdings"],
+    _adjust_holding(
+        snapshot["holdings"],
         "BALANCED",
         "MSFT",
         target_date=latest_date,
@@ -383,19 +383,19 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         ),
     )
 
-    # Reviewable component-only position difference: price changed on the
+    # Reviewable component-only holding difference: price changed on the
     # holdings row while market value stayed the same. The standalone prices
     # file is unchanged, exercising the holdings-price precedence path.
-    _adjust_position(
-        snapshot["positions_holdings"],
+    _adjust_holding(
+        snapshot["holdings"],
         "INCOME",
         "TNOTE5Y",
         target_date=middle_date,
         price_delta=0.35,
     )
 
-    _adjust_cash_position(
-        snapshot["positions_holdings"],
+    _adjust_cash_holding(
+        snapshot["holdings"],
         "ALPHA",
         latest_date,
         cash_delta=1_500.0,
@@ -586,7 +586,7 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
             {
                 "PORT": row.portfolio_code,
                 "SEC": row.identifier,
-                "POSITION_DATE": row.thru_date.date(),
+                "HOLDING_DATE": row.thru_date.date(),
                 "QTY": round(market_value / price, 4),
                 "PRICE": round(price, 4),
                 "MKT_VAL": round(market_value, 2),
@@ -601,7 +601,7 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
             {
                 "PORT": row.portfolio_code,
                 "SEC": _CASH_IDENTIFIER,
-                "POSITION_DATE": row.thru_date.date(),
+                "HOLDING_DATE": row.thru_date.date(),
                 "QTY": round(market_value, 4),
                 "PRICE": 1.0,
                 "MKT_VAL": round(market_value, 2),
@@ -615,7 +615,7 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
 def _prices(performance: pd.DataFrame) -> pd.DataFrame:
     dates = performance["thru_date"].drop_duplicates().sort_values()
     identifiers = sorted(
-        _position_security_id(identifier)
+        _holding_security_id(identifier)
         for identifier in performance["identifier"].unique()
     )
     rows = []
@@ -711,8 +711,8 @@ def _adjust_price(
     prices.loc[mask, "PRICE"] = (prices.loc[mask, "PRICE"] * multiplier).round(4)
 
 
-def _adjust_position(
-    positions: pd.DataFrame,
+def _adjust_holding(
+    holdings: pd.DataFrame,
     portfolio_code: str,
     identifier: str,
     *,
@@ -724,53 +724,53 @@ def _adjust_position(
     cost_delta: float = 0.0,
     accrued_delta: float = 0.0,
 ) -> None:
-    """Apply one position restatement in place."""
-    mask = positions["PORT"].eq(portfolio_code) & positions["SEC"].eq(identifier)
+    """Apply one holding restatement in place."""
+    mask = holdings["PORT"].eq(portfolio_code) & holdings["SEC"].eq(identifier)
     if target_date is not None:
-        mask &= positions["POSITION_DATE"].astype(str).eq(str(target_date))
+        mask &= holdings["HOLDING_DATE"].astype(str).eq(str(target_date))
     if not bool(mask.any()):
-        raise ValueError(f"Could not find position row for {portfolio_code} {identifier}.")
+        raise ValueError(f"Could not find holding row for {portfolio_code} {identifier}.")
     if quantity_multiplier is not None:
-        positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] * quantity_multiplier).round(4)
-        positions.loc[mask, "MKT_VAL"] = (
-            positions.loc[mask, "MKT_VAL"] * quantity_multiplier
+        holdings.loc[mask, "QTY"] = (holdings.loc[mask, "QTY"] * quantity_multiplier).round(4)
+        holdings.loc[mask, "MKT_VAL"] = (
+            holdings.loc[mask, "MKT_VAL"] * quantity_multiplier
         ).round(2)
     if quantity_delta:
-        positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] + quantity_delta).round(4)
+        holdings.loc[mask, "QTY"] = (holdings.loc[mask, "QTY"] + quantity_delta).round(4)
     if price_delta:
-        positions.loc[mask, "PRICE"] = (positions.loc[mask, "PRICE"] + price_delta).round(4)
+        holdings.loc[mask, "PRICE"] = (holdings.loc[mask, "PRICE"] + price_delta).round(4)
     if market_value_delta:
-        positions.loc[mask, "MKT_VAL"] = (
-            positions.loc[mask, "MKT_VAL"] + market_value_delta
+        holdings.loc[mask, "MKT_VAL"] = (
+            holdings.loc[mask, "MKT_VAL"] + market_value_delta
         ).round(2)
     if cost_delta:
-        positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cost_delta).round(2)
+        holdings.loc[mask, "COST"] = (holdings.loc[mask, "COST"] + cost_delta).round(2)
     if accrued_delta:
-        positions.loc[mask, "ACCRUED"] = (
-            positions.loc[mask, "ACCRUED"] + accrued_delta
+        holdings.loc[mask, "ACCRUED"] = (
+            holdings.loc[mask, "ACCRUED"] + accrued_delta
         ).round(2)
 
 
-def _adjust_cash_position(
-    positions: pd.DataFrame,
+def _adjust_cash_holding(
+    holdings: pd.DataFrame,
     portfolio_code: str,
     target_date: object,
     *,
     cash_delta: float,
 ) -> None:
-    """Apply one cash-position market value restatement in place."""
+    """Apply one cash-holding market value restatement in place."""
     mask = (
-        positions["PORT"].eq(portfolio_code)
-        & positions["SEC"].eq(_CASH_IDENTIFIER)
-        & positions["POSITION_DATE"].astype(str).eq(str(target_date))
+        holdings["PORT"].eq(portfolio_code)
+        & holdings["SEC"].eq(_CASH_IDENTIFIER)
+        & holdings["HOLDING_DATE"].astype(str).eq(str(target_date))
     )
     if not bool(mask.any()):
         raise ValueError(
-            f"Could not find cash position for {portfolio_code} on {target_date}."
+            f"Could not find cash holding for {portfolio_code} on {target_date}."
         )
-    positions.loc[mask, "MKT_VAL"] = (positions.loc[mask, "MKT_VAL"] + cash_delta).round(2)
-    positions.loc[mask, "QTY"] = (positions.loc[mask, "QTY"] + cash_delta).round(4)
-    positions.loc[mask, "COST"] = (positions.loc[mask, "COST"] + cash_delta).round(2)
+    holdings.loc[mask, "MKT_VAL"] = (holdings.loc[mask, "MKT_VAL"] + cash_delta).round(2)
+    holdings.loc[mask, "QTY"] = (holdings.loc[mask, "QTY"] + cash_delta).round(4)
+    holdings.loc[mask, "COST"] = (holdings.loc[mask, "COST"] + cash_delta).round(2)
 
 
 def _adjust_transaction_amount(
@@ -893,25 +893,25 @@ def _security_weight(
     return float(security_performance.loc[mask, "BEGIN_WEIGHT"].iloc[0])
 
 
-def _position_value(
-    positions: pd.DataFrame,
+def _holding_value(
+    holdings: pd.DataFrame,
     portfolio_code: str,
     identifier: str,
     target_date: object,
     column: str,
 ) -> float:
-    """Return one numeric value from a dated position row."""
+    """Return one numeric value from a dated holding row."""
     mask = (
-        positions["PORT"].eq(portfolio_code)
-        & positions["SEC"].eq(identifier)
-        & positions["POSITION_DATE"].astype(str).eq(str(target_date))
+        holdings["PORT"].eq(portfolio_code)
+        & holdings["SEC"].eq(identifier)
+        & holdings["HOLDING_DATE"].astype(str).eq(str(target_date))
     )
     if not bool(mask.any()):
         raise ValueError(
-            f"Could not find position value for {portfolio_code} {identifier} "
+            f"Could not find holding value for {portfolio_code} {identifier} "
             f"on {target_date}."
         )
-    return float(positions.loc[mask, column].iloc[0])
+    return float(holdings.loc[mask, column].iloc[0])
 
 
 def _apply_portfolio_return_delta(
@@ -987,7 +987,7 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
-  positions: positions_holdings.csv
+  holdings: holdings.csv
   prices: prices.csv
   transactions: transactions.csv
 
@@ -1036,8 +1036,8 @@ def _price_for(identifier: str) -> float:
     return 100.0 + (sum(ord(char) for char in identifier) % 75)
 
 
-def _position_security_id(identifier: str) -> str:
-    """Return the security identifier used by holdings-style position exports."""
+def _holding_security_id(identifier: str) -> str:
+    """Return the security identifier used by holdings-style holding exports."""
     if identifier == _CASH_IDENTIFIER:
         return _CASH_IDENTIFIER
     return identifier

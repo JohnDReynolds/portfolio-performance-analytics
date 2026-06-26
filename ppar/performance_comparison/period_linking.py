@@ -15,7 +15,7 @@ from ppar.performance_comparison import schema as pc_cols
 
 DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,
-    pc_cols.POSITIONS: pc_cols.POSITION_DATE,
+    pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
     pc_cols.CASH: pc_cols.CASH_DATE,
 }
 SECURITY_DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {

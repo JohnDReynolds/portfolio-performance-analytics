@@ -20,7 +20,7 @@ from ppar.performance_comparison.findings import (
     CONTEXT,
     DIRECT_INPUT,
     EvidenceRole,
-    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     RELATED_OUTPUT,
     TARGET_OUTPUT,
     TransactionMatchStatus,
@@ -47,10 +47,10 @@ from ppar.performance_comparison.findings import (
     PC_TXN_QTY,
     PC_REF_CLASS,
     PC_REF_ID,
-    PC_POS_MV,
-    PC_POS_COST,
-    PC_POS_QTY,
-    PC_POS_ACCR,
+    PC_HOLD_MV,
+    PC_HOLD_COST,
+    PC_HOLD_QTY,
+    PC_HOLD_ACCR,
     PC_PRICE,
     SEVERITY_INFORMATIONAL,
     SEVERITY_MATERIAL,
@@ -76,7 +76,7 @@ from ppar.performance_comparison.policies import (
     _fx_rate_impact_policies,
     _is_evidence_only_policy_label,
     _modified_dietz_external_flow_eligibility,
-    _position_impact_policies,
+    _holding_impact_policies,
     _price_impact_policies,
     _security_master_impact_policies,
     _transaction_impact_policies,
@@ -86,7 +86,7 @@ from ppar.performance_comparison.modified_dietz import (
     modified_dietz_float as _modified_dietz_float,
 )
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
-from ppar.performance_comparison.positions import PositionsLoader
+from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
@@ -113,10 +113,10 @@ _SECURITY_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
     pc_cols.THRU_DATE,
 )
 _SECURITY_MASTER_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.SECURITY_ID,)
-_POSITIONS_KEY_COLUMNS: Final[tuple[str, str, str]] = (
+_HOLDINGS_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
     pc_cols.SECURITY_ID,
-    pc_cols.POSITION_DATE,
+    pc_cols.HOLDING_DATE,
 )
 _CASH_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
@@ -171,12 +171,12 @@ _SECURITY_MASTER_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.INDUSTRY: PC_REF_CLASS,
     pc_cols.ASSET_CLASS: PC_REF_CLASS,
 }
-_POSITIONS_COMPARE_COLUMNS: Final[dict[str, str]] = {
-    pc_cols.QUANTITY: PC_POS_QTY,
+_HOLDINGS_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.QUANTITY: PC_HOLD_QTY,
     pc_cols.PRICE: PC_PRICE,
-    pc_cols.MARKET_VALUE: PC_POS_MV,
-    pc_cols.COST: PC_POS_COST,
-    pc_cols.ACCRUED: PC_POS_ACCR,
+    pc_cols.MARKET_VALUE: PC_HOLD_MV,
+    pc_cols.COST: PC_HOLD_COST,
+    pc_cols.ACCRUED: PC_HOLD_ACCR,
 }
 _CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.CASH_BALANCE: PC_CASH_MV,
@@ -199,7 +199,7 @@ _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
         pc_cols.PRICES,
         pc_cols.FX_RATES,
         pc_cols.TRANSACTIONS,
-        pc_cols.POSITIONS,
+        pc_cols.HOLDINGS,
         pc_cols.CASH,
     }
 )
@@ -244,7 +244,7 @@ class PerformanceComparison:
         _portfolio_loader: Loader for normalized portfolio performance rows.
         _security_loader: Loader for normalized security performance rows.
         _security_master_loader: Loader for normalized security master rows.
-        _positions_loader: Loader for normalized position rows.
+        _holdings_loader: Loader for normalized holding rows.
         _cash_loader: Loader for normalized cash rows.
         _prices_loader: Loader for normalized price rows.
         _fx_rates_loader: Loader for normalized FX rate rows.
@@ -253,7 +253,7 @@ class PerformanceComparison:
             policies keyed by performance-flow treatment.
         _contribution_impact_policies: YAML-configured contribution impact
             policy labels keyed by dataset and source column.
-        _position_impact_policies: YAML-configured position impact policy
+        _holding_impact_policies: YAML-configured holding impact policy
             labels keyed by source column.
         _price_impact_policies: YAML-configured price impact policy labels
             keyed by source column.
@@ -277,7 +277,7 @@ class PerformanceComparison:
         self._portfolio_loader = PortfolioPerformanceLoader(specification)
         self._security_loader = SecurityPerformanceLoader(specification)
         self._security_master_loader = SecurityMasterLoader(specification)
-        self._positions_loader = PositionsLoader(specification)
+        self._holdings_loader = HoldingsLoader(specification)
         self._cash_loader = CashLoader(specification)
         self._prices_loader = PricesLoader(specification)
         self._fx_rates_loader = FxRatesLoader(specification)
@@ -288,7 +288,7 @@ class PerformanceComparison:
         self._contribution_impact_policies = _contribution_impact_policies(
             specification
         )
-        self._position_impact_policies = _position_impact_policies(specification)
+        self._holding_impact_policies = _holding_impact_policies(specification)
         self._price_impact_policies = _price_impact_policies(specification)
         self._cash_impact_policies = _cash_impact_policies(specification)
         self._fx_rate_impact_policies = _fx_rate_impact_policies(specification)
@@ -321,7 +321,7 @@ class PerformanceComparison:
         """
         findings = self._primary_performance_findings()
         findings.extend(self.compare_security_master())
-        findings.extend(self.compare_positions())
+        findings.extend(self.compare_holdings())
         findings.extend(self.compare_cash())
         findings.extend(self.compare_prices())
         findings.extend(self.compare_fx_rates())
@@ -402,16 +402,16 @@ class PerformanceComparison:
         )
         return findings
 
-    def compare_positions(self) -> list[Finding]:
-        """Compare position rows for snapshots A and B.
+    def compare_holdings(self) -> list[Finding]:
+        """Compare holding rows for snapshots A and B.
 
         Returns:
-            Findings for added/dropped rows and material position quantity or
+            Findings for added/dropped rows and material holding quantity or
             market value changes. Returns an empty list when the optional
-            positions dataset is unavailable.
+            holdings dataset is unavailable.
         """
-        snapshot_a = self._positions_loader.load("a")
-        snapshot_b = self._positions_loader.load("b")
+        snapshot_a = self._holdings_loader.load("a")
+        snapshot_b = self._holdings_loader.load("b")
         if snapshot_a is None or snapshot_b is None:
             return []
 
@@ -420,20 +420,20 @@ class PerformanceComparison:
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
-            _POSITIONS_KEY_COLUMNS,
+            _HOLDINGS_KEY_COLUMNS,
             PC_ROW_ADD,
             PC_ROW_DROP,
-            pc_cols.POSITIONS,
-            "Position row appears only in snapshot B.",
-            "Position row appears only in snapshot A.",
+            pc_cols.HOLDINGS,
+            "Holding row appears only in snapshot B.",
+            "Holding row appears only in snapshot A.",
         )
         findings.extend(
             self._changed_value_findings(
                 snapshot_a,
                 snapshot_b,
-                _POSITIONS_KEY_COLUMNS,
-                _POSITIONS_COMPARE_COLUMNS,
-                pc_cols.POSITIONS,
+                _HOLDINGS_KEY_COLUMNS,
+                _HOLDINGS_COMPARE_COLUMNS,
+                pc_cols.HOLDINGS,
                 portfolio_periods,
                 return_denominators=return_denominators,
             )
@@ -1114,7 +1114,7 @@ class PerformanceComparison:
         """Return beginning market value for approximate return impacts."""
         if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
             if (
-                dataset in {pc_cols.POSITIONS, pc_cols.TRANSACTIONS, pc_cols.CASH}
+                dataset in {pc_cols.HOLDINGS, pc_cols.TRANSACTIONS, pc_cols.CASH}
                 and portfolio_id is not None
                 and from_date is not None
                 and thru_date is not None
@@ -1163,9 +1163,9 @@ class PerformanceComparison:
     ) -> float | None:
         """Return method-specific input value used for impact estimates."""
         if (
-            dataset != pc_cols.POSITIONS
+            dataset != pc_cols.HOLDINGS
             or source_column != pc_cols.QUANTITY
-            or impact_policy != IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE
+            or impact_policy != IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE
         ):
             return None
         quantity = row.get(pc_cols.QUANTITY)
@@ -1406,7 +1406,7 @@ class PerformanceComparison:
             return DIRECT_INPUT
         if dataset == pc_cols.SECURITY_PERFORMANCE:
             return RELATED_OUTPUT
-        if dataset == pc_cols.POSITIONS and source_column == pc_cols.COST:
+        if dataset == pc_cols.HOLDINGS and source_column == pc_cols.COST:
             return CONTEXT
         if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.COMMISSION:
             return CONTEXT
@@ -1479,12 +1479,12 @@ class PerformanceComparison:
         )
         if evidence_only_policy is not None:
             return evidence_only_policy
-        if dataset == pc_cols.POSITIONS:
+        if dataset == pc_cols.HOLDINGS:
             if source_column == pc_cols.PRICE:
                 policy = self._price_impact_policies.get(source_column)
                 if policy is not None:
                     return policy
-            policy = self._position_impact_policies.get(source_column)
+            policy = self._holding_impact_policies.get(source_column)
             if policy is not None:
                 return policy
         if dataset == pc_cols.PRICES:

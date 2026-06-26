@@ -15,9 +15,9 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_CASH_BALANCE,
     IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
-    IMPACT_POLICY_POSITION_ACCRUED,
-    IMPACT_POLICY_POSITION_MARKET_VALUE,
-    IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_ACCRUED,
+    IMPACT_POLICY_HOLDING_MARKET_VALUE,
+    IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
@@ -33,7 +33,7 @@ from ppar.performance_comparison.methods import (
     ModifiedDietzDoubleCountPolicy,
     ModifiedDietzFlowTiming,
     ModifiedDietzInclusionRule,
-    PositionImpactMethod,
+    HoldingImpactMethod,
     PriceImpactMethod,
     SecurityMasterImpactMethod,
     TransactionImpactMethod,
@@ -51,7 +51,7 @@ from ppar.performance_comparison.transactions import (
 
 _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
-_POSITION_IMPACT_METHODS_KEY: Final[str] = "position_impact_methods"
+_HOLDING_IMPACT_METHODS_KEY: Final[str] = "holding_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
 _CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 _FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
@@ -83,15 +83,15 @@ _MODIFIED_DIETZ_METHOD: Final[str] = TransactionImpactMethod.MODIFIED_DIETZ.valu
 _TRANSACTION_AMOUNT_DELTA_METHOD: Final[str] = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-_POSITION_MARKET_VALUE_DELTA_METHOD: Final[str] = (
-    PositionImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
+_HOLDING_MARKET_VALUE_DELTA_METHOD: Final[str] = (
+    HoldingImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-_POSITION_ACCRUED_DELTA_METHOD: Final[str] = (
-    PositionImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
+_HOLDING_ACCRUED_DELTA_METHOD: Final[str] = (
+    HoldingImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-_POSITION_EVIDENCE_ONLY_METHOD: Final[str] = PositionImpactMethod.EVIDENCE_ONLY.value
-_POSITION_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = (
-    PositionImpactMethod[
+_HOLDING_EVIDENCE_ONLY_METHOD: Final[str] = HoldingImpactMethod.EVIDENCE_ONLY.value
+_HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = (
+    HoldingImpactMethod[
         "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
     ].value
 )
@@ -143,24 +143,24 @@ _TRANSACTION_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _METHOD_KEY,
     }
 )
-_POSITION_MARKET_VALUE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+_HOLDING_MARKET_VALUE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
         _DENOMINATOR_SOURCE_KEY,
     }
 )
-_POSITION_ACCRUED_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+_HOLDING_ACCRUED_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
         _DENOMINATOR_SOURCE_KEY,
     }
 )
-_POSITION_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+_HOLDING_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
     }
 )
-_POSITION_QUANTITY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+_HOLDING_QUANTITY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
         _DENOMINATOR_SOURCE_KEY,
@@ -205,13 +205,13 @@ _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
 _PERFORMANCE_AMOUNT_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
-_POSITION_MARKET_VALUE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+_HOLDING_MARKET_VALUE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
-_POSITION_ACCRUED_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+_HOLDING_ACCRUED_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
-_POSITION_QUANTITY_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+_HOLDING_QUANTITY_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
 }
 _PRICE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
@@ -229,7 +229,7 @@ _EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
 _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
     pc_cols.CASH: frozenset({pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}),
     pc_cols.FX_RATES: frozenset({pc_cols.FX_RATE}),
-    pc_cols.POSITIONS: frozenset(
+    pc_cols.HOLDINGS: frozenset(
         {pc_cols.QUANTITY, pc_cols.MARKET_VALUE, pc_cols.COST, pc_cols.ACCRUED}
     ),
     pc_cols.PRICES: frozenset({pc_cols.PRICE}),
@@ -526,29 +526,29 @@ def _contribution_impact_policies(
     return policies
 
 
-def _position_impact_policies(
+def _holding_impact_policies(
     specification: PerformanceComparisonSpecification,
 ) -> dict[str, str]:
-    """Return validated YAML-selected position impact policies.
+    """Return validated YAML-selected holding impact policies.
 
     Args:
         specification: Parsed comparison specification.
 
     Returns:
-        Policy labels keyed by position source column. Missing configuration
-        returns an empty mapping, which leaves position rows as evidence-only.
+        Policy labels keyed by holding source column. Missing configuration
+        returns an empty mapping, which leaves holding rows as evidence-only.
 
     Raises:
-        PpaError: If position impact method configuration is malformed or
+        PpaError: If holding impact method configuration is malformed or
             names an unsupported method.
     """
-    methods_value = specification.values.get(_POSITION_IMPACT_METHODS_KEY, {})
+    methods_value = specification.values.get(_HOLDING_IMPACT_METHODS_KEY, {})
     if methods_value is None:
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
             (
-                f"{specification.path}: {_POSITION_IMPACT_METHODS_KEY} "
+                f"{specification.path}: {_HOLDING_IMPACT_METHODS_KEY} "
                 "must be a mapping."
             ),
             504,
@@ -565,17 +565,17 @@ def _position_impact_policies(
         raise PpaError(
             (
                 f"{specification.path}: unsupported "
-                f"{_POSITION_IMPACT_METHODS_KEY} keys: {unsupported}."
+                f"{_HOLDING_IMPACT_METHODS_KEY} keys: {unsupported}."
             ),
             504,
         )
 
     policies: dict[str, str] = {
-        pc_cols.MARKET_VALUE: IMPACT_POLICY_POSITION_MARKET_VALUE,
-        pc_cols.ACCRUED: IMPACT_POLICY_POSITION_ACCRUED,
-        pc_cols.QUANTITY: IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE,
+        pc_cols.MARKET_VALUE: IMPACT_POLICY_HOLDING_MARKET_VALUE,
+        pc_cols.ACCRUED: IMPACT_POLICY_HOLDING_ACCRUED,
+        pc_cols.QUANTITY: IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
         pc_cols.COST: _evidence_only_impact_policy_label(
-            pc_cols.POSITIONS,
+            pc_cols.HOLDINGS,
             pc_cols.COST,
         ),
     }
@@ -583,71 +583,71 @@ def _position_impact_policies(
     if market_value is not None:
         policy = _require_policy_mapping(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             _MARKET_VALUE_KEY,
             market_value,
         )
         _validate_policy_keys(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             _MARKET_VALUE_KEY,
             policy,
-            _POSITION_MARKET_VALUE_REQUIRED_KEYS,
+            _HOLDING_MARKET_VALUE_REQUIRED_KEYS,
         )
         _validate_policy_method(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             _MARKET_VALUE_KEY,
             policy,
-            _POSITION_MARKET_VALUE_DELTA_METHOD,
+            _HOLDING_MARKET_VALUE_DELTA_METHOD,
         )
         _validate_allowed_policy_values(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             _MARKET_VALUE_KEY,
             policy,
-            _POSITION_MARKET_VALUE_ALLOWED_VALUES,
+            _HOLDING_MARKET_VALUE_ALLOWED_VALUES,
         )
-        policies[pc_cols.MARKET_VALUE] = IMPACT_POLICY_POSITION_MARKET_VALUE
+        policies[pc_cols.MARKET_VALUE] = IMPACT_POLICY_HOLDING_MARKET_VALUE
     accrued = methods_value.get(pc_cols.ACCRUED)
     if accrued is not None:
         policy = _require_policy_mapping(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.ACCRUED,
             accrued,
         )
         _validate_policy_keys(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.ACCRUED,
             policy,
-            _POSITION_ACCRUED_REQUIRED_KEYS,
+            _HOLDING_ACCRUED_REQUIRED_KEYS,
         )
         _validate_policy_method(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.ACCRUED,
             policy,
-            _POSITION_ACCRUED_DELTA_METHOD,
+            _HOLDING_ACCRUED_DELTA_METHOD,
         )
         _validate_allowed_policy_values(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.ACCRUED,
             policy,
-            _POSITION_ACCRUED_ALLOWED_VALUES,
+            _HOLDING_ACCRUED_ALLOWED_VALUES,
         )
-        policies[pc_cols.ACCRUED] = IMPACT_POLICY_POSITION_ACCRUED
+        policies[pc_cols.ACCRUED] = IMPACT_POLICY_HOLDING_ACCRUED
     quantity_value = methods_value.get(pc_cols.QUANTITY)
     if quantity_value is not None:
-        policies[pc_cols.QUANTITY] = _validated_position_quantity_policy(
+        policies[pc_cols.QUANTITY] = _validated_holding_quantity_policy(
             specification,
             quantity_value,
         )
     cost_value = methods_value.get(pc_cols.COST)
     if cost_value is not None:
-        policies[pc_cols.COST] = _validated_position_evidence_only_policy(
+        policies[pc_cols.COST] = _validated_holding_evidence_only_policy(
             specification,
             pc_cols.COST,
             cost_value,
@@ -655,14 +655,14 @@ def _position_impact_policies(
     return policies
 
 
-def _validated_position_quantity_policy(
+def _validated_holding_quantity_policy(
     specification: PerformanceComparisonSpecification,
     policy_value: object,
 ) -> str:
-    """Validate and return the configured position quantity policy label."""
+    """Validate and return the configured holding quantity policy label."""
     policy = _require_policy_mapping(
         specification,
-        _POSITION_IMPACT_METHODS_KEY,
+        _HOLDING_IMPACT_METHODS_KEY,
         pc_cols.QUANTITY,
         policy_value,
     )
@@ -670,76 +670,76 @@ def _validated_position_quantity_policy(
     if method is None:
         _validate_policy_keys(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.QUANTITY,
             policy,
-            _POSITION_QUANTITY_REQUIRED_KEYS,
+            _HOLDING_QUANTITY_REQUIRED_KEYS,
         )
-    if method == _POSITION_EVIDENCE_ONLY_METHOD:
+    if method == _HOLDING_EVIDENCE_ONLY_METHOD:
         _validate_policy_keys(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.QUANTITY,
             policy,
-            _POSITION_EVIDENCE_ONLY_REQUIRED_KEYS,
+            _HOLDING_EVIDENCE_ONLY_REQUIRED_KEYS,
         )
         return _evidence_only_impact_policy_label(
-            pc_cols.POSITIONS,
+            pc_cols.HOLDINGS,
             pc_cols.QUANTITY,
         )
-    if method != _POSITION_QUANTITY_UNIT_MARKET_VALUE_METHOD:
+    if method != _HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD:
         _validate_policy_method(
             specification,
-            _POSITION_IMPACT_METHODS_KEY,
+            _HOLDING_IMPACT_METHODS_KEY,
             pc_cols.QUANTITY,
             policy,
-            _POSITION_QUANTITY_UNIT_MARKET_VALUE_METHOD,
+            _HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD,
         )
     _validate_policy_keys(
         specification,
-        _POSITION_IMPACT_METHODS_KEY,
+        _HOLDING_IMPACT_METHODS_KEY,
         pc_cols.QUANTITY,
         policy,
-        _POSITION_QUANTITY_REQUIRED_KEYS,
+        _HOLDING_QUANTITY_REQUIRED_KEYS,
     )
     _validate_allowed_policy_values(
         specification,
-        _POSITION_IMPACT_METHODS_KEY,
+        _HOLDING_IMPACT_METHODS_KEY,
         pc_cols.QUANTITY,
         policy,
-        _POSITION_QUANTITY_ALLOWED_VALUES,
+        _HOLDING_QUANTITY_ALLOWED_VALUES,
     )
-    return IMPACT_POLICY_POSITION_QUANTITY_UNIT_MARKET_VALUE
+    return IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE
 
 
-def _validated_position_evidence_only_policy(
+def _validated_holding_evidence_only_policy(
     specification: PerformanceComparisonSpecification,
     source_column: str,
     policy_value: object,
 ) -> str:
-    """Validate and return an evidence-only position policy label."""
+    """Validate and return an evidence-only holding policy label."""
     policy = _require_policy_mapping(
         specification,
-        _POSITION_IMPACT_METHODS_KEY,
+        _HOLDING_IMPACT_METHODS_KEY,
         source_column,
         policy_value,
     )
     _validate_policy_keys(
         specification,
-        _POSITION_IMPACT_METHODS_KEY,
+        _HOLDING_IMPACT_METHODS_KEY,
         source_column,
         policy,
-        _POSITION_EVIDENCE_ONLY_REQUIRED_KEYS,
+        _HOLDING_EVIDENCE_ONLY_REQUIRED_KEYS,
     )
     _validate_policy_method(
         specification,
-        _POSITION_IMPACT_METHODS_KEY,
+        _HOLDING_IMPACT_METHODS_KEY,
         source_column,
         policy,
-        _POSITION_EVIDENCE_ONLY_METHOD,
+        _HOLDING_EVIDENCE_ONLY_METHOD,
     )
     return _evidence_only_impact_policy_label(
-        pc_cols.POSITIONS,
+        pc_cols.HOLDINGS,
         source_column,
     )
 

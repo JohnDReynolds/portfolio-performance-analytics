@@ -1,4 +1,4 @@
-"""Load normalized position comparison sources."""
+"""Load normalized holding comparison sources."""
 
 from __future__ import annotations
 
@@ -14,15 +14,15 @@ from ppar.performance_comparison.specification import PerformanceComparisonSpeci
 import ppar.utilities as util
 
 
-class PositionsLoader:
-    """Load normalized position rows for comparison snapshots.
+class HoldingsLoader:
+    """Load normalized holding rows for comparison snapshots.
 
     Attributes:
         _specification: Parsed comparison specification.
     """
 
     def __init__(self, specification: PerformanceComparisonSpecification) -> None:
-        """Initialize the position loader.
+        """Initialize the holdings loader.
 
         Args:
             specification: Parsed comparison specification containing resolved
@@ -31,13 +31,13 @@ class PositionsLoader:
         self._specification = specification
 
     def load(self, snapshot_key: SnapshotKey) -> pl.DataFrame | None:
-        """Load one snapshot's normalized position rows.
+        """Load one snapshot's normalized holding rows.
 
         Args:
             snapshot_key: Snapshot side to load, either ``"a"`` or ``"b"``.
 
         Returns:
-            Position rows with normalized comparison column names, or ``None``
+            Holding rows with normalized comparison column names, or ``None``
             when the optional dataset is omitted or missing.
 
         Raises:
@@ -46,7 +46,7 @@ class PositionsLoader:
         """
         path = source_loader.optional_file_path(
             self._specification,
-            pc_cols.POSITIONS,
+            pc_cols.HOLDINGS,
             snapshot_key,
         )
         if path is None or not util.file_path_exists(path):
@@ -54,13 +54,13 @@ class PositionsLoader:
 
         frame = source_loader.read_mapped_csv(
             path,
-            pc_cols.POSITIONS_COLUMNS,
-            pc_cols.POSITIONS,
-            aliases.POSITIONS_REQUIRED_ALIASES,
-            aliases.POSITIONS_OPTIONAL_ALIASES,
+            pc_cols.HOLDINGS_COLUMNS,
+            pc_cols.HOLDINGS,
+            aliases.HOLDINGS_REQUIRED_ALIASES,
+            aliases.HOLDINGS_OPTIONAL_ALIASES,
             self._specification.path,
         ).with_columns(
-            pl.col(pc_cols.POSITION_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
+            pl.col(pc_cols.HOLDING_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
         return source_loader.require_numeric_columns(
             frame,
@@ -71,7 +71,7 @@ class PositionsLoader:
                 pc_cols.COST,
                 pc_cols.ACCRUED,
             ),
-            dataset_name=pc_cols.POSITIONS,
+            dataset_name=pc_cols.HOLDINGS,
             path=path,
             specification_path=self._specification.path,
         )

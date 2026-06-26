@@ -36,7 +36,7 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
-from ppar.performance_comparison.positions import PositionsLoader
+from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.report import (
     write_performance_comparison_report_bundle,
@@ -75,7 +75,7 @@ __all__ = [
     "PerformanceComparison",
     "PortfolioPerformanceLoader",
     "PerformanceComparisonSpecification",
-    "PositionsLoader",
+    "HoldingsLoader",
     "PricesLoader",
     "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
     "SecurityPerformanceLoader",

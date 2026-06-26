@@ -50,9 +50,9 @@ REM Site variance: transaction source may be posted transactions,
 REM trade blotter, or a REP/replang transaction ledger.
 "%AXYS_IMEX%" EXPORT PROFILE=TRANSACTIONS_COMMON PORTLIST="%PORTLIST%" START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\transactions.csv"
 
-REM ---- Positions / holdings
-REM Site variance: may export position file, appraisal report, or holdings report.
-"%AXYS_IMEX%" EXPORT PROFILE=POSITIONS_COMMON PORTLIST="%PORTLIST%" DATE=%END_DATE% OUT="%OUTDIR%\positions.csv"
+REM ---- Holdings / holdings
+REM Site variance: may export holding file, appraisal report, or holdings report.
+"%AXYS_IMEX%" EXPORT PROFILE=HOLDINGS_COMMON PORTLIST="%PORTLIST%" DATE=%END_DATE% OUT="%OUTDIR%\holdings.csv"
 
 REM ---- Prices
 REM Site variance: historical price files may be by date/security type.
@@ -63,7 +63,7 @@ REM Optional for single-currency firms.
 "%AXYS_IMEX%" EXPORT PROFILE=FX_COMMON START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\fx_rates.csv"
 
 REM ---- Cash balances
-REM Often derivable from positions if cash is represented as security rows.
+REM Often derivable from holdings if cash is represented as security rows.
 "%AXYS_IMEX%" EXPORT PROFILE=CASH_COMMON PORTLIST="%PORTLIST%" DATE=%END_DATE% OUT="%OUTDIR%\cash.csv"
 ```
 
@@ -132,19 +132,19 @@ site uses different field names.
 | transactions | `COMMISSION` | `commission` | `COMM`, `COMMISH` | Medium |
 | transactions | `BROKER` | `broker` | `BRKR`, `BROKER_CODE` | Low/Medium |
 
-### Positions And Holdings
+### Holdings And Holdings
 
 | Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
-| positions / holdings | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| positions / holdings | `DATE` | `as_of_date` | `AS_OF_DATE`, `POSITION_DATE` | High |
-| positions / holdings | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| positions / holdings | `QTY` | `quantity` | `QUANTITY`, `SHARES`, `UNITS` | High |
-| positions / holdings | `PRICE` | `price` | `PX`, `MARKET_PRICE` | High |
-| positions / holdings | `MV` | `market_value` | `MKT_VAL`, `MARKET_VALUE`, `VALUE` | High |
-| positions / holdings | `COST` | `cost_basis` | `BOOK_COST`, `TAX_COST`, `ORIG_COST` | Medium |
-| positions / holdings | `ACCRUED` | `accrued_income` | `ACCRUED_INT`, `ACCRUAL` | Medium |
-| positions / holdings | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
+| holdings / holdings | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
+| holdings / holdings | `DATE` | `as_of_date` | `AS_OF_DATE`, `HOLDING_DATE` | High |
+| holdings / holdings | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
+| holdings / holdings | `QTY` | `quantity` | `QUANTITY`, `SHARES`, `UNITS` | High |
+| holdings / holdings | `PRICE` | `price` | `PX`, `MARKET_PRICE` | High |
+| holdings / holdings | `MV` | `market_value` | `MKT_VAL`, `MARKET_VALUE`, `VALUE` | High |
+| holdings / holdings | `COST` | `cost_basis` | `BOOK_COST`, `TAX_COST`, `ORIG_COST` | Medium |
+| holdings / holdings | `ACCRUED` | `accrued_income` | `ACCRUED_INT`, `ACCRUAL` | Medium |
+| holdings / holdings | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
 
 ### Prices
 

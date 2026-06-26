@@ -25,7 +25,7 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
-  positions: positions_holdings.csv
+  holdings: holdings.csv
   prices: prices.csv
   transactions: transactions.csv
 

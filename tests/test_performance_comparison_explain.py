@@ -80,7 +80,7 @@ from ppar.performance_comparison.explain import (
     PORTFOLIO_RETURN_DELTA,
     PORTFOLIO_FLOW_DELTA,
     PORTFOLIO_FLOW_IMPACT_ESTIMATE,
-    POSITION_FINDING_COUNT,
+    HOLDING_FINDING_COUNT,
     PRICE_DELTA,
     PRICE_FINDING_COUNT,
     PRIORITY_SCORE,
@@ -94,7 +94,7 @@ from ppar.performance_comparison.explain import (
     REVIEW_RANK,
     ROOT_CAUSE_AREA,
     ROOT_CAUSE_CASH,
-    ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+    ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
     ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
     ROOT_CAUSE_PRICE,
     ROOT_CAUSE_AREA_COUNT,
@@ -315,7 +315,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 11)
         self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 0)
         self.assertEqual(row[CONTEXT_FINDING_COUNT], 1)
-        self.assertEqual(row[POSITION_FINDING_COUNT], 4)
+        self.assertEqual(row[HOLDING_FINDING_COUNT], 4)
         self.assertEqual(row[CASH_FINDING_COUNT], 2)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
         self.assertEqual(row[PRICE_FINDING_COUNT], 1)
@@ -362,7 +362,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "prices"), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "transactions"), 3)
-        self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "positions"), 3)
+        self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "holdings"), 3)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "cash"), 2)
     def test_portfolio_period_evidence_breakdown_tracks_suppressed_counts(self) -> None:
         """Evidence breakdown counts suppressed rows only when requested."""
@@ -587,7 +587,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             cause_areas,
             {
                 ROOT_CAUSE_CASH,
-                ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+                ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
                 ROOT_CAUSE_PRICE,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY,
             },
@@ -624,7 +624,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             counts_by_cause,
             {
                 ROOT_CAUSE_CASH: 2,
-                ROOT_CAUSE_MARKET_VALUE_OR_POSITION: 4,
+                ROOT_CAUSE_MARKET_VALUE_OR_HOLDING: 4,
                 ROOT_CAUSE_PRICE: 1,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY: 3,
             },
@@ -698,7 +698,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             cause_areas,
             {
                 ROOT_CAUSE_CASH,
-                ROOT_CAUSE_MARKET_VALUE_OR_POSITION,
+                ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
                 ROOT_CAUSE_PRICE,
                 ROOT_CAUSE_TRANSACTION_ACTIVITY,
             },
@@ -1321,7 +1321,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 7)
         self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 3)
         self.assertEqual(row[CONTEXT_FINDING_COUNT], 3)
-        self.assertEqual(row[POSITION_FINDING_COUNT], 4)
+        self.assertEqual(row[HOLDING_FINDING_COUNT], 4)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
         self.assertEqual(row[PRICE_FINDING_COUNT], 1)
         self.assertEqual(row[REFERENCE_FINDING_COUNT], 2)
@@ -1377,7 +1377,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "prices"), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "transactions"), 3)
-        self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "positions"), 3)
+        self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "holdings"), 3)
         self.assertEqual(_breakdown_count(breakdown, CONTEXT, "security_master"), 2)
 
     def test_security_period_evidence_breakdown_tracks_suppressed_counts(self) -> None:

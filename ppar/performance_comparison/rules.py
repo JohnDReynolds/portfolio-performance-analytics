@@ -60,7 +60,7 @@ class SuppressionRule:
 
         Args:
             values: One item from the ``suppressions`` YAML list.
-            index: Zero-based list position used in validation messages.
+            index: Zero-based list holding used in validation messages.
 
         Returns:
             Parsed suppression rule.

@@ -3,7 +3,7 @@
 Snapshot B intentionally restates selected rows from the operational snapshot:
 
 - `ALPHA`, latest period: AAPL price and security return increase; the
-  `CASH_USD` position increases. Together these fully explain the portfolio-period
+  `CASH_USD` holding increases. Together these fully explain the portfolio-period
   performance difference.
 - `ALPHA`, earlier period: one buy transaction amount changes, and the same
   transaction also has changed quantity, price, and commission fields. The
@@ -12,7 +12,7 @@ Snapshot B intentionally restates selected rows from the operational snapshot:
 - `BALANCED`, middle period: one dividend transaction amount increases. This
   fully explains the portfolio-period performance difference.
 - `BALANCED`, latest period: the same AAPL price correction applies globally,
-  and an MSFT position market value is corrected. Together these fully explain
+  and an MSFT holding market value is corrected. Together these fully explain
   the portfolio-period performance difference.
 - `BALANCED`, earlier period: one buy transaction has changed quantity, price,
   and commission fields. Those fields are intentionally review-only, so the
@@ -23,7 +23,7 @@ Snapshot B intentionally restates selected rows from the operational snapshot:
   difference. TNOTE2Y market value and accrued interest are additive, TNOTE2Y
   quantity is visible as related evidence, and cost remains context. This
   portfolio period is fully explained.
-- `INCOME`, middle period: the `CASH_USD` position increases. This fully
+- `INCOME`, middle period: the `CASH_USD` holding increases. This fully
   explains the portfolio-period performance difference.
 
 The corresponding YAML files define transaction semantics. Standard field roles

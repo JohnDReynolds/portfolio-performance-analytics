@@ -12,14 +12,14 @@ The core question is:
 
 The feature will compare two snapshot directories. Each snapshot contains
 vendor exports such as portfolio performance, security performance, prices, FX
-rates, transactions, positions, cash, and security master/reference files.
+rates, transactions, holdings, cash, and security master/reference files.
 
 This should not be treated as an Axys-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
 live in small normalization adapters, with Axys as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
-portfolio performance, security performance, security master, positions, cash,
+portfolio performance, security performance, security master, holdings, cash,
 prices, FX rates, and transactions rows, report material changes, and produce a
 clear finding model. Deeper causal inference can be added after the finding
 model is stable.
@@ -40,7 +40,7 @@ Implemented normalized comparison datasets:
 - `prices`
 - `fx_rates`
 - `transactions`
-- `positions`
+- `holdings`
 - `cash`
 
 Implemented output helpers:
@@ -72,11 +72,11 @@ Developer/internal helper modules:
 Current workbook field roles:
 
 - `performance_input`: source fields that directly feed return calculation,
-  such as `positions.market_value`, `positions.accrued`, and
+  such as `holdings.market_value`, `holdings.accrued`, and
   `transactions.amount`. These can receive `Performance Difference Explained`
   values when the required denominator or weight inputs are available.
 - `input_component`: fields that explain or reconcile a performance input, such
-  as position quantity/price, standalone prices, and transaction
+  as holding quantity/price, standalone prices, and transaction
   quantity/price/commission. These may appear on the `Identifiable Causes` sheet
   beside a related performance input or for unresolved periods, often without a
   separate explained amount.
@@ -84,12 +84,12 @@ Current workbook field roles:
   fields such as return, income, gain/loss, contribution, weight, and market
   value. These remain reporting diagnostics and are not treated as underlying
   causes.
-- `context`: review-only supporting fields such as position cost, FX rates,
+- `context`: review-only supporting fields such as holding cost, FX rates,
   security reference fields, and unknown fields. These normally remain on the
   `Other Evidence` sheet.
 
 The packaged user-facing performance-comparison demos represent cash as a
-`CASH_USD` row in the positions file rather than as a separate `cash.csv` file.
+`CASH_USD` row in the holdings file rather than as a separate `cash.csv` file.
 The generic comparison engine still supports a normalized `cash` dataset for
 other integrations and test fixtures.
 - `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
@@ -121,7 +121,7 @@ Public YAML impact method values are centralized in:
   `vendor_contribution_delta`, and `security_return_delta_times_weight`.
 - `TransactionImpactMethod`: `evidence_only`, `modified_dietz`, and
   `transaction_amount_delta_over_return_denominator`.
-- `PositionImpactMethod`: `evidence_only`,
+- `HoldingImpactMethod`: `evidence_only`,
   `quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`,
   `market_value_delta_over_return_denominator`, and
   `accrued_delta_over_return_denominator`.
@@ -200,7 +200,7 @@ ppar/performance_comparison/
   _transaction_diagnostics.py
   fx_rates.py
   period_linking.py
-  positions.py
+  holdings.py
   prices.py
   runner.py
   security_master.py
@@ -215,7 +215,7 @@ Current responsibilities:
   normalize configured columns.
 - `compare.py`: Compare normalized snapshot A/snapshot B data sets.
 - Dataset modules such as `prices.py`, `fx_rates.py`, `transactions.py`,
-  `positions.py`, and `cash.py`: dataset-specific loading, comparison keys,
+  `holdings.py`, and `cash.py`: dataset-specific loading, comparison keys,
   changed-column rules, and default aliases.
 - `period_linking.py`: Link dated evidence to containing portfolio periods
   where the linkage is conservative.
@@ -263,7 +263,7 @@ engine. Initial normalized datasets include:
 - `prices`
 - `fx_rates`
 - `transactions`
-- `positions`
+- `holdings`
 - `cash`
 
 Normalization should be conservative: preserve useful source columns when they
@@ -372,8 +372,8 @@ columns when useful.
 - `rate_source`
 - `rate_type`
 
-`fx_rates` represents exchange rates, not currency positions or cash
-balances. Currency exposure belongs in positions, cash, transactions, or
+`fx_rates` represents exchange rates, not currency holdings or cash
+balances. Currency exposure belongs in holdings, cash, transactions, or
 valuation datasets.
 
 `transactions` required columns:
@@ -413,8 +413,8 @@ income detail fields when real source files provide them:
 - `tax_withheld`
 
 These fields should remain part of the `transactions` dataset rather than
-forcing a separate income/accrual dataset by default. Position-level `accrued`
-represents an accrued balance at a position date; transaction-level accrued
+forcing a separate income/accrual dataset by default. Holding-level `accrued`
+represents an accrued balance at a holding date; transaction-level accrued
 interest represents bought/sold accrued interest, posted interest, or other
 activity detail. Transaction-level comparisons should still require stable
 transaction matching, preferably by `transaction_id`.
@@ -659,13 +659,13 @@ Workbook and HTML reports should include compact transaction activity review
 rows so reviewers can see changed fields, deltas, and missing impact inputs
 without digging through lower-level evidence tables.
 
-`positions` required columns:
+`holdings` required columns:
 
 - `portfolio_id`
 - `security_id`
-- `position_date`
+- `holding_date`
 
-`positions` useful optional columns:
+`holdings` useful optional columns:
 
 - `quantity`
 - `market_value`
@@ -677,7 +677,7 @@ without digging through lower-level evidence tables.
 Changed `cost` / cost-basis values are useful review evidence for tax,
 accounting, and downstream unrealized gain/loss questions. By default they
 remain context evidence. When YAML sets
-`position_impact_methods.cost.method: evidence_only`, they move to
+`holding_impact_methods.cost.method: evidence_only`, they move to
 underlying-cause review rows without receiving return-impact estimates.
 
 `cash` required columns:
@@ -727,7 +727,7 @@ The primary comparison keys should be configurable but have sensible defaults:
 - Prices: security identifier, price date, currency/source where available.
 - Transactions: transaction id when available; otherwise a conservative
   composite fallback.
-- Positions: portfolio code, security identifier, position date.
+- Holdings: portfolio code, security identifier, holding date.
 
 When transactions have a stable `transaction_id` in both snapshots, matching
 rows can report changed amounts as `PC-TXN-AMT`. When no transaction id is
@@ -784,7 +784,7 @@ performance deltas. They are related output deltas: useful context, but not the
 underlying input change that caused portfolio performance to move.
 
 Root-cause evidence should come from input/source-like datasets such as prices,
-FX rates, transactions, positions, cash, market values, accruals, income, and
+FX rates, transactions, holdings, cash, market values, accruals, income, and
 other source fields. Security master and classification changes can provide
 useful context, but are often not numeric causes by themselves.
 
@@ -817,7 +817,7 @@ Evidence roles:
 - `related_output`: Calculated output deltas that help locate the change, such
   as security return, weight, or contribution changes.
 - `direct_input`: Source/input changes that can plausibly drive time-weighted
-  return, such as prices, FX rates, flows, market values, positions, accruals,
+  return, such as prices, FX rates, flows, market values, holdings, accruals,
   transaction amounts, and cash balances.
 - `context`: Reference, classification, schema, or accounting context that aids
   investigation but is not a direct performance driver by itself.
@@ -850,7 +850,7 @@ The first-pass role model should remain intentionally small:
   values and returns.
 - `transactions`: `direct_input` because activity, cash flow, quantity, price,
   and amount changes can drive performance inputs.
-- `positions`: `direct_input` because quantity, market value, price, and
+- `holdings`: `direct_input` because quantity, market value, price, and
   accrued-balance changes can drive performance inputs.
 - `cash`: `direct_input` because cash balance and cash market value changes can
   drive portfolio-level valuation and return inputs.
@@ -884,9 +884,9 @@ PC-TXN-DROP     Transaction appears only in snapshot A
 PC-TXN-AMT      Transaction amount changed
 PC-TXN-QTY      Transaction quantity changed
 PC-TXN-PRICE    Transaction price changed
-PC-POS-QTY      Position quantity changed
-PC-POS-MV       Position market value changed
-PC-POS-ACCR     Position accrued amount changed
+PC-HOLD-QTY      Holding quantity changed
+PC-HOLD-MV       Holding market value changed
+PC-HOLD-ACCR     Holding accrued amount changed
 PC-CASH-MV      Cash balance or cash market value changed
 PC-REF-ID       Security identifier/reference field changed
 PC-REF-CLASS    Security classification changed
@@ -917,7 +917,7 @@ such as `axys_column_mappings.yaml`.
 The performance comparison feature has its own normalization/default alias
 layer. Referencing `axys_column_mappings.yaml` is a reuse mechanism for shared
 Axys datasets, not a requirement that performance comparison become Axys-only.
-Comparison-only datasets such as prices, FX rates, transactions, positions,
+Comparison-only datasets such as prices, FX rates, transactions, holdings,
 and cash can use performance-comparison mappings even when the referenced Axys
 mapping file does not define them.
 
@@ -993,7 +993,7 @@ files:
   transactions:
     path: transactions.csv
     required: true
-  positions: positions_holdings.csv
+  holdings: holdings.csv
   cash: cash.csv
 
 tolerances:
@@ -1066,7 +1066,7 @@ files for `portfolio_performance_columns`, `security_performance_columns`, and
 authoritative. Built-in aliases remain the fallback for columns not mapped in
 the schema file.
 
-Comparison-only datasets such as prices, FX rates, transactions, positions,
+Comparison-only datasets such as prices, FX rates, transactions, holdings,
 and cash currently use the performance-comparison alias/default layer. They do
 not require entries in `axys_column_mappings.yaml`.
 
@@ -1213,9 +1213,9 @@ does not imply that the system has calculated causal contribution.
 
 Implemented period-linking rules:
 
-- `transactions`, `positions`, and `cash` findings link directly to portfolio
+- `transactions`, `holdings`, and `cash` findings link directly to portfolio
   periods by `portfolio_id` plus their source date. The source date is
-  `transaction_date`, `position_date`, or `cash_date`, respectively.
+  `transaction_date`, `holding_date`, or `cash_date`, respectively.
 - When more than one configured portfolio period contains the source date, the
   finding links to the narrowest containing period for that portfolio.
 - `prices` findings link through `security_performance` when available. A
@@ -1227,7 +1227,7 @@ Implemented period-linking rules:
   single match.
 - Unmatched dated evidence keeps null period fields.
 - `fx_rates` findings intentionally remain unlinked for now. FX linkage needs
-  currency exposure context from positions, cash, transactions, portfolio
+  currency exposure context from holdings, cash, transactions, portfolio
   currency, or valuation data. A rate row alone is not enough to identify the
   affected portfolio period conservatively.
 
@@ -1241,7 +1241,7 @@ rates need currency exposure context that is not guaranteed by
 The current evidence model is useful, but it should not be overstated.
 
 - Evidence counts are not contribution amounts. A portfolio-period summary can
-  say that related price, transaction, position, cash, or security-output
+  say that related price, transaction, holding, cash, or security-output
   findings exist; it does not yet calculate how much each item explains of the
   portfolio return delta.
 - Portfolio-period evidence rankings are review-priority heuristics. They help
@@ -1254,7 +1254,7 @@ The current evidence model is useful, but it should not be overstated.
   amounts can be reported as changed transactions. Without it, conservative
   fallback matching may report one drop and one add rather than guessing two
   similar rows are the same transaction.
-- Changed transaction, position, and cash findings are linked to the narrowest
+- Changed transaction, holding, and cash findings are linked to the narrowest
   configured portfolio performance period for the same portfolio when their
   source date falls inside that period. Unmatched dated evidence findings keep
   null period fields.
@@ -1263,7 +1263,7 @@ The current evidence model is useful, but it should not be overstated.
 - Security-period summaries are optional. The portfolio-period explanation path
   must continue to work when `security_performance` is absent.
 - The implementation compares source evidence. It does not recalculate TWR from
-  raw transactions, positions, prices, or cash.
+  raw transactions, holdings, prices, or cash.
 
 ## Contribution Ranking Direction
 
@@ -1280,7 +1280,7 @@ Implemented contribution-candidate fields:
 
 - `estimated_return_impact`: Optional numeric estimate of return impact.
 - `impact_basis`: Short basis label, such as `portfolio_source_field`,
-  `security_contribution`, `linked_position_price`, or `no_estimate`.
+  `security_contribution`, `linked_holding_price`, or `no_estimate`.
 - `impact_confidence`: High, medium, or low confidence in the estimate.
 - `impact_method`: The formula or rule used to estimate impact.
 - `impact_message`: Human-readable explanation of the estimate or why no
@@ -1288,7 +1288,7 @@ Implemented contribution-candidate fields:
 
 The contribution-candidate implementation preserves all ranked evidence rows
 and populates stable impact columns. It estimates only where the YAML explicitly
-selects a supported `contribution_impact_methods`, `position_impact_methods`,
+selects a supported `contribution_impact_methods`, `holding_impact_methods`,
 or `transaction_impact_methods` policy and the current evidence carries enough
 denominator, weight, or vendor output context to state the method clearly.
 When a changed source field is known review evidence but should not receive an
@@ -1308,7 +1308,7 @@ contribution_impact_methods:
   security_return:
     method: security_return_delta_times_weight
     weight_source: snapshot_a_weight
-position_impact_methods:
+holding_impact_methods:
   market_value:
     method: market_value_delta_over_return_denominator
     denominator_source: begin_market_value
@@ -1331,7 +1331,7 @@ security_master_impact_methods:
   sector:
     method: evidence_only
 evidence_only_impact_methods:
-  positions:
+  holdings:
     method: evidence_only
     source_fields:
       - cost
@@ -1399,17 +1399,17 @@ Current supported impact estimates:
      Modified Dietz cross-check estimates. Eligible Modified Dietz rows may
      also carry `transaction_impact_diagnostic_estimate`. These diagnostics are
      reviewer-facing only; they do not populate `estimated_return_impact`.
-5. Position market value delta:
-   - `impact_basis = position_market_value`
+5. Holding market value delta:
+   - `impact_basis = holding_market_value`
    - `impact_method = market_value_delta_over_return_denominator`
    - `impact_confidence = low`
-   - Formula: `position_market_value_delta / return_denominator`.
+   - Formula: `holding_market_value_delta / return_denominator`.
    - Applies only when YAML explicitly configures
-     `position_impact_methods.market_value.method` as
+     `holding_impact_methods.market_value.method` as
      `market_value_delta_over_return_denominator` and `denominator_source` as
      `begin_market_value`.
    - This is intentionally a low-confidence screening estimate because a
-     position market value delta may reflect price, quantity, FX,
+     holding market value delta may reflect price, quantity, FX,
      accrued-interest, or booking changes.
 6. Weighted price delta:
    - `impact_basis = price_weighted`
@@ -1422,13 +1422,13 @@ Current supported impact estimates:
      `snapshot_a_weight`.
    - Price findings link through security-performance periods, so one changed
      security price may produce one explanation row per affected portfolio.
-7. Position accrued delta:
-   - `impact_basis = position_accrued`
+7. Holding accrued delta:
+   - `impact_basis = holding_accrued`
    - `impact_method = accrued_delta_over_return_denominator`
    - `impact_confidence = low`
-   - Formula: `position_accrued_delta / return_denominator`.
+   - Formula: `holding_accrued_delta / return_denominator`.
    - Applies only when YAML explicitly configures
-     `position_impact_methods.accrued.method` as
+     `holding_impact_methods.accrued.method` as
      `accrued_delta_over_return_denominator` and `denominator_source` as
      `begin_market_value`.
    - This is intentionally a low-confidence screening estimate because accrued
@@ -1445,27 +1445,27 @@ Current supported impact estimates:
      `begin_market_value`.
    - This is intentionally a low-confidence screening estimate because cash
      balances may reflect transactions, FX, income, fees, or booking changes.
-9. Position quantity delta:
-   - `impact_basis = position_quantity_unit_market_value`
+9. Holding quantity delta:
+   - `impact_basis = holding_quantity_unit_market_value`
    - `impact_method =
      quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
    - `impact_confidence = low`
    - Formula:
-     `(position_quantity_delta * snapshot_a_position_unit_market_value) /
+     `(holding_quantity_delta * snapshot_a_holding_unit_market_value) /
      return_denominator`.
    - Applies only when YAML explicitly configures
-     `position_impact_methods.quantity.method` as
+     `holding_impact_methods.quantity.method` as
      `quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
      and `denominator_source` as `begin_market_value`.
-   - Snapshot A unit market value is calculated from the same position row as
+   - Snapshot A unit market value is calculated from the same holding row as
      `snapshot_a_market_value / snapshot_a_quantity`.
    - This is intentionally a low-confidence screening estimate because unit
      market value can embed price, FX, accrued-interest, or booking effects.
-   - `position_impact_methods.quantity.method: evidence_only` remains
+   - `holding_impact_methods.quantity.method: evidence_only` remains
      available when a changed quantity should be visible but not additive.
-10. Position cost evidence:
-   - `position_impact_methods.cost.method: evidence_only` marks changed
-     position cost as intentional review evidence.
+10. Holding cost evidence:
+   - `holding_impact_methods.cost.method: evidence_only` marks changed
+     holding cost as intentional review evidence.
    - It does not create `estimated_return_impact`; cost-basis changes are not
      direct period-return attribution in the current model.
 11. Transaction quantity, price, and commission evidence:
@@ -1497,7 +1497,7 @@ denominator, and linkage are available.
 hatch. It does not create `estimated_return_impact`; instead, workbook rows are
 marked review-only and `Review Guidance` says the row is configured as
 evidence-only. This keeps intentionally review-only changes from looking like
-missing setup. Supported dataset keys are `cash`, `fx_rates`, `positions`,
+missing setup. Supported dataset keys are `cash`, `fx_rates`, `holdings`,
 `prices`, `security_master`, and `transactions`; each dataset may list only
 fields that the comparison engine already compares.
 
@@ -1515,7 +1515,7 @@ First contribution estimates should start only where the math is defensible:
   weight, a low-confidence weighted estimate can be calculated as
   `security_return_delta * snapshot_a_weight`. Prefer vendor contribution
   deltas in the aggregate cause summary when both are present.
-- Position, price, and transaction evidence: These should receive an estimated
+- Holding, price, and transaction evidence: These should receive an estimated
   return impact only when the finding can be linked to an affected portfolio,
   period, security, and denominator. Transaction amount evidence also requires
   a normalized transaction category plus modeled transaction sign and flow
@@ -1622,7 +1622,7 @@ unexplained remainder. In the security demo, it shows security-level return
 differences when security-performance rows changed, and it adds explicit
 no-difference rows for changed portfolio periods with no security-level return
 difference. The
-`Identifiable Causes` sheet lists input rows such as positions, transactions,
+`Identifiable Causes` sheet lists input rows such as holdings, transactions,
 cash, prices, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
@@ -1838,7 +1838,7 @@ remain intentionally conservative.
 
 - Compare prices for securities with changed returns.
 - Compare transactions for affected portfolio/security/period rows.
-- Compare positions and cash balances.
+- Compare holdings and cash balances.
 - Compare security master fields and classifications.
 - Compare FX rates when present.
 - Add confidence, residual, and needs-review findings where the evidence is
@@ -1856,7 +1856,7 @@ The public command and demo surface is implemented for the current checkpoint.
 ## Long-Term Dataset Watchlist
 
 The current normalized dataset set already covers the first useful comparison
-surface: portfolio performance, security performance, positions, cash,
+surface: portfolio performance, security performance, holdings, cash,
 transactions, prices, FX rates, and security master/reference data. Additional
 datasets should be added only when real source files expose evidence that is
 not adequately represented by those existing datasets.
@@ -1880,7 +1880,7 @@ Potential long-term datasets to keep in mind:
 
 These are open design items, not near-term implementation targets. Before
 adding any of them, prefer strengthening comparisons for useful columns already
-present in existing datasets, such as position cost/accrued values or
+present in existing datasets, such as holding cost/accrued values or
 transaction quantity, price, and commission.
 
 ## Open Design Issues

@@ -28,7 +28,7 @@ files:
   prices: prices.csv
   fx_rates: fx_rates.csv
   transactions: transactions.csv
-  positions: positions_holdings.csv
+  holdings: holdings.csv
   cash: cash.csv
 
 contribution_impact_methods:
