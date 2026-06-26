@@ -37,7 +37,6 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "Portfolio",
     "From Date",
     "Thru Date",
-    "Input Role",
     "As Of Date",
     *_COMMON_LEFT_HEADERS[3:],
 ]
@@ -54,7 +53,19 @@ _NON_ADDITIVE_HEADERS = [
 
 def _header_values(worksheet: Any) -> list[object]:
     """Return worksheet header values."""
+    return [_normalized_header(cell.value) for cell in worksheet[1]]
+
+
+def _raw_header_values(worksheet: Any) -> list[object]:
+    """Return worksheet header values without normalizing display line breaks."""
     return [cell.value for cell in worksheet[1]]
+
+
+def _normalized_header(value: object) -> object:
+    """Return an Excel header with intentional line breaks normalized."""
+    if isinstance(value, str):
+        return " ".join(value.split())
+    return value
 
 
 def _column_values(worksheet: Any, column: str) -> list[object]:
@@ -69,6 +80,13 @@ def _column_values(worksheet: Any, column: str) -> list[object]:
 def _sheet_rows(worksheet: Any) -> list[tuple[object, ...]]:
     """Return worksheet data rows."""
     return list(worksheet.iter_rows(min_row=2, values_only=True))
+
+
+def _numeric_value(value: object) -> float:
+    """Return an XLSX cell value as a float after asserting it is numeric."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise AssertionError(f"Expected numeric workbook value, got {value!r}.")
+    return float(value)
 
 
 class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
@@ -124,6 +142,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Review Key",
                     ],
                 )
+                self.assertIn(
+                    "Performance\nDifference\nExplained",
+                    _raw_header_values(workbook["Identifiable Causes"]),
+                )
                 self.assertEqual(
                     _header_values(workbook["Other Evidence"]),
                     _NON_ADDITIVE_HEADERS,
@@ -166,22 +188,23 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     "0.000000",
                 )
                 underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
-                self.assertFalse(
-                    any(row[3] == "no_underlying_cause_found" for row in underlying_rows)
+                self.assertTrue(
+                    any(row[4] == "no_underlying_causes_found" for row in underlying_rows)
                 )
                 self.assertTrue(
                     all(
-                        row[13] in (None, "")
-                        or "No additive underlying cause" in str(row[13])
-                        or "shown for review" in str(row[13])
-                        or "not included in explained difference" in str(row[13])
-                        or "related performance input" in str(row[13])
-                        or "changed transaction amount" in str(row[13])
-                        or "changed holdings.market_value" in str(row[13])
+                        row[12] in (None, "")
+                        or "No additive underlying cause" in str(row[12])
+                        or "No additive identifiable cause" in str(row[12])
+                        or "shown for review" in str(row[12])
+                        or "not included in explained difference" in str(row[12])
+                        or "related performance input" in str(row[12])
+                        or "changed transactions.amount" in str(row[12])
+                        or "changed holdings.market_value" in str(row[12])
                         for row in underlying_rows
                     )
                 )
-                underlying_fields = {(row[5], row[6]) for row in underlying_rows}
+                underlying_fields = {(row[4], row[5]) for row in underlying_rows}
                 self.assertTrue(
                     {
                         ("holdings", "market_value"),
@@ -196,6 +219,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     {
                         ("holdings", "cost"),
+                        ("prices", "price"),
                     },
                     context_fields,
                 )
@@ -253,6 +277,38 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     {row[3] for row in security_rows},
                     {"AAPL", "TNOTE2Y"},
                 )
+                self.assertEqual(
+                    {row[7] for row in security_rows},
+                    {"Fully Explained"},
+                )
+                self.assertEqual({row[8] for row in security_rows}, {None})
+                for row in security_rows:
+                    with self.subTest(review_key=row[9]):
+                        self.assertAlmostEqual(
+                            _numeric_value(row[4]),
+                            _numeric_value(row[5]),
+                            places=6,
+                        )
+                        self.assertAlmostEqual(
+                            _numeric_value(row[6]),
+                            0.0,
+                            places=6,
+                        )
+                aapl_rows = [row for row in security_rows if row[3] == "AAPL"]
+                self.assertEqual(len(aapl_rows), 3)
+                for row in aapl_rows:
+                    self.assertAlmostEqual(
+                        _numeric_value(row[4]),
+                        (164.24 - 162.61) / 162.61,
+                    )
+                tnote_row = next(
+                    row for row in security_rows if row[3] == "TNOTE2Y"
+                )
+                self.assertAlmostEqual(
+                    _numeric_value(tnote_row[4]),
+                    (128.0 + 50.0) / 64000.0,
+                    places=6,
+                )
                 context_rows = _sheet_rows(workbook["Other Evidence"])
                 self.assertEqual(
                     {(row[3], row[4], row[5]) for row in context_rows},
@@ -266,7 +322,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("holdings", "market_value", "TNOTE2Y"),
                         ("holdings", "quantity", "TNOTE2Y"),
                     }.issubset(
-                        {(row[5], row[6], row[7]) for row in underlying_rows}
+                        {(row[4], row[5], row[6]) for row in underlying_rows}
                     )
                 )
             finally:

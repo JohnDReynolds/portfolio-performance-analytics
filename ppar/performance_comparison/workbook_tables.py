@@ -61,7 +61,7 @@ _IMPACT_STATUS_ESTIMATED = "Estimated"
 _IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
 _IMPACT_STATUS_MISSING_INPUT = "Missing impact input"
 _IMPACT_STATUS_REVIEW_ONLY = "Review only"
-_NO_UNDERLYING_CAUSE_DATASET = "no_underlying_cause_found"
+_NO_UNDERLYING_CAUSE_DATASET = "no_underlying_causes_found"
 _WORKBOOK_ROW_KIND_UNDERLYING_CAUSE = "underlying_cause"
 _WORKBOOK_ROW_KIND_REPORTED_DIAGNOSTIC = "reported_diagnostic"
 _WORKBOOK_ROW_KIND_CONTEXT = "context"
@@ -77,6 +77,7 @@ _REVIEW_PRIORITY_REASON = "review_priority_reason"
 _RETURN_IMPACT_TREATMENT = "return_impact_treatment"
 _WORKBOOK_UNSELECTED_RELATED_ESTIMATE = "_workbook_unselected_related_estimate"
 _WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION = "_workbook_non_additive_portfolio_transaction"
+_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE = "_workbook_portfolio_price_evidence"
 _WORKBOOK_UNEXPLAINED_TOLERANCE = 0.00000001
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
@@ -363,7 +364,7 @@ def _workbook_primary_coverage_summary(
 
 def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, object]:
     """Return one plain-English performance-change workbook row."""
-    performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
+    performance_change = _workbook_performance_difference(row)
     estimated_total = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL))
     underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
     if underlying_estimated_total is not None:
@@ -384,19 +385,27 @@ def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, obj
     }
 
 
+def _workbook_performance_difference(row: Mapping[str, object]) -> float | None:
+    """Return portfolio or security performance difference for a workbook row."""
+    portfolio_difference = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
+    if portfolio_difference is not None:
+        return portfolio_difference
+    return _number_or_none(row.get(_pc_explain.SECURITY_RETURN_DELTA))
+
+
 def _workbook_explanation_status(row: Mapping[str, object]) -> str:
-    """Return a plain-language explanation status for a portfolio period."""
+    """Return a plain-language explanation status for a performance difference."""
     underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
-    performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
+    performance_change = _workbook_performance_difference(row)
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
+    if underlying_estimated_total is not None and performance_change is not None:
+        residual = performance_change - underlying_estimated_total
+        if abs(residual) <= 0.00000001:
+            return _STATUS_FULLY_EXPLAINED
+        if abs(underlying_estimated_total) > 0:
+            return _STATUS_PARTLY_EXPLAINED
+        return _STATUS_UNEXPLAINED
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
-        if underlying_estimated_total is not None and performance_change is not None:
-            residual = performance_change - underlying_estimated_total
-            if abs(residual) <= 0.00000001:
-                return _STATUS_FULLY_EXPLAINED
-            if abs(underlying_estimated_total) > 0:
-                return _STATUS_PARTLY_EXPLAINED
-            return _STATUS_UNEXPLAINED
         return _STATUS_FULLY_EXPLAINED
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_MISSING_INPUTS:
         return _STATUS_NEEDS_SETUP
@@ -406,40 +415,36 @@ def _workbook_explanation_status(row: Mapping[str, object]) -> str:
 
 
 def _workbook_performance_comments(row: Mapping[str, object]) -> str:
-    """Return plain-language comments for a portfolio-period difference."""
+    """Return plain-language comments for a performance difference."""
     missing_inputs = row.get(_pc_explain.MISSING_IMPACT_INPUTS)
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if _has_text(missing_inputs):
         return f"Missing YAML specifications: {_format_value(missing_inputs)}."
     underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
-    performance_change = _number_or_none(row.get(_pc_explain.PORTFOLIO_RETURN_DELTA))
+    performance_change = _workbook_performance_difference(row)
     if underlying_estimated_total is not None and performance_change is not None:
         residual = performance_change - underlying_estimated_total
         if abs(residual) <= 0.00000001:
-            return "The Performance Difference is explained by Identifiable Causes."
+            return ""
         if abs(underlying_estimated_total) > 0:
             return (
-                "Identifiable Causes explain part of the Performance Difference. "
                 "Review the Other Evidence sheet and Raw Audit Trail sheet for "
-                "the remaining difference."
+                "the Unexplained Difference."
             )
         return (
-            "No Identifiable Causes explain the Performance Difference. Review "
-            "the Other Evidence sheet and Raw Audit Trail sheet for possible "
-            "source-data evidence."
+            "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
+            "Unexplained Difference."
         )
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
-        return "The Performance Difference is explained by Identifiable Causes."
+        return ""
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
         return (
-            "Identifiable Causes explain part of the Performance Difference. "
             "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
-            "remaining difference."
+            "Unexplained Difference."
         )
     return (
-        "No Identifiable Causes explain the Performance Difference. Review the "
-        "Other Evidence sheet and Raw Audit Trail sheet for possible source-data "
-        "evidence."
+        "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
+        "Unexplained Difference."
     )
 
 
@@ -544,24 +549,10 @@ def _workbook_security_period_key(
 
 def _workbook_security_change_row(row: Mapping[str, object]) -> dict[str, object]:
     """Return one security-level result row for the workbook."""
-    performance_change = _number_or_none(row.get(_pc_explain.SECURITY_RETURN_DELTA))
-    explained_change = _number_or_none(row.get("_underlying_estimated_total"))
-    unexplained_change = None
-    if performance_change is not None:
-        unexplained_change = performance_change - (explained_change or 0.0)
+    performance_row = _workbook_performance_change_row(row)
     return {
-        _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
-        _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
-        _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        **performance_row,
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
-        _PERFORMANCE_CHANGE: performance_change,
-        _ESTIMATED_CAUSE_TOTAL: explained_change,
-        _UNEXPLAINED_CHANGE: unexplained_change,
-        _REVIEW_STATUS: "Security Difference",
-        _REVIEW_NOTE: (
-            "Review Identifiable Causes for this security and period."
-        ),
-        _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
 
 
@@ -732,6 +723,9 @@ def _workbook_fill_related_performance_differences(
 
     for row in rows:
         if _number_or_none(row.get(_ESTIMATED_IMPACT)) is not None:
+            row[_RELATED_PERFORMANCE_DIFFERENCE] = None
+            continue
+        if row.get(_INPUT_ROLE) == _INPUT_ROLE_SUPPORTING_EVIDENCE:
             row[_RELATED_PERFORMANCE_DIFFERENCE] = None
             continue
         if _number_or_none(row.get(_RELATED_PERFORMANCE_DIFFERENCE)) is not None:
@@ -1055,6 +1049,13 @@ def _workbook_selected_impact_row(
 
     if (
         comparison_level == PORTFOLIO_COMPARISON_LEVEL
+        and row_dict.get(_pc_findings.DATASET) == pc_cols.PRICES
+    ):
+        row_dict[_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE] = True
+        return _workbook_non_additive_row(row_dict)
+
+    if (
+        comparison_level == PORTFOLIO_COMPARISON_LEVEL
         and row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
     ):
         row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
@@ -1107,6 +1108,8 @@ def _workbook_row_kind(row: Mapping[str, object]) -> str:
     """Return the workbook presentation role for a finding row."""
     if row.get(_pc_findings.DATASET) == _NO_UNDERLYING_CAUSE_DATASET:
         return _WORKBOOK_ROW_KIND_DIAGNOSTIC
+    if row.get(_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE):
+        return _WORKBOOK_ROW_KIND_CONTEXT
     if _field_roles.is_reported_performance_component(
         row.get(_pc_findings.DATASET),
         row.get(_pc_findings.SOURCE_COLUMN),
@@ -1144,7 +1147,6 @@ def _workbook_changed_item_row(
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
-        _INPUT_ROLE: _workbook_input_role(row, estimated_impact),
         _AS_OF_DATE: _workbook_as_of_date(row),
         _USE: row_use,
         _CHANGE_LABEL: _workbook_change_label(row),
@@ -1155,6 +1157,7 @@ def _workbook_changed_item_row(
         _pc_findings.IMPACT_INPUT_VALUE: row.get(_pc_findings.IMPACT_INPUT_VALUE),
         _ESTIMATED_IMPACT: estimated_impact,
         _RELATED_PERFORMANCE_DIFFERENCE: related_performance_difference,
+        _INPUT_ROLE: _workbook_input_role(row, estimated_impact),
         _IMPACT_STATUS: impact_status,
         _REVIEW_NOTE: _workbook_review_note(row, estimated_impact, row_use, impact_status),
         _REVIEW_GUIDANCE: _workbook_review_guidance(
@@ -1200,11 +1203,9 @@ def _workbook_input_role(
 
 def _workbook_as_of_date(row: Mapping[str, object]) -> object | None:
     """Return the date represented by a workbook evidence row."""
-    dataset = row.get(_pc_findings.DATASET)
-    if dataset in {pc_cols.HOLDINGS, pc_cols.PRICES, pc_cols.FX_RATES, pc_cols.CASH}:
-        return row.get(_pc_findings.THRU_DATE)
-    if dataset == pc_cols.TRANSACTIONS:
-        return None
+    input_date = row.get(_pc_findings.INPUT_DATE)
+    if input_date is not None:
+        return input_date
     return row.get(_pc_findings.THRU_DATE)
 
 
@@ -1323,11 +1324,13 @@ def _workbook_review_guidance(
         dataset == pc_cols.TRANSACTIONS
         and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
     ):
-        return "Supporting evidence for the changed transaction amount."
+        return "Supporting evidence for changed transactions.amount."
+    if row.get(_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE):
+        return "Review price evidence; portfolio performance is explained by holdings."
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
-        return "Supporting evidence for changed holdings.market_value."
+        return "Input driver for changed holdings.market_value."
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
-        return "Supporting evidence for the related performance input."
+        return _workbook_related_input_guidance(dataset, source_column)
     if _workbook_has_evidence_only_policy(row):
         return "Review-only row; not included in explained difference."
     if (
@@ -1397,6 +1400,18 @@ def _workbook_review_guidance(
             f"in {yaml_path}."
         )
     return f"No supported YAML impact method exists yet for {dataset_column}."
+
+
+def _workbook_related_input_guidance(dataset: str, source_column: str) -> str:
+    """Return explicit guidance for an input component's related performance field."""
+    if dataset in {pc_cols.HOLDINGS, pc_cols.PRICES} and source_column in {
+        pc_cols.PRICE,
+        pc_cols.QUANTITY,
+    }:
+        return "Input driver for changed holdings.market_value."
+    if dataset == pc_cols.TRANSACTIONS:
+        return "Input driver for changed transactions.amount."
+    return "Input driver for changed related performance input."
 
 
 def _workbook_yaml_path_label(comparison_path: util.PathLike | None) -> str:
@@ -1513,7 +1528,6 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _pc_findings.PORTFOLIO_ID: pl.String,
             _pc_findings.FROM_DATE: pl.Date,
             _pc_findings.THRU_DATE: pl.Date,
-            _INPUT_ROLE: pl.String,
             _AS_OF_DATE: pl.Date,
             _USE: pl.String,
             _CHANGE_LABEL: pl.String,
@@ -1524,6 +1538,7 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _pc_findings.IMPACT_INPUT_VALUE: pl.Float64,
             _ESTIMATED_IMPACT: pl.Float64,
             _RELATED_PERFORMANCE_DIFFERENCE: pl.Float64,
+            _INPUT_ROLE: pl.String,
             _IMPACT_STATUS: pl.String,
             _REVIEW_NOTE: pl.String,
             _REVIEW_GUIDANCE: pl.String,
@@ -1574,7 +1589,6 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
         _pc_findings.THRU_DATE,
-        _INPUT_ROLE,
         _AS_OF_DATE,
         _pc_findings.DATASET,
         _pc_findings.SOURCE_COLUMN,
@@ -1644,7 +1658,6 @@ def _workbook_column_labels() -> dict[str, str]:
         _PERFORMANCE_CHANGE: "Performance Difference",
         _ESTIMATED_CAUSE_TOTAL: "Explained Difference",
         _UNEXPLAINED_CHANGE: "Unexplained Difference",
-        _INPUT_ROLE: "Input Role",
         _AS_OF_DATE: "As Of Date",
         _USE: "Purpose",
         _CHANGE_LABEL: "What Changed",
@@ -1715,10 +1728,6 @@ def workbook_column_tooltip(column: str) -> str:
         _USE: "Workbook row category used for sorting and compatibility.",
         _CHANGE_LABEL: "Plain-English changed data item.",
         _CHANGE: "Snapshot B value minus snapshot A value for the compared item.",
-        _INPUT_ROLE: (
-            "Whether the row is an additive performance input, an input driver, "
-            "supporting evidence, context, or diagnostic row."
-        ),
         _AS_OF_DATE: (
             "Date represented by the input row. Holding rows use the period Thru Date."
         ),

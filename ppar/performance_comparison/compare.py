@@ -700,6 +700,7 @@ class PerformanceComparison:
                         security_id=row.get(pc_cols.SECURITY_ID),
                         from_date=row.get(pc_cols.FROM_DATE),
                         thru_date=row.get(pc_cols.THRU_DATE),
+                        input_date=self._input_date(row, dataset),
                         source_file=source_file,
                         source_column=column,
                         transaction_category=self._transaction_category(row, dataset),
@@ -827,6 +828,7 @@ class PerformanceComparison:
                             security_id=row.get(pc_cols.SECURITY_ID),
                             from_date=from_date,
                             thru_date=thru_date,
+                            input_date=self._input_date(row, dataset),
                             source_file=source_file,
                             source_column=column,
                             transaction_category=self._transaction_category(
@@ -1385,10 +1387,26 @@ class PerformanceComparison:
             security_id=security_id,
             from_date=from_date,
             thru_date=thru_date,
+            input_date=PerformanceComparison._input_date(row_context, dataset),
             source_file=source_file,
             transaction_match_status=transaction_match_status,
             message=message,
         )
+
+    @staticmethod
+    def _input_date(row: Mapping[str, object], dataset: str) -> object | None:
+        """Return the date represented by an input row."""
+        date_column_by_dataset = {
+            pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
+            pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,
+            pc_cols.PRICES: pc_cols.PRICE_DATE,
+            pc_cols.FX_RATES: pc_cols.RATE_DATE,
+            pc_cols.CASH: pc_cols.CASH_DATE,
+        }
+        date_column = date_column_by_dataset.get(dataset)
+        if date_column is None:
+            return None
+        return row.get(date_column)
 
     @staticmethod
     def _evidence_role(

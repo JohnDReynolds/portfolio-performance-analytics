@@ -1634,7 +1634,7 @@ security with a meaningful unexplained remainder are promoted into the
 `Identifiable Causes` sheet with blank `Performance Difference Explained` values.
 This promotion is a workbook presentation rule, not a new attribution model.
 Changed periods without any visible cause or promoted evidence row get a
-`no_underlying_cause_found` diagnostic row. The `Other Evidence` sheet lists
+`no_underlying_causes_found` diagnostic row. The `Other Evidence` sheet lists
 review-only supporting rows. The `Raw Audit Trail` sheet preserves the full
 finding-level detail, including reported-performance diagnostics that confirm
 reporting differences but are not root causes.

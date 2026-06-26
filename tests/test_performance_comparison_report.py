@@ -324,22 +324,22 @@ def _assert_workbook_explained_row_actions(
     test_case: unittest.TestCase,
     underlying_causes: pl.DataFrame,
 ) -> None:
-    """Assert explained workbook rows have clear YAML setup wording."""
+    """Assert non-additive workbook rows have clear review guidance."""
     for row in underlying_causes.iter_rows(named=True):
         estimated_impact = _float_or_none(row.get("estimated_impact"))
         required_setup = row.get("review_guidance")
         if estimated_impact is None:
             test_case.assertNotEqual(required_setup, "None")
-            if row.get("dataset") == "no_underlying_cause_found":
+            if row.get("dataset") == "no_underlying_causes_found":
                 test_case.assertEqual(row.get("use"), "Diagnostic")
                 test_case.assertEqual(row.get("impact_status"), "Review only")
-                test_case.assertIn("No additive underlying cause", str(required_setup))
+                test_case.assertIn("No additive identifiable cause", str(required_setup))
                 continue
             if (
                 "configured as evidence-only" in str(required_setup)
                 or "not included in explained difference" in str(required_setup)
                 or "related performance input" in str(required_setup)
-                or "changed transaction amount" in str(required_setup)
+                or "changed transactions.amount" in str(required_setup)
                 or "changed holdings.market_value" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
@@ -374,6 +374,13 @@ def _float_or_none(value: object) -> float | None:
 def _float_or_zero(value: object) -> float:
     """Return numeric value as float, treating null workbook values as zero."""
     return _float_or_none(value) or 0.0
+
+
+def _normalized_header(value: object) -> object:
+    """Return an Excel header with intentional line breaks normalized."""
+    if isinstance(value, str):
+        return " ".join(value.split())
+    return value
 
 
 class TestPerformanceComparisonReport(unittest.TestCase):
@@ -639,7 +646,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_amount["review_guidance"][0],
-            "Supporting evidence for changed holdings.market_value.",
+            "Input driver for changed holdings.market_value.",
         )
         self.assertEqual(
             rules_transaction_quantity["review_note"][0],
@@ -885,7 +892,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
             plain_quantity["review_guidance"][0],
-            "Supporting evidence for the related performance input.",
+            "Input driver for changed holdings.market_value.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
@@ -895,8 +902,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "Review this input difference; it is not included in explained difference.",
         )
 
-    def test_price_impact_method_explains_price_row(self) -> None:
-        """Price uses the default weighted price impact."""
+    def test_portfolio_price_rows_are_other_evidence(self) -> None:
+        """Portfolio workbooks review standalone prices without additive impact."""
         with tempfile.TemporaryDirectory() as temp_dir:
             plain_path = _write_price_estimate_specification(
                 Path(temp_dir) / "plain",
@@ -915,6 +922,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 compare_snapshots(configured_path),
                 comparison_path=configured_path,
             )
+            plain_context = _workbook_context_table(compare_snapshots(plain_path))
+            configured_context = _workbook_context_table(
+                compare_snapshots(configured_path)
+            )
 
         plain_price = plain_causes.filter(
             (pl.col("dataset") == "prices")
@@ -924,13 +935,27 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             (pl.col("dataset") == "prices")
             & (pl.col("source_column") == "price")
         )
+        plain_price_context = plain_context.filter(
+            (pl.col("dataset") == "prices")
+            & (pl.col("source_column") == "price")
+        )
+        configured_price_context = configured_context.filter(
+            (pl.col("dataset") == "prices")
+            & (pl.col("source_column") == "price")
+        )
 
-        self.assertEqual(plain_price.height, 1)
-        self.assertAlmostEqual(plain_price["estimated_impact"][0], 0.002)
-        self.assertEqual(plain_price["review_guidance"][0], "")
-        self.assertEqual(configured_price.height, 1)
-        self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
-        self.assertEqual(configured_price["review_guidance"][0], "")
+        self.assertEqual(plain_price.height, 0)
+        self.assertEqual(configured_price.height, 0)
+        self.assertEqual(plain_price_context.height, 1)
+        self.assertEqual(configured_price_context.height, 1)
+        self.assertEqual(
+            plain_price_context["review_note"][0],
+            "Review price change.",
+        )
+        self.assertEqual(
+            configured_price_context["review_note"][0],
+            "Review price change.",
+        )
 
     def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:
         """Changed portfolio demo periods have matching cause rows."""
@@ -1020,7 +1045,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             performance_change_sheet = workbook["Performance Differences"]
             self.assertEqual(
                 [
-                    performance_change_sheet.cell(row=1, column=column).value
+                    _normalized_header(
+                        performance_change_sheet.cell(row=1, column=column).value
+                    )
                     for column in range(1, 7)
                 ],
                 [
@@ -1034,7 +1061,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(performance_change_sheet["G1"].value, "Status")
             self.assertEqual(performance_change_sheet["H1"].value, "Comments")
-            self.assertEqual(performance_change_sheet["I1"].value, "Review Key")
+            self.assertEqual(
+                _normalized_header(performance_change_sheet["I1"].value),
+                "Review Key",
+            )
             self.assertEqual(
                 [performance_change_sheet[f"I{row}"].value for row in range(2, 5)],
                 [
@@ -1057,14 +1087,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             underlying_causes_sheet = workbook["Identifiable Causes"]
             self.assertEqual(
                 [
-                    underlying_causes_sheet.cell(row=1, column=column).value
+                    _normalized_header(
+                        underlying_causes_sheet.cell(row=1, column=column).value
+                    )
                     for column in range(1, 15)
                 ],
                 [
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Input Role",
                     "As Of Date",
                     "Input Dataset",
                     "Input Field",
@@ -1075,30 +1106,31 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Performance Difference Explained",
                     "Related Performance Difference",
                     "Review Guidance",
+                    "Review Key",
                 ],
             )
             self.assertGreater(underlying_causes_sheet.max_row, 5)
             numeric_source_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"I{row}"].value, (int, float))
-                and isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"H{row}"].value, (int, float))
+                and isinstance(underlying_causes_sheet[f"I{row}"].value, (int, float))
+            )
+            self.assertEqual(
+                underlying_causes_sheet[f"H{numeric_source_row}"].number_format,
+                "0.000000",
             )
             self.assertEqual(
                 underlying_causes_sheet[f"I{numeric_source_row}"].number_format,
                 "0.000000",
             )
-            self.assertEqual(
-                underlying_causes_sheet[f"J{numeric_source_row}"].number_format,
-                "0.000000",
-            )
             numeric_explained_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"L{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"K{row}"].value, (int, float))
             )
             self.assertEqual(
-                underlying_causes_sheet[f"L{numeric_explained_row}"].number_format,
+                underlying_causes_sheet[f"K{numeric_explained_row}"].number_format,
                 "0.000000",
             )
             portfolios = {
@@ -1107,20 +1139,22 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             }
             self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
             required_setup = [
-                underlying_causes_sheet[f"N{row}"].value
+                underlying_causes_sheet[f"M{row}"].value
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
             self.assertTrue(any(setup in (None, "") for setup in required_setup))
             self.assertEqual(
-                underlying_causes_sheet.cell(
-                    row=1,
-                    column=underlying_causes_sheet.max_column,
-                ).value,
+                _normalized_header(
+                    underlying_causes_sheet.cell(
+                        row=1,
+                        column=underlying_causes_sheet.max_column,
+                    ).value
+                ),
                 "Review Key",
             )
             self.assertEqual(
                 [
-                    underlying_causes_sheet[f"O{row}"].value
+                    underlying_causes_sheet[f"N{row}"].value
                     for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",
@@ -1129,7 +1163,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             context_sheet = workbook["Other Evidence"]
             self.assertGreater(context_sheet.max_row, 1)
             self.assertEqual(
-                [cell.value for cell in context_sheet[1]],
+                [_normalized_header(cell.value) for cell in context_sheet[1]],
                 [
                     "Portfolio",
                     "From Date",
@@ -1154,7 +1188,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             findings_sheet = workbook["Raw Audit Trail"]
             self.assertEqual(
-                [findings_sheet.cell(row=1, column=column).value for column in range(1, 7)],
+                [
+                    _normalized_header(
+                        findings_sheet.cell(row=1, column=column).value
+                    )
+                    for column in range(1, 7)
+                ],
                 [
                     "Portfolio",
                     "From Date",
@@ -1165,7 +1204,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ],
             )
             self.assertEqual(
-                findings_sheet.cell(row=1, column=findings_sheet.max_column).value,
+                _normalized_header(
+                    findings_sheet.cell(row=1, column=findings_sheet.max_column).value
+                ),
                 "Review Key",
             )
             self.assertIsNotNone(findings_sheet["A1"].comment)

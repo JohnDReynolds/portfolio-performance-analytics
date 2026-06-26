@@ -163,6 +163,12 @@ IMPACT_BASIS_HOLDING_ACCRUED = "holding_accrued"
 IMPACT_BASIS_HOLDING_MARKET_VALUE = "holding_market_value"
 IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE = "holding_quantity_unit_market_value"
 IMPACT_BASIS_PRICE_WEIGHTED = "price_weighted"
+IMPACT_BASIS_SECURITY_HOLDING_ACCRUED = "security_holding_accrued"
+IMPACT_BASIS_SECURITY_HOLDING_MARKET_VALUE = "security_holding_market_value"
+IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
+    "security_holding_quantity_unit_market_value"
+)
+IMPACT_BASIS_SECURITY_PRICE_RETURN = "security_price_return"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
@@ -743,9 +749,14 @@ def security_period_contribution_candidates(
     if ranking.is_empty():
         return _empty_portfolio_period_contribution_candidates()
 
+    ranked_rows = list(ranking.iter_rows(named=True))
+    denominators = _security_return_denominators(ranked_rows)
     rows = [
-        _contribution_candidate_row(row)
-        for row in ranking.iter_rows(named=True)
+        _security_return_candidate_row(
+            row,
+            denominators.get(_security_return_candidate_key(row)),
+        )
+        for row in ranked_rows
     ]
     return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
 
@@ -1550,6 +1561,142 @@ def _contribution_candidate_row(row: dict[str, object]) -> dict[str, object]:
         IMPACT_CONFIDENCE: impact[IMPACT_CONFIDENCE],
         IMPACT_METHOD: impact[IMPACT_METHOD],
         IMPACT_MESSAGE: impact[IMPACT_MESSAGE],
+    }
+
+
+def _security_return_candidate_row(
+    row: dict[str, object],
+    security_denominator: float | None,
+) -> dict[str, object]:
+    """Return one security-return candidate row from ranked security evidence."""
+    impact = _estimated_security_return_impact(row, security_denominator)
+    return {
+        **row,
+        ESTIMATED_RETURN_IMPACT: impact[ESTIMATED_RETURN_IMPACT],
+        IMPACT_BASIS: impact[IMPACT_BASIS],
+        IMPACT_CONFIDENCE: impact[IMPACT_CONFIDENCE],
+        IMPACT_METHOD: impact[IMPACT_METHOD],
+        IMPACT_MESSAGE: impact[IMPACT_MESSAGE],
+    }
+
+
+def _security_return_candidate_key(row: dict[str, object]) -> tuple[object, ...]:
+    """Return the security-period key used for security-return estimates."""
+    return (
+        row.get(PORTFOLIO_ID),
+        row.get(SECURITY_ID),
+        row.get(FROM_DATE),
+        row.get(THRU_DATE),
+    )
+
+
+def _security_return_denominators(
+    rows: Iterable[dict[str, object]],
+) -> dict[tuple[object, ...], float]:
+    """Return security beginning market values keyed by security period.
+
+    Notes:
+        Security-return explanations should use the affected security's own
+        beginning value, not the portfolio-level return denominator. The most
+        direct normalized source available in the ranked evidence is the
+        snapshot A ``holdings.market_value`` row for the same security period.
+    """
+    denominators: dict[tuple[object, ...], float] = {}
+    for row in rows:
+        if row.get(DATASET) != pc_cols.HOLDINGS:
+            continue
+        if row.get(SOURCE_COLUMN) != pc_cols.MARKET_VALUE:
+            continue
+        snapshot_a_value = _number_value(row.get(SNAPSHOT_A_VALUE))
+        if snapshot_a_value is None or snapshot_a_value == 0.0:
+            continue
+        denominators[_security_return_candidate_key(row)] = snapshot_a_value
+    return denominators
+
+
+def _estimated_security_return_impact(
+    row: dict[str, object],
+    security_denominator: float | None,
+) -> dict[str, object]:
+    """Return security-return impact fields for one ranked evidence row."""
+    delta = _number_value(row[DELTA_B_MINUS_A])
+    if delta is None:
+        return _no_security_return_estimate()
+
+    if row[DATASET] == pc_cols.PRICES and row[SOURCE_COLUMN] == pc_cols.PRICE:
+        snapshot_a_price = _number_value(row[SNAPSHOT_A_VALUE])
+        if snapshot_a_price is None or snapshot_a_price == 0.0:
+            return _no_security_return_estimate()
+        return {
+            ESTIMATED_RETURN_IMPACT: delta / snapshot_a_price,
+            IMPACT_BASIS: IMPACT_BASIS_SECURITY_PRICE_RETURN,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT,
+            IMPACT_MESSAGE: (
+                "Approximate security-return impact uses the price delta divided "
+                "by snapshot A price."
+            ),
+        }
+
+    if security_denominator is None:
+        return _no_security_return_estimate()
+
+    if row[DATASET] == pc_cols.HOLDINGS and row[SOURCE_COLUMN] == pc_cols.MARKET_VALUE:
+        return {
+            ESTIMATED_RETURN_IMPACT: delta / security_denominator,
+            IMPACT_BASIS: IMPACT_BASIS_SECURITY_HOLDING_MARKET_VALUE,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_HOLDING_MARKET_VALUE_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate security-return impact uses the holding market value "
+                "delta divided by snapshot A security market value."
+            ),
+        }
+
+    if row[DATASET] == pc_cols.HOLDINGS and row[SOURCE_COLUMN] == pc_cols.ACCRUED:
+        return {
+            ESTIMATED_RETURN_IMPACT: delta / security_denominator,
+            IMPACT_BASIS: IMPACT_BASIS_SECURITY_HOLDING_ACCRUED,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_HOLDING_ACCRUED_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate security-return impact uses the holding accrued delta "
+                "divided by snapshot A security market value."
+            ),
+        }
+
+    if row[DATASET] == pc_cols.HOLDINGS and row[SOURCE_COLUMN] == pc_cols.QUANTITY:
+        unit_market_value = _number_value(row[IMPACT_INPUT_VALUE])
+        if unit_market_value is None:
+            return _no_security_return_estimate()
+        return {
+            ESTIMATED_RETURN_IMPACT: (delta * unit_market_value) / security_denominator,
+            IMPACT_BASIS: IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: (
+                IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR
+            ),
+            IMPACT_MESSAGE: (
+                "Approximate security-return impact uses the holding quantity delta "
+                "multiplied by snapshot A unit market value, then divided by "
+                "snapshot A security market value."
+            ),
+        }
+
+    return _estimated_impact(row)
+
+
+def _no_security_return_estimate() -> dict[str, object]:
+    """Return an empty estimate for unsupported security-return evidence."""
+    return {
+        ESTIMATED_RETURN_IMPACT: None,
+        IMPACT_BASIS: IMPACT_BASIS_NO_ESTIMATE,
+        IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+        IMPACT_METHOD: None,
+        IMPACT_MESSAGE: (
+            "No defensible security-return impact estimate is available for this "
+            "finding yet."
+        ),
     }
 
 

@@ -24,6 +24,27 @@ from ppar.performance_comparison import review_model as _pc_review_model
 REVIEW_WORKBOOK_ARTIFACT = _pc_review_model.REVIEW_WORKBOOK_ARTIFACT
 REVIEW_WORKBOOK_FILE_NAME = _pc_review_model.REVIEW_WORKBOOK_FILE_NAME
 WORKBOOK_NUMBER_FORMAT = "0.000000"
+_MINIMUM_COLUMN_WIDTHS = {
+    _pc_findings.SNAPSHOT_A_VALUE: 16,
+    _pc_findings.SNAPSHOT_B_VALUE: 16,
+    _pc_findings.DELTA_B_MINUS_A: 16,
+    "change": 16,
+}
+_EXCEL_HEADER_LINE_BREAKS = {
+    "Performance Difference": "Performance\nDifference",
+    "Explained Difference": "Explained\nDifference",
+    "Unexplained Difference": "Unexplained\nDifference",
+    "Input Dataset": "Input\nDataset",
+    "Input Field": "Input\nField",
+    "Snapshot A Value": "Snapshot A\nValue",
+    "Snapshot B Value": "Snapshot B\nValue",
+    "B - A Difference": "B - A\nDifference",
+    "Performance Difference Explained": "Performance\nDifference\nExplained",
+    "Related Performance Difference": "Related\nPerformance\nDifference",
+    "Review Guidance": "Review\nGuidance",
+    "Review Key": "Review\nKey",
+    "What Changed": "What\nChanged",
+}
 
 PRIMARY_DIFFERENCE_SHEETS = _pc_review_model.PRIMARY_REVIEW_SHEETS
 SHARED_REVIEW_SHEETS = _pc_review_model.SHARED_REVIEW_SHEETS
@@ -44,7 +65,6 @@ REQUIRED_HEADERS = {
         "Portfolio",
         "From Date",
         "Thru Date",
-        "Input Role",
         "As Of Date",
         "Input Dataset",
         "Input Field",
@@ -217,7 +237,10 @@ def _add_workbook_sheet(
     worksheet = workbook.create_sheet(sheet.sheet_name)
     table = sheet.table
     columns = _workbook_sheet_columns(sheet)
-    headers = [_workbook_column_label(column, sheet.labels) for column in columns]
+    headers = [
+        _excel_header_label(_workbook_column_label(column, sheet.labels))
+        for column in columns
+    ]
     worksheet.append(headers)
     for row in table.select(columns).iter_rows(named=True):
         worksheet.append(
@@ -251,6 +274,11 @@ def _workbook_column_label(column: str, labels: Mapping[str, str] | None) -> str
     if labels is None:
         return _pc_rendering.display_header(column)
     return labels.get(column, _pc_rendering.display_header(column))
+
+
+def _excel_header_label(header: str) -> str:
+    """Return an Excel header that wraps only between words."""
+    return _EXCEL_HEADER_LINE_BREAKS.get(header, header)
 
 
 def _workbook_cell_value(value: object, *, column_name: str) -> object:
@@ -293,18 +321,30 @@ def _format_workbook_columns(
     """Apply readable widths and common number formats to a worksheet."""
     for column_index, (column_name, header) in enumerate(zip(columns, headers), start=1):
         column_letter = worksheet.cell(row=1, column=column_index).column_letter
-        max_width = min(len(header), 18)
+        max_width = 0
         for row_index in range(2, worksheet.max_row + 1):
             cell = worksheet.cell(row=row_index, column=column_index)
             max_width = max(max_width, len(_format_value(cell.value)))
-            if column_name in {_pc_findings.FROM_DATE, _pc_findings.THRU_DATE}:
+            if column_name in {
+                _pc_findings.FROM_DATE,
+                _pc_findings.THRU_DATE,
+                _pc_findings.INPUT_DATE,
+                "as_of_date",
+            }:
                 cell.number_format = "yyyy-mm-dd"
             elif _is_workbook_numeric_column(column_name) and isinstance(
                 cell.value,
                 (int, float),
             ):
                 cell.number_format = WORKBOOK_NUMBER_FORMAT
-        worksheet.column_dimensions[column_letter].width = min(max(max_width + 2, 12), 60)
+        if max_width == 0:
+            max_width = min(len(header), 10)
+        max_width = max(max_width, _longest_header_word_width(header))
+        max_width = max(max_width, _MINIMUM_COLUMN_WIDTHS.get(column_name, 0))
+        worksheet.column_dimensions[column_letter].width = min(
+            max(max_width + 2, 8),
+            36,
+        )
 
 
 def _is_workbook_numeric_column(column_name: str) -> bool:
@@ -357,10 +397,11 @@ def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]
     except StopIteration:
         return [f"report.xlsx sheet {sheet_name!r} has no header row"]
 
+    normalized_headers = tuple(_normalize_header(value) for value in headers)
     missing_headers = [
         header
         for header in REQUIRED_HEADERS[sheet_name]
-        if header not in headers
+        if header not in normalized_headers
     ]
     if not missing_headers:
         return []
@@ -381,3 +422,16 @@ def _format_value(value: object) -> str:
     if isinstance(value, (dt.date, dt.datetime)):
         return value.isoformat()
     return str(value)
+
+
+def _normalize_header(value: object) -> str:
+    """Return a header value with Excel line breaks normalized to spaces."""
+    return " ".join(str(value).split())
+
+
+def _longest_header_word_width(header: str) -> int:
+    """Return the minimum width needed to avoid splitting header words."""
+    words = header.replace("\n", " ").split()
+    if not words:
+        return 0
+    return max(len(word) for word in words) + 2

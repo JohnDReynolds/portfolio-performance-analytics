@@ -44,6 +44,7 @@ __all__ = [
     "SECURITY_ID",
     "FROM_DATE",
     "THRU_DATE",
+    "INPUT_DATE",
     "SOURCE_FILE",
     "SOURCE_COLUMN",
     "TRANSACTION_CATEGORY",
@@ -124,6 +125,7 @@ PORTFOLIO_ID = "portfolio_id"
 SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
+INPUT_DATE = "input_date"
 SOURCE_FILE = "source_file"
 SOURCE_COLUMN = "source_column"
 TRANSACTION_CATEGORY = "transaction_category"
@@ -264,6 +266,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     SECURITY_ID,
     FROM_DATE,
     THRU_DATE,
+    INPUT_DATE,
     SOURCE_FILE,
     SOURCE_COLUMN,
     TRANSACTION_CATEGORY,
@@ -300,6 +303,7 @@ class Finding:
         security_id: Optional security identifier.
         from_date: Optional period start date.
         thru_date: Optional period end date.
+        input_date: Optional date represented by the changed input row.
         source_file: Optional configured source file associated with the
             finding.
         source_column: Optional normalized column associated with the finding.
@@ -341,6 +345,7 @@ class Finding:
     security_id: object | None = None
     from_date: object | None = None
     thru_date: object | None = None
+    input_date: object | None = None
     source_file: str | None = None
     source_column: str | None = None
     transaction_category: object | None = None
@@ -373,6 +378,7 @@ class Finding:
             SECURITY_ID: self.security_id,
             FROM_DATE: self.from_date,
             THRU_DATE: self.thru_date,
+            INPUT_DATE: self.input_date,
             SOURCE_FILE: self.source_file,
             SOURCE_COLUMN: self.source_column,
             TRANSACTION_CATEGORY: _string_value_or_none(self.transaction_category),
