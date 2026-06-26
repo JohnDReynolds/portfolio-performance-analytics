@@ -234,8 +234,8 @@ class TestPackageMetadata(unittest.TestCase):
             "README.md",
             "axys_column_mappings.yaml",
             "axys_analytics.yaml",
-            "ppar_performance_comparison_full_spec.yaml",
-            "ppar_performance_comparison_security_full_spec.yaml",
+            "ppar_performance_comparison_portfolio.yaml",
+            "ppar_performance_comparison_security.yaml",
             "axys_analytics/portperf.csv",
             "axys_analytics/secperf.csv",
             "axys_analytics/sec_ref.csv",
@@ -249,7 +249,7 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(resource_path=resource_path):
                 self.assertTrue((axys_demo_data / resource_path).is_file())
 
-    def test_axys_full_spec_demo_uses_operational_mega_cap_data(self) -> None:
+    def test_axys_portfolio_demo_uses_operational_mega_cap_data(self) -> None:
         """The user-facing comparison demo packages the promoted operational data."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         positions_path = Path(
@@ -286,8 +286,8 @@ class TestPackageMetadata(unittest.TestCase):
             "Low-confidence estimate": "multi",
             "Context-only evidence": "multi",
             "Modified Dietz cross-check": "modified_dietz",
-            "Full YAML specifications": "full_spec",
-            "Security full YAML specifications": "security_full_spec",
+            "Portfolio YAML specifications": "portfolio",
+            "Security YAML specifications": "security",
             "Suppressed finding": "suppressed",
             "Residual withheld": "multi",
             "Large clean background": "multi",

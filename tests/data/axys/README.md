@@ -66,8 +66,8 @@ Validate the scenario matrix with:
 | Low-confidence estimate | `multi` | Decide whether the estimate is acceptable. | Covered |
 | Context-only evidence | `multi` | Review context without treating it as impact. | Covered |
 | Modified Dietz cross-check | `modified_dietz` | Review cross-check. | Covered |
-| Full YAML specifications | `full_spec` | Run strict causal attribution with all supported policies configured. | Covered |
-| Security full YAML specifications | `security_full_spec` | Review security-period differences with security review keys. | Covered |
+| Portfolio YAML specifications | `portfolio` | Run strict causal attribution with all supported policies configured. | Covered |
+| Security YAML specifications | `security` | Review security-period differences with security review keys. | Covered |
 | Suppressed finding | `suppressed` | Exclude from active review; keep audit-visible. | Covered |
 | Residual withheld | `multi` | Resolve partial or missing estimates first. | Covered |
 | Large clean background | `multi` | Confirm unchanged periods do not create false positives. | Covered |

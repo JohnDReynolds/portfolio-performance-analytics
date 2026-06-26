@@ -6,7 +6,7 @@
 # semantics.
 
 comparison:
-  name: Axys security full-spec causal attribution demo
+  name: Axys security causal attribution demo
   level: security
 
 snapshots:

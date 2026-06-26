@@ -15,8 +15,8 @@ import yaml
 _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
-_FULL_SPEC_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
+_PORTFOLIO_COMPARISON_PATH = Path(
+    "ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml"
 )
 _PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
@@ -187,7 +187,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             result = subprocess.run(
                 _module_command(
                     _BUNDLE_MODULE,
-                    str(_FULL_SPEC_COMPARISON_PATH),
+                    str(_PORTFOLIO_COMPARISON_PATH),
                     str(output_directory),
                     "--include-workbook",
                     "--require-supported-attribution-setup",
@@ -352,8 +352,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Single-restatement transaction rows", result.stdout)
         self.assertIn("Transaction rules amount explanation", result.stdout)
         self.assertIn("Context-only evidence", result.stdout)
-        self.assertIn("Full field-role specifications", result.stdout)
-        self.assertIn("Security full field-role specifications", result.stdout)
+        self.assertIn("Portfolio field-role specifications", result.stdout)
+        self.assertIn("Security field-role specifications", result.stdout)
         self.assertIn("Suppressed finding", result.stdout)
         self.assertIn("Residual withheld", result.stdout)
         self.assertEqual(result.stderr, "")

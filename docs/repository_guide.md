@@ -85,8 +85,8 @@ scenario coverage lives under `tests/data/axys`.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
-| Workbook demo | `ppar_performance_comparison_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Portfolio-level strict-attribution demo with supported causal policies. |
-| Workbook demo | `ppar_performance_comparison_security_full_spec.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Security-level demo using security performance as the primary result dataset. |
+| Workbook demo | `ppar_performance_comparison_portfolio.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Portfolio-level strict-attribution demo with supported causal policies. |
+| Workbook demo | `ppar_performance_comparison_security.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Security-level demo using security performance as the primary result dataset. |
 
 For the recommended XLSX workbook command and expected output, use
 [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md).
@@ -127,8 +127,8 @@ review model in a browser.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml \
-  _demo_output/custom_full_spec \
+  ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml \
+  _demo_output/custom_portfolio \
   --include-workbook \
   --require-causal-attribution
 ```
@@ -159,7 +159,7 @@ Use this after generating report/workbook output.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml
+  ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml
 ```
 
 Use this before report generation when you are editing YAML.

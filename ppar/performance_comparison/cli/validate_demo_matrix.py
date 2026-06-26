@@ -34,8 +34,8 @@ _RESTATEMENT_TRANSACTION_RULES_YAML = (
     "ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
-_FULL_SPEC_YAML = "ppar_performance_comparison_full_spec.yaml"
-_SECURITY_FULL_SPEC_YAML = "ppar_performance_comparison_security_full_spec.yaml"
+_PORTFOLIO_YAML = "ppar_performance_comparison_portfolio.yaml"
+_SECURITY_YAML = "ppar_performance_comparison_security.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_performance_comparison_suppressed.yaml"
@@ -111,12 +111,12 @@ def _validate_demo_matrix(
         scenario_directory / _RESTATEMENT_TRANSACTION_RULES_YAML
     )
     multi_findings = compare_snapshots(scenario_directory / _MULTI_YAML)
-    full_spec_findings = compare_snapshots(
-        demo_directory / _FULL_SPEC_YAML,
+    portfolio_findings = compare_snapshots(
+        demo_directory / _PORTFOLIO_YAML,
         require_causal_attribution=True,
     )
-    security_full_spec_findings = compare_snapshots(
-        demo_directory / _SECURITY_FULL_SPEC_YAML,
+    security_findings = compare_snapshots(
+        demo_directory / _SECURITY_YAML,
     )
     modified_dietz_findings = compare_snapshots(
         scenario_directory / _MODIFIED_DIETZ_YAML
@@ -163,8 +163,8 @@ def _validate_demo_matrix(
         ),
         _check_large_clean_background(snapshot_directory, multi_findings),
         _check_modified_dietz_cross_check(modified_dietz_cross_checks),
-        _check_full_spec_strict_attribution(full_spec_findings),
-        _check_security_full_spec_attribution(security_full_spec_findings),
+        _check_portfolio_strict_attribution(portfolio_findings),
+        _check_security_attribution(security_findings),
         _check_suppressed_findings(
             suppressed_findings,
             suppressed_active_findings,
@@ -363,9 +363,9 @@ def _check_modified_dietz_cross_check(cross_checks: pl.DataFrame) -> _ScenarioCh
     )
 
 
-def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
-    """Return whether the full-spec fixture exercises field-role attribution."""
-    name = "Full field-role specifications"
+def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether the portfolio fixture exercises field-role attribution."""
+    name = "Portfolio field-role specifications"
     expected_policy_prefixes = {
         "position_market_value:market_value_delta_over_return_denominator",
         "position_accrued:accrued_delta_over_return_denominator",
@@ -400,7 +400,7 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         return _ScenarioCheck(
             name,
             False,
-            "full fixture is missing transaction performance amount policy",
+            "portfolio fixture is missing transaction performance amount policy",
         )
     causes = _workbook_underlying_causes_table(findings)
     promoted_fields = {
@@ -419,7 +419,7 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         return _ScenarioCheck(
             name,
             False,
-            "full-spec fixture is missing promoted evidence-only field(s): "
+            "portfolio fixture is missing promoted evidence-only field(s): "
             + ", ".join(
                 f"{dataset}.{column}" for dataset, column in missing_promoted_fields
             ),
@@ -437,7 +437,7 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         return _ScenarioCheck(
             name,
             False,
-            "full-spec fixture is missing context field(s): "
+            "portfolio fixture is missing context field(s): "
             + ", ".join(f"{dataset}.{column}" for dataset, column in missing_context_fields),
         )
     return _ScenarioCheck(
@@ -447,9 +447,9 @@ def _check_full_spec_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
     )
 
 
-def _check_security_full_spec_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
-    """Return whether the security full-spec fixture exercises security review."""
-    name = "Security full field-role specifications"
+def _check_security_attribution(findings: pl.DataFrame) -> _ScenarioCheck:
+    """Return whether the security fixture exercises security review."""
+    name = "Security field-role specifications"
     check_fields = _reported_performance_component_fields(findings)
     expected_check_fields = {
         ("security_performance", "security_return"),

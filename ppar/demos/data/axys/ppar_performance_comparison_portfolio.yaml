@@ -5,7 +5,7 @@
 # plus explicit transaction semantics.
 
 comparison:
-  name: Axys full-spec causal attribution demo
+  name: Axys portfolio causal attribution demo
 
 snapshots:
   a:

@@ -10,8 +10,8 @@ Mega-Cap source snapshots but review different primary result levels.
 
 | Role | Short name | YAML |
 | --- | --- | --- |
-| Workbook demo | `portfolio_full_spec` | `ppar_performance_comparison_full_spec.yaml` |
-| Workbook demo | `security_full_spec` | `ppar_performance_comparison_security_full_spec.yaml` |
+| Workbook demo | `portfolio` | `ppar_performance_comparison_portfolio.yaml` |
+| Workbook demo | `security` | `ppar_performance_comparison_security.yaml` |
 
 ## Recommended User-Facing Demo
 
@@ -159,7 +159,7 @@ The supported string vocabulary is summarized in
 with enums, but YAML examples intentionally show the plain string values users
 edit.
 
-The `full_spec` fixture is intentionally action-oriented. It contains ALPHA,
+The portfolio fixture is intentionally action-oriented. It contains ALPHA,
 BALANCED, and INCOME operational portfolios with changed portfolio/security
 periods so reviewers can see the most understandable causal-attribution bases:
 

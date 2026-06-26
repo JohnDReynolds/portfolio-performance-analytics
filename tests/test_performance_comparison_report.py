@@ -54,8 +54,8 @@ _RESTATEMENT_TRANSACTION_RULES_PATH = Path(
 _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
 )
-_FULL_SPEC_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
+_PORTFOLIO_COMPARISON_PATH = Path(
+    "ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
@@ -561,7 +561,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             ("single", _RESTATEMENT_COMPARISON_PATH, {}),
             ("transaction_rules", _RESTATEMENT_TRANSACTION_RULES_PATH, {}),
             ("multi", _MULTI_RESTATEMENT_COMPARISON_PATH, {}),
-            ("full_spec", _FULL_SPEC_COMPARISON_PATH, {"require_causal_attribution": True}),
+            ("portfolio", _PORTFOLIO_COMPARISON_PATH, {"require_causal_attribution": True}),
             ("policy_gap", _POLICY_GAP_DEMO_COMPARISON_PATH, {}),
         )
 
@@ -730,7 +730,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
     def test_security_differences_marks_periods_without_security_rows(self) -> None:
         """Portfolio periods without security differences get explicit rows."""
-        findings = compare_snapshots(_FULL_SPEC_COMPARISON_PATH)
+        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
 
         security_differences = _workbook_security_changes_table(findings)
         portfolio_differences = _workbook_portfolio_changes_table(findings)
@@ -927,10 +927,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
         self.assertEqual(configured_price["review_guidance"][0], "")
 
-    def test_full_spec_workbook_links_changed_periods_to_underlying_causes(self) -> None:
-        """Changed full-spec portfolio periods have matching cause rows."""
+    def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:
+        """Changed portfolio demo periods have matching cause rows."""
         findings = compare_snapshots(
-            _FULL_SPEC_COMPARISON_PATH,
+            _PORTFOLIO_COMPARISON_PATH,
             require_causal_attribution=True,
         )
 

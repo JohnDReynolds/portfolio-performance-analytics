@@ -16,11 +16,11 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import review_model as _pc_review_model
 
-_FULL_SPEC_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_full_spec.yaml"
+_PORTFOLIO_COMPARISON_PATH = Path(
+    "ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml"
 )
 _SECURITY_SPEC_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_security_full_spec.yaml"
+    "ppar/demos/data/axys/ppar_performance_comparison_security.yaml"
 )
 
 _EXPECTED_PORTFOLIO_SHEETS = list(_pc_review_model.EXPECTED_REVIEW_SHEETS)
@@ -70,13 +70,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
         """Generated workbook uses stable, action-oriented sheets and columns."""
         openpyxl: Any = importlib.import_module("openpyxl")
 
-        findings = compare_snapshots(_FULL_SPEC_COMPARISON_PATH)
+        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
         with tempfile.TemporaryDirectory() as directory:
             paths = write_performance_comparison_report_bundle(
                 findings,
                 Path(directory) / "bundle",
                 include_workbook=True,
-                comparison_path=_FULL_SPEC_COMPARISON_PATH,
+                comparison_path=_PORTFOLIO_COMPARISON_PATH,
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")

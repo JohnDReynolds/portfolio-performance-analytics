@@ -13,7 +13,7 @@ def main() -> None:
     with as_file(files("ppar.demos.data") / "axys") as axys_data_root:
         run_performance_comparison_demo(
             comparison_path=(
-                axys_data_root / "ppar_performance_comparison_full_spec.yaml"
+                axys_data_root / "ppar_performance_comparison_portfolio.yaml"
             ),
             bundle_path=Path.cwd() / "_demo_output" / "performance_comparison_portfolio",
             title="Portfolio Performance Comparison Demo",
