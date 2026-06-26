@@ -338,7 +338,8 @@ def _assert_workbook_explained_row_actions(
             if (
                 "configured as evidence-only" in str(required_setup)
                 or "not included in explained difference" in str(required_setup)
-                or "related performance input row is selected" in str(required_setup)
+                or "related performance input" in str(required_setup)
+                or "changed transaction amount" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
@@ -359,7 +360,7 @@ def _assert_workbook_explained_row_actions(
 
         test_case.assertEqual(row.get("use"), "Explains Change")
         test_case.assertEqual(row.get("impact_status"), "Estimated")
-        test_case.assertEqual(required_setup, "None")
+        test_case.assertEqual(required_setup, "")
 
 
 def _float_or_none(value: object) -> float | None:
@@ -634,7 +635,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             rules_transaction_amount["estimated_impact"][0],
             -100.0 / 999915.0,
         )
-        self.assertEqual(rules_transaction_amount["review_guidance"][0], "None")
+        self.assertEqual(rules_transaction_amount["review_guidance"][0], "")
         self.assertEqual(
             rules_transaction_quantity["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
@@ -787,10 +788,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_position.height, 1)
         self.assertAlmostEqual(plain_position["estimated_impact"][0], 0.01)
-        self.assertEqual(plain_position["review_guidance"][0], "None")
+        self.assertEqual(plain_position["review_guidance"][0], "")
         self.assertEqual(configured_position.height, 1)
         self.assertAlmostEqual(configured_position["estimated_impact"][0], 0.01)
-        self.assertEqual(configured_position["review_guidance"][0], "None")
+        self.assertEqual(configured_position["review_guidance"][0], "")
 
     def test_position_accrued_impact_method_explains_accrued_row(self) -> None:
         """Position accrued uses the default performance-input impact."""
@@ -825,10 +826,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_accrued.height, 1)
         self.assertAlmostEqual(plain_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(plain_accrued["review_guidance"][0], "None")
+        self.assertEqual(plain_accrued["review_guidance"][0], "")
         self.assertEqual(configured_accrued.height, 1)
         self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(configured_accrued["review_guidance"][0], "None")
+        self.assertEqual(configured_accrued["review_guidance"][0], "")
 
     def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
         """Evidence-only YAML removes missing-method guidance for known fields."""
@@ -879,7 +880,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
             plain_quantity["review_guidance"][0],
-            "None; related performance input row is selected.",
+            "Supporting evidence for the related performance input.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
@@ -921,10 +922,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_price.height, 1)
         self.assertAlmostEqual(plain_price["estimated_impact"][0], 0.002)
-        self.assertEqual(plain_price["review_guidance"][0], "None")
+        self.assertEqual(plain_price["review_guidance"][0], "")
         self.assertEqual(configured_price.height, 1)
         self.assertAlmostEqual(configured_price["estimated_impact"][0], 0.002)
-        self.assertEqual(configured_price["review_guidance"][0], "None")
+        self.assertEqual(configured_price["review_guidance"][0], "")
 
     def test_full_spec_workbook_links_changed_periods_to_underlying_causes(self) -> None:
         """Changed full-spec portfolio periods have matching cause rows."""
@@ -1052,7 +1053,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(
                 [
                     underlying_causes_sheet.cell(row=1, column=column).value
-                    for column in range(1, 13)
+                    for column in range(1, 12)
                 ],
                 [
                     "Portfolio",
@@ -1064,7 +1065,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
-                    "Impact Input Value",
                     "Performance Difference Explained",
                     "Review Guidance",
                 ],
@@ -1087,10 +1087,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             numeric_explained_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"K{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
             )
             self.assertEqual(
-                underlying_causes_sheet[f"K{numeric_explained_row}"].number_format,
+                underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
                 "0.000000",
             )
             portfolios = {
@@ -1099,10 +1099,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             }
             self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
             required_setup = [
-                str(underlying_causes_sheet[f"L{row}"].value)
+                underlying_causes_sheet[f"K{row}"].value
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
-            self.assertTrue(any(setup == "None" for setup in required_setup))
+            self.assertTrue(any(setup in (None, "") for setup in required_setup))
             self.assertEqual(
                 underlying_causes_sheet.cell(
                     row=1,
@@ -1112,7 +1112,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 [
-                    underlying_causes_sheet[f"M{row}"].value
+                    underlying_causes_sheet[f"L{row}"].value
                     for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",

@@ -182,7 +182,7 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
         # pylint: disable=import-outside-toplevel
         from openpyxl import Workbook
         from openpyxl.comments import Comment  # type: ignore[import-untyped]
-        from openpyxl.styles import Font, PatternFill  # type: ignore[import-untyped]
+        from openpyxl.styles import Alignment, Font, PatternFill  # type: ignore[import-untyped]
     except ImportError as error:
         raise PpaError(
             "XLSX review workbook export requires dependency 'openpyxl'. "
@@ -198,6 +198,7 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
                 start_color="1F4E78",
                 end_color="1F4E78",
             ),
+            "header_alignment": Alignment(wrap_text=True, vertical="top"),
             "comment_class": Comment,
         },
     )
@@ -229,7 +230,9 @@ def _add_workbook_sheet(
     for column_name, cell in zip(columns, worksheet[1]):
         cell.font = styles["header_font"]
         cell.fill = styles["header_fill"]
+        cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
+    worksheet.row_dimensions[1].height = 36
     _format_workbook_columns(worksheet, columns, headers)
 
 
@@ -287,7 +290,7 @@ def _format_workbook_columns(
     """Apply readable widths and common number formats to a worksheet."""
     for column_index, (column_name, header) in enumerate(zip(columns, headers), start=1):
         column_letter = worksheet.cell(row=1, column=column_index).column_letter
-        max_width = len(header)
+        max_width = min(len(header), 18)
         for row_index in range(2, worksheet.max_row + 1):
             cell = worksheet.cell(row=row_index, column=column_index)
             max_width = max(max_width, len(_format_value(cell.value)))

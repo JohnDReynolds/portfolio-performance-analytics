@@ -104,13 +104,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Identifiable Causes"])[:13],
+                    _header_values(workbook["Identifiable Causes"])[:12],
                     [
                         *_COMMON_LEFT_HEADERS,
                         "Snapshot A Value",
                         "Snapshot B Value",
                         "B - A Difference",
-                        "Impact Input Value",
                         "Performance Difference Explained",
                         "Review Guidance",
                         "Review Key",
@@ -163,11 +162,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertTrue(
                     all(
-                        row[11] in (None, "None")
-                        or "No additive underlying cause" in str(row[11])
-                        or "shown for review" in str(row[11])
-                        or "not included in explained difference" in str(row[11])
-                        or "related performance input row is selected" in str(row[11])
+                        row[10] in (None, "")
+                        or "No additive underlying cause" in str(row[10])
+                        or "shown for review" in str(row[10])
+                        or "not included in explained difference" in str(row[10])
+                        or "related performance input" in str(row[10])
+                        or "changed transaction amount" in str(row[10])
                         for row in underlying_rows
                     )
                 )

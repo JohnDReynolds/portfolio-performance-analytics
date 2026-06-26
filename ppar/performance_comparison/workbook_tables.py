@@ -407,21 +407,31 @@ def _workbook_performance_comments(row: Mapping[str, object]) -> str:
     if underlying_estimated_total is not None and performance_change is not None:
         residual = performance_change - underlying_estimated_total
         if abs(residual) <= 0.00000001:
-            return "Reported return difference is explained by source-data changes."
+            return "The Performance Difference is explained by Identifiable Causes."
         if abs(underlying_estimated_total) > 0:
             return (
-                "Source-data changes explain part of the reported return "
-                "difference; review remaining evidence."
+                "Identifiable Causes explain part of the Performance Difference. "
+                "Review the Other Evidence sheet and Raw Audit Trail sheet for "
+                "the remaining difference."
             )
         return (
-            "Reported return difference is not numerically explained; review "
-            "visible source-data evidence."
+            "No Identifiable Causes explain the Performance Difference. Review "
+            "the Other Evidence sheet and Raw Audit Trail sheet for possible "
+            "source-data evidence."
         )
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
-        return "Reported return difference is explained by source-data changes."
+        return "The Performance Difference is explained by Identifiable Causes."
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
-        return "Source-data changes explain part of the reported return difference."
-    return "Reported return difference is not numerically explained by source-data rows."
+        return (
+            "Identifiable Causes explain part of the Performance Difference. "
+            "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
+            "remaining difference."
+        )
+    return (
+        "No Identifiable Causes explain the Performance Difference. Review the "
+        "Other Evidence sheet and Raw Audit Trail sheet for possible source-data "
+        "evidence."
+    )
 
 
 def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
@@ -1162,7 +1172,7 @@ def _workbook_review_note(
 ) -> str:
     """Return one reviewer-facing note for a changed workbook row."""
     if estimated_impact is not None:
-        return "None"
+        return ""
 
     dataset = _format_value(row.get(_pc_findings.DATASET))
     source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
@@ -1207,20 +1217,26 @@ def _workbook_review_guidance(
 ) -> str:
     """Return review guidance for why this row does or does not explain performance."""
     if estimated_impact is not None:
-        return "None"
+        return ""
+
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    if (
+        dataset == pc_cols.TRANSACTIONS
+        and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
+    ):
+        return "Supporting evidence for the changed transaction amount."
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
-        return "None; related performance input row is selected."
+        return "Supporting evidence for the related performance input."
     if _workbook_has_evidence_only_policy(row):
-        return "None; this review-only row is not included in explained difference."
+        return "Review-only row; not included in explained difference."
     if (
         _workbook_is_context_row(row)
         or _workbook_is_reported_diagnostic_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
     ):
-        return "None; this row is review context, not an underlying input difference."
+        return "Review context; not an underlying input difference."
 
-    dataset = _format_value(row.get(_pc_findings.DATASET))
-    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
     dataset_column = _workbook_dataset_column_label(dataset, source_column)
     yaml_path = _workbook_yaml_path_label(comparison_path)
     if _workbook_has_additive_policy(row):
@@ -1461,7 +1477,6 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _pc_findings.SNAPSHOT_A_VALUE,
         _pc_findings.SNAPSHOT_B_VALUE,
         _CHANGE,
-        _pc_findings.IMPACT_INPUT_VALUE,
         _ESTIMATED_IMPACT,
         _REVIEW_GUIDANCE,
         _REVIEW_KEY,
