@@ -966,11 +966,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         portfolio_changes = _workbook_portfolio_changes_table(findings)
         underlying_causes = _workbook_underlying_causes_table(findings)
+        other_evidence = _workbook_context_table(findings)
         portfolio_keys = set(portfolio_changes["review_key"].to_list())
         cause_keys = set(underlying_causes["review_key"].to_list())
         promoted_fields = {
             (str(row["dataset"]), str(row["source_column"]))
             for row in underlying_causes.select(["dataset", "source_column"]).iter_rows(
+                named=True
+            )
+        }
+        other_evidence_fields = {
+            (str(row["dataset"]), str(row["source_column"]))
+            for row in other_evidence.select(["dataset", "source_column"]).iter_rows(
                 named=True
             )
         }
@@ -981,10 +988,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             {
                 ("holdings", "market_value"),
                 ("holdings", "quantity"),
+                ("transactions", "amount"),
+            }.issubset(promoted_fields)
+        )
+        self.assertTrue(
+            {
                 ("transactions", "commission"),
                 ("transactions", "price"),
                 ("transactions", "quantity"),
-            }.issubset(promoted_fields)
+            }.issubset(other_evidence_fields)
         )
         _assert_workbook_explained_rows_reconcile(
             self,

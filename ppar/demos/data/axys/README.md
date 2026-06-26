@@ -62,8 +62,10 @@ other evidence:
   evidence-only input rows for that same review key are promoted into the
   `Identifiable Causes` sheet with blank `Performance Difference Explained`
   values so the likely explanation is visible in one place.
-- `Other Evidence` sheet: review-only supporting rows that are not used to explain return
-  differences and are not needed to review an unresolved period.
+- `Other Evidence` sheet: review-only supporting rows that are not used to
+  explain return differences and are not needed to review an unresolved period.
+  Transaction quantity, price, and commission rows usually live here as
+  supporting evidence for changed `transactions.amount`.
 - `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
 
 Data used:
@@ -87,30 +89,28 @@ Expected workbook:
 
 - Changed ALPHA, BALANCED, and INCOME periods in the portfolio demo
   `Performance Differences` sheet.
-- Changed AAPL and TNOTE2Y security-period returns in the security demo
-  `Performance Differences` sheet.
+- Changed security-period returns in the security demo `Performance Differences`
+  sheet. These include clean explainable rows and explicit unresolved rows when
+  a security-performance difference has no additive input cause.
 - `Identifiable Causes` sheet should show understandable additive transaction
   amount, holding market value, holding accrued, and weighted price examples.
   It should also show plausible input-component rows for unresolved periods
   without assigning them `Performance Difference Explained` values.
-- Most portfolio-period differences should reconcile to rows in the
-  `Identifiable Causes` sheet. One ALPHA period is partly explained, and one
-  BALANCED period is intentionally unexplained with supporting review-only rows
-  promoted into the `Identifiable Causes` sheet.
+- Portfolio-period differences should include fully explained, partly explained,
+  and intentionally unexplained statuses.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
     `CASH_USD` holding changes;
   - a partly explained ALPHA period with a changed buy transaction amount plus
-    changed transaction quantity, price, and commission components;
+    changed transaction quantity, price, and commission support rows in
+    `Other Evidence`;
   - a fully explained BALANCED period with a dividend transaction amount change;
   - a fully explained BALANCED period with both an AAPL price correction and a
     standalone MSFT holding market-value correction;
-  - a fully explained INCOME period with `CASH_USD` holding changes;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Other Evidence` sheet;
-  - an unexplained BALANCED period with transaction quantity, price, and
-    commission rows promoted into the `Identifiable Causes` sheet.
+  - an unexplained INCOME period with no additive identifiable cause found.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and transaction semantics explicit while still
@@ -137,7 +137,7 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Identifiable Causes` sheet when enough inputs are available. |
-| `input_component` | `holdings.quantity`, `holdings.price`, `prices.price`, transaction quantity/price/commission | Shown beside related performance inputs, or promoted for unresolved periods, usually without its own explained amount. |
+| `input_component` | `holdings.quantity`, `holdings.price`, `prices.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Other Evidence` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
 | `context` | holding cost, FX rates, security reference data, unsupported fields | Shown on the `Other Evidence` sheet unless promoted for review of an unresolved period. |
 
@@ -168,12 +168,22 @@ periods so reviewers can see the most understandable causal-attribution bases:
 - holding accrued over beginning market value
 - price delta over snapshot A price, weighted by snapshot A security weight
 
-Most portfolio-period differences are fully explained. One INCOME period is
-partly explained by AAPL price and TNOTE2Y accrued-interest differences, with
-TNOTE2Y quantity, market value, and cost shown as context. One BALANCED period
-is unexplained by additive rows but has transaction quantity, price, and
-commission changes in the `Identifiable Causes` sheet so the likely review path
-is visible.
+Most portfolio-period differences are fully explained. Some periods are partly
+explained when visible source-data changes account for only part of the
+Performance Difference. One INCOME period is intentionally unexplained and gets
+the `no_underlying_causes_found` diagnostic row so the reviewer has an explicit
+place to continue review.
+
+The derived `secperf.csv` and `portperf.csv` files are kept aligned with:
+
+```bash
+./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
+```
+
+The default mode audits the checked-in files without writing. Add `--write`
+after intentional fixture edits to recompute security beginning weights,
+security contributions, and portfolio performance rows from security
+performance rows.
 
 Current public YAML targets are intentionally narrow:
 

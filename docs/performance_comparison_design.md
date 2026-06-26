@@ -77,9 +77,11 @@ Current workbook field roles:
   values when the required denominator or weight inputs are available.
 - `input_component`: fields that explain or reconcile a performance input, such
   as holding quantity/price, standalone prices, and transaction
-  quantity/price/commission. These may appear on the `Identifiable Causes` sheet
-  beside a related performance input or for unresolved periods, often without a
-  separate explained amount.
+  quantity/price/commission. Holding quantity can appear beside a related
+  holding market-value input. Transaction quantity, price, and commission
+  normally remain in the `Other Evidence` sheet as support for changed
+  `transactions.amount`, so transaction arithmetic is not double-counted or
+  treated as a rebuilt accounting-system formula.
 - `reported_performance_component`: portfolio/security performance output
   fields such as return, income, gain/loss, contribution, weight, and market
   value. These remain reporting diagnostics and are not treated as underlying
@@ -1706,11 +1708,12 @@ reviewers can see immediately when context evidence needs early attention.
 Row-level `context_evidence.csv` detail carries the same priority labels and
 reasons as the grouped summary so reviewers do not need to infer priority by
 joining artifacts manually.
-In the workbook, plausible evidence-only input rows for unresolved periods are
-shown on the `Identifiable Causes` sheet instead of the `Other Evidence` sheet so the
-reviewer can see likely explanations and calculated explanations together. Cost
-basis and security-reference changes remain context unless a later model gives
-them a defensible return-impact interpretation.
+In the workbook, plausible evidence-only input rows for unresolved periods may
+be shown on the `Identifiable Causes` sheet instead of the `Other Evidence`
+sheet so the reviewer can see likely explanations and calculated explanations
+together. Cost basis, security-reference changes, and transaction component
+rows remain supporting evidence unless a later model gives them a defensible
+return-impact interpretation.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group

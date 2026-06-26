@@ -101,8 +101,8 @@ data. Snapshot B introduces controlled changes that produce:
   differences;
 - one partly explained ALPHA period with a changed transaction amount plus
   review-only transaction quantity, price, and commission clues;
-- one unexplained BALANCED period with transaction quantity, price, and
-  commission shown as review-only `Identifiable Causes` sheet evidence;
+- one unexplained INCOME period with an explicit `no_underlying_causes_found`
+  diagnostic row;
 - related holding-component examples where quantity rows sit beside selected
   market-value rows and cost remains on the `Other Evidence` sheet;
 - matching security-level examples for AAPL and TNOTE2Y;
@@ -118,10 +118,22 @@ The current generator writes:
 
 The generated YAML files validate and run through `compare_snapshots`. The
 portfolio demo intentionally does not use strict causal-attribution mode because
-it includes one review-only unexplained period. The accepted snapshot files are promoted into
-`ppar/demos/data/axys/axys_full_spec_a/` and
+it includes one review-only unexplained period. The accepted snapshot files are
+promoted into `ppar/demos/data/axys/axys_full_spec_a/` and
 `ppar/demos/data/axys/axys_full_spec_b/`, where the user-facing portfolio and
 security comparison demos consume them.
+
+After intentional fixture edits, audit or rebuild the derived security and
+portfolio performance files with:
+
+```bash
+./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
+./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py --write
+```
+
+The audit command verifies that `secperf.csv` beginning weights and
+contributions are internally consistent and that `portperf.csv` rolls up from
+`secperf.csv`. The write command recomputes those derived fields.
 
 The workbook should answer:
 

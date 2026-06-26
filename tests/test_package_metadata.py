@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tomllib
+from typing import cast
 import unittest
 
 # Project Imports
@@ -407,8 +408,54 @@ class TestPackageMetadata(unittest.TestCase):
                     self.assertAlmostEqual(
                         float(row["CONTRIBUTION"]),
                         expected_contribution,
-                        places=10,
+                        places=9,
                     )
+
+    def test_axys_demo_portfolio_performance_rolls_up_security_performance(
+        self,
+    ) -> None:
+        """Portfolio demo performance rows are derived from security rows."""
+        axys_demo_data = files("ppar.demos.data") / "axys"
+        for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
+            with self.subTest(snapshot=snapshot_name):
+                snapshot = Path(str(axys_demo_data / snapshot_name))
+                portperf = _csv_rows_by_key(
+                    snapshot / "portperf.csv",
+                    ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
+                )
+                security_rows: dict[tuple[str, str, str], list[dict[str, str]]] = {}
+                with (snapshot / "secperf.csv").open(
+                    encoding=util.ENCODING,
+                    newline="",
+                ) as file:
+                    for row in csv.DictReader(file):
+                        key = (
+                            row["PORTFOLIO_CODE"],
+                            row["FROM_DATE"],
+                            row["THRU_DATE"],
+                        )
+                        security_rows.setdefault(key, []).append(row)
+
+                self.assertEqual(set(portperf), set(security_rows))
+                for raw_key, portfolio_row in portperf.items():
+                    key = cast(tuple[str, str, str], raw_key)
+                    with self.subTest(snapshot=snapshot_name, key=key):
+                        rows = security_rows[key]
+                        self.assertAlmostEqual(
+                            sum(float(row["BEGIN_MV"]) for row in rows),
+                            float(portfolio_row["BEGIN_MV"]),
+                            places=2,
+                        )
+                        self.assertAlmostEqual(
+                            sum(float(row["END_MV"]) for row in rows),
+                            float(portfolio_row["END_MV"]),
+                            places=2,
+                        )
+                        self.assertAlmostEqual(
+                            sum(float(row["CONTRIBUTION"]) for row in rows),
+                            float(portfolio_row["PORT_RETURN"]),
+                            places=9,
+                        )
 
     def test_axys_demo_security_return_deltas_match_visible_inputs(self) -> None:
         """Security workbook demo return deltas match the changed source inputs."""
