@@ -340,6 +340,7 @@ def _assert_workbook_explained_row_actions(
                 or "not included in explained difference" in str(required_setup)
                 or "related performance input" in str(required_setup)
                 or "changed transaction amount" in str(required_setup)
+                or "changed holdings.market_value" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
@@ -631,11 +632,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             & (pl.col("source_column") == "price")
         )
         self.assertEqual(rules_transaction_amount.height, 1)
+        self.assertIsNone(rules_transaction_amount["estimated_impact"][0])
         self.assertAlmostEqual(
-            rules_transaction_amount["estimated_impact"][0],
+            rules_transaction_amount["related_performance_difference"][0],
             -100.0 / 999915.0,
         )
-        self.assertEqual(rules_transaction_amount["review_guidance"][0], "")
+        self.assertEqual(
+            rules_transaction_amount["review_guidance"][0],
+            "Supporting evidence for changed holdings.market_value.",
+        )
         self.assertEqual(
             rules_transaction_quantity["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
@@ -687,7 +692,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             transaction_amount["review_guidance"][0],
         )
         self.assertIn(
-            "Review source inputs needed by the configured YAML method",
+            "Review inputs needed by the configured YAML method",
             transaction_amount["review_note"][0],
         )
 
@@ -1053,19 +1058,22 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(
                 [
                     underlying_causes_sheet.cell(row=1, column=column).value
-                    for column in range(1, 12)
+                    for column in range(1, 15)
                 ],
                 [
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Dataset",
-                    "Source Column",
+                    "Input Role",
+                    "As Of Date",
+                    "Input Dataset",
+                    "Input Field",
                     "Security",
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
                     "Performance Difference Explained",
+                    "Related Performance Difference",
                     "Review Guidance",
                 ],
             )
@@ -1073,24 +1081,24 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             numeric_source_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"G{row}"].value, (int, float))
-                and isinstance(underlying_causes_sheet[f"H{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"I{row}"].value, (int, float))
+                and isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
             )
             self.assertEqual(
-                underlying_causes_sheet[f"G{numeric_source_row}"].number_format,
+                underlying_causes_sheet[f"I{numeric_source_row}"].number_format,
                 "0.000000",
             )
             self.assertEqual(
-                underlying_causes_sheet[f"H{numeric_source_row}"].number_format,
+                underlying_causes_sheet[f"J{numeric_source_row}"].number_format,
                 "0.000000",
             )
             numeric_explained_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"L{row}"].value, (int, float))
             )
             self.assertEqual(
-                underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
+                underlying_causes_sheet[f"L{numeric_explained_row}"].number_format,
                 "0.000000",
             )
             portfolios = {
@@ -1099,7 +1107,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             }
             self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
             required_setup = [
-                underlying_causes_sheet[f"K{row}"].value
+                underlying_causes_sheet[f"N{row}"].value
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
             self.assertTrue(any(setup in (None, "") for setup in required_setup))
@@ -1112,7 +1120,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 [
-                    underlying_causes_sheet[f"L{row}"].value
+                    underlying_causes_sheet[f"O{row}"].value
                     for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",
@@ -1126,8 +1134,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Dataset",
-                    "Source Column",
+                    "Input Dataset",
+                    "Input Field",
                     "Security",
                     "Snapshot A Value",
                     "Snapshot B Value",
@@ -1151,8 +1159,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Dataset",
-                    "Source Column",
+                    "Input Dataset",
+                    "Input Field",
                     "Security",
                 ],
             )

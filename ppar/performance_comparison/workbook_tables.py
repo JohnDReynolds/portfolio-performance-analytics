@@ -42,13 +42,21 @@ _USE = "use"
 _USE_PRIORITY = "_use_priority"
 _CHANGE_LABEL = "change_label"
 _CHANGE = "change"
+_INPUT_ROLE = "input_role"
+_AS_OF_DATE = "as_of_date"
 _ESTIMATED_IMPACT = "estimated_impact"
+_RELATED_PERFORMANCE_DIFFERENCE = "related_performance_difference"
 _IMPACT_STATUS = "impact_status"
 _REVIEW_NOTE = "review_note"
 _REVIEW_GUIDANCE = "review_guidance"
 _USE_EXPLAINS_CHANGE = "Explains Change"
 _USE_REVIEW_CONTEXT = "Review Context"
 _USE_DIAGNOSTIC = "Diagnostic"
+_INPUT_ROLE_PERFORMANCE_INPUT = "Performance Input"
+_INPUT_ROLE_INPUT_DRIVER = "Input Driver"
+_INPUT_ROLE_SUPPORTING_EVIDENCE = "Supporting Evidence"
+_INPUT_ROLE_CONTEXT = "Context"
+_INPUT_ROLE_DIAGNOSTIC = "Diagnostic"
 _IMPACT_STATUS_ESTIMATED = "Estimated"
 _IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
 _IMPACT_STATUS_MISSING_INPUT = "Missing impact input"
@@ -68,6 +76,7 @@ _REVIEW_PRIORITY = "review_priority"
 _REVIEW_PRIORITY_REASON = "review_priority_reason"
 _RETURN_IMPACT_TREATMENT = "return_impact_treatment"
 _WORKBOOK_UNSELECTED_RELATED_ESTIMATE = "_workbook_unselected_related_estimate"
+_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION = "_workbook_non_additive_portfolio_transaction"
 _WORKBOOK_UNEXPLAINED_TOLERANCE = 0.00000001
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
@@ -690,6 +699,7 @@ def _workbook_underlying_causes_table(
         else:
             continue
         rows.append(workbook_row)
+    _workbook_fill_related_performance_differences(rows, comparison_level=comparison_level)
     rows.extend(
         _workbook_missing_underlying_cause_rows(
             findings,
@@ -703,6 +713,34 @@ def _workbook_underlying_causes_table(
         pl.DataFrame(rows),
         _workbook_left_review_sort_columns(),
     )
+
+
+def _workbook_fill_related_performance_differences(
+    rows: list[dict[str, object]],
+    *,
+    comparison_level: str,
+) -> None:
+    """Copy related differences from input-driver rows to their evidence rows."""
+    related_by_family: dict[tuple[object, ...], float] = {}
+    for row in rows:
+        related_difference = _number_or_none(row.get(_RELATED_PERFORMANCE_DIFFERENCE))
+        if related_difference is None:
+            continue
+        related_by_family[_workbook_cause_family_key(row, comparison_level)] = (
+            related_difference
+        )
+
+    for row in rows:
+        if _number_or_none(row.get(_ESTIMATED_IMPACT)) is not None:
+            row[_RELATED_PERFORMANCE_DIFFERENCE] = None
+            continue
+        if _number_or_none(row.get(_RELATED_PERFORMANCE_DIFFERENCE)) is not None:
+            continue
+        related_difference = related_by_family.get(
+            _workbook_cause_family_key(row, comparison_level)
+        )
+        if related_difference is not None:
+            row[_RELATED_PERFORMANCE_DIFFERENCE] = related_difference
 
 
 def _workbook_missing_underlying_cause_rows(
@@ -1011,8 +1049,17 @@ def _workbook_selected_impact_row(
 ) -> dict[str, object]:
     """Return row with unselected candidate estimates cleared for the workbook."""
     row_dict = dict(row)
-    if _number_or_none(row_dict.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
+    estimated_impact = _number_or_none(row_dict.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
+    if estimated_impact is None:
         return row_dict
+
+    if (
+        comparison_level == PORTFOLIO_COMPARISON_LEVEL
+        and row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
+    ):
+        row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
+        row_dict[_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION] = True
+        return _workbook_non_additive_row(row_dict)
 
     key = (
         *_workbook_cause_family_key(row_dict, comparison_level),
@@ -1021,6 +1068,7 @@ def _workbook_selected_impact_row(
     if key in selected_impact_bases:
         return row_dict
 
+    row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
     row_dict[_pc_explain.ESTIMATED_RETURN_IMPACT] = None
     row_dict[_pc_explain.IMPACT_BASIS] = _pc_explain.IMPACT_BASIS_NO_ESTIMATE
     row_dict[_pc_explain.IMPACT_METHOD] = None
@@ -1087,10 +1135,17 @@ def _workbook_changed_item_row(
     estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
     row_use = _workbook_row_use(row)
     impact_status = _workbook_impact_status(row, estimated_impact)
+    related_performance_difference = None
+    if estimated_impact is None:
+        related_performance_difference = _number_or_none(
+            row.get(_RELATED_PERFORMANCE_DIFFERENCE)
+        )
     return {
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
+        _INPUT_ROLE: _workbook_input_role(row, estimated_impact),
+        _AS_OF_DATE: _workbook_as_of_date(row),
         _USE: row_use,
         _CHANGE_LABEL: _workbook_change_label(row),
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
@@ -1099,6 +1154,7 @@ def _workbook_changed_item_row(
         _CHANGE: row.get(_pc_findings.DELTA_B_MINUS_A),
         _pc_findings.IMPACT_INPUT_VALUE: row.get(_pc_findings.IMPACT_INPUT_VALUE),
         _ESTIMATED_IMPACT: estimated_impact,
+        _RELATED_PERFORMANCE_DIFFERENCE: related_performance_difference,
         _IMPACT_STATUS: impact_status,
         _REVIEW_NOTE: _workbook_review_note(row, estimated_impact, row_use, impact_status),
         _REVIEW_GUIDANCE: _workbook_review_guidance(
@@ -1113,6 +1169,43 @@ def _workbook_changed_item_row(
         _USE_PRIORITY: _workbook_use_priority(row_use),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
+
+
+def _workbook_input_role(
+    row: Mapping[str, object],
+    estimated_impact: float | None,
+) -> str:
+    """Return the reviewer-facing role for one changed input row."""
+    dataset = row.get(_pc_findings.DATASET)
+    source_column = row.get(_pc_findings.SOURCE_COLUMN)
+    if dataset == _NO_UNDERLYING_CAUSE_DATASET:
+        return _INPUT_ROLE_DIAGNOSTIC
+    if estimated_impact is not None:
+        return _INPUT_ROLE_PERFORMANCE_INPUT
+    if dataset == pc_cols.TRANSACTIONS and source_column in {
+        pc_cols.COMMISSION,
+        pc_cols.PRICE,
+        pc_cols.QUANTITY,
+    }:
+        return _INPUT_ROLE_SUPPORTING_EVIDENCE
+    if (
+        _field_roles.is_input_component(dataset, source_column)
+        or _field_roles.is_performance_input(dataset, source_column)
+    ):
+        return _INPUT_ROLE_INPUT_DRIVER
+    if _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC:
+        return _INPUT_ROLE_DIAGNOSTIC
+    return _INPUT_ROLE_CONTEXT
+
+
+def _workbook_as_of_date(row: Mapping[str, object]) -> object | None:
+    """Return the date represented by a workbook evidence row."""
+    dataset = row.get(_pc_findings.DATASET)
+    if dataset in {pc_cols.HOLDINGS, pc_cols.PRICES, pc_cols.FX_RATES, pc_cols.CASH}:
+        return row.get(_pc_findings.THRU_DATE)
+    if dataset == pc_cols.TRANSACTIONS:
+        return None
+    return row.get(_pc_findings.THRU_DATE)
 
 
 def _workbook_change_label(row: Mapping[str, object]) -> str:
@@ -1152,8 +1245,8 @@ def _workbook_impact_status(
         return _IMPACT_STATUS_ESTIMATED
     if (
         row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE)
-        or
-        _workbook_is_context_row(row)
+        or row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION)
+        or _workbook_is_context_row(row)
         or _workbook_is_reported_diagnostic_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
         or _workbook_has_evidence_only_policy(row)
@@ -1183,11 +1276,16 @@ def _workbook_review_note(
         )
     if _workbook_has_evidence_only_policy(row):
         return "Review this input difference; it is not included in explained difference."
+    if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
+        return (
+            "Supporting evidence for changed holdings; portfolio impact is shown "
+            "on holding rows."
+        )
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
         return "Review this input component; a related performance input is selected."
     if impact_status == _IMPACT_STATUS_MISSING_INPUT:
         return (
-            "Review source inputs needed by the configured YAML method; no "
+            "Review inputs needed by the configured YAML method; no "
             "estimate is available for this row."
         )
     if impact_status == _IMPACT_STATUS_MISSING_METHOD:
@@ -1226,6 +1324,8 @@ def _workbook_review_guidance(
         and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
     ):
         return "Supporting evidence for the changed transaction amount."
+    if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
+        return "Supporting evidence for changed holdings.market_value."
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
         return "Supporting evidence for the related performance input."
     if _workbook_has_evidence_only_policy(row):
@@ -1360,16 +1460,16 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
         return (
             "Configured price impact method is present, but this row still cannot "
             "be estimated. Review snapshot A price, snapshot A weight, and price "
-            "source values."
+            "input values."
         )
     if dataset == pc_cols.CASH:
         return (
             "Configured cash impact method is present, but this row still cannot "
-            "be estimated. Review return denominator and cash source values."
+            "be estimated. Review return denominator and cash input values."
         )
     return (
         "Configured YAML impact method is present, but this row still cannot be "
-        "estimated. Review the source inputs required by that method."
+        "estimated. Review the inputs required by that method."
     )
 
 
@@ -1413,6 +1513,8 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _pc_findings.PORTFOLIO_ID: pl.String,
             _pc_findings.FROM_DATE: pl.Date,
             _pc_findings.THRU_DATE: pl.Date,
+            _INPUT_ROLE: pl.String,
+            _AS_OF_DATE: pl.Date,
             _USE: pl.String,
             _CHANGE_LABEL: pl.String,
             _pc_findings.SECURITY_ID: pl.String,
@@ -1421,6 +1523,7 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _CHANGE: pl.Float64,
             _pc_findings.IMPACT_INPUT_VALUE: pl.Float64,
             _ESTIMATED_IMPACT: pl.Float64,
+            _RELATED_PERFORMANCE_DIFFERENCE: pl.Float64,
             _IMPACT_STATUS: pl.String,
             _REVIEW_NOTE: pl.String,
             _REVIEW_GUIDANCE: pl.String,
@@ -1471,6 +1574,8 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
         _pc_findings.THRU_DATE,
+        _INPUT_ROLE,
+        _AS_OF_DATE,
         _pc_findings.DATASET,
         _pc_findings.SOURCE_COLUMN,
         _pc_findings.SECURITY_ID,
@@ -1478,6 +1583,7 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _pc_findings.SNAPSHOT_B_VALUE,
         _CHANGE,
         _ESTIMATED_IMPACT,
+        _RELATED_PERFORMANCE_DIFFERENCE,
         _REVIEW_GUIDANCE,
         _REVIEW_KEY,
     )
@@ -1538,10 +1644,13 @@ def _workbook_column_labels() -> dict[str, str]:
         _PERFORMANCE_CHANGE: "Performance Difference",
         _ESTIMATED_CAUSE_TOTAL: "Explained Difference",
         _UNEXPLAINED_CHANGE: "Unexplained Difference",
+        _INPUT_ROLE: "Input Role",
+        _AS_OF_DATE: "As Of Date",
         _USE: "Purpose",
         _CHANGE_LABEL: "What Changed",
         _CHANGE: "B - A Difference",
         _ESTIMATED_IMPACT: "Performance Difference Explained",
+        _RELATED_PERFORMANCE_DIFFERENCE: "Related Performance Difference",
         _IMPACT_STATUS: "Impact Status",
         _REVIEW_NOTE: "Review Guidance",
         _REVIEW_GUIDANCE: "Review Guidance",
@@ -1555,8 +1664,8 @@ def _workbook_column_labels() -> dict[str, str]:
         _REVIEW_PRIORITY_REASON: "Review Priority Reason",
         _RETURN_IMPACT_TREATMENT: "Return Impact Treatment",
         _pc_findings.FINDING_CODE: "Code",
-        _pc_findings.DATASET: "Dataset",
-        _pc_findings.SOURCE_COLUMN: "Source Column",
+        _pc_findings.DATASET: "Input Dataset",
+        _pc_findings.SOURCE_COLUMN: "Input Field",
         _pc_findings.MESSAGE: "Message",
         _pc_findings.SEVERITY: "Severity",
         _pc_findings.CONFIDENCE: "Confidence",
@@ -1606,9 +1715,20 @@ def workbook_column_tooltip(column: str) -> str:
         _USE: "Workbook row category used for sorting and compatibility.",
         _CHANGE_LABEL: "Plain-English changed data item.",
         _CHANGE: "Snapshot B value minus snapshot A value for the compared item.",
+        _INPUT_ROLE: (
+            "Whether the row is an additive performance input, an input driver, "
+            "supporting evidence, context, or diagnostic row."
+        ),
+        _AS_OF_DATE: (
+            "Date represented by the input row. Holding rows use the period Thru Date."
+        ),
         _ESTIMATED_IMPACT: (
             "Decimal portfolio performance difference explained by this underlying "
             "input row."
+        ),
+        _RELATED_PERFORMANCE_DIFFERENCE: (
+            "Performance difference related to this non-additive evidence row. "
+            "This value is for review only and is not included in totals."
         ),
         _IMPACT_STATUS: (
             "Whether this row has an additive estimate, is missing an impact method, "
@@ -1632,7 +1752,7 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_explain.REVIEW_RANK: "Priority rank within the portfolio period.",
         _pc_findings.FINDING_CODE: "Stable finding code for the discrepancy type.",
         _pc_findings.CONFIDENCE: "Confidence level for the finding or impact interpretation.",
-        _pc_findings.DATASET: "Normalized source dataset where the discrepancy was found.",
+        _pc_findings.DATASET: "Normalized input dataset where the discrepancy was found.",
         _pc_findings.EVIDENCE_ROLE: (
             "Whether the finding is target output, direct input, related output, or context."
         ),

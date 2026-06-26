@@ -29,9 +29,17 @@ _COMMON_LEFT_HEADERS = [
     "Portfolio",
     "From Date",
     "Thru Date",
-    "Dataset",
-    "Source Column",
+    "Input Dataset",
+    "Input Field",
     "Security",
+]
+_IDENTIFIABLE_LEFT_HEADERS = [
+    "Portfolio",
+    "From Date",
+    "Thru Date",
+    "Input Role",
+    "As Of Date",
+    *_COMMON_LEFT_HEADERS[3:],
 ]
 _NON_ADDITIVE_HEADERS = [
     *_COMMON_LEFT_HEADERS,
@@ -104,13 +112,14 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Identifiable Causes"])[:12],
+                    _header_values(workbook["Identifiable Causes"])[:15],
                     [
-                        *_COMMON_LEFT_HEADERS,
+                        *_IDENTIFIABLE_LEFT_HEADERS,
                         "Snapshot A Value",
                         "Snapshot B Value",
                         "B - A Difference",
                         "Performance Difference Explained",
+                        "Related Performance Difference",
                         "Review Guidance",
                         "Review Key",
                     ],
@@ -144,7 +153,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(len(portfolio_rows), 7)
                 self.assertEqual(
                     sum(1 for row in portfolio_rows if row[6] == "Fully Explained"),
-                    5,
+                    4,
                 )
                 self.assertTrue(
                     all(
@@ -162,16 +171,17 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertTrue(
                     all(
-                        row[10] in (None, "")
-                        or "No additive underlying cause" in str(row[10])
-                        or "shown for review" in str(row[10])
-                        or "not included in explained difference" in str(row[10])
-                        or "related performance input" in str(row[10])
-                        or "changed transaction amount" in str(row[10])
+                        row[13] in (None, "")
+                        or "No additive underlying cause" in str(row[13])
+                        or "shown for review" in str(row[13])
+                        or "not included in explained difference" in str(row[13])
+                        or "related performance input" in str(row[13])
+                        or "changed transaction amount" in str(row[13])
+                        or "changed holdings.market_value" in str(row[13])
                         for row in underlying_rows
                     )
                 )
-                underlying_fields = {(row[3], row[4]) for row in underlying_rows}
+                underlying_fields = {(row[5], row[6]) for row in underlying_rows}
                 self.assertTrue(
                     {
                         ("holdings", "market_value"),
@@ -256,7 +266,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("holdings", "market_value", "TNOTE2Y"),
                         ("holdings", "quantity", "TNOTE2Y"),
                     }.issubset(
-                        {(row[3], row[4], row[5]) for row in underlying_rows}
+                        {(row[5], row[6], row[7]) for row in underlying_rows}
                     )
                 )
             finally:
