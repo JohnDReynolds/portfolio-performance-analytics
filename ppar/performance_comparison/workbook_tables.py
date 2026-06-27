@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 # Third-party imports
@@ -18,6 +18,7 @@ from ppar.performance_comparison import findings as _pc_findings
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import review_model as _pc_review_model
+from ppar.performance_comparison import return_reconstruction as _pc_reconstruction
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
@@ -85,6 +86,39 @@ _WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION = "_workbook_non_additive_portfolio
 _WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING = (
     "_workbook_transaction_flow_supports_holding"
 )
+_RECONSTRUCTION_FORMULA_FINDING_CODE = "reconstruction_formula_input"
+_RECONSTRUCTION_BEGINNING_VALUE_FIELD = "beginning_market_value"
+_RECONSTRUCTION_ENDING_VALUE_FIELD = "ending_market_value"
+_RECONSTRUCTION_NET_FLOW_FIELD = "net_flow"
+_RECONSTRUCTION_WEIGHTED_FLOW_FIELD = "weighted_flow"
+_RECONSTRUCTION_INCOME_FIELD = "income"
+_RECONSTRUCTION_ROLE_METADATA = {
+    _RECONSTRUCTION_BEGINNING_VALUE_FIELD: (
+        pc_cols.HOLDINGS,
+        _RECONSTRUCTION_BEGINNING_VALUE_FIELD,
+        "Beginning holdings market value",
+    ),
+    _RECONSTRUCTION_ENDING_VALUE_FIELD: (
+        pc_cols.HOLDINGS,
+        _RECONSTRUCTION_ENDING_VALUE_FIELD,
+        "Ending holdings market value",
+    ),
+    _RECONSTRUCTION_NET_FLOW_FIELD: (
+        pc_cols.TRANSACTIONS,
+        _RECONSTRUCTION_NET_FLOW_FIELD,
+        "Transaction net flow",
+    ),
+    _RECONSTRUCTION_WEIGHTED_FLOW_FIELD: (
+        pc_cols.TRANSACTIONS,
+        _RECONSTRUCTION_WEIGHTED_FLOW_FIELD,
+        "Transaction weighted flow",
+    ),
+    _RECONSTRUCTION_INCOME_FIELD: (
+        pc_cols.TRANSACTIONS,
+        _RECONSTRUCTION_INCOME_FIELD,
+        "Transaction income",
+    ),
+}
 _WORKBOOK_UNEXPLAINED_TOLERANCE = 0.0000005
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
@@ -109,6 +143,7 @@ def write_performance_comparison_review_workbook(
     top_evidence_limit: int = 10,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -122,6 +157,9 @@ def write_performance_comparison_review_workbook(
             the ``Identifiable Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for the workbook.
+        include_reconstruction_diagnostics: Whether to include interim
+            reconstruction diagnostic sheets in addition to the primary review
+            sheets.
 
     Returns:
         Normalized workbook path.
@@ -141,6 +179,7 @@ def write_performance_comparison_review_workbook(
             findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         ),
         output_path,
         column_tooltip=workbook_column_tooltip,
@@ -152,6 +191,7 @@ def performance_comparison_review_workbook_sheets(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return review workbook sheet specifications in reviewer-first order.
 
@@ -162,6 +202,8 @@ def performance_comparison_review_workbook_sheets(
             the ``Identifiable Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for the workbook.
+        include_reconstruction_diagnostics: Whether to include interim
+            reconstruction diagnostic sheets.
 
     Returns:
         Ordered sheet specifications used by both the XLSX workbook and the
@@ -169,12 +211,28 @@ def performance_comparison_review_workbook_sheets(
     """
     active_findings = _active_findings(findings)
     primary_sheet = (
-        _security_differences_sheet(active_findings)
+        _security_differences_sheet(
+            active_findings,
+            comparison_path=comparison_path,
+        )
         if comparison_level == SECURITY_COMPARISON_LEVEL
-        else _portfolio_differences_sheet(active_findings)
+        else _portfolio_differences_sheet(
+            active_findings,
+            comparison_path=comparison_path,
+        )
+    )
+    diagnostic_sheets = (
+        (
+            *_return_reconstruction_summary_sheets(comparison_path),
+            *_return_reconstruction_sheets(comparison_path),
+            *_security_return_reconstruction_sheets(comparison_path),
+        )
+        if include_reconstruction_diagnostics
+        else ()
     )
     return (
         primary_sheet,
+        *diagnostic_sheets,
         *_shared_detail_sheets(
             findings,
             active_findings,
@@ -184,8 +242,70 @@ def performance_comparison_review_workbook_sheets(
     )
 
 
+def _return_reconstruction_summary_sheets(
+    comparison_path: util.PathLike | None,
+) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
+    """Return optional return-reconstruction diagnostic summary sheets."""
+    summary = _pc_reconstruction.return_reconstruction_summary(comparison_path)
+    if summary.is_empty():
+        return ()
+    return (
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=_pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT,
+            sheet_name=_pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
+            table=summary,
+            columns=_workbook_return_reconstruction_summary_columns(),
+            labels=_workbook_column_labels(),
+        ),
+    )
+
+
+def _return_reconstruction_sheets(
+    comparison_path: util.PathLike | None,
+) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
+    """Return optional portfolio return-reconstruction diagnostic sheets."""
+    reconstruction_checks = (
+        _pc_reconstruction.portfolio_return_reconstruction_checks(comparison_path)
+    )
+    if reconstruction_checks.is_empty():
+        return ()
+    return (
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+            sheet_name=_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
+            table=reconstruction_checks,
+            columns=_workbook_return_reconstruction_columns(),
+            labels=_workbook_column_labels(),
+        ),
+    )
+
+
+def _security_return_reconstruction_sheets(
+    comparison_path: util.PathLike | None,
+) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
+    """Return optional security return-reconstruction diagnostic sheets."""
+    reconstruction_checks = (
+        _pc_reconstruction.security_return_reconstruction_checks(comparison_path)
+    )
+    if reconstruction_checks.is_empty():
+        return ()
+    return (
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=(
+                _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT
+            ),
+            sheet_name=_pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
+            table=reconstruction_checks,
+            columns=_workbook_security_return_reconstruction_columns(),
+            labels=_workbook_column_labels(),
+        ),
+    )
+
+
 def _portfolio_differences_sheet(
     active_findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the portfolio-level performance differences sheet."""
     labels = _workbook_column_labels()
@@ -193,7 +313,10 @@ def _portfolio_differences_sheet(
     return _pc_workbook.ReviewWorkbookSheet(
         artifact_name=_pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
         sheet_name=_pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
-        table=_workbook_portfolio_changes_table(active_findings),
+        table=_workbook_portfolio_changes_table(
+            active_findings,
+            comparison_path=comparison_path,
+        ),
         columns=_workbook_portfolio_changes_columns(),
         labels=labels,
     )
@@ -201,6 +324,8 @@ def _portfolio_differences_sheet(
 
 def _security_differences_sheet(
     active_findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the security-level performance differences sheet."""
     labels = _workbook_column_labels()
@@ -210,6 +335,7 @@ def _security_differences_sheet(
         sheet_name=_pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
         table=_workbook_security_changes_table(
             active_findings,
+            comparison_path=comparison_path,
             comparison_level=SECURITY_COMPARISON_LEVEL,
         ),
         columns=_workbook_security_changes_columns(),
@@ -242,6 +368,7 @@ def _shared_detail_sheets(
             sheet_name=_pc_review_model.OTHER_EVIDENCE_SHEET,
             table=_workbook_context_table(
                 active_findings,
+                comparison_path=comparison_path,
                 comparison_level=comparison_level,
             ),
             columns=_workbook_non_additive_change_columns(),
@@ -261,14 +388,21 @@ def _shared_detail_sheets(
     return tuple(detail_sheets)
 
 
-def _workbook_portfolio_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
+def _workbook_portfolio_changes_table(
+    findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None = None,
+) -> pl.DataFrame:
     """Return one workbook row per changed portfolio period."""
     coverage = _with_period_review_key(
         _pc_explain.portfolio_period_impact_coverage_summary(findings)
     )
     if coverage.is_empty():
         return _workbook_empty_portfolio_changes_table()
-    underlying_totals = _workbook_underlying_impact_totals(findings)
+    underlying_totals = _workbook_underlying_impact_totals(
+        findings,
+        comparison_path=comparison_path,
+    )
     rows = [
         _workbook_performance_change_row(
             {
@@ -289,14 +423,30 @@ def _workbook_portfolio_changes_table(findings: pl.DataFrame) -> pl.DataFrame:
 
 def _workbook_underlying_impact_totals(
     findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None = None,
 ) -> dict[tuple[object, object, object], float]:
     """Return explained difference totals from underlying input rows."""
     totals: dict[tuple[object, object, object], float] = {}
+    active_keys = _workbook_active_portfolio_period_keys(findings)
+    formula_rows = _workbook_portfolio_reconstruction_formula_rows(
+        comparison_path,
+        active_keys=active_keys,
+    )
+    formula_keys = {_workbook_period_key(row) for row in formula_rows}
+    for row in formula_rows:
+        key = _workbook_period_key(row)
+        estimated_impact = _number_or_none(row.get(_ESTIMATED_IMPACT))
+        if estimated_impact is not None:
+            totals[key] = totals.get(key, 0.0) + estimated_impact
+
     for row, estimated_impact in _workbook_selected_underlying_impact_rows(
         findings,
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
     ):
         key = _workbook_period_key(row)
+        if key in formula_keys:
+            continue
         totals[key] = totals.get(key, 0.0) + estimated_impact
     return totals
 
@@ -488,12 +638,14 @@ def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
 def _workbook_security_changes_table(
     findings: pl.DataFrame,
     *,
+    comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> pl.DataFrame:
     """Return one workbook row per changed security period."""
     summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
     security_totals = _workbook_security_underlying_impact_totals(
         findings,
+        comparison_path=comparison_path,
         comparison_level=comparison_level,
     )
     rows: list[dict[str, object]] = []
@@ -522,10 +674,23 @@ def _workbook_security_changes_table(
 def _workbook_security_underlying_impact_totals(
     findings: pl.DataFrame,
     *,
+    comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> dict[tuple[object, object, object, object], float]:
     """Return security-level explained totals from underlying input rows."""
     totals: dict[tuple[object, object, object, object], float] = {}
+    active_keys = _workbook_active_security_period_keys(findings)
+    formula_rows = _workbook_security_reconstruction_formula_rows(
+        comparison_path,
+        active_keys=active_keys,
+    )
+    formula_keys = {_workbook_security_period_key(row) for row in formula_rows}
+    for row in formula_rows:
+        key = _workbook_security_period_key(row)
+        estimated_impact = _number_or_none(row.get(_ESTIMATED_IMPACT))
+        if estimated_impact is not None:
+            totals[key] = totals.get(key, 0.0) + estimated_impact
+
     for row, estimated_impact in _workbook_selected_underlying_impact_rows(
         findings,
         comparison_level=comparison_level,
@@ -533,8 +698,381 @@ def _workbook_security_underlying_impact_totals(
         if not _has_text(row.get(_pc_findings.SECURITY_ID)):
             continue
         key = _workbook_security_period_key(row)
+        if key in formula_keys:
+            continue
         totals[key] = totals.get(key, 0.0) + estimated_impact
     return totals
+
+
+def _workbook_portfolio_reconstruction_formula_rows(
+    comparison_path: util.PathLike | None,
+    *,
+    active_keys: set[tuple[object, object, object]] | None = None,
+) -> list[dict[str, object]]:
+    """Return portfolio reconstruction formula rows for Identifiable Causes.
+
+    Notes:
+        This pilot promotes exact formula-level effects only. The detailed
+        ``Return Reconstruction Checks`` sheet remains the source for the
+        underlying beginning value, ending value, flow, income, and denominator
+        inputs.
+    """
+    checks = _pc_reconstruction.portfolio_return_reconstruction_checks(comparison_path)
+    if checks.is_empty():
+        return []
+
+    rows: list[dict[str, object]] = []
+    for row in checks.iter_rows(named=True):
+        if (
+            row.get(_pc_reconstruction.RECONSTRUCTION_CATEGORY)
+            != _pc_reconstruction.RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED
+        ):
+            continue
+        if active_keys is not None and _workbook_period_key(row) not in active_keys:
+            continue
+        rows.extend(
+            _workbook_reconstruction_formula_rows_for_check(
+                row,
+                row_factory=_workbook_portfolio_reconstruction_formula_row,
+            )
+        )
+    return rows
+
+
+def _workbook_security_reconstruction_formula_rows(
+    comparison_path: util.PathLike | None,
+    *,
+    active_keys: set[tuple[object, object, object, object]] | None = None,
+) -> list[dict[str, object]]:
+    """Return security reconstruction formula rows for Identifiable Causes.
+
+    Notes:
+        This pilot promotes exact formula-level effects only. The detailed
+        ``Security Return Checks`` sheet remains the source for the underlying
+        beginning value, ending value, flow, and income components.
+    """
+    checks = _pc_reconstruction.security_return_reconstruction_checks(comparison_path)
+    if checks.is_empty():
+        return []
+
+    rows: list[dict[str, object]] = []
+    for row in checks.iter_rows(named=True):
+        if (
+            row.get(_pc_reconstruction.RECONSTRUCTION_CATEGORY)
+            != _pc_reconstruction.RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED
+        ):
+            continue
+        if (
+            active_keys is not None
+            and _workbook_security_period_key(row) not in active_keys
+        ):
+            continue
+        rows.extend(
+            _workbook_reconstruction_formula_rows_for_check(
+                row,
+                row_factory=_workbook_security_reconstruction_formula_row,
+            )
+        )
+    return rows
+
+
+def _workbook_active_portfolio_period_keys(
+    findings: pl.DataFrame,
+) -> set[tuple[object, object, object]]:
+    """Return portfolio-period keys with reported portfolio performance differences."""
+    summary = _with_period_review_key(
+        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+    )
+    return {
+        _workbook_period_key(row)
+        for row in summary.iter_rows(named=True)
+    }
+
+
+def _workbook_active_security_period_keys(
+    findings: pl.DataFrame,
+) -> set[tuple[object, object, object, object]]:
+    """Return security-period keys with reported security performance differences."""
+    summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
+    return {
+        _workbook_security_period_key(row)
+        for row in summary.iter_rows(named=True)
+    }
+
+
+def _workbook_reconstruction_formula_rows_for_check(
+    source_row: Mapping[str, object],
+    *,
+    row_factory: Callable[..., dict[str, object]],
+) -> list[dict[str, object]]:
+    numerator_b = _number_or_none(
+        source_row.get(_pc_reconstruction.DERIVED_NUMERATOR_B)
+    )
+    denominator_a = _number_or_none(
+        source_row.get(_pc_reconstruction.DERIVED_DENOMINATOR_A)
+    )
+    denominator_b = _number_or_none(
+        source_row.get(_pc_reconstruction.DERIVED_DENOMINATOR_B)
+    )
+    if (
+        numerator_b is None
+        or denominator_a is None
+        or denominator_b is None
+        or denominator_a == 0.0
+        or denominator_b == 0.0
+    ):
+        return []
+
+    denominator_effect = numerator_b * (
+        (1.0 / denominator_b) - (1.0 / denominator_a)
+    )
+    beginning_denominator_effect, weighted_flow_denominator_effect = (
+        _workbook_denominator_component_effects(source_row, denominator_effect)
+    )
+    beginning_value_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.BEGIN_VALUE_DIFFERENCE)
+    )
+    ending_value_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.END_VALUE_DIFFERENCE)
+    )
+    net_flow_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.NET_FLOW_DIFFERENCE)
+    )
+    income_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.INCOME_DIFFERENCE)
+    )
+    rows = [
+        row_factory(
+            source_row,
+            field=_RECONSTRUCTION_BEGINNING_VALUE_FIELD,
+            snapshot_a_value=source_row.get(_pc_reconstruction.BEGIN_VALUE_A),
+            snapshot_b_value=source_row.get(_pc_reconstruction.BEGIN_VALUE_B),
+            difference=beginning_value_difference,
+            estimated_impact=(
+                _workbook_component_impact(
+                    _workbook_negated_difference(beginning_value_difference),
+                    denominator_a,
+                )
+                + beginning_denominator_effect
+            ),
+            guidance_role="beginning value",
+            as_of_date=source_row.get(_pc_reconstruction.BEGIN_VALUE_DATE_B),
+        ),
+        row_factory(
+            source_row,
+            field=_RECONSTRUCTION_ENDING_VALUE_FIELD,
+            snapshot_a_value=source_row.get(_pc_reconstruction.END_VALUE_A),
+            snapshot_b_value=source_row.get(_pc_reconstruction.END_VALUE_B),
+            difference=ending_value_difference,
+            estimated_impact=_workbook_component_impact(
+                ending_value_difference,
+                denominator_a,
+            ),
+            guidance_role="ending value",
+            as_of_date=source_row.get(_pc_reconstruction.END_VALUE_DATE_B),
+        ),
+        row_factory(
+            source_row,
+            field=_RECONSTRUCTION_NET_FLOW_FIELD,
+            snapshot_a_value=source_row.get(_pc_reconstruction.NET_FLOW_A),
+            snapshot_b_value=source_row.get(_pc_reconstruction.NET_FLOW_B),
+            difference=net_flow_difference,
+            estimated_impact=_workbook_component_impact(
+                -net_flow_difference if net_flow_difference is not None else None,
+                denominator_a,
+            ),
+            guidance_role="net flow",
+            as_of_date=source_row.get(_pc_reconstruction.RECONSTRUCTION_THRU_DATE),
+        ),
+        row_factory(
+            source_row,
+            field=_RECONSTRUCTION_WEIGHTED_FLOW_FIELD,
+            snapshot_a_value=source_row.get(_pc_reconstruction.WEIGHTED_FLOW_A),
+            snapshot_b_value=source_row.get(_pc_reconstruction.WEIGHTED_FLOW_B),
+            difference=source_row.get(_pc_reconstruction.WEIGHTED_FLOW_DIFFERENCE),
+            estimated_impact=weighted_flow_denominator_effect,
+            guidance_role="weighted flow",
+            as_of_date=source_row.get(_pc_reconstruction.RECONSTRUCTION_THRU_DATE),
+        ),
+    ]
+    if income_difference is not None:
+        rows.append(
+            row_factory(
+                source_row,
+                field=_RECONSTRUCTION_INCOME_FIELD,
+                snapshot_a_value=source_row.get(_pc_reconstruction.INCOME_A),
+                snapshot_b_value=source_row.get(_pc_reconstruction.INCOME_B),
+                difference=income_difference,
+                estimated_impact=_workbook_component_impact(
+                    income_difference,
+                    denominator_a,
+                ),
+                guidance_role="income",
+                as_of_date=source_row.get(_pc_reconstruction.RECONSTRUCTION_THRU_DATE),
+            )
+        )
+    return _workbook_nonzero_formula_rows(rows)
+
+
+def _workbook_denominator_component_effects(
+    source_row: Mapping[str, object],
+    denominator_effect: float,
+) -> tuple[float, float]:
+    """Return denominator effect allocated to beginning value and weighted flow."""
+    beginning_value_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.BEGIN_VALUE_DIFFERENCE)
+    ) or 0.0
+    weighted_flow_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.WEIGHTED_FLOW_DIFFERENCE)
+    ) or 0.0
+    denominator_difference = _number_or_none(
+        source_row.get(_pc_reconstruction.DERIVED_DENOMINATOR_DIFFERENCE)
+    )
+    if denominator_difference is None or abs(denominator_difference) <= 0.0000005:
+        return 0.0, 0.0
+    return (
+        denominator_effect * (beginning_value_difference / denominator_difference),
+        denominator_effect * (weighted_flow_difference / denominator_difference),
+    )
+
+
+def _workbook_component_impact(
+    component_difference: float | None,
+    denominator_a: float,
+) -> float:
+    """Return return impact for a numerator component difference."""
+    if component_difference is None:
+        return 0.0
+    return component_difference / denominator_a
+
+
+def _workbook_negated_difference(component_difference: float | None) -> float | None:
+    """Return the opposite sign for a formula component difference."""
+    if component_difference is None:
+        return None
+    return -component_difference
+
+
+def _workbook_nonzero_formula_rows(
+    rows: Sequence[dict[str, object]],
+) -> list[dict[str, object]]:
+    """Return formula rows with meaningful value or impact differences."""
+    nonzero_rows: list[dict[str, object]] = []
+    for row in rows:
+        change = _number_or_none(row.get(_CHANGE)) or 0.0
+        estimated_impact = _number_or_none(row.get(_ESTIMATED_IMPACT)) or 0.0
+        if (
+            abs(change) > _WORKBOOK_UNEXPLAINED_TOLERANCE
+            or abs(estimated_impact) > _WORKBOOK_UNEXPLAINED_TOLERANCE
+        ):
+            nonzero_rows.append(row)
+    return nonzero_rows
+
+
+def _workbook_reconstruction_role_metadata(field: str) -> tuple[str, str, str]:
+    """Return source-facing dataset, field, and label for a formula role."""
+    return _RECONSTRUCTION_ROLE_METADATA[field]
+
+
+def _workbook_portfolio_reconstruction_formula_row(
+    source_row: Mapping[str, object],
+    *,
+    field: str,
+    snapshot_a_value: object,
+    snapshot_b_value: object,
+    difference: object,
+    estimated_impact: float,
+    guidance_role: str,
+    as_of_date: object,
+) -> dict[str, object]:
+    """Return one promoted portfolio return-reconstruction formula row."""
+    dataset, source_column, role_label = _workbook_reconstruction_role_metadata(field)
+    return {
+        _pc_findings.PORTFOLIO_ID: source_row.get(
+            _pc_reconstruction.RECONSTRUCTION_PORTFOLIO_ID
+        ),
+        _pc_findings.FROM_DATE: source_row.get(
+            _pc_reconstruction.RECONSTRUCTION_FROM_DATE
+        ),
+        _pc_findings.THRU_DATE: source_row.get(
+            _pc_reconstruction.RECONSTRUCTION_THRU_DATE
+        ),
+        _AS_OF_DATE: as_of_date,
+        _USE: _USE_EXPLAINS_CHANGE,
+        _CHANGE_LABEL: f"{role_label} changed",
+        _DATASET_FIELD: f"{dataset}.{source_column}",
+        _pc_findings.SECURITY_ID: None,
+        _pc_findings.SNAPSHOT_A_VALUE: snapshot_a_value,
+        _pc_findings.SNAPSHOT_B_VALUE: snapshot_b_value,
+        _CHANGE: difference,
+        _pc_findings.IMPACT_INPUT_VALUE: snapshot_a_value,
+        _ESTIMATED_IMPACT: estimated_impact,
+        _RELATED_PERFORMANCE_DIFFERENCE: None,
+        _INPUT_ROLE: _INPUT_ROLE_PERFORMANCE_INPUT,
+        _IMPACT_STATUS: _IMPACT_STATUS_ESTIMATED,
+        _REVIEW_NOTE: "",
+        _REVIEW_GUIDANCE: (
+            f"{role_label} explains part of the calculated portfolio-return "
+            "difference."
+        ),
+        _pc_findings.DATASET: dataset,
+        _pc_findings.SOURCE_COLUMN: source_column,
+        _pc_findings.FINDING_CODE: _RECONSTRUCTION_FORMULA_FINDING_CODE,
+        _pc_explain.REVIEW_RANK: -100,
+        _USE_PRIORITY: _workbook_use_priority(_USE_EXPLAINS_CHANGE),
+        _REVIEW_KEY: source_row.get(_pc_reconstruction.RECONSTRUCTION_REVIEW_KEY),
+    }
+
+
+def _workbook_security_reconstruction_formula_row(
+    source_row: Mapping[str, object],
+    *,
+    field: str,
+    snapshot_a_value: object,
+    snapshot_b_value: object,
+    difference: object,
+    estimated_impact: float,
+    guidance_role: str,
+    as_of_date: object,
+) -> dict[str, object]:
+    """Return one promoted security return-reconstruction formula row."""
+    dataset, source_column, role_label = _workbook_reconstruction_role_metadata(field)
+    security_id = source_row.get(_pc_reconstruction.RECONSTRUCTION_SECURITY_ID)
+    return {
+        _pc_findings.PORTFOLIO_ID: source_row.get(
+            _pc_reconstruction.RECONSTRUCTION_PORTFOLIO_ID
+        ),
+        _pc_findings.FROM_DATE: source_row.get(
+            _pc_reconstruction.RECONSTRUCTION_FROM_DATE
+        ),
+        _pc_findings.THRU_DATE: source_row.get(
+            _pc_reconstruction.RECONSTRUCTION_THRU_DATE
+        ),
+        _AS_OF_DATE: as_of_date,
+        _USE: _USE_EXPLAINS_CHANGE,
+        _CHANGE_LABEL: f"{role_label} changed",
+        _DATASET_FIELD: f"{dataset}.{source_column}",
+        _pc_findings.SECURITY_ID: security_id,
+        _pc_findings.SNAPSHOT_A_VALUE: snapshot_a_value,
+        _pc_findings.SNAPSHOT_B_VALUE: snapshot_b_value,
+        _CHANGE: difference,
+        _pc_findings.IMPACT_INPUT_VALUE: snapshot_a_value,
+        _ESTIMATED_IMPACT: estimated_impact,
+        _RELATED_PERFORMANCE_DIFFERENCE: None,
+        _INPUT_ROLE: _INPUT_ROLE_PERFORMANCE_INPUT,
+        _IMPACT_STATUS: _IMPACT_STATUS_ESTIMATED,
+        _REVIEW_NOTE: "",
+        _REVIEW_GUIDANCE: (
+            f"{security_id} {role_label.lower()} explains part of the calculated "
+            "security-return difference."
+        ),
+        _pc_findings.DATASET: dataset,
+        _pc_findings.SOURCE_COLUMN: source_column,
+        _pc_findings.FINDING_CODE: _RECONSTRUCTION_FORMULA_FINDING_CODE,
+        _pc_explain.REVIEW_RANK: -100,
+        _USE_PRIORITY: _workbook_use_priority(_USE_EXPLAINS_CHANGE),
+        _REVIEW_KEY: source_row.get(_pc_reconstruction.RECONSTRUCTION_REVIEW_KEY),
+    }
 
 
 def _workbook_selected_underlying_impact_rows(
@@ -669,10 +1207,6 @@ def _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
     )
-    counted_external_flow_keys = _workbook_counted_external_flow_keys(
-        evidence,
-        comparison_level=comparison_level,
-    )
     performance_input_keys = _workbook_performance_input_family_keys(
         findings,
         comparison_level=comparison_level,
@@ -684,7 +1218,6 @@ def _workbook_ranked_changed_rows_for_level(
                 row,
                 selected_impact_bases,
                 performance_input_keys,
-                counted_external_flow_keys,
                 comparison_level=comparison_level,
             )
         )
@@ -700,6 +1233,7 @@ def _workbook_underlying_causes_table(
     """Return input rows that may directly explain performance differences."""
     unexplained_keys = _workbook_unexplained_primary_keys(
         findings,
+        comparison_path=comparison_path,
         comparison_level=comparison_level,
     )
     performance_input_keys = _workbook_performance_input_family_keys(
@@ -707,11 +1241,33 @@ def _workbook_underlying_causes_table(
         comparison_level=comparison_level,
     )
     rows: list[dict[str, object]] = []
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        formula_rows = _workbook_security_reconstruction_formula_rows(
+            comparison_path,
+            active_keys=_workbook_active_security_period_keys(findings),
+        )
+    else:
+        formula_rows = _workbook_portfolio_reconstruction_formula_rows(
+            comparison_path,
+            active_keys=_workbook_active_portfolio_period_keys(findings),
+        )
+    formula_keys = {
+        _workbook_primary_key(row, comparison_level)
+        for row in formula_rows
+    }
+    rows.extend(formula_rows)
+
     for row in _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
     ):
-        if _workbook_is_underlying_cause_row(row):
+        has_formula_role = _workbook_primary_key(row, comparison_level) in formula_keys
+        if has_formula_role and _workbook_is_underlying_cause_row(row):
+            workbook_row = _workbook_changed_item_row(
+                _workbook_non_additive_row(row),
+                comparison_path=comparison_path,
+            )
+        elif _workbook_is_underlying_cause_row(row):
             workbook_row = _workbook_changed_item_row(
                 row,
                 comparison_path=comparison_path,
@@ -838,11 +1394,13 @@ def _workbook_missing_underlying_cause_row(
 def _workbook_context_table(
     findings: pl.DataFrame,
     *,
+    comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> pl.DataFrame:
     """Return review-context rows that are not additive return explanations."""
     unexplained_keys = _workbook_unexplained_primary_keys(
         findings,
+        comparison_path=comparison_path,
         comparison_level=comparison_level,
     )
     performance_input_keys = _workbook_performance_input_family_keys(
@@ -875,16 +1433,21 @@ def _workbook_context_table(
 def _workbook_unexplained_primary_keys(
     findings: pl.DataFrame,
     *,
+    comparison_path: util.PathLike | None = None,
     comparison_level: str,
 ) -> set[tuple[object, ...]]:
     """Return primary review keys with a meaningful unexplained remainder."""
     if comparison_level == SECURITY_COMPARISON_LEVEL:
         summary = _workbook_security_changes_table(
             findings,
+            comparison_path=comparison_path,
             comparison_level=comparison_level,
         )
     else:
-        summary = _workbook_portfolio_changes_table(findings)
+        summary = _workbook_portfolio_changes_table(
+            findings,
+            comparison_path=comparison_path,
+        )
 
     keys: set[tuple[object, ...]] = set()
     for row in summary.iter_rows(named=True):
@@ -1027,33 +1590,6 @@ def _workbook_performance_input_family_keys(
     return keys
 
 
-def _workbook_counted_external_flow_keys(
-    evidence: pl.DataFrame,
-    *,
-    comparison_level: str,
-) -> set[tuple[object, ...]]:
-    """Return portfolio-period/security keys with counted external-flow estimates."""
-    if comparison_level != PORTFOLIO_COMPARISON_LEVEL:
-        return set()
-
-    keys: set[tuple[object, ...]] = set()
-    for row in evidence.iter_rows(named=True):
-        if (
-            row.get(_pc_explain.IMPACT_BASIS)
-            != _pc_explain.IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW
-        ):
-            continue
-        if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
-            continue
-        keys.add(
-            (
-                *_workbook_primary_key(row, comparison_level),
-                row.get(_pc_findings.SECURITY_ID),
-            )
-        )
-    return keys
-
-
 def _workbook_cause_family_key(
     row: Mapping[str, object],
     comparison_level: str,
@@ -1124,7 +1660,6 @@ def _workbook_selected_impact_row(
     row: Mapping[str, object],
     selected_impact_bases: set[tuple[object, ...]],
     performance_input_keys: set[tuple[object, ...]],
-    counted_external_flow_keys: set[tuple[object, ...]],
     *,
     comparison_level: str,
 ) -> dict[str, object]:
@@ -1138,29 +1673,8 @@ def _workbook_selected_impact_row(
         comparison_level == PORTFOLIO_COMPARISON_LEVEL
         and row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
     ):
-        if (
-            row_dict.get(_pc_explain.IMPACT_BASIS)
-            == _pc_explain.IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW
-        ):
-            return row_dict
         row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
         row_dict[_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION] = True
-        return _workbook_non_additive_row(row_dict)
-
-    counted_external_flow_key = (
-        *_workbook_primary_key(row_dict, comparison_level),
-        row_dict.get(_pc_findings.SECURITY_ID),
-    )
-    if (
-        comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        and row_dict.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
-        and counted_external_flow_key in counted_external_flow_keys
-    ):
-        row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
-        row_dict[_pc_explain.IMPACT_MESSAGE] = (
-            "Related to counted portfolio external-flow transaction."
-        )
-        row_dict[_WORKBOOK_UNSELECTED_RELATED_ESTIMATE] = True
         return _workbook_non_additive_row(row_dict)
 
     holding_value_key = (
@@ -1531,9 +2045,6 @@ def _workbook_related_input_guidance(
 ) -> str:
     """Return explicit guidance for an input component's related performance field."""
     security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
-    impact_message = _format_value(row.get(_pc_explain.IMPACT_MESSAGE))
-    if impact_message == "Related to counted portfolio external-flow transaction.":
-        return impact_message
     if dataset == pc_cols.HOLDINGS and source_column in {
         pc_cols.MARKET_VALUE,
         pc_cols.PRICE,
@@ -1758,6 +2269,104 @@ def _workbook_non_additive_change_columns() -> tuple[str, ...]:
     )
 
 
+def _workbook_return_reconstruction_columns() -> tuple[str, ...]:
+    """Return Return Reconstruction Checks worksheet columns."""
+    return (
+        _pc_reconstruction.RECONSTRUCTION_PORTFOLIO_ID,
+        _pc_reconstruction.RECONSTRUCTION_FROM_DATE,
+        _pc_reconstruction.RECONSTRUCTION_THRU_DATE,
+        _pc_reconstruction.REPORTED_RETURN_A,
+        _pc_reconstruction.REPORTED_RETURN_B,
+        _pc_reconstruction.REPORTED_RETURN_DIFFERENCE,
+        _pc_reconstruction.DERIVED_RETURN_A,
+        _pc_reconstruction.DERIVED_RETURN_B,
+        _pc_reconstruction.DERIVED_RETURN_DIFFERENCE,
+        _pc_reconstruction.RECONSTRUCTION_DIFFERENCE,
+        _pc_reconstruction.RECONSTRUCTION_STATUS,
+        _pc_reconstruction.RECONSTRUCTION_CATEGORY,
+        _pc_reconstruction.RECONSTRUCTION_COMMENTS,
+        _pc_reconstruction.DERIVED_NUMERATOR_A,
+        _pc_reconstruction.DERIVED_NUMERATOR_B,
+        _pc_reconstruction.DERIVED_NUMERATOR_DIFFERENCE,
+        _pc_reconstruction.DERIVED_DENOMINATOR_A,
+        _pc_reconstruction.DERIVED_DENOMINATOR_B,
+        _pc_reconstruction.DERIVED_DENOMINATOR_DIFFERENCE,
+        _pc_reconstruction.BEGIN_VALUE_A,
+        _pc_reconstruction.BEGIN_VALUE_B,
+        _pc_reconstruction.BEGIN_VALUE_DIFFERENCE,
+        _pc_reconstruction.END_VALUE_A,
+        _pc_reconstruction.END_VALUE_B,
+        _pc_reconstruction.END_VALUE_DIFFERENCE,
+        _pc_reconstruction.NET_FLOW_A,
+        _pc_reconstruction.NET_FLOW_B,
+        _pc_reconstruction.NET_FLOW_DIFFERENCE,
+        _pc_reconstruction.WEIGHTED_FLOW_A,
+        _pc_reconstruction.WEIGHTED_FLOW_B,
+        _pc_reconstruction.WEIGHTED_FLOW_DIFFERENCE,
+        _pc_reconstruction.BEGIN_VALUE_DATE_A,
+        _pc_reconstruction.BEGIN_VALUE_DATE_B,
+        _pc_reconstruction.END_VALUE_DATE_A,
+        _pc_reconstruction.END_VALUE_DATE_B,
+        _pc_reconstruction.RECONSTRUCTION_REVIEW_KEY,
+    )
+
+
+def _workbook_security_return_reconstruction_columns() -> tuple[str, ...]:
+    """Return Security Return Reconstruction Checks worksheet columns."""
+    return (
+        _pc_reconstruction.RECONSTRUCTION_PORTFOLIO_ID,
+        _pc_reconstruction.RECONSTRUCTION_SECURITY_ID,
+        _pc_reconstruction.RECONSTRUCTION_FROM_DATE,
+        _pc_reconstruction.RECONSTRUCTION_THRU_DATE,
+        _pc_reconstruction.REPORTED_RETURN_A,
+        _pc_reconstruction.REPORTED_RETURN_B,
+        _pc_reconstruction.REPORTED_RETURN_DIFFERENCE,
+        _pc_reconstruction.DERIVED_RETURN_A,
+        _pc_reconstruction.DERIVED_RETURN_B,
+        _pc_reconstruction.DERIVED_RETURN_DIFFERENCE,
+        _pc_reconstruction.RECONSTRUCTION_DIFFERENCE,
+        _pc_reconstruction.RECONSTRUCTION_STATUS,
+        _pc_reconstruction.RECONSTRUCTION_CATEGORY,
+        _pc_reconstruction.RECONSTRUCTION_COMMENTS,
+        _pc_reconstruction.DERIVED_NUMERATOR_A,
+        _pc_reconstruction.DERIVED_NUMERATOR_B,
+        _pc_reconstruction.DERIVED_NUMERATOR_DIFFERENCE,
+        _pc_reconstruction.DERIVED_DENOMINATOR_A,
+        _pc_reconstruction.DERIVED_DENOMINATOR_B,
+        _pc_reconstruction.DERIVED_DENOMINATOR_DIFFERENCE,
+        _pc_reconstruction.BEGIN_VALUE_A,
+        _pc_reconstruction.BEGIN_VALUE_B,
+        _pc_reconstruction.BEGIN_VALUE_DIFFERENCE,
+        _pc_reconstruction.END_VALUE_A,
+        _pc_reconstruction.END_VALUE_B,
+        _pc_reconstruction.END_VALUE_DIFFERENCE,
+        _pc_reconstruction.NET_FLOW_A,
+        _pc_reconstruction.NET_FLOW_B,
+        _pc_reconstruction.NET_FLOW_DIFFERENCE,
+        _pc_reconstruction.WEIGHTED_FLOW_A,
+        _pc_reconstruction.WEIGHTED_FLOW_B,
+        _pc_reconstruction.WEIGHTED_FLOW_DIFFERENCE,
+        _pc_reconstruction.INCOME_A,
+        _pc_reconstruction.INCOME_B,
+        _pc_reconstruction.INCOME_DIFFERENCE,
+        _pc_reconstruction.BEGIN_VALUE_DATE_A,
+        _pc_reconstruction.BEGIN_VALUE_DATE_B,
+        _pc_reconstruction.END_VALUE_DATE_A,
+        _pc_reconstruction.END_VALUE_DATE_B,
+        _pc_reconstruction.RECONSTRUCTION_REVIEW_KEY,
+    )
+
+
+def _workbook_return_reconstruction_summary_columns() -> tuple[str, ...]:
+    """Return Reconstruction Summary worksheet columns."""
+    return (
+        _pc_reconstruction.RECONSTRUCTION_CHECK_TYPE,
+        _pc_reconstruction.RECONSTRUCTION_STATUS,
+        _pc_reconstruction.RECONSTRUCTION_CATEGORY,
+        _pc_reconstruction.RECONSTRUCTION_ROW_COUNT,
+    )
+
+
 def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
     """Return reviewer-first Findings worksheet columns with review key last."""
     preferred_columns = (
@@ -1834,6 +2443,52 @@ def _workbook_column_labels() -> dict[str, str]:
         _pc_explain.TOP_CODES: "Top Codes",
         _pc_explain.IMPACT_MESSAGE: "Impact Message",
         _pc_explain.REVIEW_RANK: "Review Rank",
+        _pc_reconstruction.RECONSTRUCTION_REVIEW_KEY: "Review Key",
+        _pc_reconstruction.REPORTED_RETURN_A: "Reported Return A",
+        _pc_reconstruction.REPORTED_RETURN_B: "Reported Return B",
+        _pc_reconstruction.REPORTED_RETURN_DIFFERENCE: "Reported Difference",
+        _pc_reconstruction.DERIVED_RETURN_A: "Derived Return A",
+        _pc_reconstruction.DERIVED_RETURN_B: "Derived Return B",
+        _pc_reconstruction.DERIVED_RETURN_DIFFERENCE: "Derived Difference",
+        _pc_reconstruction.RECONSTRUCTION_DIFFERENCE: (
+            "Reconstruction Difference"
+        ),
+        _pc_reconstruction.DERIVED_NUMERATOR_A: "Derived Numerator A",
+        _pc_reconstruction.DERIVED_NUMERATOR_B: "Derived Numerator B",
+        _pc_reconstruction.DERIVED_NUMERATOR_DIFFERENCE: (
+            "Derived Numerator Difference"
+        ),
+        _pc_reconstruction.DERIVED_DENOMINATOR_A: "Derived Denominator A",
+        _pc_reconstruction.DERIVED_DENOMINATOR_B: "Derived Denominator B",
+        _pc_reconstruction.DERIVED_DENOMINATOR_DIFFERENCE: (
+            "Derived Denominator Difference"
+        ),
+        _pc_reconstruction.BEGIN_VALUE_A: "Beginning Value A",
+        _pc_reconstruction.BEGIN_VALUE_B: "Beginning Value B",
+        _pc_reconstruction.BEGIN_VALUE_DIFFERENCE: "Beginning Value Difference",
+        _pc_reconstruction.END_VALUE_A: "Ending Value A",
+        _pc_reconstruction.END_VALUE_B: "Ending Value B",
+        _pc_reconstruction.END_VALUE_DIFFERENCE: "Ending Value Difference",
+        _pc_reconstruction.NET_FLOW_A: "Net Flow A",
+        _pc_reconstruction.NET_FLOW_B: "Net Flow B",
+        _pc_reconstruction.NET_FLOW_DIFFERENCE: "Net Flow Difference",
+        _pc_reconstruction.WEIGHTED_FLOW_A: "Weighted Flow A",
+        _pc_reconstruction.WEIGHTED_FLOW_B: "Weighted Flow B",
+        _pc_reconstruction.WEIGHTED_FLOW_DIFFERENCE: (
+            "Weighted Flow Difference"
+        ),
+        _pc_reconstruction.INCOME_A: "Income A",
+        _pc_reconstruction.INCOME_B: "Income B",
+        _pc_reconstruction.INCOME_DIFFERENCE: "Income Difference",
+        _pc_reconstruction.BEGIN_VALUE_DATE_A: "Beginning Value Date A",
+        _pc_reconstruction.BEGIN_VALUE_DATE_B: "Beginning Value Date B",
+        _pc_reconstruction.END_VALUE_DATE_A: "Ending Value Date A",
+        _pc_reconstruction.END_VALUE_DATE_B: "Ending Value Date B",
+        _pc_reconstruction.RECONSTRUCTION_STATUS: "Status",
+        _pc_reconstruction.RECONSTRUCTION_CATEGORY: "Diagnostic Category",
+        _pc_reconstruction.RECONSTRUCTION_COMMENTS: "Comments",
+        _pc_reconstruction.RECONSTRUCTION_CHECK_TYPE: "Check Type",
+        _pc_reconstruction.RECONSTRUCTION_ROW_COUNT: "Row Count",
     }
 
 

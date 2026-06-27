@@ -2207,17 +2207,12 @@ class TestPerformanceComparison(unittest.TestCase):
                 transaction_amount[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
             )
 
-    def test_transaction_modified_dietz_counted_policy_populates_estimate(
+    def test_transaction_modified_dietz_counted_policy_is_rejected(
         self,
     ) -> None:
-        """Counted Modified Dietz external flows populate impact totals."""
+        """Modified Dietz external-flow policies must remain cross-check only."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_period_specification(Path(temp_dir))
-            (Path(temp_dir) / "snapshot_b" / "portperf.csv").write_text(
-                "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
-                "PORT_A,2025-05-01,2025-05-31,1000.00,0.02\n",
-                encoding="utf-8",
-            )
             configuration = yaml.safe_load(specification_path.read_text(encoding="utf-8"))
             configuration["transaction_impact_methods"] = {
                 "external_flow": {
@@ -2234,24 +2229,10 @@ class TestPerformanceComparison(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            findings = findings_to_polars(
+            with self.assertRaisesRegex(PpaError, "external_flow.double_count_policy"):
                 PerformanceComparison(
                     PerformanceComparisonSpecification(specification_path)
                 ).compare()
-            )
-            candidates = portfolio_period_contribution_candidates(findings)
-            transaction_amount = candidates.filter(
-                (pl.col(FINDING_CODE) == PC_TXN_AMT)
-            ).row(0, named=True)
-
-            self.assertEqual(
-                transaction_amount[TRANSACTION_IMPACT_DIAGNOSTIC],
-                "modified_dietz counted estimate",
-            )
-            self.assertAlmostEqual(
-                transaction_amount[ESTIMATED_RETURN_IMPACT],
-                transaction_amount[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE],
-            )
 
     def test_transaction_impact_methods_reject_malformed_yaml(self) -> None:
         """Transaction impact method YAML must use the supported contract."""

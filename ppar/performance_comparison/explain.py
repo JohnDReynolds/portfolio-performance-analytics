@@ -176,7 +176,6 @@ IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
-IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW = "portfolio_external_flow"
 IMPACT_BASIS_SECURITY_TRANSACTION_FLOW = "security_transaction_flow"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
@@ -191,9 +190,6 @@ IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
 )
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
-)
-IMPACT_METHOD_PORTFOLIO_EXTERNAL_FLOW_MODIFIED_DIETZ = (
-    TransactionImpactMethod.MODIFIED_DIETZ.value
 )
 IMPACT_METHOD_SECURITY_TRANSACTION_FLOW_MODIFIED_DIETZ = (
     TransactionImpactMethod.MODIFIED_DIETZ.value
@@ -239,7 +235,6 @@ NO_CASH_TRANSACTION_IMPACT_METHOD = "no-cash transaction impact method"
 TRANSACTION_IMPACT_METHOD = "transaction impact method"
 CROSS_CHECK_TREATMENT = "cross_check_treatment"
 CROSS_CHECK_ONLY = ModifiedDietzDoubleCountPolicy.CROSS_CHECK_ONLY.value
-COUNT_AS_EXPLANATION = ModifiedDietzDoubleCountPolicy.COUNT_AS_EXPLANATION.value
 CROSS_CHECK_COUNT = "cross_check_count"
 CROSS_CHECK_ESTIMATE_TOTAL = "cross_check_estimate_total"
 CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
@@ -1850,19 +1845,6 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
             IMPACT_MESSAGE: _transaction_performance_amount_impact_message(row),
         }
-    if _is_portfolio_external_flow_modified_dietz_candidate(row):
-        diagnostic_estimate = _number_value(row[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE])
-        assert diagnostic_estimate is not None
-        return {
-            ESTIMATED_RETURN_IMPACT: diagnostic_estimate,
-            IMPACT_BASIS: IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_PORTFOLIO_EXTERNAL_FLOW_MODIFIED_DIETZ,
-            IMPACT_MESSAGE: (
-                "Modified Dietz estimate treats the changed transaction amount "
-                "as a portfolio-level external flow."
-            ),
-        }
     if _is_holding_market_value_impact_candidate(row):
         delta_float = _number_value(delta)
         denominator = _number_value(row[RETURN_DENOMINATOR])
@@ -2041,22 +2023,6 @@ def _is_transaction_performance_amount_impact_candidate(
         and isinstance(denominator, (int, float))
         and not isinstance(denominator, bool)
         and float(denominator) != 0.0
-    )
-
-
-def _is_portfolio_external_flow_modified_dietz_candidate(
-    row: dict[str, object],
-) -> bool:
-    """Return whether an external-flow row has a counted Modified Dietz estimate."""
-    diagnostic_estimate = row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE)
-    return (
-        row[DATASET] == pc_cols.TRANSACTIONS
-        and row[SOURCE_COLUMN] == pc_cols.AMOUNT
-        and row.get(TRANSACTION_IMPACT_POLICY) == "external_flow:modified_dietz"
-        and row.get(TRANSACTION_IMPACT_DIAGNOSTIC) == "modified_dietz counted estimate"
-        and row.get(PERFORMANCE_FLOW_SIGN) == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
-        and isinstance(diagnostic_estimate, (int, float))
-        and not isinstance(diagnostic_estimate, bool)
     )
 
 
@@ -2536,8 +2502,6 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_SECURITY_RETURN_WEIGHTED
     if IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD in bases:
         return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
-    if IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW in bases:
-        return IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
         return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
     if IMPACT_BASIS_HOLDING_MARKET_VALUE in bases:
@@ -2711,22 +2675,16 @@ def _portfolio_period_transaction_cross_check_row(
             if row.get(TRANSACTION_IMPACT_POLICY)
         }
     )
-    has_counted_estimate = "modified_dietz counted estimate" in diagnostics
-    treatment = COUNT_AS_EXPLANATION if has_counted_estimate else CROSS_CHECK_ONLY
     impact_message = (
-        "Transaction impact estimates are included in estimated impact totals."
-        if has_counted_estimate
-        else (
-            "Transaction impact cross-checks are review-only and are not "
-            "included in estimated impact totals."
-        )
+        "Transaction impact cross-checks are review-only and are not "
+        "included in estimated impact totals."
     )
     return {
         PORTFOLIO_ID: portfolio_id,
         FROM_DATE: from_date,
         THRU_DATE: thru_date,
         TRANSACTION_IMPACT_POLICIES: ", ".join(policies),
-        CROSS_CHECK_TREATMENT: treatment,
+        CROSS_CHECK_TREATMENT: CROSS_CHECK_ONLY,
         CROSS_CHECK_COUNT: len(estimates),
         CROSS_CHECK_ESTIMATE_TOTAL: sum(estimates),
         CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL: sum(abs(estimate) for estimate in estimates),

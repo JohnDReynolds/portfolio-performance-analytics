@@ -376,25 +376,6 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         ),
     )
 
-    # Unexplained numerically, but reviewable: transaction quantity, price, and
-    # commission changed without a supported additive transaction amount change.
-    _adjust_transaction_fields(
-        snapshot["transactions"],
-        "BALANCED",
-        early_date,
-        "BUY",
-        quantity_delta=2.0,
-        price_delta=0.25,
-        commission_delta=25.0,
-        recalculate_buy_amount=True,
-    )
-    _apply_reported_portfolio_return_delta(
-        snapshot["portperf"],
-        "BALANCED",
-        early_date,
-        return_delta=0.0001,
-    )
-
     # Fully explained: holding market value changed by itself, as when a vendor
     # restates a holding value but leaves component quantity and price unchanged.
     _adjust_holding(

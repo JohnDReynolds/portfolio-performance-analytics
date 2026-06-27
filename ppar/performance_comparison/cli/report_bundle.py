@@ -42,6 +42,9 @@ def main(argv: list[str] | None = None) -> int:
             require_causal_attribution=args.require_causal_attribution,
             comparison_path=args.comparison_path,
             comparison_level=specification.comparison_level,
+            include_reconstruction_diagnostics=(
+                args.include_reconstruction_diagnostics
+            ),
         )
     except PpaError as error:
         print(f"Report bundle failed: {error}", file=sys.stderr)
@@ -94,6 +97,14 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--include-workbook",
         action="store_true",
         help="Write report.xlsx in addition to report.html and CSV artifacts.",
+    )
+    parser.add_argument(
+        "--include-reconstruction-diagnostics",
+        action="store_true",
+        help=(
+            "Include interim reconstruction diagnostic sheets and CSV artifacts "
+            "in addition to the primary review outputs."
+        ),
     )
     parser.add_argument(
         "--allow-incomplete-yaml",

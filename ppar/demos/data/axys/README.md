@@ -57,6 +57,9 @@ other evidence:
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
+- Optional reconstruction diagnostics can add `Return Reconstruction Checks`,
+  `Security Return Checks`, and `Reconstruction Summary` sheets for
+  implementation review, but normal demo output excludes them by default.
 - Evidence-only input rows normally appear in the `Other Evidence` sheet. If a
   portfolio or security period still has an unexplained difference, plausible
   evidence-only input rows for that same review key are promoted into the
@@ -81,6 +84,10 @@ Data used:
   cash/fixed-income sleeves.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
+- YAML: includes explicit `portfolio_return_reconstruction` settings for
+  Modified Dietz diagnostic checks.
+- YAML: includes explicit `security_return_reconstruction` settings for
+  security-level Modified Dietz diagnostic checks.
 - YAML: treats `FEE` transactions as performance-impacting because this packaged
   fixture assumes the reported returns are net of fees. For gross-of-fees
   performance, fees would need a different return-basis policy.
@@ -99,8 +106,10 @@ Expected workbook:
   amount, holding market value, holding accrued, and weighted price examples.
   It should also show plausible input-component rows for unresolved periods
   without assigning them `Performance Difference Explained` values.
-- Portfolio-period differences should include fully explained, partly explained,
-  and intentionally unexplained statuses.
+- Portfolio-period differences should include fully explained and intentionally
+  unexplained statuses.
+- Optional reconstruction diagnostics should show where source-derived Modified
+  Dietz returns agree with reported return differences and where they do not.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
     `CASH_USD` holding changes;
@@ -115,9 +124,9 @@ Expected workbook:
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Other Evidence` sheet;
-  - an unexplained INCOME period with no identifiable cause found.
-  - a counted ALPHA external-withdrawal restatement with a Modified Dietz
-    external-flow estimate.
+  - an unexplained INCOME period with no identifiable cause found;
+  - an ALPHA external-withdrawal restatement visible in the return
+    reconstruction check.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and transaction semantics explicit while still

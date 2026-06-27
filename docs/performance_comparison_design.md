@@ -146,8 +146,7 @@ Modified Dietz policy options are centralized in:
 - `ModifiedDietzFlowTiming`: `trade_date` and `settlement_date`.
 - `ModifiedDietzDayCount`: `actual_days`.
 - `ModifiedDietzInclusionRule`: `beginning_of_day` and `end_of_day`.
-- `ModifiedDietzDoubleCountPolicy`: `cross_check_only` and
-  `count_as_explanation`.
+- `ModifiedDietzDoubleCountPolicy`: `cross_check_only`.
 
 Finding and review classification values are centralized in:
 
@@ -499,26 +498,46 @@ never silently chooses a return convention. `modified_dietz` is supported only
 as a cross-check diagnostic: its estimate is reported beside transaction
 evidence and is excluded from regular contribution totals.
 
-Security-level comparisons also require an explicit transaction-flow convention
-because buys and sells are security-level capital flows. The Phase 1 contract is:
+Security-level comparisons also support opt-in return reconstruction because
+buys and sells are security-level capital flows. The diagnostic contract is:
 
 ```yaml
-security_return_impact_methods:
-  transactions:
-    method: modified_dietz
-    flow_timing: transaction_date
-    day_count: actual_days
-    inclusion_rule: beginning_of_day
+security_return_reconstruction:
+  method: modified_dietz
+  beginning_value_source: holdings
+  ending_value_source: holdings
+  flow_source: transactions
+  flow_timing: transaction_date
+  day_count: actual_days
+  inclusion_rule: beginning_of_day
+  flow_categories:
+    - buy
+    - sell
+  income_categories:
+    - income
+    - fee_expense
+  return_basis: net
+  sign_convention: signed_amount
 ```
 
-This section is required when `comparison.level: security`; missing or malformed
-configuration fails before report generation. The current implementation uses
-the normalized transaction date, actual calendar days, and beginning-of-day
-flow inclusion. Buy and sell transaction amount changes can receive a
-security-level Modified Dietz screening estimate. If changed holdings already
-explain the same security-period difference, the transaction row remains visible
-as related evidence and is not double-counted. Income transactions, such as
-dividends and interest, remain direct security-performance inputs.
+When this section is present, missing or malformed configuration fails before
+report generation. The current diagnostic implementation uses the normalized
+transaction date, actual calendar days, and beginning-of-day flow inclusion.
+Buy and sell transaction amounts are inverted from the cash perspective into
+security-level flows: buys are inflows to the security, and sells are outflows
+from the security. Income transactions, such as dividends and interest, are
+included in the security numerator. Normal report bundles use reconstruction
+internally to produce formula-role rows in `Identifiable Causes`; the detailed
+security diagnostic worksheet/CSV is available only when reconstruction
+diagnostics are explicitly included.
+
+Portfolio return reconstruction is available as an internal explanation source.
+When YAML includes `portfolio_return_reconstruction`, normal report bundles can
+promote formula-role rows into `Identifiable Causes`. The detailed `Return
+Reconstruction Checks` worksheet/CSV comparing reported `PORT_RETURN`
+differences with Modified Dietz returns derived from holdings and external-flow
+transactions is available only when reconstruction diagnostics are explicitly
+included.
 
 Transaction impact output separates configured policy from review diagnostics:
 
@@ -542,9 +561,6 @@ gated. Current diagnostic messages include:
   but no supported external-flow impact method is configured.
 - `modified_dietz cross-check estimate`: Internal checks have all required
   Modified Dietz inputs and the row has a diagnostic estimate excluded from
-  contribution totals.
-- `modified_dietz counted estimate`: Internal checks have all required
-  Modified Dietz inputs and the row has a diagnostic estimate included in
   contribution totals.
 - `modified_dietz missing inputs: ...`: Internal checks found missing or
   disqualifying Modified Dietz inputs such as `flow date`,
@@ -578,7 +594,7 @@ transaction_impact_methods:
     day_count: actual_days
     inclusion_rule: beginning_of_day
     denominator_source: begin_market_value
-    double_count_policy: count_as_explanation
+    double_count_policy: cross_check_only
 ```
 
 Supported `modified_dietz` fields:
@@ -592,15 +608,14 @@ Supported `modified_dietz` fields:
   end-of-day for weighting. Allowed values: `beginning_of_day`, `end_of_day`.
 - `denominator_source`: Which normalized field supplies the return denominator,
   such as `begin_market_value`. Allowed value: `begin_market_value`.
-- `double_count_policy`: Whether transaction-derived impacts are eligible for
-  aggregation or are only cross-check evidence when portfolio `flow` deltas are
-  present. Allowed values: `cross_check_only`, `count_as_explanation`.
+- `double_count_policy`: Whether transaction-derived impacts are only
+  cross-check evidence when portfolio `flow` deltas are present. Allowed value:
+  `cross_check_only`.
 
 With `double_count_policy: cross_check_only`, eligible external-flow transaction
 amount rows receive `transaction_impact_diagnostic_estimate`; they do not
 receive `estimated_return_impact`, and they are not summed into impact coverage
-or cause-summary totals. With `double_count_policy: count_as_explanation`, the
-same estimate is promoted into `estimated_return_impact`.
+or cause-summary totals.
 
 Design reference examples for `modified_dietz` use:
 

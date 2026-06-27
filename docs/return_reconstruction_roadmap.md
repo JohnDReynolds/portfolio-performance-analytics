@@ -323,6 +323,13 @@ corporate_action_treatment
 - Compare derived security return to reported security return.
 - Keep outputs conservative at first.
 
+Initial implementation note: performance comparison now supports an optional
+security-level `Security Return Checks` worksheet and CSV artifact when YAML
+includes `security_return_reconstruction`. The check derives Modified Dietz
+security returns from holdings, buy/sell transaction flows, and income
+transactions. It compares derived security-return differences with reported
+`SEC_RETURN` differences and remains diagnostic-only.
+
 ### Phase 2: Portfolio-Level Flow Model
 
 - Implement explicit portfolio-level Modified Dietz reconstruction.
@@ -330,11 +337,10 @@ corporate_action_treatment
 - Do not treat buys and sells as portfolio-level external flows.
 - Compare derived portfolio return to reported portfolio return.
 
-Initial implementation note: performance comparison now supports counted
-portfolio external-flow Modified Dietz estimates when YAML specifies
-`transaction_impact_methods.external_flow.double_count_policy:
-count_as_explanation`. Full portfolio-return reconstruction and security-level
-external-flow reconstruction remain future phases.
+Initial implementation note: performance comparison keeps portfolio external-flow
+Modified Dietz estimates as review-only cross-checks. The dedicated return
+reconstruction check is the place to compare reported returns with values derived
+from holdings, income, and external-flow transactions.
 
 ### Phase 3: Return Reconstruction Checks
 
@@ -346,6 +352,25 @@ external-flow reconstruction remain future phases.
 - Use this as a diagnostic before making reconstruction the primary user-facing
   explanation.
 
+Initial implementation note: performance comparison now supports an optional
+portfolio-level `Return Reconstruction Checks` worksheet and CSV artifact when
+YAML includes `portfolio_return_reconstruction`. The check derives Modified
+Dietz portfolio returns from holdings plus external-flow transactions and
+compares them with reported `PORT_RETURN` differences. The worksheet also shows
+the derived numerator, derived denominator, beginning value, ending value, net
+flow, weighted flow, and changed formula components so a reviewer can see why a
+check is marked `Different`.
+
+Diagnostic QA note: report bundles can explicitly include a `Reconstruction
+Summary` worksheet/CSV artifact when portfolio or security reconstruction is
+enabled. The normal user-facing bundle excludes these diagnostics by default.
+When opted in, the summary counts each reconstruction check by status and
+diagnostic category, using plain categories such as `Aligned`, `Missing Inputs`,
+`Source Inputs Changed`, and `Formula Difference`. The detailed check sheets
+include the same category and clearer comments so reviewers can quickly
+distinguish source-input changes from missing inputs or model/vendor
+differences.
+
 ### Phase 4: Promote Formula Inputs
 
 - Once reconstruction is trusted, use reconstructed formula inputs as the main
@@ -354,6 +379,17 @@ external-flow reconstruction remain future phases.
   `Identifiable Causes`.
 - Demote quantity, price, commission, cost, and reference-data rows to
   supporting evidence unless they directly explain formula inputs.
+
+Status note: formula promotion is implemented for both security and portfolio
+checks where `reconstruction_category` is `Source Inputs Changed`. The workbook
+promotes source-facing formula roles such as
+`holdings.beginning_market_value`, `holdings.ending_market_value`,
+`transactions.net_flow`, `transactions.weighted_flow`, and
+`transactions.income` to `Identifiable Causes`. These rows explain the
+calculated return difference while tying the explanation back to the source
+datasets. `Return Reconstruction Checks` and `Security Return Checks` remain
+opt-in interim audit trails for the raw numerator, denominator, and source
+component inputs.
 
 ### Phase 5: Improve Demo Data
 

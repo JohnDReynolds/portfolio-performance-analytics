@@ -35,7 +35,6 @@ from ppar.performance_comparison.explain import (
     CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL,
     CROSS_CHECK_COUNT,
     CROSS_CHECK_ESTIMATE_TOTAL,
-    COUNT_AS_EXPLANATION,
     CROSS_CHECK_ONLY,
     CROSS_CHECK_TREATMENT,
     CROSS_CHECK_MINUS_FLOW_IMPACT,
@@ -1103,23 +1102,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             "modified_dietz cross-check estimate",
         )
         self.assertIn("review-only", row[IMPACT_MESSAGE])
-
-    def test_portfolio_period_transaction_cross_checks_names_counted_treatment(
-        self,
-    ) -> None:
-        """Cross-check summaries identify counted Modified Dietz estimates."""
-        findings = self._transaction_estimate_findings(
-            performance_flow_sign="external",
-            transaction_impact_policy="external_flow:modified_dietz",
-            transaction_impact_diagnostic="modified_dietz counted estimate",
-            transaction_impact_diagnostic_estimate=0.005,
-        )
-
-        cross_checks = portfolio_period_transaction_cross_checks(findings)
-        row = cross_checks.row(0, named=True)
-
-        self.assertEqual(row[CROSS_CHECK_TREATMENT], COUNT_AS_EXPLANATION)
-        self.assertIn("included in estimated impact totals", row[IMPACT_MESSAGE])
 
     def test_portfolio_period_transaction_cross_checks_returns_stable_empty_table(
         self,

@@ -23,6 +23,7 @@ from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import runner as _pc_runner
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
+from ppar.performance_comparison import return_reconstruction as _pc_return_reconstruction
 from ppar.performance_comparison.specification import PORTFOLIO_COMPARISON_LEVEL
 
 __all__ = [
@@ -142,6 +143,7 @@ def _performance_comparison_html_report(
     title: str = "Performance Comparison Report",
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
 ) -> str:
     """Return the workbook-style HTML report used inside review bundles.
 
@@ -153,6 +155,8 @@ def _performance_comparison_html_report(
             the ``Identifiable Causes`` section can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
+        include_reconstruction_diagnostics: Whether to include interim
+            reconstruction diagnostic sections.
 
     Returns:
         Complete HTML document string suitable for writing to disk or opening
@@ -162,6 +166,7 @@ def _performance_comparison_html_report(
         findings,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
     )
     return "\n".join(
         [
@@ -288,6 +293,7 @@ def _write_performance_comparison_html_report(
     title: str = "Performance Comparison Report",
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
 ) -> Path:
     """Write the bundle HTML performance comparison report to disk.
 
@@ -301,6 +307,8 @@ def _write_performance_comparison_html_report(
             the ``Identifiable Causes`` section can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
+        include_reconstruction_diagnostics: Whether to include interim
+            reconstruction diagnostic sections.
 
     Returns:
         Normalized ``Path`` to the written report file.
@@ -312,6 +320,7 @@ def _write_performance_comparison_html_report(
         title=title,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
     )
     report_path.write_text(report, encoding=util.ENCODING)
     return report_path
@@ -328,6 +337,7 @@ def write_performance_comparison_report_bundle(
     require_causal_attribution: bool = False,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
 
@@ -351,6 +361,8 @@ def write_performance_comparison_report_bundle(
             the XLSX workbook can name the exact YAML file to update for
             missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
+        include_reconstruction_diagnostics: Whether to include interim
+            reconstruction diagnostic workbook sheets and CSV artifacts.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.
@@ -366,7 +378,12 @@ def write_performance_comparison_report_bundle(
 
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
-    tables = _report_bundle_tables(active_findings, top_evidence_limit)
+    tables = _report_bundle_tables(
+        active_findings,
+        top_evidence_limit,
+        comparison_path=comparison_path,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+    )
 
     paths: dict[str, Path] = {}
     html_report_path = _write_performance_comparison_html_report(
@@ -375,6 +392,7 @@ def write_performance_comparison_report_bundle(
         title=title,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
     )
     paths["html_report"] = html_report_path
     paths["findings"] = _pc_bundle.write_csv_artifact(
@@ -393,6 +411,7 @@ def write_performance_comparison_report_bundle(
             top_evidence_limit=top_evidence_limit,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         )
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
@@ -409,6 +428,7 @@ def write_performance_comparison_report_bundle(
         active_findings=active_findings,
         title=title,
         top_evidence_limit=top_evidence_limit,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         artifact_paths=paths,
         tables=tables,
     )
@@ -424,6 +444,9 @@ def write_performance_comparison_report_bundle(
 def _report_bundle_tables(
     active_findings: pl.DataFrame,
     top_evidence_limit: int,
+    *,
+    comparison_path: util.PathLike | None = None,
+    include_reconstruction_diagnostics: bool = False,
 ) -> dict[str, pl.DataFrame]:
     """Return report-bundle tables keyed by artifact stem."""
     tables = {
@@ -454,6 +477,32 @@ def _report_bundle_tables(
             top_evidence_limit,
         ),
     }
+    if include_reconstruction_diagnostics:
+        reconstruction_checks = (
+            _pc_return_reconstruction.portfolio_return_reconstruction_checks(
+                comparison_path
+            )
+        )
+        reconstruction_summary = (
+            _pc_return_reconstruction.return_reconstruction_summary(comparison_path)
+        )
+        if not reconstruction_summary.is_empty():
+            tables[_pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT] = (
+                reconstruction_summary
+            )
+        if not reconstruction_checks.is_empty():
+            tables[_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT] = (
+                reconstruction_checks
+            )
+        security_reconstruction_checks = (
+            _pc_return_reconstruction.security_return_reconstruction_checks(
+                comparison_path
+            )
+        )
+        if not security_reconstruction_checks.is_empty():
+            tables[
+                _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT
+            ] = security_reconstruction_checks
     return {
         name: _with_period_review_key(table)
         for name, table in tables.items()
@@ -467,6 +516,7 @@ def write_performance_comparison_review_workbook(
     top_evidence_limit: int = 10,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    include_reconstruction_diagnostics: bool = False,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -480,6 +530,8 @@ def write_performance_comparison_review_workbook(
             the ``Identifiable Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
+        include_reconstruction_diagnostics: Whether to include interim
+            reconstruction diagnostic sheets.
 
     Returns:
         Normalized workbook path.
@@ -490,6 +542,7 @@ def write_performance_comparison_review_workbook(
         top_evidence_limit=top_evidence_limit,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
     )
 
 

@@ -179,12 +179,12 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             ),
             "MKT_VAL",
         )
-        balanced_buy_a = (
-            snapshot_a["transactions"]["PORT"].eq("BALANCED")
+        alpha_buy_a = (
+            snapshot_a["transactions"]["PORT"].eq("ALPHA")
             & snapshot_a["transactions"]["TRAN"].eq("BUY")
         )
-        balanced_buy_b = (
-            snapshot_b["transactions"]["PORT"].eq("BALANCED")
+        alpha_buy_b = (
+            snapshot_b["transactions"]["PORT"].eq("ALPHA")
             & snapshot_b["transactions"]["TRAN"].eq("BUY")
         )
 
@@ -194,16 +194,16 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertGreater(tnote_cost_b, tnote_cost_a)
         self.assertGreater(cash_market_value_b, cash_market_value_a)
         self.assertGreater(
-            float(snapshot_b["transactions"].loc[balanced_buy_b, "QTY"].max()),
-            float(snapshot_a["transactions"].loc[balanced_buy_a, "QTY"].max()),
+            float(snapshot_b["transactions"].loc[alpha_buy_b, "QTY"].max()),
+            float(snapshot_a["transactions"].loc[alpha_buy_a, "QTY"].max()),
         )
         self.assertGreater(
-            float(snapshot_b["transactions"].loc[balanced_buy_b, "PRICE"].max()),
-            float(snapshot_a["transactions"].loc[balanced_buy_a, "PRICE"].max()),
+            float(snapshot_b["transactions"].loc[alpha_buy_b, "PRICE"].max()),
+            float(snapshot_a["transactions"].loc[alpha_buy_a, "PRICE"].max()),
         )
         self.assertGreater(
-            float(snapshot_b["transactions"].loc[balanced_buy_b, "COMMISSION"].max()),
-            float(snapshot_a["transactions"].loc[balanced_buy_a, "COMMISSION"].max()),
+            float(snapshot_b["transactions"].loc[alpha_buy_b, "COMMISSION"].max()),
+            float(snapshot_a["transactions"].loc[alpha_buy_a, "COMMISSION"].max()),
         )
         self.assertGreater(
             snapshot_b["portperf"]["PORT_RETURN"].iloc[-1],

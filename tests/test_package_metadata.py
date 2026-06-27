@@ -320,7 +320,6 @@ class TestPackageMetadata(unittest.TestCase):
 
         changed_trade_cases = (
             ("ALPHA0401", "2026-03-31", ()),
-            ("BALANCED0401", "2026-03-31", ()),
             ("BALANCED0203", "2026-01-30", ()),
         )
         for transaction_id, holding_date, other_cash_transaction_ids in changed_trade_cases:
@@ -486,8 +485,8 @@ class TestPackageMetadata(unittest.TestCase):
             places=2,
         )
 
-    def test_axys_demo_withdrawal_changes_cash_flow_and_reported_return(self) -> None:
-        """Packaged withdrawal changes cash, flow, and reported return."""
+    def test_axys_demo_withdrawal_changes_cash_and_flow_not_reported_return(self) -> None:
+        """Packaged withdrawal changes cash and flow without changing reported return."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
@@ -566,8 +565,8 @@ class TestPackageMetadata(unittest.TestCase):
                 portperf_b[portfolio_key],
                 "PORT_RETURN",
             ),
-            amount_delta * (11 / 30) / float(portperf_a[portfolio_key]["BEGIN_MV"]),
-            places=10,
+            0.0,
+            places=12,
         )
 
     def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
@@ -657,12 +656,6 @@ class TestPackageMetadata(unittest.TestCase):
                             float(portfolio_row["END_MV"]),
                             places=2,
                         )
-                        if key == ("ALPHA", "2026-01-01", "2026-01-30"):
-                            # This demo period includes a changed portfolio-level
-                            # withdrawal. Security contributions still foot to
-                            # security rows, while portfolio return includes the
-                            # external-flow restatement.
-                            continue
                         self.assertAlmostEqual(
                             sum(float(row["CONTRIBUTION"]) for row in rows),
                             float(portfolio_row["PORT_RETURN"]),

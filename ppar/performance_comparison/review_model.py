@@ -17,8 +17,16 @@ PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
 IDENTIFIABLE_CAUSES_ARTIFACT: Final[str] = "identifiable_causes"
 OTHER_EVIDENCE_ARTIFACT: Final[str] = "other_evidence"
 RAW_AUDIT_TRAIL_ARTIFACT: Final[str] = "raw_audit_trail"
+RECONSTRUCTION_SUMMARY_ARTIFACT: Final[str] = "reconstruction_summary"
+RETURN_RECONSTRUCTION_CHECKS_ARTIFACT: Final[str] = "return_reconstruction_checks"
+SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT: Final[str] = (
+    "security_return_reconstruction_checks"
+)
 
 PERFORMANCE_DIFFERENCES_SHEET: Final[str] = "Performance Differences"
+RECONSTRUCTION_SUMMARY_SHEET: Final[str] = "Reconstruction Summary"
+RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Return Reconstruction Checks"
+SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Security Return Checks"
 IDENTIFIABLE_CAUSES_SHEET: Final[str] = "Identifiable Causes"
 OTHER_EVIDENCE_SHEET: Final[str] = "Other Evidence"
 RAW_AUDIT_TRAIL_SHEET: Final[str] = "Raw Audit Trail"

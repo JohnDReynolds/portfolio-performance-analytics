@@ -156,6 +156,7 @@ def write_report_bundle_manifest(
     active_findings: pl.DataFrame,
     title: str,
     top_evidence_limit: int,
+    include_reconstruction_diagnostics: bool = False,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
 ) -> Path:
@@ -167,6 +168,8 @@ def write_report_bundle_manifest(
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
         top_evidence_limit: Maximum number of evidence rows shown per period.
+        include_reconstruction_diagnostics: Whether interim reconstruction
+            diagnostics are included in the bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
 
@@ -178,6 +181,7 @@ def write_report_bundle_manifest(
         active_findings=active_findings,
         title=title,
         top_evidence_limit=top_evidence_limit,
+        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         artifact_paths=artifact_paths,
         tables=tables,
     )
@@ -194,6 +198,7 @@ def report_bundle_manifest(
     active_findings: pl.DataFrame,
     title: str,
     top_evidence_limit: int,
+    include_reconstruction_diagnostics: bool = False,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
 ) -> dict[str, object]:
@@ -204,6 +209,8 @@ def report_bundle_manifest(
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
         top_evidence_limit: Maximum number of evidence rows shown per period.
+        include_reconstruction_diagnostics: Whether interim reconstruction
+            diagnostics are included in the bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
 
@@ -217,6 +224,7 @@ def report_bundle_manifest(
         "title": title,
         "options": {
             "top_evidence_limit": top_evidence_limit,
+            "include_reconstruction_diagnostics": include_reconstruction_diagnostics,
         },
         "counts": {
             "findings": findings.height,
@@ -283,6 +291,11 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         ),
         "transaction_cross_checks": "transaction impact diagnostics",
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
+        "reconstruction_summary": "return reconstruction diagnostic summary",
+        "return_reconstruction_checks": "portfolio return reconstruction diagnostics",
+        "security_return_reconstruction_checks": (
+            "security return reconstruction diagnostics"
+        ),
         "residual_status": "residual caveat status by changed portfolio period",
         "transaction_activity": "changed transaction activity and missing inputs",
         "transaction_matching_diagnostics": (

@@ -284,7 +284,6 @@ def _assert_workbook_explained_row_actions(
                 "configured as evidence-only" in str(required_setup)
                 or "not included in explained difference" in str(required_setup)
                 or "related performance input" in str(required_setup)
-                or "counted portfolio external-flow transaction" in str(required_setup)
                 or "changed transactions.amount" in str(required_setup)
                 or "changed holdings.market_value" in str(required_setup)
                 or "Input for changed" in str(required_setup)
@@ -388,6 +387,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["counts"]["findings"], 16)
             self.assertEqual(manifest["counts"]["active_findings"], 16)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
+            self.assertFalse(
+                manifest["options"]["include_reconstruction_diagnostics"]
+            )
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertEqual(manifest["artifacts"]["readme"], "README.md")

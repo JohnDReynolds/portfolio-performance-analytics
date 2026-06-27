@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 import importlib
+import json
 from pathlib import Path
 import tempfile
 from typing import Any
@@ -23,8 +24,22 @@ _SECURITY_SPEC_COMPARISON_PATH = Path(
     "ppar/demos/data/axys/ppar_performance_comparison_security.yaml"
 )
 
-_EXPECTED_PORTFOLIO_SHEETS = list(_pc_review_model.EXPECTED_REVIEW_SHEETS)
-_EXPECTED_SECURITY_SHEETS = list(_pc_review_model.EXPECTED_REVIEW_SHEETS)
+_EXPECTED_PORTFOLIO_SHEETS = [
+    _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
+    _pc_review_model.IDENTIFIABLE_CAUSES_SHEET,
+    _pc_review_model.OTHER_EVIDENCE_SHEET,
+    _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
+]
+_EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
+_EXPECTED_DIAGNOSTIC_SHEETS = [
+    _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
+    _pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
+    _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
+    _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
+    _pc_review_model.IDENTIFIABLE_CAUSES_SHEET,
+    _pc_review_model.OTHER_EVIDENCE_SHEET,
+    _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
+]
 _COMMON_LEFT_HEADERS = [
     "Portfolio",
     "From Date",
@@ -50,6 +65,10 @@ _NON_ADDITIVE_HEADERS = [
     "Review Guidance",
     "Review Key",
 ]
+_EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
+    ("BALANCED", "2026-05-01", "2026-05-29", "Partly Explained"),
+    ("INCOME", "2026-04-01", "2026-04-30", "Unexplained"),
+}
 
 
 def _header_values(worksheet: Any) -> list[object]:
@@ -90,6 +109,11 @@ def _numeric_value(value: object) -> float:
     return float(value)
 
 
+def _workbook_date_text(value: object) -> str:
+    """Return an ISO date string from an XLSX cell value."""
+    return str(value)[:10]
+
+
 class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
     """Validate reviewer-facing workbook presentation invariants."""
 
@@ -104,6 +128,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 Path(directory) / "bundle",
                 include_workbook=True,
                 comparison_path=_PORTFOLIO_COMPARISON_PATH,
+            )
+            self.assertNotIn(_pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT, paths)
+            self.assertNotIn(
+                _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+                paths,
+            )
+            self.assertNotIn(
+                _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+                paths,
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
@@ -171,12 +204,34 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
                 self.assertEqual(
                     statuses,
-                    {"Fully Explained", "Unexplained"},
+                    {"Fully Explained", "Partly Explained", "Unexplained"},
                 )
-                self.assertEqual(len(portfolio_rows), 10)
+                self.assertEqual(len(portfolio_rows), 8)
                 self.assertEqual(
                     sum(1 for row in portfolio_rows if row[6] == "Fully Explained"),
-                    9,
+                    6,
+                )
+                self.assertEqual(
+                    sum(1 for row in portfolio_rows if row[6] == "Partly Explained"),
+                    1,
+                )
+                self.assertEqual(
+                    sum(1 for row in portfolio_rows if row[6] == "Unexplained"),
+                    1,
+                )
+                non_fully_explained_rows = {
+                    (
+                        str(row[0]),
+                        _workbook_date_text(row[1]),
+                        _workbook_date_text(row[2]),
+                        str(row[6]),
+                    )
+                    for row in portfolio_rows
+                    if row[6] != "Fully Explained"
+                }
+                self.assertEqual(
+                    non_fully_explained_rows,
+                    _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS,
                 )
                 self.assertTrue(
                     all(
@@ -198,9 +253,9 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "not included in explained difference" in str(row[11])
                         or "Input for changed" in str(row[11])
                         or "related performance input" in str(row[11])
-                        or "counted portfolio external-flow transaction" in str(row[11])
                         or "changed transactions.amount" in str(row[11])
                         or "changed holdings.market_value" in str(row[11])
+                        or "calculated portfolio-return difference" in str(row[11])
                         for row in underlying_rows
                     )
                 )
@@ -287,7 +342,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row[7] for row in security_rows},
-                    {"Fully Explained", "Unexplained"},
+                    {"Fully Explained", "Partly Explained", "Unexplained"},
                 )
                 fully_explained_rows = [
                     row for row in security_rows if row[7] == "Fully Explained"
@@ -313,17 +368,9 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and str(row[2])[:10] == "2026-03-31"
                     and row[3] == "AAPL"
                 )
-                self.assertEqual(aapl_trade_row[7], "Fully Explained")
-                self.assertAlmostEqual(
-                    _numeric_value(aapl_trade_row[4]),
-                    _numeric_value(aapl_trade_row[5]),
-                    places=6,
-                )
-                self.assertAlmostEqual(
-                    _numeric_value(aapl_trade_row[6]),
-                    0.0,
-                    places=6,
-                )
+                self.assertEqual(aapl_trade_row[7], "Partly Explained")
+                self.assertLess(_numeric_value(aapl_trade_row[5]), 0.0)
+                self.assertGreater(_numeric_value(aapl_trade_row[6]), 0.0)
                 aapl_price_rows = [
                     row
                     for row in security_rows
@@ -365,6 +412,9 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     {
                         ("transactions.amount", "TNOTE2Y"),
+                        ("holdings.ending_market_value", "AAPL"),
+                        ("transactions.net_flow", "AAPL"),
+                        ("transactions.weighted_flow", "AAPL"),
                     }.issubset(
                         {(row[4], row[5]) for row in underlying_rows}
                     )
@@ -386,5 +436,42 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and str(row[2])[:10] == "2026-05-29"
                 )
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
+            finally:
+                workbook.close()
+
+    def test_review_workbook_can_include_reconstruction_diagnostics(self) -> None:
+        """Reconstruction diagnostic sheets are available by explicit opt-in."""
+        openpyxl: Any = importlib.import_module("openpyxl")
+
+        findings = compare_snapshots(_PORTFOLIO_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                Path(directory) / "bundle",
+                include_workbook=True,
+                comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                include_reconstruction_diagnostics=True,
+            )
+            self.assertIn(_pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT, paths)
+            self.assertIn(
+                _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+                paths,
+            )
+            self.assertIn(
+                _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+                paths,
+            )
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            self.assertTrue(
+                manifest["options"]["include_reconstruction_diagnostics"]
+            )
+
+            workbook = openpyxl.load_workbook(
+                paths["review_workbook"],
+                read_only=True,
+                data_only=True,
+            )
+            try:
+                self.assertEqual(workbook.sheetnames, _EXPECTED_DIAGNOSTIC_SHEETS)
             finally:
                 workbook.close()

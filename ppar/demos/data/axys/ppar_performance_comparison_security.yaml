@@ -28,6 +28,39 @@ files:
   holdings: holdings.csv
   transactions: transactions.csv
 
+portfolio_return_reconstruction:
+  method: modified_dietz
+  beginning_value_source: holdings
+  ending_value_source: holdings
+  flow_source: transactions
+  flow_timing: transaction_date
+  day_count: actual_days
+  inclusion_rule: beginning_of_day
+  flow_categories:
+    - external_flow
+  income_categories:
+    - income
+    - fee_expense
+  return_basis: net
+  sign_convention: signed_amount
+
+security_return_reconstruction:
+  method: modified_dietz
+  beginning_value_source: holdings
+  ending_value_source: holdings
+  flow_source: transactions
+  flow_timing: transaction_date
+  day_count: actual_days
+  inclusion_rule: beginning_of_day
+  flow_categories:
+    - buy
+    - sell
+  income_categories:
+    - income
+    - fee_expense
+  return_basis: net
+  sign_convention: signed_amount
+
 transaction_rules:
   BUY:
     transaction_category: buy
@@ -68,7 +101,7 @@ transaction_impact_methods:
     day_count: actual_days
     inclusion_rule: beginning_of_day
     denominator_source: begin_market_value
-    double_count_policy: count_as_explanation
+    double_count_policy: cross_check_only
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value

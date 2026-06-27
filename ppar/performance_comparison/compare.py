@@ -85,7 +85,6 @@ from ppar.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
     modified_dietz_float as _modified_dietz_float,
 )
-from ppar.performance_comparison.methods import ModifiedDietzDoubleCountPolicy
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
 from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.rules import apply_suppressions
@@ -1012,11 +1011,6 @@ class PerformanceComparison:
             denominator=denominator,
         )
         if eligibility.eligible:
-            if (
-                policy.double_count_policy
-                == ModifiedDietzDoubleCountPolicy.COUNT_AS_EXPLANATION.value
-            ):
-                return "modified_dietz counted estimate"
             return "modified_dietz cross-check estimate"
         missing = ", ".join(eligibility.missing_inputs)
         return f"modified_dietz missing inputs: {missing}"

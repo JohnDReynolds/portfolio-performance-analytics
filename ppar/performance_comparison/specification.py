@@ -12,6 +12,16 @@ import yaml
 
 # Project imports
 from ppar.errors import PpaError
+from ppar.performance_comparison.methods import (
+    ModifiedDietzDayCount,
+    ModifiedDietzFlowTiming,
+    ModifiedDietzInclusionRule,
+    ReturnBasis,
+    ReturnReconstructionFlowSource,
+    ReturnReconstructionMethod,
+    ReturnReconstructionSignConvention,
+    ReturnReconstructionValueSource,
+)
 import ppar.utilities as util
 
 _SNAPSHOT_A_KEY: Final[str] = "a"
@@ -25,6 +35,8 @@ _SCHEMA_KEY: Final[str] = "schema"
 _REQUIRED_KEY: Final[str] = "required"
 _COMPARISON_KEY: Final[str] = "comparison"
 _LEVEL_KEY: Final[str] = "level"
+_PORTFOLIO_RETURN_RECONSTRUCTION_KEY: Final[str] = "portfolio_return_reconstruction"
+_SECURITY_RETURN_RECONSTRUCTION_KEY: Final[str] = "security_return_reconstruction"
 _PORTFOLIO_PERFORMANCE_KEY: Final[str] = "portfolio_performance"
 _SECURITY_PERFORMANCE_KEY: Final[str] = "security_performance"
 _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
@@ -42,6 +54,19 @@ PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
 SECURITY_COMPARISON_LEVEL: Final[str] = "security"
 COMPARISON_LEVELS: Final[frozenset[str]] = frozenset(
     {PORTFOLIO_COMPARISON_LEVEL, SECURITY_COMPARISON_LEVEL}
+)
+_RECONSTRUCTION_REQUIRED_KEYS: Final[tuple[str, ...]] = (
+    "method",
+    "beginning_value_source",
+    "ending_value_source",
+    "flow_source",
+    "flow_timing",
+    "day_count",
+    "inclusion_rule",
+    "flow_categories",
+    "income_categories",
+    "return_basis",
+    "sign_convention",
 )
 
 
@@ -81,6 +106,40 @@ class ComparisonFile:
     snapshot_a_path: Path
     snapshot_b_path: Path
     required: bool
+
+
+@dataclass(frozen=True)
+class PortfolioReturnReconstruction:
+    """Resolved portfolio return-reconstruction settings.
+
+    Attributes:
+        method: Return reconstruction method.
+        beginning_value_source: Dataset used for beginning value.
+        ending_value_source: Dataset used for ending value.
+        flow_source: Dataset used for dated external flows.
+        flow_timing: Transaction date field used for flow weighting.
+        day_count: Day-count convention.
+        inclusion_rule: Beginning/end-of-day flow inclusion rule.
+        flow_categories: Transaction categories treated as external flows.
+        income_categories: Transaction categories treated as income inputs.
+        return_basis: Reported-return basis for fee/expense interpretation.
+        sign_convention: Transaction amount sign convention.
+    """
+
+    method: str
+    beginning_value_source: str
+    ending_value_source: str
+    flow_source: str
+    flow_timing: str
+    day_count: str
+    inclusion_rule: str
+    flow_categories: tuple[str, ...]
+    income_categories: tuple[str, ...]
+    return_basis: str
+    sign_convention: str
+
+
+SecurityReturnReconstruction = PortfolioReturnReconstruction
 
 
 class PerformanceComparisonSpecification:
@@ -123,9 +182,14 @@ class PerformanceComparisonSpecification:
 
         self.values: dict[str, Any] = loaded_yaml
         self.comparison_level = self._comparison_level()
+        self.portfolio_return_reconstruction = (
+            self._portfolio_return_reconstruction()
+        )
+        self.security_return_reconstruction = self._security_return_reconstruction()
         self.snapshot_a = self._snapshot(_SNAPSHOT_A_KEY)
         self.snapshot_b = self._snapshot(_SNAPSHOT_B_KEY)
         self.files = self._files()
+        self._validate_reconstruction_files()
         self._validate_required_files()
 
     def resolve_path(self, file_path: util.PathLike) -> Path:
@@ -228,6 +292,163 @@ class PerformanceComparisonSpecification:
             files[file_name] = self._file(file_name, file_value)
         return files
 
+    def _portfolio_return_reconstruction(
+        self,
+    ) -> PortfolioReturnReconstruction | None:
+        """Return validated portfolio return-reconstruction settings."""
+        return self._return_reconstruction(_PORTFOLIO_RETURN_RECONSTRUCTION_KEY)
+
+    def _security_return_reconstruction(
+        self,
+    ) -> SecurityReturnReconstruction | None:
+        """Return validated security return-reconstruction settings."""
+        return self._return_reconstruction(_SECURITY_RETURN_RECONSTRUCTION_KEY)
+
+    def _return_reconstruction(
+        self,
+        section: str,
+    ) -> PortfolioReturnReconstruction | None:
+        """Return validated return-reconstruction settings for a YAML section."""
+        reconstruction = self.values.get(section)
+        if reconstruction is None:
+            return None
+        if not isinstance(reconstruction, dict):
+            raise PpaError(
+                self._error_message(
+                    f"{section} must be a mapping."
+                ),
+                504,
+            )
+
+        missing_keys = [
+            key for key in _RECONSTRUCTION_REQUIRED_KEYS if key not in reconstruction
+        ]
+        if missing_keys:
+            raise PpaError(
+                self._error_message(
+                    f"{section} missing required keys: {', '.join(missing_keys)}."
+                ),
+                504,
+            )
+
+        return PortfolioReturnReconstruction(
+            method=self._required_choice(
+                section,
+                "method",
+                reconstruction["method"],
+                {ReturnReconstructionMethod.MODIFIED_DIETZ.value},
+            ),
+            beginning_value_source=self._required_choice(
+                section,
+                "beginning_value_source",
+                reconstruction["beginning_value_source"],
+                {ReturnReconstructionValueSource.HOLDINGS.value},
+            ),
+            ending_value_source=self._required_choice(
+                section,
+                "ending_value_source",
+                reconstruction["ending_value_source"],
+                {ReturnReconstructionValueSource.HOLDINGS.value},
+            ),
+            flow_source=self._required_choice(
+                section,
+                "flow_source",
+                reconstruction["flow_source"],
+                {ReturnReconstructionFlowSource.TRANSACTIONS.value},
+            ),
+            flow_timing=self._required_choice(
+                section,
+                "flow_timing",
+                reconstruction["flow_timing"],
+                {
+                    "transaction_date",
+                    ModifiedDietzFlowTiming.TRADE_DATE.value,
+                    ModifiedDietzFlowTiming.SETTLEMENT_DATE.value,
+                },
+            ),
+            day_count=self._required_choice(
+                section,
+                "day_count",
+                reconstruction["day_count"],
+                {ModifiedDietzDayCount.ACTUAL_DAYS.value},
+            ),
+            inclusion_rule=self._required_choice(
+                section,
+                "inclusion_rule",
+                reconstruction["inclusion_rule"],
+                {
+                    ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value,
+                    ModifiedDietzInclusionRule.END_OF_DAY.value,
+                },
+            ),
+            flow_categories=self._required_string_list(
+                section,
+                "flow_categories",
+                reconstruction["flow_categories"],
+            ),
+            income_categories=self._required_string_list(
+                section,
+                "income_categories",
+                reconstruction["income_categories"],
+            ),
+            return_basis=self._required_choice(
+                section,
+                "return_basis",
+                reconstruction["return_basis"],
+                {ReturnBasis.GROSS.value, ReturnBasis.NET.value},
+            ),
+            sign_convention=self._required_choice(
+                section,
+                "sign_convention",
+                reconstruction["sign_convention"],
+                {ReturnReconstructionSignConvention.SIGNED_AMOUNT.value},
+            ),
+        )
+
+    def _required_choice(
+        self,
+        section: str,
+        key: str,
+        value: object,
+        allowed_values: set[str],
+    ) -> str:
+        """Return a required string enum value or raise."""
+        if not isinstance(value, str) or not value:
+            raise PpaError(
+                self._error_message(f"{section}.{key} must be a string."),
+                504,
+            )
+        if value not in allowed_values:
+            allowed = ", ".join(sorted(allowed_values))
+            raise PpaError(
+                self._error_message(
+                    f"{section}.{key} must be one of: {allowed}."
+                ),
+                504,
+            )
+        return value
+
+    def _required_string_list(
+        self,
+        section: str,
+        key: str,
+        value: object,
+    ) -> tuple[str, ...]:
+        """Return a required list of strings or raise."""
+        if not isinstance(value, list):
+            raise PpaError(
+                self._error_message(f"{section}.{key} must be a list."),
+                504,
+            )
+        if not all(isinstance(item, str) and item for item in value):
+            raise PpaError(
+                self._error_message(
+                    f"{section}.{key} must contain only non-empty strings."
+                ),
+                504,
+            )
+        return tuple(value)
+
     def _file(self, file_name: str, file_value: object) -> ComparisonFile:
         """Return one resolved comparison file definition."""
         required = file_name == self._required_performance_file_name()
@@ -315,6 +536,31 @@ class PerformanceComparisonSpecification:
             ):
                 if not util.file_path_exists(file_path):
                     raise PpaError(self._error_message(util.file_path_error(file_path)), 802)
+
+    def _validate_reconstruction_files(self) -> None:
+        """Raise if opted-in return reconstruction lacks required source files."""
+        if self.portfolio_return_reconstruction is None:
+            if self.security_return_reconstruction is None:
+                return
+        for file_name in ("holdings", "transactions"):
+            if file_name not in self.files:
+                raise PpaError(
+                    self._error_message(
+                        f"return reconstruction requires files.{file_name}."
+                    ),
+                    504,
+                )
+        if (
+            self.security_return_reconstruction is not None
+            and _SECURITY_PERFORMANCE_KEY not in self.files
+        ):
+            raise PpaError(
+                self._error_message(
+                    "security_return_reconstruction requires "
+                    f"files.{_SECURITY_PERFORMANCE_KEY}."
+                ),
+                504,
+            )
 
     def _error_message(self, message: str) -> str:
         """Return an error message with comparison specification context."""

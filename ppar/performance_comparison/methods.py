@@ -96,4 +96,34 @@ class ModifiedDietzDoubleCountPolicy(StrEnum):
     """Supported Modified Dietz double-counting guardrail policies."""
 
     CROSS_CHECK_ONLY = "cross_check_only"
-    COUNT_AS_EXPLANATION = "count_as_explanation"
+
+
+class ReturnReconstructionMethod(StrEnum):
+    """Supported return-reconstruction method names."""
+
+    MODIFIED_DIETZ = "modified_dietz"
+
+
+class ReturnReconstructionValueSource(StrEnum):
+    """Supported return-reconstruction beginning/ending value sources."""
+
+    HOLDINGS = "holdings"
+
+
+class ReturnReconstructionFlowSource(StrEnum):
+    """Supported return-reconstruction flow sources."""
+
+    TRANSACTIONS = "transactions"
+
+
+class ReturnBasis(StrEnum):
+    """Supported reported-return basis labels."""
+
+    GROSS = "gross"
+    NET = "net"
+
+
+class ReturnReconstructionSignConvention(StrEnum):
+    """Supported return-reconstruction amount sign conventions."""
+
+    SIGNED_AMOUNT = "signed_amount"
