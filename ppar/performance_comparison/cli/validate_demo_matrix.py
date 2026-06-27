@@ -130,6 +130,7 @@ def _validate_demo_matrix(
 
     baseline_portfolio_changes = _workbook_portfolio_changes_table(baseline_findings)
     restatement_causes = _workbook_underlying_causes_table(restatement_findings)
+    restatement_context = _workbook_context_table(restatement_findings)
     transaction_rules_causes = _workbook_underlying_causes_table(transaction_rules_findings)
     multi_causes = _workbook_underlying_causes_table(multi_findings)
     policy_gap_causes = _workbook_underlying_causes_table(policy_gap_findings)
@@ -154,7 +155,7 @@ def _validate_demo_matrix(
             "review_guidance",
             "transaction_rules",
         ),
-        _check_transaction_rows_visible(restatement_causes),
+        _check_transaction_rows_visible(restatement_causes, restatement_context),
         _check_transaction_rules_explain_amount(transaction_rules_causes),
         _check_non_empty_table(
             "Context-only evidence",
@@ -231,9 +232,18 @@ def _check_workbook_column(
     return _ScenarioCheck(name, False, f"missing `{expected_text}` in `{column}`")
 
 
-def _check_transaction_rows_visible(causes: pl.DataFrame) -> _ScenarioCheck:
+def _check_transaction_rows_visible(
+    causes: pl.DataFrame,
+    context: pl.DataFrame,
+) -> _ScenarioCheck:
     """Return whether the single-restatement workbook table shows transactions."""
-    transaction_rows = causes.filter(pl.col("dataset") == "transactions")
+    transaction_rows = pl.concat(
+        [
+            causes.filter(pl.col("dataset") == "transactions"),
+            context.filter(pl.col("dataset") == "transactions"),
+        ],
+        how="diagonal_relaxed",
+    )
     expected_columns = {"amount", "quantity", "price"}
     actual_columns = set(transaction_rows.get_column("source_column").to_list())
     if expected_columns.issubset(actual_columns):

@@ -273,13 +273,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         quantity_delta=1.0,
         price_delta=0.15,
         commission_delta=10.0,
-    )
-    _adjust_transaction_amount(
-        snapshot["transactions"],
-        "ALPHA",
-        early_date,
-        "BUY",
-        amount_delta=-180.0,
+        recalculate_buy_amount=True,
     )
     _apply_portfolio_return_delta(
         snapshot["portperf"],
@@ -356,6 +350,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         quantity_delta=2.0,
         price_delta=0.25,
         commission_delta=25.0,
+        recalculate_buy_amount=True,
     )
     _apply_reported_portfolio_return_delta(
         snapshot["portperf"],
@@ -648,8 +643,15 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
         )
         for period_index, period in enumerate(periods, start=1):
             for index, row in enumerate(equities.itertuples(index=False), start=1):
-                amount = 4_000.0 * index
+                gross_amount = 4_000.0 * index
                 transaction_code = "BUY" if index == 1 else "DIV"
+                quantity = (
+                    round(gross_amount / _price_for(row.identifier), 4)
+                    if transaction_code == "BUY"
+                    else 0.0
+                )
+                price = _price_for(row.identifier) if transaction_code == "BUY" else 0.0
+                commission = 4.95 if transaction_code == "BUY" else 0.0
                 rows.append(
                     {
                         "TRANSACTION_ID": f"{portfolio_code}{period_index:02d}{index:02d}",
@@ -662,14 +664,14 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         ).date(),
                         "SEC": row.identifier,
                         "TRAN": transaction_code,
-                        "QTY": (
-                            round(amount / _price_for(row.identifier), 4)
+                        "QTY": quantity,
+                        "PRICE": price,
+                        "AMOUNT": (
+                            _buy_transaction_amount(quantity, price, commission)
                             if transaction_code == "BUY"
-                            else 0.0
+                            else round(gross_amount * 0.0125, 2)
                         ),
-                        "PRICE": _price_for(row.identifier) if transaction_code == "BUY" else 0.0,
-                        "AMOUNT": -amount if transaction_code == "BUY" else round(amount * 0.0125, 2),
-                        "COMMISSION": 4.95 if transaction_code == "BUY" else 0.0,
+                        "COMMISSION": commission,
                         "BROKER": "DEMO",
                     }
                 )
@@ -810,6 +812,7 @@ def _adjust_transaction_fields(
     quantity_delta: float = 0.0,
     price_delta: float = 0.0,
     commission_delta: float = 0.0,
+    recalculate_buy_amount: bool = False,
 ) -> None:
     """Apply review-context transaction field restatements in place."""
     transaction_dates = pd.to_datetime(transactions["TRANSACTION_DATE"])
@@ -837,6 +840,17 @@ def _adjust_transaction_fields(
         float(transactions.loc[first_index, "COMMISSION"]) + commission_delta,
         2,
     )
+    if recalculate_buy_amount and transactions.loc[first_index, "TRAN"] == "BUY":
+        transactions.loc[first_index, "AMOUNT"] = _buy_transaction_amount(
+            float(transactions.loc[first_index, "QTY"]),
+            float(transactions.loc[first_index, "PRICE"]),
+            float(transactions.loc[first_index, "COMMISSION"]),
+        )
+
+
+def _buy_transaction_amount(quantity: float, price: float, commission: float) -> float:
+    """Return signed cash amount for a buy transaction including commission."""
+    return -round(quantity * price + commission, 2)
 
 
 def _adjust_security_performance(

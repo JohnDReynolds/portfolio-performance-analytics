@@ -626,15 +626,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         rules_findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
         rules_causes = _workbook_underlying_causes_table(rules_findings)
+        rules_context = _workbook_context_table(rules_findings)
         rules_transaction_amount = rules_causes.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "amount")
         )
-        rules_transaction_quantity = rules_causes.filter(
+        rules_transaction_quantity = rules_context.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "quantity")
         )
-        rules_transaction_price = rules_causes.filter(
+        rules_transaction_price = rules_context.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "price")
         )
@@ -703,20 +704,20 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             transaction_amount["review_note"][0],
         )
 
-    def test_transaction_commission_policy_marks_underlying_cause_review_only(
+    def test_transaction_commission_policy_marks_other_evidence_review_only(
         self,
     ) -> None:
-        """Commission can appear as a review-only underlying cause."""
+        """Commission appears as review-only supporting evidence."""
         with tempfile.TemporaryDirectory() as temp_dir:
             comparison_path = _write_transaction_commission_review_specification(
                 Path(temp_dir)
             )
 
-            causes = _workbook_underlying_causes_table(
+            context = _workbook_context_table(
                 compare_snapshots(comparison_path),
             )
 
-        commission = causes.filter(
+        commission = context.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "commission")
         )

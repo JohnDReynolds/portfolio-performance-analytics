@@ -279,7 +279,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row[7] for row in security_rows},
-                    {"Fully Explained", "Partly Explained", "Unexplained"},
+                    {"Fully Explained", "Unexplained"},
                 )
                 fully_explained_rows = [
                     row for row in security_rows if row[7] == "Fully Explained"
@@ -297,6 +297,25 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                             0.0,
                             places=6,
                         )
+                aapl_trade_row = next(
+                    row
+                    for row in security_rows
+                    if row[0] == "ALPHA"
+                    and str(row[1])[:10] == "2026-02-28"
+                    and str(row[2])[:10] == "2026-03-31"
+                    and row[3] == "AAPL"
+                )
+                self.assertEqual(aapl_trade_row[7], "Fully Explained")
+                self.assertAlmostEqual(
+                    _numeric_value(aapl_trade_row[4]),
+                    _numeric_value(aapl_trade_row[5]),
+                    places=6,
+                )
+                self.assertAlmostEqual(
+                    _numeric_value(aapl_trade_row[6]),
+                    0.0,
+                    places=6,
+                )
                 aapl_price_rows = [
                     row
                     for row in security_rows
@@ -325,11 +344,28 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("holdings", "cost", "CASH_USD"),
                         ("holdings", "cost", "MSFT"),
                         ("holdings", "cost", "TNOTE2Y"),
+                        ("transactions", "commission", "AAPL"),
+                        ("transactions", "price", "AAPL"),
+                        ("transactions", "quantity", "AAPL"),
                     }.issubset(
                         {(row[3], row[4], row[5]) for row in context_rows}
                     )
                 )
                 underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
+                underlying_sort_keys = [
+                    (row[0], str(row[1])[:10], str(row[2])[:10], row[6], row[4], row[5])
+                    for row in underlying_rows
+                ]
+                self.assertEqual(underlying_sort_keys, sorted(underlying_sort_keys))
+                self.assertFalse(
+                    {
+                        ("transactions", "commission", "AAPL"),
+                        ("transactions", "price", "AAPL"),
+                        ("transactions", "quantity", "AAPL"),
+                    }.intersection(
+                        {(row[4], row[5], row[6]) for row in underlying_rows}
+                    )
+                )
                 self.assertTrue(
                     {
                         ("holdings", "market_value", "TNOTE2Y"),

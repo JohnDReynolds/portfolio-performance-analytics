@@ -364,6 +364,30 @@ class TestPackageMetadata(unittest.TestCase):
             places=2,
         )
 
+    def test_axys_demo_buy_transaction_amounts_include_commission(self) -> None:
+        """Packaged BUY rows use a stable signed cash-amount convention."""
+        axys_demo_data = files("ppar.demos.data") / "axys"
+        for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
+            with self.subTest(snapshot=snapshot_name):
+                snapshot = Path(str(axys_demo_data / snapshot_name))
+                with (snapshot / "transactions.csv").open(
+                    encoding=util.ENCODING,
+                    newline="",
+                ) as file:
+                    for row in csv.DictReader(file):
+                        if row["TRAN"] != "BUY":
+                            continue
+                        expected_amount = -round(
+                            float(row["QTY"]) * float(row["PRICE"])
+                            + float(row["COMMISSION"]),
+                            2,
+                        )
+                        self.assertAlmostEqual(
+                            float(row["AMOUNT"]),
+                            expected_amount,
+                            places=2,
+                        )
+
     def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
         """Security performance demo rows stay consistent with holdings and prices."""
         axys_demo_data = files("ppar.demos.data") / "axys"

@@ -246,7 +246,7 @@ def _shared_detail_sheets(
             sheet_name=_pc_review_model.RAW_AUDIT_TRAIL_SHEET,
             table=_workbook_sorted_table(
                 _workbook_with_primary_review_key(findings, comparison_level),
-                _workbook_left_review_sort_columns(),
+                _workbook_left_review_sort_columns(comparison_level=comparison_level),
             ),
             columns=_workbook_findings_columns(findings),
             labels=_workbook_column_labels(),
@@ -286,12 +286,10 @@ def _workbook_underlying_impact_totals(
 ) -> dict[tuple[object, object, object], float]:
     """Return explained difference totals from underlying input rows."""
     totals: dict[tuple[object, object, object], float] = {}
-    for row in _workbook_ranked_changed_rows(findings):
-        if not _workbook_is_underlying_cause_row(row):
-            continue
-        estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
-        if estimated_impact is None:
-            continue
+    for row, estimated_impact in _workbook_selected_underlying_impact_rows(
+        findings,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    ):
         key = _workbook_period_key(row)
         totals[key] = totals.get(key, 0.0) + estimated_impact
     return totals
@@ -519,20 +517,42 @@ def _workbook_security_underlying_impact_totals(
 ) -> dict[tuple[object, object, object, object], float]:
     """Return security-level explained totals from underlying input rows."""
     totals: dict[tuple[object, object, object, object], float] = {}
+    for row, estimated_impact in _workbook_selected_underlying_impact_rows(
+        findings,
+        comparison_level=comparison_level,
+    ):
+        if not _has_text(row.get(_pc_findings.SECURITY_ID)):
+            continue
+        key = _workbook_security_period_key(row)
+        totals[key] = totals.get(key, 0.0) + estimated_impact
+    return totals
+
+
+def _workbook_selected_underlying_impact_rows(
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> list[tuple[dict[str, object], float]]:
+    """Return additive impact rows selected for workbook explained totals.
+
+    Notes:
+        Performance Differences totals must use the same selected impact rows
+        as the Identifiable Causes sheet. Otherwise transaction amount rows can
+        be counted in summary totals after the detail sheet has already treated
+        them as supporting evidence for changed holdings.
+    """
+    selected_rows: list[tuple[dict[str, object], float]] = []
     for row in _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
     ):
         if not _workbook_is_underlying_cause_row(row):
             continue
-        if not _has_text(row.get(_pc_findings.SECURITY_ID)):
-            continue
         estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
         if estimated_impact is None:
             continue
-        key = _workbook_security_period_key(row)
-        totals[key] = totals.get(key, 0.0) + estimated_impact
-    return totals
+        selected_rows.append((row, estimated_impact))
+    return selected_rows
 
 
 def _workbook_security_period_key(
@@ -640,12 +660,17 @@ def _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
     )
+    performance_input_keys = _workbook_performance_input_family_keys(
+        findings,
+        comparison_level=comparison_level,
+    )
     rows: list[dict[str, object]] = []
     for row in evidence.iter_rows(named=True):
         rows.append(
             _workbook_selected_impact_row(
                 row,
                 selected_impact_bases,
+                performance_input_keys,
                 comparison_level=comparison_level,
             )
         )
@@ -702,7 +727,7 @@ def _workbook_underlying_causes_table(
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
         pl.DataFrame(rows),
-        _workbook_left_review_sort_columns(),
+        _workbook_left_review_sort_columns(comparison_level=comparison_level),
     )
 
 
@@ -829,7 +854,7 @@ def _workbook_context_table(
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
         pl.DataFrame(rows),
-        _workbook_left_review_sort_columns(),
+        _workbook_left_review_sort_columns(comparison_level=comparison_level),
     )
 
 
@@ -878,6 +903,8 @@ def _workbook_should_promote_context_row(
         return False
     if not _workbook_is_promotable_evidence_only_row(row):
         return False
+    if _workbook_is_transaction_component_row(row):
+        return False
     if _workbook_primary_key(row, comparison_level) in unexplained_keys:
         return True
     return (
@@ -896,8 +923,17 @@ def _workbook_is_promotable_evidence_only_row(row: Mapping[str, object]) -> bool
     return source_column in _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS.get(dataset, set())
 
 
-def _workbook_left_review_sort_columns() -> tuple[str, ...]:
+def _workbook_left_review_sort_columns(*, comparison_level: str) -> tuple[str, ...]:
     """Return the shared left-column sort order for review detail sheets."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return (
+            _pc_findings.PORTFOLIO_ID,
+            _pc_findings.FROM_DATE,
+            _pc_findings.THRU_DATE,
+            _pc_findings.SECURITY_ID,
+            _pc_findings.DATASET,
+            _pc_findings.SOURCE_COLUMN,
+        )
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -906,6 +942,13 @@ def _workbook_left_review_sort_columns() -> tuple[str, ...]:
         _pc_findings.SOURCE_COLUMN,
         _pc_findings.SECURITY_ID,
     )
+
+
+def _workbook_is_transaction_component_row(row: Mapping[str, object]) -> bool:
+    """Return whether a row is support for transaction amount, not an input cause."""
+    return row.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS and row.get(
+        _pc_findings.SOURCE_COLUMN
+    ) in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
 
 
 def _workbook_selected_impact_basis_keys(
@@ -954,10 +997,11 @@ def _workbook_performance_input_family_keys(
 ) -> set[tuple[object, ...]]:
     """Return cause-family keys with selected performance input rows."""
     keys: set[tuple[object, ...]] = set()
-    for row in _workbook_ranked_changed_rows_for_level(
-        findings,
-        comparison_level=comparison_level,
-    ):
+    evidence = _workbook_with_primary_review_key(
+        _workbook_top_evidence_table(findings, comparison_level=comparison_level),
+        comparison_level,
+    )
+    for row in evidence.iter_rows(named=True):
         if not _field_roles.is_performance_input(
             row.get(_pc_findings.DATASET),
             row.get(_pc_findings.SOURCE_COLUMN),
@@ -1038,6 +1082,7 @@ def _workbook_preferred_estimate_rows(
 def _workbook_selected_impact_row(
     row: Mapping[str, object],
     selected_impact_bases: set[tuple[object, ...]],
+    performance_input_keys: set[tuple[object, ...]],
     *,
     comparison_level: str,
 ) -> dict[str, object]:
@@ -1060,6 +1105,22 @@ def _workbook_selected_impact_row(
     ):
         row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
         row_dict[_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION] = True
+        return _workbook_non_additive_row(row_dict)
+
+    holding_value_key = (
+        *_workbook_primary_key(row_dict, comparison_level),
+        row_dict.get(_pc_findings.SECURITY_ID),
+        "holding_value",
+    )
+    if (
+        row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
+        and holding_value_key in performance_input_keys
+    ):
+        row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
+        row_dict[_WORKBOOK_UNSELECTED_RELATED_ESTIMATE] = True
+        row_dict[_pc_explain.IMPACT_MESSAGE] = (
+            "Supporting evidence for changed holdings.market_value."
+        )
         return _workbook_non_additive_row(row_dict)
 
     key = (
