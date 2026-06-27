@@ -38,7 +38,8 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "From Date",
     "Thru Date",
     "As Of Date",
-    *_COMMON_LEFT_HEADERS[3:],
+    "Dataset Field",
+    "Security",
 ]
 _NON_ADDITIVE_HEADERS = [
     *_COMMON_LEFT_HEADERS,
@@ -130,7 +131,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Identifiable Causes"])[:15],
+                    _header_values(workbook["Identifiable Causes"])[:14],
                     [
                         *_IDENTIFIABLE_LEFT_HEADERS,
                         "Snapshot A Value",
@@ -170,12 +171,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
                 self.assertEqual(
                     statuses,
-                    {"Fully Explained", "Partly Explained", "Unexplained"},
+                    {"Fully Explained", "Unexplained"},
                 )
-                self.assertEqual(len(portfolio_rows), 7)
+                self.assertEqual(len(portfolio_rows), 10)
                 self.assertEqual(
                     sum(1 for row in portfolio_rows if row[6] == "Fully Explained"),
-                    3,
+                    9,
                 )
                 self.assertTrue(
                     all(
@@ -189,38 +190,45 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
                 self.assertTrue(
-                    any(row[4] == "no_underlying_causes_found" for row in underlying_rows)
-                )
-                self.assertTrue(
                     all(
-                        row[12] in (None, "")
-                        or "No additive underlying cause" in str(row[12])
-                        or "No additive identifiable cause" in str(row[12])
-                        or "shown for review" in str(row[12])
-                        or "not included in explained difference" in str(row[12])
-                        or "related performance input" in str(row[12])
-                        or "changed transactions.amount" in str(row[12])
-                        or "changed holdings.market_value" in str(row[12])
+                        row[11] in (None, "")
+                        or "No additive underlying cause" in str(row[11])
+                        or "No identifiable cause" in str(row[11])
+                        or "shown for review" in str(row[11])
+                        or "not included in explained difference" in str(row[11])
+                        or "Input for changed" in str(row[11])
+                        or "related performance input" in str(row[11])
+                        or "counted portfolio external-flow transaction" in str(row[11])
+                        or "changed transactions.amount" in str(row[11])
+                        or "changed holdings.market_value" in str(row[11])
                         for row in underlying_rows
                     )
                 )
-                underlying_fields = {(row[4], row[5]) for row in underlying_rows}
+                underlying_fields = {row[4] for row in underlying_rows}
                 self.assertTrue(
                     {
-                        ("holdings", "market_value"),
-                        ("holdings", "quantity"),
-                        ("transactions", "amount"),
+                        "holdings.market_value",
+                        "holdings.quantity",
+                        "transactions.amount",
+                        "transactions.commission",
+                        "transactions.price",
+                        "transactions.quantity",
                     }.issubset(underlying_fields)
                 )
+                jpm_dividend_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[4] == "transactions.amount"
+                    and row[5] == "JPM"
+                    and str(row[1])[:10] == "2026-04-01"
+                    and str(row[2])[:10] == "2026-04-30"
+                )
+                self.assertEqual(str(jpm_dividend_row[3])[:10], "2026-04-06")
                 context_rows = _sheet_rows(workbook["Other Evidence"])
                 context_fields = {(row[3], row[4]) for row in context_rows}
                 self.assertTrue(
                     {
                         ("holdings", "cost"),
-                        ("prices", "price"),
-                        ("transactions", "commission"),
-                        ("transactions", "price"),
-                        ("transactions", "quantity"),
                     }.issubset(context_fields)
                 )
             finally:
@@ -327,14 +335,14 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 for row in aapl_price_rows:
                     self.assertAlmostEqual(
                         _numeric_value(row[4]),
-                        (164.24 - 162.61) / 162.61,
+                        (162.61 - 161.0) / 161.0,
                     )
                 tnote_row = next(
                     row for row in security_rows if row[3] == "TNOTE2Y"
                 )
                 self.assertAlmostEqual(
                     _numeric_value(tnote_row[4]),
-                    (128.0 + 50.0) / 64000.0,
+                    (128.0 + 50.0 + 80.0) / 64000.0,
                     places=6,
                 )
                 context_rows = _sheet_rows(workbook["Other Evidence"])
@@ -344,35 +352,39 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("holdings", "cost", "CASH_USD"),
                         ("holdings", "cost", "MSFT"),
                         ("holdings", "cost", "TNOTE2Y"),
-                        ("transactions", "commission", "AAPL"),
-                        ("transactions", "price", "AAPL"),
-                        ("transactions", "quantity", "AAPL"),
                     }.issubset(
                         {(row[3], row[4], row[5]) for row in context_rows}
                     )
                 )
                 underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
                 underlying_sort_keys = [
-                    (row[0], str(row[1])[:10], str(row[2])[:10], row[6], row[4], row[5])
+                    (row[0], str(row[1])[:10], str(row[2])[:10], row[5], row[4])
                     for row in underlying_rows
                 ]
                 self.assertEqual(underlying_sort_keys, sorted(underlying_sort_keys))
-                self.assertFalse(
+                self.assertTrue(
                     {
-                        ("transactions", "commission", "AAPL"),
-                        ("transactions", "price", "AAPL"),
-                        ("transactions", "quantity", "AAPL"),
-                    }.intersection(
-                        {(row[4], row[5], row[6]) for row in underlying_rows}
+                        ("transactions.amount", "TNOTE2Y"),
+                    }.issubset(
+                        {(row[4], row[5]) for row in underlying_rows}
                     )
                 )
                 self.assertTrue(
                     {
-                        ("holdings", "market_value", "TNOTE2Y"),
-                        ("holdings", "quantity", "TNOTE2Y"),
+                        ("holdings.market_value", "TNOTE2Y"),
+                        ("holdings.quantity", "TNOTE2Y"),
                     }.issubset(
-                        {(row[4], row[5], row[6]) for row in underlying_rows}
+                        {(row[4], row[5]) for row in underlying_rows}
                     )
                 )
+                tnote_interest_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[4] == "transactions.amount"
+                    and row[5] == "TNOTE2Y"
+                    and str(row[1])[:10] == "2026-05-01"
+                    and str(row[2])[:10] == "2026-05-29"
+                )
+                self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
             finally:
                 workbook.close()

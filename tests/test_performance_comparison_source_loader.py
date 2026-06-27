@@ -161,24 +161,24 @@ class TestSourceLoader(unittest.TestCase):
                 {
                     "SEC": ["S1"],
                     "SOURCE": ["A"],
-                    "PRICE_SOURCE": ["B"],
+                    "SOURCE_ALIAS": ["B"],
                 }
             ).write_csv(path)
 
             with self.assertRaises(PpaError) as context:
                 source_loader.read_mapped_csv(
                     path,
-                    ("security_id", "price_source"),
+                    ("security_id", "source_column"),
                     "test_dataset",
                     {"security_id": ("SEC",)},
-                    {"price_source": ("PRICE_SOURCE", "SOURCE")},
+                    {"source_column": ("SOURCE_ALIAS", "SOURCE")},
                     directory / "comparison.yaml",
                 )
 
             message = str(context.exception)
             self.assertTrue(message.startswith("Error 502"))
             self.assertIn("Ambiguous test dataset source columns", message)
-            self.assertIn("price_source", message)
+            self.assertIn("source_column", message)
 
     def test_optional_file_path_returns_snapshot_specific_paths(self) -> None:
         """Optional file paths resolve to the requested snapshot side."""
@@ -189,17 +189,17 @@ class TestSourceLoader(unittest.TestCase):
 
             snapshot_a_path = source_loader.optional_file_path(
                 specification,
-                pc_cols.PRICES,
+                pc_cols.FX_RATES,
                 "a",
             )
             snapshot_b_path = source_loader.optional_file_path(
                 specification,
-                pc_cols.PRICES,
+                pc_cols.FX_RATES,
                 "b",
             )
 
-            self.assertEqual(snapshot_a_path, directory / "snapshot_a" / "prices.csv")
-            self.assertEqual(snapshot_b_path, directory / "snapshot_b" / "prices.csv")
+            self.assertEqual(snapshot_a_path, directory / "snapshot_a" / "fx_rates.csv")
+            self.assertEqual(snapshot_b_path, directory / "snapshot_b" / "fx_rates.csv")
 
     def test_optional_file_path_returns_none_for_omitted_dataset(self) -> None:
         """Omitted optional datasets return ``None``."""
@@ -226,7 +226,7 @@ class TestSourceLoader(unittest.TestCase):
             with self.assertRaises(PpaError) as context:
                 source_loader.optional_file_path(
                     specification,
-                    pc_cols.PRICES,
+                    pc_cols.FX_RATES,
                     "c",
                 )
 
@@ -252,7 +252,7 @@ def _write_source_loader_specification(directory: Path) -> Path:
         },
         "files": {
             "portfolio_performance": "portperf.csv",
-            "prices": "prices.csv",
+            "fx_rates": "fx_rates.csv",
         },
     }
     specification_path = directory / "ppar_performance_comparison.yaml"

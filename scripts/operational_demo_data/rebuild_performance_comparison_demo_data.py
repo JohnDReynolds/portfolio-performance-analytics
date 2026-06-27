@@ -1,9 +1,9 @@
 """Audit or rebuild derived performance-comparison demo CSV files.
 
 The packaged performance-comparison demos keep user-visible operational inputs
-in ``holdings.csv``, ``prices.csv``, and ``transactions.csv``. The
-``secperf.csv`` and ``portperf.csv`` files are derived review targets. This
-script keeps the derived performance files internally aligned by:
+in ``holdings.csv`` and ``transactions.csv``. The ``secperf.csv`` and
+``portperf.csv`` files are derived review targets. This script keeps the derived
+performance files internally aligned by:
 
 1. recomputing security beginning weights and contributions from ``secperf``;
 2. deriving portfolio performance rows from the resulting security rows; and

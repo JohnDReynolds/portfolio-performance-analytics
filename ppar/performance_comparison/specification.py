@@ -27,6 +27,17 @@ _COMPARISON_KEY: Final[str] = "comparison"
 _LEVEL_KEY: Final[str] = "level"
 _PORTFOLIO_PERFORMANCE_KEY: Final[str] = "portfolio_performance"
 _SECURITY_PERFORMANCE_KEY: Final[str] = "security_performance"
+_SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _PORTFOLIO_PERFORMANCE_KEY,
+        _SECURITY_PERFORMANCE_KEY,
+        "security_master",
+        "holdings",
+        "transactions",
+        "cash",
+        "fx_rates",
+    }
+)
 PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
 SECURITY_COMPARISON_LEVEL: Final[str] = "security"
 COMPARISON_LEVELS: Final[frozenset[str]] = frozenset(
@@ -205,6 +216,15 @@ class PerformanceComparisonSpecification:
         for file_name, file_value in files_value.items():
             if not isinstance(file_name, str) or not file_name:
                 raise PpaError(self._error_message("File names must be strings."), 504)
+            if file_name not in _SUPPORTED_FILE_KEYS:
+                supported = ", ".join(sorted(_SUPPORTED_FILE_KEYS))
+                raise PpaError(
+                    self._error_message(
+                        f"files.{file_name} is not supported. Supported files: "
+                        f"{supported}."
+                    ),
+                    504,
+                )
             files[file_name] = self._file(file_name, file_value)
         return files
 

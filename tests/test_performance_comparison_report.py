@@ -23,7 +23,6 @@ from ppar.performance_comparison import (
     compare_snapshots,
     findings_to_polars,
     report_bundle_validation_issues,
-    validate_causal_attribution_ready,
     write_performance_comparison_report_bundle,
     write_performance_comparison_review_workbook,
 )
@@ -214,60 +213,6 @@ def _write_holding_estimate_specification(
     return specification_path
 
 
-def _write_price_estimate_specification(
-    directory: Path,
-    *,
-    include_price_impact_methods: bool,
-) -> Path:
-    """Write a minimal source-loaded fixture with linked price changes."""
-    for snapshot_name, portfolio_return, price in (
-        ("snapshot_a", "0.0100", "100.00"),
-        ("snapshot_b", "0.0110", "101.00"),
-    ):
-        snapshot_path = directory / snapshot_name
-        snapshot_path.mkdir(parents=True)
-        (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,PORT_RETURN\n"
-            f"PORT_A,2025-05-01,2025-05-31,{portfolio_return}\n",
-            encoding="utf-8",
-        )
-        (snapshot_path / "secperf.csv").write_text(
-            "PORTFOLIO_CODE,SEC,FROM_DATE,THRU_DATE,SEC_RETURN,WEIGHT\n"
-            "PORT_A,AAPL,2025-05-01,2025-05-31,0.01,0.20\n",
-            encoding="utf-8",
-        )
-        (snapshot_path / "prices.csv").write_text(
-            "SEC,PRICE_DATE,PRICE\n"
-            f"AAPL,2025-05-31,{price}\n",
-            encoding="utf-8",
-        )
-
-    lines = [
-        "snapshots:",
-        "  a:",
-        "    path: snapshot_a",
-        "  b:",
-        "    path: snapshot_b",
-        "files:",
-        "  portfolio_performance: portperf.csv",
-        "  security_performance: secperf.csv",
-        "  prices: prices.csv",
-    ]
-    if include_price_impact_methods:
-        lines.extend(
-            [
-                "price_impact_methods:",
-                "  price:",
-                "    method: price_delta_over_snapshot_a_price_times_weight",
-                "    weight_source: snapshot_a_weight",
-            ]
-        )
-
-    specification_path = directory / "ppar_performance_comparison.yaml"
-    specification_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return specification_path
-
-
 def _assert_workbook_unexplained_formula(
     test_case: unittest.TestCase,
     portfolio_changes: pl.DataFrame,
@@ -333,14 +278,16 @@ def _assert_workbook_explained_row_actions(
             if row.get("dataset") == "no_underlying_causes_found":
                 test_case.assertEqual(row.get("use"), "Diagnostic")
                 test_case.assertEqual(row.get("impact_status"), "Review only")
-                test_case.assertIn("No additive identifiable cause", str(required_setup))
+                test_case.assertIn("No identifiable cause", str(required_setup))
                 continue
             if (
                 "configured as evidence-only" in str(required_setup)
                 or "not included in explained difference" in str(required_setup)
                 or "related performance input" in str(required_setup)
+                or "counted portfolio external-flow transaction" in str(required_setup)
                 or "changed transactions.amount" in str(required_setup)
                 or "changed holdings.market_value" in str(required_setup)
+                or "Input for changed" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue
@@ -438,8 +385,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
             self.assertEqual(manifest["title"], "Bundle Restatement")
-            self.assertEqual(manifest["counts"]["findings"], 17)
-            self.assertEqual(manifest["counts"]["active_findings"], 17)
+            self.assertEqual(manifest["counts"]["findings"], 16)
+            self.assertEqual(manifest["counts"]["active_findings"], 16)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
@@ -496,7 +443,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("impact_coverage_status", impact_coverage.columns)
             self.assertIn("impact_coverage_review_note", impact_coverage.columns)
             self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
-            self.assertEqual(impact_coverage["impact_coverage_status"][0], "missing_inputs")
+            self.assertEqual(impact_coverage["impact_coverage_status"][0], "partial_estimates")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
             self.assertEqual(context_evidence.height, 5)
@@ -550,18 +497,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(PpaError, "YAML setup is incomplete"):
                 write_performance_comparison_report_bundle(findings, directory)
-
-    def test_strict_causal_attribution_rejects_missing_setup(self) -> None:
-        """Strict causal attribution mode fails before ambiguous reporting."""
-        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-
-        with self.assertRaises(PpaError) as context:
-            validate_causal_attribution_ready(findings)
-
-        message = str(context.exception)
-        self.assertIn("Causal attribution setup is incomplete", message)
-        self.assertIn("PORT_A::2025-05-30::2025-05-30", message)
-        self.assertIn("missing YAML setup", message)
 
     def test_workbook_tables_follow_review_accounting_invariants(self) -> None:
         """Workbook review tables stay internally consistent across demos."""
@@ -647,15 +582,23 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_amount["review_guidance"][0],
-            "Input driver for changed holdings.market_value.",
+            "Input for changed cash-balance holdings.market_value.",
+        )
+        rules_transaction_quantity = rules_causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "quantity")
+        )
+        rules_transaction_price = rules_causes.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "price")
         )
         self.assertEqual(
-            rules_transaction_quantity["review_note"][0],
-            "Review this input difference; it is not included in explained difference.",
+            rules_transaction_quantity["review_guidance"][0],
+            "Input for changed AAPL transactions.amount.",
         )
         self.assertEqual(
-            rules_transaction_price["review_note"][0],
-            "Review this input difference; it is not included in explained difference.",
+            rules_transaction_price["review_guidance"][0],
+            "Input for changed AAPL transactions.amount.",
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -893,7 +836,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
             plain_quantity["review_guidance"][0],
-            "Input driver for changed holdings.market_value.",
+            "Input for changed AAPL holdings.market_value.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
@@ -901,61 +844,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(
             configured_quantity["review_note"][0],
             "Review this input difference; it is not included in explained difference.",
-        )
-
-    def test_portfolio_price_rows_are_other_evidence(self) -> None:
-        """Portfolio workbooks review standalone prices without additive impact."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            plain_path = _write_price_estimate_specification(
-                Path(temp_dir) / "plain",
-                include_price_impact_methods=False,
-            )
-            configured_path = _write_price_estimate_specification(
-                Path(temp_dir) / "configured",
-                include_price_impact_methods=True,
-            )
-
-            plain_causes = _workbook_underlying_causes_table(
-                compare_snapshots(plain_path),
-                comparison_path=plain_path,
-            )
-            configured_causes = _workbook_underlying_causes_table(
-                compare_snapshots(configured_path),
-                comparison_path=configured_path,
-            )
-            plain_context = _workbook_context_table(compare_snapshots(plain_path))
-            configured_context = _workbook_context_table(
-                compare_snapshots(configured_path)
-            )
-
-        plain_price = plain_causes.filter(
-            (pl.col("dataset") == "prices")
-            & (pl.col("source_column") == "price")
-        )
-        configured_price = configured_causes.filter(
-            (pl.col("dataset") == "prices")
-            & (pl.col("source_column") == "price")
-        )
-        plain_price_context = plain_context.filter(
-            (pl.col("dataset") == "prices")
-            & (pl.col("source_column") == "price")
-        )
-        configured_price_context = configured_context.filter(
-            (pl.col("dataset") == "prices")
-            & (pl.col("source_column") == "price")
-        )
-
-        self.assertEqual(plain_price.height, 0)
-        self.assertEqual(configured_price.height, 0)
-        self.assertEqual(plain_price_context.height, 1)
-        self.assertEqual(configured_price_context.height, 1)
-        self.assertEqual(
-            plain_price_context["review_note"][0],
-            "Review price change.",
-        )
-        self.assertEqual(
-            configured_price_context["review_note"][0],
-            "Review price change.",
         )
 
     def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:
@@ -990,14 +878,22 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ("holdings", "market_value"),
                 ("holdings", "quantity"),
                 ("transactions", "amount"),
-            }.issubset(promoted_fields)
-        )
-        self.assertTrue(
-            {
                 ("transactions", "commission"),
                 ("transactions", "price"),
                 ("transactions", "quantity"),
-            }.issubset(other_evidence_fields)
+            }.issubset(promoted_fields)
+        )
+        split_evidence = other_evidence.filter(
+            (pl.col("dataset") == "transactions")
+            & (pl.col("source_column") == "quantity")
+            & (pl.col("security_id") == "TSLA")
+        )
+        self.assertEqual(split_evidence.height, 1)
+        self.assertFalse(
+            {
+                ("transactions", "commission"),
+                ("transactions", "price"),
+            }.intersection(other_evidence_fields)
         )
         _assert_workbook_explained_rows_reconcile(
             self,
@@ -1103,15 +999,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     _normalized_header(
                         underlying_causes_sheet.cell(row=1, column=column).value
                     )
-                    for column in range(1, 15)
+                    for column in range(1, 14)
                 ],
                 [
                     "Portfolio",
                     "From Date",
                     "Thru Date",
                     "As Of Date",
-                    "Input Dataset",
-                    "Input Field",
+                    "Dataset Field",
                     "Security",
                     "Snapshot A Value",
                     "Snapshot B Value",
@@ -1126,24 +1021,24 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             numeric_source_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"H{row}"].value, (int, float))
-                and isinstance(underlying_causes_sheet[f"I{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"G{row}"].value, (int, float))
+                and isinstance(underlying_causes_sheet[f"H{row}"].value, (int, float))
+            )
+            self.assertEqual(
+                underlying_causes_sheet[f"G{numeric_source_row}"].number_format,
+                "0.000000",
             )
             self.assertEqual(
                 underlying_causes_sheet[f"H{numeric_source_row}"].number_format,
                 "0.000000",
             )
-            self.assertEqual(
-                underlying_causes_sheet[f"I{numeric_source_row}"].number_format,
-                "0.000000",
-            )
             numeric_explained_row = next(
                 row
                 for row in range(2, underlying_causes_sheet.max_row + 1)
-                if isinstance(underlying_causes_sheet[f"K{row}"].value, (int, float))
+                if isinstance(underlying_causes_sheet[f"J{row}"].value, (int, float))
             )
             self.assertEqual(
-                underlying_causes_sheet[f"K{numeric_explained_row}"].number_format,
+                underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
                 "0.000000",
             )
             portfolios = {
@@ -1152,7 +1047,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             }
             self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
             required_setup = [
-                underlying_causes_sheet[f"M{row}"].value
+                underlying_causes_sheet[f"L{row}"].value
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
             self.assertTrue(any(setup in (None, "") for setup in required_setup))
@@ -1167,7 +1062,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 [
-                    underlying_causes_sheet[f"N{row}"].value
+                    underlying_causes_sheet[f"M{row}"].value
                     for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",

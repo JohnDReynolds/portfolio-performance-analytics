@@ -54,10 +54,6 @@ REM ---- Holdings / holdings
 REM Site variance: may export holding file, appraisal report, or holdings report.
 "%AXYS_IMEX%" EXPORT PROFILE=HOLDINGS_COMMON PORTLIST="%PORTLIST%" DATE=%END_DATE% OUT="%OUTDIR%\holdings.csv"
 
-REM ---- Prices
-REM Site variance: historical price files may be by date/security type.
-"%AXYS_IMEX%" EXPORT PROFILE=PRICES_COMMON START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\prices.csv"
-
 REM ---- FX rates
 REM Optional for single-currency firms.
 "%AXYS_IMEX%" EXPORT PROFILE=FX_COMMON START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\fx_rates.csv"
@@ -145,16 +141,6 @@ site uses different field names.
 | holdings / holdings | `COST` | `cost_basis` | `BOOK_COST`, `TAX_COST`, `ORIG_COST` | Medium |
 | holdings / holdings | `ACCRUED` | `accrued_income` | `ACCRUED_INT`, `ACCRUAL` | Medium |
 | holdings / holdings | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
-
-### Prices
-
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
-| --- | --- | --- | --- | --- |
-| prices | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| prices | `DATE` | `price_date` | `PRICE_DATE`, `AS_OF_DATE` | High |
-| prices | `PRICE` | `price` | `PX`, `CLOSE_PRICE`, `MARKET_PRICE` | High |
-| prices | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
-| prices | `SOURCE` | `price_source` | `PRICE_SOURCE`, `SRC`, `VENDOR` | Low/Medium |
 
 ### FX Rates
 

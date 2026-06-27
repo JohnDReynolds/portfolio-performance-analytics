@@ -23,6 +23,10 @@ from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
+from ppar.performance_comparison.transactions import (
+    TRANSACTION_CATEGORY_BUY,
+    TRANSACTION_CATEGORY_SELL,
+)
 
 __all__ = [
     "performance_comparison_review_workbook_sheets",
@@ -42,6 +46,7 @@ _USE = "use"
 _USE_PRIORITY = "_use_priority"
 _CHANGE_LABEL = "change_label"
 _CHANGE = "change"
+_DATASET_FIELD = "dataset_field"
 _INPUT_ROLE = "input_role"
 _AS_OF_DATE = "as_of_date"
 _ESTIMATED_IMPACT = "estimated_impact"
@@ -77,13 +82,14 @@ _REVIEW_PRIORITY_REASON = "review_priority_reason"
 _RETURN_IMPACT_TREATMENT = "return_impact_treatment"
 _WORKBOOK_UNSELECTED_RELATED_ESTIMATE = "_workbook_unselected_related_estimate"
 _WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION = "_workbook_non_additive_portfolio_transaction"
-_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE = "_workbook_portfolio_price_evidence"
-_WORKBOOK_UNEXPLAINED_TOLERANCE = 0.00000001
+_WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING = (
+    "_workbook_transaction_flow_supports_holding"
+)
+_WORKBOOK_UNEXPLAINED_TOLERANCE = 0.0000005
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
     pc_cols.FX_RATES: {pc_cols.FX_RATE},
     pc_cols.HOLDINGS: {pc_cols.ACCRUED, pc_cols.MARKET_VALUE, pc_cols.QUANTITY},
-    pc_cols.PRICES: {pc_cols.PRICE},
     pc_cols.TRANSACTIONS: {
         pc_cols.AMOUNT,
         pc_cols.COMMISSION,
@@ -394,13 +400,16 @@ def _workbook_performance_difference(row: Mapping[str, object]) -> float | None:
 def _workbook_explanation_status(row: Mapping[str, object]) -> str:
     """Return a plain-language explanation status for a performance difference."""
     underlying_estimated_total = _number_or_none(row.get("_underlying_estimated_total"))
+    estimated_total = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT_TOTAL))
     performance_change = _workbook_performance_difference(row)
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if underlying_estimated_total is not None and performance_change is not None:
-        residual = performance_change - underlying_estimated_total
-        if abs(residual) <= 0.00000001:
+        estimated_total = underlying_estimated_total
+    if estimated_total is not None and performance_change is not None:
+        residual = performance_change - estimated_total
+        if abs(residual) <= _WORKBOOK_UNEXPLAINED_TOLERANCE:
             return _STATUS_FULLY_EXPLAINED
-        if abs(underlying_estimated_total) > 0:
+        if abs(estimated_total) > 0:
             return _STATUS_PARTLY_EXPLAINED
         return _STATUS_UNEXPLAINED
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
@@ -422,26 +431,26 @@ def _workbook_performance_comments(row: Mapping[str, object]) -> str:
     performance_change = _workbook_performance_difference(row)
     if underlying_estimated_total is not None and performance_change is not None:
         residual = performance_change - underlying_estimated_total
-        if abs(residual) <= 0.00000001:
+        if abs(residual) <= _WORKBOOK_UNEXPLAINED_TOLERANCE:
             return ""
         if abs(underlying_estimated_total) > 0:
             return (
-                "Review the Other Evidence sheet and Raw Audit Trail sheet for "
+                'Review the "Other Evidence" sheet and "Raw Audit Trail" sheet for '
                 "the Unexplained Difference."
             )
         return (
-            "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
+            'Review the "Other Evidence" sheet and "Raw Audit Trail" sheet for the '
             "Unexplained Difference."
         )
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
         return ""
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
         return (
-            "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
+            'Review the "Other Evidence" sheet and "Raw Audit Trail" sheet for the '
             "Unexplained Difference."
         )
     return (
-        "Review the Other Evidence sheet and Raw Audit Trail sheet for the "
+        'Review the "Other Evidence" sheet and "Raw Audit Trail" sheet for the '
         "Unexplained Difference."
     )
 
@@ -660,6 +669,10 @@ def _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
     )
+    counted_external_flow_keys = _workbook_counted_external_flow_keys(
+        evidence,
+        comparison_level=comparison_level,
+    )
     performance_input_keys = _workbook_performance_input_family_keys(
         findings,
         comparison_level=comparison_level,
@@ -671,6 +684,7 @@ def _workbook_ranked_changed_rows_for_level(
                 row,
                 selected_impact_bases,
                 performance_input_keys,
+                counted_external_flow_keys,
                 comparison_level=comparison_level,
             )
         )
@@ -805,12 +819,12 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _REVIEW_NOTE: (
-            "Review the Other Evidence sheet, Raw Audit Trail sheet, missing datasets, "
-            "or vendor methodology."
+            'Review the "Other Evidence" sheet, "Raw Audit Trail" sheet, missing '
+            "datasets, or vendor methodology."
         ),
         _REVIEW_GUIDANCE: (
-            "No additive identifiable cause was found. Review the Other Evidence sheet, "
-            "Raw Audit Trail sheet, missing datasets, or vendor methodology."
+            'No identifiable cause was found. Review the "Other Evidence" '
+            'sheet, "Raw Audit Trail" sheet, missing datasets, or vendor methodology.'
         ),
         _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
         _pc_findings.SOURCE_COLUMN: None,
@@ -904,7 +918,7 @@ def _workbook_should_promote_context_row(
     if not _workbook_is_promotable_evidence_only_row(row):
         return False
     if _workbook_is_transaction_component_row(row):
-        return False
+        return _workbook_cause_family_key(row, comparison_level) in performance_input_keys
     if _workbook_primary_key(row, comparison_level) in unexplained_keys:
         return True
     return (
@@ -1013,6 +1027,33 @@ def _workbook_performance_input_family_keys(
     return keys
 
 
+def _workbook_counted_external_flow_keys(
+    evidence: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> set[tuple[object, ...]]:
+    """Return portfolio-period/security keys with counted external-flow estimates."""
+    if comparison_level != PORTFOLIO_COMPARISON_LEVEL:
+        return set()
+
+    keys: set[tuple[object, ...]] = set()
+    for row in evidence.iter_rows(named=True):
+        if (
+            row.get(_pc_explain.IMPACT_BASIS)
+            != _pc_explain.IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW
+        ):
+            continue
+        if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is None:
+            continue
+        keys.add(
+            (
+                *_workbook_primary_key(row, comparison_level),
+                row.get(_pc_findings.SECURITY_ID),
+            )
+        )
+    return keys
+
+
 def _workbook_cause_family_key(
     row: Mapping[str, object],
     comparison_level: str,
@@ -1030,7 +1071,7 @@ def _workbook_cause_family(row: Mapping[str, object]) -> object:
     """Return the broad accounting family for a changed input row."""
     dataset = row.get(_pc_findings.DATASET)
     source_column = row.get(_pc_findings.SOURCE_COLUMN)
-    if dataset in {pc_cols.HOLDINGS, pc_cols.PRICES} and source_column in {
+    if dataset == pc_cols.HOLDINGS and source_column in {
         pc_cols.MARKET_VALUE,
         pc_cols.ACCRUED,
         pc_cols.QUANTITY,
@@ -1083,6 +1124,7 @@ def _workbook_selected_impact_row(
     row: Mapping[str, object],
     selected_impact_bases: set[tuple[object, ...]],
     performance_input_keys: set[tuple[object, ...]],
+    counted_external_flow_keys: set[tuple[object, ...]],
     *,
     comparison_level: str,
 ) -> dict[str, object]:
@@ -1094,17 +1136,31 @@ def _workbook_selected_impact_row(
 
     if (
         comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        and row_dict.get(_pc_findings.DATASET) == pc_cols.PRICES
-    ):
-        row_dict[_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE] = True
-        return _workbook_non_additive_row(row_dict)
-
-    if (
-        comparison_level == PORTFOLIO_COMPARISON_LEVEL
         and row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
     ):
+        if (
+            row_dict.get(_pc_explain.IMPACT_BASIS)
+            == _pc_explain.IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW
+        ):
+            return row_dict
         row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
         row_dict[_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION] = True
+        return _workbook_non_additive_row(row_dict)
+
+    counted_external_flow_key = (
+        *_workbook_primary_key(row_dict, comparison_level),
+        row_dict.get(_pc_findings.SECURITY_ID),
+    )
+    if (
+        comparison_level == PORTFOLIO_COMPARISON_LEVEL
+        and row_dict.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
+        and counted_external_flow_key in counted_external_flow_keys
+    ):
+        row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
+        row_dict[_pc_explain.IMPACT_MESSAGE] = (
+            "Related to counted portfolio external-flow transaction."
+        )
+        row_dict[_WORKBOOK_UNSELECTED_RELATED_ESTIMATE] = True
         return _workbook_non_additive_row(row_dict)
 
     holding_value_key = (
@@ -1114,10 +1170,12 @@ def _workbook_selected_impact_row(
     )
     if (
         row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
+        and row_dict.get(_pc_findings.TRANSACTION_CATEGORY)
+        in {TRANSACTION_CATEGORY_BUY, TRANSACTION_CATEGORY_SELL}
         and holding_value_key in performance_input_keys
     ):
-        row_dict[_RELATED_PERFORMANCE_DIFFERENCE] = estimated_impact
         row_dict[_WORKBOOK_UNSELECTED_RELATED_ESTIMATE] = True
+        row_dict[_WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING] = True
         row_dict[_pc_explain.IMPACT_MESSAGE] = (
             "Supporting evidence for changed holdings.market_value."
         )
@@ -1169,8 +1227,6 @@ def _workbook_row_kind(row: Mapping[str, object]) -> str:
     """Return the workbook presentation role for a finding row."""
     if row.get(_pc_findings.DATASET) == _NO_UNDERLYING_CAUSE_DATASET:
         return _WORKBOOK_ROW_KIND_DIAGNOSTIC
-    if row.get(_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE):
-        return _WORKBOOK_ROW_KIND_CONTEXT
     if _field_roles.is_reported_performance_component(
         row.get(_pc_findings.DATASET),
         row.get(_pc_findings.SOURCE_COLUMN),
@@ -1211,6 +1267,7 @@ def _workbook_changed_item_row(
         _AS_OF_DATE: _workbook_as_of_date(row),
         _USE: row_use,
         _CHANGE_LABEL: _workbook_change_label(row),
+        _DATASET_FIELD: _workbook_dataset_field(row),
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
         _pc_findings.SNAPSHOT_A_VALUE: row.get(_pc_findings.SNAPSHOT_A_VALUE),
         _pc_findings.SNAPSHOT_B_VALUE: row.get(_pc_findings.SNAPSHOT_B_VALUE),
@@ -1334,7 +1391,7 @@ def _workbook_review_note(
     if dataset in {pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.SECURITY_PERFORMANCE}:
         return (
             "This is simply a difference in the raw performance datasets. Check "
-            "the Identifiable Causes sheet to see what explains it."
+            'the "Identifiable Causes" sheet to see what explains it.'
         )
     if _workbook_has_evidence_only_policy(row):
         return "Review this input difference; it is not included in explained difference."
@@ -1355,7 +1412,6 @@ def _workbook_review_note(
     if row_use == _USE_REVIEW_CONTEXT:
         return "Review context; not included in explained performance difference."
     dataset_actions = {
-        pc_cols.PRICES: "Review price change.",
         pc_cols.TRANSACTIONS: _workbook_review_change_action(
             "transaction",
             source_column,
@@ -1385,13 +1441,25 @@ def _workbook_review_guidance(
         dataset == pc_cols.TRANSACTIONS
         and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
     ):
-        return "Supporting evidence for changed transactions.amount."
-    if row.get(_WORKBOOK_PORTFOLIO_PRICE_EVIDENCE):
-        return "Review price evidence; portfolio performance is explained by holdings."
+        security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+        if security_id:
+            return f"Input for changed {security_id} transactions.amount."
+        return "Input for changed transactions.amount."
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
-        return "Input driver for changed holdings.market_value."
+        return "Input for changed cash-balance holdings.market_value."
+    if row.get(_WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING):
+        security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+        if security_id:
+            return (
+                f"Security-flow evidence for {security_id}; not counted "
+                f"separately because {security_id} holdings.market_value is selected."
+            )
+        return (
+            "Security-flow evidence; not counted separately because "
+            "holdings.market_value is selected."
+        )
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
-        return _workbook_related_input_guidance(dataset, source_column)
+        return _workbook_related_input_guidance(row, dataset, source_column)
     if _workbook_has_evidence_only_policy(row):
         return "Review-only row; not included in explained difference."
     if (
@@ -1437,13 +1505,6 @@ def _workbook_review_guidance(
             "holding_impact_methods.market_value.denominator_source in "
             f"{yaml_path}."
         )
-    if dataset == pc_cols.PRICES:
-        if source_column != pc_cols.PRICE:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        return (
-            "Specify the YAML price_impact_methods.price.method and "
-            f"price_impact_methods.price.weight_source in {yaml_path}."
-        )
     if dataset == pc_cols.CASH:
         if source_column not in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}:
             return f"No supported YAML impact method exists yet for {dataset_column}."
@@ -1463,16 +1524,40 @@ def _workbook_review_guidance(
     return f"No supported YAML impact method exists yet for {dataset_column}."
 
 
-def _workbook_related_input_guidance(dataset: str, source_column: str) -> str:
+def _workbook_related_input_guidance(
+    row: Mapping[str, object],
+    dataset: str,
+    source_column: str,
+) -> str:
     """Return explicit guidance for an input component's related performance field."""
-    if dataset in {pc_cols.HOLDINGS, pc_cols.PRICES} and source_column in {
+    security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+    impact_message = _format_value(row.get(_pc_explain.IMPACT_MESSAGE))
+    if impact_message == "Related to counted portfolio external-flow transaction.":
+        return impact_message
+    if dataset == pc_cols.HOLDINGS and source_column in {
+        pc_cols.MARKET_VALUE,
         pc_cols.PRICE,
         pc_cols.QUANTITY,
     }:
-        return "Input driver for changed holdings.market_value."
+        if security_id:
+            return f"Input for changed {security_id} holdings.market_value."
+        return "Input for changed holdings.market_value."
     if dataset == pc_cols.TRANSACTIONS:
-        return "Input driver for changed transactions.amount."
-    return "Input driver for changed related performance input."
+        if security_id:
+            return f"Input for changed {security_id} transactions.amount."
+        return "Input for changed transactions.amount."
+    return "Input for changed related performance input."
+
+
+def _workbook_dataset_field(row: Mapping[str, object]) -> str:
+    """Return a compact dataset.field label for workbook rows."""
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    if dataset and source_column:
+        return f"{dataset}.{source_column}"
+    if dataset:
+        return dataset
+    return source_column
 
 
 def _workbook_yaml_path_label(comparison_path: util.PathLike | None) -> str:
@@ -1532,12 +1617,6 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
             "None; this holding input difference is shown for review, but no "
             "supported performance estimate is available for this row."
         )
-    if dataset == pc_cols.PRICES:
-        return (
-            "Configured price impact method is present, but this row still cannot "
-            "be estimated. Review snapshot A price, snapshot A weight, and price "
-            "input values."
-        )
     if dataset == pc_cols.CASH:
         return (
             "Configured cash impact method is present, but this row still cannot "
@@ -1551,8 +1630,6 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
 
 def _workbook_missing_impact_method_action(dataset: str, source_column: str) -> str:
     """Return action text for source rows with no additive impact method."""
-    if dataset == pc_cols.PRICES:
-        return "Review price change; add price impact method before estimating."
     if dataset == pc_cols.TRANSACTIONS:
         return _workbook_add_method_action("transaction", source_column)
     if dataset == pc_cols.HOLDINGS:
@@ -1651,8 +1728,7 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _pc_findings.FROM_DATE,
         _pc_findings.THRU_DATE,
         _AS_OF_DATE,
-        _pc_findings.DATASET,
-        _pc_findings.SOURCE_COLUMN,
+        _DATASET_FIELD,
         _pc_findings.SECURITY_ID,
         _pc_findings.SNAPSHOT_A_VALUE,
         _pc_findings.SNAPSHOT_B_VALUE,
@@ -1722,6 +1798,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _AS_OF_DATE: "As Of Date",
         _USE: "Purpose",
         _CHANGE_LABEL: "What Changed",
+        _DATASET_FIELD: "Dataset Field",
         _CHANGE: "B - A Difference",
         _ESTIMATED_IMPACT: "Performance Difference Explained",
         _RELATED_PERFORMANCE_DIFFERENCE: "Related Performance Difference",
@@ -1783,11 +1860,12 @@ def workbook_column_tooltip(column: str) -> str:
             "Snapshot B portfolio return minus snapshot A portfolio return."
         ),
         _ESTIMATED_CAUSE_TOTAL: (
-            "Total performance difference explained by Identifiable Causes sheet rows."
+            'Total performance difference explained by "Identifiable Causes" sheet rows.'
         ),
         _UNEXPLAINED_CHANGE: "Performance difference less explained difference.",
         _USE: "Workbook row category used for sorting and compatibility.",
         _CHANGE_LABEL: "Plain-English changed data item.",
+        _DATASET_FIELD: "Changed input field, shown as dataset.field.",
         _CHANGE: "Snapshot B value minus snapshot A value for the compared item.",
         _AS_OF_DATE: (
             "Date represented by the input row. Holding rows use the period Thru Date."

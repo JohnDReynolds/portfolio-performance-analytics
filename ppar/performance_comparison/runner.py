@@ -170,8 +170,6 @@ def _finding_requires_yaml_policy(row: dict[str, object]) -> bool:
             pc_cols.QUANTITY,
             pc_cols.COST,
         }
-    if dataset == pc_cols.PRICES:
-        return source_column == pc_cols.PRICE
     if dataset == pc_cols.CASH:
         return source_column in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}
     if dataset == pc_cols.FX_RATES:

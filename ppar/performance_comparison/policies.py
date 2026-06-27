@@ -24,6 +24,7 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+    TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
 )
 from ppar.performance_comparison.methods import (
     CashImpactMethod,
@@ -44,7 +45,10 @@ from ppar.performance_comparison.modified_dietz import (
     usable_modified_dietz_denominator as _usable_modified_dietz_denominator,
     usable_modified_dietz_number as _usable_modified_dietz_number,
 )
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.specification import (
+    SECURITY_COMPARISON_LEVEL,
+    PerformanceComparisonSpecification,
+)
 from ppar.performance_comparison.transactions import (
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
 )
@@ -57,6 +61,7 @@ _CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 _FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
 _SECURITY_MASTER_IMPACT_METHODS_KEY: Final[str] = "security_master_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
+_SECURITY_RETURN_IMPACT_METHODS_KEY: Final[str] = "security_return_impact_methods"
 _PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
 _SECURITY_CONTRIBUTION_KEY: Final[str] = "security_contribution"
 _SECURITY_RETURN_KEY: Final[str] = "security_return"
@@ -110,6 +115,7 @@ _DAY_COUNT_KEY: Final[str] = "day_count"
 _INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
 _DENOMINATOR_SOURCE_KEY: Final[str] = "denominator_source"
 _DOUBLE_COUNT_POLICY_KEY: Final[str] = "double_count_policy"
+_TRANSACTIONS_KEY: Final[str] = pc_cols.TRANSACTIONS
 _MODIFIED_DIETZ_FLOW_TIMINGS: Final[frozenset[str]] = frozenset(
     member.value for member in ModifiedDietzFlowTiming
 )
@@ -141,6 +147,14 @@ _PERFORMANCE_AMOUNT_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
 _TRANSACTION_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
+    }
+)
+_SECURITY_TRANSACTION_FLOW_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _FLOW_TIMING_KEY,
+        _DAY_COUNT_KEY,
+        _INCLUSION_RULE_KEY,
     }
 )
 _HOLDING_MARKET_VALUE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
@@ -195,6 +209,11 @@ _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
     _DOUBLE_COUNT_POLICY_KEY: _MODIFIED_DIETZ_DOUBLE_COUNT_POLICIES,
 }
+_SECURITY_TRANSACTION_FLOW_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
+    _FLOW_TIMING_KEY: frozenset({"transaction_date"}),
+    _DAY_COUNT_KEY: frozenset({ModifiedDietzDayCount.ACTUAL_DAYS.value}),
+    _INCLUSION_RULE_KEY: frozenset({ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value}),
+}
 _RESERVED_EXTERNAL_FLOW_METHODS: Final[frozenset[str]] = frozenset(
     {
         _MODIFIED_DIETZ_METHOD,
@@ -232,7 +251,6 @@ _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
     pc_cols.HOLDINGS: frozenset(
         {pc_cols.QUANTITY, pc_cols.MARKET_VALUE, pc_cols.COST, pc_cols.ACCRUED}
     ),
-    pc_cols.PRICES: frozenset({pc_cols.PRICE}),
     pc_cols.SECURITY_MASTER: frozenset(
         {
             pc_cols.SECURITY_NAME,
@@ -449,6 +467,81 @@ def _transaction_impact_policies(
                 evidence_only_value,
             )
     return policies
+
+
+def _security_return_impact_policies(
+    specification: PerformanceComparisonSpecification,
+) -> dict[str, _TransactionImpactPolicy]:
+    """Return required security-return impact policies for security comparisons.
+
+    Args:
+        specification: Parsed comparison specification.
+
+    Returns:
+        Policy settings keyed by input dataset.
+
+    Raises:
+        PpaError: If a security comparison omits or malforms the required
+            transaction-flow method configuration.
+    """
+    if specification.comparison_level != SECURITY_COMPARISON_LEVEL:
+        return {}
+
+    methods_value = specification.values.get(_SECURITY_RETURN_IMPACT_METHODS_KEY)
+    if methods_value is None:
+        raise PpaError(
+            (
+                f"{specification.path}: {_SECURITY_RETURN_IMPACT_METHODS_KEY} "
+                "is required for security comparisons."
+            ),
+            504,
+        )
+    if not isinstance(methods_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: {_SECURITY_RETURN_IMPACT_METHODS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    unsupported_keys = set(methods_value) - {_TRANSACTIONS_KEY}
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: unsupported "
+                f"{_SECURITY_RETURN_IMPACT_METHODS_KEY} keys: {unsupported}."
+            ),
+            504,
+        )
+
+    transactions_value = methods_value.get(_TRANSACTIONS_KEY)
+    if transactions_value is None:
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_SECURITY_RETURN_IMPACT_METHODS_KEY}.{_TRANSACTIONS_KEY} "
+                "is required for security comparisons."
+            ),
+            504,
+        )
+    if not isinstance(transactions_value, dict):
+        raise PpaError(
+            (
+                f"{specification.path}: "
+                f"{_SECURITY_RETURN_IMPACT_METHODS_KEY}.{_TRANSACTIONS_KEY} "
+                "must be a mapping."
+            ),
+            504,
+        )
+
+    return {
+        _TRANSACTIONS_KEY: _validated_security_transaction_flow_policy(
+            specification,
+            transactions_value,
+        )
+    }
 
 
 def _contribution_impact_policies(
@@ -1525,6 +1618,64 @@ def _validated_transaction_evidence_only_policy(
     )
 
 
+def _validated_security_transaction_flow_policy(
+    specification: PerformanceComparisonSpecification,
+    policy_value: Mapping[str, object],
+) -> _TransactionImpactPolicy:
+    """Validate the security-level transaction-flow impact policy."""
+    policy_path = f"{_SECURITY_RETURN_IMPACT_METHODS_KEY}.{_TRANSACTIONS_KEY}"
+    unsupported_keys = set(policy_value) - _SECURITY_TRANSACTION_FLOW_REQUIRED_KEYS
+    if unsupported_keys:
+        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: {policy_path} has unsupported keys: "
+                f"{unsupported}."
+            ),
+            504,
+        )
+
+    missing_keys = _SECURITY_TRANSACTION_FLOW_REQUIRED_KEYS - set(policy_value)
+    if missing_keys:
+        missing = ", ".join(sorted(str(key) for key in missing_keys))
+        raise PpaError(
+            (
+                f"{specification.path}: {policy_path} is missing required keys: "
+                f"{missing}."
+            ),
+            504,
+        )
+
+    method = policy_value.get(_METHOD_KEY)
+    if method != _MODIFIED_DIETZ_METHOD:
+        raise PpaError(
+            (
+                f"{specification.path}: {policy_path}.{_METHOD_KEY} must be "
+                f"{_MODIFIED_DIETZ_METHOD!r}."
+            ),
+            504,
+        )
+    for key, allowed_values in _SECURITY_TRANSACTION_FLOW_ALLOWED_VALUES.items():
+        value = policy_value.get(key)
+        if value not in allowed_values:
+            allowed = ", ".join(sorted(allowed_values))
+            raise PpaError(
+                (
+                    f"{specification.path}: {policy_path}.{key} must be one of: "
+                    f"{allowed}."
+                ),
+                504,
+            )
+
+    return _TransactionImpactPolicy(
+        method=_MODIFIED_DIETZ_METHOD,
+        finding_label=TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
+        flow_timing=cast(str, policy_value[_FLOW_TIMING_KEY]),
+        day_count=cast(str, policy_value[_DAY_COUNT_KEY]),
+        inclusion_rule=cast(str, policy_value[_INCLUSION_RULE_KEY]),
+    )
+
+
 def _validated_modified_dietz_policy(
     specification: PerformanceComparisonSpecification,
     external_flow_value: Mapping[str, object],
@@ -1589,9 +1740,9 @@ def _modified_dietz_external_flow_eligibility(
 ) -> _ModifiedDietzEligibility:
     """Return whether a transaction row has explicit Modified Dietz inputs.
 
-    This is a guardrail for the diagnostic-only Modified Dietz path. It
-    deliberately does not make the estimate part of regular contribution
-    totals.
+    This guardrail validates the row and policy inputs needed for Modified
+    Dietz arithmetic. The policy's double-count setting determines whether the
+    estimate is review-only or eligible for counted explanation.
     """
     missing_inputs: list[str] = []
     flow_date = _modified_dietz_flow_date(row, policy)
@@ -1600,11 +1751,6 @@ def _modified_dietz_external_flow_eligibility(
         missing_inputs.append("external performance-flow semantics")
     if policy is None or policy.method != _MODIFIED_DIETZ_METHOD:
         missing_inputs.append("modified_dietz policy")
-    elif (
-        policy.double_count_policy
-        != ModifiedDietzDoubleCountPolicy.CROSS_CHECK_ONLY.value
-    ):
-        missing_inputs.append("cross_check_only double-count policy")
     if flow_date is None:
         missing_inputs.append("flow date")
     if portfolio_id is None:

@@ -281,7 +281,7 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         "context_evidence": (
             "row-level context evidence, reviewer priority, and no-impact treatment"
         ),
-        "transaction_cross_checks": "review-only transaction impact cross-checks",
+        "transaction_cross_checks": "transaction impact diagnostics",
         "flow_cross_check_reconciliation": "flow/cross-check reconciliation diagnostics",
         "residual_status": "residual caveat status by changed portfolio period",
         "transaction_activity": "changed transaction activity and missing inputs",

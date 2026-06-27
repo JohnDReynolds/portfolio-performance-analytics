@@ -8,7 +8,7 @@ Securities: 25 US equity tickers, 7 US Treasury CUSIPs, 1 USD cash security
 IMPORTANT:
 - This is synthetic sample data in a best-effort Axys/IMEX-like layout.
 - It is not an official SS&C Axys export and not an official Axys data dictionary.
-- Equity tickers/CUSIPs and Treasury CUSIPs are intended to be realistic identifiers; prices, transactions, holdings, and performance are synthetic.
+- Equity tickers/CUSIPs and Treasury CUSIPs are intended to be realistic identifiers; transactions, holdings, and performance are synthetic.
 - Native field names are intentionally simple/common-field headers from the previously defined common-core mapping.
 - Performance figures are internally approximate, not production-grade performance accounting calculations.
 - The goal is importer development, testing, and product-design realism.
@@ -24,7 +24,6 @@ Files:
 - unreachable_target_secperf.csv: intentionally unreconcilable validation rows
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
 - holdings.csv: month-end holding snapshots, including CASH_USD
-- prices.csv: daily price history for every security including Treasuries and CASH_USD
 - fx_rates.csv: daily FX rates
 - cash.csv: month-end cash balances by portfolio/currency
 

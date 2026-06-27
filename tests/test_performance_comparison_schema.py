@@ -35,10 +35,6 @@ class TestPerformanceComparisonSchema(unittest.TestCase):
     def test_optional_dataset_required_columns_are_stable(self) -> None:
         """Optional explanatory datasets have explicit minimal column contracts."""
         self.assertEqual(
-            pc_cols.PRICES_REQUIRED_COLUMNS,
-            (pc_cols.SECURITY_ID, pc_cols.PRICE_DATE, pc_cols.PRICE),
-        )
-        self.assertEqual(
             pc_cols.FX_RATES_REQUIRED_COLUMNS,
             (
                 pc_cols.FROM_CURRENCY,

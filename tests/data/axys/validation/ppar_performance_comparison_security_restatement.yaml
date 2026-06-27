@@ -25,7 +25,6 @@ files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   security_master: sec_ref.csv
-  prices: prices.csv
   fx_rates: fx_rates.csv
   transactions: transactions.csv
   holdings: holdings.csv
@@ -43,6 +42,13 @@ contribution_impact_methods:
   security_return:
     method: security_return_delta_times_weight
     weight_source: snapshot_a_weight
+
+security_return_impact_methods:
+  transactions:
+    method: modified_dietz
+    flow_timing: transaction_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
 
 tolerances:
   return: 0.000001

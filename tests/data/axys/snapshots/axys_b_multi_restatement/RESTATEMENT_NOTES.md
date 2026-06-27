@@ -14,7 +14,6 @@ Controlled changes:
   value, cost, and accrued amount for `2025-05-30`.
 - `cash.csv`: Restated `PORT_A` USD cash balance and market value for
   `2025-05-30`.
-- `prices.csv`: Restated the `AAPL` price for `2025-05-30`.
 - `fx_rates.csv`: Restated the `EUR` to `USD` spot rate for `2025-05-30`.
 - `transactions.csv`: Restated the `TXN000001` AAPL transaction quantity,
   price, and amount.
@@ -26,14 +25,12 @@ Controlled changes:
   contribution fields for `2025-05-30`.
 - `holdings.csv`: Restated the `PORT_B`/`META` price, market value,
   cost, and accrued amount for `2025-05-30`.
-- `prices.csv`: Restated the `META` price for `2025-05-30`.
 - `transactions.csv`: Restated the `PORT_B`/`META` transaction `TXN000078`
   quantity, amount, and commission.
 - `portperf.csv`: Restated `PORT_C` for `2025-05-30` with a return and flow
   change.
 - `holdings.csv`: Restated the `PORT_C`/`NVDA` quantity, price,
   market value, cost, and accrued amount for `2025-05-30`.
-- `prices.csv`: Restated the `NVDA` price for `2025-05-30`.
 - `transactions.csv`: Restated `PORT_C` transaction `TXN000044` amount and
   commission. The multi-restatement YAML supplies transaction semantics so
   these rows can exercise transaction impact and context review.

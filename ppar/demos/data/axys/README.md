@@ -53,7 +53,7 @@ other evidence:
 - `Performance Differences` sheet: one row per security-period return difference in
   the security demo. Review keys include `Portfolio`, `From Date`, `Thru Date`,
   and `Security`.
-- `Identifiable Causes` sheet: input rows such as holdings, transactions, prices,
+- `Identifiable Causes` sheet: input rows such as holdings, transactions,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
@@ -73,7 +73,7 @@ Data used:
 - Snapshot A: `axys_full_spec_a`
 - Snapshot B: `axys_full_spec_b`
 - Files: Axys-style portfolio performance, security performance,
-  transactions, holdings, prices, and security reference data.
+  transactions, holdings, and security reference data.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and
   `TNOTE5Y`. `ALPHA` is the closest match to the Mega-Cap Alpha analytics
@@ -81,6 +81,9 @@ Data used:
   cash/fixed-income sleeves.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
+- YAML: treats `FEE` transactions as performance-impacting because this packaged
+  fixture assumes the reported returns are net of fees. For gross-of-fees
+  performance, fees would need a different return-basis policy.
 - YAML: strict causal-attribution mode is intentionally not enabled for the
   portfolio demo because one period is meant to show a review-only unexplained
   case.
@@ -105,12 +108,16 @@ Expected workbook:
     changed transaction quantity, price, and commission support rows in
     `Other Evidence`;
   - a fully explained BALANCED period with a dividend transaction amount change;
+  - a fully explained INCOME period with a larger advisory-fee expense and
+    matching lower `CASH_USD` ending value;
   - a fully explained BALANCED period with both an AAPL price correction and a
     standalone MSFT holding market-value correction;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Other Evidence` sheet;
-  - an unexplained INCOME period with no additive identifiable cause found.
+  - an unexplained INCOME period with no identifiable cause found.
+  - a counted ALPHA external-withdrawal restatement with a Modified Dietz
+    external-flow estimate.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and transaction semantics explicit while still
@@ -137,7 +144,7 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Identifiable Causes` sheet when enough inputs are available. |
-| `input_component` | `holdings.quantity`, `holdings.price`, `prices.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Other Evidence` as support for the related performance input. |
+| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Other Evidence` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
 | `context` | holding cost, FX rates, security reference data, unsupported fields | Shown on the `Other Evidence` sheet unless promoted for review of an unresolved period. |
 

@@ -96,3 +96,4 @@ class ModifiedDietzDoubleCountPolicy(StrEnum):
     """Supported Modified Dietz double-counting guardrail policies."""
 
     CROSS_CHECK_ONLY = "cross_check_only"
+    COUNT_AS_EXPLANATION = "count_as_explanation"

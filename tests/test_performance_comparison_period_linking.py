@@ -12,7 +12,6 @@ from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.period_linking import (
     period_context_for_dated_evidence,
     portfolio_periods_from_snapshots,
-    security_period_contexts_for_dated_evidence,
     security_periods_from_snapshots,
 )
 
@@ -245,9 +244,9 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
         unsupported_context = period_context_for_dated_evidence(
             {
                 pc_cols.PORTFOLIO_ID: "PORT_A",
-                pc_cols.PRICE_DATE: dt.date(2025, 5, 15),
+                pc_cols.RATE_DATE: dt.date(2025, 5, 15),
             },
-            pc_cols.PRICES,
+            pc_cols.FX_RATES,
             portfolio_periods,
         )
         out_of_period_context = period_context_for_dated_evidence(
@@ -261,90 +260,6 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
 
         self.assertEqual(unsupported_context, (None, None))
         self.assertEqual(out_of_period_context, (None, None))
-
-    def test_security_period_contexts_for_dated_evidence_links_price_periods(
-        self,
-    ) -> None:
-        """Price rows are linked to matching security-performance periods."""
-        row = {
-            pc_cols.SECURITY_ID: "AAPL",
-            pc_cols.PRICE_DATE: dt.date(2025, 5, 31),
-        }
-        security_periods = _security_periods()
-
-        contexts = security_period_contexts_for_dated_evidence(
-            row,
-            pc_cols.PRICES,
-            security_periods,
-        )
-
-        self.assertEqual(
-            contexts,
-            [
-                ("PORT_A", dt.date(2025, 5, 1), dt.date(2025, 5, 31)),
-                ("PORT_B", dt.date(2025, 5, 1), dt.date(2025, 5, 31)),
-            ],
-        )
-
-    def test_security_period_contexts_for_dated_evidence_prefers_narrowest_period(
-        self,
-    ) -> None:
-        """Price rows map to the narrowest containing period per portfolio."""
-        row = {
-            pc_cols.SECURITY_ID: "AAPL",
-            pc_cols.PRICE_DATE: dt.date(2025, 5, 15),
-        }
-        security_periods = pl.DataFrame(
-            {
-                pc_cols.PORTFOLIO_ID: ["PORT_A", "PORT_A"],
-                pc_cols.SECURITY_ID: ["AAPL", "AAPL"],
-                pc_cols.FROM_DATE: [
-                    dt.date(2025, 5, 1),
-                    dt.date(2025, 5, 15),
-                ],
-                pc_cols.THRU_DATE: [
-                    dt.date(2025, 5, 31),
-                    dt.date(2025, 5, 15),
-                ],
-            }
-        )
-
-        contexts = security_period_contexts_for_dated_evidence(
-            row,
-            pc_cols.PRICES,
-            security_periods,
-        )
-
-        self.assertEqual(
-            contexts,
-            [("PORT_A", dt.date(2025, 5, 15), dt.date(2025, 5, 15))],
-        )
-
-    def test_security_period_contexts_for_dated_evidence_returns_empty_for_unmatched_rows(
-        self,
-    ) -> None:
-        """Unsupported datasets and out-of-period dates return no contexts."""
-        security_periods = _security_periods()
-
-        unsupported_contexts = security_period_contexts_for_dated_evidence(
-            {
-                pc_cols.SECURITY_ID: "AAPL",
-                pc_cols.RATE_DATE: dt.date(2025, 5, 31),
-            },
-            pc_cols.FX_RATES,
-            security_periods,
-        )
-        out_of_period_contexts = security_period_contexts_for_dated_evidence(
-            {
-                pc_cols.SECURITY_ID: "AAPL",
-                pc_cols.PRICE_DATE: dt.date(2025, 6, 15),
-            },
-            pc_cols.PRICES,
-            security_periods,
-        )
-
-        self.assertEqual(unsupported_contexts, [])
-        self.assertEqual(out_of_period_contexts, [])
 
 
 def _portfolio_periods() -> pl.DataFrame:

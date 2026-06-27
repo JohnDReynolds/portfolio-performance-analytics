@@ -11,8 +11,8 @@ The core question is:
 > when I ran it on date 2?
 
 The feature will compare two snapshot directories. Each snapshot contains
-vendor exports such as portfolio performance, security performance, prices, FX
-rates, transactions, holdings, cash, and security master/reference files.
+vendor exports such as portfolio performance, security performance, FX rates,
+transactions, holdings, cash, and security master/reference files.
 
 This should not be treated as an Axys-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
@@ -20,7 +20,7 @@ live in small normalization adapters, with Axys as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
 portfolio performance, security performance, security master, holdings, cash,
-prices, FX rates, and transactions rows, report material changes, and produce a
+FX rates, and transactions rows, report material changes, and produce a
 clear finding model. Deeper causal inference can be added after the finding
 model is stable.
 
@@ -37,7 +37,6 @@ Implemented normalized comparison datasets:
 - `portfolio_performance`
 - `security_performance`
 - `security_master`
-- `prices`
 - `fx_rates`
 - `transactions`
 - `holdings`
@@ -76,7 +75,7 @@ Current workbook field roles:
   `transactions.amount`. These can receive `Performance Difference Explained`
   values when the required denominator or weight inputs are available.
 - `input_component`: fields that explain or reconcile a performance input, such
-  as holding quantity/price, standalone prices, and transaction
+  as holding quantity/price and transaction
   quantity/price/commission. Holding quantity can appear beside a related
   holding market-value input. Transaction quantity, price, and commission
   normally remain in the `Other Evidence` sheet as support for changed
@@ -147,7 +146,8 @@ Modified Dietz policy options are centralized in:
 - `ModifiedDietzFlowTiming`: `trade_date` and `settlement_date`.
 - `ModifiedDietzDayCount`: `actual_days`.
 - `ModifiedDietzInclusionRule`: `beginning_of_day` and `end_of_day`.
-- `ModifiedDietzDoubleCountPolicy`: `cross_check_only`.
+- `ModifiedDietzDoubleCountPolicy`: `cross_check_only` and
+  `count_as_explanation`.
 
 Finding and review classification values are centralized in:
 
@@ -203,7 +203,6 @@ ppar/performance_comparison/
   fx_rates.py
   period_linking.py
   holdings.py
-  prices.py
   runner.py
   security_master.py
   security_performance.py
@@ -216,7 +215,7 @@ Current responsibilities:
 - `source_loader.py`: Load one snapshot directory, resolve optional files, and
   normalize configured columns.
 - `compare.py`: Compare normalized snapshot A/snapshot B data sets.
-- Dataset modules such as `prices.py`, `fx_rates.py`, `transactions.py`,
+- Dataset modules such as `fx_rates.py`, `transactions.py`,
   `holdings.py`, and `cash.py`: dataset-specific loading, comparison keys,
   changed-column rules, and default aliases.
 - `period_linking.py`: Link dated evidence to containing portfolio periods
@@ -262,7 +261,6 @@ engine. Initial normalized datasets include:
 - `portfolio_performance`
 - `security_performance`
 - `security_master`
-- `prices`
 - `fx_rates`
 - `transactions`
 - `holdings`
@@ -349,18 +347,6 @@ columns when useful.
 - `industry`
 - `asset_class`
 - additional classification code/name pairs
-
-`prices` required columns:
-
-- `security_id`
-- `price_date`
-- `price`
-
-`prices` useful optional columns:
-
-- `currency`
-- `price_source`
-- `price_type`
 
 `fx_rates` required columns:
 
@@ -513,6 +499,27 @@ never silently chooses a return convention. `modified_dietz` is supported only
 as a cross-check diagnostic: its estimate is reported beside transaction
 evidence and is excluded from regular contribution totals.
 
+Security-level comparisons also require an explicit transaction-flow convention
+because buys and sells are security-level capital flows. The Phase 1 contract is:
+
+```yaml
+security_return_impact_methods:
+  transactions:
+    method: modified_dietz
+    flow_timing: transaction_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
+```
+
+This section is required when `comparison.level: security`; missing or malformed
+configuration fails before report generation. The current implementation uses
+the normalized transaction date, actual calendar days, and beginning-of-day
+flow inclusion. Buy and sell transaction amount changes can receive a
+security-level Modified Dietz screening estimate. If changed holdings already
+explain the same security-period difference, the transaction row remains visible
+as related evidence and is not double-counted. Income transactions, such as
+dividends and interest, remain direct security-performance inputs.
+
 Transaction impact output separates configured policy from review diagnostics:
 
 - `transaction_impact_policy`: The YAML-selected policy label that applies to
@@ -536,18 +543,21 @@ gated. Current diagnostic messages include:
 - `modified_dietz cross-check estimate`: Internal checks have all required
   Modified Dietz inputs and the row has a diagnostic estimate excluded from
   contribution totals.
+- `modified_dietz counted estimate`: Internal checks have all required
+  Modified Dietz inputs and the row has a diagnostic estimate included in
+  contribution totals.
 - `modified_dietz missing inputs: ...`: Internal checks found missing or
   disqualifying Modified Dietz inputs such as `flow date`,
   `portfolio period`, `nonzero begin_market_value denominator`, or
   `in-period flow date`.
 
 Planned external-flow method names remain reserved and rejected until their
-formulas and YAML inputs are implemented, except for the narrow
-cross-check-only `modified_dietz` diagnostic method:
+formulas and YAML inputs are implemented, except for the narrow `modified_dietz`
+method:
 
 - `modified_dietz`: Requires flow timing convention, day-count convention,
   beginning/end inclusion rule, denominator source, and
-  `double_count_policy: cross_check_only`.
+  `double_count_policy`.
 - `subperiod_linked`: Requires subperiod boundary rule, linking formula, and
   large-flow threshold or explicit breakpoints.
 - `unweighted_flow_delta`: Requires explicit reviewer acknowledgement that no
@@ -558,7 +568,7 @@ portfolio-level `flow` deltas or only explanatory cross-checks. This prevents
 double counting when portfolio performance rows already include the external
 flow effect.
 
-The cross-check-only `modified_dietz` YAML contract is:
+The `modified_dietz` YAML contract is:
 
 ```yaml
 transaction_impact_methods:
@@ -568,7 +578,7 @@ transaction_impact_methods:
     day_count: actual_days
     inclusion_rule: beginning_of_day
     denominator_source: begin_market_value
-    double_count_policy: cross_check_only
+    double_count_policy: count_as_explanation
 ```
 
 Supported `modified_dietz` fields:
@@ -584,13 +594,13 @@ Supported `modified_dietz` fields:
   such as `begin_market_value`. Allowed value: `begin_market_value`.
 - `double_count_policy`: Whether transaction-derived impacts are eligible for
   aggregation or are only cross-check evidence when portfolio `flow` deltas are
-  present. Allowed value: `cross_check_only`.
+  present. Allowed values: `cross_check_only`, `count_as_explanation`.
 
-This block is supported only for cross-check-only diagnostics. Eligible
-external-flow transaction amount rows receive
-`transaction_impact_diagnostic_estimate`; they do not receive
-`estimated_return_impact`, and they are not summed into impact coverage or
-cause-summary totals.
+With `double_count_policy: cross_check_only`, eligible external-flow transaction
+amount rows receive `transaction_impact_diagnostic_estimate`; they do not
+receive `estimated_return_impact`, and they are not summed into impact coverage
+or cause-summary totals. With `double_count_policy: count_as_explanation`, the
+same estimate is promoted into `estimated_return_impact`.
 
 Design reference examples for `modified_dietz` use:
 
@@ -785,8 +795,8 @@ Security performance deltas should not be treated as root causes of portfolio
 performance deltas. They are related output deltas: useful context, but not the
 underlying input change that caused portfolio performance to move.
 
-Root-cause evidence should come from input/source-like datasets such as prices,
-FX rates, transactions, holdings, cash, market values, accruals, income, and
+Root-cause evidence should come from input/source-like datasets such as
+holdings, FX rates, transactions, cash, market values, accruals, income, and
 other source fields. Security master and classification changes can provide
 useful context, but are often not numeric causes by themselves.
 
@@ -819,8 +829,8 @@ Evidence roles:
 - `related_output`: Calculated output deltas that help locate the change, such
   as security return, weight, or contribution changes.
 - `direct_input`: Source/input changes that can plausibly drive time-weighted
-  return, such as prices, FX rates, flows, market values, holdings, accruals,
-  transaction amounts, and cash balances.
+  return, such as holding price values, FX rates, flows, market values, holdings,
+  accruals, transaction amounts, and cash balances.
 - `context`: Reference, classification, schema, or accounting context that aids
   investigation but is not a direct performance driver by itself.
 
@@ -846,8 +856,6 @@ The first-pass role model should remain intentionally small:
 - `security_performance`: `related_output` in the global portfolio-period
   model. In a local security-period view, the security return change is the
   local `target_output`.
-- `prices`: `direct_input` because price changes can drive valuation and return
-  changes.
 - `fx_rates`: `direct_input` because exchange-rate changes can drive translated
   values and returns.
 - `transactions`: `direct_input` because activity, cash flow, quantity, price,
@@ -919,7 +927,7 @@ such as `axys_column_mappings.yaml`.
 The performance comparison feature has its own normalization/default alias
 layer. Referencing `axys_column_mappings.yaml` is a reuse mechanism for shared
 Axys datasets, not a requirement that performance comparison become Axys-only.
-Comparison-only datasets such as prices, FX rates, transactions, holdings,
+Comparison-only datasets such as FX rates, transactions, holdings,
 and cash can use performance-comparison mappings even when the referenced Axys
 mapping file does not define them.
 
@@ -990,7 +998,6 @@ files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   security_master: sec_ref.csv
-  prices: prices.csv
   fx_rates: fx_rates.csv
   transactions:
     path: transactions.csv
@@ -1068,7 +1075,7 @@ files for `portfolio_performance_columns`, `security_performance_columns`, and
 authoritative. Built-in aliases remain the fallback for columns not mapped in
 the schema file.
 
-Comparison-only datasets such as prices, FX rates, transactions, holdings,
+Comparison-only datasets such as FX rates, transactions, holdings,
 and cash currently use the performance-comparison alias/default layer. They do
 not require entries in `axys_column_mappings.yaml`.
 
@@ -1220,13 +1227,6 @@ Implemented period-linking rules:
   `transaction_date`, `holding_date`, or `cash_date`, respectively.
 - When more than one configured portfolio period contains the source date, the
   finding links to the narrowest containing period for that portfolio.
-- `prices` findings link through `security_performance` when available. A
-  price finding for `security_id` and `price_date` links to every
-  portfolio-security period containing that date.
-- If the same security appears in multiple portfolios for the same price date,
-  the price comparison can emit one linked finding per matching
-  portfolio-period. This avoids hiding affected portfolios behind an arbitrary
-  single match.
 - Unmatched dated evidence keeps null period fields.
 - `fx_rates` findings intentionally remain unlinked for now. FX linkage needs
   currency exposure context from holdings, cash, transactions, portfolio
@@ -1265,7 +1265,7 @@ The current evidence model is useful, but it should not be overstated.
 - Security-period summaries are optional. The portfolio-period explanation path
   must continue to work when `security_performance` is absent.
 - The implementation compares source evidence. It does not recalculate TWR from
-  raw transactions, holdings, prices, or cash.
+  raw transactions, holdings, or cash.
 
 ## Contribution Ranking Direction
 
@@ -1473,7 +1473,7 @@ Current supported impact estimates:
 11. Transaction quantity, price, and commission evidence:
    - `transaction_impact_methods.quantity.method: evidence_only` and
      `transaction_impact_methods.price.method: evidence_only` mark changed
-     transaction units and prices as intentional review evidence.
+     transaction units and price values as intentional review evidence.
    - `transaction_impact_methods.commission.method: evidence_only` marks
      changed transaction commission as intentional review evidence.
    - They do not create `estimated_return_impact`; transaction amount is the
@@ -1500,7 +1500,7 @@ hatch. It does not create `estimated_return_impact`; instead, workbook rows are
 marked review-only and `Review Guidance` says the row is configured as
 evidence-only. This keeps intentionally review-only changes from looking like
 missing setup. Supported dataset keys are `cash`, `fx_rates`, `holdings`,
-`prices`, `security_master`, and `transactions`; each dataset may list only
+`security_master`, and `transactions`; each dataset may list only
 fields that the comparison engine already compares.
 
 First contribution estimates should start only where the math is defensible:
@@ -1625,7 +1625,7 @@ differences when security-performance rows changed, and it adds explicit
 no-difference rows for changed portfolio periods with no security-level return
 difference. The
 `Identifiable Causes` sheet lists input rows such as holdings, transactions,
-cash, prices, and FX rates; its `B - A Difference` values are raw input-value
+cash, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
 now requires every changed source-data field that ppar knows how to classify to
@@ -1711,9 +1711,13 @@ joining artifacts manually.
 In the workbook, plausible evidence-only input rows for unresolved periods may
 be shown on the `Identifiable Causes` sheet instead of the `Other Evidence`
 sheet so the reviewer can see likely explanations and calculated explanations
-together. Cost basis, security-reference changes, and transaction component
-rows remain supporting evidence unless a later model gives them a defensible
-return-impact interpretation.
+together. Transaction component rows such as `transactions.quantity`,
+`transactions.price`, and `transactions.commission` also appear on the
+`Identifiable Causes` sheet when they support a changed `transactions.amount`;
+their explained-difference columns remain blank because they are inputs for the
+changed transaction amount, not separate return-impact estimates. Cost basis and
+security-reference changes remain supporting evidence unless a later model gives
+them a defensible return-impact interpretation.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group
@@ -1839,7 +1843,7 @@ Supporting-file comparisons are implemented at the evidence-linking level for
 the current datasets. Causal attribution and contribution-ranking estimates
 remain intentionally conservative.
 
-- Compare prices for securities with changed returns.
+- Compare holding price values for securities with changed returns.
 - Compare transactions for affected portfolio/security/period rows.
 - Compare holdings and cash balances.
 - Compare security master fields and classifications.
@@ -1860,7 +1864,7 @@ The public command and demo surface is implemented for the current checkpoint.
 
 The current normalized dataset set already covers the first useful comparison
 surface: portfolio performance, security performance, holdings, cash,
-transactions, prices, FX rates, and security master/reference data. Additional
+transactions, FX rates, and security master/reference data. Additional
 datasets should be added only when real source files expose evidence that is
 not adequately represented by those existing datasets.
 

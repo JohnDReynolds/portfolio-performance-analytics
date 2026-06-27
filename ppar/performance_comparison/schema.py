@@ -9,7 +9,6 @@ __all__ = [
     "PORTFOLIO_PERFORMANCE",
     "SECURITY_PERFORMANCE",
     "SECURITY_MASTER",
-    "PRICES",
     "FX_RATES",
     "TRANSACTIONS",
     "HOLDINGS",
@@ -18,7 +17,6 @@ __all__ = [
     "SECURITY_ID",
     "FROM_DATE",
     "THRU_DATE",
-    "PRICE_DATE",
     "RATE_DATE",
     "TRANSACTION_DATE",
     "SETTLEMENT_DATE",
@@ -49,8 +47,6 @@ __all__ = [
     "GAIN_LOSS",
     "PERIOD_ID",
     "CURRENCY",
-    "PRICE_SOURCE",
-    "PRICE_TYPE",
     "RATE_SOURCE",
     "RATE_TYPE",
     "TRANSACTION_ID",
@@ -75,9 +71,6 @@ __all__ = [
     "SECURITY_MASTER_REQUIRED_COLUMNS",
     "SECURITY_MASTER_OPTIONAL_COLUMNS",
     "SECURITY_MASTER_COLUMNS",
-    "PRICES_REQUIRED_COLUMNS",
-    "PRICES_OPTIONAL_COLUMNS",
-    "PRICES_COLUMNS",
     "FX_RATES_REQUIRED_COLUMNS",
     "FX_RATES_OPTIONAL_COLUMNS",
     "FX_RATES_COLUMNS",
@@ -95,7 +88,6 @@ __all__ = [
 PORTFOLIO_PERFORMANCE = "portfolio_performance"
 SECURITY_PERFORMANCE = "security_performance"
 SECURITY_MASTER = "security_master"
-PRICES = "prices"
 FX_RATES = "fx_rates"
 TRANSACTIONS = "transactions"
 HOLDINGS = "holdings"
@@ -105,7 +97,6 @@ PORTFOLIO_ID = "portfolio_id"
 SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
-PRICE_DATE = "price_date"
 RATE_DATE = "rate_date"
 TRANSACTION_DATE = "transaction_date"
 SETTLEMENT_DATE = "settlement_date"
@@ -136,8 +127,6 @@ INCOME = "income"
 GAIN_LOSS = "gain_loss"
 PERIOD_ID = "period_id"
 CURRENCY = "currency"
-PRICE_SOURCE = "price_source"
-PRICE_TYPE = "price_type"
 RATE_SOURCE = "rate_source"
 RATE_TYPE = "rate_type"
 TRANSACTION_ID = "transaction_id"
@@ -219,23 +208,6 @@ SECURITY_MASTER_OPTIONAL_COLUMNS = (
 SECURITY_MASTER_COLUMNS = (
     *SECURITY_MASTER_REQUIRED_COLUMNS,
     *SECURITY_MASTER_OPTIONAL_COLUMNS,
-)
-
-PRICES_REQUIRED_COLUMNS = (
-    SECURITY_ID,
-    PRICE_DATE,
-    PRICE,
-)
-
-PRICES_OPTIONAL_COLUMNS = (
-    CURRENCY,
-    PRICE_SOURCE,
-    PRICE_TYPE,
-)
-
-PRICES_COLUMNS = (
-    *PRICES_REQUIRED_COLUMNS,
-    *PRICES_OPTIONAL_COLUMNS,
 )
 
 FX_RATES_REQUIRED_COLUMNS = (

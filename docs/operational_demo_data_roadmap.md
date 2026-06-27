@@ -42,7 +42,7 @@ The generator currently:
   and `TNOTE5Y` operational securities;
 - creates the ALPHA, BALANCED, and INCOME portfolio variants from the same
   security universe;
-- creates Axys-style `portperf`, `secperf`, `sec_ref`, holdings, prices, and
+- creates Axys-style `portperf`, `secperf`, `sec_ref`, holdings, and
   transactions CSVs;
 - writes `summary.json` for quick inspection.
 

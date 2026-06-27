@@ -33,6 +33,7 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
     IMPACT_POLICY_SECURITY_CONTRIBUTION,
     IMPACT_POLICY_SECURITY_RETURN_WEIGHTED,
+    INPUT_DATE,
     MESSAGE,
     PC_PORT_RET,
     PC_SEC_RET,
@@ -55,6 +56,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY,
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+    TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
     TRANSACTION_CATEGORY,
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_SEMANTICS_SOURCE,
@@ -67,10 +69,16 @@ from ppar.performance_comparison.methods import (
     PriceImpactMethod,
     TransactionImpactMethod,
 )
+from ppar.performance_comparison.modified_dietz import (
+    modified_dietz_flow_weight as _modified_dietz_flow_weight,
+)
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+    TRANSACTION_CATEGORY_BUY,
+    TRANSACTION_CATEGORY_INCOME,
+    TRANSACTION_CATEGORY_SELL,
     TRANSACTION_CATEGORY_UNKNOWN,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
@@ -87,7 +95,6 @@ DIRECT_INPUT_FINDING_COUNT = "direct_input_finding_count"
 RELATED_OUTPUT_FINDING_COUNT = "related_output_finding_count"
 CONTEXT_FINDING_COUNT = "context_finding_count"
 EVIDENCE_GROUP = "evidence_group"
-PRICE_FINDING_COUNT = "price_finding_count"
 FX_RATE_FINDING_COUNT = "fx_rate_finding_count"
 TRANSACTION_FINDING_COUNT = "transaction_finding_count"
 HOLDING_FINDING_COUNT = "holding_finding_count"
@@ -104,7 +111,6 @@ PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     DIRECT_INPUT_FINDING_COUNT,
     RELATED_OUTPUT_FINDING_COUNT,
     CONTEXT_FINDING_COUNT,
-    PRICE_FINDING_COUNT,
     FX_RATE_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
     HOLDING_FINDING_COUNT,
@@ -131,7 +137,6 @@ SECURITY_PERIOD_SUMMARY_COLUMNS = (
     DIRECT_INPUT_FINDING_COUNT,
     RELATED_OUTPUT_FINDING_COUNT,
     CONTEXT_FINDING_COUNT,
-    PRICE_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
     HOLDING_FINDING_COUNT,
     REFERENCE_FINDING_COUNT,
@@ -168,10 +173,11 @@ IMPACT_BASIS_SECURITY_HOLDING_MARKET_VALUE = "security_holding_market_value"
 IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
     "security_holding_quantity_unit_market_value"
 )
-IMPACT_BASIS_SECURITY_PRICE_RETURN = "security_price_return"
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
+IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW = "portfolio_external_flow"
+IMPACT_BASIS_SECURITY_TRANSACTION_FLOW = "security_transaction_flow"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
 IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT = (
@@ -185,6 +191,12 @@ IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
 )
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+IMPACT_METHOD_PORTFOLIO_EXTERNAL_FLOW_MODIFIED_DIETZ = (
+    TransactionImpactMethod.MODIFIED_DIETZ.value
+)
+IMPACT_METHOD_SECURITY_TRANSACTION_FLOW_MODIFIED_DIETZ = (
+    TransactionImpactMethod.MODIFIED_DIETZ.value
 )
 IMPACT_METHOD_HOLDING_MARKET_VALUE_DELTA_OVER_DENOMINATOR = (
     HoldingImpactMethod.MARKET_VALUE_DELTA_OVER_RETURN_DENOMINATOR.value
@@ -207,7 +219,6 @@ ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
 ROOT_CAUSE_MARKET_VALUE_OR_HOLDING = "market_value_or_holding"
 ROOT_CAUSE_TRANSACTION_ACTIVITY = "transaction_activity"
-ROOT_CAUSE_PRICE = "price"
 ROOT_CAUSE_FX_RATE = "fx_rate"
 ROOT_CAUSE_CASH = "cash"
 ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT = "portfolio_performance_input"
@@ -228,6 +239,7 @@ NO_CASH_TRANSACTION_IMPACT_METHOD = "no-cash transaction impact method"
 TRANSACTION_IMPACT_METHOD = "transaction impact method"
 CROSS_CHECK_TREATMENT = "cross_check_treatment"
 CROSS_CHECK_ONLY = ModifiedDietzDoubleCountPolicy.CROSS_CHECK_ONLY.value
+COUNT_AS_EXPLANATION = ModifiedDietzDoubleCountPolicy.COUNT_AS_EXPLANATION.value
 CROSS_CHECK_COUNT = "cross_check_count"
 CROSS_CHECK_ESTIMATE_TOTAL = "cross_check_estimate_total"
 CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
@@ -260,6 +272,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     EVIDENCE_ROLE,
     SECURITY_ID,
     SOURCE_FILE,
+    INPUT_DATE,
     SOURCE_COLUMN,
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
@@ -438,7 +451,6 @@ def portfolio_period_summary(
                     pc_cols.PORTFOLIO_PERFORMANCE,
                 ),
                 **role_counts,
-                PRICE_FINDING_COUNT: _dataset_count(related_active, pc_cols.PRICES),
                 FX_RATE_FINDING_COUNT: _dataset_count(related_active, pc_cols.FX_RATES),
                 TRANSACTION_FINDING_COUNT: _dataset_count(
                     related_active,
@@ -541,7 +553,6 @@ def security_period_summary(
                     pc_cols.SECURITY_PERFORMANCE,
                 ),
                 **role_counts,
-                PRICE_FINDING_COUNT: _dataset_count(related_active, pc_cols.PRICES),
                 TRANSACTION_FINDING_COUNT: _dataset_count(
                     related_active,
                     pc_cols.TRANSACTIONS,
@@ -1332,11 +1343,6 @@ def _evidence_breakdown_rows(
         ),
         (
             DIRECT_INPUT,
-            pc_cols.PRICES,
-            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.PRICES),
-        ),
-        (
-            DIRECT_INPUT,
             pc_cols.FX_RATES,
             _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.FX_RATES),
         ),
@@ -1411,11 +1417,6 @@ def _security_evidence_breakdown_rows(
             TARGET_OUTPUT,
             pc_cols.SECURITY_PERFORMANCE,
             _dataset_count(target_findings, pc_cols.SECURITY_PERFORMANCE),
-        ),
-        (
-            DIRECT_INPUT,
-            pc_cols.PRICES,
-            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.PRICES),
         ),
         (
             DIRECT_INPUT,
@@ -1529,6 +1530,7 @@ def _ranked_evidence_row(
         EVIDENCE_ROLE: finding[EVIDENCE_ROLE],
         SECURITY_ID: finding[SECURITY_ID],
         SOURCE_FILE: finding[SOURCE_FILE],
+        INPUT_DATE: finding[INPUT_DATE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
         TRANSACTION_CATEGORY: finding[TRANSACTION_CATEGORY],
         CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
@@ -1596,13 +1598,30 @@ def _security_return_denominators(
     """Return security beginning market values keyed by security period.
 
     Notes:
-        Security-return explanations should use the affected security's own
-        beginning value, not the portfolio-level return denominator. The most
-        direct normalized source available in the ranked evidence is the
-        snapshot A ``holdings.market_value`` row for the same security period.
+        Security-return explanations use the affected security's own beginning
+        value, not the portfolio-level return denominator. Prefer a changed
+        snapshot A ``holdings.market_value`` row when available. If the holding
+        value did not itself change, derive the beginning value from the
+        portfolio period denominator and snapshot A security weight.
     """
+    row_list = list(rows)
     denominators: dict[tuple[object, ...], float] = {}
-    for row in rows:
+    period_denominators: dict[tuple[object, ...], float] = {}
+    security_weights: dict[tuple[object, ...], float] = {}
+    for row in row_list:
+        period_key = (
+            row.get(PORTFOLIO_ID),
+            row.get(FROM_DATE),
+            row.get(THRU_DATE),
+        )
+        period_denominator = _number_value(row.get(RETURN_DENOMINATOR))
+        if period_denominator is not None and period_denominator != 0.0:
+            period_denominators[period_key] = period_denominator
+        security_weight = _number_value(row.get(RETURN_WEIGHT))
+        if security_weight is not None:
+            security_weights[_security_return_candidate_key(row)] = security_weight
+
+    for row in row_list:
         if row.get(DATASET) != pc_cols.HOLDINGS:
             continue
         if row.get(SOURCE_COLUMN) != pc_cols.MARKET_VALUE:
@@ -1611,6 +1630,16 @@ def _security_return_denominators(
         if snapshot_a_value is None or snapshot_a_value == 0.0:
             continue
         denominators[_security_return_candidate_key(row)] = snapshot_a_value
+
+    for security_key, security_weight in security_weights.items():
+        if security_key in denominators:
+            continue
+        portfolio_id, _security_id, from_date, thru_date = security_key
+        period_key = (portfolio_id, from_date, thru_date)
+        period_denominator = period_denominators.get(period_key)
+        if period_denominator is None:
+            continue
+        denominators[security_key] = period_denominator * security_weight
     return denominators
 
 
@@ -1622,21 +1651,6 @@ def _estimated_security_return_impact(
     delta = _number_value(row[DELTA_B_MINUS_A])
     if delta is None:
         return _no_security_return_estimate()
-
-    if row[DATASET] == pc_cols.PRICES and row[SOURCE_COLUMN] == pc_cols.PRICE:
-        snapshot_a_price = _number_value(row[SNAPSHOT_A_VALUE])
-        if snapshot_a_price is None or snapshot_a_price == 0.0:
-            return _no_security_return_estimate()
-        return {
-            ESTIMATED_RETURN_IMPACT: delta / snapshot_a_price,
-            IMPACT_BASIS: IMPACT_BASIS_SECURITY_PRICE_RETURN,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT,
-            IMPACT_MESSAGE: (
-                "Approximate security-return impact uses the price delta divided "
-                "by snapshot A price."
-            ),
-        }
 
     if security_denominator is None:
         return _no_security_return_estimate()
@@ -1683,7 +1697,79 @@ def _estimated_security_return_impact(
             ),
         }
 
+    if _is_transaction_performance_amount_impact_candidate(row):
+        if row.get(TRANSACTION_IMPACT_POLICY) == (
+            TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ
+        ):
+            return _estimated_security_transaction_flow_impact(
+                row,
+                delta,
+                security_denominator,
+            )
+        if row.get(TRANSACTION_CATEGORY) != TRANSACTION_CATEGORY_INCOME:
+            return _no_security_return_estimate()
+        return {
+            ESTIMATED_RETURN_IMPACT: delta / security_denominator,
+            IMPACT_BASIS: IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
+            IMPACT_MESSAGE: (
+                "Approximate security-return impact uses the source-signed "
+                "transaction amount delta divided by snapshot A security market "
+                "value."
+            ),
+        }
+
     return _estimated_impact(row)
+
+
+def _estimated_security_transaction_flow_impact(
+    row: dict[str, object],
+    delta: float,
+    security_denominator: float,
+) -> dict[str, object]:
+    """Return a security-return estimate for changed buy/sell cash flow."""
+    category = row.get(TRANSACTION_CATEGORY)
+    if category not in {TRANSACTION_CATEGORY_BUY, TRANSACTION_CATEGORY_SELL}:
+        return _no_security_return_estimate()
+
+    from_date = _date_value(row.get(FROM_DATE))
+    thru_date = _date_value(row.get(THRU_DATE))
+    flow_date = _date_value(row.get(INPUT_DATE))
+    if from_date is None or thru_date is None or flow_date is None:
+        return _no_security_return_estimate()
+
+    try:
+        flow_weight = _modified_dietz_flow_weight(
+            from_date=from_date,
+            thru_date=thru_date,
+            flow_date=flow_date,
+            inclusion_rule="beginning_of_day",
+        )
+    except ValueError:
+        return _no_security_return_estimate()
+
+    security_flow_delta = -delta
+    return {
+        ESTIMATED_RETURN_IMPACT: (security_flow_delta * flow_weight)
+        / security_denominator,
+        IMPACT_BASIS: IMPACT_BASIS_SECURITY_TRANSACTION_FLOW,
+        IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+        IMPACT_METHOD: IMPACT_METHOD_SECURITY_TRANSACTION_FLOW_MODIFIED_DIETZ,
+        IMPACT_MESSAGE: (
+            "Approximate security-return impact treats the changed buy/sell "
+            "transaction amount as a security-level Modified Dietz flow."
+        ),
+    }
+
+
+def _date_value(value: object) -> dt.date | None:
+    """Return a date value from a date or datetime object."""
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, dt.date):
+        return value
+    return None
 
 
 def _no_security_return_estimate() -> dict[str, object]:
@@ -1763,6 +1849,19 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
             IMPACT_METHOD: IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR,
             IMPACT_MESSAGE: _transaction_performance_amount_impact_message(row),
+        }
+    if _is_portfolio_external_flow_modified_dietz_candidate(row):
+        diagnostic_estimate = _number_value(row[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE])
+        assert diagnostic_estimate is not None
+        return {
+            ESTIMATED_RETURN_IMPACT: diagnostic_estimate,
+            IMPACT_BASIS: IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: IMPACT_METHOD_PORTFOLIO_EXTERNAL_FLOW_MODIFIED_DIETZ,
+            IMPACT_MESSAGE: (
+                "Modified Dietz estimate treats the changed transaction amount "
+                "as a portfolio-level external flow."
+            ),
         }
     if _is_holding_market_value_impact_candidate(row):
         delta_float = _number_value(delta)
@@ -1927,7 +2026,10 @@ def _is_transaction_performance_amount_impact_candidate(
         row[DATASET] == pc_cols.TRANSACTIONS
         and row[SOURCE_COLUMN] == pc_cols.AMOUNT
         and row.get(TRANSACTION_IMPACT_POLICY)
-        == TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA
+        in {
+            TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
+            TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
+        }
         and row.get(PERFORMANCE_FLOW_SIGN) == TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
         and cash_flow_sign
         in {
@@ -1939,6 +2041,22 @@ def _is_transaction_performance_amount_impact_candidate(
         and isinstance(denominator, (int, float))
         and not isinstance(denominator, bool)
         and float(denominator) != 0.0
+    )
+
+
+def _is_portfolio_external_flow_modified_dietz_candidate(
+    row: dict[str, object],
+) -> bool:
+    """Return whether an external-flow row has a counted Modified Dietz estimate."""
+    diagnostic_estimate = row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE)
+    return (
+        row[DATASET] == pc_cols.TRANSACTIONS
+        and row[SOURCE_COLUMN] == pc_cols.AMOUNT
+        and row.get(TRANSACTION_IMPACT_POLICY) == "external_flow:modified_dietz"
+        and row.get(TRANSACTION_IMPACT_DIAGNOSTIC) == "modified_dietz counted estimate"
+        and row.get(PERFORMANCE_FLOW_SIGN) == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+        and isinstance(diagnostic_estimate, (int, float))
+        and not isinstance(diagnostic_estimate, bool)
     )
 
 
@@ -2024,7 +2142,7 @@ def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
     snapshot_a_price = row[SNAPSHOT_A_VALUE]
     weight = row[RETURN_WEIGHT]
     return (
-        row[DATASET] in {pc_cols.HOLDINGS, pc_cols.PRICES}
+        row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] == pc_cols.PRICE
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_PRICE_WEIGHTED
         and isinstance(delta, (int, float))
@@ -2080,7 +2198,6 @@ def _root_cause_area(row: dict[str, object]) -> str:
         pc_cols.SECURITY_PERFORMANCE: ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION,
         pc_cols.HOLDINGS: ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
         pc_cols.TRANSACTIONS: ROOT_CAUSE_TRANSACTION_ACTIVITY,
-        pc_cols.PRICES: ROOT_CAUSE_PRICE,
         pc_cols.FX_RATES: ROOT_CAUSE_FX_RATE,
         pc_cols.CASH: ROOT_CAUSE_CASH,
         pc_cols.PORTFOLIO_PERFORMANCE: ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
@@ -2297,7 +2414,6 @@ def _coverage_missing_impact_inputs(
                 )
         elif cause_area in {
             ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
-            ROOT_CAUSE_PRICE,
             ROOT_CAUSE_CASH,
             ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
         }:
@@ -2420,6 +2536,8 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_SECURITY_RETURN_WEIGHTED
     if IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD in bases:
         return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
+    if IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW in bases:
+        return IMPACT_BASIS_PORTFOLIO_EXTERNAL_FLOW
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
         return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
     if IMPACT_BASIS_HOLDING_MARKET_VALUE in bases:
@@ -2593,21 +2711,28 @@ def _portfolio_period_transaction_cross_check_row(
             if row.get(TRANSACTION_IMPACT_POLICY)
         }
     )
+    has_counted_estimate = "modified_dietz counted estimate" in diagnostics
+    treatment = COUNT_AS_EXPLANATION if has_counted_estimate else CROSS_CHECK_ONLY
+    impact_message = (
+        "Transaction impact estimates are included in estimated impact totals."
+        if has_counted_estimate
+        else (
+            "Transaction impact cross-checks are review-only and are not "
+            "included in estimated impact totals."
+        )
+    )
     return {
         PORTFOLIO_ID: portfolio_id,
         FROM_DATE: from_date,
         THRU_DATE: thru_date,
         TRANSACTION_IMPACT_POLICIES: ", ".join(policies),
-        CROSS_CHECK_TREATMENT: CROSS_CHECK_ONLY,
+        CROSS_CHECK_TREATMENT: treatment,
         CROSS_CHECK_COUNT: len(estimates),
         CROSS_CHECK_ESTIMATE_TOTAL: sum(estimates),
         CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL: sum(abs(estimate) for estimate in estimates),
         CHANGED_FIELDS: ", ".join(_changed_transaction_fields(rows)),
         TRANSACTION_IMPACT_DIAGNOSTICS: ", ".join(diagnostics),
-        IMPACT_MESSAGE: (
-            "Transaction impact cross-checks are review-only and are not "
-            "included in estimated impact totals."
-        ),
+        IMPACT_MESSAGE: impact_message,
     }
 
 
@@ -2995,7 +3120,6 @@ def _dataset_priority_score(dataset: str) -> int:
         pc_cols.TRANSACTIONS: 35,
         pc_cols.HOLDINGS: 35,
         pc_cols.CASH: 30,
-        pc_cols.PRICES: 25,
         pc_cols.FX_RATES: 25,
         pc_cols.SECURITY_PERFORMANCE: 10,
         pc_cols.SECURITY_MASTER: 0,
@@ -3039,7 +3163,6 @@ def _empty_portfolio_period_summary() -> pl.DataFrame:
             DIRECT_INPUT_FINDING_COUNT: pl.UInt32,
             RELATED_OUTPUT_FINDING_COUNT: pl.UInt32,
             CONTEXT_FINDING_COUNT: pl.UInt32,
-            PRICE_FINDING_COUNT: pl.UInt32,
             FX_RATE_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
             HOLDING_FINDING_COUNT: pl.UInt32,
@@ -3078,7 +3201,6 @@ def _empty_security_period_summary() -> pl.DataFrame:
             DIRECT_INPUT_FINDING_COUNT: pl.UInt32,
             RELATED_OUTPUT_FINDING_COUNT: pl.UInt32,
             CONTEXT_FINDING_COUNT: pl.UInt32,
-            PRICE_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
             HOLDING_FINDING_COUNT: pl.UInt32,
             REFERENCE_FINDING_COUNT: pl.UInt32,
@@ -3117,6 +3239,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             EVIDENCE_ROLE: pl.String,
             SECURITY_ID: pl.String,
             SOURCE_FILE: pl.String,
+            INPUT_DATE: pl.Date,
             SOURCE_COLUMN: pl.String,
             TRANSACTION_CATEGORY: pl.String,
             CASH_FLOW_SIGN: pl.String,

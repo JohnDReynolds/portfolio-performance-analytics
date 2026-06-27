@@ -60,7 +60,6 @@ from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.period_linking import (
     period_context_for_dated_evidence,
     portfolio_periods_from_snapshots,
-    security_period_contexts_for_dated_evidence,
     security_periods_from_snapshots,
 )
 from ppar.performance_comparison.policies import (
@@ -79,15 +78,16 @@ from ppar.performance_comparison.policies import (
     _holding_impact_policies,
     _price_impact_policies,
     _security_master_impact_policies,
+    _security_return_impact_policies,
     _transaction_impact_policies,
 )
 from ppar.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact as _modified_dietz_external_flow_impact,
     modified_dietz_float as _modified_dietz_float,
 )
+from ppar.performance_comparison.methods import ModifiedDietzDoubleCountPolicy
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
 from ppar.performance_comparison.holdings import HoldingsLoader
-from ppar.performance_comparison.prices import PricesLoader
 from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.security_master import SecurityMasterLoader
@@ -96,6 +96,8 @@ from ppar.performance_comparison.specification import (
     PerformanceComparisonSpecification,
 )
 from ppar.performance_comparison.transactions import (
+    TRANSACTION_CATEGORY_BUY,
+    TRANSACTION_CATEGORY_SELL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
     TransactionsLoader,
@@ -122,12 +124,6 @@ _CASH_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
     pc_cols.CASH_DATE,
     pc_cols.CURRENCY,
-)
-_PRICE_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
-    pc_cols.SECURITY_ID,
-    pc_cols.PRICE_DATE,
-    pc_cols.CURRENCY,
-    pc_cols.PRICE_SOURCE,
 )
 _FX_RATE_KEY_COLUMNS: Final[tuple[str, str, str, str, str]] = (
     pc_cols.FROM_CURRENCY,
@@ -182,9 +178,6 @@ _CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.CASH_BALANCE: PC_CASH_MV,
     pc_cols.MARKET_VALUE: PC_CASH_MV,
 }
-_PRICE_COMPARE_COLUMNS: Final[dict[str, str]] = {
-    pc_cols.PRICE: PC_PRICE,
-}
 _FX_RATE_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.FX_RATE: PC_FX_RATE,
 }
@@ -196,7 +189,6 @@ _TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
 }
 _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
     {
-        pc_cols.PRICES,
         pc_cols.FX_RATES,
         pc_cols.TRANSACTIONS,
         pc_cols.HOLDINGS,
@@ -246,7 +238,6 @@ class PerformanceComparison:
         _security_master_loader: Loader for normalized security master rows.
         _holdings_loader: Loader for normalized holding rows.
         _cash_loader: Loader for normalized cash rows.
-        _prices_loader: Loader for normalized price rows.
         _fx_rates_loader: Loader for normalized FX rate rows.
         _transactions_loader: Loader for normalized transaction rows.
         _transaction_impact_policies: YAML-configured transaction impact
@@ -279,10 +270,12 @@ class PerformanceComparison:
         self._security_master_loader = SecurityMasterLoader(specification)
         self._holdings_loader = HoldingsLoader(specification)
         self._cash_loader = CashLoader(specification)
-        self._prices_loader = PricesLoader(specification)
         self._fx_rates_loader = FxRatesLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
         self._transaction_impact_policies = _transaction_impact_policies(
+            specification
+        )
+        self._security_return_impact_policies = _security_return_impact_policies(
             specification
         )
         self._contribution_impact_policies = _contribution_impact_policies(
@@ -323,7 +316,6 @@ class PerformanceComparison:
         findings.extend(self.compare_security_master())
         findings.extend(self.compare_holdings())
         findings.extend(self.compare_cash())
-        findings.extend(self.compare_prices())
         findings.extend(self.compare_fx_rates())
         findings.extend(self.compare_transactions())
         return apply_suppressions(findings, self._specification)
@@ -417,6 +409,7 @@ class PerformanceComparison:
 
         portfolio_periods = self._portfolio_periods()
         return_denominators = self._portfolio_period_return_denominators()
+        return_weights = self._security_period_return_weights()
         findings = self._row_presence_findings(
             snapshot_a,
             snapshot_b,
@@ -436,6 +429,7 @@ class PerformanceComparison:
                 pc_cols.HOLDINGS,
                 portfolio_periods,
                 return_denominators=return_denominators,
+                return_weights=return_weights,
             )
         )
         return findings
@@ -475,44 +469,6 @@ class PerformanceComparison:
                 pc_cols.CASH,
                 portfolio_periods,
                 return_denominators=return_denominators,
-            )
-        )
-        return findings
-
-    def compare_prices(self) -> list[Finding]:
-        """Compare price rows for snapshots A and B.
-
-        Returns:
-            Findings for added/dropped rows and material price changes. Returns
-            an empty list when the optional prices dataset is unavailable.
-        """
-        snapshot_a = self._prices_loader.load("a")
-        snapshot_b = self._prices_loader.load("b")
-        if snapshot_a is None or snapshot_b is None:
-            return []
-
-        key_columns = self._optional_key_columns(snapshot_a, snapshot_b, _PRICE_KEY_COLUMNS)
-        security_periods = self._security_periods()
-        return_weights = self._security_period_return_weights()
-        findings = self._row_presence_findings(
-            snapshot_a,
-            snapshot_b,
-            key_columns,
-            PC_ROW_ADD,
-            PC_ROW_DROP,
-            pc_cols.PRICES,
-            "Price row appears only in snapshot B.",
-            "Price row appears only in snapshot A.",
-        )
-        findings.extend(
-            self._changed_value_findings(
-                snapshot_a,
-                snapshot_b,
-                key_columns,
-                _PRICE_COMPARE_COLUMNS,
-                pc_cols.PRICES,
-                security_periods=security_periods,
-                return_weights=return_weights,
             )
         )
         return findings
@@ -1002,6 +958,17 @@ class PerformanceComparison:
             policy = self._transaction_impact_policies.get(source_column)
             if policy is not None:
                 return policy.finding_label
+        if (
+            self._specification.comparison_level == SECURITY_COMPARISON_LEVEL
+            and source_column == pc_cols.AMOUNT
+            and row.get(pc_cols.TRANSACTION_CATEGORY)
+            in {TRANSACTION_CATEGORY_BUY, TRANSACTION_CATEGORY_SELL}
+            and row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
+            == TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+        ):
+            policy = self._security_return_impact_policies.get(pc_cols.TRANSACTIONS)
+            if policy is not None:
+                return policy.finding_label
         performance_flow_sign = row.get(pc_cols.PERFORMANCE_FLOW_SIGN)
         if performance_flow_sign == TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL:
             policy_key = _EXTERNAL_FLOW_KEY
@@ -1045,6 +1012,11 @@ class PerformanceComparison:
             denominator=denominator,
         )
         if eligibility.eligible:
+            if (
+                policy.double_count_policy
+                == ModifiedDietzDoubleCountPolicy.COUNT_AS_EXPLANATION.value
+            ):
+                return "modified_dietz counted estimate"
             return "modified_dietz cross-check estimate"
         missing = ", ".join(eligibility.missing_inputs)
         return f"modified_dietz missing inputs: {missing}"
@@ -1139,7 +1111,7 @@ class PerformanceComparison:
         return_weights: Mapping[tuple[object, object, object, object], float] | None,
     ) -> float | None:
         """Return snapshot A security weight for approximate return impacts."""
-        if dataset == pc_cols.PRICES:
+        if dataset == pc_cols.HOLDINGS:
             if (
                 portfolio_id is None
                 or from_date is None
@@ -1147,8 +1119,14 @@ class PerformanceComparison:
                 or return_weights is None
             ):
                 return None
-            key = (portfolio_id, row.get(pc_cols.SECURITY_ID), from_date, thru_date)
-            return return_weights.get(key)
+            return return_weights.get(
+                (
+                    portfolio_id,
+                    row.get(pc_cols.SECURITY_ID),
+                    from_date,
+                    thru_date,
+                )
+            )
         if dataset != pc_cols.SECURITY_PERFORMANCE:
             return None
         value = row.get(pc_cols.WEIGHT)
@@ -1193,13 +1171,7 @@ class PerformanceComparison:
         ) = None,
     ) -> list[tuple[object | None, object | None, object | None]]:
         """Return portfolio and period contexts for changed-value findings."""
-        security_period_contexts = security_period_contexts_for_dated_evidence(
-            row,
-            dataset,
-            security_periods,
-        )
-        if security_period_contexts:
-            return security_period_contexts
+        del security_periods
 
         period_context = period_context_for_dated_evidence(
             row,
@@ -1399,7 +1371,6 @@ class PerformanceComparison:
         date_column_by_dataset = {
             pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
             pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,
-            pc_cols.PRICES: pc_cols.PRICE_DATE,
             pc_cols.FX_RATES: pc_cols.RATE_DATE,
             pc_cols.CASH: pc_cols.CASH_DATE,
         }
@@ -1503,10 +1474,6 @@ class PerformanceComparison:
                 if policy is not None:
                     return policy
             policy = self._holding_impact_policies.get(source_column)
-            if policy is not None:
-                return policy
-        if dataset == pc_cols.PRICES:
-            policy = self._price_impact_policies.get(source_column)
             if policy is not None:
                 return policy
         if dataset == pc_cols.CASH:

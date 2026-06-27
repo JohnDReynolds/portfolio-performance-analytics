@@ -13,7 +13,6 @@ Controlled changes:
   value, cost, and accrued amount for `2025-05-30`.
 - `cash.csv`: Restated `PORT_A` USD cash balance and market value for
   `2025-05-30`.
-- `prices.csv`: Restated the `AAPL` price for `2025-05-30`.
 - `fx_rates.csv`: Restated the `EUR` to `USD` spot rate for `2025-05-30`.
 - `transactions.csv`: Restated the `TXN000001` AAPL transaction quantity,
   price, and amount.

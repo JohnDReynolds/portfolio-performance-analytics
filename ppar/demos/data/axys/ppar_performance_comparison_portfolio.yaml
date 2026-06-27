@@ -24,7 +24,6 @@ files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
-  prices: prices.csv
   transactions: transactions.csv
 
 transaction_rules:
@@ -32,10 +31,45 @@ transaction_rules:
     transaction_category: buy
     cash_flow_sign: negative
     performance_flow_sign: performance
+  SELL:
+    transaction_category: sell
+    cash_flow_sign: positive
+    performance_flow_sign: performance
   DIV:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+  # Demo assumption: reported returns are net of fees, so fee changes are
+  # performance-impacting. Gross-of-fees returns need an explicit future
+  # return-basis policy before fees should be treated this way.
+  FEE:
+    transaction_category: fee_expense
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  INT:
+    transaction_category: income
+    cash_flow_sign: positive
+    performance_flow_sign: performance
+  SPLIT:
+    transaction_category: corporate_action
+    cash_flow_sign: none
+    performance_flow_sign: neutral
+  WD:
+    transaction_category: external_flow
+    cash_flow_sign: negative
+    performance_flow_sign: external
+
+transaction_impact_methods:
+  external_flow:
+    method: modified_dietz
+    flow_timing: trade_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
+    denominator_source: begin_market_value
+    double_count_policy: count_as_explanation
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+    denominator_source: begin_market_value
 
 tolerances:
   return: 0.000001

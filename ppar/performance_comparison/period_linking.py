@@ -18,9 +18,6 @@ DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
     pc_cols.CASH: pc_cols.CASH_DATE,
 }
-SECURITY_DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
-    pc_cols.PRICES: pc_cols.PRICE_DATE,
-}
 
 
 def portfolio_periods_from_snapshots(
@@ -95,29 +92,6 @@ def period_context_for_dated_evidence(
     return _dated_evidence_period_context(row, dataset, portfolio_periods)
 
 
-def security_period_contexts_for_dated_evidence(
-    row: Mapping[str, object],
-    dataset: str,
-    security_periods: pl.DataFrame | None,
-) -> list[tuple[object | None, object | None, object | None]]:
-    """Return security-period contexts for a dated evidence row.
-
-    Args:
-        row: Joined comparison row.
-        dataset: Normalized dataset name for the row.
-        security_periods: Unique security performance period rows, or
-            ``None`` when no security-period linking should be attempted.
-
-    Returns:
-        ``(portfolio_id, from_date, thru_date)`` contexts for every matching
-        security-performance period. Returns an empty list when the row cannot
-        be linked conservatively.
-    """
-    if dataset not in SECURITY_DATED_EVIDENCE_COLUMNS or security_periods is None:
-        return []
-    return _security_dated_evidence_period_contexts(row, dataset, security_periods)
-
-
 def _dated_evidence_period_context(
     row: Mapping[str, object],
     dataset: str,
@@ -143,35 +117,3 @@ def _dated_evidence_period_context(
 
     candidates.sort(key=lambda period: ((period[1] - period[0]).days, period[0]))
     return candidates[0]
-
-
-def _security_dated_evidence_period_contexts(
-    row: Mapping[str, object],
-    dataset: str,
-    security_periods: pl.DataFrame,
-) -> list[tuple[object | None, object | None, object | None]]:
-    """Return security periods containing a dated security evidence row."""
-    security_id = row.get(pc_cols.SECURITY_ID)
-    evidence_date = row.get(SECURITY_DATED_EVIDENCE_COLUMNS[dataset])
-    if security_id is None or not isinstance(evidence_date, dt.date):
-        return []
-
-    candidates_by_portfolio: dict[object, list[tuple[dt.date, dt.date]]] = {}
-    security_rows = security_periods.filter(pl.col(pc_cols.SECURITY_ID) == security_id)
-    for period in security_rows.iter_rows(named=True):
-        portfolio_id = period[pc_cols.PORTFOLIO_ID]
-        from_date = period[pc_cols.FROM_DATE]
-        thru_date = period[pc_cols.THRU_DATE]
-        if not isinstance(from_date, dt.date) or not isinstance(thru_date, dt.date):
-            continue
-        if from_date <= evidence_date <= thru_date:
-            candidates_by_portfolio.setdefault(portfolio_id, []).append(
-                (from_date, thru_date)
-            )
-
-    contexts: list[tuple[object | None, object | None, object | None]] = []
-    for portfolio_id, candidates in candidates_by_portfolio.items():
-        candidates.sort(key=lambda period: ((period[1] - period[0]).days, period[0]))
-        from_date, thru_date = candidates[0]
-        contexts.append((portfolio_id, from_date, thru_date))
-    return sorted(contexts, key=lambda context: tuple(str(value) for value in context))

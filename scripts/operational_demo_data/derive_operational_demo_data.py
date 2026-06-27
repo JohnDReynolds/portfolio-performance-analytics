@@ -41,6 +41,17 @@ _FIXED_INCOME_SLEEVE: Final = (
     ("TNOTE2Y", "2 Year Treasury Note", "Treasury Notes", 0.20, 0.0032, 100.15, 65.0),
     ("TNOTE5Y", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027, 98.80, 95.0),
 )
+_JPM_DIVIDEND_IDENTIFIER: Final = "JPM"
+_JPM_DIVIDEND_EX_DATE: Final = "2026-04-06"
+_JPM_DIVIDEND_PAY_DATE: Final = "2026-04-30"
+_JPM_PRIOR_DIVIDEND_PER_SHARE: Final = 1.40
+_JPM_CURRENT_DIVIDEND_PER_SHARE: Final = 1.50
+_TNOTE2Y_INTEREST_TRANSACTION_ID: Final = "INCOME0603"
+_TNOTE2Y_INTEREST_IDENTIFIER: Final = "TNOTE2Y"
+_TNOTE2Y_INTEREST_DATE: Final = "2026-05-15"
+_TNOTE2Y_INTEREST_PERIOD_END: Final = "2026-05-29"
+_TNOTE2Y_PRIOR_INTEREST_AMOUNT: Final = 1_200.0
+_TNOTE2Y_CURRENT_INTEREST_AMOUNT: Final = 1_280.0
 
 
 def main() -> None:
@@ -183,6 +194,12 @@ def select_equity_identifiers(source: pd.DataFrame, equity_count: int) -> list[s
         .head(equity_count)["identifier"]
         .tolist()
     )
+    if (
+        _JPM_DIVIDEND_IDENTIFIER in set(candidates["identifier"])
+        and _JPM_DIVIDEND_IDENTIFIER not in identifiers
+    ):
+        identifiers[-1] = _JPM_DIVIDEND_IDENTIFIER
+        identifiers = sorted(identifiers)
     if len(identifiers) < equity_count:
         raise ValueError("Source data does not contain enough equity identifiers.")
     return identifiers
@@ -194,14 +211,12 @@ def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
     secperf = _security_performance(performance)
     portperf = _portfolio_performance(performance)
     holdings = _positions(performance)
-    prices = _prices(performance)
     transactions = _transactions(performance)
     return {
         "sec_ref": sec_ref,
         "secperf": secperf,
         "portperf": portperf,
         "holdings": holdings,
-        "prices": prices,
         "transactions": transactions,
     }
 
@@ -213,8 +228,8 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         axys: Snapshot A Axys-style frames from :func:`build_axys_exports`.
 
     Returns:
-        Snapshot B frames with small deterministic restatements across prices,
-        holdings, transactions, and performance rows.
+        Snapshot B frames with small deterministic restatements across holdings,
+        transactions, and performance rows.
     """
     snapshot = {name: frame.copy(deep=True) for name, frame in axys.items()}
     dates = sorted(snapshot["portperf"]["THRU_DATE"].unique())
@@ -224,20 +239,17 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     middle_date = dates[-2]
     latest_date = dates[-1]
 
-    # Fully explained: a global price correction affects every portfolio that
-    # holds AAPL, with the portfolio-level effect scaled by each portfolio's
-    # beginning weight in the security.
-    aapl_weights = {
-        portfolio_code: _security_weight(
-            snapshot["secperf"],
+    # Fully explained: a holding price correction affects every portfolio that
+    # holds AAPL, with portfolio impact flowing through holdings.market_value.
+    aapl_market_value_deltas = {}
+    for portfolio_code, _, _, _ in _PORTFOLIOS:
+        aapl_market_value_deltas[portfolio_code] = _adjust_holding_price_multiplier(
+            snapshot["holdings"],
             portfolio_code,
-            latest_date,
             "AAPL",
+            target_date=latest_date,
+            price_multiplier=1.01,
         )
-        for portfolio_code, _, _, _ in _PORTFOLIOS
-    }
-    _adjust_price(snapshot["prices"], latest_date, "AAPL", 1.01)
-    for portfolio_code in aapl_weights:
         _adjust_security_performance(
             snapshot["secperf"],
             portfolio_code,
@@ -245,21 +257,45 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
             "AAPL",
             return_delta=0.01,
         )
-
-    # Fully explained: transaction amount changes by itself, as when a dividend
-    # correction changes the performance input but no trade components exist.
-    _adjust_transaction_amount(
+    # Fully explained: JPM paid a $1.50/share dividend with an ex-date of
+    # 2026-04-06. Snapshot A uses the prior $1.40/share rate; snapshot B
+    # corrects the dividend amount, cash holding, and reported performance.
+    jpm_dividend_delta = _adjust_jpm_dividend_to_current_rate(
         snapshot["transactions"],
+        snapshot["secperf"],
         "BALANCED",
         middle_date,
-        "DIV",
-        amount_delta=225.0,
+    )
+    _adjust_cash_holding(
+        snapshot["holdings"],
+        "BALANCED",
+        middle_date,
+        cash_delta=jpm_dividend_delta,
     )
     _apply_portfolio_return_delta(
         snapshot["portperf"],
         "BALANCED",
         middle_date,
-        return_delta=0.000225,
+        return_delta=jpm_dividend_delta / _BASE_MARKET_VALUE,
+    )
+    # Fully explained: a TNOTE2Y interest receipt was corrected from $1,200
+    # to $1,280 on the coupon date. The $80 correction increases cash,
+    # security income, and reported performance.
+    tnote_interest_delta = _adjust_tnote2y_interest_to_current_amount(
+        snapshot["transactions"],
+        snapshot["secperf"],
+    )
+    _adjust_cash_holding(
+        snapshot["holdings"],
+        "INCOME",
+        _TNOTE2Y_INTEREST_PERIOD_END,
+        cash_delta=tnote_interest_delta,
+    )
+    _apply_portfolio_return_delta(
+        snapshot["portperf"],
+        "INCOME",
+        _TNOTE2Y_INTEREST_PERIOD_END,
+        return_delta=tnote_interest_delta / _BASE_MARKET_VALUE,
     )
 
     # Partly explained: the trade amount changed and explains part of the
@@ -329,11 +365,11 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         return_delta=0.0004,
     )
     _apply_portfolio_return_delta(
-        snapshot["portperf"],
-        "INCOME",
-        latest_date,
-        return_delta=round(
-            aapl_weights["INCOME"] * 0.01
+            snapshot["portperf"],
+            "INCOME",
+            latest_date,
+            return_delta=round(
+            aapl_market_value_deltas["INCOME"] / _BASE_MARKET_VALUE
             + (tnote_market_value_b - tnote_market_value_a) / _BASE_MARKET_VALUE
             + 50.0 / _BASE_MARKET_VALUE,
             10,
@@ -369,18 +405,18 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         market_value_delta=425.0,
     )
     _apply_portfolio_return_delta(
-        snapshot["portperf"],
-        "BALANCED",
-        latest_date,
-        return_delta=round(
-            aapl_weights["BALANCED"] * 0.01 + 425.0 / _BASE_MARKET_VALUE,
+            snapshot["portperf"],
+            "BALANCED",
+            latest_date,
+            return_delta=round(
+            aapl_market_value_deltas["BALANCED"] / _BASE_MARKET_VALUE
+            + 425.0 / _BASE_MARKET_VALUE,
             10,
         ),
     )
 
     # Reviewable component-only holding difference: price changed on the
-    # holdings row while market value stayed the same. The standalone prices
-    # file is unchanged, exercising the holdings-price precedence path.
+    # holdings row while market value stayed the same.
     _adjust_holding(
         snapshot["holdings"],
         "INCOME",
@@ -396,11 +432,12 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         cash_delta=1_500.0,
     )
     _apply_portfolio_return_delta(
-        snapshot["portperf"],
-        "ALPHA",
-        latest_date,
-        return_delta=round(
-            aapl_weights["ALPHA"] * 0.01 + 1_500.0 / _BASE_MARKET_VALUE,
+            snapshot["portperf"],
+            "ALPHA",
+            latest_date,
+            return_delta=round(
+            aapl_market_value_deltas["ALPHA"] / _BASE_MARKET_VALUE
+            + 1_500.0 / _BASE_MARKET_VALUE,
             10,
         ),
     )
@@ -607,25 +644,6 @@ def _positions(performance: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _prices(performance: pd.DataFrame) -> pd.DataFrame:
-    dates = performance["thru_date"].drop_duplicates().sort_values()
-    identifiers = sorted(
-        _holding_security_id(identifier)
-        for identifier in performance["identifier"].unique()
-    )
-    rows = []
-    for date_index, date in enumerate(dates):
-        for identifier in identifiers:
-            rows.append(
-                {
-                    "SEC": identifier,
-                    "PRICE_DATE": date.date(),
-                    "PRICE": round(_price_for(identifier) * (1.0 + date_index * 0.002), 4),
-                }
-            )
-    return pd.DataFrame(rows)
-
-
 def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for portfolio_code, group in performance.groupby("portfolio_code", sort=True):
@@ -645,37 +663,87 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
             for index, row in enumerate(equities.itertuples(index=False), start=1):
                 gross_amount = 4_000.0 * index
                 transaction_code = "BUY" if index == 1 else "DIV"
+                transaction_identifier = row.identifier
                 quantity = (
-                    round(gross_amount / _price_for(row.identifier), 4)
+                    round(gross_amount / _price_for(transaction_identifier), 4)
                     if transaction_code == "BUY"
                     else 0.0
                 )
-                price = _price_for(row.identifier) if transaction_code == "BUY" else 0.0
+                price = (
+                    _price_for(transaction_identifier)
+                    if transaction_code == "BUY"
+                    else 0.0
+                )
                 commission = 4.95 if transaction_code == "BUY" else 0.0
+                transaction_date = period.from_date + pd.Timedelta(days=5)
+                settle_date = period.from_date + pd.Timedelta(days=6)
+                amount = (
+                    _buy_transaction_amount(quantity, price, commission)
+                    if transaction_code == "BUY"
+                    else round(gross_amount * 0.0125, 2)
+                )
+                if (
+                    portfolio_code == "BALANCED"
+                    and str(period.thru_date.date()) == _JPM_DIVIDEND_PAY_DATE
+                    and transaction_code == "DIV"
+                ):
+                    transaction_identifier = _JPM_DIVIDEND_IDENTIFIER
+                    transaction_date = pd.Timestamp(_JPM_DIVIDEND_EX_DATE)
+                    settle_date = pd.Timestamp(_JPM_DIVIDEND_PAY_DATE)
+                    amount = _jpm_dividend_amount(group, _JPM_PRIOR_DIVIDEND_PER_SHARE)
                 rows.append(
                     {
                         "TRANSACTION_ID": f"{portfolio_code}{period_index:02d}{index:02d}",
                         "PORT": portfolio_code,
-                        "TRANSACTION_DATE": (
-                            period.from_date + pd.Timedelta(days=5)
-                        ).date(),
-                        "SETTLE_DATE": (
-                            period.from_date + pd.Timedelta(days=6)
-                        ).date(),
-                        "SEC": row.identifier,
+                        "TRANSACTION_DATE": transaction_date.date(),
+                        "SETTLE_DATE": settle_date.date(),
+                        "SEC": transaction_identifier,
                         "TRAN": transaction_code,
                         "QTY": quantity,
                         "PRICE": price,
-                        "AMOUNT": (
-                            _buy_transaction_amount(quantity, price, commission)
-                            if transaction_code == "BUY"
-                            else round(gross_amount * 0.0125, 2)
-                        ),
+                        "AMOUNT": amount,
                         "COMMISSION": commission,
                         "BROKER": "DEMO",
                     }
                 )
+            if (
+                portfolio_code == "INCOME"
+                and str(period.thru_date.date()) == _TNOTE2Y_INTEREST_PERIOD_END
+            ):
+                rows.append(
+                    {
+                        "TRANSACTION_ID": _TNOTE2Y_INTEREST_TRANSACTION_ID,
+                        "PORT": portfolio_code,
+                        "TRANSACTION_DATE": pd.Timestamp(
+                            _TNOTE2Y_INTEREST_DATE
+                        ).date(),
+                        "SETTLE_DATE": pd.Timestamp(_TNOTE2Y_INTEREST_DATE).date(),
+                        "SEC": _TNOTE2Y_INTEREST_IDENTIFIER,
+                        "TRAN": "INT",
+                        "QTY": 0.0,
+                        "PRICE": 0.0,
+                        "AMOUNT": _TNOTE2Y_PRIOR_INTEREST_AMOUNT,
+                        "COMMISSION": 0.0,
+                        "BROKER": "DEMO",
+                    }
+                )
     return pd.DataFrame(rows)
+
+
+def _jpm_dividend_amount(performance: pd.DataFrame, dividend_per_share: float) -> float:
+    """Return the JPM dividend amount for the BALANCED dividend demo phase."""
+    jpm_rows = performance[
+        performance["identifier"].eq(_JPM_DIVIDEND_IDENTIFIER)
+        & performance["thru_date"].dt.date.astype(str).eq(_JPM_DIVIDEND_PAY_DATE)
+    ]
+    if jpm_rows.empty:
+        raise ValueError("Could not find BALANCED JPM performance row for dividend demo.")
+    shares = (
+        _BASE_MARKET_VALUE
+        * float(jpm_rows.iloc[0]["weight"])
+        / _price_for(_JPM_DIVIDEND_IDENTIFIER)
+    )
+    return round(shares * dividend_per_share, 2)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -698,19 +766,6 @@ def _validate_period_weights(performance: pd.DataFrame) -> None:
     max_error = float(errors.max())
     if max_error > 1e-12:
         raise ValueError(f"Generated period weights do not sum to 1.0: {max_error}")
-
-
-def _adjust_price(
-    prices: pd.DataFrame,
-    target_date: object,
-    identifier: str,
-    multiplier: float,
-) -> None:
-    """Apply one price restatement in place."""
-    mask = prices["PRICE_DATE"].astype(str).eq(str(target_date)) & prices["SEC"].eq(identifier)
-    if not bool(mask.any()):
-        raise ValueError(f"Could not find price row for {identifier} on {target_date}.")
-    prices.loc[mask, "PRICE"] = (prices.loc[mask, "PRICE"] * multiplier).round(4)
 
 
 def _adjust_holding(
@@ -751,6 +806,30 @@ def _adjust_holding(
         holdings.loc[mask, "ACCRUED"] = (
             holdings.loc[mask, "ACCRUED"] + accrued_delta
         ).round(2)
+
+
+def _adjust_holding_price_multiplier(
+    holdings: pd.DataFrame,
+    portfolio_code: str,
+    identifier: str,
+    *,
+    target_date: object,
+    price_multiplier: float,
+) -> float:
+    """Apply a holding price restatement and return the market-value delta."""
+    mask = (
+        holdings["PORT"].eq(portfolio_code)
+        & holdings["SEC"].eq(identifier)
+        & holdings["HOLDING_DATE"].astype(str).eq(str(target_date))
+    )
+    if not bool(mask.any()):
+        raise ValueError(f"Could not find holding row for {portfolio_code} {identifier}.")
+    old_market_value = float(holdings.loc[mask, "MKT_VAL"].iloc[0])
+    holdings.loc[mask, "PRICE"] = (holdings.loc[mask, "PRICE"] * price_multiplier).round(2)
+    holdings.loc[mask, "MKT_VAL"] = (
+        holdings.loc[mask, "QTY"] * holdings.loc[mask, "PRICE"]
+    ).round(2)
+    return float(holdings.loc[mask, "MKT_VAL"].iloc[0]) - old_market_value
 
 
 def _adjust_cash_holding(
@@ -801,6 +880,62 @@ def _adjust_transaction_amount(
         float(transactions.loc[first_index, "AMOUNT"]) + amount_delta,
         2,
     )
+
+
+def _adjust_jpm_dividend_to_current_rate(
+    transactions: pd.DataFrame,
+    security_performance: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
+) -> float:
+    """Correct the JPM dividend transaction to the current rate and return delta."""
+    mask = (
+        transactions["PORT"].eq(portfolio_code)
+        & transactions["SEC"].eq(_JPM_DIVIDEND_IDENTIFIER)
+        & transactions["TRAN"].eq("DIV")
+        & transactions["SETTLE_DATE"].astype(str).eq(_JPM_DIVIDEND_PAY_DATE)
+    )
+    if not bool(mask.any()):
+        raise ValueError("Could not find JPM dividend transaction for restatement.")
+    row_index = transactions.index[mask][0]
+    old_amount = float(transactions.loc[row_index, "AMOUNT"])
+    shares = old_amount / _JPM_PRIOR_DIVIDEND_PER_SHARE
+    new_amount = round(shares * _JPM_CURRENT_DIVIDEND_PER_SHARE, 2)
+    amount_delta = round(new_amount - old_amount, 2)
+    transactions.loc[row_index, "AMOUNT"] = new_amount
+    _adjust_security_income(
+        security_performance,
+        portfolio_code,
+        target_date,
+        _JPM_DIVIDEND_IDENTIFIER,
+        income_delta=amount_delta,
+    )
+    return amount_delta
+
+
+def _adjust_tnote2y_interest_to_current_amount(
+    transactions: pd.DataFrame,
+    security_performance: pd.DataFrame,
+) -> float:
+    """Correct the TNOTE2Y interest transaction and return the amount delta."""
+    mask = (
+        transactions["TRANSACTION_ID"].eq(_TNOTE2Y_INTEREST_TRANSACTION_ID)
+        & transactions["PORT"].eq("INCOME")
+    )
+    if not bool(mask.any()):
+        raise ValueError("Could not find TNOTE2Y interest transaction.")
+    row_index = transactions.index[mask][0]
+    old_amount = float(transactions.loc[row_index, "AMOUNT"])
+    amount_delta = round(_TNOTE2Y_CURRENT_INTEREST_AMOUNT - old_amount, 2)
+    transactions.loc[row_index, "AMOUNT"] = _TNOTE2Y_CURRENT_INTEREST_AMOUNT
+    _adjust_security_income(
+        security_performance,
+        "INCOME",
+        _TNOTE2Y_INTEREST_PERIOD_END,
+        _TNOTE2Y_INTEREST_IDENTIFIER,
+        income_delta=amount_delta,
+    )
+    return amount_delta
 
 
 def _adjust_transaction_fields(
@@ -885,6 +1020,46 @@ def _adjust_security_performance(
     income_component = security_performance.loc[mask, "INCOME"].astype(float)
     security_performance.loc[mask, "GAIN_LOSS"] = (
         security_performance.loc[mask, "END_MV"].astype(float) - begin_mv - income_component
+    ).round(2)
+
+
+def _adjust_security_income(
+    security_performance: pd.DataFrame,
+    portfolio_code: str,
+    target_date: object,
+    identifier: str,
+    *,
+    income_delta: float,
+) -> None:
+    """Apply one security-income correction and keep synthetic returns aligned."""
+    mask = (
+        security_performance["PORTFOLIO_CODE"].eq(portfolio_code)
+        & security_performance["THRU_DATE"].astype(str).eq(str(target_date))
+        & security_performance["SECURITY_ID"].eq(identifier)
+    )
+    if not bool(mask.any()):
+        raise ValueError(
+            f"Could not find security row for {portfolio_code} {identifier} on {target_date}."
+        )
+    begin_mv = security_performance.loc[mask, "BEGIN_MV"].astype(float)
+    return_delta = income_delta / float(begin_mv.iloc[0])
+    security_performance.loc[mask, "INCOME"] = (
+        security_performance.loc[mask, "INCOME"].astype(float) + income_delta
+    ).round(2)
+    security_performance.loc[mask, "SEC_RETURN"] = (
+        security_performance.loc[mask, "SEC_RETURN"].astype(float) + return_delta
+    ).round(10)
+    security_performance.loc[mask, "CONTRIBUTION"] = (
+        security_performance.loc[mask, "BEGIN_WEIGHT"].astype(float)
+        * security_performance.loc[mask, "SEC_RETURN"].astype(float)
+    ).round(10)
+    security_performance.loc[mask, "END_MV"] = (
+        begin_mv * (1.0 + security_performance.loc[mask, "SEC_RETURN"].astype(float))
+    ).round(2)
+    security_performance.loc[mask, "GAIN_LOSS"] = (
+        security_performance.loc[mask, "END_MV"].astype(float)
+        - begin_mv
+        - security_performance.loc[mask, "INCOME"].astype(float)
     ).round(2)
 
 
@@ -981,6 +1156,16 @@ def _apply_reported_portfolio_return_delta(
 def _comparison_yaml(level: str | None) -> str:
     """Return generated performance-comparison YAML text."""
     level_line = "" if level is None else f"  level: {level}\n"
+    security_return_impact_methods = ""
+    if level == "security":
+        security_return_impact_methods = """
+security_return_impact_methods:
+  transactions:
+    method: modified_dietz
+    flow_timing: transaction_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
+"""
     return f"""# Generated operational performance-comparison prototype.
 comparison:
   name: Mega-Cap operational performance comparison prototype
@@ -1002,7 +1187,6 @@ files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
-  prices: prices.csv
   transactions: transactions.csv
 
 transaction_rules:
@@ -1014,6 +1198,7 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+{security_return_impact_methods}
 
 tolerances:
   return: 0.000001

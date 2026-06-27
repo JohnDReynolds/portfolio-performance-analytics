@@ -6,7 +6,6 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from typing import cast
 import unittest
 
 # Third-party imports
@@ -122,7 +121,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["counts"]["findings"], 17)
+            self.assertEqual(manifest["counts"]["findings"], 16)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 5)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 5)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
@@ -156,28 +155,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("YAML setup is incomplete", result.stderr)
         self.assertFalse(output_directory.exists())
-
-    def test_bundle_cli_module_can_require_causal_attribution(self) -> None:
-        """The bundle CLI module can fail before writing ambiguous attribution."""
-        with tempfile.TemporaryDirectory() as directory:
-            output_directory = Path(directory) / "bundle"
-
-            result = subprocess.run(
-                _module_command(
-                    _BUNDLE_MODULE,
-                    str(_RESTATEMENT_COMPARISON_PATH),
-                    str(output_directory),
-                    "--allow-incomplete-yaml",
-                    "--require-causal-attribution",
-                ),
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertEqual(result.returncode, 1)
-            self.assertEqual(result.stdout, "")
-            self.assertIn("Causal attribution setup is incomplete", result.stderr)
 
     def test_bundle_cli_module_accepts_supported_attribution_setup_alias(self) -> None:
         """The clearer strict-setup alias preserves current strict semantics."""
@@ -277,32 +254,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Transaction impact methods: none", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Transaction semantics sources:", result.stdout)
-        self.assertEqual(result.stderr, "")
-
-    def test_validate_config_cli_module_reports_missing_optional_files(self) -> None:
-        """The CLI config validator previews absent optional files without failing."""
-        with tempfile.TemporaryDirectory() as directory:
-            configuration = _absolute_restatement_configuration()
-            files = cast(dict[str, object], configuration["files"])
-            files["prices"] = "missing_prices.csv"
-            comparison_path = Path(directory) / "comparison.yaml"
-            comparison_path.write_text(
-                yaml.safe_dump(configuration),
-                encoding="utf-8",
-            )
-
-            result = subprocess.run(
-                _module_command(
-                    _VALIDATE_CONFIG_MODULE,
-                    str(comparison_path),
-                ),
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-        self.assertIn("Config validation passed:", result.stdout)
-        self.assertIn("Missing optional files: prices:a, prices:b", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_validate_config_cli_module_reports_invalid_yaml_contract(self) -> None:

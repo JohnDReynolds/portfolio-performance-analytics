@@ -55,7 +55,6 @@ from ppar.performance_comparison import (
     PerformanceComparisonSpecification,
     PortfolioPerformanceLoader,
     HoldingsLoader,
-    PricesLoader,
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     RELATED_OUTPUT,
     SecurityMasterLoader,
@@ -320,10 +319,11 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         changed_trade_cases = (
-            ("ALPHA0401", "2026-03-31"),
-            ("BALANCED0401", "2026-03-31"),
+            ("ALPHA0401", "2026-03-31", ()),
+            ("BALANCED0401", "2026-03-31", ()),
+            ("BALANCED0203", "2026-01-30", ()),
         )
-        for transaction_id, holding_date in changed_trade_cases:
+        for transaction_id, holding_date, other_cash_transaction_ids in changed_trade_cases:
             with self.subTest(transaction_id=transaction_id):
                 transaction_a = transactions_a[(transaction_id,)]
                 transaction_b = transactions_b[(transaction_id,)]
@@ -336,33 +336,34 @@ class TestPackageMetadata(unittest.TestCase):
 
                 quantity_delta = _float_delta(transaction_a, transaction_b, "QTY")
                 amount_delta = _float_delta(transaction_a, transaction_b, "AMOUNT")
+                if transaction_a["TRAN"] == "SELL":
+                    holding_quantity_delta = -quantity_delta
+                else:
+                    holding_quantity_delta = quantity_delta
                 month_end_price = float(holding_a["PRICE"])
+                expected_cash_delta = amount_delta
+                for cash_transaction_id in other_cash_transaction_ids:
+                    expected_cash_delta += _float_delta(
+                        transactions_a[(cash_transaction_id,)],
+                        transactions_b[(cash_transaction_id,)],
+                        "AMOUNT",
+                    )
 
                 self.assertAlmostEqual(
                     _float_delta(holding_a, holding_b, "QTY"),
-                    quantity_delta,
+                    holding_quantity_delta,
                     places=4,
                 )
                 self.assertAlmostEqual(
                     _float_delta(holding_a, holding_b, "MKT_VAL"),
-                    quantity_delta * month_end_price,
+                    holding_quantity_delta * month_end_price,
                     places=2,
                 )
                 self.assertAlmostEqual(
                     _float_delta(cash_a, cash_b, "MKT_VAL"),
-                    amount_delta,
+                    expected_cash_delta,
                     places=2,
                 )
-
-        dividend_a = transactions_a[("BALANCED0502",)]
-        dividend_b = transactions_b[("BALANCED0502",)]
-        cash_a = holdings_a[("BALANCED", "CASH_USD", "2026-04-30")]
-        cash_b = holdings_b[("BALANCED", "CASH_USD", "2026-04-30")]
-        self.assertAlmostEqual(
-            _float_delta(cash_a, cash_b, "MKT_VAL"),
-            _float_delta(dividend_a, dividend_b, "AMOUNT"),
-            places=2,
-        )
 
     def test_axys_demo_buy_transaction_amounts_include_commission(self) -> None:
         """Packaged BUY rows use a stable signed cash-amount convention."""
@@ -388,8 +389,189 @@ class TestPackageMetadata(unittest.TestCase):
                             places=2,
                         )
 
+    def test_axys_demo_fee_transactions_reduce_cash_and_income(self) -> None:
+        """Packaged fee changes reduce ending cash and cash security income."""
+        axys_demo_data = files("ppar.demos.data") / "axys"
+        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
+        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        transaction_id = ("INCOME0203",)
+        cash_holding_key = ("INCOME", "CASH_USD", "2026-01-30")
+        cash_performance_key = (
+            "INCOME",
+            "CASH_USD",
+            "2026-01-01",
+            "2026-01-30",
+        )
+
+        transactions_a = _csv_rows_by_key(
+            snapshot_a / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+        transactions_b = _csv_rows_by_key(
+            snapshot_b / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+        holdings_a = _csv_rows_by_key(
+            snapshot_a / "holdings.csv",
+            ("PORT", "SEC", "HOLDING_DATE"),
+        )
+        holdings_b = _csv_rows_by_key(
+            snapshot_b / "holdings.csv",
+            ("PORT", "SEC", "HOLDING_DATE"),
+        )
+        secperf_a = _csv_rows_by_key(
+            snapshot_a / "secperf.csv",
+            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
+        )
+        secperf_b = _csv_rows_by_key(
+            snapshot_b / "secperf.csv",
+            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
+        )
+
+        amount_delta = _float_delta(
+            transactions_a[transaction_id],
+            transactions_b[transaction_id],
+            "AMOUNT",
+        )
+        self.assertLess(amount_delta, 0)
+        self.assertAlmostEqual(
+            _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),
+            amount_delta,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            _float_delta(
+                secperf_a[cash_performance_key],
+                secperf_b[cash_performance_key],
+                "INCOME",
+            ),
+            amount_delta,
+            places=2,
+        )
+
+    def test_axys_demo_split_transaction_is_neutral_corporate_action(self) -> None:
+        """Packaged split rows document neutral corporate-action activity."""
+        axys_demo_data = files("ppar.demos.data") / "axys"
+        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
+        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        transaction_id = ("BALANCED0503",)
+
+        transactions_a = _csv_rows_by_key(
+            snapshot_a / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+        transactions_b = _csv_rows_by_key(
+            snapshot_b / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+
+        self.assertEqual(transactions_a[transaction_id]["TRAN"], "SPLIT")
+        self.assertEqual(transactions_b[transaction_id]["TRAN"], "SPLIT")
+        self.assertAlmostEqual(
+            _float_delta(
+                transactions_a[transaction_id],
+                transactions_b[transaction_id],
+                "QTY",
+            ),
+            410.6989,
+            places=4,
+        )
+        self.assertAlmostEqual(
+            _float_delta(
+                transactions_a[transaction_id],
+                transactions_b[transaction_id],
+                "AMOUNT",
+            ),
+            0.0,
+            places=2,
+        )
+
+    def test_axys_demo_withdrawal_changes_cash_flow_and_reported_return(self) -> None:
+        """Packaged withdrawal changes cash, flow, and reported return."""
+        axys_demo_data = files("ppar.demos.data") / "axys"
+        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
+        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        transaction_id = ("ALPHA0203",)
+        cash_holding_key = ("ALPHA", "CASH_USD", "2026-01-30")
+        cash_performance_key = (
+            "ALPHA",
+            "CASH_USD",
+            "2026-01-01",
+            "2026-01-30",
+        )
+        portfolio_key = ("ALPHA", "2026-01-01", "2026-01-30")
+
+        transactions_a = _csv_rows_by_key(
+            snapshot_a / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+        transactions_b = _csv_rows_by_key(
+            snapshot_b / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+        holdings_a = _csv_rows_by_key(
+            snapshot_a / "holdings.csv",
+            ("PORT", "SEC", "HOLDING_DATE"),
+        )
+        holdings_b = _csv_rows_by_key(
+            snapshot_b / "holdings.csv",
+            ("PORT", "SEC", "HOLDING_DATE"),
+        )
+        secperf_a = _csv_rows_by_key(
+            snapshot_a / "secperf.csv",
+            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
+        )
+        secperf_b = _csv_rows_by_key(
+            snapshot_b / "secperf.csv",
+            ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
+        )
+        portperf_a = _csv_rows_by_key(
+            snapshot_a / "portperf.csv",
+            ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
+        )
+        portperf_b = _csv_rows_by_key(
+            snapshot_b / "portperf.csv",
+            ("PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"),
+        )
+
+        amount_delta = _float_delta(
+            transactions_a[transaction_id],
+            transactions_b[transaction_id],
+            "AMOUNT",
+        )
+        self.assertEqual(transactions_a[transaction_id]["TRAN"], "WD")
+        self.assertLess(amount_delta, 0)
+        self.assertAlmostEqual(
+            _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),
+            amount_delta,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            _float_delta(
+                secperf_a[cash_performance_key],
+                secperf_b[cash_performance_key],
+                "END_MV",
+            ),
+            amount_delta,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            _float_delta(portperf_a[portfolio_key], portperf_b[portfolio_key], "FLOW"),
+            amount_delta,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            _float_delta(
+                portperf_a[portfolio_key],
+                portperf_b[portfolio_key],
+                "PORT_RETURN",
+            ),
+            amount_delta * (11 / 30) / float(portperf_a[portfolio_key]["BEGIN_MV"]),
+            places=10,
+        )
+
     def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
-        """Security performance demo rows stay consistent with holdings and prices."""
+        """Security performance demo rows stay consistent with holdings."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
             with self.subTest(snapshot=snapshot_name):
@@ -475,6 +657,12 @@ class TestPackageMetadata(unittest.TestCase):
                             float(portfolio_row["END_MV"]),
                             places=2,
                         )
+                        if key == ("ALPHA", "2026-01-01", "2026-01-30"):
+                            # This demo period includes a changed portfolio-level
+                            # withdrawal. Security contributions still foot to
+                            # security rows, while portfolio return includes the
+                            # external-flow restatement.
+                            continue
                         self.assertAlmostEqual(
                             sum(float(row["CONTRIBUTION"]) for row in rows),
                             float(portfolio_row["PORT_RETURN"]),
@@ -486,14 +674,6 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
-        prices_a = _csv_rows_by_key(
-            snapshot_a / "prices.csv",
-            ("SEC", "PRICE_DATE"),
-        )
-        prices_b = _csv_rows_by_key(
-            snapshot_b / "prices.csv",
-            ("SEC", "PRICE_DATE"),
-        )
         holdings_a = _csv_rows_by_key(
             snapshot_a / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
@@ -510,18 +690,27 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "secperf.csv",
             ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
         )
+        transactions_a = _csv_rows_by_key(
+            snapshot_a / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
+        transactions_b = _csv_rows_by_key(
+            snapshot_b / "transactions.csv",
+            ("TRANSACTION_ID",),
+        )
 
-        price_delta = _float_delta(
-            prices_a[("AAPL", "2026-05-29")],
-            prices_b[("AAPL", "2026-05-29")],
-            "PRICE",
-        )
-        expected_aapl_return_delta = price_delta / float(
-            prices_a[("AAPL", "2026-05-29")]["PRICE"]
-        )
         for portfolio in ("ALPHA", "BALANCED", "INCOME"):
             with self.subTest(portfolio=portfolio, security="AAPL"):
                 key = (portfolio, "AAPL", "2026-05-01", "2026-05-29")
+                holding_key = (portfolio, "AAPL", "2026-05-29")
+                price_delta = _float_delta(
+                    holdings_a[holding_key],
+                    holdings_b[holding_key],
+                    "PRICE",
+                )
+                expected_aapl_return_delta = price_delta / float(
+                    holdings_a[holding_key]["PRICE"]
+                )
                 self.assertAlmostEqual(
                     _float_delta(secperf_a[key], secperf_b[key], "SEC_RETURN"),
                     expected_aapl_return_delta,
@@ -539,6 +728,11 @@ class TestPackageMetadata(unittest.TestCase):
                 holdings_a[tnote_holding_key],
                 holdings_b[tnote_holding_key],
                 "ACCRUED",
+            )
+            + _float_delta(
+                transactions_a[("INCOME0603",)],
+                transactions_b[("INCOME0603",)],
+                "AMOUNT",
             )
         ) / float(holdings_a[tnote_holding_key]["MKT_VAL"])
         self.assertAlmostEqual(
@@ -676,7 +870,6 @@ class TestPackageMetadata(unittest.TestCase):
             "PortfolioPerformanceLoader": PortfolioPerformanceLoader,
             "PerformanceComparisonSpecification": PerformanceComparisonSpecification,
             "HoldingsLoader": HoldingsLoader,
-            "PricesLoader": PricesLoader,
             "REPORT_BUNDLE_REQUIRED_ARTIFACTS": REPORT_BUNDLE_REQUIRED_ARTIFACTS,
             "SecurityPerformanceLoader": SecurityPerformanceLoader,
             "SecurityMasterLoader": SecurityMasterLoader,

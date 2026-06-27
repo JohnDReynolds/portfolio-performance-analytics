@@ -422,6 +422,9 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
         ("holdings", "market_value"),
         ("holdings", "quantity"),
         ("transactions", "amount"),
+        ("transactions", "commission"),
+        ("transactions", "price"),
+        ("transactions", "quantity"),
     }
     missing_promoted_fields = sorted(expected_promoted_fields - promoted_fields)
     if missing_promoted_fields:
@@ -440,9 +443,6 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
     }
     expected_context_fields = {
         ("holdings", "cost"),
-        ("transactions", "commission"),
-        ("transactions", "price"),
-        ("transactions", "quantity"),
     }
     missing_context_fields = sorted(expected_context_fields - context_fields)
     if missing_context_fields:

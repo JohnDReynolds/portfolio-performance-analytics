@@ -21,7 +21,6 @@ _FIELD_ROLES: Final[dict[tuple[str, str], str]] = {
     (pc_cols.CASH, pc_cols.MARKET_VALUE): PERFORMANCE_INPUT,
     (pc_cols.HOLDINGS, pc_cols.QUANTITY): INPUT_COMPONENT,
     (pc_cols.HOLDINGS, pc_cols.PRICE): INPUT_COMPONENT,
-    (pc_cols.PRICES, pc_cols.PRICE): INPUT_COMPONENT,
     (pc_cols.TRANSACTIONS, pc_cols.QUANTITY): INPUT_COMPONENT,
     (pc_cols.TRANSACTIONS, pc_cols.PRICE): INPUT_COMPONENT,
     (pc_cols.TRANSACTIONS, pc_cols.COMMISSION): INPUT_COMPONENT,

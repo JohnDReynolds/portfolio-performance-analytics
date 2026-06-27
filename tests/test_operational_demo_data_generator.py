@@ -94,15 +94,17 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
 
         latest_date = snapshot_a["portperf"]["THRU_DATE"].max()
         aapl_price_a = _value(
-            snapshot_a["prices"],
-            snapshot_a["prices"]["PRICE_DATE"].astype(str).eq(str(latest_date))
-            & snapshot_a["prices"]["SEC"].eq("AAPL"),
+            snapshot_a["holdings"],
+            snapshot_a["holdings"]["PORT"].eq("ALPHA")
+            & snapshot_a["holdings"]["SEC"].eq("AAPL")
+            & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(str(latest_date)),
             "PRICE",
         )
         aapl_price_b = _value(
-            snapshot_b["prices"],
-            snapshot_b["prices"]["PRICE_DATE"].astype(str).eq(str(latest_date))
-            & snapshot_b["prices"]["SEC"].eq("AAPL"),
+            snapshot_b["holdings"],
+            snapshot_b["holdings"]["PORT"].eq("ALPHA")
+            & snapshot_b["holdings"]["SEC"].eq("AAPL")
+            & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(str(latest_date)),
             "PRICE",
         )
         tnote_accrued_a = _value(
@@ -258,7 +260,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
 
             self.assertEqual(
                 set(portfolio_findings["dataset"]),
-                {"portfolio_performance", "holdings", "prices", "transactions"},
+                {"portfolio_performance", "holdings", "transactions"},
             )
             self.assertIn("security_performance", set(security_findings["dataset"]))
             self.assertGreater(len(portfolio_findings), 0)
