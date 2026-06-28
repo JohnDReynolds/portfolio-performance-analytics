@@ -460,7 +460,7 @@ def portfolio_period_summary(
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_SUMMARY_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_SUMMARY_COLUMNS)
 
 
 def portfolio_period_evidence_breakdown(
@@ -497,7 +497,7 @@ def portfolio_period_evidence_breakdown(
     for target in target_findings.iter_rows(named=True):
         related_active = _related_portfolio_period_findings(active_findings, target)
         rows.extend(_evidence_breakdown_rows(target, related_active))
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS)
 
 
 def security_period_summary(
@@ -560,7 +560,7 @@ def security_period_summary(
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
-    return pl.DataFrame(rows).select(SECURITY_PERIOD_SUMMARY_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(SECURITY_PERIOD_SUMMARY_COLUMNS)
 
 
 def security_period_evidence_breakdown(
@@ -597,7 +597,7 @@ def security_period_evidence_breakdown(
     for target in target_findings.iter_rows(named=True):
         related_active = _related_security_period_findings(active_findings, target)
         rows.extend(_security_evidence_breakdown_rows(target, related_active))
-    return pl.DataFrame(rows).select(SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS)
 
 
 def rank_portfolio_period_evidence(
@@ -647,7 +647,7 @@ def rank_portfolio_period_evidence(
 
     if not rows:
         return _empty_portfolio_period_evidence_ranking()
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
 
 
 def rank_security_period_evidence(
@@ -696,7 +696,7 @@ def rank_security_period_evidence(
 
     if not rows:
         return _empty_portfolio_period_evidence_ranking()
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
 
 
 def portfolio_period_contribution_candidates(
@@ -728,7 +728,9 @@ def portfolio_period_contribution_candidates(
         _contribution_candidate_row(row)
         for row in ranking.iter_rows(named=True)
     ]
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
+    )
 
 
 def security_period_contribution_candidates(
@@ -764,7 +766,9 @@ def security_period_contribution_candidates(
         )
         for row in ranked_rows
     ]
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
+    )
 
 
 def top_evidence_table(
@@ -789,7 +793,7 @@ def top_evidence_table(
     rows: list[dict[str, object]] = []
     for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
         rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
 
 
 def security_top_evidence_table(
@@ -815,7 +819,7 @@ def security_top_evidence_table(
     group_columns = [PORTFOLIO_ID, SECURITY_ID, FROM_DATE, THRU_DATE]
     for _, group in candidates.group_by(group_columns):
         rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
 
 
 def portfolio_period_cause_summary(
@@ -956,7 +960,7 @@ def portfolio_period_impact_coverage_summary(
         )
         for period in periods.iter_rows(named=True)
     ]
-    return pl.DataFrame(rows).select(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS)
 
 
 def portfolio_period_transaction_cross_checks(
@@ -1054,7 +1058,7 @@ def portfolio_period_flow_cross_check_reconciliation(
         )
         for key in period_keys
     ]
-    return pl.DataFrame(rows).select(
+    return pl.DataFrame(rows, infer_schema_length=None).select(
         PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS
     )
 

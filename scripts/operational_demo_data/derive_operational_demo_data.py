@@ -447,12 +447,9 @@ def write_outputs(
             path = snapshot_directory / f"{name}.csv"
             frame.to_csv(path, index=False)
             paths[f"{snapshot_name}_{name}"] = str(path)
-    portfolio_yaml_path = output_directory / "ppar_performance_comparison_portfolio.yaml"
-    security_yaml_path = output_directory / "ppar_performance_comparison_security.yaml"
-    portfolio_yaml_path.write_text(_comparison_yaml(level=None), encoding="utf-8")
-    security_yaml_path.write_text(_comparison_yaml(level="security"), encoding="utf-8")
-    paths["portfolio_comparison_yaml"] = str(portfolio_yaml_path)
-    paths["security_comparison_yaml"] = str(security_yaml_path)
+    comparison_yaml_path = output_directory / "ppar_performance_comparison.yaml"
+    comparison_yaml_path.write_text(_comparison_yaml(), encoding="utf-8")
+    paths["comparison_yaml"] = str(comparison_yaml_path)
     return paths
 
 
@@ -1134,23 +1131,11 @@ def _apply_reported_portfolio_return_delta(
     ).round(10)
 
 
-def _comparison_yaml(level: str | None) -> str:
+def _comparison_yaml() -> str:
     """Return generated performance-comparison YAML text."""
-    level_line = "" if level is None else f"  level: {level}\n"
-    security_return_impact_methods = ""
-    if level == "security":
-        security_return_impact_methods = """
-security_return_impact_methods:
-  transactions:
-    method: modified_dietz
-    flow_timing: transaction_date
-    day_count: actual_days
-    inclusion_rule: beginning_of_day
-"""
     return f"""# Generated operational performance-comparison prototype.
 comparison:
   name: Mega-Cap operational performance comparison prototype
-{level_line}
 snapshots:
   a:
     label: operational_axys_a
@@ -1179,7 +1164,13 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
-{security_return_impact_methods}
+
+security_return_impact_methods:
+  transactions:
+    method: modified_dietz
+    flow_timing: transaction_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
 
 tolerances:
   return: 0.000001

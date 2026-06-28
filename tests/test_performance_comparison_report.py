@@ -54,7 +54,7 @@ _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml"
+    "ppar/demos/data/axys/ppar_performance_comparison.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
@@ -296,13 +296,22 @@ def _assert_workbook_explained_row_actions(
                 or "changed transactions.amount" in str(required_setup)
                 or "changed holdings.market_value" in str(required_setup)
                 or "Input for changed" in str(required_setup)
+                or "Included through transactions.net_flow" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
+                continue
+            if "in Snapshot B" in str(required_setup):
+                test_case.assertIn(
+                    row.get("impact_status"),
+                    {"Review only", "Missing impact input"},
+                )
                 continue
             if row.get("impact_status") == "Missing impact input":
                 setup_text = str(required_setup)
                 test_case.assertTrue(
-                    "Configured" in setup_text or "shown for review" in setup_text,
+                    "Configured" in setup_text
+                    or "shown for review" in setup_text
+                    or "Supporting detail" in setup_text,
                     msg=f"{row.get('review_key')} has unclear setup: {setup_text}",
                 )
                 continue
@@ -512,16 +521,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
     def test_workbook_tables_follow_review_accounting_invariants(self) -> None:
         """Workbook review tables stay internally consistent across demos."""
         cases = (
-            ("single", _RESTATEMENT_COMPARISON_PATH, {}),
-            ("transaction_rules", _RESTATEMENT_TRANSACTION_RULES_PATH, {}),
-            ("multi", _MULTI_RESTATEMENT_COMPARISON_PATH, {}),
-            ("portfolio", _PORTFOLIO_COMPARISON_PATH, {"require_causal_attribution": True}),
-            ("policy_gap", _POLICY_GAP_DEMO_COMPARISON_PATH, {}),
+            ("single", _RESTATEMENT_COMPARISON_PATH, False),
+            ("transaction_rules", _RESTATEMENT_TRANSACTION_RULES_PATH, False),
+            ("multi", _MULTI_RESTATEMENT_COMPARISON_PATH, False),
+            ("portfolio", _PORTFOLIO_COMPARISON_PATH, True),
+            ("policy_gap", _POLICY_GAP_DEMO_COMPARISON_PATH, False),
         )
 
-        for name, comparison_path, kwargs in cases:
+        for name, comparison_path, require_causal_attribution in cases:
             with self.subTest(name=name):
-                findings = compare_snapshots(comparison_path, **kwargs)
+                findings = compare_snapshots(
+                    comparison_path,
+                    require_causal_attribution=require_causal_attribution,
+                )
                 portfolio_changes = _workbook_portfolio_changes_table(findings)
                 underlying_causes = _workbook_underlying_causes_table(findings)
 
@@ -593,7 +605,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_amount["review_guidance"][0],
-            "Input for changed cash-balance holdings.market_value.",
+            "Included through transactions.net_flow and transactions.weighted_flow; "
+            "cash holding rows show the cash-balance change.",
         )
         rules_transaction_quantity = rules_causes.filter(
             (pl.col("dataset") == "transactions")
@@ -605,11 +618,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
-            "BUY: Input for changed AAPL transactions.amount.",
+            "The buy quantity for AAPL changed by 1.00 in Snapshot B.",
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],
-            "BUY: Input for changed AAPL transactions.amount.",
+            "The buy price for AAPL changed by 0.50 in Snapshot B.",
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -850,7 +863,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
             plain_quantity["review_guidance"][0],
-            "Input for changed AAPL holdings.market_value.",
+            "AAPL ending holdings.quantity increased by 1.00 in Snapshot B.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
@@ -1030,7 +1043,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "B - A Difference",
                     "Performance Difference Explained",
                     "Related Performance Difference",
-                    "Review Guidance",
+                    "Explanation",
                     "Review Key",
                 ],
             )
@@ -1099,7 +1112,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
-                    "Review Guidance",
+                    "Explanation",
                     "Review Key",
                 ],
             )

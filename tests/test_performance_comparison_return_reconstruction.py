@@ -9,6 +9,7 @@ import unittest
 
 # Third-party imports
 import polars as pl
+import yaml
 
 # Project imports
 from ppar.errors import PpaError
@@ -17,11 +18,8 @@ from ppar.performance_comparison.return_reconstruction import (
     END_VALUE_DIFFERENCE,
     NET_FLOW_DIFFERENCE,
     RECONSTRUCTION_CATEGORY,
-    RECONSTRUCTION_CATEGORY_FORMULA_DIFFERENCE,
-    RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
     RECONSTRUCTION_STATUS,
     RECONSTRUCTION_STATUS_ALIGNED,
-    RECONSTRUCTION_STATUS_DIFFERENT,
     RECONSTRUCTION_STATUS_MISSING_INPUTS,
     REPORTED_RETURN_DIFFERENCE,
     WEIGHTED_FLOW_DIFFERENCE,
@@ -32,20 +30,47 @@ from ppar.performance_comparison.return_reconstruction import (
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml"
+    "ppar/demos/data/axys/ppar_performance_comparison.yaml"
 )
 _BASELINE_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison.yaml"
 )
-_EXPECTED_PORTFOLIO_RECONSTRUCTION_DIFFERENCES = {
-    ("ALPHA", "2026-01-01", "2026-01-30"): RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
-    ("ALPHA", "2026-01-31", "2026-02-27"): RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
-    ("ALPHA", "2026-04-01", "2026-04-30"): RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
-    ("BALANCED", "2026-01-31", "2026-02-27"): RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
-    ("BALANCED", "2026-05-01", "2026-05-29"): RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
-    ("INCOME", "2026-01-31", "2026-02-27"): RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
-    ("INCOME", "2026-04-01", "2026-04-30"): RECONSTRUCTION_CATEGORY_FORMULA_DIFFERENCE,
-}
+_DEMO_AXYS_DIRECTORY = Path("ppar/demos/data/axys")
+
+
+def _comparison_path_with_reconstruction_method(
+    directory: Path,
+    method: str,
+) -> Path:
+    """Write a temporary demo comparison YAML with one reconstruction method."""
+    configuration = yaml.safe_load(_PORTFOLIO_COMPARISON_PATH.read_text(encoding="utf-8"))
+    if not isinstance(configuration, dict):
+        raise AssertionError("Expected demo comparison YAML to be a mapping.")
+    snapshots = configuration["snapshots"]
+    if not isinstance(snapshots, dict):
+        raise AssertionError("Expected snapshots to be a mapping.")
+    for snapshot in snapshots.values():
+        if not isinstance(snapshot, dict):
+            raise AssertionError("Expected snapshot to be a mapping.")
+        snapshot["path"] = str((_DEMO_AXYS_DIRECTORY / str(snapshot["path"])).resolve())
+        snapshot["schema"] = str((_DEMO_AXYS_DIRECTORY / str(snapshot["schema"])).resolve())
+
+    for section_name in (
+        "portfolio_return_reconstruction",
+        "security_return_reconstruction",
+    ):
+        section = configuration[section_name]
+        if not isinstance(section, dict):
+            raise AssertionError(f"Expected {section_name} to be a mapping.")
+        section["method"] = method
+        if method in {"simple_dietz", "modified_simple_dietz"}:
+            section.pop("flow_timing", None)
+            section.pop("day_count", None)
+            section.pop("inclusion_rule", None)
+
+    path = directory / "ppar_performance_comparison.yaml"
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    return path
 
 
 class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
@@ -64,64 +89,44 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         self.assertTrue(summary.is_empty())
 
     def test_demo_reconstruction_checks_show_review_statuses(self) -> None:
-        """Packaged demo produces aligned, different, and missing-input checks."""
+        """Packaged demo reconstruction is aligned except missing first opens."""
         checks = portfolio_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
 
         statuses = set(checks.get_column(RECONSTRUCTION_STATUS).to_list())
-        self.assertTrue(
-            {
-                RECONSTRUCTION_STATUS_ALIGNED,
-                RECONSTRUCTION_STATUS_DIFFERENT,
-                RECONSTRUCTION_STATUS_MISSING_INPUTS,
-            }.issubset(statuses)
-        )
+        self.assertEqual(statuses, {RECONSTRUCTION_STATUS_ALIGNED, RECONSTRUCTION_STATUS_MISSING_INPUTS})
 
         alpha_withdrawal = checks.filter(
             (pl.col("portfolio_id") == "ALPHA")
             & (pl.col("from_date") == pl.date(2026, 1, 1))
             & (pl.col("thru_date") == pl.date(2026, 1, 30))
         ).row(0, named=True)
-        self.assertAlmostEqual(alpha_withdrawal[REPORTED_RETURN_DIFFERENCE], 0.0)
-        self.assertNotAlmostEqual(
+        self.assertAlmostEqual(
             alpha_withdrawal[REPORTED_RETURN_DIFFERENCE],
             alpha_withdrawal[DERIVED_RETURN_DIFFERENCE],
             places=6,
         )
         self.assertEqual(
-            alpha_withdrawal[RECONSTRUCTION_CATEGORY],
-            RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
+            alpha_withdrawal[RECONSTRUCTION_STATUS],
+            RECONSTRUCTION_STATUS_ALIGNED,
         )
 
-    def test_demo_portfolio_reconstruction_differences_are_intentional(self) -> None:
-        """Unexpected reconstructed-return differences flag demo-data drift."""
+    def test_demo_portfolio_reconstruction_has_no_differences(self) -> None:
+        """Packaged portfolio performance is generated from reconstruction inputs."""
         checks = portfolio_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
         different_rows = checks.filter(
-            pl.col(RECONSTRUCTION_STATUS) == RECONSTRUCTION_STATUS_DIFFERENT
+            ~pl.col(RECONSTRUCTION_STATUS).is_in(
+                [RECONSTRUCTION_STATUS_ALIGNED, RECONSTRUCTION_STATUS_MISSING_INPUTS]
+            )
         )
 
-        actual = {
-            (
-                row["portfolio_id"],
-                row["from_date"].isoformat(),
-                row["thru_date"].isoformat(),
-            ): row[RECONSTRUCTION_CATEGORY]
-            for row in different_rows.iter_rows(named=True)
-        }
-
-        self.assertEqual(actual, _EXPECTED_PORTFOLIO_RECONSTRUCTION_DIFFERENCES)
+        self.assertTrue(different_rows.is_empty())
 
     def test_demo_security_reconstruction_checks_show_flow_inputs(self) -> None:
         """Security reconstruction treats buy/sell rows as security-level flows."""
         checks = security_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
 
         statuses = set(checks.get_column(RECONSTRUCTION_STATUS).to_list())
-        self.assertTrue(
-            {
-                RECONSTRUCTION_STATUS_ALIGNED,
-                RECONSTRUCTION_STATUS_DIFFERENT,
-                RECONSTRUCTION_STATUS_MISSING_INPUTS,
-            }.issubset(statuses)
-        )
+        self.assertEqual(statuses, {RECONSTRUCTION_STATUS_ALIGNED, RECONSTRUCTION_STATUS_MISSING_INPUTS})
 
         alpha_aapl = checks.filter(
             (pl.col("portfolio_id") == "ALPHA")
@@ -134,11 +139,7 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         self.assertGreater(alpha_aapl[WEIGHTED_FLOW_DIFFERENCE], 0.0)
         self.assertEqual(
             alpha_aapl[RECONSTRUCTION_STATUS],
-            RECONSTRUCTION_STATUS_DIFFERENT,
-        )
-        self.assertEqual(
-            alpha_aapl[RECONSTRUCTION_CATEGORY],
-            RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED,
+            RECONSTRUCTION_STATUS_ALIGNED,
         )
 
     def test_demo_reconstruction_summary_counts_available_checks(self) -> None:
@@ -148,6 +149,67 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         check_types = set(summary.get_column("reconstruction_check_type").to_list())
         self.assertEqual(check_types, {"Portfolio Return", "Security Return"})
         self.assertTrue((summary.get_column("row_count") > 0).all())
+
+    def test_simple_dietz_uses_beginning_value_denominator(self) -> None:
+        """Simple Dietz excludes all flow weighting from the denominator."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = _comparison_path_with_reconstruction_method(
+                Path(directory),
+                "simple_dietz",
+            )
+
+            checks = portfolio_return_reconstruction_checks(path)
+
+        alpha_withdrawal = checks.filter(
+            (pl.col("portfolio_id") == "ALPHA")
+            & (pl.col("from_date") == pl.date(2026, 1, 1))
+            & (pl.col("thru_date") == pl.date(2026, 1, 30))
+        ).row(0, named=True)
+        self.assertNotEqual(alpha_withdrawal[NET_FLOW_DIFFERENCE], 0.0)
+        self.assertEqual(alpha_withdrawal[WEIGHTED_FLOW_DIFFERENCE], 0.0)
+
+    def test_modified_simple_dietz_uses_half_weighted_flows(self) -> None:
+        """Modified Simple Dietz uses a 0.5 weight for every included flow."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = _comparison_path_with_reconstruction_method(
+                Path(directory),
+                "modified_simple_dietz",
+            )
+
+            checks = portfolio_return_reconstruction_checks(path)
+
+        alpha_withdrawal = checks.filter(
+            (pl.col("portfolio_id") == "ALPHA")
+            & (pl.col("from_date") == pl.date(2026, 1, 1))
+            & (pl.col("thru_date") == pl.date(2026, 1, 30))
+        ).row(0, named=True)
+        self.assertNotEqual(alpha_withdrawal[NET_FLOW_DIFFERENCE], 0.0)
+        self.assertAlmostEqual(
+            alpha_withdrawal[WEIGHTED_FLOW_DIFFERENCE],
+            alpha_withdrawal[NET_FLOW_DIFFERENCE] * 0.5,
+        )
+
+    def test_security_modified_simple_dietz_uses_half_weighted_flows(self) -> None:
+        """Security reconstruction uses the same Modified Simple Dietz weight."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = _comparison_path_with_reconstruction_method(
+                Path(directory),
+                "modified_simple_dietz",
+            )
+
+            checks = security_return_reconstruction_checks(path)
+
+        alpha_aapl = checks.filter(
+            (pl.col("portfolio_id") == "ALPHA")
+            & (pl.col("security_id") == "AAPL")
+            & (pl.col("from_date") == pl.date(2026, 2, 28))
+            & (pl.col("thru_date") == pl.date(2026, 3, 31))
+        ).row(0, named=True)
+        self.assertNotEqual(alpha_aapl[NET_FLOW_DIFFERENCE], 0.0)
+        self.assertAlmostEqual(
+            alpha_aapl[WEIGHTED_FLOW_DIFFERENCE],
+            alpha_aapl[NET_FLOW_DIFFERENCE] * 0.5,
+        )
 
     def test_malformed_reconstruction_yaml_fails_up_front(self) -> None:
         """Opted-in reconstruction YAML must include every required field."""

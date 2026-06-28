@@ -293,21 +293,39 @@ No silent defaults.
 If the user asks for portfolio or security return reconstruction and omits
 required rules, the system should fail before report generation.
 
-Required concepts:
+Required concepts for every return-reconstruction method:
 
 ```yaml
 method
 beginning_value_source
 ending_value_source
 flow_source
-flow_timing
-day_count
-inclusion_rule
 flow_categories
 income_categories
 return_basis
 sign_convention
 ```
+
+Additional concepts required only for `method: modified_dietz`:
+
+```yaml
+flow_timing
+day_count
+inclusion_rule
+```
+
+Supported return-reconstruction methods:
+
+- `simple_dietz`: denominator is beginning value; flow timing fields are not
+  valid because flows are not weighted.
+- `modified_simple_dietz`: denominator is beginning value plus 50% of net flows;
+  flow timing fields are not valid because every flow receives the same
+  mid-period weight.
+- `modified_dietz`: denominator is beginning value plus date-weighted flows;
+  `flow_timing`, `day_count`, and `inclusion_rule` are required.
+
+The YAML validator should fail hard when a method is missing fields it needs,
+includes fields that method cannot use, repeats keys, or includes unknown keys.
 
 Potential future additions:
 
@@ -470,8 +488,81 @@ Implementation guidance:
   - expect a specific comment
   - expect specific row-level `Review Guidance`
   - avoid untested prose drift
+- Consider hiding or removing the `Related Performance Difference` column once
+  the plain-language explanations make supporting rows understandable without a
+  second performance-number column. It may be useful during development, but it
+  can distract reviewers when the row is intentionally not counted separately.
 
-### Phase 6: Improve Demo Data
+### Phase 6: Generate Holdings From Scenario Inputs
+
+Current packaged demo rebuilding treats `holdings.csv` and `transactions.csv` as
+source fixture data, then derives `secperf.csv` and `portperf.csv` from those
+inputs under the configured YAML reconstruction rules. That is a safer
+foundation than hand-maintaining reported performance, but it still means
+holdings changes can be manually inconsistent with transaction changes.
+
+A future foundation pass should generate `holdings.csv` from explicit scenario
+inputs instead of maintaining holdings as independent fixture data.
+
+Suggested source-of-truth inputs:
+
+```text
+starting holdings
+intentional scenario changes
+transactions
+valuation marks / prices
+accrual assumptions
+cash-account rules
+security reference data
+```
+
+The generator should then derive:
+
+```text
+holdings.csv
+secperf.csv
+portperf.csv
+```
+
+This would make the demo stack flow in one direction:
+
+```text
+scenario intent
+  -> transactions and valuation assumptions
+  -> holdings
+  -> security performance
+  -> portfolio performance
+  -> reports
+```
+
+Required accounting rules before this phase should be considered complete:
+
+- starting positions, cost, cash, and accrued amounts
+- trade sign conventions
+- trade-date versus settlement-date treatment
+- cash offsets for buys, sells, dividends, interest, fees, contributions, and
+  withdrawals
+- market value formula, including whether accrued is separate from market value
+- fixed-income accrual behavior
+- corporate-action treatment for splits and future action types
+- cash security identifier policy, including multi-currency cash accounts
+- rounding policy for quantities, prices, market values, cash, and performance
+
+The generator and auditor should stay coupled. A generated dataset should fail
+before writing if:
+
+- holdings no longer foot to the generated transactions and valuation marks;
+- cash does not move correctly for transaction types that affect cash;
+- `secperf.csv` does not reconstruct from holdings and security-level flows;
+- `portperf.csv` does not reconstruct from holdings and portfolio-level flows;
+- any intentional partly explained or unexplained scenario is not named in an
+  allowlist with a reviewer-facing reason.
+
+This phase is intentionally larger than the current return-reconstruction work.
+It is effectively a small, explicit demo accounting engine, so it should be done
+slowly with narrow transaction-type coverage and strong tests.
+
+### Phase 7: Improve Demo Data
 
 - Add realistic examples:
   - portfolio contribution
@@ -486,12 +577,15 @@ Implementation guidance:
 - Ensure the report demonstrates fully explained, partly explained, and
   unexplained cases.
 - Keep all packaged demo accounting internally consistent.
-- Run the packaged demo-data audit before accepting fixture changes:
+- Run the packaged demo-data rebuild/audit before accepting fixture changes:
 
   ```bash
-  ./.venv/bin/python scripts/audit_performance_comparison_demo_data.py
+  ./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
   ```
 
+- Use `--write` on the same command to refresh derived `secperf.csv` and
+  `portperf.csv`; the command audits after rebuilding so generated demo data is
+  not refreshed without a consistency check.
 - Any intentional partly explained or unexplained period must be named in the
   audit allowlist with a reviewer-facing reason.
 

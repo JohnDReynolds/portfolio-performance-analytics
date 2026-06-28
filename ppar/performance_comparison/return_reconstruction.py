@@ -16,6 +16,7 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.modified_dietz import modified_dietz_flow_weight
+from ppar.performance_comparison.methods import ReturnReconstructionMethod
 from ppar.performance_comparison.portfolio_performance import PortfolioPerformanceLoader
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.specification import (
@@ -381,7 +382,7 @@ class _PortfolioReturnReconstructionEngine:
             derived_numerator = end_value - begin_value - net_flow
             derived_denominator = begin_value + weighted_flow
             if derived_denominator == 0:
-                comments.append("zero Modified Dietz denominator")
+                comments.append("zero return-reconstruction denominator")
             else:
                 derived_return = derived_numerator / derived_denominator
 
@@ -425,11 +426,11 @@ class _PortfolioReturnReconstructionEngine:
             if amount is None:
                 continue
             flow_date = _date_value(row[pc_cols.TRANSACTION_DATE])
-            weight = modified_dietz_flow_weight(
+            weight = _return_reconstruction_flow_weight(
+                self._reconstruction,
                 from_date=from_date,
                 thru_date=thru_date,
                 flow_date=flow_date,
-                inclusion_rule=self._reconstruction.inclusion_rule,
             )
             net_flow += amount
             weighted_flow += amount * weight
@@ -585,7 +586,7 @@ class _SecurityReturnReconstructionEngine:
             derived_numerator = end_value - begin_value - net_flow + income
             derived_denominator = begin_value + weighted_flow
             if derived_denominator == 0:
-                comments.append("zero Modified Dietz denominator")
+                comments.append("zero return-reconstruction denominator")
             else:
                 derived_return = derived_numerator / derived_denominator
 
@@ -632,11 +633,11 @@ class _SecurityReturnReconstructionEngine:
                 continue
             security_flow = -amount
             flow_date = _date_value(row[pc_cols.TRANSACTION_DATE])
-            weight = modified_dietz_flow_weight(
+            weight = _return_reconstruction_flow_weight(
+                self._reconstruction,
                 from_date=from_date,
                 thru_date=thru_date,
                 flow_date=flow_date,
-                inclusion_rule=self._reconstruction.inclusion_rule,
             )
             net_flow += security_flow
             weighted_flow += security_flow * weight
@@ -817,6 +818,28 @@ def _security_holding_value(
             pl.Float64
         ).fill_null(0.0)
     return float(rows.select(value_expression.sum()).item())
+
+
+def _return_reconstruction_flow_weight(
+    reconstruction: PortfolioReturnReconstruction | SecurityReturnReconstruction,
+    *,
+    from_date: dt.date,
+    thru_date: dt.date,
+    flow_date: dt.date,
+) -> float:
+    """Return the flow weight for the configured reconstruction method."""
+    if reconstruction.method == ReturnReconstructionMethod.SIMPLE_DIETZ.value:
+        return 0.0
+    if reconstruction.method == ReturnReconstructionMethod.MODIFIED_SIMPLE_DIETZ.value:
+        return 0.5
+    if reconstruction.inclusion_rule is None:
+        raise PpaError("modified_dietz reconstruction requires inclusion_rule.", 504)
+    return modified_dietz_flow_weight(
+        from_date=from_date,
+        thru_date=thru_date,
+        flow_date=flow_date,
+        inclusion_rule=reconstruction.inclusion_rule,
+    )
 
 
 def _reconstruction_row(

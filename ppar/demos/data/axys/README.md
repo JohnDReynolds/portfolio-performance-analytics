@@ -3,15 +3,15 @@
 The packaged Axys demo data contains only user-facing demo inputs. Test-only
 performance comparison scenarios live under `tests/data/axys`.
 
-## Comparison YAML Files By Role
+## Comparison YAML
 
-There are two packaged comparison YAML files. They use the same operational
-Mega-Cap source snapshots but review different primary result levels.
+There is one packaged comparison YAML file. The portfolio and security demo
+commands use the same operational Mega-Cap source snapshots and choose the
+primary review level at runtime.
 
-| Role | Short name | YAML |
-| --- | --- | --- |
-| Workbook demo | `portfolio` | `ppar_performance_comparison_portfolio.yaml` |
-| Workbook demo | `security` | `ppar_performance_comparison_security.yaml` |
+| Role | YAML |
+| --- | --- |
+| Workbook demos | `ppar_performance_comparison.yaml` |
 
 ## Recommended User-Facing Demo
 

@@ -13,6 +13,9 @@ import tomllib
 from typing import cast
 import unittest
 
+# Third-Party Imports
+import polars as pl
+
 # Project Imports
 import ppar.analytics.schema as core_schema
 import ppar.errors as core_errors
@@ -37,6 +40,15 @@ from ppar.performance_comparison.methods import (
 )
 from ppar.performance_comparison import (
     transactions as performance_comparison_transactions,
+)
+from ppar.performance_comparison.return_reconstruction import (
+    DERIVED_RETURN_DIFFERENCE,
+    RECONSTRUCTION_STATUS,
+    RECONSTRUCTION_STATUS_ALIGNED,
+    RECONSTRUCTION_STATUS_MISSING_INPUTS,
+    REPORTED_RETURN_DIFFERENCE,
+    portfolio_return_reconstruction_checks,
+    security_return_reconstruction_checks,
 )
 from ppar.performance_comparison import (
     CashLoader,
@@ -139,6 +151,25 @@ def _float_delta(
 ) -> float:
     """Return numeric snapshot B minus snapshot A for one CSV column."""
     return float(snapshot_b[column]) - float(snapshot_a[column])
+
+
+def _reconstruction_rows_by_key(
+    checks: pl.DataFrame,
+    key_columns: tuple[str, ...],
+) -> dict[tuple[str, ...], dict[str, object]]:
+    """Return reconstruction rows keyed by stable stringified columns."""
+    return {
+        tuple(str(row[column]) for column in key_columns): row
+        for row in checks.iter_rows(named=True)
+    }
+
+
+def _reconstruction_float(row: dict[str, object], column: str) -> float:
+    """Return a numeric reconstruction value from a Polars row dictionary."""
+    value = row[column]
+    if not isinstance(value, (int, float)):
+        raise AssertionError(f"Expected numeric reconstruction value for {column}.")
+    return float(value)
 
 
 class TestPackageMetadata(unittest.TestCase):
@@ -255,8 +286,7 @@ class TestPackageMetadata(unittest.TestCase):
             "README.md",
             "axys_column_mappings.yaml",
             "axys_analytics.yaml",
-            "ppar_performance_comparison_portfolio.yaml",
-            "ppar_performance_comparison_security.yaml",
+            "ppar_performance_comparison.yaml",
             "axys_analytics/portperf.csv",
             "axys_analytics/secperf.csv",
             "axys_analytics/sec_ref.csv",
@@ -485,8 +515,8 @@ class TestPackageMetadata(unittest.TestCase):
             places=2,
         )
 
-    def test_axys_demo_withdrawal_changes_cash_and_flow_not_reported_return(self) -> None:
-        """Packaged withdrawal changes cash and flow without changing reported return."""
+    def test_axys_demo_withdrawal_changes_cash_and_flow_return(self) -> None:
+        """Packaged withdrawal changes cash, flow, and reconstructed return."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
@@ -559,14 +589,24 @@ class TestPackageMetadata(unittest.TestCase):
             amount_delta,
             places=2,
         )
+        comparison_path = Path(str(axys_demo_data / "ppar_performance_comparison.yaml"))
+        checks = _reconstruction_rows_by_key(
+            portfolio_return_reconstruction_checks(comparison_path),
+            ("portfolio_id", "from_date", "thru_date"),
+        )
+        reconstruction_row = checks[portfolio_key]
+        self.assertEqual(
+            reconstruction_row[RECONSTRUCTION_STATUS],
+            RECONSTRUCTION_STATUS_ALIGNED,
+        )
         self.assertAlmostEqual(
             _float_delta(
                 portperf_a[portfolio_key],
                 portperf_b[portfolio_key],
                 "PORT_RETURN",
             ),
-            0.0,
-            places=12,
+            _reconstruction_float(reconstruction_row, DERIVED_RETURN_DIFFERENCE),
+            places=9,
         )
 
     def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
@@ -616,11 +656,16 @@ class TestPackageMetadata(unittest.TestCase):
                         places=9,
                     )
 
-    def test_axys_demo_portfolio_performance_rolls_up_security_performance(
+    def test_axys_demo_portfolio_performance_matches_reconstruction(
         self,
     ) -> None:
-        """Portfolio demo performance rows are derived from security rows."""
+        """Portfolio demo performance rows match configured reconstruction rules."""
         axys_demo_data = files("ppar.demos.data") / "axys"
+        comparison_path = Path(str(axys_demo_data / "ppar_performance_comparison.yaml"))
+        checks = _reconstruction_rows_by_key(
+            portfolio_return_reconstruction_checks(comparison_path),
+            ("portfolio_id", "from_date", "thru_date"),
+        )
         for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
             with self.subTest(snapshot=snapshot_name):
                 snapshot = Path(str(axys_demo_data / snapshot_name))
@@ -656,14 +701,32 @@ class TestPackageMetadata(unittest.TestCase):
                             float(portfolio_row["END_MV"]),
                             places=2,
                         )
-                        self.assertAlmostEqual(
-                            sum(float(row["CONTRIBUTION"]) for row in rows),
-                            float(portfolio_row["PORT_RETURN"]),
-                            places=9,
+                        reconstruction_row = checks[key]
+                        self.assertIn(
+                            reconstruction_row[RECONSTRUCTION_STATUS],
+                            {
+                                RECONSTRUCTION_STATUS_ALIGNED,
+                                RECONSTRUCTION_STATUS_MISSING_INPUTS,
+                            },
                         )
+                        if (
+                            reconstruction_row[RECONSTRUCTION_STATUS]
+                            == RECONSTRUCTION_STATUS_ALIGNED
+                        ):
+                            self.assertAlmostEqual(
+                                _reconstruction_float(
+                                    reconstruction_row,
+                                    REPORTED_RETURN_DIFFERENCE,
+                                ),
+                                _reconstruction_float(
+                                    reconstruction_row,
+                                    DERIVED_RETURN_DIFFERENCE,
+                                ),
+                                places=9,
+                            )
 
-    def test_axys_demo_security_return_deltas_match_visible_inputs(self) -> None:
-        """Security workbook demo return deltas match the changed source inputs."""
+    def test_axys_demo_security_return_deltas_match_reconstruction(self) -> None:
+        """Security demo return deltas match configured reconstruction rules."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
@@ -683,13 +746,10 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "secperf.csv",
             ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
         )
-        transactions_a = _csv_rows_by_key(
-            snapshot_a / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
-        transactions_b = _csv_rows_by_key(
-            snapshot_b / "transactions.csv",
-            ("TRANSACTION_ID",),
+        comparison_path = Path(str(axys_demo_data / "ppar_performance_comparison.yaml"))
+        checks = _reconstruction_rows_by_key(
+            security_return_reconstruction_checks(comparison_path),
+            ("portfolio_id", "security_id", "from_date", "thru_date"),
         )
 
         for portfolio in ("ALPHA", "BALANCED", "INCOME"):
@@ -701,36 +761,35 @@ class TestPackageMetadata(unittest.TestCase):
                     holdings_b[holding_key],
                     "PRICE",
                 )
-                expected_aapl_return_delta = price_delta / float(
-                    holdings_a[holding_key]["PRICE"]
-                )
+                self.assertGreater(price_delta, 0.0)
                 self.assertAlmostEqual(
                     _float_delta(secperf_a[key], secperf_b[key], "SEC_RETURN"),
-                    expected_aapl_return_delta,
+                    _reconstruction_float(checks[key], DERIVED_RETURN_DIFFERENCE),
+                    places=9,
+                )
+                self.assertEqual(
+                    checks[key][RECONSTRUCTION_STATUS],
+                    RECONSTRUCTION_STATUS_ALIGNED,
                 )
 
         tnote_key = ("INCOME", "TNOTE2Y", "2026-05-01", "2026-05-29")
         tnote_holding_key = ("INCOME", "TNOTE2Y", "2026-05-29")
-        expected_tnote_return_delta = (
+        self.assertNotEqual(
             _float_delta(
                 holdings_a[tnote_holding_key],
                 holdings_b[tnote_holding_key],
                 "MKT_VAL",
-            )
-            + _float_delta(
-                holdings_a[tnote_holding_key],
-                holdings_b[tnote_holding_key],
-                "ACCRUED",
-            )
-            + _float_delta(
-                transactions_a[("INCOME0603",)],
-                transactions_b[("INCOME0603",)],
-                "AMOUNT",
-            )
-        ) / float(holdings_a[tnote_holding_key]["MKT_VAL"])
+            ),
+            0.0,
+        )
         self.assertAlmostEqual(
             _float_delta(secperf_a[tnote_key], secperf_b[tnote_key], "SEC_RETURN"),
-            expected_tnote_return_delta,
+            _reconstruction_float(checks[tnote_key], DERIVED_RETURN_DIFFERENCE),
+            places=9,
+        )
+        self.assertEqual(
+            checks[tnote_key][RECONSTRUCTION_STATUS],
+            RECONSTRUCTION_STATUS_ALIGNED,
         )
 
     def test_axys_validation_matrix_documents_problem_scenarios(self) -> None:

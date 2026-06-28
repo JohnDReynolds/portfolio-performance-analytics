@@ -42,7 +42,7 @@ _EXCEL_HEADER_LINE_BREAKS = {
     "B - A Difference": "B - A\nDifference",
     "Performance Difference Explained": "Performance\nDifference\nExplained",
     "Related Performance Difference": "Related\nPerformance\nDifference",
-    "Review Guidance": "Review\nGuidance",
+    "Explanation": "Explanation",
     "Review Key": "Review\nKey",
 }
 
@@ -73,7 +73,7 @@ REQUIRED_HEADERS = {
         "B - A Difference",
         "Performance Difference Explained",
         "Related Performance Difference",
-        "Review Guidance",
+        "Explanation",
         "Review Key",
     ),
     _pc_review_model.OTHER_EVIDENCE_SHEET: (
@@ -86,7 +86,7 @@ REQUIRED_HEADERS = {
         "Snapshot A Value",
         "Snapshot B Value",
         "B - A Difference",
-        "Review Guidance",
+        "Explanation",
         "Review Key",
     ),
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET: (

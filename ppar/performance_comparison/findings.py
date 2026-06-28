@@ -435,6 +435,7 @@ def findings_to_polars(findings: Sequence[Finding]) -> pl.DataFrame:
     """
     if not findings:
         return pl.DataFrame(schema={column: pl.Null for column in FINDING_COLUMNS})
-    return pl.DataFrame([finding.to_dict() for finding in findings]).select(
-        FINDING_COLUMNS
-    )
+    return pl.DataFrame(
+        [finding.to_dict() for finding in findings],
+        infer_schema_length=None,
+    ).select(FINDING_COLUMNS)

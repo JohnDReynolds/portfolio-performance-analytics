@@ -60,13 +60,54 @@ _RECONSTRUCTION_REQUIRED_KEYS: Final[tuple[str, ...]] = (
     "beginning_value_source",
     "ending_value_source",
     "flow_source",
-    "flow_timing",
-    "day_count",
-    "inclusion_rule",
     "flow_categories",
     "income_categories",
     "return_basis",
     "sign_convention",
+)
+_RECONSTRUCTION_TIMED_FLOW_KEYS: Final[tuple[str, ...]] = (
+    "flow_timing",
+    "day_count",
+    "inclusion_rule",
+)
+_RETURN_RECONSTRUCTION_METHODS: Final[frozenset[str]] = frozenset(
+    method.value for method in ReturnReconstructionMethod
+)
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """YAML safe loader that rejects duplicate mapping keys."""
+
+
+def _construct_unique_mapping(
+    loader: _UniqueKeySafeLoader,
+    node: yaml.MappingNode,
+    deep: bool = False,
+) -> dict[object, object]:
+    """Construct a mapping while rejecting duplicate keys.
+
+    YAML's default behavior keeps the last duplicate key, which is dangerous for
+    audit configuration because a repeated ``method`` or policy block can hide
+    the setting a reviewer thought they were using.
+    """
+    loader.flatten_mapping(node)
+    mapping: dict[object, object] = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise yaml.constructor.ConstructorError(
+                "while constructing a mapping",
+                node.start_mark,
+                f"found duplicate YAML key {key!r}",
+                key_node.start_mark,
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeySafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
 )
 
 
@@ -117,9 +158,12 @@ class PortfolioReturnReconstruction:
         beginning_value_source: Dataset used for beginning value.
         ending_value_source: Dataset used for ending value.
         flow_source: Dataset used for dated external flows.
-        flow_timing: Transaction date field used for flow weighting.
-        day_count: Day-count convention.
-        inclusion_rule: Beginning/end-of-day flow inclusion rule.
+        flow_timing: Transaction date field used for dated flow weighting, or
+            ``None`` for methods that do not use dated flow weights.
+        day_count: Day-count convention, or ``None`` for methods that do not
+            use dated flow weights.
+        inclusion_rule: Beginning/end-of-day flow inclusion rule, or ``None``
+            for methods that do not use dated flow weights.
         flow_categories: Transaction categories treated as external flows.
         income_categories: Transaction categories treated as income inputs.
         return_basis: Reported-return basis for fee/expense interpretation.
@@ -130,9 +174,9 @@ class PortfolioReturnReconstruction:
     beginning_value_source: str
     ending_value_source: str
     flow_source: str
-    flow_timing: str
-    day_count: str
-    inclusion_rule: str
+    flow_timing: str | None
+    day_count: str | None
+    inclusion_rule: str | None
     flow_categories: tuple[str, ...]
     income_categories: tuple[str, ...]
     return_basis: str
@@ -161,11 +205,18 @@ class PerformanceComparisonSpecification:
         preflight file-existence validation.
     """
 
-    def __init__(self, path: util.PathLike) -> None:
+    def __init__(
+        self,
+        path: util.PathLike,
+        *,
+        comparison_level: str | None = None,
+    ) -> None:
         """Read and validate a performance comparison specification.
 
         Args:
             path: Path to the comparison YAML specification.
+            comparison_level: Optional primary performance-result level override.
+                When omitted, ``comparison.level`` from the YAML is used.
 
         Raises:
             PpaError: If the YAML cannot be parsed, its shape is invalid, the
@@ -174,14 +225,14 @@ class PerformanceComparisonSpecification:
         self.path = Path(path)
         with open(self.path, "r", encoding=util.ENCODING) as file:
             try:
-                loaded_yaml: Any = yaml.safe_load(file)
+                loaded_yaml: Any = yaml.load(file, Loader=_UniqueKeySafeLoader)
             except Exception as error:
                 raise PpaError(self._error_message(f"Invalid YAML: {error}"), 504) from error
         if not isinstance(loaded_yaml, dict):
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
-        self.comparison_level = self._comparison_level()
+        self.comparison_level = self._comparison_level(comparison_level)
         self.portfolio_return_reconstruction = (
             self._portfolio_return_reconstruction()
         )
@@ -320,6 +371,18 @@ class PerformanceComparisonSpecification:
                 504,
             )
 
+        supported_keys = set(_RECONSTRUCTION_REQUIRED_KEYS) | set(
+            _RECONSTRUCTION_TIMED_FLOW_KEYS
+        )
+        unsupported_keys = sorted(str(key) for key in reconstruction if key not in supported_keys)
+        if unsupported_keys:
+            raise PpaError(
+                self._error_message(
+                    f"{section} has unsupported keys: {', '.join(unsupported_keys)}."
+                ),
+                504,
+            )
+
         missing_keys = [
             key for key in _RECONSTRUCTION_REQUIRED_KEYS if key not in reconstruction
         ]
@@ -330,14 +393,20 @@ class PerformanceComparisonSpecification:
                 ),
                 504,
             )
+        method = self._required_choice(
+            section,
+            "method",
+            reconstruction["method"],
+            set(_RETURN_RECONSTRUCTION_METHODS),
+        )
+        timing_values = self._return_reconstruction_timing_values(
+            section,
+            reconstruction,
+            method,
+        )
 
         return PortfolioReturnReconstruction(
-            method=self._required_choice(
-                section,
-                "method",
-                reconstruction["method"],
-                {ReturnReconstructionMethod.MODIFIED_DIETZ.value},
-            ),
+            method=method,
             beginning_value_source=self._required_choice(
                 section,
                 "beginning_value_source",
@@ -356,31 +425,9 @@ class PerformanceComparisonSpecification:
                 reconstruction["flow_source"],
                 {ReturnReconstructionFlowSource.TRANSACTIONS.value},
             ),
-            flow_timing=self._required_choice(
-                section,
-                "flow_timing",
-                reconstruction["flow_timing"],
-                {
-                    "transaction_date",
-                    ModifiedDietzFlowTiming.TRADE_DATE.value,
-                    ModifiedDietzFlowTiming.SETTLEMENT_DATE.value,
-                },
-            ),
-            day_count=self._required_choice(
-                section,
-                "day_count",
-                reconstruction["day_count"],
-                {ModifiedDietzDayCount.ACTUAL_DAYS.value},
-            ),
-            inclusion_rule=self._required_choice(
-                section,
-                "inclusion_rule",
-                reconstruction["inclusion_rule"],
-                {
-                    ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value,
-                    ModifiedDietzInclusionRule.END_OF_DAY.value,
-                },
-            ),
+            flow_timing=timing_values[0],
+            day_count=timing_values[1],
+            inclusion_rule=timing_values[2],
             flow_categories=self._required_string_list(
                 section,
                 "flow_categories",
@@ -404,6 +451,66 @@ class PerformanceComparisonSpecification:
                 {ReturnReconstructionSignConvention.SIGNED_AMOUNT.value},
             ),
         )
+
+    def _return_reconstruction_timing_values(
+        self,
+        section: str,
+        reconstruction: dict[object, object],
+        method: str,
+    ) -> tuple[str | None, str | None, str | None]:
+        """Return validated timing fields for one reconstruction method."""
+        if method == ReturnReconstructionMethod.MODIFIED_DIETZ.value:
+            missing_keys = [
+                key for key in _RECONSTRUCTION_TIMED_FLOW_KEYS if key not in reconstruction
+            ]
+            if missing_keys:
+                raise PpaError(
+                    self._error_message(
+                        f"{section} missing required keys for method "
+                        f"{method}: {', '.join(missing_keys)}."
+                    ),
+                    504,
+                )
+            return (
+                self._required_choice(
+                    section,
+                    "flow_timing",
+                    reconstruction["flow_timing"],
+                    {
+                        "transaction_date",
+                        ModifiedDietzFlowTiming.TRADE_DATE.value,
+                        ModifiedDietzFlowTiming.SETTLEMENT_DATE.value,
+                    },
+                ),
+                self._required_choice(
+                    section,
+                    "day_count",
+                    reconstruction["day_count"],
+                    {ModifiedDietzDayCount.ACTUAL_DAYS.value},
+                ),
+                self._required_choice(
+                    section,
+                    "inclusion_rule",
+                    reconstruction["inclusion_rule"],
+                    {
+                        ModifiedDietzInclusionRule.BEGINNING_OF_DAY.value,
+                        ModifiedDietzInclusionRule.END_OF_DAY.value,
+                    },
+                ),
+            )
+
+        unsupported_keys = [
+            key for key in _RECONSTRUCTION_TIMED_FLOW_KEYS if key in reconstruction
+        ]
+        if unsupported_keys:
+            raise PpaError(
+                self._error_message(
+                    f"{section} keys are not valid for method {method}: "
+                    f"{', '.join(unsupported_keys)}."
+                ),
+                504,
+            )
+        return (None, None, None)
 
     def _required_choice(
         self,
@@ -493,14 +600,18 @@ class PerformanceComparisonSpecification:
             required=required,
         )
 
-    def _comparison_level(self) -> str:
+    def _comparison_level(self, override: str | None = None) -> str:
         """Return the primary comparison level from YAML settings."""
         comparison_value = self.values.get(_COMPARISON_KEY, {})
         if comparison_value is None:
             comparison_value = {}
         if not isinstance(comparison_value, dict):
             raise PpaError(self._error_message("comparison must be a mapping."), 504)
-        level_value = comparison_value.get(_LEVEL_KEY, PORTFOLIO_COMPARISON_LEVEL)
+        level_value = (
+            override
+            if override is not None
+            else comparison_value.get(_LEVEL_KEY, PORTFOLIO_COMPARISON_LEVEL)
+        )
         if not isinstance(level_value, str) or level_value not in COMPARISON_LEVELS:
             allowed_values = ", ".join(sorted(COMPARISON_LEVELS))
             raise PpaError(

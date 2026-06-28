@@ -24,6 +24,13 @@ def _write_yaml(directory: Path, contents: object) -> Path:
     return path
 
 
+def _write_yaml_text(directory: Path, contents: str) -> Path:
+    """Write raw comparison YAML text and return the path."""
+    path = directory / "ppar_performance_comparison.yaml"
+    path.write_text(contents, encoding="utf-8")
+    return path
+
+
 def _minimal_specification(directory: Path) -> dict[str, object]:
     """Return a minimal valid comparison specification with fixture files."""
     for snapshot_name in ("snapshot_a", "snapshot_b"):
@@ -111,6 +118,159 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
 
             self.assertTrue(str(context.exception).startswith("Error 802"))
             self.assertIn("missing_transactions.csv", str(context.exception))
+
+    def test_duplicate_yaml_section_key_raises(self) -> None:
+        """Duplicate YAML sections fail instead of silently overriding values."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _minimal_specification(directory)
+            path = _write_yaml_text(
+                directory,
+                """
+snapshots:
+  a:
+    path: snapshot_a
+  b:
+    path: snapshot_b
+files:
+  portfolio_performance: portperf.csv
+transaction_impact_methods:
+  performance:
+    method: evidence_only
+transaction_impact_methods:
+  performance:
+    method: transaction_amount_delta_over_return_denominator
+""",
+            )
+
+            with self.assertRaisesRegex(PpaError, "duplicate YAML key"):
+                PerformanceComparisonSpecification(path)
+
+    def test_duplicate_yaml_method_key_raises(self) -> None:
+        """Duplicate method keys inside one semantic slot fail fast."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _minimal_specification(directory)
+            path = _write_yaml_text(
+                directory,
+                """
+snapshots:
+  a:
+    path: snapshot_a
+  b:
+    path: snapshot_b
+files:
+  portfolio_performance: portperf.csv
+transaction_impact_methods:
+  performance:
+    method: evidence_only
+    method: transaction_amount_delta_over_return_denominator
+""",
+            )
+
+            with self.assertRaisesRegex(PpaError, "duplicate YAML key"):
+                PerformanceComparisonSpecification(path)
+
+    def test_simple_dietz_reconstruction_rejects_timed_flow_keys(self) -> None:
+        """Simple Dietz does not accept timing fields it cannot use."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["portfolio_return_reconstruction"] = {
+                "method": "simple_dietz",
+                "beginning_value_source": "holdings",
+                "ending_value_source": "holdings",
+                "flow_source": "transactions",
+                "flow_timing": "transaction_date",
+                "flow_categories": ["external_flow"],
+                "income_categories": ["income"],
+                "return_basis": "net",
+                "sign_convention": "signed_amount",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "not valid for method simple_dietz"):
+                PerformanceComparisonSpecification(path)
+
+    def test_modified_simple_dietz_reconstruction_omits_timed_flow_keys(self) -> None:
+        """Modified Simple Dietz accepts only fields used by its formula."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                (snapshot_path / "holdings.csv").write_text("header\n", encoding="utf-8")
+                (snapshot_path / "transactions.csv").write_text(
+                    "header\n",
+                    encoding="utf-8",
+                )
+            configuration["portfolio_return_reconstruction"] = {
+                "method": "modified_simple_dietz",
+                "beginning_value_source": "holdings",
+                "ending_value_source": "holdings",
+                "flow_source": "transactions",
+                "flow_categories": ["external_flow"],
+                "income_categories": ["income"],
+                "return_basis": "net",
+                "sign_convention": "signed_amount",
+            }
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "holdings": "holdings.csv",
+                "transactions": "transactions.csv",
+            }
+            path = _write_yaml(directory, configuration)
+
+            specification = PerformanceComparisonSpecification(path)
+
+            reconstruction = specification.portfolio_return_reconstruction
+            if reconstruction is None:
+                raise AssertionError("Expected reconstruction settings.")
+            self.assertEqual(reconstruction.method, "modified_simple_dietz")
+            self.assertIsNone(reconstruction.flow_timing)
+            self.assertIsNone(reconstruction.day_count)
+            self.assertIsNone(reconstruction.inclusion_rule)
+
+    def test_modified_dietz_reconstruction_requires_timed_flow_keys(self) -> None:
+        """Modified Dietz requires the timing fields that affect weighting."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["portfolio_return_reconstruction"] = {
+                "method": "modified_dietz",
+                "beginning_value_source": "holdings",
+                "ending_value_source": "holdings",
+                "flow_source": "transactions",
+                "flow_categories": ["external_flow"],
+                "income_categories": ["income"],
+                "return_basis": "net",
+                "sign_convention": "signed_amount",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "required keys for method modified_dietz"):
+                PerformanceComparisonSpecification(path)
+
+    def test_reconstruction_rejects_unknown_keys(self) -> None:
+        """Unknown reconstruction keys fail instead of being ignored."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["portfolio_return_reconstruction"] = {
+                "method": "simple_dietz",
+                "beginning_value_source": "holdings",
+                "ending_value_source": "holdings",
+                "flow_source": "transactions",
+                "flow_categories": ["external_flow"],
+                "income_categories": ["income"],
+                "return_basis": "net",
+                "sign_convention": "signed_amount",
+                "surprise": "not-supported",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "unsupported keys: surprise"):
+                PerformanceComparisonSpecification(path)
 
     def test_portfolio_performance_cannot_configure_required_flag(self) -> None:
         """Portfolio performance requiredness is structural, not configurable."""

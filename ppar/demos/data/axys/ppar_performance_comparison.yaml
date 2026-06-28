@@ -2,10 +2,11 @@
 # PPAR Performance Comparison Configuration
 # =========================
 # This Mega-Cap operational fixture demonstrates the default field-role model
-# plus explicit transaction semantics.
+# plus explicit transaction semantics. Demo commands choose portfolio or
+# security report level at runtime.
 
 comparison:
-  name: Axys portfolio causal attribution demo
+  name: Axys performance comparison demo
 
 snapshots:
   a:
@@ -103,6 +104,13 @@ transaction_impact_methods:
   performance:
     method: transaction_amount_delta_over_return_denominator
     denominator_source: begin_market_value
+
+security_return_impact_methods:
+  transactions:
+    method: modified_dietz
+    flow_timing: transaction_date
+    day_count: actual_days
+    inclusion_rule: beginning_of_day
 
 tolerances:
   return: 0.000001

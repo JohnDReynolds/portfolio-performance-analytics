@@ -18,10 +18,7 @@ from ppar.performance_comparison import (
 from ppar.performance_comparison import review_model as _pc_review_model
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml"
-)
-_SECURITY_SPEC_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison_security.yaml"
+    "ppar/demos/data/axys/ppar_performance_comparison.yaml"
 )
 
 _EXPECTED_PORTFOLIO_SHEETS = [
@@ -61,7 +58,7 @@ _NON_ADDITIVE_HEADERS = [
     "Snapshot A Value",
     "Snapshot B Value",
     "B - A Difference",
-    "Review Guidance",
+    "Explanation",
     "Review Key",
 ]
 _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
@@ -171,7 +168,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "B - A Difference",
                         "Performance Difference Explained",
                         "Related Performance Difference",
-                        "Review Guidance",
+                        "Explanation",
                         "Review Key",
                     ],
                 )
@@ -201,37 +198,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 statuses = {row[6] for row in portfolio_rows}
                 self.assertTrue(portfolio_differences)
                 self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
-                self.assertEqual(
-                    statuses,
-                    {"Fully Explained", "Partly Explained", "Unexplained"},
-                )
-                self.assertEqual(len(portfolio_rows), 8)
-                self.assertEqual(
-                    sum(1 for row in portfolio_rows if row[6] == "Fully Explained"),
-                    6,
-                )
-                self.assertEqual(
-                    sum(1 for row in portfolio_rows if row[6] == "Partly Explained"),
-                    1,
-                )
-                self.assertEqual(
-                    sum(1 for row in portfolio_rows if row[6] == "Unexplained"),
-                    1,
-                )
-                non_fully_explained_rows = {
-                    (
-                        str(row[0]),
-                        _workbook_date_text(row[1]),
-                        _workbook_date_text(row[2]),
-                        str(row[6]),
-                    )
-                    for row in portfolio_rows
-                    if row[6] != "Fully Explained"
-                }
-                self.assertEqual(
-                    non_fully_explained_rows,
-                    _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS,
-                )
+                self.assertEqual(statuses, {"Fully Explained"})
+                self.assertTrue(all(row[6] == "Fully Explained" for row in portfolio_rows))
                 self.assertTrue(
                     all(
                         isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -258,6 +226,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "changed transactions.amount" in str(row[11])
                         or "changed holdings.market_value" in str(row[11])
                         or "calculated portfolio-return difference" in str(row[11])
+                        or "Configured transaction impact method is present" in str(row[11])
+                        or "Modified Dietz" in str(row[11])
+                        or "Supporting detail for changed holdings value" in str(row[11])
+                        or "Included through transactions.net_flow" in str(row[11])
+                        or "The transaction amount changed" in str(row[11])
+                        or "in Snapshot B" in str(row[11])
                         for row in underlying_rows
                     )
                 )
@@ -293,13 +267,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ]
                 self.assertTrue(
                     any(
-                        guidance.startswith("BUY:")
+                        guidance.startswith("The buy ")
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
-                        guidance.startswith("SELL:")
+                        guidance.startswith("The sell ")
                         for guidance in transaction_component_guidance
                     )
                 )
@@ -317,13 +291,16 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
         """Security comparison workbooks start with security-period differences."""
         openpyxl: Any = importlib.import_module("openpyxl")
 
-        findings = compare_snapshots(_SECURITY_SPEC_COMPARISON_PATH)
+        findings = compare_snapshots(
+            _PORTFOLIO_COMPARISON_PATH,
+            comparison_level="security",
+        )
         with tempfile.TemporaryDirectory() as directory:
             paths = write_performance_comparison_report_bundle(
                 findings,
                 Path(directory) / "bundle",
                 include_workbook=True,
-                comparison_path=_SECURITY_SPEC_COMPARISON_PATH,
+                comparison_path=_PORTFOLIO_COMPARISON_PATH,
                 comparison_level="security",
             )
 
@@ -364,10 +341,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     {row[3] for row in security_rows},
                     {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y"},
                 )
-                self.assertEqual(
-                    {row[7] for row in security_rows},
-                    {"Fully Explained", "Partly Explained", "Unexplained"},
-                )
+                self.assertEqual({row[7] for row in security_rows}, {"Fully Explained"})
                 fully_explained_rows = [
                     row for row in security_rows if row[7] == "Fully Explained"
                 ]
@@ -388,9 +362,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and str(row[2])[:10] == "2026-03-31"
                     and row[3] == "AAPL"
                 )
-                self.assertEqual(aapl_trade_row[7], "Partly Explained")
-                self.assertLess(_numeric_value(aapl_trade_row[5]), 0.0)
-                self.assertGreater(_numeric_value(aapl_trade_row[6]), 0.0)
+                self.assertEqual(aapl_trade_row[7], "Fully Explained")
+                self.assertAlmostEqual(
+                    _numeric_value(aapl_trade_row[4]),
+                    _numeric_value(aapl_trade_row[5]),
+                    places=6,
+                )
+                self.assertIsNone(aapl_trade_row[6])
                 aapl_price_rows = [
                     row
                     for row in security_rows
@@ -400,10 +378,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ]
                 self.assertEqual(len(aapl_price_rows), 3)
                 for row in aapl_price_rows:
+                    self.assertEqual(row[7], "Fully Explained")
                     self.assertAlmostEqual(
                         _numeric_value(row[4]),
-                        (162.61 - 161.0) / 161.0,
+                        _numeric_value(row[5]),
+                        places=6,
                     )
+                    self.assertIsNone(row[6])
                 tnote_row = next(
                     row for row in security_rows if row[3] == "TNOTE2Y"
                 )

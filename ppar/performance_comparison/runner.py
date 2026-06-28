@@ -45,6 +45,7 @@ def compare_snapshots(
     *,
     include_suppressed: bool = True,
     require_causal_attribution: bool = False,
+    comparison_level: str | None = None,
 ) -> pl.DataFrame:
     """Compare two configured snapshots and return a findings table.
 
@@ -56,6 +57,8 @@ def compare_snapshots(
             all YAML setup needed by supported causal attribution methods before
             results are returned. This does not require every performance
             change to be fully explained.
+        comparison_level: Optional primary performance-result level override.
+            When omitted, ``comparison.level`` from the YAML is used.
 
     Returns:
         Polars DataFrame containing one row per finding. If no findings are
@@ -66,7 +69,10 @@ def compare_snapshots(
         PpaError: If the comparison specification is invalid, required files
             are missing, or source columns cannot be resolved.
     """
-    specification = PerformanceComparisonSpecification(specification_path)
+    specification = PerformanceComparisonSpecification(
+        specification_path,
+        comparison_level=comparison_level,
+    )
     findings = PerformanceComparison(specification).compare()
     findings_table = findings_to_polars(findings)
     validate_findings = findings_table
@@ -97,7 +103,11 @@ def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
     if coverage.is_empty():
         return
 
-    incomplete = coverage.filter(pl.col(_pc_explain.MISSING_IMPACT_INPUTS) != "")
+    incomplete = coverage.filter(
+        ~pl.col(_pc_explain.MISSING_IMPACT_INPUTS).is_in(
+            ("", "modified_dietz cross-check only")
+        )
+    )
     if incomplete.is_empty():
         return
 

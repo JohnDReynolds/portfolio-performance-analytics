@@ -56,7 +56,8 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
-| `scripts/audit_performance_comparison_demo_data.py` | Audits packaged performance-comparison demo accounting. | Check fixture consistency after demo-data edits. |
+| `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
+| `scripts/audit_performance_comparison_demo_data.py` | Wrapper around the packaged demo-data audit. | Backward-compatible audit command. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates performance comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
@@ -89,8 +90,7 @@ scenario coverage lives under `tests/data/axys`.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
-| Workbook demo | `ppar_performance_comparison_portfolio.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Portfolio-level strict-attribution demo with supported causal policies. |
-| Workbook demo | `ppar_performance_comparison_security.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Security-level demo using security performance as the primary result dataset. |
+| Workbook demos | `ppar_performance_comparison.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Shared portfolio/security demo spec. The demo command selects the primary review level. |
 
 For the recommended XLSX workbook command and expected output, use
 [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md).
@@ -131,7 +131,7 @@ review model in a browser.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml \
+  ppar/demos/data/axys/ppar_performance_comparison.yaml \
   _demo_output/custom_portfolio \
   --include-workbook \
   --require-causal-attribution
@@ -163,7 +163,7 @@ Use this after generating report/workbook output.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demos/data/axys/ppar_performance_comparison_portfolio.yaml
+  ppar/demos/data/axys/ppar_performance_comparison.yaml
 ```
 
 Use this before report generation when you are editing YAML.
@@ -206,6 +206,7 @@ When changing demo data or YAML, also run:
 
 ```bash
 ./.venv/bin/python scripts/audit_performance_comparison_demo_data.py
+./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 

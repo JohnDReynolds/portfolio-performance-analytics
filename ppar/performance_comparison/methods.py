@@ -102,6 +102,8 @@ class ReturnReconstructionMethod(StrEnum):
     """Supported return-reconstruction method names."""
 
     MODIFIED_DIETZ = "modified_dietz"
+    MODIFIED_SIMPLE_DIETZ = "modified_simple_dietz"
+    SIMPLE_DIETZ = "simple_dietz"
 
 
 class ReturnReconstructionValueSource(StrEnum):

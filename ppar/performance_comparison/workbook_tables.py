@@ -25,6 +25,7 @@ from ppar.performance_comparison.specification import (
     SECURITY_COMPARISON_LEVEL,
 )
 from ppar.performance_comparison.transactions import (
+    TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
     TRANSACTION_CATEGORY_BUY,
     TRANSACTION_CATEGORY_SELL,
 )
@@ -85,6 +86,9 @@ _WORKBOOK_UNSELECTED_RELATED_ESTIMATE = "_workbook_unselected_related_estimate"
 _WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION = "_workbook_non_additive_portfolio_transaction"
 _WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING = (
     "_workbook_transaction_flow_supports_holding"
+)
+_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW = (
+    "_workbook_transaction_supports_reconstruction_flow"
 )
 _RECONSTRUCTION_FORMULA_FINDING_CODE = "reconstruction_formula_input"
 _RECONSTRUCTION_BEGINNING_VALUE_FIELD = "beginning_market_value"
@@ -416,7 +420,7 @@ def _workbook_portfolio_changes_table(
         for row in coverage.iter_rows(named=True)
     ]
     return _workbook_sorted_table(
-        pl.DataFrame(rows),
+        pl.DataFrame(rows, infer_schema_length=None),
         [_REVIEW_KEY],
     )
 
@@ -579,6 +583,9 @@ def _workbook_explanation_status(row: Mapping[str, object]) -> str:
 
 def _workbook_performance_comments(row: Mapping[str, object]) -> str:
     """Return plain-language comments for a performance difference."""
+    if _workbook_explanation_status(row) == _STATUS_FULLY_EXPLAINED:
+        return ""
+
     missing_inputs = row.get(_pc_explain.MISSING_IMPACT_INPUTS)
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if _has_text(missing_inputs):
@@ -672,7 +679,7 @@ def _workbook_security_changes_table(
     if not rows:
         return _workbook_empty_security_changes_table()
     return _workbook_sorted_table(
-        pl.DataFrame(rows),
+        pl.DataFrame(rows, infer_schema_length=None),
         [_REVIEW_KEY, _pc_findings.SECURITY_ID],
     )
 
@@ -729,11 +736,6 @@ def _workbook_portfolio_reconstruction_formula_rows(
 
     rows: list[dict[str, object]] = []
     for row in checks.iter_rows(named=True):
-        if (
-            row.get(_pc_reconstruction.RECONSTRUCTION_CATEGORY)
-            != _pc_reconstruction.RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED
-        ):
-            continue
         if active_keys is not None and _workbook_period_key(row) not in active_keys:
             continue
         rows.extend(
@@ -763,11 +765,6 @@ def _workbook_security_reconstruction_formula_rows(
 
     rows: list[dict[str, object]] = []
     for row in checks.iter_rows(named=True):
-        if (
-            row.get(_pc_reconstruction.RECONSTRUCTION_CATEGORY)
-            != _pc_reconstruction.RECONSTRUCTION_CATEGORY_SOURCE_INPUTS_CHANGED
-        ):
-            continue
         if (
             active_keys is not None
             and _workbook_security_period_key(row) not in active_keys
@@ -1017,9 +1014,10 @@ def _workbook_portfolio_reconstruction_formula_row(
         _INPUT_ROLE: _INPUT_ROLE_PERFORMANCE_INPUT,
         _IMPACT_STATUS: _IMPACT_STATUS_ESTIMATED,
         _REVIEW_NOTE: "",
-        _REVIEW_GUIDANCE: (
-            f"{role_label} explains part of the calculated portfolio-return "
-            "difference."
+        _REVIEW_GUIDANCE: _workbook_portfolio_formula_guidance(
+            field,
+            role_label,
+            difference,
         ),
         _pc_findings.DATASET: dataset,
         _pc_findings.SOURCE_COLUMN: source_column,
@@ -1068,9 +1066,11 @@ def _workbook_security_reconstruction_formula_row(
         _INPUT_ROLE: _INPUT_ROLE_PERFORMANCE_INPUT,
         _IMPACT_STATUS: _IMPACT_STATUS_ESTIMATED,
         _REVIEW_NOTE: "",
-        _REVIEW_GUIDANCE: (
-            f"{security_id} {role_label.lower()} explains part of the calculated "
-            "security-return difference."
+        _REVIEW_GUIDANCE: _workbook_security_formula_guidance(
+            field,
+            role_label,
+            _format_value(security_id),
+            difference,
         ),
         _pc_findings.DATASET: dataset,
         _pc_findings.SOURCE_COLUMN: source_column,
@@ -1079,6 +1079,87 @@ def _workbook_security_reconstruction_formula_row(
         _USE_PRIORITY: _workbook_use_priority(_USE_EXPLAINS_CHANGE),
         _REVIEW_KEY: source_row.get(_pc_reconstruction.RECONSTRUCTION_REVIEW_KEY),
     }
+
+
+def _workbook_portfolio_formula_guidance(
+    field: str,
+    role_label: str,
+    difference: object,
+) -> str:
+    """Return deterministic guidance for portfolio reconstruction formula rows."""
+    change_text = _workbook_change_amount_text(difference)
+    if field == _RECONSTRUCTION_BEGINNING_VALUE_FIELD:
+        return (
+            f"Beginning portfolio value {_workbook_increased_or_decreased(difference)} "
+            f"by {change_text} in Snapshot B. A higher beginning value lowers the "
+            "calculated return."
+        )
+    if field == _RECONSTRUCTION_ENDING_VALUE_FIELD:
+        return (
+            f"Ending portfolio value {_workbook_increased_or_decreased(difference)} "
+            f"by {change_text} in Snapshot B."
+        )
+    if field == _RECONSTRUCTION_NET_FLOW_FIELD:
+        return (
+            f"Net external flows {_workbook_increased_or_decreased(difference)} "
+            f"by {change_text} in Snapshot B."
+        )
+    if field == _RECONSTRUCTION_WEIGHTED_FLOW_FIELD:
+        return (
+            f"Weighted external flows {_workbook_increased_or_decreased(difference)} "
+            f"by {change_text} in Snapshot B."
+        )
+    if field == _RECONSTRUCTION_INCOME_FIELD:
+        return (
+            f"Income {_workbook_increased_or_decreased(difference)} by "
+            f"{change_text} in Snapshot B."
+        )
+    return (
+        f"{role_label} {_workbook_increased_or_decreased(difference)} by "
+        f"{change_text} in Snapshot B."
+    )
+
+
+def _workbook_security_formula_guidance(
+    field: str,
+    role_label: str,
+    security_id: str,
+    difference: object,
+) -> str:
+    """Return deterministic guidance for security reconstruction formula rows."""
+    security_prefix = f"{security_id} " if security_id else ""
+    change_text = _workbook_change_amount_text(difference)
+    if field == _RECONSTRUCTION_BEGINNING_VALUE_FIELD:
+        return (
+            f"{security_prefix}beginning value "
+            f"{_workbook_increased_or_decreased(difference)} by {change_text} in "
+            "Snapshot B. A higher beginning value lowers the calculated return."
+        )
+    if field == _RECONSTRUCTION_ENDING_VALUE_FIELD:
+        return (
+            f"{security_prefix}ending value "
+            f"{_workbook_increased_or_decreased(difference)} by {change_text} in "
+            "Snapshot B."
+        )
+    if field == _RECONSTRUCTION_NET_FLOW_FIELD:
+        return (
+            f"{security_prefix}buy/sell flow was {change_text} "
+            f"{_workbook_higher_or_lower(difference)} in Snapshot B."
+        )
+    if field == _RECONSTRUCTION_WEIGHTED_FLOW_FIELD:
+        return (
+            f"{security_prefix}date-weighted buy/sell flow was {change_text} "
+            f"{_workbook_higher_or_lower(difference)} in Snapshot B."
+        )
+    if field == _RECONSTRUCTION_INCOME_FIELD:
+        return (
+            f"{security_prefix}income {_workbook_increased_or_decreased(difference)} "
+            f"by {change_text} in Snapshot B."
+        )
+    return (
+        f"{security_prefix}{role_label.lower()} "
+        f"{_workbook_increased_or_decreased(difference)} by {change_text} in Snapshot B."
+    )
 
 
 def _workbook_selected_underlying_impact_rows(
@@ -1270,7 +1351,10 @@ def _workbook_underlying_causes_table(
         has_formula_role = _workbook_primary_key(row, comparison_level) in formula_keys
         if has_formula_role and _workbook_is_underlying_cause_row(row):
             workbook_row = _workbook_changed_item_row(
-                _workbook_non_additive_row(row),
+                _workbook_formula_support_row(
+                    row,
+                    comparison_level=comparison_level,
+                ),
                 comparison_path=comparison_path,
             )
         elif _workbook_is_underlying_cause_row(row):
@@ -1302,7 +1386,7 @@ def _workbook_underlying_causes_table(
     if not rows:
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
-        pl.DataFrame(rows),
+        pl.DataFrame(rows, infer_schema_length=None),
         _workbook_left_review_sort_columns(comparison_level=comparison_level),
     )
 
@@ -1431,7 +1515,7 @@ def _workbook_context_table(
     if not rows:
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
-        pl.DataFrame(rows),
+        pl.DataFrame(rows, infer_schema_length=None),
         _workbook_left_review_sort_columns(comparison_level=comparison_level),
     )
 
@@ -1719,6 +1803,54 @@ def _workbook_selected_impact_row(
     return row_dict
 
 
+def _workbook_change_amount_text(value: object) -> str:
+    """Return a compact absolute amount for reviewer-facing explanations."""
+    number = _number_or_none(value)
+    if number is None:
+        return "the changed amount"
+    return f"{abs(number):,.2f}"
+
+
+def _workbook_row_change_value(row: Mapping[str, object]) -> object:
+    """Return the changed amount from either workbook or finding row shape."""
+    change = row.get(_CHANGE)
+    if change is not None:
+        return change
+    return row.get(_pc_findings.DELTA_B_MINUS_A)
+
+
+def _workbook_increased_or_decreased(value: object) -> str:
+    """Return increased/decreased wording for a numeric B-minus-A value."""
+    number = _number_or_none(value)
+    if number is not None and number < 0:
+        return "decreased"
+    return "increased"
+
+
+def _workbook_higher_or_lower(value: object) -> str:
+    """Return higher/lower wording for a numeric B-minus-A value."""
+    number = _number_or_none(value)
+    if number is not None and number < 0:
+        return "lower"
+    return "higher"
+
+
+def _workbook_formula_support_row(
+    row: Mapping[str, object],
+    *,
+    comparison_level: str,
+) -> dict[str, object]:
+    """Return a non-additive row marked as support for reconstruction formulas."""
+    row_dict = _workbook_non_additive_row(row)
+    if (
+        row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
+        and row_dict.get(_pc_findings.SOURCE_COLUMN) == pc_cols.AMOUNT
+    ):
+        row_dict[_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW] = True
+        row_dict["_workbook_reconstruction_comparison_level"] = comparison_level
+    return row_dict
+
+
 def _workbook_non_additive_row(row: Mapping[str, object]) -> dict[str, object]:
     """Return a workbook row with explained-difference fields cleared."""
     row_dict = dict(row)
@@ -1885,6 +2017,7 @@ def _workbook_impact_status(
     if (
         row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE)
         or row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION)
+        or row.get(_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW)
         or _workbook_is_context_row(row)
         or _workbook_is_reported_diagnostic_row(row)
         or _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC
@@ -1920,8 +2053,13 @@ def _workbook_review_note(
         )
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return (
-            "Supporting evidence for changed holdings; portfolio impact is shown "
-            "on holding rows."
+            "Supporting evidence for Modified Dietz flow rows; not counted "
+            "separately."
+        )
+    if row.get(_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW):
+        return (
+            "Supporting evidence for Modified Dietz flow rows; not counted "
+            "separately."
         )
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
         return "Review this input component; a related performance input is selected."
@@ -1964,23 +2102,25 @@ def _workbook_review_guidance(
         dataset == pc_cols.TRANSACTIONS
         and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
     ):
-        security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
-        prefix = _workbook_transaction_type_prefix(row)
-        if security_id:
-            return f"{prefix}Input for changed {security_id} transactions.amount."
-        return f"{prefix}Input for changed transactions.amount."
+        return _workbook_transaction_component_explanation(row, source_column)
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
-        return "Input for changed cash-balance holdings.market_value."
+        return (
+            "Included through transactions.net_flow and "
+            "transactions.weighted_flow; cash holding rows show the cash-balance "
+            "change."
+        )
+    if row.get(_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW):
+        return _workbook_transaction_reconstruction_flow_guidance(row)
     if row.get(_WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING):
         security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
         if security_id:
             return (
-                f"Security-flow evidence for {security_id}; not counted "
-                f"separately because {security_id} holdings.market_value is selected."
+                f"{security_id} transaction activity changed. The security holding "
+                "value row shows the counted effect."
             )
         return (
-            "Security-flow evidence; not counted separately because "
-            "holdings.market_value is selected."
+            "Transaction activity changed. The holding value row shows the counted "
+            "effect."
         )
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
         return _workbook_related_input_guidance(row, dataset, source_column)
@@ -1998,6 +2138,12 @@ def _workbook_review_guidance(
 
     dataset_column = _workbook_dataset_column_label(dataset, source_column)
     yaml_path = _workbook_yaml_path_label(comparison_path)
+    if dataset == pc_cols.HOLDINGS and source_column in {
+        pc_cols.MARKET_VALUE,
+        pc_cols.PRICE,
+        pc_cols.QUANTITY,
+    }:
+        return _workbook_holding_detail_explanation(row, source_column)
     if _workbook_has_additive_policy(row):
         return _workbook_missing_impact_input_setup(dataset, source_column)
     if dataset == pc_cols.TRANSACTIONS:
@@ -2063,15 +2209,86 @@ def _workbook_related_input_guidance(
         pc_cols.PRICE,
         pc_cols.QUANTITY,
     }:
-        if security_id:
-            return f"Input for changed {security_id} holdings.market_value."
-        return "Input for changed holdings.market_value."
+        return _workbook_holding_detail_explanation(row, source_column)
     if dataset == pc_cols.TRANSACTIONS:
-        prefix = _workbook_transaction_type_prefix(row)
+        return _workbook_transaction_component_explanation(row, source_column)
+    return "This source-data change supports the related counted row."
+
+
+def _workbook_transaction_reconstruction_flow_guidance(
+    row: Mapping[str, object],
+) -> str:
+    """Return guidance for transaction rows absorbed by reconstruction formulas."""
+    comparison_level = row.get("_workbook_reconstruction_comparison_level")
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
         if security_id:
-            return f"{prefix}Input for changed {security_id} transactions.amount."
-        return f"{prefix}Input for changed transactions.amount."
-    return "Input for changed related performance input."
+            return (
+                f"{security_id} transaction amount changed by "
+                f"{_workbook_change_amount_text(_workbook_row_change_value(row))}."
+            )
+    return (
+        "The external-flow transaction.amount was "
+        f"{_workbook_change_amount_text(_workbook_row_change_value(row))} larger "
+        f"in Snapshot B, {_workbook_cash_holding_effect(row)} ending cash holdings."
+    )
+
+
+def _workbook_cash_holding_effect(row: Mapping[str, object]) -> str:
+    """Return increasing/reducing wording for cash effect of a transaction row."""
+    if row.get(_pc_findings.CASH_FLOW_SIGN) == TRANSACTION_CASH_FLOW_SIGN_POSITIVE:
+        return "increasing"
+    return "reducing"
+
+
+def _workbook_holding_detail_explanation(
+    row: Mapping[str, object],
+    source_column: str,
+) -> str:
+    """Return plain-language explanation for holding source rows."""
+    security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+    security_prefix = f"{security_id} " if security_id else ""
+    change_value = _workbook_row_change_value(row)
+    change_text = _workbook_change_amount_text(change_value)
+    if source_column == pc_cols.MARKET_VALUE:
+        return (
+            f"{security_prefix}ending holdings.market_value "
+            f"{_workbook_increased_or_decreased(change_value)} by "
+            f"{change_text} in Snapshot B."
+        )
+    if source_column == pc_cols.QUANTITY:
+        return (
+            f"{security_prefix}ending holdings.quantity "
+            f"{_workbook_increased_or_decreased(change_value)} by "
+            f"{change_text} in Snapshot B."
+        )
+    if source_column == pc_cols.PRICE:
+        return (
+            f"{security_prefix}price "
+            f"{_workbook_increased_or_decreased(change_value)} by "
+            f"{change_text} in Snapshot B."
+        )
+    return (
+        f"{security_prefix}{source_column} "
+        f"{_workbook_increased_or_decreased(change_value)} by "
+        f"{change_text} in Snapshot B."
+    )
+
+
+def _workbook_transaction_component_explanation(
+    row: Mapping[str, object],
+    source_column: str,
+) -> str:
+    """Return plain-language explanation for transaction component rows."""
+    security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+    transaction_type = _format_value(row.get(_pc_findings.TRANSACTION_CATEGORY))
+    transaction_text = transaction_type.replace("_", " ") if transaction_type else "transaction"
+    security_text = f" for {security_id}" if security_id else ""
+    return (
+        f"The {transaction_text} {source_column}{security_text} changed by "
+        f"{_workbook_change_amount_text(_workbook_row_change_value(row))} "
+        "in Snapshot B."
+    )
 
 
 def _workbook_transaction_type_prefix(row: Mapping[str, object]) -> str:
@@ -2147,8 +2364,8 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
         )
     if dataset == pc_cols.HOLDINGS:
         return (
-            "None; this holding input difference is shown for review, but no "
-            "supported performance estimate is available for this row."
+            "This holding changed in Snapshot B. The beginning or ending portfolio "
+            "value row shows the counted effect."
         )
     if dataset == pc_cols.CASH:
         return (
@@ -2434,8 +2651,8 @@ def _workbook_column_labels() -> dict[str, str]:
         _ESTIMATED_IMPACT: "Performance Difference Explained",
         _RELATED_PERFORMANCE_DIFFERENCE: "Related Performance Difference",
         _IMPACT_STATUS: "Impact Status",
-        _REVIEW_NOTE: "Review Guidance",
-        _REVIEW_GUIDANCE: "Review Guidance",
+        _REVIEW_NOTE: "Explanation",
+        _REVIEW_GUIDANCE: "Explanation",
         _pc_explain.PORTFOLIO_RETURN_DELTA: "Return Delta",
         _REVIEW_STATUS: "Status",
         _REVIEW_CUES: "Review Cues",
@@ -2560,10 +2777,10 @@ def workbook_column_tooltip(column: str) -> str:
             "Whether this row has an additive estimate, is missing an impact method, "
             "or is review-only."
         ),
-        _REVIEW_NOTE: "Recommended review guidance for this changed item.",
+        _REVIEW_NOTE: "Plain-language explanation for this changed item.",
         _REVIEW_GUIDANCE: (
-            "Why this row is or is not included in the quantified explanation, "
-            "and what the reviewer should check next."
+            "Plain-language explanation of what changed and how this row relates "
+            "to the performance difference."
         ),
         _pc_explain.PORTFOLIO_RETURN_DELTA: (
             "Snapshot B portfolio return minus snapshot A portfolio return."

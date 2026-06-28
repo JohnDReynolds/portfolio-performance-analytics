@@ -232,8 +232,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
             self.assertTrue(Path(paths["source_performance"]).exists())
             self.assertTrue(Path(paths["axys_a_holdings"]).exists())
             self.assertTrue(Path(paths["axys_b_holdings"]).exists())
-            self.assertTrue(Path(paths["portfolio_comparison_yaml"]).exists())
-            self.assertTrue(Path(paths["security_comparison_yaml"]).exists())
+            self.assertTrue(Path(paths["comparison_yaml"]).exists())
             self.assertEqual(summary["period_count"], 3)
             self.assertEqual(summary["equity_count"], 5)
             self.assertEqual(summary["portfolio_codes"], ["ALPHA", "BALANCED", "INCOME"])
@@ -255,8 +254,15 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
                 snapshot_b,
                 Path(temp_directory),
             )
-            portfolio_findings = compare_snapshots(Path(paths["portfolio_comparison_yaml"]))
-            security_findings = compare_snapshots(Path(paths["security_comparison_yaml"]))
+            comparison_path = Path(paths["comparison_yaml"])
+            portfolio_findings = compare_snapshots(
+                comparison_path,
+                comparison_level="portfolio",
+            )
+            security_findings = compare_snapshots(
+                comparison_path,
+                comparison_level="security",
+            )
 
             self.assertEqual(
                 set(portfolio_findings["dataset"]),

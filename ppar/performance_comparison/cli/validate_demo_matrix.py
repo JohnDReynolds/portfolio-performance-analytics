@@ -34,8 +34,7 @@ _RESTATEMENT_TRANSACTION_RULES_YAML = (
     "ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
-_PORTFOLIO_YAML = "ppar_performance_comparison_portfolio.yaml"
-_SECURITY_YAML = "ppar_performance_comparison_security.yaml"
+_DEMO_YAML = "ppar_performance_comparison.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_performance_comparison_suppressed.yaml"
@@ -112,11 +111,13 @@ def _validate_demo_matrix(
     )
     multi_findings = compare_snapshots(scenario_directory / _MULTI_YAML)
     portfolio_findings = compare_snapshots(
-        demo_directory / _PORTFOLIO_YAML,
+        demo_directory / _DEMO_YAML,
         require_causal_attribution=True,
+        comparison_level="portfolio",
     )
     security_findings = compare_snapshots(
-        demo_directory / _SECURITY_YAML,
+        demo_directory / _DEMO_YAML,
+        comparison_level="security",
     )
     modified_dietz_findings = compare_snapshots(
         scenario_directory / _MODIFIED_DIETZ_YAML
