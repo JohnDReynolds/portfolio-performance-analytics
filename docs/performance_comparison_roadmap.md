@@ -499,25 +499,78 @@ Implementation guidance:
 
 ### Phase 6: Generate Holdings From Scenario Inputs
 
-Current packaged demo rebuilding now derives snapshot B `holdings.csv` from
-snapshot A holdings plus validated explicit scenario adjustments in
-`scripts/operational_demo_data/performance_comparison_holding_scenarios.csv`,
-then derives `secperf.csv` and `portperf.csv` from those holdings and
-transactions under the configured YAML reconstruction rules. This removes one
-major source of fixture drift: snapshot B holdings changes are no longer
-independent hand-maintained rows.
+Current packaged demo rebuilding now derives snapshot B `transactions.csv` from
+snapshot A transactions plus validated explicit transaction scenarios in
+`scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv`.
 
-The scenario-adjustment layer is intentionally strict:
+It then derives snapshot B `holdings.csv` from snapshot A holdings plus two
+deterministic sources:
+
+1. transaction-derived holding impacts from changed `BUY`, `SELL`, `DEP`, `WD`,
+   `DIV`, `INT`, and `FEE` rows;
+2. validated explicit residual holding scenarios in
+   `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv`.
+
+It then derives `secperf.csv` and `portperf.csv` from those holdings and
+transactions under the configured YAML reconstruction rules. This removes one
+major source of fixture drift: transaction changes and common related
+cash/security holding changes now come from scenario intent and rules rather
+than independent hand-maintained rows.
+
+The scenario layers are intentionally strict:
 
 - columns must exactly match the expected schema;
 - scenario rows can target only derived snapshots, not the base snapshot;
 - duplicate scenario keys are rejected;
 - each row must change at least one holding value;
-- each scenario row must match exactly one packaged holding row.
+- each transaction scenario row must match exactly one base transaction row;
+- each holding scenario row must match exactly one packaged holding row;
+- transaction scenarios currently change only existing transaction rows and only
+  numeric fields (`QTY`, `PRICE`, `AMOUNT`, and `COMMISSION`).
+
+Residual holding scenarios now carry explicit `scenario_type` values:
+
+- `valuation_mark`
+- `cash_balance_correction`
+- `quantity_valuation_correction`
+- `accrual_correction`
+- `cost_only_correction`
+
+Each type is validated against the holding fields it is allowed to change. This
+keeps remaining manual holding adjustments from becoming generic numeric
+patches.
+
+The rebuild/audit summary now exposes the scenario story directly:
+
+- transaction scenarios grouped by transaction code;
+- transaction-derived holding impacts grouped by transaction code;
+- residual holding scenarios grouped by scenario type.
+
+This gives a quick check that the demo still contains the intended examples
+without requiring manual CSV inspection.
+
+The same scenario coverage is now part of the audit guardrail. If an example
+type disappears accidentally, the packaged demo-data audit fails before the
+reports are regenerated.
+
+Status: complete for the current packaged performance-comparison demo fixture.
+
+### Phase 7: Full Scenario Accounting Engine
 
 A future foundation pass should move from a scenario-adjustment file to a fuller
 scenario engine that generates both holdings snapshots from explicit starting
 positions, transactions, valuation marks, accrual assumptions, and cash rules.
+The remaining explicit holding scenario rows should shrink as more transaction
+types and valuation/accrual rules become deterministic.
+
+The current guardrail tests pin the accounting impact of each supported simple
+transaction type:
+
+- `WD` and `FEE` reduce ending `CASH_USD` holdings;
+- `DIV` and `INT` increase ending `CASH_USD` holdings;
+- `BUY` increases the traded security holding and reduces cash;
+- `SELL` reduces the traded security holding and increases cash;
+- `SPLIT` remains outside transaction-derived holding impacts for now.
 
 Suggested source-of-truth inputs:
 
@@ -543,7 +596,8 @@ This would make the demo stack flow in one direction:
 
 ```text
 scenario intent
-  -> transactions and valuation assumptions
+  -> transactions
+  -> transaction-derived holding impacts and valuation assumptions
   -> holdings
   -> security performance
   -> portfolio performance

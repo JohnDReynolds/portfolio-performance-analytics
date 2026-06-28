@@ -133,12 +133,29 @@ and derived security/portfolio performance files with one command:
 ```
 
 The default command audits without writing. The `--write` command validates
-`scripts/operational_demo_data/performance_comparison_holding_scenarios.csv`,
-derives snapshot B `holdings.csv` from snapshot A plus those explicit scenario
-rows, then recomputes derived `secperf.csv` and `portperf.csv` fields and runs
-the same audit guardrails. The legacy
+`scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv`
+and derives snapshot B `transactions.csv` from snapshot A plus those scenario
+rows. It then derives simple transaction-driven holding impacts from changed
+`BUY`, `SELL`, `DEP`, `WD`, `DIV`, `INT`, and `FEE` rows; validates
+`scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` for
+residual non-transaction holding scenarios; derives snapshot B `holdings.csv`
+from snapshot A plus those impacts; then recomputes derived `secperf.csv` and
+`portperf.csv` fields and runs the same audit guardrails. The legacy
 `scripts/audit_performance_comparison_demo_data.py` command is only a wrapper
 around this rebuild/audit implementation.
+
+The residual holding scenario file uses explicit `scenario_type` values so
+remaining non-transaction adjustments are named and validated:
+
+- `valuation_mark`
+- `cash_balance_correction`
+- `quantity_valuation_correction`
+- `accrual_correction`
+- `cost_only_correction`
+
+The rebuild/audit summary also reports scenario counts grouped by transaction
+code and holding scenario type. That makes it possible to confirm the demo still
+contains the intended examples without opening the fixture CSV files.
 
 The workbook should answer:
 

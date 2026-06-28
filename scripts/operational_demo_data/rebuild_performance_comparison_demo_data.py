@@ -7,9 +7,11 @@ performance files internally aligned by:
 
 1. deriving ``secperf.csv`` from holdings and security-level transactions;
 2. deriving ``portperf.csv`` from holdings and portfolio-level transactions; and
-3. deriving snapshot B ``holdings.csv`` from snapshot A holdings plus explicit
-   scenario adjustments; and
-4. reporting whether the checked-in files already match those derived values.
+3. deriving snapshot B ``transactions.csv`` from snapshot A transactions plus
+   explicit transaction scenarios;
+4. deriving snapshot B ``holdings.csv`` from snapshot A holdings plus
+   transaction-derived and explicit holding scenarios; and
+5. reporting whether the checked-in files already match those derived values.
 
 By default, the script audits without writing. Pass ``--write`` to update the
 packaged demo files.
@@ -50,6 +52,9 @@ _DEFAULT_COMPARISON_PATH: Final = (
 _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_holding_scenarios.csv"
 )
+_DEFAULT_TRANSACTION_SCENARIOS_PATH: Final = (
+    Path(__file__).resolve().parent / "performance_comparison_transaction_scenarios.csv"
+)
 _SNAPSHOT_DIRECTORIES: Final = ("axys_full_spec_a", "axys_full_spec_b")
 _BASE_SNAPSHOT_DIRECTORY: Final = "axys_full_spec_a"
 _PERIOD_KEY: Final = ["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"]
@@ -87,6 +92,7 @@ _PORTPERF_NUMERIC_COLUMNS: Final = [
 _HOLDINGS_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "MKT_VAL", "COST", "ACCRUED"]
 _HOLDING_SCENARIO_COLUMNS: Final = [
     "snapshot",
+    "scenario_type",
     "PORT",
     "SEC",
     "HOLDING_DATE",
@@ -97,7 +103,32 @@ _HOLDING_SCENARIO_COLUMNS: Final = [
     "ACCRUED_delta",
     "scenario",
 ]
-_HOLDING_SCENARIO_KEY: Final = ["snapshot", "PORT", "SEC", "HOLDING_DATE", "scenario"]
+_HOLDING_SCENARIO_KEY: Final = [
+    "snapshot",
+    "scenario_type",
+    "PORT",
+    "SEC",
+    "HOLDING_DATE",
+    "scenario",
+]
+_HOLDING_SCENARIO_TYPES: Final = {
+    "valuation_mark",
+    "cash_balance_correction",
+    "quantity_valuation_correction",
+    "accrual_correction",
+    "cost_only_correction",
+}
+_TRANSACTION_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "AMOUNT", "COMMISSION"]
+_TRANSACTION_SCENARIO_COLUMNS: Final = [
+    "snapshot",
+    "TRANSACTION_ID",
+    "QTY_delta",
+    "PRICE_delta",
+    "AMOUNT_delta",
+    "COMMISSION_delta",
+    "scenario",
+]
+_TRANSACTION_SCENARIO_KEY: Final = ["snapshot", "TRANSACTION_ID", "scenario"]
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
 _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
@@ -113,6 +144,44 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
 _SECURITY_FLOW_CODES: Final = {"BUY", "SELL"}
 _INCOME_CODES: Final = {"DIV", "INT", "FEE"}
 _PORTFOLIO_EXTERNAL_FLOW_CODES: Final = {"DEP", "WD"}
+_TRANSACTION_HOLDING_EFFECT_CODES: Final = {
+    "BUY",
+    "SELL",
+    "DEP",
+    "WD",
+    "DIV",
+    "INT",
+    "FEE",
+}
+_CASH_SECURITY_ID: Final = "CASH_USD"
+_EXPECTED_SCENARIO_COVERAGE: Final = {
+    "axys_full_spec_b": {
+        "transaction_scenarios_by_type": {
+            "BUY": 1,
+            "DIV": 1,
+            "FEE": 1,
+            "INT": 1,
+            "SELL": 1,
+            "SPLIT": 1,
+            "WD": 1,
+        },
+        "transaction_derived_holdings_by_type": {
+            "BUY": 2,
+            "DIV": 1,
+            "FEE": 1,
+            "INT": 1,
+            "SELL": 2,
+            "WD": 1,
+        },
+        "holding_scenarios_by_type": {
+            "accrual_correction": 1,
+            "cash_balance_correction": 1,
+            "cost_only_correction": 1,
+            "quantity_valuation_correction": 1,
+            "valuation_mark": 3,
+        },
+    }
+}
 
 
 @dataclass(frozen=True)
@@ -145,6 +214,7 @@ class HoldingScenarioAdjustment:
         portfolio: Portfolio code.
         security: Security identifier.
         holding_date: Holding date to adjust.
+        scenario_type: Scenario category used for validation and audit.
         deltas: Numeric changes keyed by packaged holding column name.
         scenario: Human-readable scenario description.
     """
@@ -153,6 +223,7 @@ class HoldingScenarioAdjustment:
     portfolio: str
     security: str
     holding_date: str
+    scenario_type: str
     deltas: dict[str, float]
     scenario: str
 
@@ -178,6 +249,44 @@ class HoldingScenarioSet:
         )
 
 
+@dataclass(frozen=True)
+class TransactionScenarioAdjustment:
+    """One intentional transaction adjustment used to derive a demo snapshot.
+
+    Attributes:
+        snapshot: Snapshot directory receiving the adjustment.
+        transaction_id: Transaction row identifier.
+        deltas: Numeric changes keyed by packaged transaction column name.
+        scenario: Human-readable scenario description.
+    """
+
+    snapshot: str
+    transaction_id: str
+    deltas: dict[str, float]
+    scenario: str
+
+
+@dataclass(frozen=True)
+class TransactionScenarioSet:
+    """Validated transaction adjustments for deriving demo snapshot transactions.
+
+    Attributes:
+        adjustments: Scenario adjustment rows in deterministic file order.
+        source_path: CSV file used to load the adjustments.
+    """
+
+    adjustments: tuple[TransactionScenarioAdjustment, ...]
+    source_path: Path
+
+    def for_snapshot(self, snapshot: str) -> tuple[TransactionScenarioAdjustment, ...]:
+        """Return transaction adjustments for one snapshot in file order."""
+        return tuple(
+            adjustment
+            for adjustment in self.adjustments
+            if adjustment.snapshot == snapshot
+        )
+
+
 def main() -> int:
     """Audit or rewrite packaged performance-comparison demo performance files."""
     args = _parse_args()
@@ -185,12 +294,14 @@ def main() -> int:
         args.axys_directory,
         comparison_path=args.comparison_path,
         holding_scenarios_path=args.holding_scenarios_path,
+        transaction_scenarios_path=args.transaction_scenarios_path,
         write=args.write,
     )
     audit_issues = audit_demo_data(
         axys_directory=args.axys_directory,
         comparison_path=args.comparison_path,
         holding_scenarios_path=args.holding_scenarios_path,
+        transaction_scenarios_path=args.transaction_scenarios_path,
     )
     summary["audit_issues"] = [asdict(issue) for issue in audit_issues]
     print(json.dumps(summary, indent=2))
@@ -207,6 +318,7 @@ def audit_demo_data(
     axys_directory: Path = _DEFAULT_AXYS_DIRECTORY,
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
     holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
+    transaction_scenarios_path: Path = _DEFAULT_TRANSACTION_SCENARIOS_PATH,
 ) -> list[AuditIssue]:
     """Return packaged demo-data audit issues.
 
@@ -224,9 +336,22 @@ def audit_demo_data(
         axys_directory,
         comparison_path=comparison_path,
         holding_scenarios_path=holding_scenarios_path,
+        transaction_scenarios_path=transaction_scenarios_path,
         write=False,
     )
     for snapshot in rebuild_summary["snapshots"]:
+        if snapshot["has_transaction_drift"]:
+            issues.append(
+                AuditIssue(
+                    check="derived_transaction_drift",
+                    snapshot=str(snapshot["snapshot"]),
+                    detail=(
+                        "Derived transactions.csv no longer matches the "
+                        "transaction scenario file. Update the scenario file "
+                        "or run this script with --write after reviewing the change."
+                    ),
+                )
+            )
         if snapshot["has_performance_drift"]:
             issues.append(
                 AuditIssue(
@@ -252,6 +377,7 @@ def audit_demo_data(
             )
     issues.extend(_audit_visible_portfolio_residuals(comparison_path))
     issues.extend(_audit_visible_security_residuals(comparison_path))
+    issues.extend(_audit_scenario_coverage(rebuild_summary))
     return issues
 
 
@@ -260,6 +386,7 @@ def rebuild_demo_performance_files(
     *,
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
     holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
+    transaction_scenarios_path: Path = _DEFAULT_TRANSACTION_SCENARIOS_PATH,
     write: bool = False,
 ) -> dict[str, object]:
     """Return audit summary, optionally rewriting derived performance files.
@@ -269,8 +396,10 @@ def rebuild_demo_performance_files(
             ``axys_full_spec_b``.
         comparison_path: Shared comparison YAML with reconstruction rules.
         holding_scenarios_path: CSV containing intentional holding adjustments.
-        write: Whether to write rebuilt ``holdings.csv``, ``secperf.csv``, and
-            ``portperf.csv``.
+        transaction_scenarios_path: CSV containing intentional transaction
+            adjustments.
+        write: Whether to write rebuilt ``transactions.csv``, ``holdings.csv``,
+            ``secperf.csv``, and ``portperf.csv``.
 
     Returns:
         JSON-serializable audit summary with one entry per snapshot.
@@ -282,32 +411,59 @@ def rebuild_demo_performance_files(
         raise ValueError("Demo rebuild requires portfolio and security reconstruction YAML.")
 
     snapshots: list[dict[str, object]] = []
-    base_holdings = pd.read_csv(axys_directory / _BASE_SNAPSHOT_DIRECTORY / "holdings.csv")
+    base_snapshot_directory = axys_directory / _BASE_SNAPSHOT_DIRECTORY
+    base_holdings = pd.read_csv(base_snapshot_directory / "holdings.csv")
+    base_transactions = pd.read_csv(base_snapshot_directory / "transactions.csv")
     holding_scenarios = _load_holding_scenarios(holding_scenarios_path)
+    transaction_scenarios = _load_transaction_scenarios(transaction_scenarios_path)
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
         snapshot_directory = axys_directory / snapshot_name
         current_secperf = pd.read_csv(snapshot_directory / "secperf.csv")
         current_portperf = pd.read_csv(snapshot_directory / "portperf.csv")
         holdings = pd.read_csv(snapshot_directory / "holdings.csv")
-        transactions = pd.read_csv(snapshot_directory / "transactions.csv")
+        current_transactions = pd.read_csv(snapshot_directory / "transactions.csv")
+        rebuilt_transactions = _rebuild_transactions(
+            snapshot_name,
+            current_transactions=current_transactions,
+            base_transactions=base_transactions,
+            transaction_scenarios=transaction_scenarios,
+        )
+        transaction_adjustments = _transaction_derived_holding_adjustments(
+            snapshot_name,
+            base_holdings=base_holdings,
+            base_transactions=base_transactions,
+            current_transactions=rebuilt_transactions,
+            periods=current_portperf,
+        )
         rebuilt_holdings = _rebuild_holdings(
             snapshot_name,
             current_holdings=holdings,
             base_holdings=base_holdings,
+            transaction_adjustments=transaction_adjustments,
             holding_scenarios=holding_scenarios,
         )
 
         rebuilt_secperf = _rebuild_security_performance(
             current_secperf,
             rebuilt_holdings,
-            transactions,
+            rebuilt_transactions,
             security_reconstruction,
         )
         rebuilt_portperf = _rebuild_portfolio_performance(
             current_portperf,
             rebuilt_holdings,
-            transactions,
+            rebuilt_transactions,
             portfolio_reconstruction,
+        )
+        transaction_delta = _max_numeric_delta(
+            current_transactions,
+            rebuilt_transactions,
+            _TRANSACTION_NUMERIC_COLUMNS,
+        )
+        has_transaction_field_drift = _has_non_numeric_delta(
+            current_transactions,
+            rebuilt_transactions,
+            _TRANSACTION_NUMERIC_COLUMNS,
         )
         holdings_delta = _max_numeric_delta(
             holdings,
@@ -327,8 +483,12 @@ def rebuild_demo_performance_files(
         has_performance_drift = (
             secperf_delta > _CHECK_TOLERANCE or portperf_delta > _CHECK_TOLERANCE
         )
+        has_transaction_drift = (
+            transaction_delta > _CHECK_TOLERANCE or has_transaction_field_drift
+        )
         has_holdings_drift = holdings_delta > _CHECK_TOLERANCE
         if write:
+            rebuilt_transactions.to_csv(snapshot_directory / "transactions.csv", index=False)
             rebuilt_holdings.to_csv(snapshot_directory / "holdings.csv", index=False)
             rebuilt_secperf.to_csv(snapshot_directory / "secperf.csv", index=False)
             rebuilt_portperf.to_csv(snapshot_directory / "portperf.csv", index=False)
@@ -336,18 +496,39 @@ def rebuild_demo_performance_files(
         snapshots.append(
             {
                 "snapshot": snapshot_name,
+                "transaction_scenario_rows": len(
+                    transaction_scenarios.for_snapshot(snapshot_name)
+                ),
+                "transaction_scenarios_by_type": _transaction_scenario_type_counts(
+                    snapshot_name,
+                    base_transactions=base_transactions,
+                    transaction_scenarios=transaction_scenarios,
+                ),
+                "transaction_derived_holding_rows": len(transaction_adjustments),
+                "transaction_derived_holdings_by_type": (
+                    _transaction_derived_holding_type_counts(transaction_adjustments)
+                ),
                 "holding_scenario_rows": len(
                     holding_scenarios.for_snapshot(snapshot_name)
                 ),
+                "holding_scenarios_by_type": _holding_scenario_type_counts(
+                    holding_scenarios.for_snapshot(snapshot_name)
+                ),
+                "transaction_rows": int(rebuilt_transactions.shape[0]),
                 "holdings_rows": int(rebuilt_holdings.shape[0]),
                 "secperf_rows": int(rebuilt_secperf.shape[0]),
                 "portperf_rows": int(rebuilt_portperf.shape[0]),
+                "max_transaction_numeric_delta": transaction_delta,
                 "max_holdings_numeric_delta": holdings_delta,
                 "max_secperf_numeric_delta": secperf_delta,
                 "max_portperf_numeric_delta": portperf_delta,
+                "has_transaction_field_drift": has_transaction_field_drift,
+                "has_transaction_drift": has_transaction_drift,
                 "has_holdings_drift": has_holdings_drift,
                 "has_performance_drift": has_performance_drift,
-                "has_drift": has_holdings_drift or has_performance_drift,
+                "has_drift": (
+                    has_transaction_drift or has_holdings_drift or has_performance_drift
+                ),
                 "written": write,
             }
         )
@@ -364,6 +545,7 @@ def _rebuild_holdings(
     *,
     current_holdings: pd.DataFrame,
     base_holdings: pd.DataFrame,
+    transaction_adjustments: tuple[HoldingScenarioAdjustment, ...],
     holding_scenarios: HoldingScenarioSet,
 ) -> pd.DataFrame:
     """Return holdings derived from the base snapshot and scenario adjustments.
@@ -374,6 +556,8 @@ def _rebuild_holdings(
             order and as the source for the base snapshot.
         base_holdings: Snapshot A holdings used as the starting point for
             scenario-derived snapshots.
+        transaction_adjustments: Holding adjustments derived from changed
+            transactions.
         holding_scenarios: Validated explicit holding adjustment rows.
 
     Returns:
@@ -386,7 +570,11 @@ def _rebuild_holdings(
         return current_holdings.copy()
 
     rebuilt = base_holdings.copy(deep=True)
-    for scenario in holding_scenarios.for_snapshot(snapshot_name):
+    adjustments = [
+        *transaction_adjustments,
+        *holding_scenarios.for_snapshot(snapshot_name),
+    ]
+    for scenario in adjustments:
         mask = (
             rebuilt["PORT"].eq(scenario.portfolio)
             & rebuilt["SEC"].eq(scenario.security)
@@ -401,6 +589,355 @@ def _rebuild_holdings(
             if delta:
                 rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
     return _rounded_holdings(rebuilt[current_holdings.columns])
+
+
+def _transaction_scenario_type_counts(
+    snapshot_name: str,
+    *,
+    base_transactions: pd.DataFrame,
+    transaction_scenarios: TransactionScenarioSet,
+) -> dict[str, int]:
+    """Return transaction scenario counts grouped by transaction code."""
+    transaction_codes = dict(
+        zip(
+            base_transactions["TRANSACTION_ID"].astype(str),
+            base_transactions["TRAN"].astype(str).str.upper(),
+            strict=True,
+        )
+    )
+    counts: dict[str, int] = {}
+    for scenario in transaction_scenarios.for_snapshot(snapshot_name):
+        transaction_code = transaction_codes.get(scenario.transaction_id)
+        if transaction_code is None:
+            raise ValueError(
+                "Transaction scenario must match one base transaction before "
+                f"it can be summarized: {scenario.transaction_id}."
+            )
+        counts[transaction_code] = counts.get(transaction_code, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _transaction_derived_holding_type_counts(
+    transaction_adjustments: tuple[HoldingScenarioAdjustment, ...],
+) -> dict[str, int]:
+    """Return transaction-derived holding counts grouped by transaction code."""
+    counts: dict[str, int] = {}
+    for adjustment in transaction_adjustments:
+        transaction_code = adjustment.scenario.split(" ", maxsplit=2)[1]
+        counts[transaction_code] = counts.get(transaction_code, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _holding_scenario_type_counts(
+    holding_scenarios: tuple[HoldingScenarioAdjustment, ...],
+) -> dict[str, int]:
+    """Return residual holding scenario counts grouped by scenario type."""
+    counts: dict[str, int] = {}
+    for scenario in holding_scenarios:
+        counts[scenario.scenario_type] = counts.get(scenario.scenario_type, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _rebuild_transactions(
+    snapshot_name: str,
+    *,
+    current_transactions: pd.DataFrame,
+    base_transactions: pd.DataFrame,
+    transaction_scenarios: TransactionScenarioSet,
+) -> pd.DataFrame:
+    """Return transactions derived from the base snapshot and transaction scenarios.
+
+    Args:
+        snapshot_name: Snapshot directory name being rebuilt.
+        current_transactions: Checked-in transactions for the snapshot. Used for
+            column order and as the source for the base snapshot.
+        base_transactions: Snapshot A transactions used as the starting point.
+        transaction_scenarios: Validated explicit transaction adjustment rows.
+
+    Returns:
+        Transactions with the same columns as ``current_transactions``.
+
+    Raises:
+        ValueError: If a scenario adjustment references a missing transaction
+            row.
+    """
+    if snapshot_name == _BASE_SNAPSHOT_DIRECTORY:
+        return current_transactions.copy()
+
+    rebuilt = base_transactions.copy(deep=True)
+    for scenario in transaction_scenarios.for_snapshot(snapshot_name):
+        mask = rebuilt["TRANSACTION_ID"].eq(scenario.transaction_id)
+        if int(mask.sum()) != 1:
+            raise ValueError(
+                "Transaction scenario must match exactly one row: "
+                f"{scenario.transaction_id}."
+            )
+        for column, delta in scenario.deltas.items():
+            if delta:
+                rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
+    return _rounded_transactions(rebuilt[current_transactions.columns])
+
+
+def _rounded_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Return transactions rounded to the packaged Axys fixture precision."""
+    rounded = transactions.copy()
+    rounded["QTY"] = rounded["QTY"].astype(float).round(4)
+    rounded["PRICE"] = rounded["PRICE"].astype(float).round(4)
+    rounded["AMOUNT"] = rounded["AMOUNT"].astype(float).round(2)
+    rounded["COMMISSION"] = rounded["COMMISSION"].astype(float).round(2)
+    return rounded
+
+
+def _transaction_derived_holding_adjustments(
+    snapshot_name: str,
+    *,
+    base_holdings: pd.DataFrame,
+    base_transactions: pd.DataFrame,
+    current_transactions: pd.DataFrame,
+    periods: pd.DataFrame,
+) -> tuple[HoldingScenarioAdjustment, ...]:
+    """Return holding adjustments implied by changed transaction rows.
+
+    Notes:
+        These rules intentionally cover only simple demo scenarios. They are not
+        a full accounting engine. Buy/sell rows update the traded security and
+        the cash balance. Cash-like income, fee, deposit, and withdrawal rows
+        update only the cash balance.
+    """
+    if snapshot_name == _BASE_SNAPSHOT_DIRECTORY:
+        return ()
+
+    base_prepared = _prepared_transactions(base_transactions)
+    current_prepared = _prepared_transactions(current_transactions)
+    transaction_diffs = _changed_transaction_rows(base_prepared, current_prepared)
+    holdings = _holding_values(base_holdings)
+    adjustments: list[HoldingScenarioAdjustment] = []
+    for row in transaction_diffs.itertuples(index=False):
+        transaction_code = str(row.TRAN)
+        if transaction_code not in _TRANSACTION_HOLDING_EFFECT_CODES:
+            continue
+        holding_date = _period_end_for_transaction(periods, row.PORT, row.TRANSACTION_DATE)
+        if transaction_code == "BUY":
+            adjustments.append(
+                _security_trade_adjustment(
+                    snapshot_name,
+                    holdings=holdings,
+                    transaction_code=transaction_code,
+                    portfolio=str(row.PORT),
+                    security=str(row.SEC),
+                    holding_date=holding_date,
+                    quantity_delta=float(row.QTY_delta),
+                    scenario=f"{row.TRANSACTION_ID} BUY transaction changes ending holding.",
+                )
+            )
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=f"{row.TRANSACTION_ID} BUY transaction changes cash balance.",
+                )
+            )
+        elif transaction_code == "SELL":
+            adjustments.append(
+                _security_trade_adjustment(
+                    snapshot_name,
+                    holdings=holdings,
+                    transaction_code=transaction_code,
+                    portfolio=str(row.PORT),
+                    security=str(row.SEC),
+                    holding_date=holding_date,
+                    quantity_delta=-float(row.QTY_delta),
+                    scenario=f"{row.TRANSACTION_ID} SELL transaction changes ending holding.",
+                )
+            )
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=f"{row.TRANSACTION_ID} SELL transaction changes cash balance.",
+                )
+            )
+        else:
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=(
+                        f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                        "changes cash balance."
+                    ),
+                )
+            )
+    return tuple(adjustments)
+
+
+def _changed_transaction_rows(
+    base_transactions: pd.DataFrame,
+    current_transactions: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return transaction rows whose simple accounting fields changed."""
+    compare_columns = [
+        "TRANSACTION_ID",
+        "PORT",
+        "TRANSACTION_DATE",
+        "SEC",
+        "TRAN",
+        "QTY",
+        "PRICE",
+        "AMOUNT",
+        "COMMISSION",
+    ]
+    base = base_transactions[compare_columns]
+    current = current_transactions[compare_columns]
+    merged = base.merge(
+        current,
+        on="TRANSACTION_ID",
+        how="outer",
+        suffixes=("_base", "_current"),
+        indicator=True,
+    )
+    if not merged["_merge"].eq("both").all():
+        unmatched = merged.loc[
+            ~merged["_merge"].eq("both"),
+            ["TRANSACTION_ID", "_merge"],
+        ].to_dict("records")
+        raise ValueError(f"Transaction scenarios must not add or remove rows: {unmatched}.")
+
+    rows: list[dict[str, object]] = []
+    for row in merged.itertuples(index=False):
+        base_port = str(row.PORT_base)
+        current_port = str(row.PORT_current)
+        base_security = str(row.SEC_base)
+        current_security = str(row.SEC_current)
+        base_code = str(row.TRAN_base)
+        current_code = str(row.TRAN_current)
+        if (
+            base_port != current_port
+            or base_security != current_security
+            or base_code != current_code
+            or pd.Timestamp(row.TRANSACTION_DATE_base)
+            != pd.Timestamp(row.TRANSACTION_DATE_current)
+        ):
+            raise ValueError(
+                "Transaction scenario rows may change numeric fields only: "
+                f"{row.TRANSACTION_ID}."
+            )
+        deltas = {
+            column: float(getattr(row, f"{column}_current"))
+            - float(getattr(row, f"{column}_base"))
+            for column in ("QTY", "PRICE", "AMOUNT", "COMMISSION")
+        }
+        if not any(deltas.values()):
+            continue
+        rows.append(
+            {
+                "TRANSACTION_ID": str(row.TRANSACTION_ID),
+                "PORT": base_port,
+                "TRANSACTION_DATE": pd.Timestamp(row.TRANSACTION_DATE_base),
+                "SEC": base_security,
+                "TRAN": base_code,
+                **{f"{column}_delta": delta for column, delta in deltas.items()},
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _period_end_for_transaction(
+    periods: pd.DataFrame,
+    portfolio_code: str,
+    transaction_date: pd.Timestamp,
+) -> str:
+    """Return inclusive period end date for one transaction row."""
+    period_rows = periods[
+        periods["PORTFOLIO_CODE"].eq(portfolio_code)
+        & pd.to_datetime(periods["FROM_DATE"]).le(transaction_date)
+        & pd.to_datetime(periods["THRU_DATE"]).ge(transaction_date)
+    ]
+    if period_rows.shape[0] != 1:
+        raise ValueError(
+            "Transaction must map to exactly one inclusive performance period: "
+            f"{portfolio_code}/{transaction_date.date()}."
+        )
+    return pd.Timestamp(period_rows.iloc[0]["THRU_DATE"]).date().isoformat()
+
+
+def _security_trade_adjustment(
+    snapshot: str,
+    *,
+    holdings: pd.DataFrame,
+    transaction_code: str,
+    portfolio: str,
+    security: str,
+    holding_date: str,
+    quantity_delta: float,
+    scenario: str,
+) -> HoldingScenarioAdjustment:
+    """Return the holding impact for a changed buy/sell quantity."""
+    rows = holdings[
+        holdings["PORT"].eq(portfolio)
+        & holdings["SEC"].eq(security)
+        & holdings["HOLDING_DATE"].eq(pd.Timestamp(holding_date))
+    ]
+    if rows.shape[0] != 1:
+        raise ValueError(
+            "Transaction-derived security adjustment must match one holding: "
+            f"{portfolio}/{security}/{holding_date}."
+        )
+    price = float(rows.iloc[0]["PRICE"])
+    quantity = float(rows.iloc[0]["QTY"])
+    cost = float(rows.iloc[0]["COST"])
+    cost_per_share = cost / quantity if quantity else 0.0
+    market_value_delta = quantity_delta * price
+    cost_delta = market_value_delta
+    if transaction_code == "SELL":
+        cost_delta = quantity_delta * cost_per_share
+    return HoldingScenarioAdjustment(
+        snapshot=snapshot,
+        portfolio=portfolio,
+        security=security,
+        holding_date=holding_date,
+        scenario_type="transaction_derived",
+        deltas={
+            "QTY": quantity_delta,
+            "PRICE": 0.0,
+            "MKT_VAL": market_value_delta,
+            "COST": cost_delta,
+            "ACCRUED": 0.0,
+        },
+        scenario=scenario,
+    )
+
+
+def _cash_adjustment(
+    snapshot: str,
+    *,
+    portfolio: str,
+    holding_date: str,
+    cash_delta: float,
+    scenario: str,
+) -> HoldingScenarioAdjustment:
+    """Return the cash holding impact for a changed cash-affecting transaction."""
+    return HoldingScenarioAdjustment(
+        snapshot=snapshot,
+        portfolio=portfolio,
+        security=_CASH_SECURITY_ID,
+        holding_date=holding_date,
+        scenario_type="transaction_derived",
+        deltas={
+            "QTY": cash_delta,
+            "PRICE": 0.0,
+            "MKT_VAL": cash_delta,
+            "COST": cash_delta,
+            "ACCRUED": 0.0,
+        },
+        scenario=scenario,
+    )
 
 
 def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
@@ -445,6 +982,12 @@ def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
             "Holding scenarios may only target derived snapshots. "
             f"Unsupported snapshots={unknown_snapshots}."
         )
+    unknown_types = sorted(set(scenarios["scenario_type"]) - _HOLDING_SCENARIO_TYPES)
+    if unknown_types:
+        raise ValueError(
+            "Holding scenario types are not supported: "
+            f"{unknown_types}. Supported={sorted(_HOLDING_SCENARIO_TYPES)}."
+        )
 
     delta_columns = [f"{column}_delta" for column in _HOLDINGS_NUMERIC_COLUMNS]
     converted_deltas = scenarios[delta_columns].apply(pd.to_numeric, errors="coerce")
@@ -462,17 +1005,134 @@ def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
                 "Holding scenario rows must change at least one numeric value: "
                 f"{row['PORT']}/{row['SEC']}/{row['HOLDING_DATE']}."
             )
+        scenario_type = str(row["scenario_type"])
+        _validate_holding_scenario_deltas(
+            scenario_type=scenario_type,
+            portfolio=str(row["PORT"]),
+            security=str(row["SEC"]),
+            holding_date=str(row["HOLDING_DATE"]),
+            deltas=deltas,
+        )
         adjustments.append(
             HoldingScenarioAdjustment(
                 snapshot=str(row["snapshot"]),
                 portfolio=str(row["PORT"]),
                 security=str(row["SEC"]),
                 holding_date=str(row["HOLDING_DATE"]),
+                scenario_type=scenario_type,
                 deltas=deltas,
                 scenario=str(row["scenario"]),
             )
         )
     return HoldingScenarioSet(tuple(adjustments), path)
+
+
+def _validate_holding_scenario_deltas(
+    *,
+    scenario_type: str,
+    portfolio: str,
+    security: str,
+    holding_date: str,
+    deltas: dict[str, float],
+) -> None:
+    """Validate one explicit holding scenario's changed fields.
+
+    Notes:
+        These rules intentionally describe the remaining residual holding
+        scenarios. Transaction-derived rows are validated by transaction rules
+        before this layer.
+    """
+    changed_columns = {column for column, delta in deltas.items() if delta}
+    allowed_columns_by_type = {
+        "valuation_mark": {"PRICE", "MKT_VAL"},
+        "cash_balance_correction": {"QTY", "MKT_VAL", "COST"},
+        "quantity_valuation_correction": {"QTY", "MKT_VAL", "COST"},
+        "accrual_correction": {"QTY", "MKT_VAL", "COST", "ACCRUED"},
+        "cost_only_correction": {"COST"},
+    }
+    allowed_columns = allowed_columns_by_type[scenario_type]
+    if not changed_columns.issubset(allowed_columns):
+        raise ValueError(
+            "Holding scenario changed fields do not match scenario_type: "
+            f"{portfolio}/{security}/{holding_date}; type={scenario_type}; "
+            f"changed={sorted(changed_columns)}; allowed={sorted(allowed_columns)}."
+        )
+
+
+def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
+    """Return validated transaction scenario adjustments.
+
+    Args:
+        path: CSV file containing one explicit transaction adjustment per row.
+
+    Returns:
+        Validated scenario adjustments in file order.
+
+    Raises:
+        ValueError: If the CSV shape, snapshot names, keys, or numeric deltas are
+            invalid.
+    """
+    scenarios = pd.read_csv(path)
+    missing_columns = [
+        column
+        for column in _TRANSACTION_SCENARIO_COLUMNS
+        if column not in scenarios.columns
+    ]
+    extra_columns = [
+        column
+        for column in scenarios.columns
+        if column not in _TRANSACTION_SCENARIO_COLUMNS
+    ]
+    if missing_columns or extra_columns:
+        raise ValueError(
+            "Transaction scenario CSV columns must exactly match "
+            f"{_TRANSACTION_SCENARIO_COLUMNS}. "
+            f"Missing={missing_columns}; extra={extra_columns}."
+        )
+
+    key_nulls = scenarios[_TRANSACTION_SCENARIO_KEY].isna().any(axis=1)
+    if bool(key_nulls.any()):
+        raise ValueError("Transaction scenario rows must not have blank key values.")
+    duplicate_keys = scenarios.duplicated(_TRANSACTION_SCENARIO_KEY, keep=False)
+    if bool(duplicate_keys.any()):
+        duplicates = scenarios.loc[
+            duplicate_keys, _TRANSACTION_SCENARIO_KEY
+        ].to_dict("records")
+        raise ValueError(f"Duplicate transaction scenario keys are not allowed: {duplicates}.")
+
+    supported_snapshots = set(_SNAPSHOT_DIRECTORIES) - {_BASE_SNAPSHOT_DIRECTORY}
+    unknown_snapshots = sorted(set(scenarios["snapshot"]) - supported_snapshots)
+    if unknown_snapshots:
+        raise ValueError(
+            "Transaction scenarios may only target derived snapshots. "
+            f"Unsupported snapshots={unknown_snapshots}."
+        )
+
+    delta_columns = [f"{column}_delta" for column in _TRANSACTION_NUMERIC_COLUMNS]
+    converted_deltas = scenarios[delta_columns].apply(pd.to_numeric, errors="coerce")
+    if bool(converted_deltas.isna().any().any()):
+        raise ValueError("Transaction scenario delta columns must be numeric.")
+
+    adjustments: list[TransactionScenarioAdjustment] = []
+    for row_index, row in scenarios.iterrows():
+        deltas = {
+            column: float(converted_deltas.loc[row_index, f"{column}_delta"])
+            for column in _TRANSACTION_NUMERIC_COLUMNS
+        }
+        if not any(deltas.values()):
+            raise ValueError(
+                "Transaction scenario rows must change at least one numeric value: "
+                f"{row['TRANSACTION_ID']}."
+            )
+        adjustments.append(
+            TransactionScenarioAdjustment(
+                snapshot=str(row["snapshot"]),
+                transaction_id=str(row["TRANSACTION_ID"]),
+                deltas=deltas,
+                scenario=str(row["scenario"]),
+            )
+        )
+    return TransactionScenarioSet(tuple(adjustments), path)
 
 
 def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
@@ -851,6 +1511,47 @@ def _audit_visible_security_residuals(comparison_path: Path) -> list[AuditIssue]
     return issues
 
 
+def _audit_scenario_coverage(rebuild_summary: dict[str, object]) -> list[AuditIssue]:
+    """Return issues when packaged demo scenario coverage changes unexpectedly."""
+    issues: list[AuditIssue] = []
+    snapshots = rebuild_summary.get("snapshots", [])
+    if not isinstance(snapshots, list):
+        return [
+            AuditIssue(
+                check="scenario_coverage",
+                detail="Rebuild summary did not include snapshot scenario coverage.",
+            )
+        ]
+
+    for snapshot in snapshots:
+        if not isinstance(snapshot, dict):
+            issues.append(
+                AuditIssue(
+                    check="scenario_coverage",
+                    detail="Rebuild summary snapshot coverage was not a dictionary.",
+                )
+            )
+            continue
+        snapshot_name = str(snapshot.get("snapshot"))
+        expected = _EXPECTED_SCENARIO_COVERAGE.get(snapshot_name)
+        if expected is None:
+            continue
+        for field_name, expected_counts in expected.items():
+            actual_counts = snapshot.get(field_name)
+            if actual_counts != expected_counts:
+                issues.append(
+                    AuditIssue(
+                        check="scenario_coverage",
+                        snapshot=snapshot_name,
+                        detail=(
+                            f"Unexpected {field_name}. "
+                            f"Expected={expected_counts}; actual={actual_counts}."
+                        ),
+                    )
+                )
+    return issues
+
+
 def _portfolio_residual_issue(row: dict[str, object], detail: str) -> AuditIssue:
     """Return an audit issue for one portfolio-period residual row."""
     return AuditIssue(
@@ -898,6 +1599,26 @@ def _max_numeric_delta(
     return max_delta
 
 
+def _has_non_numeric_delta(
+    current: pd.DataFrame,
+    rebuilt: pd.DataFrame,
+    numeric_columns: list[str],
+) -> bool:
+    """Return whether nonnumeric columns differ between aligned frames."""
+    if current.shape != rebuilt.shape:
+        return True
+
+    numeric_column_set = set(numeric_columns)
+    for column in current.columns:
+        if column in numeric_column_set:
+            continue
+        current_values = current[column].fillna("").astype(str).reset_index(drop=True)
+        rebuilt_values = rebuilt[column].fillna("").astype(str).reset_index(drop=True)
+        if not current_values.equals(rebuilt_values):
+            return True
+    return False
+
+
 def _parse_args() -> argparse.Namespace:
     """Return command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -928,11 +1649,20 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--transaction-scenarios-path",
+        type=Path,
+        default=_DEFAULT_TRANSACTION_SCENARIOS_PATH,
+        help=(
+            "CSV file containing explicit scenario adjustments used to derive "
+            "snapshot B transactions from snapshot A transactions."
+        ),
+    )
+    parser.add_argument(
         "--write",
         action="store_true",
         help=(
-            "Rewrite holdings.csv, secperf.csv, and portperf.csv instead of "
-            "audit-only mode."
+            "Rewrite transactions.csv, holdings.csv, secperf.csv, and portperf.csv "
+            "instead of audit-only mode."
         ),
     )
     return parser.parse_args()
