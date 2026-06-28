@@ -106,7 +106,7 @@ data. Snapshot B introduces controlled changes that produce:
 - one unexplained INCOME period with an explicit `no_underlying_causes_found`
   diagnostic row;
 - related holding-component examples where quantity rows sit beside selected
-  market-value rows and cost remains on the `Other Evidence` sheet;
+  market-value rows and cost remains on the `Other Data Differences` sheet;
 - matching security-level examples for AAPL and TNOTE2Y;
 - transaction-rule YAML plus default field-role treatment for performance
   inputs, input components, reported-performance diagnostics, and context fields.
@@ -124,17 +124,19 @@ promoted into `ppar/demos/data/axys/axys_full_spec_a/` and
 `ppar/demos/data/axys/axys_full_spec_b/`, where the user-facing portfolio and
 security comparison demos consume them.
 
-After intentional fixture edits, rebuild and audit the derived security and
-portfolio performance files with one command:
+After intentional fixture edits, rebuild and audit the scenario-derived holdings
+and derived security/portfolio performance files with one command:
 
 ```bash
 ./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
 ./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py --write
 ```
 
-The default command audits without writing. The `--write` command recomputes
-derived `secperf.csv` and `portperf.csv` fields, then runs the same audit
-guardrails. The legacy
+The default command audits without writing. The `--write` command validates
+`scripts/operational_demo_data/performance_comparison_holding_scenarios.csv`,
+derives snapshot B `holdings.csv` from snapshot A plus those explicit scenario
+rows, then recomputes derived `secperf.csv` and `portperf.csv` fields and runs
+the same audit guardrails. The legacy
 `scripts/audit_performance_comparison_demo_data.py` command is only a wrapper
 around this rebuild/audit implementation.
 

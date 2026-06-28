@@ -7,7 +7,9 @@ performance files internally aligned by:
 
 1. deriving ``secperf.csv`` from holdings and security-level transactions;
 2. deriving ``portperf.csv`` from holdings and portfolio-level transactions; and
-3. reporting whether the checked-in files already match those derived values.
+3. deriving snapshot B ``holdings.csv`` from snapshot A holdings plus explicit
+   scenario adjustments; and
+4. reporting whether the checked-in files already match those derived values.
 
 By default, the script audits without writing. Pass ``--write`` to update the
 packaged demo files.
@@ -45,7 +47,11 @@ _DEFAULT_AXYS_DIRECTORY: Final = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
 _DEFAULT_COMPARISON_PATH: Final = (
     _DEFAULT_AXYS_DIRECTORY / "ppar_performance_comparison.yaml"
 )
+_DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
+    Path(__file__).resolve().parent / "performance_comparison_holding_scenarios.csv"
+)
 _SNAPSHOT_DIRECTORIES: Final = ("axys_full_spec_a", "axys_full_spec_b")
+_BASE_SNAPSHOT_DIRECTORY: Final = "axys_full_spec_a"
 _PERIOD_KEY: Final = ["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"]
 _SECURITY_PERIOD_KEY: Final = [*_PERIOD_KEY, "SECURITY_ID"]
 _PORTPERF_COLUMNS: Final = [
@@ -78,6 +84,20 @@ _PORTPERF_NUMERIC_COLUMNS: Final = [
     "BEGIN_MV",
     "PORT_RETURN",
 ]
+_HOLDINGS_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "MKT_VAL", "COST", "ACCRUED"]
+_HOLDING_SCENARIO_COLUMNS: Final = [
+    "snapshot",
+    "PORT",
+    "SEC",
+    "HOLDING_DATE",
+    "QTY_delta",
+    "PRICE_delta",
+    "MKT_VAL_delta",
+    "COST_delta",
+    "ACCRUED_delta",
+    "scenario",
+]
+_HOLDING_SCENARIO_KEY: Final = ["snapshot", "PORT", "SEC", "HOLDING_DATE", "scenario"]
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
 _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
@@ -116,17 +136,61 @@ class AuditIssue:
     thru_date: str | None = None
 
 
+@dataclass(frozen=True)
+class HoldingScenarioAdjustment:
+    """One intentional holding adjustment used to derive a demo snapshot.
+
+    Attributes:
+        snapshot: Snapshot directory receiving the adjustment.
+        portfolio: Portfolio code.
+        security: Security identifier.
+        holding_date: Holding date to adjust.
+        deltas: Numeric changes keyed by packaged holding column name.
+        scenario: Human-readable scenario description.
+    """
+
+    snapshot: str
+    portfolio: str
+    security: str
+    holding_date: str
+    deltas: dict[str, float]
+    scenario: str
+
+
+@dataclass(frozen=True)
+class HoldingScenarioSet:
+    """Validated holding adjustments for deriving demo snapshot holdings.
+
+    Attributes:
+        adjustments: Scenario adjustment rows in deterministic file order.
+        source_path: CSV file used to load the adjustments.
+    """
+
+    adjustments: tuple[HoldingScenarioAdjustment, ...]
+    source_path: Path
+
+    def for_snapshot(self, snapshot: str) -> tuple[HoldingScenarioAdjustment, ...]:
+        """Return scenario adjustments for one snapshot in file order."""
+        return tuple(
+            adjustment
+            for adjustment in self.adjustments
+            if adjustment.snapshot == snapshot
+        )
+
+
 def main() -> int:
     """Audit or rewrite packaged performance-comparison demo performance files."""
     args = _parse_args()
     summary = rebuild_demo_performance_files(
         args.axys_directory,
         comparison_path=args.comparison_path,
+        holding_scenarios_path=args.holding_scenarios_path,
         write=args.write,
     )
     audit_issues = audit_demo_data(
         axys_directory=args.axys_directory,
         comparison_path=args.comparison_path,
+        holding_scenarios_path=args.holding_scenarios_path,
     )
     summary["audit_issues"] = [asdict(issue) for issue in audit_issues]
     print(json.dumps(summary, indent=2))
@@ -142,6 +206,7 @@ def audit_demo_data(
     *,
     axys_directory: Path = _DEFAULT_AXYS_DIRECTORY,
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
+    holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
 ) -> list[AuditIssue]:
     """Return packaged demo-data audit issues.
 
@@ -155,9 +220,14 @@ def audit_demo_data(
         files have no drift and visible portfolio residuals are intentional.
     """
     issues: list[AuditIssue] = []
-    rebuild_summary = rebuild_demo_performance_files(axys_directory, write=False)
+    rebuild_summary = rebuild_demo_performance_files(
+        axys_directory,
+        comparison_path=comparison_path,
+        holding_scenarios_path=holding_scenarios_path,
+        write=False,
+    )
     for snapshot in rebuild_summary["snapshots"]:
-        if snapshot["has_drift"]:
+        if snapshot["has_performance_drift"]:
             issues.append(
                 AuditIssue(
                     check="derived_performance_drift",
@@ -165,6 +235,18 @@ def audit_demo_data(
                     detail=(
                         "Derived secperf.csv or portperf.csv no longer matches "
                         "the rebuild script. Run this script with --write."
+                    ),
+                )
+            )
+        if snapshot["has_holdings_drift"]:
+            issues.append(
+                AuditIssue(
+                    check="derived_holdings_drift",
+                    snapshot=str(snapshot["snapshot"]),
+                    detail=(
+                        "Derived holdings.csv no longer matches the scenario "
+                        "adjustment file. Update the scenario file or run this "
+                        "script with --write after reviewing the change."
                     ),
                 )
             )
@@ -177,6 +259,7 @@ def rebuild_demo_performance_files(
     axys_directory: Path,
     *,
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
+    holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
     write: bool = False,
 ) -> dict[str, object]:
     """Return audit summary, optionally rewriting derived performance files.
@@ -185,7 +268,9 @@ def rebuild_demo_performance_files(
         axys_directory: Directory containing ``axys_full_spec_a`` and
             ``axys_full_spec_b``.
         comparison_path: Shared comparison YAML with reconstruction rules.
-        write: Whether to write rebuilt ``secperf.csv`` and ``portperf.csv``.
+        holding_scenarios_path: CSV containing intentional holding adjustments.
+        write: Whether to write rebuilt ``holdings.csv``, ``secperf.csv``, and
+            ``portperf.csv``.
 
     Returns:
         JSON-serializable audit summary with one entry per snapshot.
@@ -197,24 +282,37 @@ def rebuild_demo_performance_files(
         raise ValueError("Demo rebuild requires portfolio and security reconstruction YAML.")
 
     snapshots: list[dict[str, object]] = []
+    base_holdings = pd.read_csv(axys_directory / _BASE_SNAPSHOT_DIRECTORY / "holdings.csv")
+    holding_scenarios = _load_holding_scenarios(holding_scenarios_path)
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
         snapshot_directory = axys_directory / snapshot_name
         current_secperf = pd.read_csv(snapshot_directory / "secperf.csv")
         current_portperf = pd.read_csv(snapshot_directory / "portperf.csv")
         holdings = pd.read_csv(snapshot_directory / "holdings.csv")
         transactions = pd.read_csv(snapshot_directory / "transactions.csv")
+        rebuilt_holdings = _rebuild_holdings(
+            snapshot_name,
+            current_holdings=holdings,
+            base_holdings=base_holdings,
+            holding_scenarios=holding_scenarios,
+        )
 
         rebuilt_secperf = _rebuild_security_performance(
             current_secperf,
-            holdings,
+            rebuilt_holdings,
             transactions,
             security_reconstruction,
         )
         rebuilt_portperf = _rebuild_portfolio_performance(
             current_portperf,
-            holdings,
+            rebuilt_holdings,
             transactions,
             portfolio_reconstruction,
+        )
+        holdings_delta = _max_numeric_delta(
+            holdings,
+            rebuilt_holdings,
+            _HOLDINGS_NUMERIC_COLUMNS,
         )
         secperf_delta = _max_numeric_delta(
             current_secperf,
@@ -226,21 +324,30 @@ def rebuild_demo_performance_files(
             rebuilt_portperf,
             _PORTPERF_NUMERIC_COLUMNS,
         )
-        has_drift = (
+        has_performance_drift = (
             secperf_delta > _CHECK_TOLERANCE or portperf_delta > _CHECK_TOLERANCE
         )
+        has_holdings_drift = holdings_delta > _CHECK_TOLERANCE
         if write:
+            rebuilt_holdings.to_csv(snapshot_directory / "holdings.csv", index=False)
             rebuilt_secperf.to_csv(snapshot_directory / "secperf.csv", index=False)
             rebuilt_portperf.to_csv(snapshot_directory / "portperf.csv", index=False)
 
         snapshots.append(
             {
                 "snapshot": snapshot_name,
+                "holding_scenario_rows": len(
+                    holding_scenarios.for_snapshot(snapshot_name)
+                ),
+                "holdings_rows": int(rebuilt_holdings.shape[0]),
                 "secperf_rows": int(rebuilt_secperf.shape[0]),
                 "portperf_rows": int(rebuilt_portperf.shape[0]),
+                "max_holdings_numeric_delta": holdings_delta,
                 "max_secperf_numeric_delta": secperf_delta,
                 "max_portperf_numeric_delta": portperf_delta,
-                "has_drift": has_drift,
+                "has_holdings_drift": has_holdings_drift,
+                "has_performance_drift": has_performance_drift,
+                "has_drift": has_holdings_drift or has_performance_drift,
                 "written": write,
             }
         )
@@ -250,6 +357,132 @@ def rebuild_demo_performance_files(
         "mode": "write" if write else "check",
         "snapshots": snapshots,
     }
+
+
+def _rebuild_holdings(
+    snapshot_name: str,
+    *,
+    current_holdings: pd.DataFrame,
+    base_holdings: pd.DataFrame,
+    holding_scenarios: HoldingScenarioSet,
+) -> pd.DataFrame:
+    """Return holdings derived from the base snapshot and scenario adjustments.
+
+    Args:
+        snapshot_name: Snapshot directory name being rebuilt.
+        current_holdings: Checked-in holdings for the snapshot. Used for column
+            order and as the source for the base snapshot.
+        base_holdings: Snapshot A holdings used as the starting point for
+            scenario-derived snapshots.
+        holding_scenarios: Validated explicit holding adjustment rows.
+
+    Returns:
+        Holdings with the same columns as ``current_holdings``.
+
+    Raises:
+        ValueError: If a scenario adjustment references a missing holding row.
+    """
+    if snapshot_name == _BASE_SNAPSHOT_DIRECTORY:
+        return current_holdings.copy()
+
+    rebuilt = base_holdings.copy(deep=True)
+    for scenario in holding_scenarios.for_snapshot(snapshot_name):
+        mask = (
+            rebuilt["PORT"].eq(scenario.portfolio)
+            & rebuilt["SEC"].eq(scenario.security)
+            & rebuilt["HOLDING_DATE"].eq(scenario.holding_date)
+        )
+        if int(mask.sum()) != 1:
+            raise ValueError(
+                "Holding scenario must match exactly one row: "
+                f"{scenario.portfolio}/{scenario.security}/{scenario.holding_date}."
+            )
+        for column, delta in scenario.deltas.items():
+            if delta:
+                rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
+    return _rounded_holdings(rebuilt[current_holdings.columns])
+
+
+def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
+    """Return validated holding scenario adjustments.
+
+    Args:
+        path: CSV file containing one explicit holding adjustment per row.
+
+    Returns:
+        Validated scenario adjustments in file order.
+
+    Raises:
+        ValueError: If the CSV shape, snapshot names, keys, or numeric deltas are
+            invalid.
+    """
+    scenarios = pd.read_csv(path)
+    missing_columns = [
+        column for column in _HOLDING_SCENARIO_COLUMNS if column not in scenarios.columns
+    ]
+    extra_columns = [
+        column for column in scenarios.columns if column not in _HOLDING_SCENARIO_COLUMNS
+    ]
+    if missing_columns or extra_columns:
+        raise ValueError(
+            "Holding scenario CSV columns must exactly match "
+            f"{_HOLDING_SCENARIO_COLUMNS}. "
+            f"Missing={missing_columns}; extra={extra_columns}."
+        )
+
+    key_nulls = scenarios[_HOLDING_SCENARIO_KEY].isna().any(axis=1)
+    if bool(key_nulls.any()):
+        raise ValueError("Holding scenario rows must not have blank key values.")
+    duplicate_keys = scenarios.duplicated(_HOLDING_SCENARIO_KEY, keep=False)
+    if bool(duplicate_keys.any()):
+        duplicates = scenarios.loc[duplicate_keys, _HOLDING_SCENARIO_KEY].to_dict("records")
+        raise ValueError(f"Duplicate holding scenario keys are not allowed: {duplicates}.")
+
+    supported_snapshots = set(_SNAPSHOT_DIRECTORIES) - {_BASE_SNAPSHOT_DIRECTORY}
+    unknown_snapshots = sorted(set(scenarios["snapshot"]) - supported_snapshots)
+    if unknown_snapshots:
+        raise ValueError(
+            "Holding scenarios may only target derived snapshots. "
+            f"Unsupported snapshots={unknown_snapshots}."
+        )
+
+    delta_columns = [f"{column}_delta" for column in _HOLDINGS_NUMERIC_COLUMNS]
+    converted_deltas = scenarios[delta_columns].apply(pd.to_numeric, errors="coerce")
+    if bool(converted_deltas.isna().any().any()):
+        raise ValueError("Holding scenario delta columns must be numeric.")
+
+    adjustments: list[HoldingScenarioAdjustment] = []
+    for row_index, row in scenarios.iterrows():
+        deltas = {
+            column: float(converted_deltas.loc[row_index, f"{column}_delta"])
+            for column in _HOLDINGS_NUMERIC_COLUMNS
+        }
+        if not any(deltas.values()):
+            raise ValueError(
+                "Holding scenario rows must change at least one numeric value: "
+                f"{row['PORT']}/{row['SEC']}/{row['HOLDING_DATE']}."
+            )
+        adjustments.append(
+            HoldingScenarioAdjustment(
+                snapshot=str(row["snapshot"]),
+                portfolio=str(row["PORT"]),
+                security=str(row["SEC"]),
+                holding_date=str(row["HOLDING_DATE"]),
+                deltas=deltas,
+                scenario=str(row["scenario"]),
+            )
+        )
+    return HoldingScenarioSet(tuple(adjustments), path)
+
+
+def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Return holdings rounded to the packaged Axys fixture precision."""
+    rounded = holdings.copy()
+    rounded["QTY"] = rounded["QTY"].astype(float).round(4)
+    rounded["PRICE"] = rounded["PRICE"].astype(float).round(4)
+    for column in ("MKT_VAL", "COST", "ACCRUED"):
+        rounded[column] = rounded[column].astype(float).round(2)
+    return rounded
 
 
 def _rebuild_security_performance(
@@ -686,9 +919,21 @@ def _parse_args() -> argparse.Namespace:
         help="Portfolio comparison YAML used for visible residual guardrails.",
     )
     parser.add_argument(
+        "--holding-scenarios-path",
+        type=Path,
+        default=_DEFAULT_HOLDING_SCENARIOS_PATH,
+        help=(
+            "CSV file containing explicit scenario adjustments used to derive "
+            "snapshot B holdings from snapshot A holdings."
+        ),
+    )
+    parser.add_argument(
         "--write",
         action="store_true",
-        help="Rewrite secperf.csv and portperf.csv instead of audit-only mode.",
+        help=(
+            "Rewrite holdings.csv, secperf.csv, and portperf.csv instead of "
+            "audit-only mode."
+        ),
     )
     return parser.parse_args()
 

@@ -56,7 +56,7 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
-| `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
+| `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
 | `scripts/audit_performance_comparison_demo_data.py` | Wrapper around the packaged demo-data audit. | Backward-compatible audit command. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
@@ -232,8 +232,8 @@ The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
 Both portfolio and security workbooks start with the `Performance Differences`
-sheet. They then use the `Identifiable Causes` sheet, `Other Evidence` sheet,
-and `Raw Audit Trail` sheet. Explained amounts appear on `Identifiable Causes`
+sheet. They then use the `Performance Difference Causes` sheet, `Other Data Differences` sheet,
+and `Raw Audit Trail` sheet. Explained amounts appear on `Performance Difference Causes`
 sheet rows when ppar has a defensible input-level explanation. The `Review
 Guidance` column is `None` for rows that are already explainable and otherwise
 names the setup or unsupported impact method blocking attribution.

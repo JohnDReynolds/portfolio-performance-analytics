@@ -262,23 +262,23 @@ def _check_transaction_rows_visible(
 
 
 def _check_transaction_rules_explain_amount(causes: pl.DataFrame) -> _ScenarioCheck:
-    """Return whether transaction-rules YAML relates transaction amount deltas."""
+    """Return whether transaction-rules YAML surfaces transaction amount evidence."""
     amount_rows = causes.filter(
         (pl.col("dataset") == "transactions")
         & (pl.col("source_column") == "amount")
         & pl.col("estimated_impact").is_null()
-        & pl.col("related_performance_difference").is_not_null()
+        & pl.col("review_guidance").str.contains("Caused")
     )
     if amount_rows.height == 1:
         return _ScenarioCheck(
             "Transaction rules amount explanation",
             True,
-            "transaction amount row has a related performance difference",
+            "transaction amount row is visible with review guidance",
         )
     return _ScenarioCheck(
         "Transaction rules amount explanation",
         False,
-        "transaction amount row does not have a related performance difference",
+        "transaction amount row is not visible with review guidance",
     )
 
 

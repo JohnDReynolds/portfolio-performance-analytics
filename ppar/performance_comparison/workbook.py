@@ -41,7 +41,6 @@ _EXCEL_HEADER_LINE_BREAKS = {
     "Snapshot B Value": "Snapshot B\nValue",
     "B - A Difference": "B - A\nDifference",
     "Performance Difference Explained": "Performance\nDifference\nExplained",
-    "Related Performance Difference": "Related\nPerformance\nDifference",
     "Explanation": "Explanation",
     "Review Key": "Review\nKey",
 }
@@ -61,7 +60,7 @@ REQUIRED_HEADERS = {
         "Comments",
         "Review Key",
     ),
-    _pc_review_model.IDENTIFIABLE_CAUSES_SHEET: (
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
@@ -72,16 +71,15 @@ REQUIRED_HEADERS = {
         "Snapshot B Value",
         "B - A Difference",
         "Performance Difference Explained",
-        "Related Performance Difference",
         "Explanation",
         "Review Key",
     ),
-    _pc_review_model.OTHER_EVIDENCE_SHEET: (
+    _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
-        "Input Dataset",
-        "Input Field",
+        "As Of Date",
+        "Dataset Field",
         "Security",
         "Snapshot A Value",
         "Snapshot B Value",
@@ -360,7 +358,6 @@ def _is_workbook_numeric_column(column_name: str) -> bool:
         "estimated_cause_total",
         "unexplained_change",
         "estimated_impact",
-        "related_performance_difference",
         _pc_findings.SNAPSHOT_A_VALUE,
         _pc_findings.SNAPSHOT_B_VALUE,
         _pc_findings.DELTA_B_MINUS_A,

@@ -152,7 +152,7 @@ def _performance_comparison_html_report(
             ``findings_to_polars``.
         title: HTML document title and visible H1 text.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Identifiable Causes`` section can name the exact file to update
+            the ``Performance Difference Causes`` section can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
         include_reconstruction_diagnostics: Whether to include interim
@@ -209,7 +209,7 @@ def _html_workbook_contents_section(
         "\n".join(
             [
                 f"<p>Start with {_escape_html(primary_sheet_name)}, then use "
-                f"{_escape_html(_pc_review_model.IDENTIFIABLE_CAUSES_SHEET)} "
+                f"{_escape_html(_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET)} "
                 "to see which source-data differences explain each period.</p>",
                 '<ol class="pc-contents-list">',
                 *items,
@@ -304,7 +304,7 @@ def _write_performance_comparison_html_report(
             created when needed.
         title: HTML document title and visible H1 text.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Identifiable Causes`` section can name the exact file to update
+            the ``Performance Difference Causes`` section can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
         include_reconstruction_diagnostics: Whether to include interim
@@ -527,7 +527,7 @@ def write_performance_comparison_review_workbook(
             when needed.
         top_evidence_limit: Reserved for parity with bundle/report writers.
         comparison_path: Optional path to the comparison YAML. When provided,
-            the ``Identifiable Causes`` sheet can name the exact file to update
+            the ``Performance Difference Causes`` sheet can name the exact file to update
             for missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
         include_reconstruction_diagnostics: Whether to include interim

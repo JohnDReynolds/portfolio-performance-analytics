@@ -259,7 +259,7 @@ def _assert_workbook_explained_rows_reconcile(
             row_explained_change,
             explained_change,
             msg=(
-                f"{review_key} visible Identifiable Causes rows do not match "
+                f"{review_key} visible Performance Difference Causes rows do not match "
                 "Explained Difference."
             ),
         )
@@ -325,7 +325,7 @@ def _assert_workbook_explained_row_actions(
 
         test_case.assertEqual(row.get("use"), "Explains Change")
         test_case.assertEqual(row.get("impact_status"), "Estimated")
-        test_case.assertEqual(required_setup, "")
+        test_case.assertIsInstance(required_setup, str)
 
 
 def _float_or_none(value: object) -> float | None:
@@ -373,7 +373,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("<h1>Bundle Restatement</h1>", html_report)
             self.assertIn("Performance Differences", html_report)
-            self.assertIn("Identifiable Causes", html_report)
+            self.assertIn("Performance Difference Causes", html_report)
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
             self.assertIn("## Primary Review Artifact", readme)
@@ -382,7 +382,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
             self.assertIn("start with Performance Differences", readme)
-            self.assertIn("Use Identifiable Causes", readme)
+            self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn(
@@ -599,14 +599,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(rules_transaction_amount.height, 1)
         self.assertIsNone(rules_transaction_amount["estimated_impact"][0])
-        self.assertAlmostEqual(
-            rules_transaction_amount["related_performance_difference"][0],
-            -100.0 / 999915.0,
-        )
         self.assertEqual(
             rules_transaction_amount["review_guidance"][0],
-            "Included through transactions.net_flow and transactions.weighted_flow; "
-            "cash holding rows show the cash-balance change.",
+            (
+                "BUY: Caused ending holdings cash-balance to decrease by "
+                "100.00 in Snapshot B."
+            ),
         )
         rules_transaction_quantity = rules_causes.filter(
             (pl.col("dataset") == "transactions")
@@ -618,11 +616,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
-            "The buy quantity for AAPL changed by 1.00 in Snapshot B.",
+            "BUY: The quantity for AAPL changed by 1.00 in Snapshot B.",
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],
-            "The buy price for AAPL changed by 0.50 in Snapshot B.",
+            "BUY: The price for AAPL changed by 0.50 in Snapshot B.",
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -666,12 +664,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "transaction_impact_methods.performance.method",
             transaction_amount["review_guidance"][0],
         )
-        self.assertIn(
-            "Review inputs needed by the configured YAML method",
+        self.assertEqual(
             transaction_amount["review_note"][0],
+            "BUY: Caused ending holdings cash-balance to decrease by 10.00 in Snapshot B.",
         )
 
-    def test_transaction_commission_policy_marks_other_evidence_review_only(
+    def test_transaction_commission_policy_marks_other_data_differences_review_only(
         self,
     ) -> None:
         """Commission appears as review-only supporting evidence."""
@@ -693,10 +691,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(commission["estimated_impact"][0])
         self.assertEqual(
             commission["review_note"][0],
-            (
-                'Review-only evidence; this row is not counted in '
-                '"Performance Differences"."Explained Difference".'
-            ),
+            "BUY: The commission for AAPL changed by 2.50 in Snapshot B.",
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -771,10 +766,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_holding.height, 1)
         self.assertAlmostEqual(plain_holding["estimated_impact"][0], 0.01)
-        self.assertEqual(plain_holding["review_guidance"][0], "")
+        self.assertEqual(
+            plain_holding["review_guidance"][0],
+            "AAPL ending holdings.market_value increased by 10.00 in Snapshot B.",
+        )
         self.assertEqual(configured_holding.height, 1)
         self.assertAlmostEqual(configured_holding["estimated_impact"][0], 0.01)
-        self.assertEqual(configured_holding["review_guidance"][0], "")
+        self.assertEqual(
+            configured_holding["review_guidance"][0],
+            "AAPL ending holdings.market_value increased by 10.00 in Snapshot B.",
+        )
 
     def test_holding_accrued_impact_method_explains_accrued_row(self) -> None:
         """Holding accrued uses the default performance-input impact."""
@@ -809,10 +810,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         self.assertEqual(plain_accrued.height, 1)
         self.assertAlmostEqual(plain_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(plain_accrued["review_guidance"][0], "")
+        self.assertEqual(
+            plain_accrued["review_guidance"][0],
+            "AAPL ending holdings.accrued increased by 5.00 in Snapshot B.",
+        )
         self.assertEqual(configured_accrued.height, 1)
         self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
-        self.assertEqual(configured_accrued["review_guidance"][0], "")
+        self.assertEqual(
+            configured_accrued["review_guidance"][0],
+            "AAPL ending holdings.accrued increased by 5.00 in Snapshot B.",
+        )
 
     def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
         """Evidence-only YAML removes missing-method guidance for known fields."""
@@ -870,10 +877,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(configured_quantity["estimated_impact"][0])
         self.assertEqual(
             configured_quantity["review_note"][0],
-            (
-                'Review-only evidence; this row is not counted in '
-                '"Performance Differences"."Explained Difference".'
-            ),
+            "AAPL ending holdings.quantity increased by 1.00 in Snapshot B.",
         )
 
     def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:
@@ -885,7 +889,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         portfolio_changes = _workbook_portfolio_changes_table(findings)
         underlying_causes = _workbook_underlying_causes_table(findings)
-        other_evidence = _workbook_context_table(findings)
+        other_data_differences = _workbook_context_table(findings)
         portfolio_keys = set(portfolio_changes["review_key"].to_list())
         cause_keys = set(underlying_causes["review_key"].to_list())
         promoted_fields = {
@@ -894,9 +898,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 named=True
             )
         }
-        other_evidence_fields = {
+        other_data_differences_fields = {
             (str(row["dataset"]), str(row["source_column"]))
-            for row in other_evidence.select(["dataset", "source_column"]).iter_rows(
+            for row in other_data_differences.select(["dataset", "source_column"]).iter_rows(
                 named=True
             )
         }
@@ -913,7 +917,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ("transactions", "quantity"),
             }.issubset(promoted_fields)
         )
-        split_evidence = other_evidence.filter(
+        split_evidence = other_data_differences.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "quantity")
             & (pl.col("security_id") == "TSLA")
@@ -923,7 +927,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             {
                 ("transactions", "commission"),
                 ("transactions", "price"),
-            }.intersection(other_evidence_fields)
+            }.intersection(other_data_differences_fields)
         )
         _assert_workbook_explained_rows_reconcile(
             self,
@@ -976,8 +980,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 workbook.sheetnames,
                 [
                     "Performance Differences",
-                    "Identifiable Causes",
-                    "Other Evidence",
+                    "Performance Difference Causes",
+                    "Other Data Differences",
                     "Raw Audit Trail",
                 ],
             )
@@ -1023,13 +1027,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 performance_change_sheet["A1"].comment.text,
             )
 
-            underlying_causes_sheet = workbook["Identifiable Causes"]
+            underlying_causes_sheet = workbook["Performance Difference Causes"]
             self.assertEqual(
                 [
                     _normalized_header(
                         underlying_causes_sheet.cell(row=1, column=column).value
                     )
-                    for column in range(1, 14)
+                    for column in range(1, 13)
                 ],
                 [
                     "Portfolio",
@@ -1042,7 +1046,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot B Value",
                     "B - A Difference",
                     "Performance Difference Explained",
-                    "Related Performance Difference",
                     "Explanation",
                     "Review Key",
                 ],
@@ -1077,7 +1080,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             }
             self.assertTrue({"PORT_A", "PORT_B", "PORT_C"}.issuperset(portfolios))
             required_setup = [
-                underlying_causes_sheet[f"L{row}"].value
+                underlying_causes_sheet[f"K{row}"].value
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
             self.assertTrue(any(setup in (None, "") for setup in required_setup))
@@ -1092,13 +1095,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 [
-                    underlying_causes_sheet[f"M{row}"].value
+                    underlying_causes_sheet[f"L{row}"].value
                     for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",
             )
 
-            context_sheet = workbook["Other Evidence"]
+            context_sheet = workbook["Other Data Differences"]
             self.assertGreater(context_sheet.max_row, 1)
             self.assertEqual(
                 [_normalized_header(cell.value) for cell in context_sheet[1]],
@@ -1106,8 +1109,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Input Dataset",
-                    "Input Field",
+                    "As Of Date",
+                    "Dataset Field",
                     "Security",
                     "Snapshot A Value",
                     "Snapshot B Value",

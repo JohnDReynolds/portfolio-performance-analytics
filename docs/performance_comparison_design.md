@@ -82,7 +82,7 @@ Current workbook field roles:
   as holding quantity/price and transaction
   quantity/price/commission. Holding quantity can appear beside a related
   holding market-value input. Transaction quantity, price, and commission
-  normally remain in the `Other Evidence` sheet as support for changed
+  normally remain in the `Other Data Differences` sheet as support for changed
   `transactions.amount`, so transaction arithmetic is not double-counted or
   treated as a rebuilt accounting-system formula.
 - `reported_performance_component`: portfolio/security performance output
@@ -91,7 +91,7 @@ Current workbook field roles:
   causes.
 - `context`: review-only supporting fields such as holding cost, FX rates,
   security reference fields, and unknown fields. These normally remain on the
-  `Other Evidence` sheet.
+  `Other Data Differences` sheet.
 
 The packaged user-facing performance-comparison demos represent cash as a
 `CASH_USD` row in the holdings file rather than as a separate `cash.csv` file.
@@ -531,17 +531,17 @@ Buy and sell transaction amounts are inverted from the cash perspective into
 security-level flows: buys are inflows to the security, and sells are outflows
 from the security. Income transactions, such as dividends and interest, are
 included in the security numerator. Normal report bundles use reconstruction
-internally to produce formula-role rows in `Identifiable Causes`; the detailed
-security diagnostic worksheet/CSV is available only when reconstruction
-diagnostics are explicitly included.
+internally, then allocate formula-level impacts back to recognizable source rows
+in `Performance Difference Causes`; the detailed security diagnostic worksheet/CSV is
+available only when reconstruction diagnostics are explicitly included.
 
 Portfolio return reconstruction is available as an internal explanation source.
 When YAML includes `portfolio_return_reconstruction`, normal report bundles can
-promote formula-role rows into `Identifiable Causes`. The detailed `Return
-Reconstruction Checks` worksheet/CSV comparing reported `PORT_RETURN`
-differences with Modified Dietz returns derived from holdings and external-flow
-transactions is available only when reconstruction diagnostics are explicitly
-included.
+allocate formula-level impacts back to source rows in `Performance Difference Causes`.
+The detailed `Return Reconstruction Checks` worksheet/CSV comparing reported
+`PORT_RETURN` differences with Modified Dietz returns derived from holdings and
+external-flow transactions is available only when reconstruction diagnostics are
+explicitly included.
 
 Transaction impact output separates configured policy from review diagnostics:
 
@@ -1588,7 +1588,7 @@ Axys-specific presentation layer.
 The intended bundle review order depends on whether a workbook was included:
 
 1. `report.xlsx`, when present: primary reviewer artifact. Start with
-   the `Performance Differences` sheet, then use the `Identifiable Causes` sheet
+   the `Performance Differences` sheet, then use the `Performance Difference Causes` sheet
    to understand what explains each portfolio-period difference.
 2. `report.html`: browser-readable version of the same review model and sheet
    order used by `report.xlsx`.
@@ -1643,19 +1643,19 @@ unexplained remainder. In the security demo, it shows security-level return
 differences when security-performance rows changed, and it adds explicit
 no-difference rows for changed portfolio periods with no security-level return
 difference. The
-`Identifiable Causes` sheet lists input rows such as holdings, transactions,
+`Performance Difference Causes` sheet lists input rows such as holdings, transactions,
 cash, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
 now requires every changed source-data field that ppar knows how to classify to
 be explicitly configured as additive, evidence-only, or suppressed in YAML
 before any report artifacts are written. Evidence-only input rows normally stay
-in the `Other Evidence` sheet, but plausible evidence-only rows for a period or
+in the `Other Data Differences` sheet, but plausible evidence-only rows for a period or
 security with a meaningful unexplained remainder are promoted into the
-`Identifiable Causes` sheet with blank `Performance Difference Explained` values.
+`Performance Difference Causes` sheet with blank `Performance Difference Explained` values.
 This promotion is a workbook presentation rule, not a new attribution model.
 Changed periods without any visible cause or promoted evidence row get a
-`no_underlying_causes_found` diagnostic row. The `Other Evidence` sheet lists
+`no_underlying_causes_found` diagnostic row. The `Other Data Differences` sheet lists
 review-only supporting rows. The `Raw Audit Trail` sheet preserves the full
 finding-level detail, including reported-performance diagnostics that confirm
 reporting differences but are not root causes.
@@ -1728,11 +1728,11 @@ Row-level `context_evidence.csv` detail carries the same priority labels and
 reasons as the grouped summary so reviewers do not need to infer priority by
 joining artifacts manually.
 In the workbook, plausible evidence-only input rows for unresolved periods may
-be shown on the `Identifiable Causes` sheet instead of the `Other Evidence`
+be shown on the `Performance Difference Causes` sheet instead of the `Other Data Differences`
 sheet so the reviewer can see likely explanations and calculated explanations
 together. Transaction component rows such as `transactions.quantity`,
 `transactions.price`, and `transactions.commission` also appear on the
-`Identifiable Causes` sheet when they support a changed `transactions.amount`;
+`Performance Difference Causes` sheet when they support a changed `transactions.amount`;
 their explained-difference columns remain blank because they are inputs for the
 changed transaction amount, not separate return-impact estimates. Cost basis and
 security-reference changes remain supporting evidence unless a later model gives

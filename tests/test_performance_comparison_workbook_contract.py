@@ -23,8 +23,8 @@ _PORTFOLIO_COMPARISON_PATH = Path(
 
 _EXPECTED_PORTFOLIO_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
-    _pc_review_model.IDENTIFIABLE_CAUSES_SHEET,
-    _pc_review_model.OTHER_EVIDENCE_SHEET,
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
+    _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
@@ -33,8 +33,8 @@ _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
     _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
-    _pc_review_model.IDENTIFIABLE_CAUSES_SHEET,
-    _pc_review_model.OTHER_EVIDENCE_SHEET,
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
+    _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _COMMON_LEFT_HEADERS = [
@@ -54,7 +54,7 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "Security",
 ]
 _NON_ADDITIVE_HEADERS = [
-    *_COMMON_LEFT_HEADERS,
+    *_IDENTIFIABLE_LEFT_HEADERS,
     "Snapshot A Value",
     "Snapshot B Value",
     "B - A Difference",
@@ -160,24 +160,23 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Identifiable Causes"])[:14],
+                    _header_values(workbook["Performance Difference Causes"])[:13],
                     [
                         *_IDENTIFIABLE_LEFT_HEADERS,
                         "Snapshot A Value",
                         "Snapshot B Value",
                         "B - A Difference",
                         "Performance Difference Explained",
-                        "Related Performance Difference",
                         "Explanation",
                         "Review Key",
                     ],
                 )
                 self.assertIn(
                     "Performance\nDifference\nExplained",
-                    _raw_header_values(workbook["Identifiable Causes"]),
+                    _raw_header_values(workbook["Performance Difference Causes"]),
                 )
                 self.assertEqual(
-                    _header_values(workbook["Other Evidence"]),
+                    _header_values(workbook["Other Data Differences"]),
                     _NON_ADDITIVE_HEADERS,
                 )
                 self.assertEqual(
@@ -210,28 +209,50 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     workbook["Performance Differences"]["D2"].number_format,
                     "0.000000",
                 )
-                underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
+                underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
+                alpha_february_rows = [
+                    row
+                    for row in underlying_rows
+                    if row[0] == "ALPHA"
+                    and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-27"
+                ]
+                self.assertTrue(
+                    any(
+                        row[4] == "holdings.market_value"
+                        and row[5] == "CASH_USD"
+                        and row[10]
+                        == (
+                            "CASH_USD beginning holdings.market_value decreased by "
+                            "1,500.00 in Snapshot B."
+                        )
+                        for row in alpha_february_rows
+                    )
+                )
+                self.assertFalse(
+                    any(row[4] == "no_underlying_causes_found" for row in alpha_february_rows)
+                )
                 self.assertTrue(
                     all(
-                        row[11] in (None, "")
-                        or "No additive underlying cause" in str(row[11])
-                        or "No identifiable cause" in str(row[11])
-                        or "shown for review" in str(row[11])
+                        row[10] in (None, "")
+                        or "No additive underlying cause" in str(row[10])
+                        or "No identifiable cause" in str(row[10])
+                        or "shown for review" in str(row[10])
                         or (
                             '"Performance Differences"."Explained Difference"'
-                            in str(row[11])
+                            in str(row[10])
                         )
-                        or "Input for changed" in str(row[11])
-                        or "related performance input" in str(row[11])
-                        or "changed transactions.amount" in str(row[11])
-                        or "changed holdings.market_value" in str(row[11])
-                        or "calculated portfolio-return difference" in str(row[11])
-                        or "Configured transaction impact method is present" in str(row[11])
-                        or "Modified Dietz" in str(row[11])
-                        or "Supporting detail for changed holdings value" in str(row[11])
-                        or "Included through transactions.net_flow" in str(row[11])
-                        or "The transaction amount changed" in str(row[11])
-                        or "in Snapshot B" in str(row[11])
+                        or "Input for changed" in str(row[10])
+                        or "related performance input" in str(row[10])
+                        or "changed transactions.amount" in str(row[10])
+                        or "changed holdings.market_value" in str(row[10])
+                        or "calculated portfolio-return difference" in str(row[10])
+                        or "Configured transaction impact method is present" in str(row[10])
+                        or "Modified Dietz" in str(row[10])
+                        or "Supporting detail for changed holdings value" in str(row[10])
+                        or "Included through transactions.net_flow" in str(row[10])
+                        or "The transaction amount changed" in str(row[10])
+                        or "in Snapshot B" in str(row[10])
                         for row in underlying_rows
                     )
                 )
@@ -256,7 +277,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(str(jpm_dividend_row[3])[:10], "2026-04-06")
                 transaction_component_guidance = [
-                    str(row[11])
+                    str(row[10])
                     for row in underlying_rows
                     if row[4]
                     in {
@@ -267,21 +288,21 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ]
                 self.assertTrue(
                     any(
-                        guidance.startswith("The buy ")
+                        guidance.startswith("BUY: The ")
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
-                        guidance.startswith("The sell ")
+                        guidance.startswith("SELL: The ")
                         for guidance in transaction_component_guidance
                     )
                 )
-                context_rows = _sheet_rows(workbook["Other Evidence"])
-                context_fields = {(row[3], row[4]) for row in context_rows}
+                context_rows = _sheet_rows(workbook["Other Data Differences"])
+                context_fields = {row[4] for row in context_rows}
                 self.assertTrue(
                     {
-                        ("holdings", "cost"),
+                        "holdings.cost",
                     }.issubset(context_fields)
                 )
             finally:
@@ -393,18 +414,18 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     (128.0 + 50.0 + 80.0) / 64000.0,
                     places=6,
                 )
-                context_rows = _sheet_rows(workbook["Other Evidence"])
+                context_rows = _sheet_rows(workbook["Other Data Differences"])
                 self.assertTrue(
                     {
-                        ("holdings", "cost", "AAPL"),
-                        ("holdings", "cost", "CASH_USD"),
-                        ("holdings", "cost", "MSFT"),
-                        ("holdings", "cost", "TNOTE2Y"),
+                        ("holdings.cost", "AAPL"),
+                        ("holdings.cost", "CASH_USD"),
+                        ("holdings.cost", "MSFT"),
+                        ("holdings.cost", "TNOTE2Y"),
                     }.issubset(
-                        {(row[3], row[4], row[5]) for row in context_rows}
+                        {(row[4], row[5]) for row in context_rows}
                     )
                 )
-                underlying_rows = _sheet_rows(workbook["Identifiable Causes"])
+                underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
                 underlying_sort_keys = [
                     (row[0], str(row[1])[:10], str(row[2])[:10], row[5], row[4])
                     for row in underlying_rows
@@ -413,9 +434,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     {
                         ("transactions.amount", "TNOTE2Y"),
-                        ("holdings.ending_market_value", "AAPL"),
-                        ("transactions.net_flow", "AAPL"),
-                        ("transactions.weighted_flow", "AAPL"),
+                        ("holdings.market_value", "AAPL"),
+                        ("transactions.amount", "AAPL"),
                     }.issubset(
                         {(row[4], row[5]) for row in underlying_rows}
                     )

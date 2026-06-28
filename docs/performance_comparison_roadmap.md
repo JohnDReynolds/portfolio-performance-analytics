@@ -238,8 +238,10 @@ Security return changed
       transactions.commission changed
 ```
 
-Only formula-level inputs should receive a counted `Performance Difference
-Explained`. Supporting rows should be visible, but not additive.
+Only actual source-data rows should normally receive a counted `Performance
+Difference Explained`. Reconstruction formula math may be used internally, but
+the default user-facing workbook should attribute the explanation back to rows
+the user recognizes from holdings and transactions.
 
 ## Possible Report Structure
 
@@ -247,24 +249,30 @@ A future workbook could include:
 
 ```text
 Performance Differences
-Identifiable Causes
-Other Evidence
+Performance Difference Causes
+Other Data Differences
 Return Reconstruction Checks
 Raw Audit Trail
 ```
 
-`Identifiable Causes` would contain formula-level inputs:
+Current status: the normal user-facing workbook now uses `Performance
+Differences`, `Performance Difference Causes`, `Other Data Differences`, and
+`Raw Audit Trail`. Reconstruction diagnostic sheets remain opt-in so the
+default workbook stays focused on reviewable performance differences and their
+source-data causes.
+
+`Performance Difference Causes` should contain source-data rows:
 
 ```text
-holdings.begin_market_value
-holdings.end_market_value
+holdings.market_value
 holdings.accrued
-transactions.weighted_flow
-transactions.income
+transactions.amount
 ```
 
-Supporting rows could appear beneath those rows in the same sheet or in
-`Other Evidence`.
+Supporting rows such as `holdings.quantity`, `holdings.price`,
+`transactions.quantity`, `transactions.price`, and `transactions.commission`
+can appear beneath those source rows when they help explain how the counted
+source row changed.
 
 A useful future column might be:
 
@@ -396,25 +404,23 @@ include the same category and clearer comments so reviewers can quickly
 distinguish source-input changes from missing inputs or model/vendor
 differences.
 
-### Phase 4: Promote Formula Inputs
+### Phase 4: Attribute Formula Impacts To Source Rows
 
-- Once reconstruction is trusted, use reconstructed formula inputs as the main
-  explanation basis.
-- Promote BMV, EMV, weighted flows, income, and accrual changes to
-  `Identifiable Causes`.
-- Demote quantity, price, commission, cost, and reference-data rows to
-  supporting evidence unless they directly explain formula inputs.
+- Once reconstruction is trusted, use reconstructed formula inputs internally as
+  the calculation basis.
+- Allocate formula-level impacts back to source rows such as
+  `holdings.market_value`, `holdings.accrued`, and `transactions.amount`.
+- Show quantity, price, commission, cost, and reference-data rows as supporting
+  evidence unless they directly explain a counted source row.
 
-Status note: formula promotion is implemented for both security and portfolio
-checks where `reconstruction_category` is `Source Inputs Changed`. The workbook
-promotes source-facing formula roles such as
-`holdings.beginning_market_value`, `holdings.ending_market_value`,
-`transactions.net_flow`, `transactions.weighted_flow`, and
-`transactions.income` to `Identifiable Causes`. These rows explain the
-calculated return difference while tying the explanation back to the source
-datasets. `Return Reconstruction Checks` and `Security Return Checks` remain
-opt-in interim audit trails for the raw numerator, denominator, and source
-component inputs.
+Status note: source-row attribution is implemented for both security and
+portfolio checks where `reconstruction_category` is `Source Inputs Changed`.
+The workbook uses formula roles such as beginning value, ending value, net flow,
+weighted flow, and income internally, then allocates their calculated impact
+back to recognizable rows such as `holdings.market_value` and
+`transactions.amount` in `Performance Difference Causes`. `Return Reconstruction Checks`
+and `Security Return Checks` remain opt-in interim audit trails for the raw
+numerator, denominator, and source component inputs.
 
 ### Phase 5: Deterministic User-Facing Explanations
 
@@ -423,7 +429,7 @@ component inputs.
 - Generate comments from cause/residual patterns, not from free-form inference.
 - Prefer specific worksheet and field references over generic instructions.
 - Keep comments short enough for the workbook, with detailed evidence remaining
-  in `Identifiable Causes`, `Other Evidence`, and `Raw Audit Trail`.
+  in `Performance Difference Causes`, `Other Data Differences`, and `Raw Audit Trail`.
 - Make guidance action-oriented and understandable when formula rows and
   supporting rows overlap.
 
@@ -458,7 +464,7 @@ performance difference, not counted separately.
 Example residual classifications:
 
 ```text
-fully_explained_by_identifiable_causes
+fully_explained_by_performance_difference_causes
 residual_matches_beginning_value_effect
 residual_matches_ending_value_effect
 residual_matches_transaction_flow_effect
@@ -470,7 +476,7 @@ Example deterministic comment:
 
 ```text
 The Unexplained Difference matches the beginning holdings market value effect
-shown in `Identifiable Causes`. Reported performance appears to reflect the
+shown in `Performance Difference Causes`. Reported performance appears to reflect the
 ending value change but not the beginning-value denominator effect.
 ```
 
@@ -488,21 +494,30 @@ Implementation guidance:
   - expect a specific comment
   - expect specific row-level `Review Guidance`
   - avoid untested prose drift
-- Consider hiding or removing the `Related Performance Difference` column once
-  the plain-language explanations make supporting rows understandable without a
-  second performance-number column. It may be useful during development, but it
-  can distract reviewers when the row is intentionally not counted separately.
+- Keep supporting-row explanations plain enough that reviewers do not need a
+  second performance-number column beside `Performance Difference Explained`.
 
 ### Phase 6: Generate Holdings From Scenario Inputs
 
-Current packaged demo rebuilding treats `holdings.csv` and `transactions.csv` as
-source fixture data, then derives `secperf.csv` and `portperf.csv` from those
-inputs under the configured YAML reconstruction rules. That is a safer
-foundation than hand-maintaining reported performance, but it still means
-holdings changes can be manually inconsistent with transaction changes.
+Current packaged demo rebuilding now derives snapshot B `holdings.csv` from
+snapshot A holdings plus validated explicit scenario adjustments in
+`scripts/operational_demo_data/performance_comparison_holding_scenarios.csv`,
+then derives `secperf.csv` and `portperf.csv` from those holdings and
+transactions under the configured YAML reconstruction rules. This removes one
+major source of fixture drift: snapshot B holdings changes are no longer
+independent hand-maintained rows.
 
-A future foundation pass should generate `holdings.csv` from explicit scenario
-inputs instead of maintaining holdings as independent fixture data.
+The scenario-adjustment layer is intentionally strict:
+
+- columns must exactly match the expected schema;
+- scenario rows can target only derived snapshots, not the base snapshot;
+- duplicate scenario keys are rejected;
+- each row must change at least one holding value;
+- each scenario row must match exactly one packaged holding row.
+
+A future foundation pass should move from a scenario-adjustment file to a fuller
+scenario engine that generates both holdings snapshots from explicit starting
+positions, transactions, valuation marks, accrual assumptions, and cash rules.
 
 Suggested source-of-truth inputs:
 
@@ -564,15 +579,26 @@ slowly with narrow transaction-type coverage and strong tests.
 
 ### Phase 7: Improve Demo Data
 
-- Add realistic examples:
-  - portfolio contribution
-  - portfolio withdrawal
-  - security buy
-  - security sell
-  - dividend
-  - interest
-  - fee
-  - accrual change
+Current packaged demo coverage includes realistic examples of:
+
+- portfolio withdrawal
+- security buy
+- security sell
+- dividend
+- interest
+- fee
+- split / corporate action evidence
+- accrual change
+
+Remaining high-value examples to add:
+
+- portfolio contribution
+- transfer in / transfer out
+- bond maturity / principal paydown
+- corporate actions beyond splits
+
+For any additional examples:
+
 - Make all accounting internally consistent.
 - Ensure the report demonstrates fully explained, partly explained, and
   unexplained cases.

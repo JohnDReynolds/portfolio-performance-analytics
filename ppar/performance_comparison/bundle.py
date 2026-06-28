@@ -86,8 +86,8 @@ def write_report_bundle_readme(
     """
     primary_sheet = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
     detail_sheets = (
-        f"{_pc_review_model.IDENTIFIABLE_CAUSES_SHEET} sheet, "
-        f"{_pc_review_model.OTHER_EVIDENCE_SHEET} sheet, and "
+        f"{_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} sheet, "
+        f"{_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} sheet, and "
         f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} sheet"
     )
     excel_line = (
@@ -127,9 +127,9 @@ def write_report_bundle_readme(
         "## Recommended Review Order",
         "",
         first_review_step,
-        f"2. Use {_pc_review_model.IDENTIFIABLE_CAUSES_SHEET} to see which "
+        f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
         "source-data differences explain each performance period.",
-        f"3. Use {_pc_review_model.OTHER_EVIDENCE_SHEET} and "
+        f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} and "
         f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} as supporting detail.",
         "4. Use the `review_key` column to follow a period across CSV artifacts.",
         "",

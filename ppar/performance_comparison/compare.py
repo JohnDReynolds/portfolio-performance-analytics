@@ -658,6 +658,7 @@ class PerformanceComparison:
                         input_date=self._input_date(row, dataset),
                         source_file=source_file,
                         source_column=column,
+                        transaction_code=self._transaction_code(row, dataset),
                         transaction_category=self._transaction_category(row, dataset),
                         cash_flow_sign=self._transaction_cash_flow_sign(row, dataset),
                         performance_flow_sign=self._transaction_performance_flow_sign(
@@ -786,6 +787,7 @@ class PerformanceComparison:
                             input_date=self._input_date(row, dataset),
                             source_file=source_file,
                             source_column=column,
+                            transaction_code=self._transaction_code(row, dataset),
                             transaction_category=self._transaction_category(
                                 row,
                                 dataset,
@@ -905,6 +907,13 @@ class PerformanceComparison:
         if dataset != pc_cols.TRANSACTIONS:
             return None
         return row.get(pc_cols.TRANSACTION_CATEGORY)
+
+    @staticmethod
+    def _transaction_code(row: dict[str, object], dataset: str) -> object | None:
+        """Return source transaction code context for transaction rows."""
+        if dataset != pc_cols.TRANSACTIONS:
+            return None
+        return row.get(pc_cols.TRANSACTION_CODE)
 
     @staticmethod
     def _transaction_cash_flow_sign(

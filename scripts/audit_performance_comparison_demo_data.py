@@ -23,6 +23,7 @@ if str(_REPO_ROOT) not in sys.path:
 from scripts.operational_demo_data.rebuild_performance_comparison_demo_data import (
     _DEFAULT_AXYS_DIRECTORY,
     _DEFAULT_COMPARISON_PATH,
+    _DEFAULT_HOLDING_SCENARIOS_PATH,
     audit_demo_data,
 )
 
@@ -43,11 +44,18 @@ def main() -> int:
         default=_DEFAULT_AXYS_DIRECTORY,
         help="Directory containing axys_full_spec_a and axys_full_spec_b.",
     )
+    parser.add_argument(
+        "--holding-scenarios-path",
+        type=Path,
+        default=_DEFAULT_HOLDING_SCENARIOS_PATH,
+        help="CSV file containing scenario adjustments for snapshot B holdings.",
+    )
     args = parser.parse_args()
 
     issues = audit_demo_data(
         axys_directory=args.axys_directory,
         comparison_path=args.comparison_path,
+        holding_scenarios_path=args.holding_scenarios_path,
     )
     print(json.dumps([asdict(issue) for issue in issues], indent=2))
     return 1 if issues else 0

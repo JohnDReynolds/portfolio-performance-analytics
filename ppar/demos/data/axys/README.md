@@ -53,19 +53,19 @@ other evidence:
 - `Performance Differences` sheet: one row per security-period return difference in
   the security demo. Review keys include `Portfolio`, `From Date`, `Thru Date`,
   and `Security`.
-- `Identifiable Causes` sheet: input rows such as holdings, transactions,
+- `Performance Difference Causes` sheet: input rows such as holdings, transactions,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
 - Optional reconstruction diagnostics can add `Return Reconstruction Checks`,
   `Security Return Checks`, and `Reconstruction Summary` sheets for
   implementation review, but normal demo output excludes them by default.
-- Evidence-only input rows normally appear in the `Other Evidence` sheet. If a
+- Evidence-only input rows normally appear in the `Other Data Differences` sheet. If a
   portfolio or security period still has an unexplained difference, plausible
   evidence-only input rows for that same review key are promoted into the
-  `Identifiable Causes` sheet with blank `Performance Difference Explained`
+  `Performance Difference Causes` sheet with blank `Performance Difference Explained`
   values so the likely explanation is visible in one place.
-- `Other Evidence` sheet: review-only supporting rows that are not used to
+- `Other Data Differences` sheet: review-only supporting rows that are not used to
   explain return differences and are not needed to review an unresolved period.
   Transaction quantity, price, and commission rows usually live here as
   supporting evidence for changed `transactions.amount`.
@@ -102,7 +102,7 @@ Expected workbook:
 - Changed security-period returns in the security demo `Performance Differences`
   sheet. These include clean explainable rows and explicit unresolved rows when
   a security-performance difference has no additive input cause.
-- `Identifiable Causes` sheet should show understandable additive transaction
+- `Performance Difference Causes` sheet should show understandable additive transaction
   amount, holding market value, holding accrued, and weighted price examples.
   It should also show plausible input-component rows for unresolved periods
   without assigning them `Performance Difference Explained` values.
@@ -115,7 +115,7 @@ Expected workbook:
     `CASH_USD` holding changes;
   - a partly explained ALPHA period with a changed buy transaction amount plus
     changed transaction quantity, price, and commission support rows in
-    `Other Evidence`;
+    `Other Data Differences`;
   - a fully explained BALANCED period with a dividend transaction amount change;
   - a fully explained INCOME period with a larger advisory-fee expense and
     matching lower `CASH_USD` ending value;
@@ -123,7 +123,7 @@ Expected workbook:
     standalone MSFT holding market-value correction;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
-    evidence, and TNOTE2Y cost in the `Other Evidence` sheet;
+    evidence, and TNOTE2Y cost in the `Other Data Differences` sheet;
   - an unexplained INCOME period with no identifiable cause found;
   - an ALPHA external-withdrawal restatement visible in the return
     reconstruction check.
@@ -152,10 +152,10 @@ The workbook uses a small field-role model:
 
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
-| `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Identifiable Causes` sheet when enough inputs are available. |
-| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Other Evidence` as support for the related performance input. |
+| `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. |
+| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Other Data Differences` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | holding cost, FX rates, security reference data, unsupported fields | Shown on the `Other Evidence` sheet unless promoted for review of an unresolved period. |
+| `context` | holding cost, FX rates, security reference data, unsupported fields | Shown on the `Other Data Differences` sheet unless promoted for review of an unresolved period. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

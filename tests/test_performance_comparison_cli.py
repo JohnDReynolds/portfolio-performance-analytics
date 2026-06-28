@@ -116,7 +116,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             report = (output_directory / "report.html").read_text(encoding="utf-8")
             self.assertIn("<h1>Script Bundle Report</h1>", report)
             self.assertIn("Performance Differences", report)
-            self.assertIn("Identifiable Causes", report)
+            self.assertIn("Performance Difference Causes", report)
 
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")

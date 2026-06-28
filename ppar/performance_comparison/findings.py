@@ -47,6 +47,7 @@ __all__ = [
     "INPUT_DATE",
     "SOURCE_FILE",
     "SOURCE_COLUMN",
+    "TRANSACTION_CODE",
     "TRANSACTION_CATEGORY",
     "CASH_FLOW_SIGN",
     "PERFORMANCE_FLOW_SIGN",
@@ -129,6 +130,7 @@ THRU_DATE = "thru_date"
 INPUT_DATE = "input_date"
 SOURCE_FILE = "source_file"
 SOURCE_COLUMN = "source_column"
+TRANSACTION_CODE = "transaction_code"
 TRANSACTION_CATEGORY = "transaction_category"
 CASH_FLOW_SIGN = "cash_flow_sign"
 PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
@@ -273,6 +275,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     INPUT_DATE,
     SOURCE_FILE,
     SOURCE_COLUMN,
+    TRANSACTION_CODE,
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
     PERFORMANCE_FLOW_SIGN,
@@ -311,6 +314,8 @@ class Finding:
         source_file: Optional configured source file associated with the
             finding.
         source_column: Optional normalized column associated with the finding.
+        transaction_code: Optional source transaction code for transaction
+            findings.
         transaction_category: Optional normalized transaction category for
             transaction findings.
         cash_flow_sign: Optional normalized source-supplied cash-flow sign for
@@ -352,6 +357,7 @@ class Finding:
     input_date: object | None = None
     source_file: str | None = None
     source_column: str | None = None
+    transaction_code: object | None = None
     transaction_category: object | None = None
     cash_flow_sign: object | None = None
     performance_flow_sign: object | None = None
@@ -385,6 +391,7 @@ class Finding:
             INPUT_DATE: self.input_date,
             SOURCE_FILE: self.source_file,
             SOURCE_COLUMN: self.source_column,
+            TRANSACTION_CODE: _string_value_or_none(self.transaction_code),
             TRANSACTION_CATEGORY: _string_value_or_none(self.transaction_category),
             CASH_FLOW_SIGN: _string_value_or_none(self.cash_flow_sign),
             PERFORMANCE_FLOW_SIGN: _string_value_or_none(self.performance_flow_sign),

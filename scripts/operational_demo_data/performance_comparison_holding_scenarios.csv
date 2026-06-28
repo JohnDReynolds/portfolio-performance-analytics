@@ -1,0 +1,16 @@
+snapshot,PORT,SEC,HOLDING_DATE,QTY_delta,PRICE_delta,MKT_VAL_delta,COST_delta,ACCRUED_delta,scenario
+axys_full_spec_b,ALPHA,AAPL,2026-03-31,1.1372,0.0,183.09,183.09,0.0,AAPL buy correction changes ending quantity and market value.
+axys_full_spec_b,ALPHA,AAPL,2026-05-29,0.0,1.61,1566.03,0.0,0.0,AAPL price correction changes ending market value.
+axys_full_spec_b,ALPHA,CASH_USD,2026-01-30,-1500.0,0.0,-1500.0,-1500.0,0.0,Withdrawal correction lowers cash balance.
+axys_full_spec_b,ALPHA,CASH_USD,2026-03-31,-196.98,0.0,-196.98,-196.98,0.0,AAPL buy amount correction lowers cash balance.
+axys_full_spec_b,ALPHA,CASH_USD,2026-05-29,1500.0,0.0,1500.0,1500.0,0.0,Cash-balance correction increases ending cash.
+axys_full_spec_b,BALANCED,AAPL,2026-05-29,0.0,1.61,1370.27,0.0,0.0,AAPL price correction changes ending market value.
+axys_full_spec_b,BALANCED,CASH_USD,2026-01-30,226.0,0.0,226.0,226.0,0.0,MSFT sell amount correction increases cash balance.
+axys_full_spec_b,BALANCED,CASH_USD,2026-04-30,117.07,0.0,117.07,117.07,0.0,JPM dividend correction increases cash balance.
+axys_full_spec_b,BALANCED,MSFT,2026-01-30,-2.0,0.0,-228.0,-224.58,0.0,MSFT sell correction lowers ending quantity and market value.
+axys_full_spec_b,BALANCED,MSFT,2026-05-29,2.7842,0.0,317.41,312.64,0.0,MSFT holding quantity correction changes market value.
+axys_full_spec_b,INCOME,AAPL,2026-05-29,0.0,1.61,1109.28,0.0,0.0,AAPL price correction changes ending market value.
+axys_full_spec_b,INCOME,CASH_USD,2026-01-30,-50.0,0.0,-50.0,-50.0,0.0,Fee correction lowers cash balance.
+axys_full_spec_b,INCOME,CASH_USD,2026-05-29,80.0,0.0,80.0,80.0,0.0,TNOTE2Y interest correction increases cash balance.
+axys_full_spec_b,INCOME,TNOTE2Y,2026-05-29,1.2781,0.0,128.0,200.0,50.0,TNOTE2Y interest and accrual correction changes ending holding.
+axys_full_spec_b,INCOME,TNOTE5Y,2026-04-30,0.0,0.0,0.0,300.0,0.0,TNOTE5Y cost-only correction remains review evidence.
