@@ -221,10 +221,16 @@ def _assert_workbook_unexplained_formula(
     for row in portfolio_changes.iter_rows(named=True):
         performance_change = _float_or_zero(row.get("performance_change"))
         explained_change = _float_or_zero(row.get("estimated_cause_total"))
-        unexplained_change = _float_or_zero(row.get("unexplained_change"))
+        unexplained_change = row.get("unexplained_change")
+        if row.get("review_status") == "Fully Explained":
+            test_case.assertIsNone(
+                unexplained_change,
+                msg=f"{row.get('review_key')} should display a blank residual.",
+            )
+            continue
         test_case.assertAlmostEqual(
             performance_change - explained_change,
-            unexplained_change,
+            _float_or_zero(unexplained_change),
             msg=f"{row.get('review_key')} unexplained change does not reconcile.",
         )
 
@@ -282,7 +288,10 @@ def _assert_workbook_explained_row_actions(
                 continue
             if (
                 "configured as evidence-only" in str(required_setup)
-                or "not included in explained difference" in str(required_setup)
+                or (
+                    '"Performance Differences"."Explained Difference"'
+                    in str(required_setup)
+                )
                 or "related performance input" in str(required_setup)
                 or "changed transactions.amount" in str(required_setup)
                 or "changed holdings.market_value" in str(required_setup)
@@ -596,11 +605,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
-            "Input for changed AAPL transactions.amount.",
+            "BUY: Input for changed AAPL transactions.amount.",
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],
-            "Input for changed AAPL transactions.amount.",
+            "BUY: Input for changed AAPL transactions.amount.",
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -671,7 +680,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(commission["estimated_impact"][0])
         self.assertEqual(
             commission["review_note"][0],
-            "Review this input difference; it is not included in explained difference.",
+            (
+                'Review-only evidence; this row is not counted in '
+                '"Performance Differences"."Explained Difference".'
+            ),
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -845,7 +857,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(configured_quantity["estimated_impact"][0])
         self.assertEqual(
             configured_quantity["review_note"][0],
-            "Review this input difference; it is not included in explained difference.",
+            (
+                'Review-only evidence; this row is not counted in '
+                '"Performance Differences"."Explained Difference".'
+            ),
         )
 
     def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:
@@ -1084,7 +1099,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
-                    "What Changed",
                     "Review Guidance",
                     "Review Key",
                 ],

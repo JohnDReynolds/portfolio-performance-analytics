@@ -10,11 +10,12 @@ many disconnected entry points.
 | --- | --- | --- |
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public demo commands, and common smoke tests. |
 | Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
+| Performance comparison roadmap | [`docs/performance_comparison_roadmap.md`](performance_comparison_roadmap.md) | Central forward-looking plan for return reconstruction, explanations, report evolution, and demo-data guardrails. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
 | Axys export shape | [`docs/axys_common_core_export.md`](axys_common_core_export.md) | Starter Axys export template and field-reference notes. |
 | Packaged Axys demos | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | User-facing Axys analytics and performance comparison demo inputs. |
 | Test Axys configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
-| Session continuity | [`docs/work_session_notes.md`](work_session_notes.md) | Working notes from recent implementation sessions; useful context, not durable product documentation. |
+| Historical checkpoint notes | [`docs/performance_comparison_checkpoint_notes.md`](performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
 
 ## Directory Map
 
@@ -39,6 +40,8 @@ many disconnected entry points.
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users and maintainers | Package overview, installation, bundled demo commands, performance-comparison smoke tests, and project checks. |
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
+| [`docs/performance_comparison_roadmap.md`](performance_comparison_roadmap.md) | Maintainers | Central future-work roadmap for performance comparison, return reconstruction, explanations, reports, and demo-data guardrails. |
+| [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
 | [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md) | Demo reviewers | Packaged Axys demo commands, data/YAML descriptions, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys snapshots, test-only comparison YAML files, and validation matrix fixtures. |
 | Snapshot README files under `tests/data/axys/snapshots/*/README.md` | Test authors | Small notes about individual synthetic snapshot directories. |
@@ -53,6 +56,7 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
+| `scripts/audit_performance_comparison_demo_data.py` | Audits packaged performance-comparison demo accounting. | Check fixture consistency after demo-data edits. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates performance comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
@@ -201,6 +205,7 @@ When changing report/workbook behavior, the most relevant focused tests are:
 When changing demo data or YAML, also run:
 
 ```bash
+./.venv/bin/python scripts/audit_performance_comparison_demo_data.py
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
@@ -239,8 +244,11 @@ Before moving files, prefer clarifying the map:
 1. Keep the root README short enough to answer "what is this project and how do
    I run the main workflows?"
 2. Keep detailed packaged demo instructions in `ppar/demos/data/axys/README.md`.
-3. Keep deep design rationale in `docs/performance_comparison_design.md`.
-4. Keep session notes in `docs/work_session_notes.md`, but treat them as
+3. Keep future performance-comparison plans in
+   `docs/performance_comparison_roadmap.md`.
+4. Keep deep design rationale in `docs/performance_comparison_design.md`.
+5. Keep checkpoint/session notes in
+   `docs/performance_comparison_checkpoint_notes.md`, but treat them as
    temporary working context.
-5. Add new scripts only when they serve automation or a distinct workflow.
+6. Add new scripts only when they serve automation or a distinct workflow.
    Otherwise, prefer improving this guide or the existing script help text.

@@ -5,6 +5,10 @@
 The performance comparison feature explains why calculated performance for the
 same portfolio and period changed between two source-data extraction dates.
 
+This document is the deep design/reference note. Active forward-looking work is
+tracked in the central
+[`Performance Comparison Roadmap`](performance_comparison_roadmap.md).
+
 The core question is:
 
 > Why did my performance for period A change from when I ran it on date 1 to
@@ -1766,11 +1770,14 @@ captions for browser review rather than separate HTML-specific analytics logic.
 The bundle writer is the only user-facing report path; standalone HTML
 rendering helpers remain internal implementation details.
 
-## Near-Term Roadmap
+## Historical Near-Term Roadmap
 
-The next design work should move slowly and favor reviewer clarity over broad
-new machinery. The current structural cleanup is complete enough that the next
-work should be data-facing and behavior-facing.
+This section records the earlier near-term plan that led to the current
+implementation checkpoint. For current next work, use the central
+[`Performance Comparison Roadmap`](performance_comparison_roadmap.md).
+
+The design work should continue to move slowly and favor reviewer clarity over
+broad new machinery.
 
 1. Tighten YAML specification documentation and examples.
    Make it easier to decide when a changed field should be additive,
@@ -1924,25 +1931,10 @@ transaction quantity, price, and commission.
 8. Which additional supporting-file columns, if any, provide enough explanatory
    value to justify expanding the current normalized comparison surface?
 
-## Current Recommended Next Work
+## Current Roadmap Location
 
-Treat the current comparison engine, evidence layer, and report bundle as the
-baseline. Context-only evidence is visible both as detail and as a summary,
-residual statuses explain why numeric residuals are withheld, and report
-bundles have a clearer reviewer workflow with a polished HTML review packet.
-The next useful work should stay narrow and auditable: improve reviewer
-prioritization or already-normalized
-supporting-file comparisons without adding hidden vendor assumptions or broad
-new datasets.
-
-Good next candidates are:
-
-- Add reviewer-facing charts or compact tables only where they clarify
-  prioritization, impact coverage, transaction cross-checks, context evidence,
-  or residual status.
-- Defer numeric residuals until there are enough credible, non-overlapping
-  impact estimates to avoid implying false precision.
-- Expand supporting-file comparisons only for already-normalized columns that
-  have clear reviewer value, before considering new datasets.
-- Keep transaction and contribution-impact methods explicit in YAML whenever
-  vendor-specific sign, flow, timing, or denominator rules are involved.
+Treat the current comparison engine, evidence layer, report bundle, return
+reconstruction checks, and workbook model as the baseline. Current next work
+should be tracked in
+[`performance_comparison_roadmap.md`](performance_comparison_roadmap.md), not
+added here as a competing roadmap.

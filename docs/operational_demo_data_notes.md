@@ -1,7 +1,9 @@
-# Operational Demo Data Roadmap
+# Operational Demo Data Notes
 
-This roadmap covers the planned Axys and performance-comparison demo data that
-will be derived from the packaged Mega-Cap Alpha Portfolio.
+These notes document how the Axys and performance-comparison demo data was
+derived from the packaged Mega-Cap Alpha Portfolio. They are retained as
+historical/process notes. The active forward-looking roadmap is
+[`performance_comparison_roadmap.md`](performance_comparison_roadmap.md).
 
 ## Objective
 

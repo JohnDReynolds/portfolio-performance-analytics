@@ -61,7 +61,6 @@ _NON_ADDITIVE_HEADERS = [
     "Snapshot A Value",
     "Snapshot B Value",
     "B - A Difference",
-    "What Changed",
     "Review Guidance",
     "Review Key",
 ]
@@ -185,8 +184,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     _NON_ADDITIVE_HEADERS,
                 )
                 self.assertEqual(
-                    _header_values(workbook["Raw Audit Trail"])[:6],
-                    _COMMON_LEFT_HEADERS,
+                    _header_values(workbook["Raw Audit Trail"])[:7],
+                    [*_COMMON_LEFT_HEADERS, "Transaction Type"],
                 )
                 self.assertEqual(
                     _header_values(workbook["Raw Audit Trail"])[-1],
@@ -250,7 +249,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "No additive underlying cause" in str(row[11])
                         or "No identifiable cause" in str(row[11])
                         or "shown for review" in str(row[11])
-                        or "not included in explained difference" in str(row[11])
+                        or (
+                            '"Performance Differences"."Explained Difference"'
+                            in str(row[11])
+                        )
                         or "Input for changed" in str(row[11])
                         or "related performance input" in str(row[11])
                         or "changed transactions.amount" in str(row[11])
@@ -279,6 +281,28 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and str(row[2])[:10] == "2026-04-30"
                 )
                 self.assertEqual(str(jpm_dividend_row[3])[:10], "2026-04-06")
+                transaction_component_guidance = [
+                    str(row[11])
+                    for row in underlying_rows
+                    if row[4]
+                    in {
+                        "transactions.commission",
+                        "transactions.price",
+                        "transactions.quantity",
+                    }
+                ]
+                self.assertTrue(
+                    any(
+                        guidance.startswith("BUY:")
+                        for guidance in transaction_component_guidance
+                    )
+                )
+                self.assertTrue(
+                    any(
+                        guidance.startswith("SELL:")
+                        for guidance in transaction_component_guidance
+                    )
+                )
                 context_rows = _sheet_rows(workbook["Other Evidence"])
                 context_fields = {(row[3], row[4]) for row in context_rows}
                 self.assertTrue(
@@ -355,11 +379,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                             _numeric_value(row[5]),
                             places=6,
                         )
-                        self.assertAlmostEqual(
-                            _numeric_value(row[6]),
-                            0.0,
-                            places=6,
-                        )
+                        self.assertIsNone(row[6])
                 aapl_trade_row = next(
                     row
                     for row in security_rows

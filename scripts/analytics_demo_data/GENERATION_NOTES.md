@@ -1,8 +1,9 @@
-# Analytics Demo Data Generation Roadmap
+# Analytics Demo Data Generation Notes
 
-This roadmap records how the current Mega-Cap analytics demo data was created
-and what still remains if the same source universe is later extended to Axys
-analytics or performance-comparison demos. Reusable refresh helpers live in
+These notes record how the current Mega-Cap analytics demo data was created.
+They are retained as generation/process notes, not as the active roadmap.
+Performance-comparison forward work is tracked centrally in
+`docs/performance_comparison_roadmap.md`. Reusable refresh helpers live in
 `scripts/analytics_demo_data/`; generated outputs and caches live in
 `_demo_output/analytics_data_generation/`.
 

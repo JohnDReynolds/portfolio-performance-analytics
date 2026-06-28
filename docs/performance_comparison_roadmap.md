@@ -1,7 +1,14 @@
-# Return Reconstruction Roadmap
+# Performance Comparison Roadmap
 
-This note captures the long-term design idea for reconstructing and explaining
-performance differences at both the portfolio level and the security level.
+This is the central roadmap for performance-comparison work. It covers return
+reconstruction, user-facing explanations, report evolution, and demo-data
+guardrails.
+
+Detailed design reference remains in
+[`performance_comparison_design.md`](performance_comparison_design.md).
+Historical demo-generation notes remain in
+[`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
+[`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
 
 ## Core Idea
 
@@ -391,7 +398,80 @@ datasets. `Return Reconstruction Checks` and `Security Return Checks` remain
 opt-in interim audit trails for the raw numerator, denominator, and source
 component inputs.
 
-### Phase 5: Improve Demo Data
+### Phase 5: Deterministic User-Facing Explanations
+
+- Add a structured explanation layer for `Performance Differences` comments and
+  row-level `Review Guidance`.
+- Generate comments from cause/residual patterns, not from free-form inference.
+- Prefer specific worksheet and field references over generic instructions.
+- Keep comments short enough for the workbook, with detailed evidence remaining
+  in `Identifiable Causes`, `Other Evidence`, and `Raw Audit Trail`.
+- Make guidance action-oriented and understandable when formula rows and
+  supporting rows overlap.
+
+The current pain point is periods like BALANCED `2026-05-01` to `2026-05-29`,
+where:
+
+- `holdings.ending_market_value` explains the positive calculated difference;
+- `holdings.beginning_market_value` explains a negative denominator effect;
+- individual AAPL/MSFT `holdings.market_value` rows foot to the ending-value
+  effect but are supporting detail rather than separate additive causes; and
+- the current `Review Guidance` text is technically accurate but not helpful
+  enough for a normal reviewer.
+
+Future guidance should make those relationships explicit. For example:
+
+```text
+Ending holdings value increased; AAPL and MSFT holding rows below show the
+security-level source changes that make up this ending-value effect.
+```
+
+```text
+Beginning holdings value increased, which reduces the calculated return. This
+denominator effect accounts for the Unexplained Difference in the Performance
+Differences sheet.
+```
+
+```text
+Supporting detail for the ending holdings value effect; included in the related
+performance difference, not counted separately.
+```
+
+Example residual classifications:
+
+```text
+fully_explained_by_identifiable_causes
+residual_matches_beginning_value_effect
+residual_matches_ending_value_effect
+residual_matches_transaction_flow_effect
+residual_has_identifiable_evidence_but_no_supported_estimate
+no_identifiable_evidence_found
+```
+
+Example deterministic comment:
+
+```text
+The Unexplained Difference matches the beginning holdings market value effect
+shown in `Identifiable Causes`. Reported performance appears to reflect the
+ending value change but not the beginning-value denominator effect.
+```
+
+Implementation guidance:
+
+- Do not speculate about vendor behavior beyond what the source rows show.
+- Use careful language such as "appears to" when the workbook can identify a
+  pattern but cannot prove the vendor's calculation method.
+- Avoid generic instructions such as "review other sheets" when the workbook
+  can name the exact field or row family involved.
+- Use consistent terms for formula rows, source rows, and supporting detail so
+  reviewers do not have to infer whether a row is counted or merely related.
+- Add tests for each explanation type:
+  - given a known cause/residual pattern
+  - expect a specific comment
+  - expect specific row-level `Review Guidance`
+  - avoid untested prose drift
+
+### Phase 6: Improve Demo Data
 
 - Add realistic examples:
   - portfolio contribution
@@ -405,6 +485,23 @@ component inputs.
 - Make all accounting internally consistent.
 - Ensure the report demonstrates fully explained, partly explained, and
   unexplained cases.
+- Keep all packaged demo accounting internally consistent.
+- Run the packaged demo-data audit before accepting fixture changes:
+
+  ```bash
+  ./.venv/bin/python scripts/audit_performance_comparison_demo_data.py
+  ```
+
+- Any intentional partly explained or unexplained period must be named in the
+  audit allowlist with a reviewer-facing reason.
+
+Demo-data notes:
+
+- Current operational demo generation history lives in
+  [`operational_demo_data_notes.md`](operational_demo_data_notes.md).
+- Current analytics demo data generation history lives in
+  [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
+- Those files are historical/process notes; this file is the active roadmap.
 
 ## Guiding Principle
 

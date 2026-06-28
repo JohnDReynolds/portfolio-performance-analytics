@@ -44,7 +44,6 @@ _EXCEL_HEADER_LINE_BREAKS = {
     "Related Performance Difference": "Related\nPerformance\nDifference",
     "Review Guidance": "Review\nGuidance",
     "Review Key": "Review\nKey",
-    "What Changed": "What\nChanged",
 }
 
 PRIMARY_DIFFERENCE_SHEETS = _pc_review_model.PRIMARY_REVIEW_SHEETS
@@ -87,7 +86,6 @@ REQUIRED_HEADERS = {
         "Snapshot A Value",
         "Snapshot B Value",
         "B - A Difference",
-        "What Changed",
         "Review Guidance",
         "Review Key",
     ),

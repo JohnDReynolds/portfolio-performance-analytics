@@ -526,14 +526,20 @@ def _workbook_performance_change_row(row: Mapping[str, object]) -> dict[str, obj
     unexplained_change = None
     if performance_change is not None:
         unexplained_change = performance_change - (estimated_total or 0.0)
+    review_status = _workbook_explanation_status(row)
+    unexplained_display = (
+        None
+        if review_status == _STATUS_FULLY_EXPLAINED
+        else unexplained_change
+    )
     return {
         _pc_findings.PORTFOLIO_ID: row.get(_pc_findings.PORTFOLIO_ID),
         _pc_findings.FROM_DATE: row.get(_pc_findings.FROM_DATE),
         _pc_findings.THRU_DATE: row.get(_pc_findings.THRU_DATE),
         _PERFORMANCE_CHANGE: performance_change,
         _ESTIMATED_CAUSE_TOTAL: estimated_total,
-        _UNEXPLAINED_CHANGE: unexplained_change,
-        _REVIEW_STATUS: _workbook_explanation_status(row),
+        _UNEXPLAINED_CHANGE: unexplained_display,
+        _REVIEW_STATUS: review_status,
         _REVIEW_NOTE: _workbook_performance_comments(row),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
@@ -1908,7 +1914,10 @@ def _workbook_review_note(
             'the "Identifiable Causes" sheet to see what explains it.'
         )
     if _workbook_has_evidence_only_policy(row):
-        return "Review this input difference; it is not included in explained difference."
+        return (
+            'Review-only evidence; this row is not counted in '
+            '"Performance Differences"."Explained Difference".'
+        )
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return (
             "Supporting evidence for changed holdings; portfolio impact is shown "
@@ -1956,9 +1965,10 @@ def _workbook_review_guidance(
         and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
     ):
         security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+        prefix = _workbook_transaction_type_prefix(row)
         if security_id:
-            return f"Input for changed {security_id} transactions.amount."
-        return "Input for changed transactions.amount."
+            return f"{prefix}Input for changed {security_id} transactions.amount."
+        return f"{prefix}Input for changed transactions.amount."
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return "Input for changed cash-balance holdings.market_value."
     if row.get(_WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING):
@@ -1975,7 +1985,10 @@ def _workbook_review_guidance(
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
         return _workbook_related_input_guidance(row, dataset, source_column)
     if _workbook_has_evidence_only_policy(row):
-        return "Review-only row; not included in explained difference."
+        return (
+            'Review-only evidence; this row is not counted in '
+            '"Performance Differences"."Explained Difference".'
+        )
     if (
         _workbook_is_context_row(row)
         or _workbook_is_reported_diagnostic_row(row)
@@ -2054,10 +2067,19 @@ def _workbook_related_input_guidance(
             return f"Input for changed {security_id} holdings.market_value."
         return "Input for changed holdings.market_value."
     if dataset == pc_cols.TRANSACTIONS:
+        prefix = _workbook_transaction_type_prefix(row)
         if security_id:
-            return f"Input for changed {security_id} transactions.amount."
-        return "Input for changed transactions.amount."
+            return f"{prefix}Input for changed {security_id} transactions.amount."
+        return f"{prefix}Input for changed transactions.amount."
     return "Input for changed related performance input."
+
+
+def _workbook_transaction_type_prefix(row: Mapping[str, object]) -> str:
+    """Return a short transaction-type prefix for transaction review guidance."""
+    transaction_type = _format_value(row.get(_pc_findings.TRANSACTION_CATEGORY))
+    if not transaction_type:
+        return ""
+    return f"{transaction_type.replace('_', ' ').upper()}: "
 
 
 def _workbook_dataset_field(row: Mapping[str, object]) -> str:
@@ -2263,7 +2285,6 @@ def _workbook_non_additive_change_columns() -> tuple[str, ...]:
         _pc_findings.SNAPSHOT_A_VALUE,
         _pc_findings.SNAPSHOT_B_VALUE,
         _CHANGE,
-        _CHANGE_LABEL,
         _REVIEW_NOTE,
         _REVIEW_KEY,
     )
@@ -2376,6 +2397,7 @@ def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
         _pc_findings.DATASET,
         _pc_findings.SOURCE_COLUMN,
         _pc_findings.SECURITY_ID,
+        _pc_findings.TRANSACTION_CATEGORY,
     )
     remaining_columns = [
         column
@@ -2431,6 +2453,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _pc_findings.CONFIDENCE: "Confidence",
         _pc_findings.EVIDENCE_ROLE: "Evidence Role",
         _pc_findings.SOURCE_FILE: "Source File",
+        _pc_findings.TRANSACTION_CATEGORY: "Transaction Type",
         _pc_findings.SNAPSHOT_A_VALUE: "Snapshot A Value",
         _pc_findings.SNAPSHOT_B_VALUE: "Snapshot B Value",
         _pc_findings.DELTA_B_MINUS_A: "Delta B Minus A",
@@ -2561,7 +2584,7 @@ def workbook_column_tooltip(column: str) -> str:
         ),
         _pc_findings.SOURCE_FILE: "Source file path or dataset file where applicable.",
         _pc_findings.SOURCE_COLUMN: "Normalized source column that changed or was relevant.",
-        _pc_findings.TRANSACTION_CATEGORY: "Normalized transaction category, when applicable.",
+        _pc_findings.TRANSACTION_CATEGORY: "Normalized transaction type, when applicable.",
         _pc_findings.CASH_FLOW_SIGN: "Configured or source cash-flow sign, when applicable.",
         _pc_findings.PERFORMANCE_FLOW_SIGN: (
             "Configured or source performance-flow sign, when applicable."

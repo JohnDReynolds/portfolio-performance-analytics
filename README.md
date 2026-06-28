@@ -191,6 +191,9 @@ Use these entry points:
   output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
   validators, generated outputs, and common workflows.
+- [Performance Comparison Roadmap](docs/performance_comparison_roadmap.md):
+  central plan for return reconstruction, reviewer explanations, report
+  evolution, and demo-data guardrails.
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
   internal model, YAML vocabulary, attribution setup, and report/workbook
   design rationale.
