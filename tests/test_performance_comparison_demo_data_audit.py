@@ -10,6 +10,7 @@ import unittest
 
 import pandas as pd
 import polars as pl
+import yaml
 
 from ppar.performance_comparison import compare_snapshots
 from ppar.performance_comparison import schema as pc_cols
@@ -39,6 +40,7 @@ _PACKAGED_COMPARISON_PATH = (
 _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 )
+_PACKAGED_AXYS_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.ACCRUED),
@@ -112,6 +114,26 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         summary = validate_config(_PACKAGED_COMPARISON_PATH)
 
         self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
+
+    def test_packaged_demo_transaction_rules_match_observed_codes(self) -> None:
+        """Packaged demo YAML has one transaction rule for each source code."""
+        observed_codes: set[str] = set()
+        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+            transactions = pd.read_csv(
+                _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
+            )
+            observed_codes.update(
+                str(code).strip()
+                for code in transactions["TRAN"].dropna()
+                if str(code).strip()
+            )
+
+        configuration = yaml.safe_load(
+            _PACKAGED_COMPARISON_PATH.read_text(encoding="utf-8")
+        )
+        configured_codes = set(configuration["transaction_rules"].keys())
+
+        self.assertEqual(configured_codes, observed_codes)
 
     def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
         """Performance Difference Causes only contains approved demo fields."""
