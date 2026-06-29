@@ -4,6 +4,12 @@
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — security identity is essential for transaction translation and posting.
+- [Chapter_11_Classifications.md](Chapter_11_Classifications.md) — distinguishes security identity from classification and grouping data.
+- [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) — consolidates the security-related fields and tokens.
+
 ## 1. Overview
 
 The Security Master is the reference dataset used to identify and describe securities used in Axys and APX workflows. The supplied research verifies that both Axys and APX have a security-master concept and that third-party tools rely on security information for matching, translation, import, export, pricing, positions, transactions, and downstream reporting.

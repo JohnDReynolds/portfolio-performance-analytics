@@ -13,6 +13,12 @@
 
 ------------------------------------------------------------------------
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md) — transaction interpretation depends on security identity.
+- [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — transactions drive holdings, lots, and cost-basis updates.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — transactions feed performance and attribution inputs.
+
 ## 1. Overview
 
 Transactions are the central accounting events in Axys/APX-style

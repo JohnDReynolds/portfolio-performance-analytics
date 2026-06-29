@@ -7,6 +7,12 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — corporate actions can generate or affect transaction records.
+- [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — corporate actions change holdings and cost basis.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — corporate actions can materially affect performance attribution.
+
 ## 1. Overview
 
 Corporate actions in Axys and APX can affect security reference data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.

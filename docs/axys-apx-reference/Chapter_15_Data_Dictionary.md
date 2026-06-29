@@ -8,6 +8,12 @@
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md) — contributes many identity-related field names.
+- [Chapter_12_Imex.md](Chapter_12_Imex.md) — contributes the IMEX-related field and token inventory.
+- [Chapter_16_Glossary.md](Chapter_16_Glossary.md) — complements the data dictionary with canonical terminology.
+
 ## 1. Overview
 
 This chapter is a cross-repository data dictionary for the Axys/APX Reference Repository. It consolidates field names, report labels, file names, utility names, observed tokens, and data concepts that appear in the supplied research material.

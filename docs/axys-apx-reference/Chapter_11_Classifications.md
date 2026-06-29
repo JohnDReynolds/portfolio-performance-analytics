@@ -7,6 +7,12 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md) — keeps security identity separate from classification-like reporting fields.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — classifications often appear in performance and attribution reporting.
+- [Chapter_14_Reports.md](Chapter_14_Reports.md) — report families often group results by classification.
+
 ## 1. Overview
 
 This chapter documents classification-related behavior in SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX), based only on the supplied research and source material.

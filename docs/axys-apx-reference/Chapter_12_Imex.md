@@ -8,6 +8,12 @@
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map, evidence conventions, and shared safe implementation rules.
+- [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) — frames the architectural place of IMEX in Axys.
+- [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md) — frames the APX-side import/export context.
+- [Chapter_13_Rep.md](Chapter_13_Rep.md) — distinguishes IMEX from REP/report extraction.
+
 ## 1. Overview
 
 IMEX is the import/export layer referenced in the supplied research for moving data into and out of Axys and APX environments. The available source material supports strong statements about specific integration workflows, utilities, file names, logs, and report-based extraction alternatives. It does **not** provide a complete official SS&C IMEX object dictionary, native IMEX field dictionary, or complete native APX/Axys command syntax.

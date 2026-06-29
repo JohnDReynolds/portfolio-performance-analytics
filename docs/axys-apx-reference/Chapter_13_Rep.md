@@ -7,6 +7,12 @@ Status: Draft technical reference chapter based only on supplied source material
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map, evidence conventions, and shared safe implementation rules.
+- [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) — connects REP to the broader Axys architecture narrative.
+- [Chapter_12_Imex.md](Chapter_12_Imex.md) — distinguishes REP/report extraction from IMEX import/export.
+- [Chapter_14_Reports.md](Chapter_14_Reports.md) — ties REP and report source content to the report families.
+
 ## 1. Overview
 
 REP is the Advent reporting layer associated with report files, report source, report execution, report customization, and report-driven data extraction in Axys and APX environments.

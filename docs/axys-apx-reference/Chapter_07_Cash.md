@@ -7,6 +7,12 @@
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — cash movement is often transaction-driven.
+- [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — cash and holdings are closely linked in portfolio accounting.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — cash and flow treatment matter for performance calculations.
+
 ## 1. Overview
 
 Cash in Axys/APX documentation should be treated as a portfolio-accounting topic with several distinct layers:

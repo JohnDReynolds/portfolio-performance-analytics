@@ -8,6 +8,12 @@
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map, evidence conventions, and shared safe implementation rules.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — many performance outputs are surfaced through reports.
+- [Chapter_11_Classifications.md](Chapter_11_Classifications.md) — report families often use classification labels.
+- [Chapter_13_Rep.md](Chapter_13_Rep.md) — reports often depend on REP or report-source definitions.
+
 ## 1. Overview
 
 Reports are a core functional area of both Axys and APX. In this repository, a **report** means a human-readable, client-facing, management-facing, or analyst-facing output generated from portfolio accounting, holdings, transaction, performance, classification, benchmark, or relationship data.

@@ -8,6 +8,12 @@ Source basis: supplied research files `Research_02_Axys_Architecture.md` through
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_12_Imex.md](Chapter_12_Imex.md) — defines IMEX-related technical terms.
+- [Chapter_13_Rep.md](Chapter_13_Rep.md) — defines REP and reporting-language terms.
+- [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) — complements the glossary with field-level vocabulary.
+
 ## 1. Overview
 
 This chapter defines commonly used Axys/APX repository terms. It is a technical glossary, not a replacement for the detailed subject chapters.

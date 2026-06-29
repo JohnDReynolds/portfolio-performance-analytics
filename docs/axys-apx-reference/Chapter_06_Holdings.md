@@ -7,6 +7,12 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — holdings are updated from posted transactions.
+- [Chapter_07_Cash.md](Chapter_07_Cash.md) — holdings and cash often move together in reconciliation workflows.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — holdings provide the base for performance measurement.
+
 ## 1. Overview
 
 This chapter documents holdings and position-related behavior in Axys and APX using only the supplied research material.

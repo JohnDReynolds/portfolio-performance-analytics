@@ -7,6 +7,12 @@
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions, plus the shared safe implementation rules.
+- [Chapter_05_Transactions.md](Chapter_05_Transactions.md) — transactions are important performance inputs.
+- [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — position and valuation changes feed performance calculations.
+- [Chapter_14_Reports.md](Chapter_14_Reports.md) — performance is often surfaced through report families and report labels.
+
 ## 1. Overview
 
 This chapter documents the currently supported facts and open questions about performance behavior in SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX).

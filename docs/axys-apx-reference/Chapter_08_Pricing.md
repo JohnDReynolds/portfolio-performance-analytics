@@ -7,6 +7,12 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — prices are used to value holdings and positions.
+- [Chapter_10_Performance.md](Chapter_10_Performance.md) — pricing inputs drive performance and valuation results.
+- [Chapter_12_Imex.md](Chapter_12_Imex.md) — price imports are one of the most common IMEX workflows.
+
 ## 1. Overview
 
 Pricing is a core dependency for portfolio accounting, holdings valuation, reconciliation, performance measurement, and reporting. In Axys and APX environments, pricing evidence appears most clearly in integration workflows, price-file import/export behavior, holdings valuation reports, and operational pricing exceptions.

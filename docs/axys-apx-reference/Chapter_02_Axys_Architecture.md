@@ -8,6 +8,12 @@ Source basis: supplied research files only
 
 ---
 
+## Related chapters
+- [Chapter_01_Overview.md](Chapter_01_Overview.md) — provides the repository-wide map and evidence conventions.
+- [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md) — contrasts Axys and APX architecture.
+- [Chapter_12_Imex.md](Chapter_12_Imex.md) — covers the import/export pathways that move Axys data.
+- [Chapter_13_Rep.md](Chapter_13_Rep.md) — covers REP/reporting workflows that sit alongside IMEX.
+
 ## 1. Overview
 
 This chapter documents the architecture of **SS&C Advent Axys** as supported by the supplied research material. APX is included only where it clarifies architectural contrast, migration behavior, IMEX behavior, REP behavior, or Axys/APX version differences.

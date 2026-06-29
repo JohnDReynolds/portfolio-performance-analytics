@@ -8,6 +8,64 @@ Source basis: supplied repository chapters `Chapter_02_Axys_Architecture.md` thr
 
 ---
 
+## Cross-chapter entity flow
+This repository is easiest to read as one linked data lifecycle:
+
+- Portfolio / account -> Security master -> Transactions -> Holdings / positions -> Cash -> Pricing -> Corporate actions -> Performance -> Reports
+- IMEX and REP are the main exchange paths that move data between these stages, while the glossary and data dictionary provide the terminology backbone.
+
+## Safe implementation rules
+These rules should guide any implementation or further documentation work in this repository:
+
+- Do not treat report labels as native fields.
+- Do not assume IMEX object names or REP field names without evidence.
+- Do not equate security type with classification, asset class, sector, country, or region.
+- Do not assume performance is stored or recalculated without explicit evidence.
+- Do not normalize or merge data across Axys and APX without first validating the source context and confidence level.
+
+## Chapter cross-reference index
+Use this index to jump to the chapters that most directly connect to a topic:
+
+- Overview — entry point for the repository map, evidence conventions, and guardrails.
+- Architecture — Axys and APX architecture and platform role: [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md) and [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md).
+- Security master — identity and matching context: [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md).
+- Transactions — transaction meaning, coding, and posting context: [Chapter_05_Transactions.md](Chapter_05_Transactions.md).
+- Holdings — positions and valuation context: [Chapter_06_Holdings.md](Chapter_06_Holdings.md).
+- Cash — cash movement and cash-like activity: [Chapter_07_Cash.md](Chapter_07_Cash.md).
+- Pricing — price import and valuation context: [Chapter_08_Pricing.md](Chapter_08_Pricing.md).
+- Corporate actions — splits, reorgs, and related account changes: [Chapter_09_Corporate_Actions.md](Chapter_09_Corporate_Actions.md).
+- Performance — performance inputs, outputs, and evidence boundaries: [Chapter_10_Performance.md](Chapter_10_Performance.md).
+- Classifications — grouping and classification-like reporting context: [Chapter_11_Classifications.md](Chapter_11_Classifications.md).
+- IMEX — import/export workflows and exchange paths: [Chapter_12_Imex.md](Chapter_12_Imex.md).
+- REP — report extraction and report-source context: [Chapter_13_Rep.md](Chapter_13_Rep.md).
+- Reports — report families and report-label caution: [Chapter_14_Reports.md](Chapter_14_Reports.md).
+- Data dictionary and glossary — field-level vocabulary and terminology: [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
+
+## Chapter dependency map
+A compact view of the main evidence flow:
+
+Security master → Transactions → Holdings / positions → Cash → Pricing → Corporate actions → Performance → Reports
+
+IMEX / REP → data movement, extraction, and report-source context → Reports
+
+The glossary and data dictionary support the terminology and field vocabulary used throughout the repository.
+
+## How to use this reference
+Choose the path that fits your immediate question:
+
+- If you are new to the topic, start with [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md), [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md), and [Chapter_12_Imex.md](Chapter_12_Imex.md) for the big picture.
+- If you need to understand transactions, start with [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md), [Chapter_05_Transactions.md](Chapter_05_Transactions.md), [Chapter_06_Holdings.md](Chapter_06_Holdings.md), and [Chapter_07_Cash.md](Chapter_07_Cash.md).
+- If you are focused on performance or reporting, start with [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_11_Classifications.md](Chapter_11_Classifications.md), [Chapter_13_Rep.md](Chapter_13_Rep.md), and [Chapter_14_Reports.md](Chapter_14_Reports.md).
+- If you are looking up a term or field, start with [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
+
+## How to read a chapter
+Each chapter is intended to be read in the same compact pattern:
+
+- Start with the chapter’s scope and what it covers.
+- Check the evidence and confidence notes before treating anything as settled.
+- Look for implementation cautions, Unknowns, and any cross-references to adjacent chapters.
+- Use the chapter as a starting point, then move to the linked chapters for the next step.
+
 ## 1. Overview
 
 This chapter introduces the AXYS / APX Reference Repository and summarizes the factual scope of the supplied chapters. It is a repository orientation chapter, not a replacement for the detailed subject chapters.
@@ -15,6 +73,17 @@ This chapter introduces the AXYS / APX Reference Repository and summarizes the f
 The repository documents supported facts about SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX), with emphasis on implementation-oriented behavior: architecture, accounting data, IMEX, REP, reports, file artifacts, data fields, processing behavior, version differences, and known quirks.
 
 This chapter follows the repository blueprint rule that unsupported behavior must be marked **Unknown** rather than inferred.
+
+### 1.0 Scope and non-goals
+
+This repository is a reference set for documented Axys / APX behavior, evidence, and terminology. It is not intended to be:
+
+- a full vendor specification,
+- a software implementation guide for the underlying systems,
+- a product roadmap or sales document, or
+- a substitute for source-system data dictionaries, vendor manuals, or production exports.
+
+The material here is deliberately scoped to what the supplied chapters can support with explicit evidence and confidence labels.
 
 ### 1.1 Repository Purpose
 
@@ -34,6 +103,15 @@ This chapter follows the repository blueprint rule that unsupported behavior mus
 | High Confidence | Strongly supported by supplied research and consistent implementation evidence, but not proven as a complete vendor specification. |
 | Medium Confidence | Plausible and supported by partial, third-party, consultant, conversion, integration, or workflow-specific evidence. |
 | Unknown | Not established from supplied material. Do not implement or document as fact without additional evidence. |
+
+### 1.2a Evidence ladder
+
+Use the confidence labels as an evidence ladder, not as a simple yes/no flag:
+
+- Verified is the strongest level and should be treated as the best-supported statement in this repository.
+- High Confidence is strong but still narrower than a full vendor specification or complete source-system schema.
+- Medium Confidence is useful for workflow patterns, practitioner observations, and plausible interpretations that need validation.
+- Unknown means the repository does not currently support the statement as a fact and the statement should not be treated as implementation guidance.
 
 ### 1.3 Evidence Boundary
 
