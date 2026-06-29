@@ -181,7 +181,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     _header_values(workbook["Raw Audit Trail"])[:7],
-                    [*_COMMON_LEFT_HEADERS, "Transaction Type"],
+                    [*_COMMON_LEFT_HEADERS, "Transaction Category"],
                 )
                 self.assertEqual(
                     _header_values(workbook["Raw Audit Trail"])[-1],
@@ -286,6 +286,11 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "transactions.quantity",
                     }
                 ]
+                transaction_guidance = [
+                    str(row[10])
+                    for row in underlying_rows
+                    if str(row[4]).startswith("transactions.")
+                ]
                 self.assertTrue(
                     any(
                         guidance.startswith("by: The ")
@@ -297,6 +302,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         guidance.startswith("sl: The ")
                         for guidance in transaction_component_guidance
                     )
+                )
+                self.assertFalse(
+                    any(
+                        guidance.startswith(("BY:", "SL:", "DV:", "DP:", "IN:", "WD:"))
+                        for guidance in transaction_guidance
+                    )
+                )
+                self.assertTrue(
+                    any(guidance.startswith("dv: ") for guidance in transaction_guidance)
                 )
                 context_rows = _sheet_rows(workbook["Other Data Differences"])
                 context_fields = {row[4] for row in context_rows}

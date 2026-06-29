@@ -97,6 +97,22 @@ The packaged user-facing performance-comparison demos represent cash as a
 `CASH_USD` row in the holdings file rather than as a separate `cash.csv` file.
 The generic comparison engine still supports a normalized `cash` dataset for
 other integrations and test fixtures.
+
+Current report vocabulary:
+
+- `Performance Differences`: the main review sheet. It compares reported
+  performance between Snapshot A and Snapshot B, shows the explained portion,
+  and leaves `Unexplained Difference` blank when a row is fully explained.
+- `Performance Difference Causes`: source-data rows that are counted in
+  `Explained Difference`.
+- `Other Data Differences`: source-data rows that changed but are not counted in
+  `Explained Difference`.
+- `Raw Audit Trail`: detailed finding rows used for audit and troubleshooting.
+- `Transaction Code`: the source transaction code from the input file, such as
+  an Axys/APX IMEX code.
+- `Transaction Category`: ppar's normalized interpretation of a transaction code
+  for comparison logic and reviewer explanations.
+
 - `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
   for validating an existing report bundle.
 - `ppar.performance_comparison.cli.validate_config`: source-checkout command
@@ -422,9 +438,12 @@ transaction matching, preferably by `transaction_id`.
 - `unknown`
 
 The comparison loader can infer this category from common transaction codes
-when the source does not provide a category. For example, `BUY` maps to `buy`,
-`SELL` maps to `sell`, and `DIV` or `INT` maps to `income`. This category is an
-explanation label only.
+when the source does not provide a category. For Axys/APX-shaped demo data, the
+source `transaction_code` values remain native lower-case codes such as `by`,
+`sl`, `dv`, `in`, `dp`, `wd`, and `;`. YAML rules map those source codes to
+normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
+`corporate_action`. The normalized category is an explanation label and a rule
+selector; it does not replace the source transaction code in the audit trail.
 
 `cash_flow_sign` and `performance_flow_sign` are optional source-supplied
 semantics. They should not be inferred from transaction code in the first pass.
@@ -450,13 +469,13 @@ explicit transaction rules keyed by source transaction code:
 
 ```yaml
 transaction_rules:
-  BUY:
+  by:
     transaction_category: buy
     cash_flow_sign: negative
     performance_flow_sign: performance
-  DEP:
+  wd:
     transaction_category: external_flow
-    cash_flow_sign: positive
+    cash_flow_sign: negative
     performance_flow_sign: external
 ```
 
@@ -1516,7 +1535,7 @@ denominator, and linkage are available.
 
 `evidence_only_impact_methods` is the explicit unsupported-but-known escape
 hatch. It does not create `estimated_return_impact`; instead, workbook rows are
-marked review-only and `Review Guidance` says the row is configured as
+marked review-only and `Explanation` says the row is configured as
 evidence-only. This keeps intentionally review-only changes from looking like
 missing setup. Supported dataset keys are `cash`, `fx_rates`, `holdings`,
 `security_master`, and `transactions`; each dataset may list only

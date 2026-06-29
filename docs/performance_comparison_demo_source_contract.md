@@ -78,6 +78,22 @@ Transaction semantics are required YAML. A transaction code may appear in source
 files only when the comparison YAML has a matching `transaction_rules` entry.
 Missing transaction rules are a hard stop for the packaged demo.
 
+The source transaction code and the normalized transaction category are distinct:
+
+| Source code | YAML category | Demo meaning |
+| --- | --- | --- |
+| `by` | `buy` | Security purchase. |
+| `sl` | `sell` | Security sale. |
+| `dv` | `income` | Dividend or dividend-like income. |
+| `in` | `income` | Interest or income-like receipt. |
+| `dp` | `fee_expense` | Fee-like debit in this packaged demo. |
+| `wd` | `external_flow` | External withdrawal in this packaged demo. |
+| `;` | `corporate_action` | Split/journal/other-style review evidence in this packaged demo. |
+
+Reviewer-facing explanations should preserve the source code as it appears in
+the source file. For example, a changed buy transaction should display `by:`,
+not `BY:` or `buy:`.
+
 The Axys/APX transaction reference documents support using short Axys/APX-style
 codes for common examples such as buys, sells, dividends, interest, fees, and
 withdrawals where the evidence is strong enough for demo purposes. Code alone is

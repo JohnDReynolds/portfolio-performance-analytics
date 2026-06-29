@@ -5,27 +5,26 @@ They are useful for continuity, but they are not the active roadmap. Current
 future work belongs in
 [`performance_comparison_roadmap.md`](performance_comparison_roadmap.md).
 
-## Current State
+## Historical Checkpoint State
 
-The performance comparison XLSX work is now workbook-first. For bundles
+At this checkpoint, the performance comparison XLSX work was workbook-first. For bundles
 generated with `--include-workbook`, reviewers should start with
 `report.xlsx`; `report.html` is a browser-friendly view of the same review
 model, and CSV files are audit/export artifacts.
 
-The current workbook sheets are:
+The workbook sheets at this checkpoint were:
 
 - `Performance Differences` sheet: portfolio-period return differences, explained
   difference, unexplained difference, status, and comments.
 - `Performance Differences` sheet: security-period return differences, including
   explicit no-security-difference rows for changed portfolio periods.
-- `Performance Difference Causes` sheet: input rows that may explain portfolio differences, with
-  `Performance Difference Explained` when ppar has a defensible calculation and
-  `Review Guidance` when setup is missing.
+- `Performance Difference Causes` sheet: input rows that may explain portfolio
+  differences, with `Performance Difference Explained` when ppar has a
+  defensible calculation.
 - `Other Data Differences` sheet: review-only supporting differences.
 - `Raw Audit Trail` sheet: full finding-level detail.
 
-Workbook numeric cells are real Excel numbers where possible. Numeric display
-uses up to six decimals with trailing zeros suppressed.
+Workbook numeric cells were real Excel numbers where possible.
 
 ## Stable Checkpoint
 

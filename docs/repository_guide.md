@@ -232,11 +232,12 @@ The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
 Both portfolio and security workbooks start with the `Performance Differences`
-sheet. They then use the `Performance Difference Causes` sheet, `Other Data Differences` sheet,
-and `Raw Audit Trail` sheet. Explained amounts appear on `Performance Difference Causes`
-sheet rows when ppar has a defensible input-level explanation. The `Review
-Guidance` column is `None` for rows that are already explainable and otherwise
-names the setup or unsupported impact method blocking attribution.
+sheet. They then use the `Performance Difference Causes` sheet, `Other Data
+Differences` sheet, and `Raw Audit Trail` sheet. Explained amounts appear on
+`Performance Difference Causes` sheet rows when ppar has a defensible
+input-level explanation. The action sheets use an `Explanation` column written
+for reviewers; the `Raw Audit Trail` sheet keeps lower-level diagnostic fields
+for troubleshooting.
 
 ## Suggested Consolidation Rules
 

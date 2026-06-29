@@ -3036,7 +3036,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _pc_findings.CONFIDENCE: "Confidence",
         _pc_findings.EVIDENCE_ROLE: "Evidence Role",
         _pc_findings.SOURCE_FILE: "Source File",
-        _pc_findings.TRANSACTION_CATEGORY: "Transaction Type",
+        _pc_findings.TRANSACTION_CATEGORY: "Transaction Category",
         _pc_findings.SNAPSHOT_A_VALUE: "Snapshot A Value",
         _pc_findings.SNAPSHOT_B_VALUE: "Snapshot B Value",
         _pc_findings.DELTA_B_MINUS_A: "Delta B Minus A",
@@ -3163,7 +3163,7 @@ def workbook_column_tooltip(column: str) -> str:
         ),
         _pc_findings.SOURCE_FILE: "Source file path or dataset file where applicable.",
         _pc_findings.SOURCE_COLUMN: "Normalized source column that changed or was relevant.",
-        _pc_findings.TRANSACTION_CATEGORY: "Normalized transaction type, when applicable.",
+        _pc_findings.TRANSACTION_CATEGORY: "Normalized transaction category, when applicable.",
         _pc_findings.CASH_FLOW_SIGN: "Configured or source cash-flow sign, when applicable.",
         _pc_findings.PERFORMANCE_FLOW_SIGN: (
             "Configured or source performance-flow sign, when applicable."

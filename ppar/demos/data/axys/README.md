@@ -88,6 +88,10 @@ Data used:
   cash/fixed-income sleeves.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
+- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `dp`, `wd`, and
+  `;`) to normalized categories such as `buy`, `sell`, `income`, `fee_expense`,
+  `external_flow`, and `corporate_action`. Reviewer-facing explanations preserve
+  the source code rather than uppercasing or replacing it with the category.
 - YAML: includes explicit `portfolio_return_reconstruction` settings for
   Modified Dietz diagnostic checks.
 - YAML: includes explicit `security_return_reconstruction` settings for

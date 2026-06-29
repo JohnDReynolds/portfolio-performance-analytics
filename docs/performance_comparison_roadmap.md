@@ -427,7 +427,7 @@ numerator, denominator, and source component inputs.
 ### Phase 5: Deterministic User-Facing Explanations
 
 - Add a structured explanation layer for `Performance Differences` comments and
-  row-level `Review Guidance`.
+  row-level `Explanation`.
 - Generate comments from cause/residual patterns, not from free-form inference.
 - Prefer specific worksheet and field references over generic instructions.
 - Keep comments short enough for the workbook, with detailed evidence remaining
@@ -442,7 +442,7 @@ where:
 - `holdings.beginning_market_value` explains a negative denominator effect;
 - individual AAPL/MSFT `holdings.market_value` rows foot to the ending-value
   effect but are supporting detail rather than separate additive causes; and
-- the current `Review Guidance` text is technically accurate but not helpful
+- the current `Explanation` text is technically accurate but not helpful
   enough for a normal reviewer.
 
 Future guidance should make those relationships explicit. For example:
@@ -494,7 +494,7 @@ Implementation guidance:
 - Add tests for each explanation type:
   - given a known cause/residual pattern
   - expect a specific comment
-  - expect specific row-level `Review Guidance`
+  - expect specific row-level `Explanation`
   - avoid untested prose drift
 - Keep supporting-row explanations plain enough that reviewers do not need a
   second performance-number column beside `Performance Difference Explained`.
