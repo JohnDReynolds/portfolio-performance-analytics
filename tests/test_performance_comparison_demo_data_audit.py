@@ -9,8 +9,15 @@ import tempfile
 import unittest
 
 import pandas as pd
+import polars as pl
 
+from ppar.performance_comparison import compare_snapshots
+from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.config_validation import validate_config
+from ppar.performance_comparison.workbook_tables import (
+    _workbook_context_table,
+    _workbook_underlying_causes_table,
+)
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +28,26 @@ _REBUILD_SCRIPT_PATH = (
     / "operational_demo_data"
     / "rebuild_performance_comparison_demo_data.py"
 )
+_PACKAGED_COMPARISON_PATH = (
+    _REPO_ROOT
+    / "ppar"
+    / "demos"
+    / "data"
+    / "axys"
+    / "ppar_performance_comparison.yaml"
+)
+
+_PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
+    (pc_cols.HOLDINGS, pc_cols.ACCRUED),
+    (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
+    (pc_cols.HOLDINGS, pc_cols.PRICE),
+    (pc_cols.HOLDINGS, pc_cols.QUANTITY),
+    (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
+    (pc_cols.TRANSACTIONS, pc_cols.COMMISSION),
+    (pc_cols.TRANSACTIONS, pc_cols.PRICE),
+    (pc_cols.TRANSACTIONS, pc_cols.QUANTITY),
+    ("no_underlying_causes_found", None),
+}
 
 
 def _load_audit_module():
@@ -51,23 +78,76 @@ def _load_rebuild_module():
     return module
 
 
+def _dataset_fields(frame: pl.DataFrame) -> set[tuple[str, str | None]]:
+    """Return normalized dataset/source-column pairs from a workbook table."""
+    return {
+        (str(row["dataset"]), row["source_column"])
+        for row in frame.select(["dataset", "source_column"]).iter_rows(named=True)
+    }
+
+
 class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     """Verify packaged demo data remains internally consistent."""
 
     def test_packaged_demo_transaction_rules_cover_observed_codes(self) -> None:
         """Packaged demo YAML explicitly defines every observed transaction code."""
-        comparison_path = (
-            _REPO_ROOT
-            / "ppar"
-            / "demos"
-            / "data"
-            / "axys"
-            / "ppar_performance_comparison.yaml"
-        )
-
-        summary = validate_config(comparison_path)
+        summary = validate_config(_PACKAGED_COMPARISON_PATH)
 
         self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
+
+    def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
+        """Performance Difference Causes only contains approved demo fields."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        causes = _workbook_underlying_causes_table(findings)
+        cause_fields = _dataset_fields(causes)
+
+        self.assertEqual(cause_fields, _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS)
+        self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
+        self.assertFalse(
+            any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in cause_fields)
+        )
+
+    def test_packaged_demo_other_data_differences_match_source_contract(self) -> None:
+        """Cost and non-performance evidence stays in Other Data Differences."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        causes = _workbook_underlying_causes_table(findings)
+        context = _workbook_context_table(findings)
+        cause_fields = _dataset_fields(causes)
+        context_fields = _dataset_fields(context)
+
+        self.assertIn((pc_cols.HOLDINGS, pc_cols.COST), context_fields)
+        self.assertIn((pc_cols.TRANSACTIONS, pc_cols.QUANTITY), context_fields)
+        self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
+        self.assertFalse(
+            any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in context_fields)
+        )
+
+    def test_packaged_demo_accrual_changes_are_performance_causes(self) -> None:
+        """Configured accrual amount changes remain performance-cause rows."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        causes = _workbook_underlying_causes_table(findings)
+        accrued_causes = causes.filter(
+            (pl.col("dataset") == pc_cols.HOLDINGS)
+            & (pl.col("source_column") == pc_cols.ACCRUED)
+        )
+
+        self.assertGreater(accrued_causes.height, 0)
+        self.assertNotIn(
+            (pc_cols.HOLDINGS, pc_cols.ACCRUED),
+            _dataset_fields(_workbook_context_table(findings)),
+        )
 
     def test_packaged_performance_comparison_demo_data_foots(self) -> None:
         """Packaged demo data has no accidental accounting or residual issues."""

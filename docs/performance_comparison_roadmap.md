@@ -656,6 +656,19 @@ packaged performance-comparison demo has a stricter guardrail test: every
 observed transaction code must be explicitly defined in its YAML
 `transaction_rules`.
 
+#### Phase 7C: Packaged Demo Source Contract Audit
+
+Status: complete for the current packaged performance-comparison demo fixture.
+
+The packaged demo audit now verifies the user-facing report tables follow the
+source contract:
+
+- `Performance Difference Causes` only contains approved demo source fields;
+- holdings `cost` stays in `Other Data Differences`;
+- configured holdings `accrued` changes remain performance-cause rows;
+- security-reference fields do not appear as performance causes or demo context
+  evidence.
+
 The Axys/APX transaction references should be used to choose careful terminology
 and conservative interpretation rules. The package should adopt only the rules
 needed to explain performance changes. It should not adopt a broader accounting
