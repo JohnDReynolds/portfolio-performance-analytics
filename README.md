@@ -194,6 +194,9 @@ Use these entry points:
 - [Performance Comparison Roadmap](docs/performance_comparison_roadmap.md):
   central plan for return reconstruction, reviewer explanations, report
   evolution, and demo-data guardrails.
+- [Performance Comparison Demo Source Contract](docs/performance_comparison_demo_source_contract.md):
+  how the packaged demo CSV files should be interpreted relative to the Axys/APX
+  reference docs.
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
   internal model, YAML vocabulary, attribution setup, and report/workbook
   design rationale.

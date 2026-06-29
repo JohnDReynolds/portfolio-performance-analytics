@@ -61,34 +61,34 @@ security_return_reconstruction:
   sign_convention: signed_amount
 
 transaction_rules:
-  BUY:
+  by:
     transaction_category: buy
     cash_flow_sign: negative
     performance_flow_sign: performance
-  SELL:
+  sl:
     transaction_category: sell
     cash_flow_sign: positive
     performance_flow_sign: performance
-  DIV:
+  dv:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
   # Demo assumption: reported returns are net of fees, so fee changes are
   # performance-impacting. Gross-of-fees returns need an explicit future
   # return-basis policy before fees should be treated this way.
-  FEE:
+  dp:
     transaction_category: fee_expense
     cash_flow_sign: negative
     performance_flow_sign: performance
-  INT:
+  in:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
-  SPLIT:
+  ";":
     transaction_category: corporate_action
     cash_flow_sign: none
     performance_flow_sign: neutral
-  WD:
+  wd:
     transaction_category: external_flow
     cash_flow_sign: negative
     performance_flow_sign: external

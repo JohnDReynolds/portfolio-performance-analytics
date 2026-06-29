@@ -288,13 +288,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ]
                 self.assertTrue(
                     any(
-                        guidance.startswith("BUY: The ")
+                        guidance.startswith("by: The ")
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
-                        guidance.startswith("SELL: The ")
+                        guidance.startswith("sl: The ")
                         for guidance in transaction_component_guidance
                     )
                 )

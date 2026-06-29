@@ -181,6 +181,11 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(normalize_transaction_category("Cash Deposit"), "external_flow")
         self.assertEqual(normalize_transaction_category("fee-expense"), "fee_expense")
         self.assertEqual(normalize_transaction_category(""), "unknown")
+        self.assertEqual(transaction_category_from_code("by"), "buy")
+        self.assertEqual(transaction_category_from_code("sl"), "sell")
+        self.assertEqual(transaction_category_from_code("dv"), "income")
+        self.assertEqual(transaction_category_from_code("in"), "income")
+        self.assertEqual(transaction_category_from_code("wd"), "external_flow")
         self.assertEqual(transaction_category_from_code("SELL"), "sell")
         self.assertEqual(transaction_category_from_code("not-a-real-code"), "unknown")
 

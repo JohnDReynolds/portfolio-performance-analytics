@@ -136,7 +136,7 @@ The default command audits without writing. The `--write` command validates
 `scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv`
 and derives snapshot B `transactions.csv` from snapshot A plus those scenario
 rows. It then derives simple transaction-driven holding impacts from changed
-`BUY`, `SELL`, `DEP`, `WD`, `DIV`, `INT`, and `FEE` rows; validates
+`by`, `sl`, `wd`, `dv`, `in`, and fee-like `dp` rows; validates
 `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` for
 residual non-transaction holding scenarios; derives snapshot B `holdings.csv`
 from snapshot A plus those impacts; then recomputes derived `secperf.csv` and

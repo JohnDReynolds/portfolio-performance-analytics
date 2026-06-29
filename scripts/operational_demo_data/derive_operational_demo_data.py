@@ -305,7 +305,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         snapshot["transactions"],
         "ALPHA",
         early_date,
-        "BUY",
+        "by",
         quantity_delta=1.0,
         price_delta=0.15,
         commission_delta=10.0,
@@ -640,30 +640,30 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
         for period_index, period in enumerate(periods, start=1):
             for index, row in enumerate(equities.itertuples(index=False), start=1):
                 gross_amount = 4_000.0 * index
-                transaction_code = "BUY" if index == 1 else "DIV"
+                transaction_code = "by" if index == 1 else "dv"
                 transaction_identifier = row.identifier
                 quantity = (
                     round(gross_amount / _price_for(transaction_identifier), 4)
-                    if transaction_code == "BUY"
+                    if transaction_code == "by"
                     else 0.0
                 )
                 price = (
                     _price_for(transaction_identifier)
-                    if transaction_code == "BUY"
+                    if transaction_code == "by"
                     else 0.0
                 )
-                commission = 4.95 if transaction_code == "BUY" else 0.0
+                commission = 4.95 if transaction_code == "by" else 0.0
                 transaction_date = period.from_date + pd.Timedelta(days=5)
                 settle_date = period.from_date + pd.Timedelta(days=6)
                 amount = (
                     _buy_transaction_amount(quantity, price, commission)
-                    if transaction_code == "BUY"
+                    if transaction_code == "by"
                     else round(gross_amount * 0.0125, 2)
                 )
                 if (
                     portfolio_code == "BALANCED"
                     and str(period.thru_date.date()) == _JPM_DIVIDEND_PAY_DATE
-                    and transaction_code == "DIV"
+                    and transaction_code == "dv"
                 ):
                     transaction_identifier = _JPM_DIVIDEND_IDENTIFIER
                     transaction_date = pd.Timestamp(_JPM_DIVIDEND_EX_DATE)
@@ -697,7 +697,7 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         ).date(),
                         "SETTLE_DATE": pd.Timestamp(_TNOTE2Y_INTEREST_DATE).date(),
                         "SEC": _TNOTE2Y_INTEREST_IDENTIFIER,
-                        "TRAN": "INT",
+                        "TRAN": "in",
                         "QTY": 0.0,
                         "PRICE": 0.0,
                         "AMOUNT": _TNOTE2Y_PRIOR_INTEREST_AMOUNT,
@@ -870,7 +870,7 @@ def _adjust_jpm_dividend_to_current_rate(
     mask = (
         transactions["PORT"].eq(portfolio_code)
         & transactions["SEC"].eq(_JPM_DIVIDEND_IDENTIFIER)
-        & transactions["TRAN"].eq("DIV")
+        & transactions["TRAN"].eq("dv")
         & transactions["SETTLE_DATE"].astype(str).eq(_JPM_DIVIDEND_PAY_DATE)
     )
     if not bool(mask.any()):
@@ -953,7 +953,7 @@ def _adjust_transaction_fields(
         float(transactions.loc[first_index, "COMMISSION"]) + commission_delta,
         2,
     )
-    if recalculate_buy_amount and transactions.loc[first_index, "TRAN"] == "BUY":
+    if recalculate_buy_amount and transactions.loc[first_index, "TRAN"] == "by":
         transactions.loc[first_index, "AMOUNT"] = _buy_transaction_amount(
             float(transactions.loc[first_index, "QTY"]),
             float(transactions.loc[first_index, "PRICE"]),
@@ -1156,11 +1156,11 @@ files:
   transactions: transactions.csv
 
 transaction_rules:
-  BUY:
+  by:
     transaction_category: buy
     cash_flow_sign: negative
     performance_flow_sign: performance
-  DIV:
+  dv:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance

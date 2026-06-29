@@ -6,6 +6,8 @@ guardrails.
 
 Detailed design reference remains in
 [`performance_comparison_design.md`](performance_comparison_design.md).
+The packaged-demo source boundary is defined in
+[`performance_comparison_demo_source_contract.md`](performance_comparison_demo_source_contract.md).
 Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
 [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
@@ -506,8 +508,8 @@ snapshot A transactions plus validated explicit transaction scenarios in
 It then derives snapshot B `holdings.csv` from snapshot A holdings plus two
 deterministic sources:
 
-1. transaction-derived holding impacts from changed `BUY`, `SELL`, `DEP`, `WD`,
-   `DIV`, `INT`, and `FEE` rows;
+1. transaction-derived holding impacts from changed `by`, `sl`, `wd`, `dv`,
+   `in`, and fee-like `dp` rows;
 2. validated explicit residual holding scenarios in
    `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv`.
 
@@ -660,6 +662,12 @@ observed transaction code must be explicitly defined in its YAML
 
 Status: complete for the current packaged performance-comparison demo fixture.
 
+The packaged demo source contract is documented in
+[`performance_comparison_demo_source_contract.md`](performance_comparison_demo_source_contract.md).
+It states that the packaged CSVs are normalized demo extracts, not official
+Axys/APX native schemas, and defines the narrow source-data fields ppar is
+allowed to use when explaining performance differences.
+
 The packaged demo audit now verifies the user-facing report tables follow the
 source contract:
 
@@ -684,11 +692,11 @@ valuation, and accrual amount rules become deterministic.
 The current guardrail tests pin the accounting impact of each supported simple
 transaction type:
 
-- `WD` and `FEE` reduce ending `CASH_USD` holdings;
-- `DIV` and `INT` increase ending `CASH_USD` holdings;
-- `BUY` increases the traded security holding and reduces cash;
-- `SELL` reduces the traded security holding and increases cash;
-- `SPLIT` remains outside transaction-derived holding impacts for now.
+- `wd` and fee-like `dp` reduce ending `CASH_USD` holdings;
+- `dv` and `in` increase ending `CASH_USD` holdings;
+- `by` increases the traded security holding and reduces cash;
+- `sl` reduces the traded security holding and increases cash;
+- `;` split evidence remains outside transaction-derived holding impacts for now.
 
 Suggested source-of-truth inputs:
 

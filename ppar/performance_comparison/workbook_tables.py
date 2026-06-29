@@ -2651,7 +2651,7 @@ def _workbook_transaction_code_prefix(row: Mapping[str, object]) -> str:
         transaction_code = _workbook_transaction_code_fallback(row)
     if not transaction_code:
         return ""
-    return f"{transaction_code.replace('_', ' ').upper()}: "
+    return f"{transaction_code.replace('_', ' ')}: "
 
 
 def _workbook_transaction_code_fallback(row: Mapping[str, object]) -> str:
@@ -2659,12 +2659,12 @@ def _workbook_transaction_code_fallback(row: Mapping[str, object]) -> str:
     category = _format_value(row.get(_pc_findings.TRANSACTION_CATEGORY))
     if category == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
         if row.get(_pc_findings.CASH_FLOW_SIGN) == TRANSACTION_CASH_FLOW_SIGN_POSITIVE:
-            return "DEP"
-        return "WD"
+            return "deposit"
+        return "withdrawal"
     if category == TRANSACTION_CATEGORY_FEE_EXPENSE:
-        return "FEE"
+        return "fee"
     if category == TRANSACTION_CATEGORY_INCOME:
-        return "INCOME"
+        return "income"
     return category
 
 

@@ -365,7 +365,7 @@ class TestPackageMetadata(unittest.TestCase):
 
                 quantity_delta = _float_delta(transaction_a, transaction_b, "QTY")
                 amount_delta = _float_delta(transaction_a, transaction_b, "AMOUNT")
-                if transaction_a["TRAN"] == "SELL":
+                if transaction_a["TRAN"] == "sl":
                     holding_quantity_delta = -quantity_delta
                 else:
                     holding_quantity_delta = quantity_delta
@@ -395,7 +395,7 @@ class TestPackageMetadata(unittest.TestCase):
                 )
 
     def test_axys_demo_buy_transaction_amounts_include_commission(self) -> None:
-        """Packaged BUY rows use a stable signed cash-amount convention."""
+        """Packaged buy rows use a stable signed cash-amount convention."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
             with self.subTest(snapshot=snapshot_name):
@@ -405,7 +405,7 @@ class TestPackageMetadata(unittest.TestCase):
                     newline="",
                 ) as file:
                     for row in csv.DictReader(file):
-                        if row["TRAN"] != "BUY":
+                        if row["TRAN"] != "by":
                             continue
                         expected_amount = -round(
                             float(row["QTY"]) * float(row["PRICE"])
@@ -494,8 +494,8 @@ class TestPackageMetadata(unittest.TestCase):
             ("TRANSACTION_ID",),
         )
 
-        self.assertEqual(transactions_a[transaction_id]["TRAN"], "SPLIT")
-        self.assertEqual(transactions_b[transaction_id]["TRAN"], "SPLIT")
+        self.assertEqual(transactions_a[transaction_id]["TRAN"], ";")
+        self.assertEqual(transactions_b[transaction_id]["TRAN"], ";")
         self.assertAlmostEqual(
             _float_delta(
                 transactions_a[transaction_id],
@@ -568,7 +568,7 @@ class TestPackageMetadata(unittest.TestCase):
             transactions_b[transaction_id],
             "AMOUNT",
         )
-        self.assertEqual(transactions_a[transaction_id]["TRAN"], "WD")
+        self.assertEqual(transactions_a[transaction_id]["TRAN"], "wd")
         self.assertLess(amount_delta, 0)
         self.assertAlmostEqual(
             _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),

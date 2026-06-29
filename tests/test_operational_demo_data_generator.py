@@ -181,11 +181,11 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         )
         alpha_buy_a = (
             snapshot_a["transactions"]["PORT"].eq("ALPHA")
-            & snapshot_a["transactions"]["TRAN"].eq("BUY")
+            & snapshot_a["transactions"]["TRAN"].eq("by")
         )
         alpha_buy_b = (
             snapshot_b["transactions"]["PORT"].eq("ALPHA")
-            & snapshot_b["transactions"]["TRAN"].eq("BUY")
+            & snapshot_b["transactions"]["TRAN"].eq("by")
         )
 
         self.assertGreater(aapl_price_b, aapl_price_a)

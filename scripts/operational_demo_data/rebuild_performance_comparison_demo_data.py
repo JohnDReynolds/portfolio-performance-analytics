@@ -141,37 +141,36 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
         "Intentional vendor/methodology residual used to demonstrate unresolved review."
     ),
 }
-_SECURITY_FLOW_CODES: Final = {"BUY", "SELL"}
-_INCOME_CODES: Final = {"DIV", "INT", "FEE"}
-_PORTFOLIO_EXTERNAL_FLOW_CODES: Final = {"DEP", "WD"}
+_SECURITY_FLOW_CODES: Final = {"by", "sl"}
+_INCOME_CODES: Final = {"dv", "in", "dp"}
+_PORTFOLIO_EXTERNAL_FLOW_CODES: Final = {"wd"}
 _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
-    "BUY",
-    "SELL",
-    "DEP",
-    "WD",
-    "DIV",
-    "INT",
-    "FEE",
+    "by",
+    "sl",
+    "wd",
+    "dv",
+    "in",
+    "dp",
 }
 _CASH_SECURITY_ID: Final = "CASH_USD"
 _EXPECTED_SCENARIO_COVERAGE: Final = {
     "axys_full_spec_b": {
         "transaction_scenarios_by_type": {
-            "BUY": 1,
-            "DIV": 1,
-            "FEE": 1,
-            "INT": 1,
-            "SELL": 1,
-            "SPLIT": 1,
-            "WD": 1,
+            ";": 1,
+            "by": 1,
+            "dp": 1,
+            "dv": 1,
+            "in": 1,
+            "sl": 1,
+            "wd": 1,
         },
         "transaction_derived_holdings_by_type": {
-            "BUY": 2,
-            "DIV": 1,
-            "FEE": 1,
-            "INT": 1,
-            "SELL": 2,
-            "WD": 1,
+            "by": 2,
+            "dp": 1,
+            "dv": 1,
+            "in": 1,
+            "sl": 2,
+            "wd": 1,
         },
         "holding_scenarios_by_type": {
             "accrual_correction": 1,
@@ -601,7 +600,7 @@ def _transaction_scenario_type_counts(
     transaction_codes = dict(
         zip(
             base_transactions["TRANSACTION_ID"].astype(str),
-            base_transactions["TRAN"].astype(str).str.upper(),
+            base_transactions["TRAN"].astype(str),
             strict=True,
         )
     )
@@ -717,7 +716,7 @@ def _transaction_derived_holding_adjustments(
         if transaction_code not in _TRANSACTION_HOLDING_EFFECT_CODES:
             continue
         holding_date = _period_end_for_transaction(periods, row.PORT, row.TRANSACTION_DATE)
-        if transaction_code == "BUY":
+        if transaction_code == "by":
             adjustments.append(
                 _security_trade_adjustment(
                     snapshot_name,
@@ -727,7 +726,7 @@ def _transaction_derived_holding_adjustments(
                     security=str(row.SEC),
                     holding_date=holding_date,
                     quantity_delta=float(row.QTY_delta),
-                    scenario=f"{row.TRANSACTION_ID} BUY transaction changes ending holding.",
+                    scenario=f"{row.TRANSACTION_ID} by transaction changes ending holding.",
                 )
             )
             adjustments.append(
@@ -736,10 +735,10 @@ def _transaction_derived_holding_adjustments(
                     portfolio=str(row.PORT),
                     holding_date=holding_date,
                     cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} BUY transaction changes cash balance.",
+                    scenario=f"{row.TRANSACTION_ID} by transaction changes cash balance.",
                 )
             )
-        elif transaction_code == "SELL":
+        elif transaction_code == "sl":
             adjustments.append(
                 _security_trade_adjustment(
                     snapshot_name,
@@ -749,7 +748,7 @@ def _transaction_derived_holding_adjustments(
                     security=str(row.SEC),
                     holding_date=holding_date,
                     quantity_delta=-float(row.QTY_delta),
-                    scenario=f"{row.TRANSACTION_ID} SELL transaction changes ending holding.",
+                    scenario=f"{row.TRANSACTION_ID} sl transaction changes ending holding.",
                 )
             )
             adjustments.append(
@@ -758,7 +757,7 @@ def _transaction_derived_holding_adjustments(
                     portfolio=str(row.PORT),
                     holding_date=holding_date,
                     cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} SELL transaction changes cash balance.",
+                    scenario=f"{row.TRANSACTION_ID} sl transaction changes cash balance.",
                 )
             )
         else:
@@ -895,7 +894,7 @@ def _security_trade_adjustment(
     cost_per_share = cost / quantity if quantity else 0.0
     market_value_delta = quantity_delta * price
     cost_delta = market_value_delta
-    if transaction_code == "SELL":
+    if transaction_code == "sl":
         cost_delta = quantity_delta * cost_per_share
     return HoldingScenarioAdjustment(
         snapshot=snapshot,
@@ -1290,7 +1289,7 @@ def _prepared_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
     """Return transactions with normalized dates and transaction codes."""
     prepared = transactions.copy()
     prepared["TRANSACTION_DATE"] = pd.to_datetime(prepared["TRANSACTION_DATE"])
-    prepared["TRAN"] = prepared["TRAN"].astype(str).str.upper()
+    prepared["TRAN"] = prepared["TRAN"].astype(str)
     prepared["AMOUNT"] = prepared["AMOUNT"].astype(float)
     return prepared
 

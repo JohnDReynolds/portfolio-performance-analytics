@@ -1,0 +1,104 @@
+# Performance Comparison Demo Source Contract
+
+This contract defines how the packaged performance-comparison demo source files
+should be interpreted. It is intentionally narrower than the Axys/APX reference
+manuals. The demo exists to answer one product question:
+
+```text
+Why did reported performance change from Snapshot A to Snapshot B?
+```
+
+The packaged CSV files are normalized demo extracts. They are not official Axys/APX
+native schemas, not universal IMEX layouts, and not claims about how every
+Axys/APX installation stores data internally.
+
+## Governing References
+
+Use the Axys/APX reference chapters as evidence boundaries:
+
+- [`Chapter_05_Transactions.md`](axys-apx-reference/Chapter_05_Transactions.md)
+- [`Chapter_06_Holdings.md`](axys-apx-reference/Chapter_06_Holdings.md)
+- [`Chapter_07_Cash.md`](axys-apx-reference/Chapter_07_Cash.md)
+- [`Chapter_10_Performance.md`](axys-apx-reference/Chapter_10_Performance.md)
+- [`Chapter_15_Data_Dictionary.md`](axys-apx-reference/Chapter_15_Data_Dictionary.md)
+
+When those references strongly imply common transaction-code meaning, the demo
+may use that evidence. When the references mark native storage, exact IMEX object
+names, or vendor calculation behavior as Unknown, this demo must not present
+those details as verified Axys/APX facts.
+
+## Current Packaged Files
+
+| Demo file | Demo role | Contract boundary |
+| --- | --- | --- |
+| `transactions.csv` | Normalized transaction extract used to explain changed cash flows, security-level flows, income, fees, and review-only transaction evidence. | Transaction codes should use Axys/APX-style observed codes when the reference material supports them. YAML remains the explicit interpretation contract. |
+| `holdings.csv` | Normalized point-in-time holdings and valuation extract. | Native Axys/APX holding storage is Unknown. This file represents the demo value source used for beginning and ending holdings. |
+| `portperf.csv` | Reported portfolio-period performance target used for comparison. | `portperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
+| `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
+| `security_master.csv` | Normalized security-reference context. | Security-reference changes are context unless a future supported rule makes a field performance-relevant. |
+
+## Field Role Contract
+
+| Source field family | Performance-comparison role |
+| --- | --- |
+| `holdings.market_value` | Performance input for beginning and ending value. |
+| `holdings.accrued` | Performance input when configured as a valuation/accrual amount. |
+| `transactions.amount` | Performance input for external flows, security-level buy/sell flows, income, fee, and expense examples when YAML classifies the transaction code. |
+| `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
+| `transactions.quantity`, `transactions.price`, `transactions.commission` | Supporting inputs for changed `transactions.amount`; not a formula for `transactions.amount`. |
+| `holdings.cost` | Other data difference. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
+| `transactions.settle_date` | Other data difference unless a future explicit settlement-date rule makes it performance-relevant. |
+| security-reference fields | Other data differences or suppressed context unless explicitly supported by a future rule. |
+
+## Cash-Balance Policy
+
+`CASH_USD` is a normalized demo cash-balance holding. It should not be described
+as native Axys/APX cash storage. When a transaction amount affects cash but the
+source row does not prove the exact cash security, user-facing explanations may
+refer to the changed `holdings` cash-balance.
+
+The packaged demo currently uses one USD cash-balance holding. A future
+multi-currency demo should make cash-account mapping explicit before assigning
+transaction effects to a specific cash security.
+
+## Date Policy
+
+The demo treats `FROM_DATE` and `THRU_DATE` as inclusive. The beginning holdings
+date for a period is the calendar day immediately before `FROM_DATE`; the ending
+holdings date is `THRU_DATE`.
+
+For transaction rows, `TRANSACTION_DATE` is the economic as-of date used by the
+demo return-reconstruction rules. It represents the trade date or ex-date for
+the event. `SETTLE_DATE` or pay date can be useful context, but it is not the
+default performance date in this demo contract.
+
+## Transaction-Code Policy
+
+Transaction semantics are required YAML. A transaction code may appear in source
+files only when the comparison YAML has a matching `transaction_rules` entry.
+Missing transaction rules are a hard stop for the packaged demo.
+
+The Axys/APX transaction reference documents support using short Axys/APX-style
+codes for common examples such as buys, sells, dividends, interest, fees, and
+withdrawals where the evidence is strong enough for demo purposes. Code alone is
+not treated as a complete accounting system. YAML supplies the role ppar is
+allowed to use for performance comparison.
+
+Corporate actions remain conservative. A split row can be shown as review
+evidence, but it should not explain reported performance unless a future
+supported rule explicitly implements that behavior.
+
+## What This Contract Excludes
+
+The packaged demo should not attempt to model:
+
+- tax-lot accounting;
+- cost-basis methodology;
+- full settlement accounting;
+- vendor-specific recalculation behavior not visible in the source extracts;
+- universal Axys/APX native field names or object names;
+- every possible Axys/APX transaction variant.
+
+Those topics can be documented in the Axys/APX reference material, but the
+performance-comparison demo should include them only when they directly help
+answer why reported performance changed from Snapshot A to Snapshot B.

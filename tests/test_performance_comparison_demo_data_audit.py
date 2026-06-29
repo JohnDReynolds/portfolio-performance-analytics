@@ -36,6 +36,9 @@ _PACKAGED_COMPARISON_PATH = (
     / "axys"
     / "ppar_performance_comparison.yaml"
 )
+_DEMO_SOURCE_CONTRACT_PATH = (
+    _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
+)
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.ACCRUED),
@@ -88,6 +91,21 @@ def _dataset_fields(frame: pl.DataFrame) -> set[tuple[str, str | None]]:
 
 class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     """Verify packaged demo data remains internally consistent."""
+
+    def test_packaged_demo_source_contract_documents_boundaries(self) -> None:
+        """The packaged demo contract preserves key source-data boundaries."""
+        text = _DEMO_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8")
+        normalized_text = " ".join(text.split())
+
+        for expected_text in [
+            "normalized demo extracts",
+            "not official Axys/APX native schemas",
+            "portperf.csv",
+            "secperf.csv",
+            "CASH_USD",
+            "transaction_rules",
+        ]:
+            self.assertIn(expected_text, normalized_text)
 
     def test_packaged_demo_transaction_rules_cover_observed_codes(self) -> None:
         """Packaged demo YAML explicitly defines every observed transaction code."""
@@ -177,25 +195,25 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_scenarios_by_type"],
             {
-                "BUY": 1,
-                "DIV": 1,
-                "FEE": 1,
-                "INT": 1,
-                "SELL": 1,
-                "SPLIT": 1,
-                "WD": 1,
+                ";": 1,
+                "by": 1,
+                "dp": 1,
+                "dv": 1,
+                "in": 1,
+                "sl": 1,
+                "wd": 1,
             },
         )
         self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 8)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
             {
-                "BUY": 2,
-                "DIV": 1,
-                "FEE": 1,
-                "INT": 1,
-                "SELL": 2,
-                "WD": 1,
+                "by": 2,
+                "dp": 1,
+                "dv": 1,
+                "in": 1,
+                "sl": 2,
+                "wd": 1,
             },
         )
         self.assertEqual(snapshots["axys_full_spec_b"]["holding_scenario_rows"], 7)
@@ -243,7 +261,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "snapshots": [
                 {
                     "snapshot": "axys_full_spec_b",
-                    "transaction_scenarios_by_type": {"BUY": 1},
+                    "transaction_scenarios_by_type": {"by": 1},
                     "transaction_derived_holdings_by_type": {},
                     "holding_scenarios_by_type": {},
                 }
@@ -279,60 +297,60 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertEqual(len(adjustments), 8)
         self.assertNotIn(
-            "BALANCED0503 SPLIT transaction changes cash balance.",
+            "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
         )
         self._assert_adjustment(
-            by_scenario["ALPHA0203 WD transaction changes cash balance."],
+            by_scenario["ALPHA0203 wd transaction changes cash balance."],
             portfolio="ALPHA",
             security="CASH_USD",
             holding_date="2026-01-30",
             deltas={"QTY": -1500.0, "MKT_VAL": -1500.0, "COST": -1500.0},
         )
         self._assert_adjustment(
-            by_scenario["INCOME0203 FEE transaction changes cash balance."],
+            by_scenario["INCOME0203 dp transaction changes cash balance."],
             portfolio="INCOME",
             security="CASH_USD",
             holding_date="2026-01-30",
             deltas={"QTY": -50.0, "MKT_VAL": -50.0, "COST": -50.0},
         )
         self._assert_adjustment(
-            by_scenario["BALANCED0502 DIV transaction changes cash balance."],
+            by_scenario["BALANCED0502 dv transaction changes cash balance."],
             portfolio="BALANCED",
             security="CASH_USD",
             holding_date="2026-04-30",
             deltas={"QTY": 117.07, "MKT_VAL": 117.07, "COST": 117.07},
         )
         self._assert_adjustment(
-            by_scenario["INCOME0603 INT transaction changes cash balance."],
+            by_scenario["INCOME0603 in transaction changes cash balance."],
             portfolio="INCOME",
             security="CASH_USD",
             holding_date="2026-05-29",
             deltas={"QTY": 80.0, "MKT_VAL": 80.0, "COST": 80.0},
         )
         self._assert_adjustment(
-            by_scenario["ALPHA0401 BUY transaction changes ending holding."],
+            by_scenario["ALPHA0401 by transaction changes ending holding."],
             portfolio="ALPHA",
             security="AAPL",
             holding_date="2026-03-31",
             deltas={"QTY": 1.1372, "MKT_VAL": 183.0892, "COST": 183.0892},
         )
         self._assert_adjustment(
-            by_scenario["ALPHA0401 BUY transaction changes cash balance."],
+            by_scenario["ALPHA0401 by transaction changes cash balance."],
             portfolio="ALPHA",
             security="CASH_USD",
             holding_date="2026-03-31",
             deltas={"QTY": -196.98, "MKT_VAL": -196.98, "COST": -196.98},
         )
         self._assert_adjustment(
-            by_scenario["BALANCED0203 SELL transaction changes ending holding."],
+            by_scenario["BALANCED0203 sl transaction changes ending holding."],
             portfolio="BALANCED",
             security="MSFT",
             holding_date="2026-01-30",
             deltas={"QTY": -2.0, "MKT_VAL": -228.0, "COST": -224.58001579710972},
         )
         self._assert_adjustment(
-            by_scenario["BALANCED0203 SELL transaction changes cash balance."],
+            by_scenario["BALANCED0203 sl transaction changes cash balance."],
             portfolio="BALANCED",
             security="CASH_USD",
             holding_date="2026-01-30",

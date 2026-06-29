@@ -9,6 +9,10 @@ There is one packaged comparison YAML file. The portfolio and security demo
 commands use the same operational Mega-Cap source snapshots and choose the
 primary review level at runtime.
 
+The packaged CSV files follow the
+[Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
+They are normalized demo extracts, not official Axys/APX native schemas.
+
 | Role | YAML |
 | --- | --- |
 | Workbook demos | `ppar_performance_comparison.yaml` |
@@ -88,7 +92,7 @@ Data used:
   Modified Dietz diagnostic checks.
 - YAML: includes explicit `security_return_reconstruction` settings for
   security-level Modified Dietz diagnostic checks.
-- YAML: treats `FEE` transactions as performance-impacting because this packaged
+- YAML: treats fee-like `dp` transactions as performance-impacting because this packaged
   fixture assumes the reported returns are net of fees. For gross-of-fees
   performance, fees would need a different return-basis policy.
 - YAML: strict causal-attribution mode is intentionally not enabled for the
