@@ -3110,7 +3110,7 @@ def workbook_column_tooltip(column: str) -> str:
     """
     tooltips = {
         _REVIEW_KEY: (
-            "Stable portfolio-period key used to connect workbook rows."
+            "Stable performance-period key used to connect workbook rows."
         ),
         _pc_findings.PORTFOLIO_ID: "Portfolio identifier from the compared source data.",
         _pc_findings.FROM_DATE: "Beginning date of the affected performance period.",
@@ -3118,7 +3118,7 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_findings.SECURITY_ID: "Security identifier, when the discrepancy is security-level.",
         _pc_findings.SEVERITY: "Materiality/severity assigned to this discrepancy.",
         _PERFORMANCE_CHANGE: (
-            "Snapshot B portfolio return minus snapshot A portfolio return."
+            "Snapshot B reported performance minus snapshot A reported performance."
         ),
         _ESTIMATED_CAUSE_TOTAL: (
             'Total performance difference explained by "Performance Difference Causes" sheet rows.'
@@ -3132,7 +3132,7 @@ def workbook_column_tooltip(column: str) -> str:
             "Date represented by the input row. Holding rows use the period Thru Date."
         ),
         _ESTIMATED_IMPACT: (
-            "Decimal portfolio performance difference explained by this underlying "
+            "Decimal performance difference explained by this underlying "
             "input row."
         ),
         _IMPACT_STATUS: (
@@ -3145,9 +3145,9 @@ def workbook_column_tooltip(column: str) -> str:
             "to the performance difference."
         ),
         _pc_explain.PORTFOLIO_RETURN_DELTA: (
-            "Snapshot B portfolio return minus snapshot A portfolio return."
+            "Snapshot B reported performance minus snapshot A reported performance."
         ),
-        _REVIEW_STATUS: "Reviewer triage status for this portfolio-period difference.",
+        _REVIEW_STATUS: "Reviewer triage status for this performance difference.",
         _pc_explain.ROOT_CAUSE_AREA: "Coarse explanation bucket for a group of findings.",
         _pc_explain.FINDING_COUNT: "Number of finding rows grouped into this cause.",
         _pc_explain.IMPACT_BASIS: "Method basis used to estimate return impact.",

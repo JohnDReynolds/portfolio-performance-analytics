@@ -77,6 +77,16 @@ def _raw_header_values(worksheet: Any) -> list[object]:
     return [cell.value for cell in worksheet[1]]
 
 
+def _header_comment(worksheet: Any, header: str) -> str:
+    """Return the comment text for a named worksheet header."""
+    for cell in worksheet[1]:
+        if _normalized_header(cell.value) == header:
+            if cell.comment is None:
+                raise AssertionError(f"Header {header!r} has no comment.")
+            return str(cell.comment.text)
+    raise AssertionError(f"Header {header!r} not found.")
+
+
 def _normalized_header(value: object) -> object:
     """Return an Excel header with intentional line breaks normalized."""
     if isinstance(value, str):
@@ -473,6 +483,43 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
             finally:
                 workbook.close()
+
+            workbook_with_comments = openpyxl.load_workbook(
+                paths["review_workbook"],
+                read_only=False,
+                data_only=True,
+            )
+            try:
+                differences_sheet = workbook_with_comments["Performance Differences"]
+                causes_sheet = workbook_with_comments["Performance Difference Causes"]
+
+                self.assertEqual(
+                    _header_comment(differences_sheet, "Performance Difference"),
+                    (
+                        "Snapshot B reported performance minus snapshot A "
+                        "reported performance."
+                    ),
+                )
+                self.assertEqual(
+                    _header_comment(differences_sheet, "Review Key"),
+                    "Stable performance-period key used to connect workbook rows.",
+                )
+                self.assertEqual(
+                    _header_comment(differences_sheet, "Status"),
+                    "Reviewer triage status for this performance difference.",
+                )
+                self.assertEqual(
+                    _header_comment(
+                        causes_sheet,
+                        "Performance Difference Explained",
+                    ),
+                    (
+                        "Decimal performance difference explained by this "
+                        "underlying input row."
+                    ),
+                )
+            finally:
+                workbook_with_comments.close()
 
     def test_review_workbook_can_include_reconstruction_diagnostics(self) -> None:
         """Reconstruction diagnostic sheets are available by explicit opt-in."""
