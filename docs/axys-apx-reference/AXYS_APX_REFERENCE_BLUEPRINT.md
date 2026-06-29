@@ -102,27 +102,38 @@ Assume the reader is technically proficient.
 # 4. Repository Structure
 
 ```text
-docs/
-    01-Overview.md
-    02-Axys-Architecture.md
-    03-APX-Architecture.md
-    04-Security-Master.md
-    05-Transactions.md
-    06-Holdings.md
-    07-Cash.md
-    08-Pricing.md
-    09-Corporate-Actions.md
-    10-Performance.md
-    11-Classifications.md
-    12-IMEX.md
-    13-REP.md
-    14-Reports.md
-    15-Data-Dictionary.md
-    16-Glossary.md
-
-research/
-examples/
-references/
+    Chapter_01_Overview.md
+    Chapter_02_Axys_Architecture.md
+    Chapter_03_APX_Architecture.md
+    Chapter_04_Security_Master.md
+    Chapter_05_Transactions.md
+    Chapter_06_Holdings.md
+    Chapter_07_Cash.md
+    Chapter_08_Pricing.md
+    Chapter_09_Corporate_Actions.md
+    Chapter_10_Performance.md
+    Chapter_11_Classifications.md
+    Chapter_12_IMEX.md
+    Chapter_13_REP.md
+    Chapter_14_Reports.md
+    Chapter_15_Data_Dictionary.md
+    Chapter_16_Glossary.md
+    Research_01_Overview.md
+    Research_02_Axys_Architecture.md
+    Research_03_APX_Architecture.md
+    Research_04_Security_Master.md
+    Research_05_Transactions.md
+    Research_06_Holdings.md
+    Research_07_Cash.md
+    Research_08_Pricing.md
+    Research_09_Corporate_Actions.md
+    Research_10_Performance.md
+    Research_11_Classifications.md
+    Research_12_IMEX.md
+    Research_13_REP.md
+    Research_14_Reports.md
+    Research_15_Data_Dictionary.md
+    Research_16_Glossary.md
 ```
 
 ---
@@ -201,9 +212,9 @@ Please read the attached AXYS_APX_REFERENCE_BLUEPRINT.md before doing anything e
 
 Treat it as the governing specification for this repository.
 
-Conduct research for the following chapter:
+Create extensive research that will be everything necesary for the following chapter:
 
-04-Security-Master.md
+Research_16_Glossary.md
 
 The goal is to collect factual information about Axys and APX.
 
@@ -255,9 +266,9 @@ Treat it as the governing specification for this repository.
 
 Write or expand the following repository chapter:
 
-Chapter_05_Transactions.md
+Chapter_16_Glossary.md
 
-Use only the supplied research and source material.  If you feel that the supplied material is not sufficient, and you could do much better with additional resource material, then stop and tell me specifically what you need.
+Use only the supplied research and source material.  If you feel that the supplied material is not sufficient, and you could do much better with additional resource material, then stop and tell me specifically what you need.  Do NOT give me a document and then turn right around and tell me that you can give me a better one.  Stop and ask me questions if you need to in order to produce a better document.  Conversely, if I uploaded an existing document that you think is generally sufficient, then just stop and tell me that you have no further edits.
 
 Write as a technical reference manual.
 
@@ -278,7 +289,7 @@ Mark unsupported information as Unknown.
 
 Do not invent field names, transaction codes, report behavior, or implementation details.
 
-I know this is a big long task, so take your time.  Do NOT give me a document and then turn right around and tell me that you can give me a better one.  Stop and ask me questions if you need to in order to produce a better document.
+I know this is a big long task, so take your time.
 
 Produce a single downloadable Markdown file only.
 ```
