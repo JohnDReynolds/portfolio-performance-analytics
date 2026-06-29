@@ -1,9 +1,9 @@
 # Chapter_02_Axys_Architecture.md
 
-Repository: AXYS / APX Reference Repository  
-Chapter: `Chapter_02_Axys_Architecture.md`  
-Prepared: 2026-06-29  
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
+Repository: AXYS / APX Reference Repository
+Chapter: `Chapter_02_Axys_Architecture.md`
+Prepared: 2026-06-29
+Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 Source basis: supplied research files only
 
 ---

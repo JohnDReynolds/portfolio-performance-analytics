@@ -63,20 +63,20 @@ Performance, reports, IMEX, REP, reconciliation, and audit
   cash, income, cost by supplied                            is strong;
   basis, realized    research                               native mechanics
   gain/loss, and                                            vary.
-  performance inputs                                        
+  performance inputs
 
   Trade Blotter      Supported                       Medium Evidence is
   workflows exist in                                        third-party
   Axys/APX                                                  integration
   integration                                               documentation.
-  evidence                                                  
+  evidence
 
   Observed           Supported as                    Medium Not a complete
   transaction codes  observed codes                         official code
   such as `by`,                                             matrix.
-  `sl`, `li`, `lo`,                                         
-  `dv`, `in`, `dp`,                                         
-  `wd`                                                      
+  `sl`, `li`, `lo`,
+  `dv`, `in`, `dp`,
+  `wd`
 
   Uppercase          Supported in                    Medium Universality
   cancellation       third-party                            across versions
@@ -85,30 +85,30 @@ Performance, reports, IMEX, REP, reconciliation, and audit
                                                             Unknown.
 
   Complete native    Unknown                        Unknown Not supplied.
-  Axys                                                      
-  transaction-code                                          
-  matrix                                                    
+  Axys
+  transaction-code
+  matrix
 
   Complete native    Unknown                        Unknown Not supplied.
-  APX                                                       
-  transaction-code                                          
-  matrix                                                    
+  APX
+  transaction-code
+  matrix
 
   Official IMEX      Unknown                        Unknown Not supplied.
-  transaction object                                        
-  names                                                     
+  transaction object
+  names
 
   Native Axys        Unknown                        Unknown Not supplied.
-  transaction                                               
-  storage model                                             
+  transaction
+  storage model
 
   Native APX         Unknown                        Unknown Not supplied.
-  database                                                  
-  transaction schema                                        
+  database
+  transaction schema
 
   Native audit trail Unknown                        Unknown Not supplied.
-  and posting-status                                        
-  model                                                     
+  and posting-status
+  model
   --------------------------------------------------------------------------
 
 ### 1.2 Interpretation Rule
@@ -120,44 +120,44 @@ meaning. Interpretation may depend on:
   Context Item            Why It Matters                            Confidence
   ----------------------- ----------------------- ----------------------------
   Transaction code        Primary event                                   High
-                          indicator.              
+                          indicator.
 
   Quantity sign           May determine inflow                          Medium
-                          versus outflow.         
+                          versus outflow.
 
   Amount sign             May determine cash                            Medium
-                          direction.              
+                          direction.
 
   Security type           May distinguish cash,                         Medium
-                          security, bond, fee,    
-                          margin, sweep, or short 
-                          activity.               
+                          security, bond, fee,
+                          margin, sweep, or short
+                          activity.
 
   Source/destination type May define the                                Medium
-                          offsetting side of the  
-                          accounting entry.       
+                          offsetting side of the
+                          accounting entry.
 
   Source/destination      May identify cash,                            Medium
-  symbol                  margin, short, or wash  
-                          symbols.                
+  symbol                  margin, short, or wash
+                          symbols.
 
   Special security        Used in observed fee                          Medium
-  type/symbol             and expense handling.   
+  type/symbol             and expense handling.
 
   Portfolio/account       May affect                                    Medium
-  configuration           interpretation,         
-                          including               
-                          deliver-in/out          
-                          behavior.               
+  configuration           interpretation,
+                          including
+                          deliver-in/out
+                          behavior.
 
   Custodian or interface  Integration-specific                          Medium
-  translation             mappings may alter      
-                          native codes.           
+  translation             mappings may alter
+                          native codes.
 
   Reversal/cancellation   Uppercase code may                            Medium
-  context                 represent               
-                          deletion/cancellation   
-                          in observed workflows.  
+  context                 represent
+                          deletion/cancellation
+                          in observed workflows.
   ----------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -175,32 +175,32 @@ meaning. Interpretation may depend on:
   transactions,                                      product-level
   positions,                                         evidence, but not
   settlement/trade                                   detailed mechanics.
-  information, tax-lot                               
-  or average-cost                                    
-  accounting,                                        
-  reporting,                                         
-  performance                                        
-  measurement, and                                   
-  reconciliation.                                    
+  information, tax-lot
+  or average-cost
+  accounting,
+  reporting,
+  performance
+  measurement, and
+  reconciliation.
 
   Axys transaction                            Medium Supported by
   import workflows can                               ByAllAccounts and
   route transactions                                 WealthTechs
   through a Trade                                    integration evidence.
-  Blotter for review                                 
-  and posting.                                       
+  Blotter for review
+  and posting.
 
   Axys native                                Unknown Not supplied.
-  transaction file                                   
-  structure is fully                                 
-  known from the                                     
-  supplied material.                                 
+  transaction file
+  structure is fully
+  known from the
+  supplied material.
 
   Axys native                                Unknown Not supplied.
-  transaction-code                                   
-  matrix is fully known                              
-  from the supplied                                  
-  material.                                          
+  transaction-code
+  matrix is fully known
+  from the supplied
+  material.
   ------------------------------------------------------------------------
 
 ### 2.2 Axys Trade Blotter and IMEX Workflow
@@ -235,7 +235,7 @@ behavior, not proof of exclusive native Axys behavior.
   `topost.trn`     Trade Blotter file                Medium Third-party
                    receiving                                integration
                    transaction                              evidence.
-                   imports.                                 
+                   imports.
 
   `$pathtrn`       Axys user folder                  Medium Integration
                    label for Trade                          workflow
@@ -253,19 +253,19 @@ behavior, not proof of exclusive native Axys behavior.
   `$pathcli`       Axys                              Medium Integration
                    portfolio/client                         workflow
                    files; `*.cli`;                          evidence.
-                   used to create                           
-                   portfolio-code                           
-                   list in one                              
-                   workflow.                                
+                   used to create
+                   portfolio-code
+                   list in one
+                   workflow.
 
   `$pathinf`       Contains `sec.inf`                Medium Integration
                    and `type.inf`;                          workflow
                    exported by                              evidence.
-                   integration                              
-                   software to                              
-                   generate                                 
-                   transactions and                         
-                   positions.                               
+                   integration
+                   software to
+                   generate
+                   transactions and
+                   positions.
 
   `$pathpri`       Axys price-file                   Medium Integration
                    folder; `*.pri`.                         workflow
@@ -277,9 +277,9 @@ behavior, not proof of exclusive native Axys behavior.
 
   `*.cli`          Client/portfolio                  Medium Native full
                    files referenced                         layout Unknown.
-                   in conversion and                        
-                   integration                              
-                   evidence.                                
+                   in conversion and
+                   integration
+                   evidence.
   --------------------------------------------------------------------------
 
 ### 2.4 Axys `.cli` and Conversion Evidence
@@ -291,42 +291,42 @@ behavior, not proof of exclusive native Axys behavior.
   basis            evidence states                                evidence, not a
                    per-share cost-basis                           full native `.cli`
                    data is converted only                         spec.
-                   if provided in exported                        
-                   Advent `.cli` file.                            
+                   if provided in exported
+                   Advent `.cli` file.
 
   Deliver-in /     `li` and `lo` may be                    Medium Code-only
   deliver-out      interpreted differently                        interpretation is
   interpretation   depending on a                                 unsafe.
-                   transaction-setting code                       
-                   in the Advent client                           
-                   file.                                          
+                   transaction-setting code
+                   in the Advent client
+                   file.
 
   53rd-character   Setting code `Y` maps                   Medium Specific to
   setting          `li`/`lo` to                                   supplied
                    Deliver-In/Deliver-Out                         conversion
                    in Morningstar                                 evidence.
-                   conversion; setting code                       
-                   `N` maps them to                               
-                   Credit/Debit of                                
-                   Security.                                      
+                   conversion; setting code
+                   `N` maps them to
+                   Credit/Debit of
+                   Security.
 
   `none` or        Transactions linked to                  Medium Conversion-layer
   `client`         securities labeled                             behavior.
-  securities       `none` or `client` may                         
-                   be converted as                                
-                   out-of-pocket cash.                            
+  securities       `none` or `client` may
+                   be converted as
+                   out-of-pocket cash.
 
   Principal        Principal paydowns from                 Medium Native Axys
   paydowns         Axys may create                                mechanics Unknown.
-                   conversion                                     
-                   complications, including                       
-                   zero-quantity cases.                           
+                   conversion
+                   complications, including
+                   zero-quantity cases.
 
   Transaction and  Transaction prices and                  Medium Exact native field
   historical       historical security                            names Unknown.
-  prices           prices may be converted                        
-                   if present in Axys                             
-                   conversion inputs.                             
+  prices           prices may be converted
+                   if present in Axys
+                   conversion inputs.
   ----------------------------------------------------------------------------------
 
 ### 2.5 Axys Reinvestment Evidence
@@ -337,30 +337,30 @@ behavior, not proof of exclusive native Axys behavior.
   Axys distribution                           Medium Based on Morningstar
   reinvestment activity                              Axys conversion
   may appear as Buy                                  evidence.
-  plus Distribution                                  
-  transaction pairs in                               
-  conversion data.                                   
+  plus Distribution
+  transaction pairs in
+  conversion data.
 
   Reinvestment                                Medium Conversion
   representation can                                 observation.
-  affect downstream                                  
-  realized and                                       
-  unrealized gain/loss                               
-  reporting.                                         
+  affect downstream
+  realized and
+  unrealized gain/loss
+  reporting.
 
   Native Axys                                Unknown Not supplied.
-  reinvestment                                       
-  representation is                                  
-  fully defined by                                   
-  supplied material.                                 
+  reinvestment
+  representation is
+  fully defined by
+  supplied material.
   ------------------------------------------------------------------------
 
 ### 2.6 Axys Fee Evidence
 
   --------------------------------------------------------------------------
   Item             Observed Meaning            Confidence Caveat
-                   in Supplied                            
-                   Material                               
+                   in Supplied
+                   Material
   ---------------- ---------------- --------------------- ------------------
   `epus`           Associated with                 Medium May be a
                    Management Fee                         transaction code,
@@ -388,17 +388,17 @@ behavior, not proof of exclusive native Axys behavior.
   --------------------- ---------------------------- ---------------------
   WealthTechs Axys                            Medium Third-party workflow
   evidence documents                                 evidence.
-  cancellation behavior                              
-  using uppercase                                    
-  transaction code,                                  
-  e.g. `by` → `BY`.                                  
+  cancellation behavior
+  using uppercase
+  transaction code,
+  e.g. `by` → `BY`.
 
   Uppercase                                  Unknown Not supported by
   cancellation behavior                              supplied material.
-  is universal across                                
-  all Axys versions,                                 
-  transaction types,                                 
-  and import methods.                                
+  is universal across
+  all Axys versions,
+  transaction types,
+  and import methods.
   ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -414,27 +414,27 @@ behavior, not proof of exclusive native Axys behavior.
   transaction import,                                third-party
   blotter                                            integration and
   review/posting,                                    consultant evidence.
-  reporting,                                         
-  reconciliation, and                                
-  database/reporting                                 
-  alternatives.                                      
+  reporting,
+  reconciliation, and
+  database/reporting
+  alternatives.
 
   APX users may use                           Medium Supported by
   SQL/database                                       consultant evidence.
-  reporting/export                                   
-  alternatives in                                    
-  addition to IMEX.                                  
+  reporting/export
+  alternatives in
+  addition to IMEX.
 
   Native APX database                        Unknown Not supplied.
-  transaction schema is                              
-  fully known from                                   
-  supplied material.                                 
+  transaction schema is
+  fully known from
+  supplied material.
 
   Native APX                                 Unknown Not supplied.
-  transaction-code                                   
-  matrix is fully known                              
-  from supplied                                      
-  material.                                          
+  transaction-code
+  matrix is fully known
+  from supplied
+  material.
   ------------------------------------------------------------------------
 
 ### 3.2 APX Blotter Types Observed
@@ -445,46 +445,46 @@ behavior, not proof of exclusive native Axys behavior.
   Trade Blotter    AIA imports                     Medium Integration
                    transactions                           workflow
                    into this                              evidence.
-                   blotter; can be                        
-                   consolidated or                        
-                   created per                            
-                   custodian.                             
+                   blotter; can be
+                   consolidated or
+                   created per
+                   custodian.
 
   Statement        Used to post                    Medium Integration
   Blotter          custodian                              workflow
                    statement                              evidence.
-                   transactions;                          
-                   can support                            
-                   reconciliation                         
-                   against OMS or                         
-                   third-party data                       
-                   using REX.                             
+                   transactions;
+                   can support
+                   reconciliation
+                   against OMS or
+                   third-party data
+                   using REX.
 
   Tax Lot Blotter  Used for                        Medium Integration
                    tax-lot-level                          workflow
                    reconciliation                         evidence.
-                   of                                     
-                   APX-calculated                         
-                   lots versus                            
-                   custodian lots.                        
+                   of
+                   APX-calculated
+                   lots versus
+                   custodian lots.
 
   Position Blotter Used for                        Medium Integration
                    importing                              workflow
                    positions into                         evidence.
-                   APX.                                   
+                   APX.
 
   Account Blotter  Used for                        Medium Integration
                    importing                              workflow
                    account                                evidence.
-                   information.                           
+                   information.
 
   Initial          Used to import                  Medium AIA setting;
   Transaction      positions as                           native APX
   Blotter          deliver-in                             behavior
                    transactions for                       Unknown.
-                   accounts without                       
-                   transactions,                          
-                   when configured.                       
+                   accounts without
+                   transactions,
+                   when configured.
   ------------------------------------------------------------------------
 
 ### 3.3 APX Trade Blotter Organization Options
@@ -493,17 +493,17 @@ behavior, not proof of exclusive native Axys behavior.
   Option                Meaning                                 Confidence
   --------------------- --------------------- ----------------------------
   Consolidate Into One  Aggregate all                               Medium
-  Blotter               transactions from all 
-                        custodians into one   
-                        trade blotter.        
+  Blotter               transactions from all
+                        custodians into one
+                        trade blotter.
 
   Create One Blotter    Distribute                                  Medium
-  Per Custodian         transactions into one 
-                        blotter per           
-                        custodian.            
+  Per Custodian         transactions into one
+                        blotter per
+                        custodian.
 
   No Trade Blotter      No trade blotter is                         Medium
-                        created by AIA.       
+                        created by AIA.
   ------------------------------------------------------------------------
 
 ### 3.4 APX Transaction Translation Model
@@ -517,14 +517,14 @@ generation.
   ----------------------- ---------------------------- ---------------------
   WebPortfolio interprets                       Medium ByAllAccounts APX
   financial-institution                                guide evidence.
-  transaction data and                                 
-  assigns a normalized                                 
-  transaction type.                                    
+  transaction data and
+  assigns a normalized
+  transaction type.
 
   Custodial Integrator                          Medium ByAllAccounts APX
   translates normalized                                guide evidence.
-  transaction types into                               
-  APX transactions.                                    
+  transaction types into
+  APX transactions.
 
   Some APX translations                         Medium Examples include
   depend on the sign of                                positive/negative
@@ -533,16 +533,16 @@ generation.
   Positive-unit transfer                        Medium Integration default,
   maps to APX `li` in the                              not complete native
   default translation                                  documentation.
-  table.                                               
+  table.
 
   Negative-unit transfer                        Medium Integration default,
   maps to APX `lo` in the                              not complete native
   default translation                                  documentation.
-  table.                                               
+  table.
 
   Translation tables may                        Medium Integration behavior.
-  be customized by                                     
-  financial institution.                               
+  be customized by
+  financial institution.
   --------------------------------------------------------------------------
 
 ### 3.5 APX Observed Transaction/Blotter Fields
@@ -551,41 +551,41 @@ generation.
   Field            Description          Axys       APX        IMEX      REP         Confidence
   ---------------- -------------------- ---------- ---------- --------- --------- ------------
   APX Transaction  Transaction          Unknown    Observed   Unknown   Unknown         Medium
-  Type             code/type used in                                              
-                   APX translation                                                
-                   table.                                                         
+  Type             code/type used in
+                   APX translation
+                   table.
 
   APX Transaction  Source/destination   Unknown    Observed   Unknown   Unknown         Medium
-  Src/Dest Type    security or cash                                               
-                   type.                                                          
+  Src/Dest Type    security or cash
+                   type.
 
   APX Transaction  Source/destination   Unknown    Observed   Unknown   Unknown         Medium
-  Src/Dest Symbol  symbol,                                                        
-                   e.g. cash-like                                                 
-                   symbols.                                                       
+  Src/Dest Symbol  symbol,
+                   e.g. cash-like
+                   symbols.
 
   APX Transaction  Special security     Unknown    Observed   Unknown   Unknown         Medium
-  Special Security type used in                                                   
-  Type             fee/expense                                                    
-                   examples.                                                      
+  Special Security type used in
+  Type             fee/expense
+                   examples.
 
   APX Transaction  Special security     Unknown    Observed   Unknown   Unknown         Medium
-  Special Security symbol used in                                                 
-  Symbol           fee/expense                                                    
-                   examples.                                                      
+  Special Security symbol used in
+  Symbol           fee/expense
+                   examples.
 
   Broker           Field that can       Unknown    Observed   Unknown   Unknown         Medium
-  Representative   receive `$brok` in                                             
-  Field            AIA workflow.                                                  
+  Representative   receive `$brok` in
+  Field            AIA workflow.
 
   Lot Location     Axys-era/APX         Observed   Observed   Unknown   Unknown         Medium
-                   workflow concept     as                                        
-                   integrated into lot  Axys-era                                  
-                   accounting.          concept                                   
+                   workflow concept     as
+                   integrated into lot  Axys-era
+                   accounting.          concept
 
   Comment          Transaction import   Unknown    Observed   Unknown   Unknown         Medium
-                   comment or                                                     
-                   standalone comment.                                            
+                   comment or
+                   standalone comment.
   --------------------------------------------------------------------------------------------
 
 ### 3.6 APX Initial Deliver-In Transactions
@@ -595,30 +595,30 @@ generation.
   --------------------- ---------------------------- ---------------------
   AIA can create                              Medium AIA/APX workflow
   initial deliver-in                                 evidence.
-  transactions from                                  
-  positions for                                      
-  accounts with no                                   
-  transactions.                                      
+  transactions from
+  positions for
+  accounts with no
+  transactions.
 
   If transactions are                         Medium AIA workflow
   received on the same                               evidence.
-  day as initial                                     
-  positions in that                                  
-  scenario, the                                      
-  transactions may be                                
-  ignored and not                                    
-  written to the                                     
-  blotter.                                           
+  day as initial
+  positions in that
+  scenario, the
+  transactions may be
+  ignored and not
+  written to the
+  blotter.
 
   Tax lots may be                      Low to Medium Details incomplete.
-  relevant to initial                                
-  deliver-in                                         
-  construction.                                      
+  relevant to initial
+  deliver-in
+  construction.
 
   Native APX initial                         Unknown Not supplied.
-  deliver-in behavior                                
-  independent of AIA is                              
-  fully known.                                       
+  deliver-in behavior
+  independent of AIA is
+  fully known.
   ------------------------------------------------------------------------
 
 ### 3.7 APX Statement Transactions and Reconciliation
@@ -628,20 +628,20 @@ generation.
   -------------------------- ---------------------------- ---------------------
   APX workflows may                                Medium WealthTechs APX
   distinguish posted                                      evidence.
-  portfolio transactions                                  
-  from statement                                          
-  transactions.                                           
+  portfolio transactions
+  from statement
+  transactions.
 
   Statement transactions may                       Medium WealthTechs APX
   support reconciliation                                  evidence.
-  against custodian or OMS                                
-  data.                                                   
+  against custodian or OMS
+  data.
 
   APX may expose separate UI                       Medium Workflow evidence.
-  tabs named `Transactions`                               
-  and                                                     
-  `Statement Transactions`                                
-  in this workflow.                                       
+  tabs named `Transactions`
+  and
+  `Statement Transactions`
+  in this workflow.
   -----------------------------------------------------------------------------
 
 ### 3.8 APX Comments and Broker Field
@@ -650,34 +650,34 @@ generation.
   Topic                 Statement                               Confidence
   --------------------- --------------------- ----------------------------
   Transaction comments  Rules in Transaction                        Medium
-                        Translation may apply 
-                        only to transaction   
-                        comments in certain   
-                        cases, while          
-                        standalone comments   
-                        always post to the    
-                        import transaction    
-                        file in the observed  
-                        workflow.             
+                        Translation may apply
+                        only to transaction
+                        comments in certain
+                        cases, while
+                        standalone comments
+                        always post to the
+                        import transaction
+                        file in the observed
+                        workflow.
 
   Broker representative A `Use $brok` setting                       Medium
-                        can write `$brok` to  
-                        the broker            
-                        representative field  
-                        in the transaction    
-                        blotter.              
+                        can write `$brok` to
+                        the broker
+                        representative field
+                        in the transaction
+                        blotter.
 
   `.cli` reference      `$brok` is described                        Medium
-                        as typically defined  
-                        in the `.cli` file    
-                        for each APX          
-                        portfolio.            
+                        as typically defined
+                        in the `.cli` file
+                        for each APX
+                        portfolio.
 
   Broker translations   Broker translations                         Medium
-                        can map broker        
-                        representative values 
-                        to APX-specific       
-                        codes.                
+                        can map broker
+                        representative values
+                        to APX-specific
+                        codes.
   ------------------------------------------------------------------------
 
 ### 3.9 APX Cash Sweeps, Margin Sweeps, Short Sweeps, and Merge Logic
@@ -686,17 +686,17 @@ generation.
   Feature             Observed Behavior                        Confidence Caveat
   ------------------- ----------------------------- --------------------- ----------------
   Cash sweep removal  AIA includes logic to remove                 Medium AIA behavior.
-                      cash sweep transactions from                        
-                      source transaction files.                           
+                      cash sweep transactions from
+                      source transaction files.
 
   Margin and short    AIA has similar removal logic                Medium AIA behavior.
-  sweep removal       for margin and short sweeps.                        
+  sweep removal       for margin and short sweeps.
 
   Example sweep       Examples include                             Medium Source examples
   patterns            `DP,CAUS,CASH,CAUS,MMF`,                            only.
-                      `DP,CAUS,CASH,CAUS,MARGIN`,                         
-                      and                                                 
-                      `DP,CAUS,CASH,CAUS,SHORT`.                          
+                      `DP,CAUS,CASH,CAUS,MARGIN`,
+                      and
+                      `DP,CAUS,CASH,CAUS,SHORT`.
 
   FX merge            AIA has options to merge FX                  Medium AIA behavior;
                       transactions.                                       native APX FX
@@ -704,12 +704,12 @@ generation.
                                                                           Unknown.
 
   Accrued-interest    AIA has options to merge                     Medium AIA behavior.
-  merge               accrued-interest                                    
-                      transactions.                                       
+  merge               accrued-interest
+                      transactions.
 
   Dividend/interest   AIA has options to merge                     Medium AIA behavior.
-  merge               dividend and interest                               
-                      entries.                                            
+  merge               dividend and interest
+                      entries.
   ----------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -729,36 +729,36 @@ generation.
   IMEX supports CSV,  Supported     Unknown                  Medium Axys-focused
   tab, and                                                          consultant
   fixed-format                                                      evidence.
-  import/export in                                                  
-  Axys according to                                                 
-  consultant                                                        
-  documentation.                                                    
+  import/export in
+  Axys according to
+  consultant
+  documentation.
 
   APX maintained IMEX Not           Supported                Medium Version-specific
   functionality from  applicable                                    consultant
   v1.x to v4.x, but                                                 evidence.
-  fixed-format file                                                 
-  generation was                                                    
-  eliminated                                                        
-  according to                                                      
-  consultant                                                        
-  documentation.                                                    
+  fixed-format file
+  generation was
+  eliminated
+  according to
+  consultant
+  documentation.
 
   IMEX plus           Supported     Supported                Medium Consultant
   transaction/label                                                 evidence.
-  import through                                                    
-  Trade Blotter can                                                 
-  move fundamental                                                  
-  data in and out of                                                
-  Axys/APX.                                                         
+  import through
+  Trade Blotter can
+  move fundamental
+  data in and out of
+  Axys/APX.
 
   Official IMEX       Unknown       Unknown                 Unknown Not supplied.
-  transaction object                                                
-  names are known.                                                  
+  transaction object
+  names are known.
 
   Complete IMEX       Unknown       Unknown                 Unknown Not supplied.
-  transaction field                                                 
-  list is known.                                                    
+  transaction field
+  list is known.
   ------------------------------------------------------------------------------------
 
 ### 4.2 Axys IMEX Details Observed
@@ -771,21 +771,21 @@ generation.
                                                           evidence.
 
   Import target    Trade Blotter /                 Medium Workflow-specific.
-                   `topost.trn` in                        
-                   observed                               
-                   workflow.                              
+                   `topost.trn` in
+                   observed
+                   workflow.
 
   Logs             IMEX logs                       Medium Exact format
                    written to                             Unknown.
-                   `$pathlog` in                          
-                   observed                               
-                   workflow.                              
+                   `$pathlog` in
+                   observed
+                   workflow.
 
   Input support    CSV, tab,                       Medium Version coverage
                    fixed-format                           Unknown.
-                   according to                           
-                   consultant                             
-                   evidence.                              
+                   according to
+                   consultant
+                   evidence.
   ----------------------------------------------------------------------------
 
 ### 4.3 APX IMEX Details Observed
@@ -796,23 +796,23 @@ generation.
   IMEX             APX maintained                    Medium Exact version
   availability     IMEX functionality                       behavior
                    in versions                              Unknown.
-                   referenced by                            
-                   consultant source.                       
+                   referenced by
+                   consultant source.
 
   Fixed-format     Eliminated in APX                 Medium Needs official
   generation       according to                             confirmation.
-                   consultant                               
-                   documentation.                           
+                   consultant
+                   documentation.
 
   Alternative      SQL/database                      Medium APX-specific
   access           reporting/export                         consultant
                    tools may be                             evidence.
-                   available.                               
+                   available.
 
   Official         Unknown                          Unknown Not supplied.
-  transaction                                               
-  import/export                                             
-  object names                                              
+  transaction
+  import/export
+  object names
   --------------------------------------------------------------------------
 
 ### 4.4 Candidate IMEX Transaction Fields
@@ -826,28 +826,28 @@ documentation or production exports are obtained.
   Field         Description         Axys             APX              IMEX      REP         Confidence
   ------------- ------------------- ---------------- ---------------- --------- --------- ------------
   Portfolio     Portfolio/account   Expected         Expected         Unknown   Unknown        Unknown
-                identifier.                                           name                
+                identifier.                                           name
 
   Security      Security identifier Expected         Expected         Unknown   Unknown        Unknown
-                or symbol.                                            name                
+                or symbol.                                            name
 
   Trade Date    Economic or         Expected         Expected         Unknown   Unknown        Unknown
-                execution date.                                       name                
+                execution date.                                       name
 
   Settlement    Cash settlement     Expected         Expected         Unknown   Unknown        Unknown
-  Date          date.                                                 name                
+  Date          date.                                                 name
 
   Transaction   Accounting event    Expected         Expected         Unknown   Unknown        Unknown
-  Code          code.                                                 name                
+  Code          code.                                                 name
 
   Quantity      Units affected.     Expected         Expected         Unknown   Unknown        Unknown
-                                                                      name                
+                                                                      name
 
   Price         Execution price.    Expected         Expected         Unknown   Unknown        Unknown
-                                                                      name                
+                                                                      name
 
   Amount        Cash or transaction Expected         Expected         Unknown   Unknown        Unknown
-                amount.                                               name                
+                amount.                                               name
 
   Broker        Broker or           Unknown          Observed in      Unknown   Unknown     Medium for
                 representative.                      blotter workflow name                APX blotter;
@@ -855,11 +855,11 @@ documentation or production exports are obtained.
                                                                                                   IMEX
 
   Currency      Transaction or      Expected         Expected         Unknown   Unknown        Unknown
-                settlement                                            name                
-                currency.                                                                 
+                settlement                                            name
+                currency.
 
   FX Rate       Currency conversion Expected for     Expected for     Unknown   Unknown        Unknown
-                rate.               multi-currency   multi-currency   name                
+                rate.               multi-currency   multi-currency   name
 
   Comment       Free-form note.     Unknown          Observed in      Unknown   Unknown     Medium for
                                                      import workflow  name                         APX
@@ -876,17 +876,17 @@ documentation or production exports are obtained.
 
   ----------------------------------------------------------------------------------
   Report /       System        Description               Confidence Notes
-  Interface                                                         
+  Interface
   -------------- ------------- ------------------ ----------------- ----------------
   Transaction    APX / Advent  Displays account              Medium Report sample
   Summary Report reports       transactions                         and public
                                maintained by                        report-guide
                                Advent; sample                       evidence.
-                               evidence includes                    
-                               dates, quantity,                     
-                               symbol, security,                    
-                               unit price, and                      
-                               amount.                              
+                               evidence includes
+                               dates, quantity,
+                               symbol, security,
+                               unit price, and
+                               amount.
 
   REP            Axys          Unknown                      Unknown Exact report
   transaction                                                       names,
@@ -912,9 +912,9 @@ documentation or production exports are obtained.
 
   APX            APX           Consultant source             Medium Native schema
   SQL/database                 lists SQL/database                   Unknown.
-  access                       access as an APX                     
-                               reporting/export                     
-                               alternative.                         
+  access                       access as an APX
+                               reporting/export
+                               alternative.
   ----------------------------------------------------------------------------------
 
 ### 5.2 Transaction Summary Report --- Observed Columns
@@ -926,18 +926,18 @@ Transaction Summary Report.
   Section               Observed Columns                        Confidence
   --------------------- --------------------- ----------------------------
   Dividends             Ex-Date, Pay-Date,                          Medium
-                        Symbol, Security,     
-                        Amount                
+                        Symbol, Security,
+                        Amount
 
   Contributions         Trade Date, Settle                          Medium
-                        Date, Quantity,       
-                        Symbol, Security,     
-                        Unit Price, Amount    
+                        Date, Quantity,
+                        Symbol, Security,
+                        Unit Price, Amount
 
   Withdrawals           Trade Date, Settle                          Medium
-                        Date, Quantity,       
-                        Symbol, Security,     
-                        Unit Price, Amount    
+                        Date, Quantity,
+                        Symbol, Security,
+                        Unit Price, Amount
   ------------------------------------------------------------------------
 
 ### 5.3 Unknown REP Details
@@ -946,29 +946,29 @@ Transaction Summary Report.
   Question                            Status
   ----------------------------------- -----------------------------------
   Which REP reports expose            Unknown
-  transactions in Axys?               
+  transactions in Axys?
 
   Which REP reports expose            Unknown
-  transactions in APX beyond the      
-  Transaction Summary Report          
-  evidence?                           
+  transactions in APX beyond the
+  Transaction Summary Report
+  evidence?
 
   What are the official APX           Unknown
-  Transaction Summary Report          
-  parameters?                         
+  Transaction Summary Report
+  parameters?
 
   What are the official APX           Unknown
-  Transaction Summary Report field    
-  names?                              
+  Transaction Summary Report field
+  names?
 
   Do REP reports read stored posted   Unknown
-  records, recalculated values,       
-  staged blotter values, or a         
-  mixture?                            
+  records, recalculated values,
+  staged blotter values, or a
+  mixture?
 
   How do REP outputs reconcile to     Unknown
-  IMEX exports and native accounting  
-  records?                            
+  IMEX exports and native accounting
+  records?
   -----------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -1003,48 +1003,48 @@ Reports / IMEX / REP / Reconciliation / Audit
   Dependency       Role                 Failure Mode                Confidence
   ---------------- -------------------- ---------------- ---------------------
   Portfolio Master Maps transaction to  Unknown                           High
-                   account/portfolio.   portfolio,       
-                                        inactive         
-                                        account,         
-                                        duplicate        
-                                        mapping.         
+                   account/portfolio.   portfolio,
+                                        inactive
+                                        account,
+                                        duplicate
+                                        mapping.
 
   Security Master  Identifies asset and Unknown             High conceptually;
                    security type.       security,                   Medium for
                                         duplicate         integration evidence
-                                        security,        
-                                        ambiguous        
-                                        identifier.      
+                                        security,
+                                        ambiguous
+                                        identifier.
 
   Currency / FX    Supports             Missing FX rate,                Medium
-                   multi-currency       invalid          
-                   transaction and      currency,        
-                   base-currency        settlement       
-                   reporting.           mismatch.        
+                   multi-currency       invalid
+                   transaction and      currency,
+                   base-currency        settlement
+                   reporting.           mismatch.
 
   Pricing          Supports buy/sell    Missing price,      High conceptually;
                    valuation, cost      price                Medium for native
                    basis, and           inconsistent            field behavior
-                   reconciliation.      with market      
-                                        close.           
+                   reconciliation.      with market
+                                        close.
 
   Corporate        May generate or      Missing split,                  Medium
-  Actions          alter transaction    return of        
-                   interpretation.      capital,         
-                                        paydown, reorg   
-                                        event.           
+  Actions          alter transaction    return of
+                   interpretation.      capital,
+                                        paydown, reorg
+                                        event.
 
   Translation      Maps                 Wrong                           Medium
-  Configuration    custodian/source     transaction      
-                   records to Axys/APX  type, wrong      
-                   accounting form.     security, wrong  
-                                        portfolio.       
+  Configuration    custodian/source     transaction
+                   records to Axys/APX  type, wrong
+                   accounting form.     security, wrong
+                                        portfolio.
 
   `.cli` / client  May affect           Misclassified                   Medium
-  settings         interpretation,      deliver-in/out   
-                   e.g. `li`/`lo`       versus           
-                   behavior in Axys     credit/debit.    
-                   conversion evidence.                  
+  settings         interpretation,      deliver-in/out
+                   e.g. `li`/`lo`       versus
+                   behavior in Axys     credit/debit.
+                   conversion evidence.
   ----------------------------------------------------------------------------
 
 ### 6.3 Downstream Dependencies
@@ -1053,53 +1053,53 @@ Reports / IMEX / REP / Reconciliation / Audit
   Downstream Area       Transaction Impact                        Confidence
   --------------------- ----------------------- ----------------------------
   Holdings              Buys, sells, transfers,                         High
-                        splits, reinvestments,  
-                        and paydowns change     
-                        units/exposure.         
+                        splits, reinvestments,
+                        and paydowns change
+                        units/exposure.
 
   Cash                  Deposits, withdrawals,                          High
-                        buys, sells, fees,      
-                        dividends, interest,    
-                        and settlements affect  
-                        cash.                   
+                        buys, sells, fees,
+                        dividends, interest,
+                        and settlements affect
+                        cash.
 
   Tax Lots              Purchases, sales,                             Medium
-                        transfers, initial      
-                        deliver-ins, and        
-                        corporate actions may   
-                        create/consume/modify   
-                        lots.                   
+                        transfers, initial
+                        deliver-ins, and
+                        corporate actions may
+                        create/consume/modify
+                        lots.
 
   Cost Basis            Purchases, sales,          High conceptually; native
                         transfers, return of               mechanics Unknown
-                        capital, reinvestments, 
-                        and fees may affect     
-                        basis.                  
+                        capital, reinvestments,
+                        and fees may affect
+                        basis.
 
   Income                Dividends, interest,               High conceptually
-                        withholding,            
-                        reinvestment legs, and  
-                        some bond events affect 
-                        income.                 
+                        withholding,
+                        reinvestment legs, and
+                        some bond events affect
+                        income.
 
   Realized Gain/Loss    Sales, covers,             High conceptually; native
                         transfers, and lot                 mechanics Unknown
-                        selection can create    
-                        realized gain/loss.     
+                        selection can create
+                        realized gain/loss.
 
   Performance           Transactions affect                High conceptually
-                        capital flows,          
-                        holdings, income,       
-                        prices, and historical  
-                        restatements.           
+                        capital flows,
+                        holdings, income,
+                        prices, and historical
+                        restatements.
 
   Reports / IMEX / REP  Posted records are                            Medium
-                        exposed through reports 
-                        and interfaces.         
+                        exposed through reports
+                        and interfaces.
 
   Audit /               Transactions are                                High
-  Reconciliation        primary evidence for    
-                        accounting differences. 
+  Reconciliation        primary evidence for
+                        accounting differences.
   --------------------------------------------------------------------------
 
 ### 6.4 Transaction Processing Pipeline
@@ -1108,64 +1108,64 @@ Reports / IMEX / REP / Reconciliation / Audit
   Stage            Purpose            Typical Failure                Confidence
   ---------------- ------------------ ------------------- ---------------------
   Acquire Source   Obtain             Missing file, stale                Medium
-  Data             transactions from  file, incomplete    
-                   custodian, broker, batch.              
-                   OMS, manual entry,                     
-                   provider, or                           
-                   conversion file.                       
+  Data             transactions from  file, incomplete
+                   custodian, broker, batch.
+                   OMS, manual entry,
+                   provider, or
+                   conversion file.
 
   Normalize        Convert source     Bad dates, bad                     Medium
-  Records          records into       signs, malformed    
-                   common             identifiers.        
-                   representation.                        
+  Records          records into       signs, malformed
+                   common             identifiers.
+                   representation.
 
   Portfolio        Map external       Unknown or                         Medium
-  Translation      account to         duplicate mapping.  
-                   internal                               
-                   portfolio.                             
+  Translation      account to         duplicate mapping.
+                   internal
+                   portfolio.
 
   Security         Map external       Unknown or                         Medium
-  Translation      security to        ambiguous security. 
-                   internal security.                     
+  Translation      security to        ambiguous security.
+                   internal security.
 
   Transaction      Map external type  Unsupported                        Medium
-  Translation      to accounting      transaction, wrong  
-                   code/type.         direction, missing  
-                                      paired leg.         
+  Translation      to accounting      transaction, wrong
+                   code/type.         direction, missing
+                                      paired leg.
 
   Special          Apply sweeps, FX   Suppressed records,                Medium
-  Processing       merge,             bad merge, wrong    
-                   accrued-interest   fee classification. 
-                   merge, fee                             
-                   translation, tax                       
-                   logic,                                 
-                   cancellation                           
-                   handling.                              
+  Processing       merge,             bad merge, wrong
+                   accrued-interest   fee classification.
+                   merge, fee
+                   translation, tax
+                   logic,
+                   cancellation
+                   handling.
 
   Validation       Check required     Missing quantity,                  Medium
-                   fields and         price, FX, dates,   
-                   plausibility.      or invalid          
-                                      settlement          
-                                      sequence.           
+                   fields and         price, FX, dates,
+                   plausibility.      or invalid
+                                      settlement
+                                      sequence.
 
   Staging /        Hold records for   Exception,                         Medium
-  Blotter          review.            cancellation        
-                                      mismatch, pending   
-                                      record.             
+  Blotter          review.            cancellation
+                                      mismatch, pending
+                                      record.
 
   Posting          Commit transaction Posting failure,                   Medium
-                   to accounting      partial batch,      
-                   records.           unresolved          
-                                      dependency.         
+                   to accounting      partial batch,
+                   records.           unresolved
+                                      dependency.
 
   Downstream       Update holdings,   Position/cash/lot       High conceptually
-  Updates          cash, lots, basis, inconsistency.      
-                   income, gain/loss.                     
+  Updates          cash, lots, basis, inconsistency.
+                   income, gain/loss.
 
   Reporting /      Expose records     Interface/report                   Medium
-  Export           through reports,   mismatch.           
-                   IMEX, REP, SQL, or                     
-                   other tools.                           
+  Export           through reports,   mismatch.
+                   IMEX, REP, SQL, or
+                   other tools.
   -----------------------------------------------------------------------------
 
 ### 6.5 AIA APX Processing Order Observed
@@ -1177,49 +1177,49 @@ APX processing order.
                  Order Step            Applies To                Confidence
   -------------------- --------------- --------------- --------------------
                      3 Remove Pending  All files                     Medium
-                       Records                         
+                       Records
 
                      4 Remove          Transactions                  Medium
-                       Intra-Account                   
-                       Journals                        
+                       Intra-Account
+                       Journals
 
                      5 Remove Cash     Transactions                  Medium
-                       Sweeps                          
+                       Sweeps
 
                      6 Withholding Tax Transactions                  Medium
-                       Logic                           
+                       Logic
 
                      7 Merge FX        Transactions                  Medium
-                       Transactions                    
+                       Transactions
 
                      8 Merge Accrued   Transactions                  Medium
-                       Interest                        
-                       Transactions                    
+                       Interest
+                       Transactions
 
                      9 Transaction     Transactions                  Medium
-                       Translations                    
+                       Translations
 
                     12 Broker          Transactions                  Medium
-                       Translations                    
+                       Translations
 
                     15 Adjust Cancel   Transactions                  Medium
-                       Transactions to                 
-                       Upper Case                      
+                       Transactions to
+                       Upper Case
 
                     16 Apply           Transactions                  Medium
-                       Transaction                     
-                       Comment Logic                   
+                       Transaction
+                       Comment Logic
 
                     17 Merge Dividends Transactions                  Medium
-                       and Interest                    
+                       and Interest
 
                     19 Post            Transactions                  Medium
-                       Translations                    
-                       Transaction                     
-                       Translations                    
+                       Translations
+                       Transaction
+                       Translations
 
                     23 Add Interface   All files                     Medium
-                       Comments                        
+                       Comments
   -------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -1241,27 +1241,27 @@ APX processing order.
 
   Security      Security involved in Expected         Expected         Unknown   Symbol/Security             High
   Identifier    transaction.                                           name      observed in         conceptually
-                                                                                 report sample     
+                                                                                 report sample
 
   Trade Date    Execution/economic   Expected         Expected         Unknown   Observed in                 High
                 date.                                                  name      report sample       conceptually
 
   Settlement    Settlement/cash      Expected         Expected         Unknown   Observed as                 High
   Date          date.                                                  name      Settle Date in      conceptually
-                                                                                 report sample     
+                                                                                 report sample
 
   Entry Date    Date entered into    Unknown          Unknown          Unknown   Unknown                  Unknown
-                system.                                                                            
+                system.
 
   Posting Date  Date posted to       Unknown          Unknown          Unknown   Unknown                  Unknown
-                accounting records.                                                                
+                accounting records.
 
   Quantity      Units traded or      Expected         Expected         Unknown   Observed in                 High
                 affected.                                              name      report sample       conceptually
 
   Price         Unit price.          Expected         Expected         Unknown   Observed as Unit            High
                                                                        name      Price in report     conceptually
-                                                                                 sample            
+                                                                                 sample
 
   Gross Amount  Transaction value    Expected         Expected         Unknown   Unknown                   Medium
                 before adjustments.                                    name                          conceptually
@@ -1276,17 +1276,17 @@ APX processing order.
                 administrative fees. optional         optional         name                          conceptually
 
   FX Rate       Currency conversion  Expected when    Expected when    Unknown   Unknown                   Medium
-                rate.                multi-currency   multi-currency   name                        
+                rate.                multi-currency   multi-currency   name
 
   Broker        Broker or            Unknown          Broker           Unknown   Unknown           Medium for APX
                 representative.                       representative   name                              workflow
-                                                      field observed                               
+                                                      field observed
 
   Batch ID      Import batch         Unknown          Unknown          Unknown   Unknown                  Unknown
-                identifier.                                                                        
+                identifier.
 
   Source ID     External transaction Unknown          Unknown          Unknown   Unknown                  Unknown
-                identifier.                                                                        
+                identifier.
 
   Comment       Free-form note.      Unknown          Observed in      Unknown   Unknown           Medium for APX
                                                       import workflow  name                              workflow
@@ -1341,9 +1341,9 @@ configuration-dependent, context-dependent, or incomplete.
   ----------- -------------------------- ----------- ----------- -------------- ---------------------
   `by`        Buy                        Observed in Observed            Medium Public integration
                                          examples;                              documentation only.
-                                         official                               
-                                         status                                 
-                                         Unknown                                
+                                         official
+                                         status
+                                         Unknown
 
   `BY`        Cancellation/deletion of   Observed    Observed            Medium Uppercase
               Buy                                                               cancellation
@@ -1361,11 +1361,11 @@ configuration-dependent, context-dependent, or incomplete.
 
   `li`        Deliver in / transfer in / Observed    Observed            Medium Meaning may depend on
               credit / deposit /                                                sign/configuration.
-              positive movement                                                 
+              positive movement
 
   `lo`        Deliver out / transfer out Observed    Observed            Medium Meaning may depend on
               / debit / withdrawal /                                            sign/configuration.
-              negative movement                                                 
+              negative movement
 
   `dv`        Dividend / income /        Unknown     Observed            Medium Often relevant to
               reinvestment leg                                                  reinvestment.
@@ -1376,24 +1376,24 @@ configuration-dependent, context-dependent, or incomplete.
                                                                                 confirmation.
 
   `pd`        Principal paydown / bond   Unknown     Observed            Medium Bond-related.
-              return-of-capital case                                            
+              return-of-capital case
 
   `ai`        Accrued interest or margin Unknown     Observed            Medium Context-dependent.
-              interest                                                          
+              interest
 
   `sa`        Sell accrued interest      Unknown     Observed            Medium Requires vendor
                                                                                 confirmation.
 
   `pa`        Reinvested dividend /      Unknown     Observed     Low to Medium Meaning requires
               accrued-interest-related                                          further verification.
-              buy-like case                                                     
+              buy-like case
 
   `dp`        Debit / fee-related / tax  Unknown     Observed            Medium Multiple meanings
               / service charge /                                                depending on context.
-              cash-security case                                                
+              cash-security case
 
   `wd`        Withdrawal / cash-security Unknown     Observed            Medium Context-dependent.
-              sell case                                                         
+              sell case
 
   `;`         Journal / comment / other  Unknown     Observed            Medium Treat as observed
               / split in integration                                            integration behavior
@@ -1404,8 +1404,8 @@ configuration-dependent, context-dependent, or incomplete.
 
   -----------------------------------------------------------------------------------
   Source Transaction  Observed APX                Confidence Notes
-  Concept             Translation                            
-                      Pattern                                
+  Concept             Translation
+                      Pattern
   ------------------- ---------------- --------------------- ------------------------
   ATM positive        `li`                            Medium Inflow-like.
 
@@ -1430,7 +1430,7 @@ configuration-dependent, context-dependent, or incomplete.
   Credit              `li`                            Medium Inflow-like.
 
   Debit non-cash      `lo`                            Medium Outflow-like.
-  security                                                   
+  security
 
   Tax                 `dp` with                       Medium Examples include `epus`
                       special                                and withholding-related
@@ -1449,27 +1449,27 @@ configuration-dependent, context-dependent, or incomplete.
 
   Reinvested dividend `dv` and/or                     Medium Exact native behavior
                       paired buy                             Unknown.
-                      behavior                               
+                      behavior
 
   Fee                 `dp` with                       Medium Configurable.
-                      special security                       
-                      type/symbol such                       
-                      as                                     
-                      `exus custfee`                         
+                      special security
+                      type/symbol such
+                      as
+                      `exus custfee`
 
   Recordkeeping fee   `dp` with                       Medium Source-table example.
-                      `epus expense`                         
+                      `epus expense`
 
   Income bond         `li` / `lo`                     Medium Direction depends on
   security                                                   sign.
-  positive/negative                                          
+  positive/negative
 
   Income cash         `in`                            Medium Income-like.
-  security                                                   
+  security
 
   Income              `dv`                            Medium Dividend-like.
-  dividend-paying                                            
-  security                                                   
+  dividend-paying
+  security
 
   Interest positive   `in`                            Medium Income-like.
 
@@ -1477,7 +1477,7 @@ configuration-dependent, context-dependent, or incomplete.
                                                              special case.
 
   Investment expense  `dp` with                       Medium Fee-like.
-                      `exus custfee`                         
+                      `exus custfee`
 
   Journal             `;`                             Medium Comment/journal-like.
 
@@ -1498,7 +1498,7 @@ configuration-dependent, context-dependent, or incomplete.
 
   Return of capital   `rc`; bond                      Medium Bond-specific behavior
                       security may map                       requires verification.
-                      to `pd`                                
+                      to `pd`
 
   Sell                `sl`                            Medium Normal sell.
 
@@ -1512,7 +1512,7 @@ configuration-dependent, context-dependent, or incomplete.
                                                              `sa`.
 
   Service charge      `dp` with                       Medium Fee-like.
-                      `exus custfee`                         
+                      `exus custfee`
 
   Split               `;`                             Medium Source maps split to
                                                              semicolon/comment-like
@@ -1531,31 +1531,31 @@ configuration-dependent, context-dependent, or incomplete.
   ------------------------ ---------------- ---------------- ----------------- -------------
   Lowercase transaction    Observed         Observed                    Medium Third-party
   code may be uppercased                                                       workflows.
-  to represent                                                                 
-  cancellation/deletion,                                                       
-  e.g. `by` → `BY`.                                                            
+  to represent
+  cancellation/deletion,
+  e.g. `by` → `BY`.
 
   Cancellation transaction Unknown          Observed                    Medium APX
   fields must sufficiently                                                     integration
   match the original                                                           evidence.
-  transaction or blotter                                                       
-  error may occur.                                                             
+  transaction or blotter
+  error may occur.
 
   Cancellation blotters    Observed         Observed                    Medium WealthTechs
   may be created from                                                          evidence.
-  historical transaction                                                       
-  files.                                                                       
+  historical transaction
+  files.
 
   Cancellation workflows   Supported        Supported                   Medium Based on
   should be treated as     recommendation   recommendation                     source
   high-risk and backed                                                         warnings.
-  up/reviewed.                                                                 
+  up/reviewed.
 
   Uppercase cancellation   Unknown          Unknown                    Unknown Not supplied.
-  is universal native                                                          
-  behavior across all                                                          
-  versions and import                                                          
-  methods.                                                                     
+  is universal native
+  behavior across all
+  versions and import
+  methods.
   ------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -1589,7 +1589,7 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
   Interpretation Item   Value                                   Confidence
   --------------------- --------------------- ----------------------------
   Cancellation          `BY`, uppercase                             Medium
-  indicator             version of `by`       
+  indicator             version of `by`
 
   Native universality   Unknown                                    Unknown
 
@@ -1606,19 +1606,19 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
   ---------------- ---------------- --------------------- ----------------
   Axys             Reinvestment may                Medium Conversion
                    appear as Buy                          evidence only.
-                   plus                                   
-                   Distribution                           
-                   transaction                            
-                   pairs in                               
-                   conversion data.                       
+                   plus
+                   Distribution
+                   transaction
+                   pairs in
+                   conversion data.
 
   APX              Reinvestment may                Medium Integration
                    translate as                           evidence only.
-                   `dv` and `by`                          
-                   pair in                                
-                   ByAllAccounts                          
-                   integration                            
-                   evidence.                              
+                   `dv` and `by`
+                   pair in
+                   ByAllAccounts
+                   integration
+                   evidence.
   ------------------------------------------------------------------------
 
 ### 9.4 Fee Pattern
@@ -1628,18 +1628,18 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
   ---------------- ----------------- --------------------- ----------------
   Axys             `epus` associated                Medium Official meaning
                    with Management                         Unknown.
-                   Fee conversion;                         
-                   `exus` associated                       
-                   with Expense                            
-                   conversion.                             
+                   Fee conversion;
+                   `exus` associated
+                   with Expense
+                   conversion.
 
   APX              Fee transactions                 Medium Integration
                    may use `dp` plus                       evidence only.
-                   special security                        
-                   type/symbol such                        
-                   as `exus custfee`                       
-                   or                                      
-                   `epus expense`.                         
+                   special security
+                   type/symbol such
+                   as `exus custfee`
+                   or
+                   `epus expense`.
   -------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -1672,11 +1672,11 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 
   Fees may depend on special security     Supported     Supported                Medium Terminology differs
   type/symbol and description                                                           across sources.
-  translation.                                                                          
+  translation.
 
   Principal paydowns may produce          Supported     Unknown                  Medium Axys conversion
   downstream conversion/reconciliation                                                  evidence.
-  complications.                                                                        
+  complications.
 
   Uppercase cancellation codes are        Supported     Supported                Medium Universality
   observed.                                                                             Unknown.
@@ -1684,16 +1684,16 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
   AIA/APX import may remove pending       Not           Supported in             Medium AIA behavior, not
   records, sweeps, intra-account          applicable    integration                     confirmed native APX
   journals, or merge                                    workflow                        order.
-  FX/accrued-interest/dividend-interest                                                 
-  records.                                                                              
+  FX/accrued-interest/dividend-interest
+  records.
 
   Initial deliver-ins may be generated    Unknown       Supported in             Medium Native behavior
   from positions for accounts with no                   integration                     Unknown.
-  transactions in AIA/APX workflow.                     workflow                        
+  transactions in AIA/APX workflow.                     workflow
 
   Statement transactions and posted       Unknown       Supported                Medium Workflow evidence.
-  transactions may be distinguished in                                                  
-  APX workflows.                                                                        
+  transactions may be distinguished in
+  APX workflows.
 
   `;` may represent                       Unknown       Observed                 Medium Treat only as
   journal/comment/other/split in APX                                                    integration
@@ -1711,38 +1711,38 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
 
   ------------------------------------------------------------------------------
   Rule          Severity      Description        Required             Confidence
-                                                 Inputs        
+                                                 Inputs
   ------------- ------------- ------------------ ------------- -----------------
   TR-001        Critical      Transaction        Portfolio ID               High
-  Missing                     references a                     
-  Portfolio                   portfolio that                   
-                              does not exist.                  
+  Missing                     references a
+  Portfolio                   portfolio that
+                              does not exist.
 
   TR-002        Critical      Security           Security                   High
-  Missing                     transaction        Identifier,   
-  Security                    references an      Transaction   
-                              unknown security.  Code          
+  Missing                     transaction        Identifier,
+  Security                    references an      Transaction
+                              unknown security.  Code
 
   TR-003        High          Trade-based        Trade Date                 High
-  Missing Trade               transaction lacks                
-  Date                        trade date.                      
+  Missing Trade               transaction lacks
+  Date                        trade date.
 
   TR-004        High          Settlement date    Trade Date,                High
-  Settlement                  precedes trade     Settlement    
-  Before Trade                date.              Date          
+  Settlement                  precedes trade     Settlement
+  Before Trade                date.              Date
 
   TR-005        High          Security           Quantity,                  High
-  Missing                     transaction lacks  Transaction   
-  Quantity                    required quantity. Code          
+  Missing                     transaction lacks  Transaction
+  Quantity                    required quantity. Code
 
   TR-006        Medium        Price-required     Price,                     High
-  Missing Price               transaction has no Transaction   
-                              execution price.   Code          
+  Missing Price               transaction has no Transaction
+                              execution price.   Code
 
   TR-007        Medium        Foreign-currency   Currency, FX             Medium
-  Invalid FX                  transaction has    Rate          
-  Rate                        missing or invalid               
-                              FX rate.                         
+  Invalid FX                  transaction has    Rate
+  Rate                        missing or invalid
+                              FX rate.
   ------------------------------------------------------------------------------
 
 ### 11.2 Translation and Blotter Rules
@@ -1751,33 +1751,33 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
   Rule             Severity         Description                    Confidence
   ---------------- ---------------- ------------------- ---------------------
   TR-008 Portfolio Critical         External                           Medium
-  Translation                       portfolio/account   
-  Failure                           cannot be           
-                                    translated.         
+  Translation                       portfolio/account
+  Failure                           cannot be
+                                    translated.
 
   TR-009 Security  Critical         External security                  Medium
-  Translation                       cannot be           
-  Failure                           translated.         
+  Translation                       cannot be
+  Failure                           translated.
 
   TR-010           High             External                           Medium
-  Unsupported                       transaction type    
-  Transaction Type                  has no mapping.     
+  Unsupported                       transaction type
+  Transaction Type                  has no mapping.
 
   TR-011 Trade     Medium           Transaction remains                Medium
-  Blotter                           in exception state. 
-  Exception                                             
+  Blotter                           in exception state.
+  Exception
 
   TR-012           High             Cancellation                       Medium
-  Cancellation                      transaction does    
-  Mismatch                          not sufficiently    
-                                    match original      
-                                    transaction.        
+  Cancellation                      transaction does
+  Mismatch                          not sufficiently
+                                    match original
+                                    transaction.
 
   TR-013           High             Cancellation                       Medium
-  Cancellation                      blotters require    
-  Control                           review, backup, and 
-                                    operational         
-                                    controls.           
+  Cancellation                      blotters require
+  Control                           review, backup, and
+                                    operational
+                                    controls.
   ---------------------------------------------------------------------------
 
 ### 11.3 Accounting Rules
@@ -1786,51 +1786,51 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
   Rule             Severity         Description                   Confidence
   ---------------- ---------------- ------------------ ---------------------
   TR-014 Holdings  Critical         Posted transaction                  High
-  Not Updated                       not reflected in   
-                                    holdings.          
+  Not Updated                       not reflected in
+                                    holdings.
 
   TR-015 Cash Not  Critical         Posted transaction                  High
-  Updated                           not reflected in   
-                                    cash.              
+  Updated                           not reflected in
+                                    cash.
 
   TR-016 Cost      High             Cost basis                        Medium
-  Basis                             inconsistent with  
-  Inconsistency                     transaction        
-                                    history.           
+  Basis                             inconsistent with
+  Inconsistency                     transaction
+                                    history.
 
   TR-017 Tax Lot   High             Tax lots                          Medium
-  Inconsistency                     inconsistent with  
-                                    transaction        
-                                    history.           
+  Inconsistency                     inconsistent with
+                                    transaction
+                                    history.
 
   TR-018 Dividend  Medium           Dividend received                 Medium
-  Without Position                  without supporting 
-                                    position.          
+  Without Position                  without supporting
+                                    position.
 
   TR-019 Coupon    Medium           Coupon payment                    Medium
-  Inconsistent                      inconsistent with  
-  With Bond                         bond               
-                                    characteristics.   
+  Inconsistent                      inconsistent with
+  With Bond                         bond
+                                    characteristics.
 
   TR-020 Return of Medium           Return of capital                 Medium
-  Capital Without                   appears for        
-  Eligible                          security not       
-  Security                          expected to        
-                                    support it.        
+  Capital Without                   appears for
+  Eligible                          security not
+  Security                          expected to
+                                    support it.
 
   TR-021 Split     High             Split detected                    Medium
-  Without Quantity                  without expected   
-  Adjustment                        holding            
-                                    adjustment.        
+  Without Quantity                  without expected
+  Adjustment                        holding
+                                    adjustment.
 
   TR-022 Split     Medium           Historical prices                 Medium
-  Without Price                     inconsistent with  
-  Adjustment                        split.             
+  Without Price                     inconsistent with
+  Adjustment                        split.
 
   TR-023 Principal Medium           Principal paydown                 Medium
-  Paydown                           inconsistent with  
-  Inconsistency                     expected           
-                                    reduction.         
+  Paydown                           inconsistent with
+  Inconsistency                     expected
+                                    reduction.
   --------------------------------------------------------------------------
 
 ### 11.4 Reconciliation and Historical Change Rules
@@ -1839,64 +1839,64 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
   Rule             Severity         Description                  Confidence
   ---------------- ---------------- ----------------- ---------------------
   TR-024 Custodian High             Custodian                          High
-  Difference                        transactions      
-                                    differ from       
-                                    accounting        
-                                    records.          
+  Difference                        transactions
+                                    differ from
+                                    accounting
+                                    records.
 
   TR-025 IMEX      Medium           IMEX export                      Medium
-  Difference                        differs from      
-                                    expected          
-                                    accounting        
-                                    records.          
+  Difference                        differs from
+                                    expected
+                                    accounting
+                                    records.
 
   TR-026 REP       Medium           REP report                      Unknown
-  Difference                        differs from      
-                                    accounting        
-                                    records.          
+  Difference                        differs from
+                                    accounting
+                                    records.
 
   TR-027           High             Historical                         High
-  Historical                        transaction       
-  Transaction                       edited.           
-  Modified                                            
+  Historical                        transaction
+  Transaction                       edited.
+  Modified
 
   TR-028           High             Historical                         High
-  Historical                        transaction       
-  Transaction                       deleted.          
-  Deleted                                             
+  Historical                        transaction
+  Transaction                       deleted.
+  Deleted
 
   TR-029           High             Historical                         High
-  Performance                       transaction       
-  Restatement                       change may        
-  Candidate                         require           
-                                    performance       
-                                    review.           
+  Performance                       transaction
+  Restatement                       change may
+  Candidate                         require
+                                    performance
+                                    review.
 
   TR-030 Duplicate High             Potential                          High
-  Transaction                       duplicate         
-                                    transaction.      
+  Transaction                       duplicate
+                                    transaction.
 
   TR-031 Duplicate Medium           Duplicate                        Medium
-  External                          external          
-  Identifier                        transaction       
-                                    identifier.       
+  External                          external
+  Identifier                        transaction
+                                    identifier.
 
   TR-032 Stale     Medium           Pending                          Medium
-  Pending                           transaction       
-  Transaction                       exceeds           
-                                    operational       
-                                    threshold.        
+  Pending                           transaction
+  Transaction                       exceeds
+                                    operational
+                                    threshold.
 
   TR-033 Batch     Medium           Import batch                     Medium
-  Partially                         incomplete.       
-  Processed                                           
+  Partially                         incomplete.
+  Processed
 
   TR-034 Stale     Medium           Import should                    Medium
-  Account / Stale                   identify stale    
-  Price Detection                   accounts and      
-                                    stale prices      
-                                    before            
-                                    export/posting.   
+  Account / Stale                   identify stale
+  Price Detection                   accounts and
+                                    stale prices
+                                    before
+                                    export/posting.
   -------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -1908,53 +1908,53 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
   ------------- ------------- --------------- ----------------- ---------------
   Axys v2.x     Consultant    Not applicable             Medium Needs official
   binary files  evidence says                                   confirmation.
-  and IMEX      Axys v2.x                                       
-                introduced                                      
-                binary file                                     
-                formats and                                     
-                IMEX allowed                                    
-                CSV, tab, and                                   
-                fixed                                           
-                formats.                                        
+  and IMEX      Axys v2.x
+                introduced
+                binary file
+                formats and
+                IMEX allowed
+                CSV, tab, and
+                fixed
+                formats.
 
   Axys v3.7 to  Consultant    Not applicable             Medium Supports
   v3.8 file     evidence says                                   caution against
   conversion    upgrading                                       direct file
                 from Axys                                       access.
-                v3.7 to v3.8                                    
-                required file                                   
-                conversion                                      
-                and produced                                    
-                some files                                      
-                with                                            
-                different                                       
-                formats.                                        
+                v3.7 to v3.8
+                required file
+                conversion
+                and produced
+                some files
+                with
+                different
+                formats.
 
   APX v1.x to   Not           Consultant                 Medium Needs official
   v4.x IMEX     applicable    evidence says                     confirmation.
-                              APX maintained                    
-                              IMEX                              
-                              functionality                     
-                              but eliminated                    
-                              fixed-format                      
-                              file                              
-                              generation.                       
+                              APX maintained
+                              IMEX
+                              functionality
+                              but eliminated
+                              fixed-format
+                              file
+                              generation.
 
   Native        Unknown       Unknown                   Unknown Not supplied.
-  transaction                                                   
-  code changes                                                  
-  by version                                                    
+  transaction
+  code changes
+  by version
 
   Native Trade  Unknown       Unknown                   Unknown Not supplied.
-  Blotter                                                       
-  behavior                                                      
-  changes by                                                    
-  version                                                       
+  Blotter
+  behavior
+  changes by
+  version
 
   Native REP    Unknown       Unknown                   Unknown Not supplied.
-  report                                                        
-  changes by                                                    
-  version                                                       
+  report
+  changes by
+  version
   -----------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -1971,78 +1971,78 @@ specific references. Confidence varies by source type.
                  Axys Product    page                       reporting,               capabilities;
                  Page                                       performance,                   Low for
                                                             reconciliation,              mechanics
-                                                            transactions,          
-                                                            positions,             
-                                                            settlement/trade       
-                                                            information, tax-lot   
-                                                            or average-cost        
-                                                            accounting, trade-date 
-                                                            or settlement-date     
-                                                            accounting.            
+                                                            transactions,
+                                                            positions,
+                                                            settlement/trade
+                                                            information, tax-lot
+                                                            or average-cost
+                                                            accounting, trade-date
+                                                            or settlement-date
+                                                            accounting.
 
          SRC-002 AdventGuru ---  Consultant      Axys/APX   IMEX, Trade Blotter,            Medium
-                 Getting Data In article                    import/export,         
-                 and Out of                                 Replang, reports,      
-                 Advent APX and                             direct-file-access     
-                 Axys                                       risks, APX             
-                                                            SQL/database options.  
+                 Getting Data In article                    import/export,
+                 and Out of                                 Replang, reports,
+                 Advent APX and                             direct-file-access
+                 Axys                                       risks, APX
+                                                            SQL/database options.
 
          SRC-003 WealthTechs AIA Third-party     APX        Trade/Statement/Tax             Medium
-                 User Manual --- integration                Lot/Position/Account   
-                 APX Users       manual                     blotters, transaction  
-                                                            translation,           
-                                                            cancellation,          
-                                                            comments, broker       
-                                                            fields, processing     
-                                                            order.                 
+                 User Manual --- integration                Lot/Position/Account
+                 APX Users       manual                     blotters, transaction
+                                                            translation,
+                                                            cancellation,
+                                                            comments, broker
+                                                            fields, processing
+                                                            order.
 
          SRC-004 WealthTechs AIA Third-party     Axys       Transaction                     Medium
-                 User Manual --- integration                cancellation, IMEX     
-                 Axys Users      manual                     workflow, blotters,    
-                                                            cancellation example.  
+                 User Manual --- integration                cancellation, IMEX
+                 Axys Users      manual                     workflow, blotters,
+                                                            cancellation example.
 
          SRC-005 ByAllAccounts   Third-party     APX        Translation tables,             Medium
-                 Custodial       integration                reversals, fees,       
-                 Integrator ---  manual                     imports,               
-                 APX User Guide                             sign-dependent         
-                                                            translation,           
-                                                            source/destination     
-                                                            fields, special        
-                                                            security fields.       
+                 Custodial       integration                reversals, fees,
+                 Integrator ---  manual                     imports,
+                 APX User Guide                             sign-dependent
+                                                            translation,
+                                                            source/destination
+                                                            fields, special
+                                                            security fields.
 
          SRC-006 ByAllAccounts   Third-party     Axys       Trade Blotter                   Medium
-                 Custodial       integration                workflow, IMEX import, 
-                 Integrator ---  manual                     `topost.trn`,          
-                 Axys User Guide                            `imex32.exe`, folder   
-                                                            labels, IMEX logs,     
-                                                            security/reference     
-                                                            files.                 
+                 Custodial       integration                workflow, IMEX import,
+                 Integrator ---  manual                     `topost.trn`,
+                 Axys User Guide                            `imex32.exe`, folder
+                                                            labels, IMEX logs,
+                                                            security/reference
+                                                            files.
 
          SRC-007 Morningstar     Third-party     Axys       Reinvestment,                   Medium
-                 Office Advent   migration guide            deliver-in/out         
-                 Axys Conversion                            interpretation,        
-                 Guide                                      `.cli`, cost basis,    
-                                                            fees, paydowns,        
-                                                            transaction prices,    
-                                                            historical prices,     
-                                                            conversion caveats.    
+                 Office Advent   migration guide            deliver-in/out
+                 Axys Conversion                            interpretation,
+                 Guide                                      `.cli`, cost basis,
+                                                            fees, paydowns,
+                                                            transaction prices,
+                                                            historical prices,
+                                                            conversion caveats.
 
          SRC-008 Advent          Vendor report   APX        Transaction Summary      Low to Medium
-                 Portfolio       guide / public             Report existence.      
-                 Exchange        PDF reference                                     
-                 Reports Guide                                                     
+                 Portfolio       guide / public             Report existence.
+                 Exchange        PDF reference
+                 Reports Guide
 
          SRC-009 Wealth          Vendor/report   APX / SSRS Transaction Summary             Medium
-                 Management      sample                     Report purpose and     
-                 Reports /                                  sample columns.        
-                 Advent report                                                     
-                 sample                                                            
+                 Management      sample                     Report purpose and
+                 Reports /                                  sample columns.
+                 Advent report
+                 sample
 
          SRC-010 AdventGuru ---  Consultant      Axys/APX   APX-exported CLI files          Medium
-                 APX to Axys     article                    mapped into Axys       
-                 Conversion                                 `topost.trn`;          
-                                                            transaction mappings   
-                                                            and tax lots.          
+                 APX to Axys     article                    mapped into Axys
+                 Conversion                                 `topost.trn`;
+                                                            transaction mappings
+                                                            and tax lots.
   ------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -2055,26 +2055,26 @@ specific references. Confidence varies by source type.
   ID                    Unknown                                        Priority
   --------------------- -------------------------- ----------------------------
   TU-001                Complete official Axys                             High
-                        transaction-code matrix.   
+                        transaction-code matrix.
 
   TU-002                Complete official APX                              High
-                        transaction-code matrix.   
+                        transaction-code matrix.
 
   TU-003                Whether Axys and APX                               High
-                        transaction codes are      
-                        identical, overlapping,    
-                        divergent,                 
-                        version-specific, or       
-                        configuration-dependent.   
+                        transaction codes are
+                        identical, overlapping,
+                        divergent,
+                        version-specific, or
+                        configuration-dependent.
 
   TU-004                Which observed codes are                           High
-                        native versus              
-                        integration-layer          
-                        mappings.                  
+                        native versus
+                        integration-layer
+                        mappings.
 
   TU-005                Deprecated or                                    Medium
-                        version-specific           
-                        transaction codes.         
+                        version-specific
+                        transaction codes.
   -----------------------------------------------------------------------------
 
 ### 14.2 IMEX
@@ -2083,31 +2083,31 @@ specific references. Confidence varies by source type.
   ID                    Unknown                                   Priority
   --------------------- --------------------- ----------------------------
   TU-006                Official Axys IMEX                            High
-                        transaction export    
-                        object names.         
+                        transaction export
+                        object names.
 
   TU-007                Official Axys IMEX                            High
-                        transaction import    
-                        object names.         
+                        transaction import
+                        object names.
 
   TU-008                Official APX IMEX                             High
-                        transaction           
-                        export/import object  
-                        names.                
+                        transaction
+                        export/import object
+                        names.
 
   TU-009                Complete IMEX                                 High
-                        transaction field     
-                        list.                 
+                        transaction field
+                        list.
 
   TU-010                Official Trade                                High
-                        Blotter import        
-                        layout.               
+                        Blotter import
+                        layout.
 
   TU-011                IMEX log fields and                         Medium
-                        validation messages.  
+                        validation messages.
 
   TU-012                Native IMEX object                          Medium
-                        dependency sequence.  
+                        dependency sequence.
   ------------------------------------------------------------------------
 
 ### 14.3 REP and Reports
@@ -2116,33 +2116,33 @@ specific references. Confidence varies by source type.
   ID                    Unknown                                   Priority
   --------------------- --------------------- ----------------------------
   TU-013                Which REP reports                             High
-                        expose transaction    
-                        information.          
+                        expose transaction
+                        information.
 
   TU-014                Official APX                                  High
-                        Transaction Summary   
-                        Report parameters and 
-                        fields.               
+                        Transaction Summary
+                        Report parameters and
+                        fields.
 
   TU-015                Whether REP                                 Medium
-                        transaction values    
-                        are stored,           
-                        recalculated, or      
-                        mixed.                
+                        transaction values
+                        are stored,
+                        recalculated, or
+                        mixed.
 
   TU-016                Axys transaction                              High
-                        report names and      
-                        fields.               
+                        report names and
+                        fields.
 
   TU-017                APX transaction                             Medium
-                        reports beyond        
-                        Transaction Summary   
-                        Report.               
+                        reports beyond
+                        Transaction Summary
+                        Report.
 
   TU-018                How REP report values                       Medium
-                        reconcile to IMEX     
-                        exports and posted    
-                        accounting records.   
+                        reconcile to IMEX
+                        exports and posted
+                        accounting records.
   ------------------------------------------------------------------------
 
 ### 14.4 Internal Data Model and Posting
@@ -2151,32 +2151,32 @@ specific references. Confidence varies by source type.
   ID                    Unknown                                         Priority
   --------------------- --------------------------- ----------------------------
   TU-019                How transactions are                                High
-                        physically stored in Axys.  
+                        physically stored in Axys.
 
   TU-020                How transactions are stored                         High
-                        in APX.                     
+                        in APX.
 
   TU-021                Internal identifiers that                           High
-                        uniquely identify           
-                        transactions.               
+                        uniquely identify
+                        transactions.
 
   TU-022                Native posting status                             Medium
-                        values.                     
+                        values.
 
   TU-023                Native Trade Blotter state                          High
-                        transitions.                
+                        transitions.
 
   TU-024                Native error states and                           Medium
-                        rejection codes.            
+                        rejection codes.
 
   TU-025                Native warning messages.                          Medium
 
   TU-026                Batch                                             Medium
-                        rollback/restart/recovery   
-                        logic.                      
+                        rollback/restart/recovery
+                        logic.
 
   TU-027                Native idempotency or                             Medium
-                        duplicate-detection logic.  
+                        duplicate-detection logic.
   ------------------------------------------------------------------------------
 
 ### 14.5 Historical Changes, Lots, Cost Basis, and Audit
@@ -2185,60 +2185,60 @@ specific references. Confidence varies by source type.
   ID                    Unknown                                   Priority
   --------------------- --------------------- ----------------------------
   TU-028                How reversals are                             High
-                        represented           
-                        internally.           
+                        represented
+                        internally.
 
   TU-029                Whether uppercase                             High
-                        transaction codes     
-                        universally mean      
-                        delete/reversal.      
+                        transaction codes
+                        universally mean
+                        delete/reversal.
 
   TU-030                How historical edits                          High
-                        are represented.      
+                        are represented.
 
   TU-031                Whether deleted                               High
-                        transactions are      
-                        retained for audit.   
+                        transactions are
+                        retained for audit.
 
   TU-032                How corrections are                         Medium
-                        distinguished from    
-                        reversals.            
+                        distinguished from
+                        reversals.
 
   TU-033                How transaction edits                       Medium
-                        propagate into        
-                        holdings.             
+                        propagate into
+                        holdings.
 
   TU-034                How transaction edits                       Medium
-                        propagate into cash.  
+                        propagate into cash.
 
   TU-035                How transaction edits                         High
-                        propagate into        
-                        performance.          
+                        propagate into
+                        performance.
 
   TU-036                Whether historical                            High
-                        transactions can be   
-                        reconstructed         
-                        completely.           
+                        transactions can be
+                        reconstructed
+                        completely.
 
   TU-037                How tax lots are                              High
-                        linked to             
-                        transactions.         
+                        linked to
+                        transactions.
 
   TU-038                How partial lot                             Medium
-                        disposals are         
-                        represented.          
+                        disposals are
+                        represented.
 
   TU-039                How per-share cost                            High
-                        basis is represented  
-                        in `.cli` exports.    
+                        basis is represented
+                        in `.cli` exports.
 
   TU-040                How transfer lots                           Medium
-                        preserve acquisition  
-                        date and basis.       
+                        preserve acquisition
+                        date and basis.
 
   TU-041                How lot locations are                       Medium
-                        stored and used       
-                        natively.             
+                        stored and used
+                        natively.
   ------------------------------------------------------------------------
 
 ### 14.6 Multi-Currency and Performance
@@ -2247,41 +2247,41 @@ specific references. Confidence varies by source type.
   ID                    Unknown                                   Priority
   --------------------- --------------------- ----------------------------
   TU-042                How FX rates are                            Medium
-                        stored.               
+                        stored.
 
   TU-043                How cross-currency                          Medium
-                        settlements are       
-                        represented.          
+                        settlements are
+                        represented.
 
   TU-044                How FX transactions                         Medium
-                        are merged or paired  
-                        in native workflows.  
+                        are merged or paired
+                        in native workflows.
 
   TU-045                How base-currency                           Medium
-                        values are stored     
-                        versus calculated.    
+                        values are stored
+                        versus calculated.
 
   TU-046                Which transaction                             High
-                        types affect stored   
-                        performance.          
+                        types affect stored
+                        performance.
 
   TU-047                Which transaction                             High
-                        changes trigger       
-                        performance           
-                        restatement.          
+                        changes trigger
+                        performance
+                        restatement.
 
   TU-048                How performance                               High
-                        restatements are      
-                        detected or audited.  
+                        restatements are
+                        detected or audited.
 
   TU-049                Whether                                       High
-                        edited/deleted        
-                        historical            
-                        transactions are      
-                        visible to            
-                        performance           
-                        recalculation         
-                        workflows.            
+                        edited/deleted
+                        historical
+                        transactions are
+                        visible to
+                        performance
+                        recalculation
+                        workflows.
   ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -2296,12 +2296,12 @@ supplied material would be needed:
   Needed Material                     Would Resolve
   ----------------------------------- -----------------------------------
   Official Axys transaction-code      Axys native code matrix.
-  manual or sanitized production code 
-  list.                               
+  manual or sanitized production code
+  list.
 
   Official APX transaction-code       APX native code matrix.
-  manual or sanitized production code 
-  list.                               
+  manual or sanitized production code
+  list.
 
   Official Axys/APX IMEX manual with  IMEX object names and field
   transaction objects.                layouts.

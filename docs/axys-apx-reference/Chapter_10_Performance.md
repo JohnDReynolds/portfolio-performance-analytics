@@ -1,8 +1,8 @@
 # Chapter 10 — Performance
 
-**Repository:** AXYS / APX Reference Repository  
-**Chapter:** `Chapter_10_Performance.md`  
-**Prepared from supplied research:** `Research_10_Performance.md` plus supplied supporting research for IMEX, REP, transactions, holdings, cash, pricing, corporate actions, security master, and classifications.  
+**Repository:** AXYS / APX Reference Repository
+**Chapter:** `Chapter_10_Performance.md`
+**Prepared from supplied research:** `Research_10_Performance.md` plus supplied supporting research for IMEX, REP, transactions, holdings, cash, pricing, corporate actions, security master, and classifications.
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---

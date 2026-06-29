@@ -1,9 +1,9 @@
 # Chapter_01_Overview.md
 
-Repository: AXYS / APX Reference Repository  
-Chapter: `Chapter_01_Overview.md`  
-Prepared: 2026-06-29  
-Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
+Repository: AXYS / APX Reference Repository
+Chapter: `Chapter_01_Overview.md`
+Prepared: 2026-06-29
+Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 Source basis: supplied repository chapters `Chapter_02_Axys_Architecture.md` through `Chapter_16_Glossary.md` only
 
 ---

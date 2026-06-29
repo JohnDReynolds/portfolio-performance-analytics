@@ -1,9 +1,9 @@
 # Chapter 14 — Reports
 
-**Repository:** AXYS / APX Reference Repository  
-**Chapter file:** `Chapter_14_Reports.md`  
-**Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
+**Repository:** AXYS / APX Reference Repository
+**Chapter file:** `Chapter_14_Reports.md`
+**Prepared:** 2026-06-29
+**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 **Source basis:** Supplied research files only, especially `Research_14_Reports.md`, with cross-reference to supplied architecture, holdings, transactions, performance, classifications, IMEX, and REP research.
 
 ---

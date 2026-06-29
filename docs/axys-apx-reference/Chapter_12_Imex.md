@@ -1,9 +1,9 @@
 # Chapter 12 — IMEX
 
-**Repository:** AXYS / APX Reference Repository  
-**Chapter:** `docs/12-IMEX.md`  
-**Status:** Technical reference chapter  
-**Prepared:** 2026-06-29  
+**Repository:** AXYS / APX Reference Repository
+**Chapter:** `docs/12-IMEX.md`
+**Status:** Technical reference chapter
+**Prepared:** 2026-06-29
 **Source basis:** Supplied repository blueprint and supplied research notes only.
 
 ---

@@ -1,8 +1,8 @@
 # Chapter 13 — REP
 
-Repository: AXYS / APX Reference Repository  
-Chapter: `docs/13-REP.md`  
-Prepared: 2026-06-29  
+Repository: AXYS / APX Reference Repository
+Chapter: `docs/13-REP.md`
+Prepared: 2026-06-29
 Status: Draft technical reference chapter based only on supplied source material.
 
 ---

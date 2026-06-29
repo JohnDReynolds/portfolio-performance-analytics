@@ -1,10 +1,10 @@
 # Chapter_03_APX_Architecture.md
 
-**Repository:** AXYS / APX Reference Repository  
-**Chapter:** `Chapter_03_APX_Architecture.md`  
-**Status:** Draft technical reference chapter  
-**Prepared:** 2026-06-29  
-**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0  
+**Repository:** AXYS / APX Reference Repository
+**Chapter:** `Chapter_03_APX_Architecture.md`
+**Status:** Draft technical reference chapter
+**Prepared:** 2026-06-29
+**Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---
 
