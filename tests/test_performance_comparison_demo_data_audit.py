@@ -10,6 +10,8 @@ import unittest
 
 import pandas as pd
 
+from ppar.performance_comparison.config_validation import validate_config
+
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _AUDIT_SCRIPT_PATH = _REPO_ROOT / "scripts" / "audit_performance_comparison_demo_data.py"
@@ -51,6 +53,21 @@ def _load_rebuild_module():
 
 class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     """Verify packaged demo data remains internally consistent."""
+
+    def test_packaged_demo_transaction_rules_cover_observed_codes(self) -> None:
+        """Packaged demo YAML explicitly defines every observed transaction code."""
+        comparison_path = (
+            _REPO_ROOT
+            / "ppar"
+            / "demos"
+            / "data"
+            / "axys"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        summary = validate_config(comparison_path)
+
+        self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
 
     def test_packaged_performance_comparison_demo_data_foots(self) -> None:
         """Packaged demo data has no accidental accounting or residual issues."""

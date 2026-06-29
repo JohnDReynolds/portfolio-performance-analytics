@@ -641,6 +641,21 @@ Implemented guardrail:
   return-impact policy still flow through the existing review workflow instead
   of changing report behavior.
 
+#### Phase 7B: Transaction Rule Coverage Validation
+
+Status: complete for the current packaged performance-comparison demo fixture.
+
+The configuration validator now reports:
+
+- observed transaction codes across configured transaction files;
+- observed transaction codes that do not have explicit YAML `transaction_rules`.
+
+This summary is informational for ordinary comparison configurations so older
+review-policy fixtures can still demonstrate incomplete YAML behavior. The
+packaged performance-comparison demo has a stricter guardrail test: every
+observed transaction code must be explicitly defined in its YAML
+`transaction_rules`.
+
 The Axys/APX transaction references should be used to choose careful terminology
 and conservative interpretation rules. The package should adopt only the rules
 needed to explain performance changes. It should not adopt a broader accounting

@@ -7,6 +7,9 @@ import argparse
 from pathlib import Path
 import sys
 
+# Third-party imports
+import polars as pl
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as _pc_cols
@@ -62,6 +65,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
     print(f"Transaction files checked: {summary['transaction_files_checked']}")
+    print(f"Transaction codes observed: {summary['transaction_codes_observed']}")
+    print(
+        "Transaction codes without YAML rules: "
+        f"{summary['transaction_codes_without_yaml_rules']}"
+    )
     print(f"Transaction semantics sources: {summary['transaction_semantics_sources']}")
     return 0
 
@@ -101,6 +109,10 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
         "transaction_files_checked": transaction_preview["files_checked"],
+        "transaction_codes_observed": transaction_preview["codes_observed"],
+        "transaction_codes_without_yaml_rules": (
+            transaction_preview["codes_without_yaml_rules"]
+        ),
         "transaction_semantics_sources": transaction_preview["semantics_sources"],
     }
 
@@ -110,23 +122,73 @@ def _validate_transactions(
 ) -> dict[str, object]:
     """Validate configured transaction files and return preview fields."""
     if _pc_cols.TRANSACTIONS not in specification.files:
-        return {"files_checked": 0, "semantics_sources": "none"}
+        return {
+            "files_checked": 0,
+            "codes_observed": "none",
+            "codes_without_yaml_rules": "none",
+            "semantics_sources": "none",
+        }
     loader = TransactionsLoader(specification)
     checked = 0
+    observed_codes: set[str] = set()
     semantics_source_counts: dict[str, int] = {}
     for snapshot_key in ("a", "b"):
         frame = loader.load(snapshot_key)
         if frame is None:
             continue
         checked += 1
+        observed_codes.update(_transaction_codes(frame))
         for value in frame.get_column(_pc_cols.TRANSACTION_SEMANTICS_SOURCE):
             if not isinstance(value, str) or not value:
                 continue
             semantics_source_counts[value] = semantics_source_counts.get(value, 0) + 1
+    rule_codes = _transaction_rule_codes(specification)
+    codes_without_rules = observed_codes - rule_codes
     return {
         "files_checked": checked,
+        "codes_observed": _format_codes(observed_codes),
+        "codes_without_yaml_rules": _format_codes(codes_without_rules),
         "semantics_sources": _format_semantics_source_counts(semantics_source_counts),
     }
+
+
+def _transaction_codes(frame: pl.DataFrame) -> set[str]:
+    """Return normalized transaction codes observed in a transaction frame."""
+    if _pc_cols.TRANSACTION_CODE not in frame.columns:
+        return set()
+    codes = set()
+    for value in frame.get_column(_pc_cols.TRANSACTION_CODE):
+        code = _normalized_transaction_code(value)
+        if code:
+            codes.add(code)
+    return codes
+
+
+def _transaction_rule_codes(
+    specification: PerformanceComparisonSpecification,
+) -> set[str]:
+    """Return normalized transaction code keys configured in YAML rules."""
+    rules_value = specification.values.get("transaction_rules", {})
+    if not isinstance(rules_value, dict):
+        return set()
+    return {
+        code
+        for raw_code in rules_value
+        if (code := _normalized_transaction_code(raw_code))
+    }
+
+
+def _normalized_transaction_code(value: object) -> str:
+    """Return an uppercase transaction code, or blank for missing values."""
+    if value is None:
+        return ""
+    code = str(value).strip().upper()
+    return code if code else ""
+
+
+def _format_codes(codes: set[str]) -> str:
+    """Return a stable, readable transaction code list."""
+    return ", ".join(sorted(codes)) if codes else "none"
 
 
 def _missing_optional_files(
