@@ -99,31 +99,28 @@ Data used:
 - YAML: treats fee-like `dp` transactions as performance-impacting because this packaged
   fixture assumes the reported returns are net of fees. For gross-of-fees
   performance, fees would need a different return-basis policy.
-- YAML: strict causal-attribution mode is intentionally not enabled for the
-  portfolio demo because one period is meant to show a review-only unexplained
-  case.
 
 Expected workbook:
 
 - Changed ALPHA, BALANCED, and INCOME periods in the portfolio demo
   `Performance Differences` sheet.
 - Changed security-period returns in the security demo `Performance Differences`
-  sheet. These include clean explainable rows and explicit unresolved rows when
-  a security-performance difference has no additive input cause.
+  sheet.
 - `Performance Difference Causes` sheet should show understandable additive transaction
   amount, holding market value, holding accrued, and weighted price examples.
-  It should also show plausible input-component rows for unresolved periods
-  without assigning them `Performance Difference Explained` values.
-- Portfolio-period differences should include fully explained and intentionally
-  unexplained statuses.
+  It should also show supporting input-component rows without assigning them
+  `Performance Difference Explained` values when those rows help explain a
+  counted source-data difference.
+- Portfolio-period and security-period differences in the packaged demo should
+  be fully explained.
 - Optional reconstruction diagnostics should show where source-derived Modified
   Dietz returns agree with reported return differences and where they do not.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
     `CASH_USD` holding changes;
-  - a partly explained ALPHA period with a changed buy transaction amount plus
-    changed transaction quantity, price, and commission support rows in
-    `Other Data Differences`;
+  - a fully explained ALPHA period with a changed buy transaction amount,
+    changed AAPL holding quantity/market value, and related transaction
+    quantity, price, and commission support rows;
   - a fully explained BALANCED period with a dividend transaction amount change;
   - a fully explained INCOME period with a larger advisory-fee expense and
     matching lower `CASH_USD` ending value;
@@ -132,7 +129,6 @@ Expected workbook:
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Other Data Differences` sheet;
-  - an unexplained INCOME period with no identifiable cause found;
   - an ALPHA external-withdrawal restatement visible in the return
     reconstruction check.
 
@@ -192,11 +188,11 @@ periods so reviewers can see the most understandable causal-attribution bases:
 - holding accrued over beginning market value
 - price delta over snapshot A price, weighted by snapshot A security weight
 
-Most portfolio-period differences are fully explained. Some periods are partly
-explained when visible source-data changes account for only part of the
-Performance Difference. One INCOME period is intentionally unexplained and gets
-the `no_underlying_causes_found` diagnostic row so the reviewer has an explicit
-place to continue review.
+The packaged demo is expected to be internally consistent: visible portfolio
+and security performance differences should be fully explained by source-data
+differences in the workbook. Test-only fixtures can still cover unresolved or
+policy-gap scenarios, but the user-facing demo should not depend on accidental
+internal inconsistency.
 
 The derived `secperf.csv` and `portperf.csv` files are kept aligned with:
 

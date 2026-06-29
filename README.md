@@ -144,11 +144,6 @@ The ``to_html()`` methods return complete HTML document strings. The ``to_table(
 ## Installation
 pip install ppar
 
-For chart output, including the chart option in ``ppar-analytics-demo``:
-```
-pip install "ppar[charts]"
-```
-
 ---
 
 ## Usage
@@ -161,7 +156,7 @@ ppar-performance-comparison-portfolio-demo
 ppar-performance-comparison-security-demo
 ```
 
-The analytics demos default to quarterly reporting. Pass `--frequency monthly`,
+The analytics demo commands default to quarterly reporting. Pass `--frequency monthly`,
 `--frequency quarterly`, or `--frequency yearly` to change the reporting
 frequency; the short forms `m`, `q`, and `y` are also accepted.
 
@@ -180,9 +175,14 @@ and XLSX workbook artifacts.
 Before a user-facing review bundle is written, every changed source-data field
 that ppar knows how to classify must be explicitly configured in YAML as
 additive, evidence-only, or suppressed. Missing YAML is a hard stop, so workbook
-statuses such as `Partly Explained` and `Unexplained` mean the YAML is complete
-but some visible differences are intentionally review-only or not additively
-estimated.
+statuses such as `Partly Explained` and `Unexplained` are reserved for complete
+YAML configurations where visible differences are intentionally review-only or
+not additively estimated.
+
+The packaged portfolio and security demos share one YAML file:
+`ppar/demos/data/axys/ppar_performance_comparison.yaml`. It maps native
+lower-case transaction codes such as `by`, `sl`, `dv`, `in`, `dp`, `wd`, and
+`;` to normalized transaction categories used by the comparison logic.
 
 Use these entry points:
 
