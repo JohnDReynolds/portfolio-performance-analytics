@@ -372,10 +372,16 @@ class TransactionsLoader:
             path=path,
             specification_path=self._specification.path,
         )
-        return _with_transaction_rules(
+        frame = _with_transaction_rules(
             _with_transaction_semantics(_with_transaction_category(frame)),
             self._transaction_rules(),
         )
+        _validate_transaction_semantics(
+            frame,
+            path=path,
+            specification_path=self._specification.path,
+        )
+        return frame
 
     def _transaction_rules(self) -> dict[str, dict[str, str]]:
         """Return normalized YAML transaction rules keyed by transaction code."""
@@ -478,6 +484,56 @@ def _with_transaction_rules(
 
     rows = [_row_with_transaction_rule(row, rules) for row in frame.iter_rows(named=True)]
     return pl.DataFrame(rows).select(frame.columns)
+
+
+def _validate_transaction_semantics(
+    frame: pl.DataFrame,
+    *,
+    path: util.PathLike,
+    specification_path: util.PathLike,
+) -> None:
+    """Raise when transaction rows do not have a known transaction category."""
+    unknown_rows = frame.filter(
+        pl.col(pc_cols.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_UNKNOWN
+    )
+    if unknown_rows.height == 0:
+        return
+
+    raise PpaError(
+        (
+            f"{specification_path}: transactions file {path} contains rows with "
+            "unknown transaction codes or categories. Every transaction row must "
+            "resolve transaction_category from a recognized source category, known "
+            "transaction_code, or transaction_rules entry. Add transaction_rules "
+            "entries for custom transaction_code values, or provide recognized "
+            "source categories. "
+            f"Sample rows: {_transaction_semantics_error_samples(unknown_rows)}"
+        ),
+        504,
+    )
+
+
+def _transaction_semantics_error_samples(frame: pl.DataFrame) -> str:
+    """Return compact row samples for transaction semantics validation errors."""
+    sample_columns = [
+        column
+        for column in (
+            pc_cols.PORTFOLIO_ID,
+            pc_cols.SECURITY_ID,
+            pc_cols.TRANSACTION_DATE,
+            pc_cols.TRANSACTION_CODE,
+            pc_cols.TRANSACTION_CATEGORY,
+            pc_cols.CASH_FLOW_SIGN,
+            pc_cols.PERFORMANCE_FLOW_SIGN,
+        )
+        if column in frame.columns
+    ]
+    samples = []
+    for row in frame.select(sample_columns).head(5).iter_rows(named=True):
+        samples.append(
+            ", ".join(f"{column}={row[column]}" for column in sample_columns)
+        )
+    return "; ".join(samples)
 
 
 def _row_with_transaction_rule(

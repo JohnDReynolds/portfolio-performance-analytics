@@ -301,6 +301,7 @@ class TestTransactionsLoader(unittest.TestCase):
                         "PORT": ["P1"],
                         "SEC": ["S1"],
                         "TRANSACTION_DATE": ["2025-01-31"],
+                        "ACTIVITY_CATEGORY": ["cash deposit"],
                         "CASH_FLOW_SIGN": ["vendor-only"],
                         "PERFORMANCE_FLOW_SIGN": ["mystery"],
                     }
@@ -325,6 +326,42 @@ class TestTransactionsLoader(unittest.TestCase):
                 TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
             )
             self.assertFalse(transaction_impact_semantics_available(row))
+
+    def test_unknown_transaction_code_without_rule_raises_error(self) -> None:
+        """Unknown transaction codes require YAML rules or source semantics."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["transaction_rules"] = {
+                "BUY": {
+                    "transaction_category": "buy",
+                    "cash_flow_sign": "negative",
+                    "performance_flow_sign": "performance",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["MYSTERY"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                TransactionsLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 504"))
+            self.assertIn("unknown transaction codes or categories", message)
+            self.assertIn("transaction_code=MYSTERY", message)
 
     def test_yaml_transaction_rules_fill_missing_semantics(self) -> None:
         """YAML transaction rules fill category and sign semantics by code."""

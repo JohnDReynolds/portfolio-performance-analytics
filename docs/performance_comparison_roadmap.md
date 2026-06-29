@@ -555,13 +555,103 @@ reports are regenerated.
 
 Status: complete for the current packaged performance-comparison demo fixture.
 
-### Phase 7: Full Scenario Accounting Engine
+### Phase 7: Performance Explanation Scenario Engine
 
-A future foundation pass should move from a scenario-adjustment file to a fuller
-scenario engine that generates both holdings snapshots from explicit starting
-positions, transactions, valuation marks, accrual assumptions, and cash rules.
-The remaining explicit holding scenario rows should shrink as more transaction
-types and valuation/accrual rules become deterministic.
+Phase 7 should remain focused on answering one product question:
+
+```text
+Why did reported performance change from Snapshot A to Snapshot B?
+```
+
+It should not become a general accounting engine. The goal is to generate demo
+fixtures that consistently explain performance differences from recognizable
+source-data changes, while leaving non-performance accounting differences as
+`Other Data Differences`.
+
+Useful Axys/APX transaction references:
+
+- [`Chapter_05_Transactions.md`](axys-apx-reference/Chapter_05_Transactions.md):
+  draft transaction reference with evidence boundaries and confidence levels.
+- [`Research_05_Transactions.md`](axys-apx-reference/Research_05_Transactions.md):
+  consolidated research reference for transaction workflows, code evidence,
+  dependencies, audit rules, contradictions, and known unknowns.
+
+These references should inform transaction-code interpretation, sign/cash-flow
+assumptions, and evidence caveats. They should not be treated as instructions to
+reconstruct tax lots, cost methods, settlement accounting, or vendor books.
+
+#### Phase 7A: Performance Explanation Engine Contract
+
+Phase 7A is a design contract, not an implementation phase. It defines what the
+performance-comparison engine is allowed to explain and what must stay as
+review-only evidence.
+
+Contract question:
+
+```text
+What source-data changes are allowed to explain reported performance changes?
+```
+
+Performance-explaining inputs:
+
+- beginning holdings market value plus accrued amount;
+- ending holdings market value plus accrued amount;
+- dated external cash-flow transaction amounts;
+- dated security-level buy/sell transaction amounts;
+- dividend, interest, fee, and other income/expense amounts when configured;
+- reported accrual amounts.
+
+Supporting evidence:
+
+- quantity;
+- price;
+- commission;
+- transaction type;
+- transaction date;
+- cash-balance movement;
+- security identifiers and portfolio identifiers needed to connect evidence to
+  the affected performance input.
+
+`Other Data Differences`:
+
+- cost and cost-basis fields;
+- broker;
+- settlement date, unless a future supported rule makes it performance-relevant;
+- security reference data;
+- any changed field that is not part of the supported performance explanation
+  model.
+
+Hard-fail rules:
+
+- required YAML is missing for transaction classification;
+- an unknown transaction code appears in performance-relevant data;
+- a performance-relevant source field changes without a configured
+  interpretation;
+- generated transactions, holdings, `secperf.csv`, or `portperf.csv` drift from
+  their scenario-derived values;
+- expected scenario coverage disappears unexpectedly;
+- an unsupported field attempts to explain performance.
+
+Implemented guardrail:
+
+- transaction loading now fails up front when a transaction row cannot resolve a
+  known transaction category from a source category, known transaction code, or
+  `transaction_rules` entry. This guard is intentionally narrower than
+  sign/flow impact-policy validation: known transaction codes with incomplete
+  return-impact policy still flow through the existing review workflow instead
+  of changing report behavior.
+
+The Axys/APX transaction references should be used to choose careful terminology
+and conservative interpretation rules. The package should adopt only the rules
+needed to explain performance changes. It should not adopt a broader accounting
+model merely because the reference material describes one.
+
+A future foundation pass should move from generic scenario-adjustment files to a
+performance-explanation scenario engine that generates both holdings snapshots
+from explicit starting performance inputs, transactions, valuation marks,
+reported accrual amounts, and cash-balance rules. The remaining explicit holding
+scenario rows should shrink as more performance-relevant transaction,
+valuation, and accrual amount rules become deterministic.
 
 The current guardrail tests pin the accounting impact of each supported simple
 transaction type:
@@ -579,7 +669,7 @@ starting holdings
 intentional scenario changes
 transactions
 valuation marks / prices
-accrual assumptions
+reported accrual amounts
 cash-account rules
 security reference data
 ```
@@ -604,15 +694,16 @@ scenario intent
   -> reports
 ```
 
-Required accounting rules before this phase should be considered complete:
+Required performance-explanation rules before this phase should be considered
+complete:
 
-- starting positions, cost, cash, and accrued amounts
+- starting positions, cash, market value, and accrued amounts
 - trade sign conventions
 - trade-date versus settlement-date treatment
 - cash offsets for buys, sells, dividends, interest, fees, contributions, and
   withdrawals
 - market value formula, including whether accrued is separate from market value
-- fixed-income accrual behavior
+- reported fixed-income accrual amount treatment
 - corporate-action treatment for splits and future action types
 - cash security identifier policy, including multi-currency cash accounts
 - rounding policy for quantities, prices, market values, cash, and performance
@@ -627,11 +718,13 @@ before writing if:
 - any intentional partly explained or unexplained scenario is not named in an
   allowlist with a reviewer-facing reason.
 
-This phase is intentionally larger than the current return-reconstruction work.
-It is effectively a small, explicit demo accounting engine, so it should be done
-slowly with narrow transaction-type coverage and strong tests.
+This phase is intentionally larger than the current scenario guardrails, but its
+scope should stay narrow. It should explain performance-input changes, not
+rebuild portfolio accounting. Cost differences should remain visible as
+`Other Data Differences` unless they become direct inputs to a supported
+performance explanation.
 
-### Phase 7: Improve Demo Data
+### Phase 8: Improve Demo Data
 
 Current packaged demo coverage includes realistic examples of:
 
