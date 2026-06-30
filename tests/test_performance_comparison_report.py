@@ -396,6 +396,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
+            self.assertIn(
+                "`transaction_activity.csv`, `transaction_cross_checks.csv`, and "
+                "`flow_cross_check_reconciliation.csv`",
+                readme,
+            )
+            self.assertIn("cross-check rows may be", readme)
+            self.assertIn("intentionally non-additive", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn(
@@ -977,6 +984,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Other Data Differences is review-only context", readme)
             self.assertIn("Raw Audit Trail is the complete finding-level audit trail", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
+            self.assertIn("transaction and external-flow diagnostics", readme)
+            self.assertIn("cross-check rows may be", readme)
+            self.assertIn("intentionally non-additive", readme)
             self.assertLess(
                 readme.index("`report.xlsx`: Excel review workbook"),
                 readme.index("`report.html`: browser review report"),

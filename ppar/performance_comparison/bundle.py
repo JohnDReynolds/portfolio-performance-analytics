@@ -136,6 +136,10 @@ def write_report_bundle_readme(
         f"while {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} is the complete "
         "finding-level audit trail.",
         f"4. Use the `review_key` column to follow a {review_unit} across CSV artifacts.",
+        "5. Use `transaction_activity.csv`, `transaction_cross_checks.csv`, and "
+        "`flow_cross_check_reconciliation.csv` for transaction and external-flow "
+        "diagnostics. These CSVs are audit aids; cross-check rows may be "
+        "evidence-only or intentionally non-additive.",
         "",
         "## Audit/Export Files",
         "",

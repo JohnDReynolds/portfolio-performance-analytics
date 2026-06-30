@@ -1625,6 +1625,9 @@ Other generated helper tables include `impact_estimates.csv`,
 `cause_summary.csv`, `transaction_activity.csv`, `transaction_cross_checks.csv`,
 `flow_cross_check_reconciliation.csv`, `transaction_matching_diagnostics.csv`,
 `residual_status.csv`, `portfolio_period_summary.csv`, and `top_evidence.csv`.
+Generated bundle `README.md` files explicitly point reviewers to the transaction
+activity, transaction cross-check, and flow-reconciliation CSVs as audit aids
+whose cross-check rows may be evidence-only or intentionally non-additive.
 
 The `ppar.performance_comparison.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.
