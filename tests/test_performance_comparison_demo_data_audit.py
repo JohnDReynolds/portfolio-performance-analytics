@@ -56,6 +56,10 @@ _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 )
 _PACKAGED_AXYS_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
+_PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
+_PACKAGED_RESTATEMENT_NOTES_PATH = (
+    _PACKAGED_AXYS_DIRECTORY / "axys_full_spec_b" / "RESTATEMENT_NOTES.md"
+)
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 )
@@ -157,6 +161,41 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "transaction_rules",
         ]:
             self.assertIn(expected_text, normalized_text)
+
+    def test_packaged_demo_readme_documents_transaction_coverage_map(self) -> None:
+        """The packaged demo README names packaged, test-only, and backlog rows."""
+        text = _PACKAGED_AXYS_README_PATH.read_text(encoding="utf-8")
+
+        for expected_text in [
+            "Current transaction coverage by home",
+            "Packaged demo rows",
+            "`by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`",
+            "YAML rules reserved for runtime guards",
+            "Test-only fixtures",
+            "`dv` + `by` reinvestment guards",
+            "Evidence-blocked backlog",
+            "`ai`, `pa`, `sa`, `pd`",
+            "ordinary TNOTE2Y\n  interest uses an `in` transaction row",
+            "does not infer accrued-interest or\n  principal-paydown treatment",
+        ]:
+            self.assertIn(expected_text, text)
+
+    def test_packaged_demo_restatement_notes_match_current_story(self) -> None:
+        """Snapshot-B notes keep reviewer-facing scenario descriptions current."""
+        text = _PACKAGED_RESTATEMENT_NOTES_PATH.read_text(encoding="utf-8")
+
+        for expected_text in [
+            "`wd` external-withdrawal amount",
+            "AAPL `by` transaction amount",
+            "MSFT `sl` transaction",
+            "inserted `li` row on `CASH_USD`",
+            "JPM `dv` dividend amount",
+            "fee-like `dp` transaction",
+            "classified from special-security\n  context",
+            "TNOTE2Y `in` interest",
+            "TNOTE5Y cost-only correction",
+        ]:
+            self.assertIn(expected_text, text)
 
     def test_packaged_demo_extract_availability_covers_current_headers(self) -> None:
         """Every packaged Axys demo CSV field has extraction-confidence metadata."""

@@ -101,6 +101,19 @@ Data used:
   `li`/`lo` transfer cases and synthetic corporate-action rows live in
   test-only fixtures until a realistic packaged story and evidence trail
   justify adding them here.
+- Current transaction coverage by home:
+
+  | Home | Transaction families |
+  | --- | --- |
+  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, and external-cash `wd`. |
+  | YAML rules reserved for runtime guards | `lo` transfer/external-flow variants and `;` corporate-action rows. |
+  | Test-only fixtures | `lo` inserted cash-flow behavior, `li`/`lo` site variants, `dp`/`wd` site variants, and `dv` + `by` reinvestment guards. |
+  | Evidence-blocked backlog | `ai`, `pa`, `sa`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and real-world corporate actions until source evidence and accounting policy are strong enough. |
+
+  The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
+  interest uses an `in` transaction row, and accrued-interest restatement uses
+  `holdings.accrued`. The packaged demo does not infer accrued-interest or
+  principal-paydown treatment from `ai`, `pa`, `sa`, or `pd` transaction codes.
 - Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
   sufficient only when transaction rows include source/destination and
   special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,
@@ -231,7 +244,9 @@ Current public YAML targets are intentionally narrow:
 - `transaction_rules`: classifies transaction codes for amount attribution.
   Ambiguous Axys-style `li`, `lo`, `dp`, and `wd` examples require matching
   transaction-context fields before they are treated as external flows or
-  fee/expense rows.
+  fee/expense rows. Fixed-income backlog codes such as `ai`, `pa`, `sa`, and
+  `pd` require test-only fixture proof plus local mapping or REP/report
+  evidence before they should become user-facing demo transactions.
 - `transaction_amount_delta_over_return_denominator`: default amount-impact
   method used after `transaction_rules` mark a transaction code as
   performance-affecting.
