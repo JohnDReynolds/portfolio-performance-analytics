@@ -987,6 +987,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Raw Audit Trail",
                 ],
             )
+            self.assertTrue(
+                all(
+                    workbook[sheet_name].row_dimensions[1].height is None
+                    for sheet_name in workbook.sheetnames
+                )
+            )
             performance_change_sheet = workbook["Performance Differences"]
             self.assertEqual(
                 [
