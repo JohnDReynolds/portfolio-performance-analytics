@@ -261,5 +261,5 @@ pair_patterns:
   dv_by_reinvestment:
     codes: [dv, by]
     ppar_treatment: performance_pair_avoid_external_flow_double_count
-    coverage_status: backlog
-    coverage_notes: Backlog pending reinvestment-pair fixture with dividend-wash context, matched dates, security, offsetting amounts, and explicit double-count guards.
+    coverage_status: partial
+    coverage_notes: Test-only reconstruction fixture proves dv/by rows do not become portfolio external flows and do not double-count security income; full pair matching still needs dividend-wash context, matched dates, security, and offsetting amounts.

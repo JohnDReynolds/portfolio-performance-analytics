@@ -938,6 +938,10 @@ The next useful test-only pair family is a reinvested dividend represented by a
 demo data until the comparison engine can prove the pair is one economic
 reinvestment, not two unrelated effects.
 
+Status: partial test-only coverage. Return-reconstruction tests now prove the
+`by` leg is not treated as a portfolio external flow and the `dv` leg is not
+counted twice as security income. Full pair matching remains future work.
+
 Before adding a reinvestment fixture, require:
 
 - pairing evidence: same portfolio, security or reinvestment target, date or

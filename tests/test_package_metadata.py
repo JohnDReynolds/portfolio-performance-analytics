@@ -328,6 +328,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         self.assertIn("Phase 8B: Reinvestment Pair Feasibility Gate", roadmap)
+        self.assertIn("Status: partial test-only coverage", roadmap)
         self.assertIn("`dv` income leg plus a paired `by` purchase leg", roadmap)
         self.assertIn("dividend-wash/source symbol", roadmap)
         self.assertIn("no portfolio-level external-flow treatment", roadmap)
