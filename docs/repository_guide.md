@@ -32,6 +32,7 @@ many disconnected entry points.
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
 | `scripts/` | Repository-maintenance helpers; Performance Comparison commands live under ppar.performance_comparison.cli. |
 | `docs/` | Durable project documentation and design notes. |
+| `docs/images/` | Durable documentation images. README-rendered analytics assets live under `docs/images/readme/`. |
 | `_demo_output/` | Generated demo/report output. This is intentionally ignored by Git. |
 
 ## README Files

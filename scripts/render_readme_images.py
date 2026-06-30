@@ -1,7 +1,7 @@
-"""Render README table images from the current HTML output.
+"""Render README chart and table images from packaged demo data.
 
 The script uses bundled demo data, headless Chrome, and Pillow cropping to
-refresh the table screenshots referenced by ``README.md``.
+refresh the chart images and table screenshots referenced by ``README.md``.
 """
 
 # This script is meant to run directly from the repository checkout. Insert the
