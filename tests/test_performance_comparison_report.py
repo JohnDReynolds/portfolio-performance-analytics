@@ -993,7 +993,20 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     for sheet_name in workbook.sheetnames
                 )
             )
+            self.assertTrue(
+                all(
+                    workbook[sheet_name].column_dimensions[
+                        workbook[sheet_name].cell(row=1, column=column).column_letter
+                    ].width
+                    <= 32
+                    for sheet_name in workbook.sheetnames
+                    for column in range(1, workbook[sheet_name].max_column + 1)
+                )
+            )
             performance_change_sheet = workbook["Performance Differences"]
+            self.assertEqual(performance_change_sheet.column_dimensions["B"].width, 12)
+            self.assertEqual(performance_change_sheet.column_dimensions["H"].width, 32)
+            self.assertEqual(performance_change_sheet.column_dimensions["I"].width, 30)
             self.assertEqual(
                 [
                     _normalized_header(
