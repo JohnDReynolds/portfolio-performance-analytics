@@ -998,15 +998,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     workbook[sheet_name].column_dimensions[
                         workbook[sheet_name].cell(row=1, column=column).column_letter
                     ].width
-                    <= 26
+                    <= 32
                     for sheet_name in workbook.sheetnames
                     for column in range(1, workbook[sheet_name].max_column + 1)
                 )
             )
             performance_change_sheet = workbook["Performance Differences"]
             self.assertEqual(performance_change_sheet.column_dimensions["B"].width, 12)
-            self.assertEqual(performance_change_sheet.column_dimensions["H"].width, 26)
+            self.assertEqual(performance_change_sheet.column_dimensions["H"].width, 32)
             self.assertEqual(performance_change_sheet.column_dimensions["I"].width, 24)
+            underlying_causes_sheet = workbook["Performance Difference Causes"]
+            self.assertEqual(underlying_causes_sheet.column_dimensions["E"].width, 22)
+            self.assertEqual(underlying_causes_sheet.column_dimensions["K"].width, 32)
             self.assertEqual(
                 [
                     _normalized_header(
@@ -1048,7 +1051,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 performance_change_sheet["A1"].comment.text,
             )
 
-            underlying_causes_sheet = workbook["Performance Difference Causes"]
             self.assertEqual(
                 [
                     _normalized_header(

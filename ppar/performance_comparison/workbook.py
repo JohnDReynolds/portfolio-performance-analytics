@@ -28,31 +28,40 @@ _MINIMUM_COLUMN_WIDTHS = {
     _pc_findings.SNAPSHOT_A_VALUE: 16,
     _pc_findings.SNAPSHOT_B_VALUE: 16,
     _pc_findings.DELTA_B_MINUS_A: 16,
+    "dataset_field": 18,
     "change": 16,
 }
 _DEFAULT_COLUMN_WIDTH_CAP = 12
 _DATE_COLUMN_WIDTH_CAP = 10
-_TEXT_COLUMN_WIDTH_CAP = 24
+_IDENTIFIER_COLUMN_WIDTH_CAP = 20
+_NARRATIVE_COLUMN_WIDTH_CAP = 30
 _KEY_COLUMN_WIDTH_CAP = 22
-_COLUMN_WIDTH_CAPS = {
-    _pc_findings.FROM_DATE: _DATE_COLUMN_WIDTH_CAP,
-    _pc_findings.THRU_DATE: _DATE_COLUMN_WIDTH_CAP,
-    _pc_findings.INPUT_DATE: _DATE_COLUMN_WIDTH_CAP,
-    "as_of_date": _DATE_COLUMN_WIDTH_CAP,
-    "begin_value_date_a": _DATE_COLUMN_WIDTH_CAP,
-    "begin_value_date_b": _DATE_COLUMN_WIDTH_CAP,
-    "end_value_date_a": _DATE_COLUMN_WIDTH_CAP,
-    "end_value_date_b": _DATE_COLUMN_WIDTH_CAP,
-    _pc_findings.MESSAGE: _TEXT_COLUMN_WIDTH_CAP,
-    "comments": _TEXT_COLUMN_WIDTH_CAP,
-    "impact_message": _TEXT_COLUMN_WIDTH_CAP,
-    "review_cues": _TEXT_COLUMN_WIDTH_CAP,
-    "review_guidance": _TEXT_COLUMN_WIDTH_CAP,
-    "review_note": _TEXT_COLUMN_WIDTH_CAP,
-    "review_priority_reason": _TEXT_COLUMN_WIDTH_CAP,
-    "reconstruction_comments": _TEXT_COLUMN_WIDTH_CAP,
-    "review_key": _KEY_COLUMN_WIDTH_CAP,
-    "reconstruction_review_key": _KEY_COLUMN_WIDTH_CAP,
+_DATE_COLUMNS = {
+    _pc_findings.FROM_DATE,
+    _pc_findings.THRU_DATE,
+    _pc_findings.INPUT_DATE,
+    "as_of_date",
+    "begin_value_date_a",
+    "begin_value_date_b",
+    "end_value_date_a",
+    "end_value_date_b",
+}
+_IDENTIFIER_COLUMNS = {
+    "dataset_field",
+}
+_NARRATIVE_COLUMNS = {
+    _pc_findings.MESSAGE,
+    "comments",
+    "impact_message",
+    "review_cues",
+    "review_guidance",
+    "review_note",
+    "review_priority_reason",
+    "reconstruction_comments",
+}
+_KEY_COLUMNS = {
+    "review_key",
+    "reconstruction_review_key",
 }
 _EXCEL_HEADER_LINE_BREAKS = {
     "Performance Difference": "Performance\nDifference",
@@ -420,7 +429,15 @@ def _is_workbook_numeric_column(column_name: str) -> bool:
 
 def _workbook_column_width_cap(column_name: str) -> int:
     """Return the preferred reviewer-facing width cap for a workbook column."""
-    return _COLUMN_WIDTH_CAPS.get(column_name, _DEFAULT_COLUMN_WIDTH_CAP)
+    if column_name in _DATE_COLUMNS:
+        return _DATE_COLUMN_WIDTH_CAP
+    if column_name in _IDENTIFIER_COLUMNS:
+        return _IDENTIFIER_COLUMN_WIDTH_CAP
+    if column_name in _NARRATIVE_COLUMNS:
+        return _NARRATIVE_COLUMN_WIDTH_CAP
+    if column_name in _KEY_COLUMNS:
+        return _KEY_COLUMN_WIDTH_CAP
+    return _DEFAULT_COLUMN_WIDTH_CAP
 
 
 def _workbook_column_width(
