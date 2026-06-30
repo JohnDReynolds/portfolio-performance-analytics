@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">Portfolio Differences HTML Report Preview</title>
+  <desc id="desc">A simplified preview of the report.html Portfolio Differences table.</desc>
+  <rect width="1200" height="430" fill="#f8fafc"/>
+  <style>
+    .title { font: 700 30px Arial, sans-serif; fill: #172033; }
+    .subtitle { font: 400 17px Arial, sans-serif; fill: #64748b; }
+    .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 8; }
+    .header { fill: #0f766e; }
+    .th { font: 700 15px Arial, sans-serif; fill: #ffffff; }
+    .td { font: 400 15px Arial, sans-serif; fill: #1f2937; }
+    .muted { fill: #f1f5f9; }
+    .good { fill: #ecfdf5; }
+  </style>
+  <text x="60" y="58" class="title">Portfolio Differences</text>
+  <text x="60" y="88" class="subtitle">report.html highlights changed portfolio periods before drilling into causes.</text>
+  <rect x="60" y="120" width="1080" height="250" class="card"/>
+  <rect x="60" y="120" width="1080" height="46" class="header" rx="8"/>
+  <text x="86" y="150" class="th">Portfolio</text>
+  <text x="245" y="150" class="th">From Date</text>
+  <text x="390" y="150" class="th">Thru Date</text>
+  <text x="535" y="150" class="th">Performance Difference</text>
+  <text x="760" y="150" class="th">Explained Difference</text>
+  <text x="980" y="150" class="th">Next Step</text>
+
+  <rect x="60" y="166" width="1080" height="50" class="good"/>
+  <text x="86" y="198" class="td">MEGA_ALPHA</text>
+  <text x="245" y="198" class="td">2025-10-01</text>
+  <text x="390" y="198" class="td">2025-10-31</text>
+  <text x="535" y="198" class="td">0.0005</text>
+  <text x="760" y="198" class="td">0.0005</text>
+  <text x="980" y="198" class="td">None</text>
+
+  <rect x="60" y="216" width="1080" height="50" class="muted"/>
+  <text x="86" y="248" class="td">MEGA_ALPHA</text>
+  <text x="245" y="248" class="td">2025-11-01</text>
+  <text x="390" y="248" class="td">2025-11-30</text>
+  <text x="535" y="248" class="td">0.0012</text>
+  <text x="760" y="248" class="td">0.0011</text>
+  <text x="980" y="248" class="td">Review causes</text>
+
+  <text x="86" y="298" class="td">MEGA_ALPHA</text>
+  <text x="245" y="298" class="td">2025-12-01</text>
+  <text x="390" y="298" class="td">2025-12-31</text>
+  <text x="535" y="298" class="td">No differences</text>
+  <text x="760" y="298" class="td">-</text>
+  <text x="980" y="298" class="td">None</text>
+</svg>

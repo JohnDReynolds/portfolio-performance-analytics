@@ -38,7 +38,7 @@ import ppar.demos.demo_data_sources as demo_data  # noqa: E402
 from ppar.analytics.frequency import Frequency  # noqa: E402
 import ppar.utilities as util  # noqa: E402
 
-_IMAGE_DIR = _REPO_ROOT / "images"
+_IMAGE_DIR = _REPO_ROOT / "docs" / "images" / "readme"
 _CHROME_CANDIDATES = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "google-chrome",

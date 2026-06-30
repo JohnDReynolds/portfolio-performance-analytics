@@ -20,9 +20,9 @@ a public proxy for a U.S. mega-cap benchmark. The user-facing name is
 aggregated into `CASH_USD`, mapped to the `Cash` sector, and use BIL adjusted
 monthly returns as a cash-return proxy.
 
-The root README images and story are generated from these packaged files, not
-from the temporary data-generation workspace. The packaged data remains monthly,
-but the README images are rendered quarterly to keep date-heavy charts readable.
+The README story and images are generated from these packaged files, not from
+the temporary data-generation workspace. The packaged data remains monthly, but
+the README images are rendered quarterly to keep date-heavy charts readable.
 
 ## Refresh Workflow
 
@@ -149,8 +149,8 @@ The README images are generated from packaged demo files:
 
 The script regenerates:
 
-- chart PNGs in `images/`
-- table screenshots as JPGs in `images/`
+- chart PNGs in `docs/images/readme/`
+- table screenshots as JPGs in `docs/images/readme/`
 
 Headless Chrome may require normal local-machine permissions. If the sandboxed
 runner cannot launch Chrome, rerun the same command with the tool approval used
@@ -158,10 +158,10 @@ for GUI/headless-browser execution.
 
 Visually spot-check at least:
 
-- `images/OverallAttributionByEconomicSector.png`
-- `images/RiskStatistics.jpg`
+- `docs/images/readme/OverallAttributionByEconomicSector.png`
+- `docs/images/readme/RiskStatistics.jpg`
 - one large table screenshot such as
-  `images/OverallAttributionBySecurity.jpg`
+  `docs/images/readme/OverallAttributionBySecurity.jpg`
 
 ### 7. Final Verification
 

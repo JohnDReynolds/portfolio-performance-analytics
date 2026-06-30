@@ -56,31 +56,31 @@ assets; public image URLs are required there if image display is needed.
 -->
 
 - **Attribution & Contribution**:
-<img src="images/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
+<img src="docs/images/readme/OverallAttributionByEconomicSector.png" alt="Overall Attribution by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
+<img src="docs/images/readme/OverallContributionByEconomicSector.png" alt="Overall Contribution by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
+<img src="docs/images/readme/SubPeriodAttributionEffectsByEconomicSector.png" alt="Sub-Period Attribution Effects by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
+<img src="docs/images/readme/SubPeriodReturns.png" alt="Sub-Period Returns Chart" width="100%" />
 <br><br><br>
-<img src="images/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
+<img src="docs/images/readme/ActiveContributionsByEconomicSector.png" alt="Active Contributions by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
+<img src="docs/images/readme/TotalAttributionEffectsByEconomicSector.png" alt="Total Attribution Effects by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
+<img src="docs/images/readme/CumulativeAttributionEffectsByEconomicSector.png" alt="Cumulative Attribution Effect by Economic Sector Chart" width="100%" />
 <br><br><br>
-<img src="images/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
+<img src="docs/images/readme/CumulativeReturns.png" alt="Cumulative Returns" width="100%" />
 <br><br><br>
-<img src="images/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
+<img src="docs/images/readme/CumulativeAttributionByEconomicSector.jpg" alt="Cumulative Attribution by Economic Sector Table" width="100%" />
 <br><br><br>
-<img src="images/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
+<img src="docs/images/readme/OverallAttributionByEconomicSector.jpg" alt="Overall Attribution by Economic Sector Table" width="100%" />
 <br><br><br>
-<img src="images/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
+<img src="docs/images/readme/OverallAttributionBySecurity.jpg" alt="Overall Attribution by Security Table" width="100%" />
 <br><br><br>
 
 - **Ex-Post Risk Statistics**:
-<img src="images/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
+<img src="docs/images/readme/RiskStatistics.jpg" alt="Risk Statistics" width="100%" />
 <br>
 
 ---

@@ -28,8 +28,8 @@ returns as its cash-return proxy.
 ## Refresh Notes
 
 The packaged CSVs are the source of truth for `ppar-analytics-demo`,
-`README.md`, and the README images under `images/`. Refresh helpers live under
-`scripts/analytics_demo_data/`; generated files under
+`README.md`, and the README images under `docs/images/readme/`. Refresh helpers
+live under `scripts/analytics_demo_data/`; generated files under
 `_demo_output/analytics_data_generation/` are cache/provenance output, not
 packaged demo inputs.
 
