@@ -1702,11 +1702,14 @@ possible, and `needs_review_summary.csv` includes `review_detail_artifacts` to
 name the CSVs most relevant to each changed period.
 
 The packaged Axys fixtures intentionally separate user-facing demos from
-validation fixtures. The user-facing path is:
+validation fixtures. The user-facing paths are:
 
-- `ppar.demos.performance_comparison_portfolio_demo`: portfolio strict-attribution demo
-  writing `_demo_output/performance_comparison_portfolio` with `report.xlsx`, `report.html`, CSV artifacts,
-  and a manifest.
+- `ppar.demos.performance_comparison_portfolio_demo`: portfolio strict-attribution
+  demo writing `_demo_output/performance_comparison_portfolio` with `report.xlsx`,
+  `report.html`, CSV artifacts, and a manifest.
+- `ppar.demos.performance_comparison_security_demo`: security-period review demo
+  writing `_demo_output/performance_comparison_security` with `report.xlsx`,
+  `report.html`, CSV artifacts, and a manifest.
 
 The remaining YAML files are scenario-coverage fixtures for tests and
 validators:

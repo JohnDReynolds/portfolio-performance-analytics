@@ -490,6 +490,23 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, guide)
 
+    def test_design_notes_document_both_user_facing_comparison_demos(self) -> None:
+        """Design docs keep portfolio and security demo paths in sync."""
+        design = Path("docs/performance_comparison_design.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "ppar.demos.performance_comparison_portfolio_demo",
+            "ppar.demos.performance_comparison_security_demo",
+            "_demo_output/performance_comparison_portfolio",
+            "_demo_output/performance_comparison_security",
+            "report.xlsx",
+            "report.html",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, design)
+
     def test_axys_demo_resources_are_packaged(self) -> None:
         """The Axys demos use packaged resources instead of test fixtures."""
         axys_demo_data = files("ppar.demos.data") / "axys"
