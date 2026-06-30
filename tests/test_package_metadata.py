@@ -314,6 +314,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("generated ending `CASH_USD` holding", roadmap)
         self.assertIn("portfolio Modified Dietz\n  reconstruction", roadmap)
         self.assertIn("without double-counting", roadmap)
+        self.assertIn("Implementation-ready recipe", roadmap)
+        self.assertIn("inserted transaction scenario", roadmap)
+        self.assertIn("`SRC_DEST_TYPE=$pty`", roadmap)
+        self.assertIn("positive `AMOUNT`", roadmap)
         self.assertIn("`li`/`lo`, additional `dp`/`wd`", roadmap)
         self.assertIn("actual historical split date", roadmap)
 

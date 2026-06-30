@@ -906,6 +906,20 @@ withdrawal example. Before adding it to `axys_full_spec_a` or
 - docs and tests: this roadmap, the demo source contract, the packaged demo
   README, the semantics matrix, and audit tests all name the expected treatment.
 
+Implementation-ready recipe:
+
+- add the contribution as an inserted transaction scenario, not by mutating an
+  unrelated base transaction row;
+- prefer an Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
+  `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero quantity/price/commission,
+  and same-day settlement unless site evidence says otherwise;
+- choose a period that does not already carry a packaged external-flow example,
+  so the workbook can demonstrate the contribution clearly;
+- let the rebuild script derive snapshot B `transactions.csv`, ending cash
+  holdings, `portperf.csv`, and reconstruction diagnostics from the scenario;
+- keep the row out of packaged CSVs until the generated workbook has no
+  unintended partly explained or unexplained period.
+
 `li`/`lo`, additional `dp`/`wd`, and synthetic corporate-action scenarios should
 remain test-only until they meet their own version of this gate. A real-world
 split can move into the packaged demo only when the demo period and security

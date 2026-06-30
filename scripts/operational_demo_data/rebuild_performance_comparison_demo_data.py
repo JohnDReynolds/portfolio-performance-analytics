@@ -8,7 +8,8 @@ performance files internally aligned by:
 1. deriving ``secperf.csv`` from holdings and security-level transactions;
 2. deriving ``portperf.csv`` from holdings and portfolio-level transactions; and
 3. deriving snapshot B ``transactions.csv`` from snapshot A transactions plus
-   explicit transaction scenarios;
+   explicit transaction scenarios that either adjust base rows or insert new
+   rows;
 4. deriving snapshot B ``holdings.csv`` from snapshot A holdings plus
    transaction-derived and explicit holding scenarios; and
 5. reporting whether the checked-in files already match those derived values.
@@ -118,16 +119,32 @@ _HOLDING_SCENARIO_TYPES: Final = {
     "cost_only_correction",
 }
 _TRANSACTION_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "AMOUNT", "COMMISSION"]
+_TRANSACTION_SOURCE_COLUMNS: Final = [
+    "PORT",
+    "TRANSACTION_DATE",
+    "SETTLE_DATE",
+    "SEC",
+    "TRAN",
+    "SEC_TYPE",
+    "SRC_DEST_TYPE",
+    "SRC_DEST_SYMBOL",
+    "SPECIAL_SEC_TYPE",
+    "SPECIAL_SEC_SYMBOL",
+]
 _TRANSACTION_SCENARIO_COLUMNS: Final = [
     "snapshot",
+    "action",
     "TRANSACTION_ID",
+    *_TRANSACTION_SOURCE_COLUMNS,
+    *_TRANSACTION_NUMERIC_COLUMNS,
     "QTY_delta",
     "PRICE_delta",
     "AMOUNT_delta",
     "COMMISSION_delta",
     "scenario",
 ]
-_TRANSACTION_SCENARIO_KEY: Final = ["snapshot", "TRANSACTION_ID", "scenario"]
+_TRANSACTION_SCENARIO_KEY: Final = ["snapshot", "action", "TRANSACTION_ID", "scenario"]
+_TRANSACTION_SCENARIO_ACTIONS: Final = {"adjust", "insert"}
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
 _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
@@ -147,6 +164,8 @@ _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
     ";",
     "by",
     "sl",
+    "li",
+    "lo",
     "wd",
     "dv",
     "in",
@@ -253,13 +272,17 @@ class TransactionScenarioAdjustment:
 
     Attributes:
         snapshot: Snapshot directory receiving the adjustment.
+        action: Whether the scenario adjusts a base row or inserts a new row.
         transaction_id: Transaction row identifier.
+        values: Full transaction values for inserted rows.
         deltas: Numeric changes keyed by packaged transaction column name.
         scenario: Human-readable scenario description.
     """
 
     snapshot: str
+    action: str
     transaction_id: str
+    values: dict[str, object]
     deltas: dict[str, float]
     scenario: str
 
@@ -605,8 +628,11 @@ def _transaction_scenario_type_counts(
     )
     counts: dict[str, int] = {}
     for scenario in transaction_scenarios.for_snapshot(snapshot_name):
-        transaction_code = transaction_codes.get(scenario.transaction_id)
-        if transaction_code is None:
+        if scenario.action == "insert":
+            transaction_code = str(scenario.values["TRAN"])
+        else:
+            transaction_code = transaction_codes.get(scenario.transaction_id)
+        if not transaction_code:
             raise ValueError(
                 "Transaction scenario must match one base transaction before "
                 f"it can be summarized: {scenario.transaction_id}."
@@ -664,6 +690,12 @@ def _rebuild_transactions(
 
     rebuilt = base_transactions.copy(deep=True)
     for scenario in transaction_scenarios.for_snapshot(snapshot_name):
+        if scenario.action == "insert":
+            rebuilt = pd.concat(
+                [rebuilt, pd.DataFrame([scenario.values])],
+                ignore_index=True,
+            )
+            continue
         mask = rebuilt["TRANSACTION_ID"].eq(scenario.transaction_id)
         if int(mask.sum()) != 1:
             raise ValueError(
@@ -826,15 +858,38 @@ def _changed_transaction_rows(
         suffixes=("_base", "_current"),
         indicator=True,
     )
-    if not merged["_merge"].eq("both").all():
-        unmatched = merged.loc[
-            ~merged["_merge"].eq("both"),
-            ["TRANSACTION_ID", "_merge"],
-        ].to_dict("records")
-        raise ValueError(f"Transaction scenarios must not add or remove rows: {unmatched}.")
+    removed = merged["_merge"].eq("left_only")
+    if bool(removed.any()):
+        unmatched = merged.loc[removed, ["TRANSACTION_ID", "_merge"]].to_dict(
+            "records"
+        )
+        raise ValueError(f"Transaction scenarios must not remove rows: {unmatched}.")
+    merged = merged.rename(columns={"_merge": "MERGE_STATUS"})
 
     rows: list[dict[str, object]] = []
     for row in merged.itertuples(index=False):
+        merge_status = str(row.MERGE_STATUS)
+        if merge_status == "right_only":
+            context_values = {
+                column: _row_string(row, f"{column}_current")
+                for column in context_columns
+            }
+            rows.append(
+                {
+                    "TRANSACTION_ID": str(row.TRANSACTION_ID),
+                    "PORT": str(row.PORT_current),
+                    "TRANSACTION_DATE": pd.Timestamp(row.TRANSACTION_DATE_current),
+                    "SEC": str(row.SEC_current),
+                    "TRAN": str(row.TRAN_current),
+                    **context_values,
+                    **{
+                        f"{column}_delta": float(getattr(row, f"{column}_current"))
+                        for column in ("QTY", "PRICE", "AMOUNT", "COMMISSION")
+                    },
+                }
+            )
+            continue
+
         base_port = str(row.PORT_base)
         current_port = str(row.PORT_current)
         base_security = str(row.SEC_base)
@@ -988,7 +1043,7 @@ def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
         ValueError: If the CSV shape, snapshot names, keys, or numeric deltas are
             invalid.
     """
-    scenarios = pd.read_csv(path)
+    scenarios = pd.read_csv(path, keep_default_na=False)
     missing_columns = [
         column for column in _HOLDING_SCENARIO_COLUMNS if column not in scenarios.columns
     ]
@@ -1107,7 +1162,7 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
         ValueError: If the CSV shape, snapshot names, keys, or numeric deltas are
             invalid.
     """
-    scenarios = pd.read_csv(path)
+    scenarios = pd.read_csv(path, keep_default_na=False)
     missing_columns = [
         column
         for column in _TRANSACTION_SCENARIO_COLUMNS
@@ -1142,27 +1197,75 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
             "Transaction scenarios may only target derived snapshots. "
             f"Unsupported snapshots={unknown_snapshots}."
         )
+    unknown_actions = sorted(set(scenarios["action"]) - _TRANSACTION_SCENARIO_ACTIONS)
+    if unknown_actions:
+        raise ValueError(
+            "Transaction scenario action must be one of "
+            f"{sorted(_TRANSACTION_SCENARIO_ACTIONS)}. "
+            f"Unsupported actions={unknown_actions}."
+        )
 
     delta_columns = [f"{column}_delta" for column in _TRANSACTION_NUMERIC_COLUMNS]
     converted_deltas = scenarios[delta_columns].apply(pd.to_numeric, errors="coerce")
     if bool(converted_deltas.isna().any().any()):
         raise ValueError("Transaction scenario delta columns must be numeric.")
+    converted_values = scenarios[_TRANSACTION_NUMERIC_COLUMNS].apply(
+        pd.to_numeric,
+        errors="coerce",
+    )
+    insert_mask = scenarios["action"].eq("insert")
+    if bool(converted_values.loc[insert_mask].isna().any().any()):
+        raise ValueError("Inserted transaction scenario numeric values must be numeric.")
 
     adjustments: list[TransactionScenarioAdjustment] = []
     for row_index, row in scenarios.iterrows():
+        action = str(row["action"])
         deltas = {
             column: float(converted_deltas.loc[row_index, f"{column}_delta"])
             for column in _TRANSACTION_NUMERIC_COLUMNS
         }
-        if not any(deltas.values()):
+        if action == "adjust" and not any(deltas.values()):
             raise ValueError(
                 "Transaction scenario rows must change at least one numeric value: "
                 f"{row['TRANSACTION_ID']}."
             )
+        values: dict[str, object] = {}
+        if action == "insert":
+            required_insert_columns = [
+                "PORT",
+                "TRANSACTION_DATE",
+                "SETTLE_DATE",
+                "SEC",
+                "TRAN",
+                "SEC_TYPE",
+            ]
+            blank_columns = [
+                column
+                for column in required_insert_columns
+                if not str(row[column]).strip()
+            ]
+            if blank_columns:
+                raise ValueError(
+                    "Inserted transaction scenarios require transaction values: "
+                    f"{row['TRANSACTION_ID']}; missing={blank_columns}."
+                )
+            values = {
+                column: str(row[column])
+                for column in _TRANSACTION_SOURCE_COLUMNS
+            }
+            values["TRANSACTION_ID"] = str(row["TRANSACTION_ID"])
+            values.update(
+                {
+                    column: float(converted_values.loc[row_index, column])
+                    for column in _TRANSACTION_NUMERIC_COLUMNS
+                }
+            )
         adjustments.append(
             TransactionScenarioAdjustment(
                 snapshot=str(row["snapshot"]),
+                action=action,
                 transaction_id=str(row["TRANSACTION_ID"]),
+                values=values,
                 deltas=deltas,
                 scenario=str(row["scenario"]),
             )
@@ -1488,6 +1591,12 @@ def _is_cash_balance_transaction(row: object) -> bool:
     transaction_code = _row_string(row, "TRAN").lower()
     if transaction_code in {"dv", "in", "dp"}:
         return True
+    if transaction_code in {"li", "lo"}:
+        return (
+            _row_string(row, "SEC").upper() == _CASH_SECURITY_ID
+            and _row_string(row, "SRC_DEST_TYPE").lower() == "$pty"
+            and _row_string(row, "SRC_DEST_SYMBOL").lower() == "$cash"
+        )
     if transaction_code == "wd":
         return (
             _row_string(row, "SEC").upper() == _CASH_SECURITY_ID

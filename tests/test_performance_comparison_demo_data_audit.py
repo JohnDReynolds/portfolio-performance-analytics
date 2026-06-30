@@ -687,15 +687,107 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_transaction_scenario_file_rejects_base_snapshot_adjustments(self) -> None:
         """Transaction scenario rows must target derived snapshots."""
         rebuild_module = _load_rebuild_module()
-        columns = ",".join(rebuild_module._TRANSACTION_SCENARIO_COLUMNS)
-        row = "axys_full_spec_a,ALPHA0203,0,0,-1,0,Invalid base adjustment\n"
+        row = {
+            column: ""
+            for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
+        }
+        row.update(
+            {
+                "snapshot": "axys_full_spec_a",
+                "action": "adjust",
+                "TRANSACTION_ID": "ALPHA0203",
+                "QTY_delta": 0,
+                "PRICE_delta": 0,
+                "AMOUNT_delta": -1,
+                "COMMISSION_delta": 0,
+                "scenario": "Invalid base adjustment",
+            }
+        )
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "bad_transaction_scenarios.csv"
-            path.write_text(f"{columns}\n{row}")
+            pd.DataFrame([row], columns=rebuild_module._TRANSACTION_SCENARIO_COLUMNS).to_csv(
+                path,
+                index=False,
+            )
 
             with self.assertRaisesRegex(ValueError, "derived snapshots"):
                 rebuild_module._load_transaction_scenarios(path)
+
+    def test_transaction_scenarios_can_insert_external_cash_contribution(self) -> None:
+        """An explicit inserted li row can drive a future contribution scenario."""
+        rebuild_module = _load_rebuild_module()
+        axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
+        base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
+        base_transactions = pd.read_csv(
+            axys_directory / "axys_full_spec_a" / "transactions.csv"
+        )
+        periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")
+        row = {
+            column: ""
+            for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
+        }
+        row.update(
+            {
+                "snapshot": "axys_full_spec_b",
+                "action": "insert",
+                "TRANSACTION_ID": "BALANCED0403",
+                "PORT": "BALANCED",
+                "TRANSACTION_DATE": "2026-03-20",
+                "SETTLE_DATE": "2026-03-20",
+                "SEC": "CASH_USD",
+                "TRAN": "li",
+                "SEC_TYPE": "caus",
+                "SRC_DEST_TYPE": "$pty",
+                "SRC_DEST_SYMBOL": "$cash",
+                "QTY": 0,
+                "PRICE": 0,
+                "AMOUNT": 2500,
+                "COMMISSION": 0,
+                "QTY_delta": 0,
+                "PRICE_delta": 0,
+                "AMOUNT_delta": 0,
+                "COMMISSION_delta": 0,
+                "scenario": "Test-only contribution insertion.",
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "transaction_scenarios.csv"
+            pd.DataFrame([row], columns=rebuild_module._TRANSACTION_SCENARIO_COLUMNS).to_csv(
+                path,
+                index=False,
+            )
+            scenarios = rebuild_module._load_transaction_scenarios(path)
+
+        rebuilt_transactions = rebuild_module._rebuild_transactions(
+            "axys_full_spec_b",
+            current_transactions=base_transactions,
+            base_transactions=base_transactions,
+            transaction_scenarios=scenarios,
+        )
+        inserted = rebuilt_transactions[
+            rebuilt_transactions["TRANSACTION_ID"].eq("BALANCED0403")
+        ]
+        self.assertEqual(inserted.shape[0], 1)
+        self.assertEqual(inserted.iloc[0]["TRAN"], "li")
+        self.assertEqual(float(inserted.iloc[0]["AMOUNT"]), 2500.0)
+
+        adjustments = rebuild_module._transaction_derived_holding_adjustments(
+            "axys_full_spec_b",
+            base_holdings=base_holdings,
+            base_transactions=base_transactions,
+            current_transactions=rebuilt_transactions,
+            periods=periods,
+        )
+        by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
+        self._assert_adjustment(
+            by_scenario["BALANCED0403 li transaction changes cash balance."],
+            portfolio="BALANCED",
+            security="CASH_USD",
+            holding_date="2026-03-31",
+            deltas={"QTY": 2500.0, "MKT_VAL": 2500.0, "COST": 2500.0},
+        )
 
     def _assert_adjustment(
         self,

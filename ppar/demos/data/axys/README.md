@@ -98,6 +98,10 @@ Data used:
   `by`, `sl`, `dv`, `in`, `dp`, and `wd`. More ambiguous `li`/`lo` transfer
   cases and synthetic corporate-action rows live in test-only fixtures until a
   realistic packaged story and evidence trail justify adding them here.
+- The next packaged external-flow expansion should be a plain contribution,
+  modeled as an inserted `li` cash row only after the rebuild path derives the
+  transaction, ending cash holding, portfolio performance, and reconstruction
+  checks from one coherent scenario.
 - Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
   sufficient only when transaction rows include source/destination and
   special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,

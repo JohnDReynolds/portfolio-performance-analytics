@@ -1,7 +1,7 @@
-snapshot,TRANSACTION_ID,QTY_delta,PRICE_delta,AMOUNT_delta,COMMISSION_delta,scenario
-axys_full_spec_b,ALPHA0203,0.0,0.0,-1500.0,0.0,Withdrawal correction increases external cash outflow.
-axys_full_spec_b,ALPHA0401,1.1372,0.15,-196.98,10.0,AAPL buy correction changes quantity price commission and amount.
-axys_full_spec_b,BALANCED0203,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
-axys_full_spec_b,BALANCED0502,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
-axys_full_spec_b,INCOME0203,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
-axys_full_spec_b,INCOME0603,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.
+snapshot,action,TRANSACTION_ID,PORT,TRANSACTION_DATE,SETTLE_DATE,SEC,TRAN,SEC_TYPE,SRC_DEST_TYPE,SRC_DEST_SYMBOL,SPECIAL_SEC_TYPE,SPECIAL_SEC_SYMBOL,QTY,PRICE,AMOUNT,COMMISSION,QTY_delta,PRICE_delta,AMOUNT_delta,COMMISSION_delta,scenario
+axys_full_spec_b,adjust,ALPHA0203,,,,,,,,,,,,,,,0.0,0.0,-1500.0,0.0,Withdrawal correction increases external cash outflow.
+axys_full_spec_b,adjust,ALPHA0401,,,,,,,,,,,,,,,1.1372,0.15,-196.98,10.0,AAPL buy correction changes quantity price commission and amount.
+axys_full_spec_b,adjust,BALANCED0203,,,,,,,,,,,,,,,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
+axys_full_spec_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
+axys_full_spec_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
+axys_full_spec_b,adjust,INCOME0603,,,,,,,,,,,,,,,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.
