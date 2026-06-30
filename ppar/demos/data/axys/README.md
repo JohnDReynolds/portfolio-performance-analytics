@@ -90,18 +90,17 @@ Data used:
   cash/fixed-income sleeves.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
-- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `dp`, `wd`, and
-  `;`) to normalized categories such as `buy`, `sell`, `income`, `fee_expense`,
-  `external_flow`, and `corporate_action`. Reviewer-facing explanations preserve
-  the source code rather than uppercasing or replacing it with the category.
+- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `dp`, `li`,
+  `wd`, and `;`) to normalized categories such as `buy`, `sell`, `income`,
+  `fee_expense`, `external_flow`, and `corporate_action`. Reviewer-facing
+  explanations preserve the source code rather than uppercasing or replacing it
+  with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
-  `by`, `sl`, `dv`, `in`, `dp`, and `wd`. More ambiguous `li`/`lo` transfer
-  cases and synthetic corporate-action rows live in test-only fixtures until a
-  realistic packaged story and evidence trail justify adding them here.
-- The next packaged external-flow expansion should be a plain contribution,
-  modeled as an inserted `li` cash row only after the rebuild path derives the
-  transaction, ending cash holding, portfolio performance, and reconstruction
-  checks from one coherent scenario.
+  `by`, `sl`, `dv`, `in`, `dp`, `li`, and `wd`. The packaged `li` row is a
+  plain external cash contribution with external-party context. More ambiguous
+  `li`/`lo` transfer cases and synthetic corporate-action rows live in
+  test-only fixtures until a realistic packaged story and evidence trail
+  justify adding them here.
 - Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
   sufficient only when transaction rows include source/destination and
   special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,
@@ -137,6 +136,7 @@ Expected workbook:
     changed AAPL holding quantity/market value, and related transaction
     quantity, price, and commission support rows;
   - a fully explained BALANCED period with a dividend transaction amount change;
+  - a fully explained BALANCED period with an external cash contribution;
   - a fully explained INCOME period with a larger advisory-fee expense and
     matching lower `CASH_USD` ending value;
   - a fully explained BALANCED period with both an AAPL price correction and a

@@ -306,7 +306,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         self.assertIn("Phase 8A: Realistic Transaction Expansion Gate", roadmap)
-        self.assertIn("plain portfolio\ncontribution", roadmap)
+        self.assertIn("packaged-demo contribution scenario", roadmap)
         self.assertIn("source/destination type", roadmap)
         self.assertIn("source/destination symbol", roadmap)
         self.assertIn("REP/report\n  semantic fields", roadmap)
@@ -314,7 +314,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("generated ending `CASH_USD` holding", roadmap)
         self.assertIn("portfolio Modified Dietz\n  reconstruction", roadmap)
         self.assertIn("without double-counting", roadmap)
-        self.assertIn("Implementation-ready recipe", roadmap)
+        self.assertIn("Implemented contribution recipe", roadmap)
         self.assertIn("inserted transaction scenario", roadmap)
         self.assertIn("`SRC_DEST_TYPE=$pty`", roadmap)
         self.assertIn("positive `AMOUNT`", roadmap)

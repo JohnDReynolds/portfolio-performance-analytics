@@ -121,12 +121,12 @@ match a reviewed conditional rule, or the source must provide reviewed
 category/sign semantics, before ppar treats an ambiguous Axys code as an
 external flow, transfer, fee/expense, or performance transaction.
 
-A future packaged contribution should be modeled as a new inserted transaction
-scenario, not as a numeric mutation of an unrelated existing transaction. The
-preferred demo shape is an Axys-style `li` row on `CASH_USD` with
-`SRC_DEST_TYPE=$pty`, `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero
-quantity/price/commission, and explicit YAML semantics that classify it as an
-external capital inflow from that context.
+The packaged contribution is modeled as a new inserted transaction scenario,
+not as a numeric mutation of an unrelated existing transaction. It uses an
+Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
+`SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero quantity/price/commission, and
+explicit YAML semantics that classify it as an external capital inflow from
+that context.
 
 The default runtime guard uses
 `ppar/demos/data/axys/demo_extract_availability.yaml`. A site comparison YAML

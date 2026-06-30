@@ -59,8 +59,8 @@ _PACKAGED_AXYS_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 )
-_PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "wd"}
-_TEST_ONLY_TRANSACTION_CODES = {"li", "lo"}
+_PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "wd"}
+_TEST_ONLY_TRANSACTION_CODES = {"lo"}
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
@@ -461,7 +461,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["axys_full_spec_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["axys_full_spec_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["axys_full_spec_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 6)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 7)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_scenarios_by_type"],
             {
@@ -469,11 +469,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "dp": 1,
                 "dv": 1,
                 "in": 1,
+                "li": 1,
                 "sl": 1,
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 8)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 9)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
             {
@@ -481,6 +482,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "dp": 1,
                 "dv": 1,
                 "in": 1,
+                "li": 1,
                 "sl": 2,
                 "wd": 1,
             },
@@ -564,7 +566,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 8)
+        self.assertEqual(len(adjustments), 9)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -628,6 +630,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             security="CASH_USD",
             holding_date="2026-01-30",
             deltas={"QTY": 226.0, "MKT_VAL": 226.0, "COST": 226.0},
+        )
+        self._assert_adjustment(
+            by_scenario["BALANCED0403 li transaction changes cash balance."],
+            portfolio="BALANCED",
+            security="CASH_USD",
+            holding_date="2026-03-31",
+            deltas={"QTY": 2500.0, "MKT_VAL": 2500.0, "COST": 2500.0},
         )
 
     def test_holding_scenario_file_requires_exact_columns(self) -> None:

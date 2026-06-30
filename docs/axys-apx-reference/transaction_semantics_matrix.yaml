@@ -163,9 +163,9 @@ rows:
     required_evidence: [source_destination_type, source_destination_symbol, security_type, amount_or_quantity_signs]
     imex_confidence: medium_context_required
     rep_confidence: medium_high
-    coverage_status: covered_site_variant
-    fixtures: [site_variants/imex_context, site_variants/rep_semantics]
-    coverage_notes: Site-variant fixtures cover external-party inflow and internal-transfer cases; packaged demo inclusion awaits a realistic user-facing contribution story.
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers a contextual external cash contribution; site-variant fixtures cover external-party inflow and internal-transfer cases.
   lo:
     observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
     ppar_categories: [external_flow, transfer]

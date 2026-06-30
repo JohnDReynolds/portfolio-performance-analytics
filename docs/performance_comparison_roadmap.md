@@ -859,6 +859,7 @@ performance explanation.
 
 Current packaged demo coverage includes realistic examples of:
 
+- portfolio contribution
 - portfolio withdrawal
 - security buy
 - security sell
@@ -872,8 +873,8 @@ classify Axys transaction semantics safely.
 
 | Priority | Scenario family | Permanent home | Required evidence before implementation | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Portfolio contribution | Packaged demo candidate | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | Natural counterpart to the current withdrawal example. Use an ordinary cash contribution rather than a synthetic edge case. |
-| 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures already prove the classification patterns. Add to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
+| 1 | Additional contribution or withdrawal variants | Test-only first, packaged demo only when nonredundant | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | The packaged demo now includes one ordinary `li` contribution and one `wd` withdrawal. Add more only when the scenario teaches a new review behavior. |
+| 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures and the packaged `li` contribution prove the classification patterns. Add transfer examples to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
 | 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
 | 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | Do not add a user-facing bond maturity until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
 | 5 | Return of capital (`rc`) | Test-only first | Security, amount sign, cost-basis/report treatment, whether return is performance income or review-only corporate-action evidence. | Needs explicit policy before it can explain performance. |
@@ -883,10 +884,9 @@ classify Axys transaction semantics safely.
 
 #### Phase 8A: Realistic Transaction Expansion Gate
 
-The next packaged-demo transaction scenario should be a plain portfolio
-contribution only if it can pass the same end-to-end standard as the current
-withdrawal example. Before adding it to `axys_full_spec_a` or
-`axys_full_spec_b`, document and verify:
+The packaged-demo contribution scenario passes the same end-to-end standard as
+the withdrawal example. Before adding any additional external-flow variant to
+`axys_full_spec_a` or `axys_full_spec_b`, document and verify:
 
 - scenario intent: which portfolio, period, cash security, and reviewer-facing
   business story the contribution represents;
@@ -906,19 +906,17 @@ withdrawal example. Before adding it to `axys_full_spec_a` or
 - docs and tests: this roadmap, the demo source contract, the packaged demo
   README, the semantics matrix, and audit tests all name the expected treatment.
 
-Implementation-ready recipe:
+Implemented contribution recipe:
 
 - add the contribution as an inserted transaction scenario, not by mutating an
   unrelated base transaction row;
-- prefer an Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
+- use an Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
   `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero quantity/price/commission,
   and same-day settlement unless site evidence says otherwise;
-- choose a period that does not already carry a packaged external-flow example,
-  so the workbook can demonstrate the contribution clearly;
 - let the rebuild script derive snapshot B `transactions.csv`, ending cash
   holdings, `portperf.csv`, and reconstruction diagnostics from the scenario;
-- keep the row out of packaged CSVs until the generated workbook has no
-  unintended partly explained or unexplained period.
+- keep future external-flow rows out of packaged CSVs until the generated
+  workbook has no unintended partly explained or unexplained period.
 
 `li`/`lo`, additional `dp`/`wd`, and synthetic corporate-action scenarios should
 remain test-only until they meet their own version of this gate. A real-world
@@ -986,6 +984,6 @@ Near-term backlog by home:
 
 | Home | Transaction families | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | contribution; possibly realistic `li`/`lo`; real historical split when the demo period supports it | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
+| Packaged demo candidate | nonredundant external-flow variants; possibly realistic `li`/`lo` transfer examples; real historical split when the demo period supports it | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
 | Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. |
 | Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes | Axys/REP/report evidence identifies required fields and ppar treatment well enough to avoid code-only classification. |
