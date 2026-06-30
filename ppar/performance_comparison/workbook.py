@@ -35,7 +35,7 @@ _DEFAULT_COLUMN_WIDTH_CAP = 12
 _DATE_COLUMN_WIDTH_CAP = 10
 _IDENTIFIER_COLUMN_WIDTH_CAP = 20
 _NARRATIVE_COLUMN_WIDTH_CAP = 30
-_EXPLANATION_COLUMN_WIDTH_CAP = 38
+_EXPLANATION_COLUMN_WIDTH_CAP = 48
 _KEY_COLUMN_WIDTH_CAP = 22
 _DATE_COLUMNS = {
     _pc_findings.FROM_DATE,
@@ -455,6 +455,7 @@ def _workbook_column_width(
     safe_width = max(
         min(content_width, cap),
         _longest_header_word_width(header),
+        cap if _normalize_header(header) == "Explanation" else 0,
         _MINIMUM_COLUMN_WIDTHS.get(column_name, 0),
     )
     return min(max(safe_width + 2, 8), cap + 2)
