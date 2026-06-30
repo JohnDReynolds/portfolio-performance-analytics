@@ -61,6 +61,7 @@ _DEMO_EXTRACT_AVAILABILITY_PATH = (
 )
 _PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "wd"}
 _TEST_ONLY_TRANSACTION_CODES = {"lo"}
+_FIXED_INCOME_BACKLOG_TRANSACTION_CODES = {"ai", "pa", "sa", "pd"}
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
@@ -342,6 +343,52 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES
                 )
             )
+
+    def test_packaged_demo_fixed_income_boundary_stays_evidenced(self) -> None:
+        """Fixed-income demo rows use proved income/accrual inputs only."""
+        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+
+        for snapshot_key, snapshot_directory in (
+            ("a", "axys_full_spec_a"),
+            ("b", "axys_full_spec_b"),
+        ):
+            with self.subTest(snapshot_key=snapshot_key):
+                transactions = pd.read_csv(
+                    _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
+                )
+                observed_codes = set(transactions["TRAN"].astype(str))
+
+                self.assertTrue(
+                    observed_codes.isdisjoint(_FIXED_INCOME_BACKLOG_TRANSACTION_CODES)
+                )
+
+                fixed_income_interest = transactions.loc[
+                    transactions["TRANSACTION_ID"] == "INCOME0603"
+                ].iloc[0]
+                self.assertEqual(fixed_income_interest["TRAN"], "in")
+                self.assertEqual(fixed_income_interest["SEC"], "TNOTE2Y")
+                self.assertEqual(fixed_income_interest["SEC_TYPE"], "fius")
+                self.assertGreater(fixed_income_interest["AMOUNT"], 0)
+
+                frame = TransactionsLoader(specification).load(snapshot_key)
+                assert frame is not None
+                resolved_row = frame.filter(
+                    pl.col(pc_cols.TRANSACTION_ID) == "INCOME0603"
+                ).row(0, named=True)
+
+                self.assertEqual(resolved_row[pc_cols.TRANSACTION_CODE], "in")
+                self.assertEqual(
+                    resolved_row[pc_cols.TRANSACTION_CATEGORY],
+                    "income",
+                )
+                self.assertEqual(
+                    resolved_row[pc_cols.PERFORMANCE_FLOW_SIGN],
+                    "performance",
+                )
+                self.assertIn(
+                    resolved_row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                    {"mixed", "yaml_rule"},
+                )
 
     def test_packaged_demo_wd_uses_contextual_external_flow_rule(self) -> None:
         """Packaged Axys wd rows classify external flow from context, not code alone."""

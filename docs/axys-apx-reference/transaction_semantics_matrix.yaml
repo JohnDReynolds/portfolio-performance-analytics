@@ -110,7 +110,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending fixed-income, margin, or accrual context that distinguishes income from fee-expense treatment.
+    coverage_notes: Backlog pending fixture evidence that distinguishes accrued interest, margin/negative interest, and fee-expense treatment; packaged demo uses holdings.accrued plus in interest, not ai.
   sa:
     observed_meaning: Sell accrued interest.
     ppar_categories: [income, fee_expense]
@@ -121,7 +121,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending fixed-income/accrual fixture and local mapping for sell-accrued-interest behavior.
+    coverage_notes: Backlog pending sell-accrued-interest fixture with bond/accrual context, cash offset, amount sign, and local mapping or REP/report semantics.
   pa:
     observed_meaning: Purchase accrued interest or accrued-interest-related buy-side case.
     ppar_categories: [fee_expense, income]
@@ -132,7 +132,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending fixed-income/accrual fixture and local mapping for purchase-accrued-interest behavior.
+    coverage_notes: Backlog pending purchase-accrued-interest fixture with bond/accrual context, cash offset, amount sign, and local mapping or REP/report semantics.
   rc:
     observed_meaning: Return of capital.
     ppar_categories: [income, corporate_action]
@@ -154,7 +154,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending principal-paydown fixture with bond context, principal exposure change, cash movement, and quantity policy.
+    coverage_notes: Backlog pending principal-paydown fixture that proves bond context, cash movement, principal exposure or quantity change, and income versus corporate-action/review-only treatment.
   li:
     observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
     ppar_categories: [external_flow, transfer]

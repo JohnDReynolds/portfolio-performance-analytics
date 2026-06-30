@@ -958,6 +958,35 @@ Before adding a reinvestment fixture, require:
   a realistic packaged period and security story makes the example useful to a
   reviewer.
 
+#### Phase 8C: Fixed-Income Transaction Boundary Gate
+
+Status: documented packaged-data guard. The packaged demo currently supports
+ordinary `in` interest rows and `holdings.accrued` as proved fixed-income
+performance inputs. It intentionally excludes `ai`, `pa`, `sa`, and `pd`
+transaction rows until test-only fixtures prove their treatment.
+
+Before adding accrued-interest or principal-paydown transaction examples,
+require:
+
+- source evidence: bond or accrual security type, cash offset, amount sign,
+  accrued-interest or principal-paydown context, and local mapping or
+  REP/report semantics;
+- accounting evidence: holdings, accrued interest, cash, quantity or principal
+  exposure, `secperf.csv`, and `portperf.csv` all derive from one coherent
+  scenario intent;
+- YAML semantics: `ai`, `pa`, and `sa` distinguish income from fee/expense or
+  unknown treatment from context, not from code alone;
+- principal boundary: `pd` proves cash movement and principal exposure changes
+  before it is treated as performance income, corporate-action evidence, or
+  review-only evidence;
+- report behavior: workbook rows should make clear whether the transaction is
+  a direct formula input, supporting accounting evidence, or a blocked
+  classification that needs REP/report context.
+
+The first implementation should be test-only. A packaged fixed-income
+transaction example should wait until the scenario is realistic enough that a
+reviewer can understand why the row belongs in the public demo.
+
 For any additional examples:
 
 - Make all accounting internally consistent.

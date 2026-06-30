@@ -336,6 +336,20 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("must not count\n  the dividend income twice", roadmap)
         self.assertIn("synthetic reinvestment examples belong in test-only data", roadmap)
 
+    def test_fixed_income_transaction_boundary_gate_is_documented(self) -> None:
+        """The roadmap keeps under-evidenced fixed-income transaction rows gated."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Phase 8C: Fixed-Income Transaction Boundary Gate", roadmap)
+        self.assertIn("ordinary `in` interest rows", roadmap)
+        self.assertIn("`holdings.accrued`", roadmap)
+        self.assertIn("`ai`, `pa`, `sa`, and `pd`", roadmap)
+        self.assertIn("local mapping or\n  REP/report semantics", roadmap)
+        self.assertIn("quantity or principal\n  exposure", roadmap)
+        self.assertIn("before it is treated as performance income", roadmap)
+
     def test_transaction_semantics_matrix_yaml_matches_appendix_codes(self) -> None:
         """The machine-readable transaction matrix stays aligned with the appendix."""
         matrix_yaml = _load_yaml(

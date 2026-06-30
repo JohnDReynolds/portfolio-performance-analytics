@@ -128,6 +128,28 @@ Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
 explicit YAML semantics that classify it as an external capital inflow from
 that context.
 
+## Fixed-Income Transaction Boundary
+
+The packaged demo currently uses two proved fixed-income inputs:
+
+- `in` transaction rows for ordinary bond or cash interest that is treated as
+  performance income; and
+- `holdings.accrued` changes as valuation/performance evidence when the
+  comparison YAML includes accrued interest as a return input.
+
+The packaged demo deliberately does not use `ai`, `pa`, `sa`, or `pd` rows yet.
+Those codes need more than the Axys short code before ppar can classify them:
+bond/accrual context, cash offset, amount sign, principal or quantity movement,
+and local mapping or REP/report evidence. Until those fixtures exist, `ai`,
+`pa`, and `sa` remain accrued-interest backlog cases, and `pd` remains a
+principal-paydown boundary case rather than ordinary income.
+
+This is a data-quality guard, not a claim that those Axys transaction types are
+unsupported forever. They should enter test-only data first. A packaged example
+should wait until holdings, accrued interest, cash, security performance,
+portfolio performance, and reviewer-facing report output all derive from one
+coherent fixed-income story.
+
 The default runtime guard uses
 `ppar/demos/data/axys/demo_extract_availability.yaml`. A site comparison YAML
 can point to a local contract when its validated IMEX/REP extract layout differs:
