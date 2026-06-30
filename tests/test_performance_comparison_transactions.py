@@ -51,6 +51,12 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_co
 _SITE_EXTRACT_CONTRACT_TEMPLATE_PATH = Path(
     "docs/axys-apx-reference/templates/site_extract_contract.yaml"
 )
+_SITE_EXTRACT_CONTRACT_IMEX_TEMPLATE_PATH = Path(
+    "docs/axys-apx-reference/templates/site_extract_contract_imex_context.yaml"
+)
+_SITE_EXTRACT_CONTRACT_REP_TEMPLATE_PATH = Path(
+    "docs/axys-apx-reference/templates/site_extract_contract_rep_semantics.yaml"
+)
 _SITE_VARIANT_FIXTURES_PATH = Path("tests/data/axys/site_variants")
 
 
@@ -123,6 +129,34 @@ class TestTransactionsLoader(unittest.TestCase):
             contract,
             contract_label=str(_SITE_EXTRACT_CONTRACT_TEMPLATE_PATH),
         )
+
+    def test_site_extract_contract_profile_templates_are_valid(self) -> None:
+        """Documented IMEX and REP onboarding contract profiles remain valid."""
+        for template_path in (
+            _SITE_EXTRACT_CONTRACT_IMEX_TEMPLATE_PATH,
+            _SITE_EXTRACT_CONTRACT_REP_TEMPLATE_PATH,
+        ):
+            contract = yaml.safe_load(template_path.read_text(encoding="utf-8"))
+
+            validate_extract_contract(contract, contract_label=str(template_path))
+
+    def test_site_variant_contracts_match_documented_profiles(self) -> None:
+        """Fixture contracts stay aligned with the documented onboarding profiles."""
+        expected_pairs = {
+            "imex_context": _SITE_EXTRACT_CONTRACT_IMEX_TEMPLATE_PATH,
+            "rep_semantics": _SITE_EXTRACT_CONTRACT_REP_TEMPLATE_PATH,
+        }
+        for fixture_name, template_path in expected_pairs.items():
+            fixture_path = (
+                _SITE_VARIANT_FIXTURES_PATH
+                / fixture_name
+                / "site_extract_contract.yaml"
+            )
+
+            self.assertEqual(
+                yaml.safe_load(fixture_path.read_text(encoding="utf-8")),
+                yaml.safe_load(template_path.read_text(encoding="utf-8")),
+            )
 
     def test_public_transaction_constants_match_enum_values(self) -> None:
         """Legacy public string constants stay aligned with transaction enums."""

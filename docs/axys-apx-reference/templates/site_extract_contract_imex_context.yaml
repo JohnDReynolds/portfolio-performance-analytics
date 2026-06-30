@@ -1,0 +1,21 @@
+# Axys IMEX-context site contract example.
+#
+# Use this shape when the site's transaction extract includes Axys
+# source/destination and special-security context fields. Conditional
+# transaction_rules can then classify ambiguous dp/li/lo/wd rows from the
+# row values, not from transaction code alone.
+datasets:
+  transactions.csv:
+    columns:
+      SRC_DEST_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SRC_DEST_SYMBOL:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SPECIAL_SEC_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SPECIAL_SEC_SYMBOL:
+        requires_context_for_semantics: true
+        blocking_if_missing: true

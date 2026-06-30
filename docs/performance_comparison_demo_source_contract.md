@@ -157,6 +157,24 @@ For a real Axys site, start by validating which extract shape is available:
 | REP/report or custom-report rows include reviewed category and sign semantics. | Keep ambiguous-flow enforcement on and mark the reviewed semantic fields as the blocking context in the site contract; source semantics can mark ambiguous codes as external, neutral, or performance-affecting. |
 | IMEX rows expose only transaction code, amount, date, portfolio, and security. | Treat the extract as insufficient for ambiguous external-flow classification; use REP/report/custom-report evidence before running comparison. |
 
+Use this onboarding sequence:
+
+1. Ask the Axys administrator or report owner for a transaction extract column
+   list, including source/destination, special-security, and report-semantic
+   fields when available.
+2. Compare that list to the template profiles:
+   - [`site_extract_contract_imex_context.yaml`](axys-apx-reference/templates/site_extract_contract_imex_context.yaml)
+     when IMEX exposes source/destination and special-security context;
+   - [`site_extract_contract_rep_semantics.yaml`](axys-apx-reference/templates/site_extract_contract_rep_semantics.yaml)
+     when REP or a custom report exposes reviewed category/sign semantics;
+   - [`site_extract_contract.yaml`](axys-apx-reference/templates/site_extract_contract.yaml)
+     as the broad starter before trimming fields to the local extract.
+3. Keep only fields the local extract really contains, then reference the
+   contract from comparison YAML with `extract_contract.path`.
+4. Run `validate_config` before generating reports. A code-only IMEX extract
+   with `dp`, `li`, `lo`, or `wd` should fail until richer IMEX context,
+   REP/report semantics, or another reviewed source is available.
+
 The small fixtures in `tests/data/axys/site_variants/` pin these shapes. New
 demo data and tests should grow from those fixtures until all documented Axys
 transaction types have explicit expected treatment, including external-flow,

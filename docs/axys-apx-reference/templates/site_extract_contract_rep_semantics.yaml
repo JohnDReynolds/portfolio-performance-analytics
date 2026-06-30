@@ -1,0 +1,18 @@
+# Axys REP/report-semantics site contract example.
+#
+# Use this shape when a REP, custom report, or other reviewed source already
+# supplies transaction category and sign semantics. In this profile the source
+# semantics, not IMEX source/destination fields, are the blocking context for
+# ambiguous dp/li/lo/wd rows.
+datasets:
+  transactions.csv:
+    columns:
+      TRANSACTION_CATEGORY:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      CASH_FLOW_SIGN:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      PERFORMANCE_FLOW_SIGN:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
