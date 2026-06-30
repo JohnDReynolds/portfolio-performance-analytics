@@ -14,6 +14,7 @@ import polars as pl
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as _pc_cols
 from ppar.performance_comparison.compare import PerformanceComparison
+from ppar.performance_comparison.extract_contract import extract_contract_settings
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.transactions import (
     TRANSACTION_SEMANTICS_SOURCE_MIXED,
@@ -65,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
     print(f"Transaction files checked: {summary['transaction_files_checked']}")
+    print(f"Extract contract: {summary['extract_contract']}")
+    print(
+        "Enforce ambiguous Axys flows: "
+        f"{summary['enforce_ambiguous_axys_flows']}"
+    )
     print(f"Transaction codes observed: {summary['transaction_codes_observed']}")
     print(
         "Transaction codes without YAML rules: "
@@ -91,6 +97,10 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
     specification = PerformanceComparisonSpecification(comparison_path)
     PerformanceComparison(specification)
     transaction_preview = _validate_transactions(specification)
+    contract_settings = extract_contract_settings(
+        specification.values,
+        specification_path=specification.path,
+    )
     dataset_names = ", ".join(sorted(specification.files))
     return {
         "snapshot_a": specification.snapshot_a.path,
@@ -108,6 +118,10 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
+        "extract_contract": contract_settings.path,
+        "enforce_ambiguous_axys_flows": (
+            contract_settings.enforce_ambiguous_axys_flows
+        ),
         "transaction_files_checked": transaction_preview["files_checked"],
         "transaction_codes_observed": transaction_preview["codes_observed"],
         "transaction_codes_without_yaml_rules": (

@@ -253,6 +253,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Transaction rules configured: 0", result.stdout)
         self.assertIn("Transaction impact methods: none", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
+        self.assertIn("Extract contract: packaged:", result.stdout)
+        self.assertIn("Enforce ambiguous Axys flows: True", result.stdout)
         self.assertIn(
             "Transaction codes observed: BUY, DIV, INT, SELL, SPLIT",
             result.stdout,

@@ -117,6 +117,34 @@ TRANSACTIONS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
         "TRANS_CODE",
         "ACTIVITY",
     ),
+    pc_cols.SECURITY_TYPE: (
+        "SECURITY_TYPE",
+        "SEC_TYPE",
+        "TRANSACTION_SECURITY_TYPE",
+        "TRAN_SEC_TYPE",
+    ),
+    pc_cols.SOURCE_DESTINATION_TYPE: (
+        "SOURCE_DESTINATION_TYPE",
+        "SRC_DEST_TYPE",
+        "SOURCE_DEST_TYPE",
+        "SRCDESTTYPE",
+    ),
+    pc_cols.SOURCE_DESTINATION_SYMBOL: (
+        "SOURCE_DESTINATION_SYMBOL",
+        "SRC_DEST_SYMBOL",
+        "SOURCE_DEST_SYMBOL",
+        "SRCDESTSYMBOL",
+    ),
+    pc_cols.SPECIAL_SECURITY_TYPE: (
+        "SPECIAL_SECURITY_TYPE",
+        "SPECIAL_SEC_TYPE",
+        "SPEC_SEC_TYPE",
+    ),
+    pc_cols.SPECIAL_SECURITY_SYMBOL: (
+        "SPECIAL_SECURITY_SYMBOL",
+        "SPECIAL_SEC_SYMBOL",
+        "SPEC_SEC_SYMBOL",
+    ),
     pc_cols.TRANSACTION_CATEGORY: (
         "TRANSACTION_CATEGORY",
         "TXN_CATEGORY",
