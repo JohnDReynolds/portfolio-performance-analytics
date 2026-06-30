@@ -973,6 +973,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertNotIn("## Secondary Review Views", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("explain each performance period", readme)
+            self.assertIn("additively explain each performance period", readme)
+            self.assertIn("Other Data Differences is review-only context", readme)
+            self.assertIn("Raw Audit Trail is the complete finding-level audit trail", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertLess(
                 readme.index("`report.xlsx`: Excel review workbook"),
