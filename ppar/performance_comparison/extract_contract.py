@@ -239,11 +239,13 @@ def validate_transaction_extract_contract(
         (
             f"{specification_path}: transactions file {path} contains ambiguous "
             f"Axys transaction codes {', '.join(ambiguous_codes)} but is missing "
-            f"required IMEX context fields {missing_columns}. IMEX transaction "
-            "code alone is not enough to classify external flows for dp/li/lo/wd "
-            "rows. Use an IMEX profile that exposes source/destination and "
-            "special-security context, or use a REP/report extract, custom "
-            "report, or local discovery before running performance comparison."
+            f"required transaction semantics/context fields {missing_columns}. "
+            "IMEX transaction code alone is not enough to classify external "
+            "flows for dp/li/lo/wd rows. Use an IMEX profile that exposes "
+            "source/destination and special-security context, or use a "
+            "REP/report extract, custom report, or local discovery that "
+            "supplies reviewed category/sign semantics before running "
+            "performance comparison."
         ),
         504,
     )

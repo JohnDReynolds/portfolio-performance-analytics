@@ -98,6 +98,11 @@ Data used:
   `by`, `sl`, `dv`, `in`, `dp`, and `wd`. More ambiguous `li`/`lo` transfer
   cases and synthetic corporate-action rows live in test-only fixtures until a
   realistic packaged story and evidence trail justify adding them here.
+- Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
+  sufficient only when transaction rows include source/destination and
+  special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,
+  custom report, or reviewed source that supplies transaction category and
+  cash/performance sign semantics.
 - YAML: includes explicit `portfolio_return_reconstruction` settings for
   Modified Dietz diagnostic checks.
 - YAML: includes explicit `security_return_reconstruction` settings for

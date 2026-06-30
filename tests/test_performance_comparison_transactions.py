@@ -140,6 +140,21 @@ class TestTransactionsLoader(unittest.TestCase):
 
             validate_extract_contract(contract, contract_label=str(template_path))
 
+    def test_site_extract_contract_templates_explain_safe_evidence_paths(self) -> None:
+        """Template comments document IMEX-context and REP-semantics options."""
+        starter_text = _SITE_EXTRACT_CONTRACT_TEMPLATE_PATH.read_text(encoding="utf-8")
+        imex_text = _SITE_EXTRACT_CONTRACT_IMEX_TEMPLATE_PATH.read_text(
+            encoding="utf-8"
+        )
+        rep_text = _SITE_EXTRACT_CONTRACT_REP_TEMPLATE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("IMEX context fields", starter_text)
+        self.assertIn("REP/report/custom-report fields", starter_text)
+        self.assertIn("conditional transaction_rules", imex_text)
+        self.assertIn("REP/report-semantics profile", imex_text)
+        self.assertIn("reviewed category/sign semantics", rep_text)
+        self.assertIn("unknown pending review", rep_text)
+
     def test_site_variant_contracts_match_documented_profiles(self) -> None:
         """Fixture contracts stay aligned with the documented onboarding profiles."""
         expected_pairs = {
@@ -1019,7 +1034,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 TransactionsLoader(specification).load("a")
 
             message = str(context.exception)
-            self.assertIn("IMEX context fields", message)
+            self.assertIn("transaction semantics/context fields", message)
             self.assertIn("REP/report extract", message)
 
     def test_ambiguous_axys_code_with_nonmatching_context_raises_error(self) -> None:

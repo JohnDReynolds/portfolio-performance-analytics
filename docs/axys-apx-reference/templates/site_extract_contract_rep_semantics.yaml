@@ -4,6 +4,11 @@
 # supplies transaction category and sign semantics. In this profile the source
 # semantics, not IMEX source/destination fields, are the blocking context for
 # ambiguous dp/li/lo/wd rows.
+#
+# The report owner must define reviewed category/sign semantics consistently
+# with the comparison YAML vocabulary: transaction_category, cash_flow_sign, and
+# performance_flow_sign. Source semantics can mark dp/li/lo/wd rows as
+# external, performance-impacting, neutral transfer, or unknown pending review.
 datasets:
   transactions.csv:
     columns:
