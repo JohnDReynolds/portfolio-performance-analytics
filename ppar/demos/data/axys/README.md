@@ -12,6 +12,8 @@ primary review level at runtime.
 The packaged CSV files follow the
 [Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
 They are normalized demo extracts, not official Axys/APX native schemas.
+For field-by-field IMEX and REP availability confidence, see
+[Demo Extract Availability](../../../../docs/axys-apx-reference/Appendix_Demo_Extract_Availability.md).
 
 | Role | YAML |
 | --- | --- |
@@ -207,7 +209,16 @@ performance rows.
 
 Current public YAML targets are intentionally narrow:
 
+- `extract_contract`: selects the packaged or site-specific extract contract
+  used by runtime guards. The default packaged contract enforces context-field
+  presence before ambiguous Axys `li`, `lo`, `dp`, or `wd` rows can be
+  classified by YAML rules. Use
+  `docs/axys-apx-reference/templates/site_extract_contract.yaml` as a starter
+  when a real site needs a local contract.
 - `transaction_rules`: classifies transaction codes for amount attribution.
+  Ambiguous Axys-style `li`, `lo`, `dp`, and `wd` examples require matching
+  transaction-context fields before they are treated as external flows or
+  fee/expense rows.
 - `transaction_amount_delta_over_return_denominator`: default amount-impact
   method used after `transaction_rules` mark a transaction code as
   performance-affecting.

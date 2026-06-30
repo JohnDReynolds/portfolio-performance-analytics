@@ -21,6 +21,8 @@ Use the Axys/APX reference chapters as evidence boundaries:
 - [`Chapter_07_Cash.md`](axys-apx-reference/Chapter_07_Cash.md)
 - [`Chapter_10_Performance.md`](axys-apx-reference/Chapter_10_Performance.md)
 - [`Chapter_15_Data_Dictionary.md`](axys-apx-reference/Chapter_15_Data_Dictionary.md)
+- [`Appendix_Demo_Extract_Availability.md`](axys-apx-reference/Appendix_Demo_Extract_Availability.md)
+  for field-by-field IMEX/REP availability confidence.
 
 When those references strongly imply common transaction-code meaning, the demo
 may use that evidence. When the references mark native storage, exact IMEX object
@@ -43,7 +45,8 @@ those details as verified Axys/APX facts.
 | --- | --- |
 | `holdings.market_value` | Performance input for beginning and ending value. |
 | `holdings.accrued` | Performance input when configured as a valuation/accrual amount. |
-| `transactions.amount` | Performance input for external flows, security-level buy/sell flows, income, fee, and expense examples when YAML classifies the transaction code. |
+| `transactions.amount` | Performance input for external flows, security-level buy/sell flows, income, fee, and expense examples when YAML classifies the transaction code and any required transaction context. |
+| `transactions.security_type`, `transactions.source_destination_type`, `transactions.source_destination_symbol`, `transactions.special_security_type`, `transactions.special_security_symbol` | Context used by conditional YAML transaction rules. These fields help classify ambiguous Axys-style transaction codes; they are not themselves performance-cause fields. |
 | `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
 | `transactions.quantity`, `transactions.price`, `transactions.commission` | Supporting inputs for changed `transactions.amount`; not a formula for `transactions.amount`. |
 | `holdings.cost` | Other data difference. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
@@ -86,8 +89,10 @@ The source transaction code and the normalized transaction category are distinct
 | `sl` | `sell` | Security sale. |
 | `dv` | `income` | Dividend or dividend-like income. |
 | `in` | `income` | Interest or income-like receipt. |
-| `dp` | `fee_expense` | Fee-like debit in this packaged demo. |
-| `wd` | `external_flow` | External withdrawal in this packaged demo. |
+| `dp` | `fee_expense` | Fee-like debit when special-security context confirms the packaged demo fee case. |
+| `li` | `external_flow` or `transfer` | Defensive rule for Axys-style long-in examples; external party context is required before treating it as an external flow. |
+| `lo` | `external_flow` or `transfer` | Defensive rule for Axys-style long-out examples; external party context is required before treating it as an external flow. |
+| `wd` | `external_flow` or `transfer` | External withdrawal only when cash security and source/destination context confirm the packaged demo cash-withdrawal case. |
 | `;` | `corporate_action` | Split/journal/other-style review evidence in this packaged demo. |
 
 Reviewer-facing explanations should preserve the source code as it appears in
@@ -99,6 +104,40 @@ codes for common examples such as buys, sells, dividends, interest, fees, and
 withdrawals where the evidence is strong enough for demo purposes. Code alone is
 not treated as a complete accounting system. YAML supplies the role ppar is
 allowed to use for performance comparison.
+
+Ambiguous Axys-style codes are deliberately stricter. The packaged demo does
+not infer external-flow treatment from `li`, `lo`, `dp`, or `wd` by code alone.
+If an IMEX export omits the source/destination or special-security fields needed
+to match the YAML rule, the transaction loader stops before applying broad YAML
+classification. A richer REP/report extract, custom report, or local-discovery
+source is the preferred next design option when IMEX cannot provide that
+context.
+
+The default runtime guard uses
+`ppar/demos/data/axys/demo_extract_availability.yaml`. A site comparison YAML
+can point to a local contract when its validated IMEX/REP extract layout differs:
+
+```yaml
+extract_contract:
+  path: site_extract_contract.yaml
+  enforce_ambiguous_axys_flows: true
+```
+
+`enforce_ambiguous_axys_flows` defaults to `true`. Setting it to `false` is an
+explicit opt-out and should be reserved for a locally reviewed workflow.
+
+Use
+[`axys-apx-reference/templates/site_extract_contract.yaml`](axys-apx-reference/templates/site_extract_contract.yaml)
+as the starter. Copy it beside the comparison YAML, remove fields the local
+extract does not expose, and keep only fields validated from IMEX, REP, a custom
+report, or another reviewed source.
+
+Local extract contracts are validated by `validate_config`. For ambiguous-flow
+runtime guards, a contract must include `datasets.transactions.csv.columns`.
+Each listed transaction column must map to a supported transaction alias and
+must define boolean `requires_context_for_semantics` and `blocking_if_missing`
+flags. When ambiguous-flow enforcement is enabled, at least one transaction
+column must have both flags set to `true`.
 
 Corporate actions remain conservative. A split row can be shown as review
 evidence, but it should not explain reported performance unless a future

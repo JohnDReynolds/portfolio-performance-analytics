@@ -12,6 +12,25 @@ Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
 [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
 
+## Axys Extract Contract Review Map
+
+The Axys extract guardrails now have a single review path:
+
+```text
+ppar/demos/data/axys/demo_extract_availability.yaml
+  -> scripts/render_demo_extract_availability.py
+  -> docs/axys-apx-reference/Appendix_Demo_Extract_Availability.md
+  -> ppar/performance_comparison/extract_contract.py
+  -> ppar/performance_comparison/transactions.py
+```
+
+The YAML contract records IMEX/REP availability confidence, candidate source
+names, source strategy, and blocking context requirements. The renderer keeps
+the human appendix current. Runtime validation uses the same contract, or a
+site-specific `extract_contract.path`, to prevent ambiguous Axys `dp`, `li`,
+`lo`, and `wd` transaction codes from being classified from transaction code
+alone when required context is absent.
+
 ## Core Idea
 
 The portfolio and each security can be viewed as parallel return containers.
@@ -629,6 +648,9 @@ Hard-fail rules:
 - an unknown transaction code appears in performance-relevant data;
 - a performance-relevant source field changes without a configured
   interpretation;
+- ambiguous Axys `dp`, `li`, `lo`, or `wd` transaction codes appear in an
+  extract that lacks the transaction context fields required by the packaged
+  Axys extract contract;
 - generated transactions, holdings, `secperf.csv`, or `portperf.csv` drift from
   their scenario-derived values;
 - expected scenario coverage disappears unexpectedly;
@@ -642,6 +664,37 @@ Implemented guardrail:
   sign/flow impact-policy validation: known transaction codes with incomplete
   return-impact policy still flow through the existing review workflow instead
   of changing report behavior.
+- Axys IMEX transaction codes `li`, `lo`, `dp`, and `wd` are not safe
+  external-flow indicators by code alone. The packaged demo now uses
+  conditional YAML `transaction_rules` with normalized IMEX context fields such
+  as `security_type`, `source_destination_type`,
+  `source_destination_symbol`, `special_security_type`, and
+  `special_security_symbol`. A `wd` row is classified as an external flow only
+  when its cash security and source/destination context match the external
+  party cash rule; `dp` is classified as fee expense only when special-security
+  context confirms the fee case; `li`/`lo` rules distinguish external party
+  flows from internal transfer cases. If an IMEX export cannot provide the
+  context fields marked as required by
+  `ppar/demos/data/axys/demo_extract_availability.yaml`, the transaction loader
+  fails before YAML rules classify the rows. The next design step for that site
+  is to consider a REP/report extract, custom report, or other local-discovery
+  source that carries enough classification evidence.
+- comparison YAML can now override the default packaged extract contract with:
+
+  ```yaml
+  extract_contract:
+    path: site_extract_contract.yaml
+    enforce_ambiguous_axys_flows: true
+  ```
+
+  `enforce_ambiguous_axys_flows` defaults to `true`; setting it to `false` is
+  an explicit local opt-out.
+- local extract contracts are validated by `validate_config`: the contract must
+  define `datasets.transactions.csv.columns`, use supported transaction column
+  aliases, and provide boolean `requires_context_for_semantics` and
+  `blocking_if_missing` flags.
+- `docs/axys-apx-reference/templates/site_extract_contract.yaml` is the starter
+  template for site-specific contracts.
 
 #### Phase 7B: Transaction Rule Coverage Validation
 

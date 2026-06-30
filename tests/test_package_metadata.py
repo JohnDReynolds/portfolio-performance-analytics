@@ -243,6 +243,22 @@ class TestPackageMetadata(unittest.TestCase):
                     f"{resource_path} is not covered by package-data patterns.",
                 )
 
+    def test_site_extract_contract_template_is_documented(self) -> None:
+        """The site extract-contract starter template remains linked from docs."""
+        template_path = Path("docs/axys-apx-reference/templates/site_extract_contract.yaml")
+        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        demo_readme = Path("ppar/demos/data/axys/README.md")
+
+        self.assertTrue(template_path.exists())
+        self.assertIn(
+            template_path.as_posix(),
+            demo_readme.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
+            "axys-apx-reference/templates/site_extract_contract.yaml",
+            source_contract.read_text(encoding=util.ENCODING),
+        )
+
     def test_axys_package_is_included(self) -> None:
         """The Axys subpackage is included in distribution metadata."""
         with open("pyproject.toml", "rb") as file:
@@ -478,12 +494,13 @@ class TestPackageMetadata(unittest.TestCase):
             places=2,
         )
 
-    def test_axys_demo_split_transaction_is_neutral_corporate_action(self) -> None:
-        """Packaged split rows document neutral corporate-action activity."""
+    def test_axys_demo_split_transaction_updates_security_holding(self) -> None:
+        """Packaged split rows update the affected security without a cash amount."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
         transaction_id = ("BALANCED0503",)
+        holding_key = ("BALANCED", "TSLA", "2026-04-30")
 
         transactions_a = _csv_rows_by_key(
             snapshot_a / "transactions.csv",
@@ -492,6 +509,14 @@ class TestPackageMetadata(unittest.TestCase):
         transactions_b = _csv_rows_by_key(
             snapshot_b / "transactions.csv",
             ("TRANSACTION_ID",),
+        )
+        holdings_a = _csv_rows_by_key(
+            snapshot_a / "holdings.csv",
+            ("PORT", "SEC", "HOLDING_DATE"),
+        )
+        holdings_b = _csv_rows_by_key(
+            snapshot_b / "holdings.csv",
+            ("PORT", "SEC", "HOLDING_DATE"),
         )
 
         self.assertEqual(transactions_a[transaction_id]["TRAN"], ";")
@@ -512,6 +537,20 @@ class TestPackageMetadata(unittest.TestCase):
                 "AMOUNT",
             ),
             0.0,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            _float_delta(holdings_a[holding_key], holdings_b[holding_key], "QTY"),
+            410.6989,
+            places=4,
+        )
+        self.assertAlmostEqual(
+            _float_delta(
+                holdings_a[holding_key],
+                holdings_b[holding_key],
+                "MKT_VAL",
+            ),
+            44355.48,
             places=2,
         )
 
