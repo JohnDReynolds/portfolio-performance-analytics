@@ -9,6 +9,10 @@ corpus repeatedly shows that code-only interpretation is unsafe. Treat this file
 as a seed contract for demo data, tests, site extract contracts, and local
 mapping review.
 
+The machine-readable companion is
+[`transaction_semantics_matrix.yaml`](transaction_semantics_matrix.yaml). Tests
+use that YAML to check demo transaction rules and fixture coverage.
+
 ## Evidence Boundary
 
 Primary local references:

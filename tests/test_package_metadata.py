@@ -15,6 +15,7 @@ import unittest
 
 # Third-Party Imports
 import polars as pl
+import yaml
 
 # Project Imports
 import ppar.analytics.schema as core_schema
@@ -144,6 +145,25 @@ def _csv_rows_by_key(
         }
 
 
+def _load_yaml(path: Path) -> dict[str, object]:
+    """Return a YAML mapping loaded from a repository file."""
+    with path.open(encoding=util.ENCODING) as file:
+        loaded = yaml.safe_load(file)
+    if not isinstance(loaded, dict):
+        raise AssertionError(f"Expected YAML mapping in {path}.")
+    return loaded
+
+
+def _transaction_codes_in_csv(path: Path) -> set[str]:
+    """Return lowercase transaction codes from a fixture CSV."""
+    with path.open(encoding=util.ENCODING, newline="") as file:
+        return {
+            row["TRAN"].strip().lower()
+            for row in csv.DictReader(file)
+            if row["TRAN"].strip()
+        }
+
+
 def _float_delta(
     snapshot_a: dict[str, str],
     snapshot_b: dict[str, str],
@@ -264,10 +284,12 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_path = Path(
             "docs/axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md"
         )
+        matrix_yaml_path = Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
         source_contract = Path("docs/performance_comparison_demo_source_contract.md")
         roadmap = Path("docs/performance_comparison_roadmap.md")
 
         self.assertTrue(matrix_path.exists())
+        self.assertTrue(matrix_yaml_path.exists())
         self.assertIn(
             "axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md",
             source_contract.read_text(encoding=util.ENCODING),
@@ -275,6 +297,84 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn(
             "axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md",
             roadmap.read_text(encoding=util.ENCODING),
+        )
+
+    def test_transaction_semantics_matrix_yaml_matches_appendix_codes(self) -> None:
+        """The machine-readable transaction matrix stays aligned with the appendix."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        appendix = Path(
+            "docs/axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md"
+        ).read_text(encoding=util.ENCODING)
+
+        rows = matrix_yaml["rows"]
+        required_codes = matrix_yaml["required_matrix_codes"]
+        self.assertEqual(set(rows), set(required_codes))
+
+        for code, metadata in rows.items():
+            self.assertIn(f"`{code}`", appendix)
+            self.assertIn("observed_meaning", metadata)
+            self.assertIn("ppar_categories", metadata)
+            self.assertIn("coverage_status", metadata)
+            self.assertIn("fixtures", metadata)
+
+        self.assertEqual(
+            set(matrix_yaml["ambiguous_external_flow_codes"]),
+            {"li", "lo", "dp", "wd"},
+        )
+
+    def test_demo_transaction_rules_are_known_to_semantics_matrix(self) -> None:
+        """Packaged demo transaction rules cannot introduce undocumented codes."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        demo_yaml = _load_yaml(Path("ppar/demos/data/axys/ppar_performance_comparison.yaml"))
+
+        matrix_codes = set(matrix_yaml["rows"])
+        demo_codes = set(demo_yaml["transaction_rules"])
+
+        self.assertLessEqual(demo_codes, matrix_codes)
+
+    def test_transaction_semantics_coverage_claims_have_fixtures(self) -> None:
+        """Coverage statuses in the machine-readable matrix point to real fixtures."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        packaged_demo_codes = set(
+            _load_yaml(Path("ppar/demos/data/axys/ppar_performance_comparison.yaml"))[
+                "transaction_rules"
+            ]
+        )
+        imex_context_codes = _transaction_codes_in_csv(
+            Path("tests/data/axys/site_variants/imex_context/snapshot_a/transactions.csv")
+        )
+        rep_semantics_codes = _transaction_codes_in_csv(
+            Path("tests/data/axys/site_variants/rep_semantics/snapshot_a/transactions.csv")
+        )
+        code_only_codes = _transaction_codes_in_csv(
+            Path("tests/data/axys/site_variants/imex_code_only/snapshot_a/transactions.csv")
+        )
+
+        for code, metadata in matrix_yaml["rows"].items():
+            fixtures = metadata["fixtures"]
+            coverage_status = metadata["coverage_status"]
+            if coverage_status == "backlog":
+                self.assertEqual(fixtures, [], code)
+                continue
+            if "packaged_demo" in fixtures:
+                self.assertTrue(
+                    code in packaged_demo_codes or code in {"exus"},
+                    code,
+                )
+            if "site_variants/imex_context" in fixtures:
+                self.assertTrue(code in imex_context_codes or code in {"exus"}, code)
+            if "site_variants/rep_semantics" in fixtures:
+                self.assertIn(code, rep_semantics_codes, code)
+
+        self.assertLessEqual(
+            set(matrix_yaml["ambiguous_external_flow_codes"]),
+            imex_context_codes & rep_semantics_codes & code_only_codes,
         )
 
     def test_axys_package_is_included(self) -> None:

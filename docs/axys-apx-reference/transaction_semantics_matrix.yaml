@@ -1,0 +1,241 @@
+# Machine-readable companion to Appendix_Transaction_Semantics_Matrix.md.
+# This is an implementation contract for ppar demo/test coverage, not an
+# official Axys/APX transaction-code dictionary.
+version: 1
+source_appendix: Appendix_Transaction_Semantics_Matrix.md
+coverage_statuses:
+  covered_packaged_demo: Covered by packaged demo data and tests.
+  covered_site_variant: Covered by site-variant fixtures and tests.
+  covered_context_only: Covered as context for another transaction code.
+  backlog: Documented backlog; no dedicated fixture yet.
+  partial: Partially documented or tested, but not fully covered.
+required_matrix_codes:
+  - by
+  - sl
+  - ss
+  - cs
+  - dv
+  - in
+  - ai
+  - sa
+  - pa
+  - rc
+  - pd
+  - li
+  - lo
+  - dp
+  - wd
+  - ";"
+  - epus
+  - exus
+ambiguous_external_flow_codes:
+  - li
+  - lo
+  - dp
+  - wd
+rows:
+  by:
+    observed_meaning: Buy; reinvestment buy leg; non-cash deposit paired leg.
+    ppar_categories: [buy]
+    cash_flow_signs: [negative]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security, amount_or_quantity_signs]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+  sl:
+    observed_meaning: Sell; positive closure leg.
+    ppar_categories: [sell]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security, amount_or_quantity_signs]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+  ss:
+    observed_meaning: Short sale.
+    ppar_categories: [sell, unknown_pending_review]
+    cash_flow_signs: [positive, context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  cs:
+    observed_meaning: Cover short.
+    ppar_categories: [buy, unknown_pending_review]
+    cash_flow_signs: [negative, context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  dv:
+    observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
+    ppar_categories: [income]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security_or_income_context, amount_sign]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+  in:
+    observed_meaning: Income, interest, cash-security dividend/income.
+    ppar_categories: [income]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security_type, amount_sign]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+  ai:
+    observed_meaning: Negative interest, accrued interest, margin interest.
+    ppar_categories: [fee_expense, income]
+    cash_flow_signs: [negative, context_dependent]
+    performance_flow_signs: [performance]
+    required_evidence: [security_type, margin_or_accrual_symbols, amount_sign]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  sa:
+    observed_meaning: Sell accrued interest.
+    ppar_categories: [income, fee_expense]
+    cash_flow_signs: [context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [bond_or_accrual_context, amount_sign, local_mapping]
+    imex_confidence: low
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  pa:
+    observed_meaning: Purchase accrued interest or accrued-interest-related buy-side case.
+    ppar_categories: [fee_expense, income]
+    cash_flow_signs: [context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [bond_or_accrual_context, amount_sign, local_mapping]
+    imex_confidence: low
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  rc:
+    observed_meaning: Return of capital.
+    ppar_categories: [income, corporate_action]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance, review_only]
+    required_evidence: [code, security, amount_sign, cost_basis_or_report_treatment]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  pd:
+    observed_meaning: Principal paydown or bond return-of-capital case.
+    ppar_categories: [income, corporate_action]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance, review_only]
+    required_evidence: [bond_security_type, principal_paydown_context, amount_and_quantity_signs]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  li:
+    observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
+    ppar_categories: [external_flow, transfer]
+    cash_flow_signs: [positive, none]
+    performance_flow_signs: [external, neutral]
+    required_evidence: [source_destination_type, source_destination_symbol, security_type, amount_or_quantity_signs]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_site_variant
+    fixtures: [site_variants/imex_context, site_variants/rep_semantics]
+  lo:
+    observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
+    ppar_categories: [external_flow, transfer]
+    cash_flow_signs: [negative, none]
+    performance_flow_signs: [external, neutral]
+    required_evidence: [source_destination_type, source_destination_symbol, security_type, amount_or_quantity_signs]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_site_variant
+    fixtures: [site_variants/imex_context, site_variants/rep_semantics]
+  dp:
+    observed_meaning: Cash-security buy, tax, fee, recordkeeping, investment expense, service charge, debit-like case.
+    ppar_categories: [fee_expense, transfer, unknown_pending_review]
+    cash_flow_signs: [negative, none]
+    performance_flow_signs: [performance, neutral, unknown]
+    required_evidence: [special_security_type, special_security_symbol, source_destination_context, fee_tax_sweep_symbols]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_site_variant
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+  wd:
+    observed_meaning: Withdrawal or cash-security sell case.
+    ppar_categories: [external_flow, transfer, sell]
+    cash_flow_signs: [negative, none]
+    performance_flow_signs: [external, neutral, performance, unknown]
+    required_evidence: [cash_security, source_destination_type, source_destination_symbol, amount_sign]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_site_variant
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+  ";":
+    observed_meaning: Journal, Other, Split marker in integration tables.
+    ppar_categories: [corporate_action, unknown_pending_review]
+    cash_flow_signs: [none, context_dependent]
+    performance_flow_signs: [neutral, review_only, unknown]
+    required_evidence: [corporate_action_or_report_context, split_details, local_mapping]
+    imex_confidence: low
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+  epus:
+    observed_meaning: Management fee or fee-related token in conversion evidence.
+    ppar_categories: [fee_expense]
+    cash_flow_signs: [negative]
+    performance_flow_signs: [performance]
+    required_evidence: [token_role, fee_symbol, local_mapping]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+  exus:
+    observed_meaning: Expense or fee-related token in conversion and special-security evidence.
+    ppar_categories: [fee_expense]
+    cash_flow_signs: [negative]
+    performance_flow_signs: [performance]
+    required_evidence: [token_role, fee_symbol, local_mapping]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: covered_context_only
+    fixtures: [packaged_demo, site_variants/imex_context]
+pair_patterns:
+  dp_wd:
+    codes: [dp, wd]
+    ppar_treatment: transfer_neutral_when_context_proves_internal_sweep
+    coverage_status: covered_site_variant
+  li_lo:
+    codes: [li, lo]
+    ppar_treatment: transfer_neutral_unless_external_party_context_proves_external_flow
+    coverage_status: covered_site_variant
+  ti_to:
+    codes: [ti, to]
+    ppar_treatment: unknown_pending_review
+    coverage_status: backlog
+  si_so:
+    codes: [si, so]
+    ppar_treatment: unknown_pending_review
+    coverage_status: backlog
+  tr_ts:
+    codes: [tr, ts]
+    ppar_treatment: unknown_pending_review
+    coverage_status: backlog
+  dv_by_reinvestment:
+    codes: [dv, by]
+    ppar_treatment: performance_pair_avoid_external_flow_double_count
+    coverage_status: backlog

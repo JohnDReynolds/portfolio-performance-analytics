@@ -726,6 +726,10 @@ Ongoing coverage requirement:
   is the implementation-facing seed matrix for that coverage. Future fixtures
   should either satisfy a row in that matrix or update the matrix with the new
   evidence and expected treatment.
+- `docs/axys-apx-reference/transaction_semantics_matrix.yaml` is the
+  machine-readable coverage contract. Coverage is complete only when every row
+  has a non-backlog fixture or an explicit documented reason to remain
+  review-only/unknown.
 - External-flow coverage must include both positive and negative capital-flow
   cases, internal transfers, cash sweeps, fee/expense rows, income rows,
   corporate-action rows, and correction/cancellation/reversal-like rows when
