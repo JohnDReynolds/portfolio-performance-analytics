@@ -1,0 +1,15 @@
+datasets:
+  transactions.csv:
+    columns:
+      SRC_DEST_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SRC_DEST_SYMBOL:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SPECIAL_SEC_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SPECIAL_SEC_SYMBOL:
+        requires_context_for_semantics: true
+        blocking_if_missing: true

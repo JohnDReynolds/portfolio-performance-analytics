@@ -139,6 +139,22 @@ must define boolean `requires_context_for_semantics` and `blocking_if_missing`
 flags. When ambiguous-flow enforcement is enabled, at least one transaction
 column must have both flags set to `true`.
 
+## Site Extract Contract Setup
+
+For a real Axys site, start by validating which extract shape is available:
+
+| Site extract shape | Contract/test expectation |
+| --- | --- |
+| IMEX transaction rows include source/destination and special-security context. | Keep ambiguous-flow enforcement on and classify `li`, `lo`, `dp`, and `wd` with conditional YAML rules that inspect those fields. |
+| REP/report or custom-report rows include reviewed category and sign semantics. | Keep ambiguous-flow enforcement on and mark the reviewed semantic fields as the blocking context in the site contract. |
+| IMEX rows expose only transaction code, amount, date, portfolio, and security. | Treat the extract as insufficient for ambiguous external-flow classification; use REP/report/custom-report evidence before running comparison. |
+
+The small fixtures in `tests/data/axys/site_variants/` pin these shapes. New
+demo data and tests should grow from those fixtures until all documented Axys
+transaction types have explicit expected treatment, including external-flow,
+non-external transfer, sweep, fee/expense, income, corporate-action,
+correction/cancellation, and review-only cases.
+
 Corporate actions remain conservative. A split row can be shown as review
 evidence, but it should not explain reported performance unless a future
 supported rule explicitly implements that behavior.

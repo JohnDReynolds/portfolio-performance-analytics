@@ -695,6 +695,10 @@ Implemented guardrail:
   `blocking_if_missing` flags.
 - `docs/axys-apx-reference/templates/site_extract_contract.yaml` is the starter
   template for site-specific contracts.
+- `tests/data/axys/site_variants/` contains small site-shape fixtures for the
+  next hardening layer: IMEX rows with context fields, REP/report rows with
+  reviewed semantics, and code-only IMEX rows that must fail for ambiguous Axys
+  flow codes.
 
 #### Phase 7B: Transaction Rule Coverage Validation
 
@@ -710,6 +714,25 @@ review-policy fixtures can still demonstrate incomplete YAML behavior. The
 packaged performance-comparison demo has a stricter guardrail test: every
 observed transaction code must be explicitly defined in its YAML
 `transaction_rules`.
+
+Ongoing coverage requirement:
+
+- Tests and packaged demo data must continue expanding toward complete Axys
+  transaction-type coverage, not just the currently performance-relevant rows.
+  Each observed or documented Axys transaction type should have an explicit
+  expected classification, even when the expected outcome is `transfer`,
+  `corporate_action`, `unknown pending review`, or review-only evidence.
+- External-flow coverage must include both positive and negative capital-flow
+  cases, internal transfers, cash sweeps, fee/expense rows, income rows,
+  corporate-action rows, and correction/cancellation/reversal-like rows when
+  representative source evidence is available.
+- Ambiguous `li`, `lo`, `dp`, and `wd` cases require multiple examples for each
+  code: one or more true external-flow examples and one or more non-external
+  examples whose context proves transfer, sweep, fee/expense, or another
+  non-capital-flow treatment. Code-only examples must remain hard-fail fixtures.
+- If IMEX cannot expose the context needed for a documented transaction type,
+  tests should model the REP/report or custom-report fallback instead of
+  weakening the IMEX guardrail.
 
 #### Phase 7C: Packaged Demo Source Contract Audit
 

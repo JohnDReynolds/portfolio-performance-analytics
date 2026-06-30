@@ -1,0 +1,34 @@
+comparison:
+  name: Axys site variant with code-only IMEX rows
+
+snapshots:
+  a:
+    label: imex_code_only_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: imex_code_only_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  li:
+    transaction_category: external_flow
+    cash_flow_sign: positive
+    performance_flow_sign: external
+  lo:
+    transaction_category: external_flow
+    cash_flow_sign: negative
+    performance_flow_sign: external
+  dp:
+    transaction_category: fee_expense
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  wd:
+    transaction_category: external_flow
+    cash_flow_sign: negative
+    performance_flow_sign: external

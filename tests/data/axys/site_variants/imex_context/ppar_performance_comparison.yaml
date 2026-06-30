@@ -1,0 +1,69 @@
+comparison:
+  name: Axys site variant with IMEX context fields
+
+snapshots:
+  a:
+    label: imex_context_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: imex_context_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+extract_contract:
+  path: site_extract_contract.yaml
+  enforce_ambiguous_axys_flows: true
+
+transaction_rules:
+  li:
+    - when:
+        source_destination_type: $pty
+      transaction_category: external_flow
+      cash_flow_sign: positive
+      performance_flow_sign: external
+    - when:
+        source_destination_type: $acct
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral
+  lo:
+    - when:
+        source_destination_type: $pty
+      transaction_category: external_flow
+      cash_flow_sign: negative
+      performance_flow_sign: external
+    - when:
+        source_destination_type: $acct
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral
+  dp:
+    - when:
+        special_security_type: exus
+        special_security_symbol: custfee
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
+    - when:
+        source_destination_type: $sweep
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral
+  wd:
+    - when:
+        security_id: CASH_USD
+        source_destination_type: $pty
+        source_destination_symbol: $cash
+      transaction_category: external_flow
+      cash_flow_sign: negative
+      performance_flow_sign: external
+    - when:
+        source_destination_type: $sweep
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral

@@ -51,6 +51,7 @@ _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_co
 _SITE_EXTRACT_CONTRACT_TEMPLATE_PATH = Path(
     "docs/axys-apx-reference/templates/site_extract_contract.yaml"
 )
+_SITE_VARIANT_FIXTURES_PATH = Path("tests/data/axys/site_variants")
 
 
 def _write_yaml(directory: Path, contents: object) -> Path:
@@ -689,6 +690,157 @@ class TestTransactionsLoader(unittest.TestCase):
                     for row in categories
                 )
             )
+
+    def test_site_variant_imex_context_classifies_ambiguous_axys_codes(self) -> None:
+        """Fixture-backed IMEX context rules classify every ambiguous Axys code."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "imex_context"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        categories_by_code = {
+            code[0]: sorted(
+                set(rows.get_column(pc_cols.TRANSACTION_CATEGORY).to_list())
+            )
+            for code, rows in frame.group_by(pc_cols.TRANSACTION_CODE)
+        }
+        flow_signs_by_code = {
+            code[0]: sorted(
+                set(rows.get_column(pc_cols.PERFORMANCE_FLOW_SIGN).to_list())
+            )
+            for code, rows in frame.group_by(pc_cols.TRANSACTION_CODE)
+        }
+
+        self.assertEqual(
+            categories_by_code,
+            {
+                "dp": [TRANSACTION_CATEGORY_FEE_EXPENSE, TRANSACTION_CATEGORY_TRANSFER],
+                "li": [
+                    TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    TRANSACTION_CATEGORY_TRANSFER,
+                ],
+                "lo": [
+                    TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    TRANSACTION_CATEGORY_TRANSFER,
+                ],
+                "wd": [
+                    TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    TRANSACTION_CATEGORY_TRANSFER,
+                ],
+            },
+        )
+        self.assertEqual(
+            flow_signs_by_code,
+            {
+                "dp": [
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+                ],
+                "li": [
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+                ],
+                "lo": [
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+                ],
+                "wd": [
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+                    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+                ],
+            },
+        )
+        self.assertEqual(
+            set(frame.get_column(pc_cols.TRANSACTION_SEMANTICS_SOURCE).to_list()),
+            {TRANSACTION_SEMANTICS_SOURCE_YAML_RULE},
+        )
+
+    def test_site_variant_rep_semantics_can_supply_ambiguous_flow_context(self) -> None:
+        """REP/report semantics can be the reviewed context for ambiguous codes."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "rep_semantics"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "li",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "lo",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "dp",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "wd",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+            ],
+        )
+
+    def test_site_variant_code_only_imex_ambiguous_codes_fail_fast(self) -> None:
+        """Code-only IMEX fixtures cannot classify ambiguous external flows."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "imex_code_only"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        with self.assertRaises(PpaError) as context:
+            TransactionsLoader(specification).load("a")
+
+        message = str(context.exception)
+        self.assertIn("ambiguous Axys transaction codes DP, LI, LO, WD", message)
+        self.assertIn("IMEX transaction code alone is not enough", message)
+        self.assertIn("REP/report extract", message)
 
     def test_ambiguous_axys_code_without_matching_context_raises_error(self) -> None:
         """Ambiguous Axys codes fail when IMEX fields cannot match a YAML rule."""
