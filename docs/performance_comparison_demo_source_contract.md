@@ -23,6 +23,9 @@ Use the Axys/APX reference chapters as evidence boundaries:
 - [`Chapter_15_Data_Dictionary.md`](axys-apx-reference/Chapter_15_Data_Dictionary.md)
 - [`Appendix_Demo_Extract_Availability.md`](axys-apx-reference/Appendix_Demo_Extract_Availability.md)
   for field-by-field IMEX/REP availability confidence.
+- [`Appendix_Transaction_Semantics_Matrix.md`](axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md)
+  for implementation-facing transaction-code treatment, required evidence, and
+  coverage status.
 
 When those references strongly imply common transaction-code meaning, the demo
 may use that evidence. When the references mark native storage, exact IMEX object
@@ -154,6 +157,10 @@ demo data and tests should grow from those fixtures until all documented Axys
 transaction types have explicit expected treatment, including external-flow,
 non-external transfer, sweep, fee/expense, income, corporate-action,
 correction/cancellation, and review-only cases.
+
+Use
+[`axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md`](axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md)
+as the checklist for expanding that coverage.
 
 Corporate actions remain conservative. A split row can be shown as review
 evidence, but it should not explain reported performance unless a future

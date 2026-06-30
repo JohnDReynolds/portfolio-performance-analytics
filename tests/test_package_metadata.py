@@ -259,6 +259,24 @@ class TestPackageMetadata(unittest.TestCase):
             source_contract.read_text(encoding=util.ENCODING),
         )
 
+    def test_transaction_semantics_matrix_is_documented(self) -> None:
+        """The Axys transaction semantics matrix remains linked from workflow docs."""
+        matrix_path = Path(
+            "docs/axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md"
+        )
+        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        roadmap = Path("docs/performance_comparison_roadmap.md")
+
+        self.assertTrue(matrix_path.exists())
+        self.assertIn(
+            "axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md",
+            source_contract.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
+            "axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md",
+            roadmap.read_text(encoding=util.ENCODING),
+        )
+
     def test_axys_package_is_included(self) -> None:
         """The Axys subpackage is included in distribution metadata."""
         with open("pyproject.toml", "rb") as file:

@@ -722,6 +722,10 @@ Ongoing coverage requirement:
   Each observed or documented Axys transaction type should have an explicit
   expected classification, even when the expected outcome is `transfer`,
   `corporate_action`, `unknown pending review`, or review-only evidence.
+- [`axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md`](axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md)
+  is the implementation-facing seed matrix for that coverage. Future fixtures
+  should either satisfy a row in that matrix or update the matrix with the new
+  evidence and expected treatment.
 - External-flow coverage must include both positive and negative capital-flow
   cases, internal transfers, cash sweeps, fee/expense rows, income rows,
   corporate-action rows, and correction/cancellation/reversal-like rows when
