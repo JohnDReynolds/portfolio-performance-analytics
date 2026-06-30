@@ -321,6 +321,20 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("`li`/`lo`, additional `dp`/`wd`", roadmap)
         self.assertIn("actual historical split date", roadmap)
 
+    def test_reinvestment_pair_gate_is_documented(self) -> None:
+        """The roadmap keeps dividend-reinvestment pairs test-only until safe."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Phase 8B: Reinvestment Pair Feasibility Gate", roadmap)
+        self.assertIn("`dv` income leg plus a paired `by` purchase leg", roadmap)
+        self.assertIn("dividend-wash/source symbol", roadmap)
+        self.assertIn("no portfolio-level external-flow treatment", roadmap)
+        self.assertIn("must not count the buy\n  leg as an external contribution", roadmap)
+        self.assertIn("must not count\n  the dividend income twice", roadmap)
+        self.assertIn("synthetic reinvestment examples belong in test-only data", roadmap)
+
     def test_transaction_semantics_matrix_yaml_matches_appendix_codes(self) -> None:
         """The machine-readable transaction matrix stays aligned with the appendix."""
         matrix_yaml = _load_yaml(

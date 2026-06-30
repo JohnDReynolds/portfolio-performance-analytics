@@ -918,11 +918,41 @@ Implemented contribution recipe:
 - keep future external-flow rows out of packaged CSVs until the generated
   workbook has no unintended partly explained or unexplained period.
 
+Test-only rebuild guards now mirror this for both directions: inserted `li`
+cash rows prove external contributions increase cash, and inserted `lo` cash
+rows prove external deliver-out/withdrawal-style rows decrease cash when
+external-party context is present. The packaged demo keeps only the realistic
+`li` contribution and `wd` withdrawal examples until a separate `lo` user story
+adds reviewer value.
+
 `li`/`lo`, additional `dp`/`wd`, and synthetic corporate-action scenarios should
 remain test-only until they meet their own version of this gate. A real-world
 split can move into the packaged demo only when the demo period and security
 support an actual historical split date and the row is clearly tied to
 review-only or implemented corporate-action behavior.
+
+#### Phase 8B: Reinvestment Pair Feasibility Gate
+
+The next useful test-only pair family is a reinvested dividend represented by a
+`dv` income leg plus a paired `by` purchase leg. This should not enter packaged
+demo data until the comparison engine can prove the pair is one economic
+reinvestment, not two unrelated effects.
+
+Before adding a reinvestment fixture, require:
+
+- pairing evidence: same portfolio, security or reinvestment target, date or
+  settlement window, dividend-wash/source symbol, and offsetting amount
+  relationship;
+- YAML semantics: `dv` remains performance income and `by` remains a
+  security-level flow, with no portfolio-level external-flow treatment;
+- double-count guard: portfolio return reconstruction must not count the buy
+  leg as an external contribution, and security reconstruction must not count
+  the dividend income twice;
+- report behavior: workbook rows should show the income and buy evidence as
+  related, while making clear which formula input each row supports;
+- fixture home: synthetic reinvestment examples belong in test-only data until
+  a realistic packaged period and security story makes the example useful to a
+  reviewer.
 
 For any additional examples:
 

@@ -176,7 +176,7 @@ rows:
     rep_confidence: medium_high
     coverage_status: covered_site_variant
     fixtures: [site_variants/imex_context, site_variants/rep_semantics]
-    coverage_notes: Site-variant fixtures cover external-party outflow and internal-transfer cases; packaged demo inclusion awaits a realistic user-facing transfer story.
+    coverage_notes: Site-variant fixtures cover external-party outflow and internal-transfer cases; test-only rebuild coverage proves inserted external cash outflows adjust cash without adding a packaged lo story.
   dp:
     observed_meaning: Cash-security buy, tax, fee, recordkeeping, investment expense, service charge, debit-like case.
     ppar_categories: [fee_expense, transfer, unknown_pending_review]
@@ -242,7 +242,7 @@ pair_patterns:
     codes: [li, lo]
     ppar_treatment: transfer_neutral_unless_external_party_context_proves_external_flow
     coverage_status: covered_site_variant
-    coverage_notes: IMEX-context fixture covers external-party and internal-account cases for both codes.
+    coverage_notes: IMEX-context fixture covers external-party and internal-account cases for both codes; demo-data audit tests also prove inserted cash li/lo rows drive cash impacts only when context proves external movement.
   ti_to:
     codes: [ti, to]
     ppar_treatment: unknown_pending_review
@@ -262,4 +262,4 @@ pair_patterns:
     codes: [dv, by]
     ppar_treatment: performance_pair_avoid_external_flow_double_count
     coverage_status: backlog
-    coverage_notes: Backlog pending reinvestment-pair fixture with dividend-wash context, matched dates, security, and amounts.
+    coverage_notes: Backlog pending reinvestment-pair fixture with dividend-wash context, matched dates, security, offsetting amounts, and explicit double-count guards.
