@@ -7,22 +7,19 @@ import argparse
 from pathlib import Path
 import sys
 
-# Third-party imports
-import polars as pl
-
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as _pc_cols
 from ppar.performance_comparison.compare import PerformanceComparison
-from ppar.performance_comparison.extract_contract import extract_contract_settings
+from ppar.performance_comparison.extract_contract import extract_contract_summary
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
-from ppar.performance_comparison.transactions import (
-    TRANSACTION_SEMANTICS_SOURCE_MIXED,
-    TRANSACTION_SEMANTICS_SOURCE_SOURCE,
-    TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
-    TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
-    TransactionsLoader,
+from ppar.performance_comparison.transaction_summary import (
+    format_codes,
+    format_semantics_source_counts,
+    transaction_rule_codes,
+    transaction_semantics_summary,
 )
+from ppar.performance_comparison.transactions import TransactionsLoader
 
 __all__ = [
     "main",
@@ -71,6 +68,14 @@ def main(argv: list[str] | None = None) -> int:
         "Enforce ambiguous Axys flows: "
         f"{summary['enforce_ambiguous_axys_flows']}"
     )
+    print(
+        "Required transaction context columns: "
+        f"{summary['required_transaction_context_columns']}"
+    )
+    print(
+        "Report-bundle source context: manifest.json records the comparison path, "
+        "extract contract, and transaction semantics summary."
+    )
     print(f"Transaction codes observed: {summary['transaction_codes_observed']}")
     print(
         "Transaction codes without YAML rules: "
@@ -97,7 +102,7 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
     specification = PerformanceComparisonSpecification(comparison_path)
     PerformanceComparison(specification)
     transaction_preview = _validate_transactions(specification)
-    contract_settings = extract_contract_settings(
+    contract_summary = extract_contract_summary(
         specification.values,
         specification_path=specification.path,
     )
@@ -118,9 +123,12 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
-        "extract_contract": contract_settings.path,
+        "extract_contract": contract_summary["path"],
         "enforce_ambiguous_axys_flows": (
-            contract_settings.enforce_ambiguous_axys_flows
+            contract_summary["enforce_ambiguous_axys_flows"]
+        ),
+        "required_transaction_context_columns": format_codes(
+            contract_summary["required_transaction_context_columns"]
         ),
         "transaction_files_checked": transaction_preview["files_checked"],
         "transaction_codes_observed": transaction_preview["codes_observed"],
@@ -128,6 +136,8 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
             transaction_preview["codes_without_yaml_rules"]
         ),
         "transaction_semantics_sources": transaction_preview["semantics_sources"],
+        "transaction_semantics": transaction_preview["summary"],
+        "extract_contract_summary": contract_summary,
     }
 
 
@@ -141,68 +151,30 @@ def _validate_transactions(
             "codes_observed": "none",
             "codes_without_yaml_rules": "none",
             "semantics_sources": "none",
+            "summary": transaction_semantics_summary([]),
         }
     loader = TransactionsLoader(specification)
     checked = 0
-    observed_codes: set[str] = set()
-    semantics_source_counts: dict[str, int] = {}
+    frames = []
     for snapshot_key in ("a", "b"):
         frame = loader.load(snapshot_key)
         if frame is None:
             continue
         checked += 1
-        observed_codes.update(_transaction_codes(frame))
-        for value in frame.get_column(_pc_cols.TRANSACTION_SEMANTICS_SOURCE):
-            if not isinstance(value, str) or not value:
-                continue
-            semantics_source_counts[value] = semantics_source_counts.get(value, 0) + 1
-    rule_codes = _transaction_rule_codes(specification)
-    codes_without_rules = observed_codes - rule_codes
+        frames.append(frame)
+    summary = transaction_semantics_summary(
+        frames,
+        rule_codes=transaction_rule_codes(specification.values),
+    )
     return {
         "files_checked": checked,
-        "codes_observed": _format_codes(observed_codes),
-        "codes_without_yaml_rules": _format_codes(codes_without_rules),
-        "semantics_sources": _format_semantics_source_counts(semantics_source_counts),
+        "codes_observed": format_codes(summary["observed_codes"]),
+        "codes_without_yaml_rules": format_codes(summary["codes_without_yaml_rules"]),
+        "semantics_sources": format_semantics_source_counts(
+            summary["semantics_source_counts"]
+        ),
+        "summary": summary,
     }
-
-
-def _transaction_codes(frame: pl.DataFrame) -> set[str]:
-    """Return normalized transaction codes observed in a transaction frame."""
-    if _pc_cols.TRANSACTION_CODE not in frame.columns:
-        return set()
-    codes = set()
-    for value in frame.get_column(_pc_cols.TRANSACTION_CODE):
-        code = _normalized_transaction_code(value)
-        if code:
-            codes.add(code)
-    return codes
-
-
-def _transaction_rule_codes(
-    specification: PerformanceComparisonSpecification,
-) -> set[str]:
-    """Return normalized transaction code keys configured in YAML rules."""
-    rules_value = specification.values.get("transaction_rules", {})
-    if not isinstance(rules_value, dict):
-        return set()
-    return {
-        code
-        for raw_code in rules_value
-        if (code := _normalized_transaction_code(raw_code))
-    }
-
-
-def _normalized_transaction_code(value: object) -> str:
-    """Return an uppercase transaction code, or blank for missing values."""
-    if value is None:
-        return ""
-    code = str(value).strip().upper()
-    return code if code else ""
-
-
-def _format_codes(codes: set[str]) -> str:
-    """Return a stable, readable transaction code list."""
-    return ", ".join(sorted(codes)) if codes else "none"
 
 
 def _missing_optional_files(
@@ -308,27 +280,6 @@ def _evidence_only_impact_methods(
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))
-
-
-def _format_semantics_source_counts(counts: dict[str, int]) -> str:
-    """Return stable transaction semantics-source counts."""
-    ordered_sources = (
-        TRANSACTION_SEMANTICS_SOURCE_SOURCE,
-        TRANSACTION_SEMANTICS_SOURCE_MIXED,
-        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
-        TRANSACTION_SEMANTICS_SOURCE_UNKNOWN,
-    )
-    parts = [
-        f"{source}: {counts[source]}"
-        for source in ordered_sources
-        if counts.get(source, 0) > 0
-    ]
-    parts.extend(
-        f"{source}: {counts[source]}"
-        for source in sorted(counts)
-        if source not in ordered_sources and counts.get(source, 0) > 0
-    )
-    return ", ".join(parts) if parts else "none"
 
 
 def _argument_parser() -> argparse.ArgumentParser:

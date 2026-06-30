@@ -26,6 +26,10 @@ Use the Axys/APX reference chapters as evidence boundaries:
 - [`Appendix_Transaction_Semantics_Matrix.md`](axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md)
   for implementation-facing transaction-code treatment, required evidence, and
   coverage status.
+- [Boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
+  for the current reviewer-facing coverage and backlog summary.
+- [Evidence-pack review](performance_comparison_evidence_pack_review.md)
+  for the current commit-preparation inventory.
 
 When those references strongly imply common transaction-code meaning, the demo
 may use that evidence. When the references mark native storage, exact IMEX object
@@ -130,12 +134,18 @@ that context.
 
 ## Fixed-Income Transaction Boundary
 
-The packaged demo currently uses two proved fixed-income inputs:
+The packaged demo currently uses two proved fixed-income Modified Dietz inputs:
 
 - `in` transaction rows for ordinary bond or cash interest that is treated as
   performance income; and
 - `holdings.accrued` changes as valuation/performance evidence when the
   comparison YAML includes accrued interest as a return input.
+
+That boundary is deliberate. Modified Dietz needs beginning value, ending
+value, and dated external cash flows. It does not need ppar to rebuild an
+amortization/accretion engine, bond principal schedule, yield calculation, or
+tax-lot ledger before ordinary interest and configured accrued value can be
+used as formula inputs.
 
 The packaged demo deliberately does not use `ai`, `pa`, `sa`, or `pd` rows yet.
 Those codes need more than the Axys short code before ppar can classify them:
@@ -162,12 +172,20 @@ extract_contract:
 
 `enforce_ambiguous_axys_flows` defaults to `true`. Setting it to `false` is an
 explicit opt-out and should be reserved for a locally reviewed workflow.
+The test-only `local_opt_out` site variant documents that boundary: code-only
+ambiguous rows may classify from YAML only when the site explicitly accepts that
+local risk.
 
 Use
 [`axys-apx-reference/templates/site_extract_contract.yaml`](axys-apx-reference/templates/site_extract_contract.yaml)
 as the starter. Copy it beside the comparison YAML, remove fields the local
 extract does not expose, and keep only fields validated from IMEX, REP, a custom
 report, or another reviewed source.
+
+For an operator-facing setup pass, use the
+[`Site Extract Readiness Checklist`](site_extract_readiness_checklist.md). It
+summarizes the IMEX-context path, REP/report fallback path, code-only failure
+mode, and bundle-manifest handoff evidence.
 
 Local extract contracts are validated by `validate_config`. For ambiguous-flow
 runtime guards, a contract must include `datasets.transactions.csv.columns`.
@@ -212,7 +230,9 @@ correction/cancellation, and review-only cases.
 
 Use
 [`axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md`](axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md)
-as the checklist for expanding that coverage.
+as the checklist for expanding that coverage. Use
+[boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
+as the compact release-readiness view of the same boundary.
 
 Corporate actions remain conservative. A split row can be shown as review
 evidence, but it should not explain reported performance unless a future

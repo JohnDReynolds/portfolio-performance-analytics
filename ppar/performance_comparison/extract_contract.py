@@ -251,6 +251,36 @@ def validate_transaction_extract_contract(
     )
 
 
+def extract_contract_summary(
+    values: Mapping[str, Any],
+    *,
+    specification_path: util.PathLike,
+) -> dict[str, object]:
+    """Return compact extract-contract metadata for review artifacts.
+
+    Args:
+        values: Parsed comparison YAML settings.
+        specification_path: Comparison YAML path used to resolve local contract
+            paths and report validation errors.
+
+    Returns:
+        JSON-serializable extract-contract metadata for manifest/report
+        handoff artifacts.
+    """
+    settings = extract_contract_settings(
+        values,
+        specification_path=specification_path,
+    )
+    required_context_columns = sorted(
+        _transaction_semantics_context_columns(settings.contract)
+    )
+    return {
+        "path": settings.path,
+        "enforce_ambiguous_axys_flows": settings.enforce_ambiguous_axys_flows,
+        "required_transaction_context_columns": required_context_columns,
+    }
+
+
 def _observed_ambiguous_codes(frame: pl.DataFrame) -> list[str]:
     """Return ambiguous Axys transaction codes observed in a frame."""
     observed: set[str] = set()

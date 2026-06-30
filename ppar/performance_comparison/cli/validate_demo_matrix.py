@@ -8,12 +8,22 @@ import sys
 
 # Third-party imports
 import polars as pl
+import yaml
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import compare_snapshots, summarize_findings
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison import findings as _pc_findings
+from ppar.performance_comparison import schema as _pc_cols
+from ppar.performance_comparison.backlog_gates import (
+    CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
+    SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
+)
+from ppar.performance_comparison.config_validation import validate_config
+from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.transactions import TransactionsLoader
 from ppar.performance_comparison.report import (
     _context_evidence_table,
     _residual_status_table,
@@ -28,6 +38,12 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_DEMO_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
 _DEFAULT_SCENARIO_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "validation"
 _DEFAULT_SNAPSHOT_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "snapshots"
+_DEFAULT_SITE_VARIANTS_DIRECTORY = (
+    _REPO_ROOT / "tests" / "data" / "axys" / "site_variants"
+)
+_TRANSACTION_SEMANTICS_MATRIX_PATH = (
+    _REPO_ROOT / "docs" / "axys-apx-reference" / "transaction_semantics_matrix.yaml"
+)
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _RESTATEMENT_YAML = "ppar_performance_comparison_restatement.yaml"
 _RESTATEMENT_TRANSACTION_RULES_YAML = (
@@ -64,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         args.scenario_directory,
         args.snapshot_directory,
         args.demo_directory,
+        args.site_variants_directory,
     )
     failures = [check for check in checks if not check.passed]
 
@@ -71,6 +88,12 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"Demo matrix validation passed: {len(checks)} scenario(s) checked "
             f"under {args.scenario_directory}"
+        )
+        print(
+            "Demo matrix coverage includes ambiguous-flow context variants, "
+            "code-only guard, reviewed local opt-out checks, and "
+            "review-only action quarantine, plus capital-return and short-side "
+            "backlog gates."
         )
         for check in checks:
             print(f"- {check.name}: {check.detail}")
@@ -90,6 +113,7 @@ def _validate_demo_matrix(
     scenario_directory: Path,
     snapshot_directory: Path,
     demo_directory: Path,
+    site_variants_directory: Path | None = None,
 ) -> list[_ScenarioCheck]:
     """Return scenario validation checks for the Axys fixture directories.
 
@@ -97,6 +121,7 @@ def _validate_demo_matrix(
         scenario_directory: Directory containing test-only validation YAML files.
         snapshot_directory: Directory containing test-only Axys CSV snapshots.
         demo_directory: Directory containing packaged user-facing demo data.
+        site_variants_directory: Directory containing site-shape fixtures.
 
     Returns:
         One result per covered scenario in the demo matrix.
@@ -104,6 +129,8 @@ def _validate_demo_matrix(
     Raises:
         FileNotFoundError: If one of the required YAML fixtures is missing.
     """
+    if site_variants_directory is None:
+        site_variants_directory = _DEFAULT_SITE_VARIANTS_DIRECTORY
     baseline_findings = compare_snapshots(scenario_directory / _BASELINE_YAML)
     restatement_findings = compare_snapshots(scenario_directory / _RESTATEMENT_YAML)
     transaction_rules_findings = compare_snapshots(
@@ -142,6 +169,81 @@ def _validate_demo_matrix(
     residual_status = _residual_status_table(multi_findings)
     suppressed_summary = summarize_findings(suppressed_findings)["by_suppressed"]
 
+    checks: list[_ScenarioCheck] = []
+    checks.extend(
+        _baseline_and_attribution_checks(
+            baseline_portfolio_changes,
+            restatement_causes,
+            restatement_context,
+            transaction_rules_causes,
+            policy_gap_causes,
+            context_evidence,
+            snapshot_directory,
+            multi_findings,
+            modified_dietz_cross_checks,
+            portfolio_findings,
+            security_findings,
+            suppressed_findings,
+            suppressed_active_findings,
+            suppressed_summary,
+            residual_status,
+        )
+    )
+    checks.extend(_site_variant_checks(site_variants_directory))
+    checks.extend(_backlog_gate_checks())
+    return checks
+
+
+def _argument_parser() -> argparse.ArgumentParser:
+    """Return the command-line argument parser."""
+    parser = argparse.ArgumentParser(
+        description="Validate performance comparison scenario coverage.",
+    )
+    parser.add_argument(
+        "--scenario-directory",
+        type=Path,
+        default=_DEFAULT_SCENARIO_DIRECTORY,
+        help="Directory containing test-only scenario YAML files.",
+    )
+    parser.add_argument(
+        "--demo-directory",
+        type=Path,
+        default=_DEFAULT_DEMO_DIRECTORY,
+        help="Directory containing packaged user-facing Axys demo data.",
+    )
+    parser.add_argument(
+        "--snapshot-directory",
+        type=Path,
+        default=_DEFAULT_SNAPSHOT_DIRECTORY,
+        help="Directory containing test-only Axys CSV snapshots.",
+    )
+    parser.add_argument(
+        "--site-variants-directory",
+        type=Path,
+        default=_DEFAULT_SITE_VARIANTS_DIRECTORY,
+        help="Directory containing test-only site-shape fixtures.",
+    )
+    return parser
+
+
+def _baseline_and_attribution_checks(
+    baseline_portfolio_changes: pl.DataFrame,
+    restatement_causes: pl.DataFrame,
+    restatement_context: pl.DataFrame,
+    transaction_rules_causes: pl.DataFrame,
+    policy_gap_causes: pl.DataFrame,
+    context_evidence: pl.DataFrame,
+    snapshot_directory: Path,
+    multi_findings: pl.DataFrame,
+    modified_dietz_cross_checks: pl.DataFrame,
+    portfolio_findings: pl.DataFrame,
+    security_findings: pl.DataFrame,
+    suppressed_findings: pl.DataFrame,
+    suppressed_active_findings: pl.DataFrame,
+    suppressed_summary: pl.DataFrame,
+    residual_status: pl.DataFrame,
+) -> list[_ScenarioCheck]:
+    """Return baseline, attribution, and report-surface matrix checks."""
     return [
         _check_no_portfolio_differences(baseline_portfolio_changes),
         _check_workbook_column(
@@ -176,30 +278,19 @@ def _validate_demo_matrix(
     ]
 
 
-def _argument_parser() -> argparse.ArgumentParser:
-    """Return the command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Validate performance comparison scenario coverage.",
-    )
-    parser.add_argument(
-        "--scenario-directory",
-        type=Path,
-        default=_DEFAULT_SCENARIO_DIRECTORY,
-        help="Directory containing test-only scenario YAML files.",
-    )
-    parser.add_argument(
-        "--demo-directory",
-        type=Path,
-        default=_DEFAULT_DEMO_DIRECTORY,
-        help="Directory containing packaged user-facing Axys demo data.",
-    )
-    parser.add_argument(
-        "--snapshot-directory",
-        type=Path,
-        default=_DEFAULT_SNAPSHOT_DIRECTORY,
-        help="Directory containing test-only Axys CSV snapshots.",
-    )
-    return parser
+def _site_variant_checks(site_variants_directory: Path) -> list[_ScenarioCheck]:
+    """Return site-shape, opt-out, and review-only quarantine checks."""
+    return [
+        _check_ambiguous_flow_context_variants(site_variants_directory),
+        _check_code_only_failure_guard(site_variants_directory),
+        _check_reviewed_local_opt_out(site_variants_directory),
+        _check_review_only_action_quarantine(site_variants_directory),
+    ]
+
+
+def _backlog_gate_checks() -> list[_ScenarioCheck]:
+    """Return explicit backlog-gate matrix checks."""
+    return [_check_capital_return_and_short_side_backlog_gates()]
 
 
 def _check_no_portfolio_differences(portfolio_changes: pl.DataFrame) -> _ScenarioCheck:
@@ -542,6 +633,188 @@ def _check_residual_withheld(residual_status: pl.DataFrame) -> _ScenarioCheck:
             "found at least one withheld residual status",
         )
     return _ScenarioCheck("Residual withheld", False, "no withheld residual status found")
+
+
+def _check_ambiguous_flow_context_variants(site_directory: Path) -> _ScenarioCheck:
+    """Return whether IMEX context fixtures cover ambiguous flow variants."""
+    frame = _site_variant_transactions(site_directory, "imex_context")
+    actual = {
+        (
+            str(row[_pc_cols.TRANSACTION_CODE]),
+            str(row[_pc_cols.TRANSACTION_CATEGORY]),
+            str(row[_pc_cols.PERFORMANCE_FLOW_SIGN]),
+        )
+        for row in frame.iter_rows(named=True)
+    }
+    expected = {
+        ("li", "external_flow", "external"),
+        ("li", "transfer", "neutral"),
+        ("lo", "external_flow", "external"),
+        ("lo", "transfer", "neutral"),
+        ("dp", "fee_expense", "performance"),
+        ("dp", "transfer", "neutral"),
+        ("wd", "external_flow", "external"),
+        ("wd", "transfer", "neutral"),
+    }
+    missing = sorted(expected - actual)
+    if missing:
+        return _ScenarioCheck(
+            "Ambiguous flow context variants",
+            False,
+            "missing context variant(s): " + ", ".join(map(str, missing)),
+        )
+    return _ScenarioCheck(
+        "Ambiguous flow context variants",
+        True,
+        "li/lo/dp/wd external, fee, and neutral variants are covered",
+    )
+
+
+def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
+    """Return whether code-only ambiguous rows still fail before classification."""
+    specification = PerformanceComparisonSpecification(
+        site_directory / "imex_code_only" / _DEMO_YAML
+    )
+    try:
+        TransactionsLoader(specification).load("a")
+    except PpaError as error:
+        message = str(error)
+        if (
+            "ambiguous Axys transaction codes DP, LI, LO, WD" in message
+            and "IMEX transaction code alone is not enough" in message
+        ):
+            return _ScenarioCheck(
+                "Code-only failure guard",
+                True,
+                "code-only li/lo/dp/wd rows fail before broad YAML classification",
+            )
+        return _ScenarioCheck(
+            "Code-only failure guard",
+            False,
+            f"unexpected failure message: {message}",
+        )
+    return _ScenarioCheck(
+        "Code-only failure guard",
+        False,
+        "code-only ambiguous rows loaded unexpectedly",
+    )
+
+
+def _check_reviewed_local_opt_out(site_directory: Path) -> _ScenarioCheck:
+    """Return whether the reviewed local opt-out boundary remains explicit."""
+    yaml_path = site_directory / "local_opt_out" / _DEMO_YAML
+    summary = validate_config(yaml_path)
+    if summary["enforce_ambiguous_axys_flows"] is not False:
+        return _ScenarioCheck(
+            "Reviewed local opt-out",
+            False,
+            "local opt-out fixture did not disable ambiguous-flow enforcement",
+        )
+    frame = _site_variant_transactions(site_directory, "local_opt_out")
+    sources = set(frame.get_column(_pc_cols.TRANSACTION_SEMANTICS_SOURCE).to_list())
+    if sources == {"yaml_rule"}:
+        return _ScenarioCheck(
+            "Reviewed local opt-out",
+            True,
+            "code-only ambiguous rows classify only under explicit local opt-out",
+        )
+    return _ScenarioCheck(
+        "Reviewed local opt-out",
+        False,
+        f"unexpected transaction semantics source(s): {sorted(sources)}",
+    )
+
+
+def _check_review_only_action_quarantine(site_directory: Path) -> _ScenarioCheck:
+    """Return whether review-only action fixtures stay neutral."""
+    frame = _site_variant_transactions(site_directory, "review_only_actions")
+    actual = {
+        (
+            str(row[_pc_cols.TRANSACTION_CODE]),
+            str(row[_pc_cols.TRANSACTION_CATEGORY]),
+            str(row[_pc_cols.PERFORMANCE_FLOW_SIGN]),
+            str(row[_pc_cols.TRANSACTION_SEMANTICS_SOURCE]),
+        )
+        for row in frame.iter_rows(named=True)
+    }
+    expected = {
+        ("CXL", "transfer", "neutral", "source"),
+        ("REV", "transfer", "neutral", "source"),
+        (";", "corporate_action", "neutral", "source"),
+    }
+    missing = sorted(expected - actual)
+    if missing:
+        return _ScenarioCheck(
+            "Review-only action quarantine",
+            False,
+            "missing neutral review-only row(s): " + ", ".join(map(str, missing)),
+        )
+    return _ScenarioCheck(
+        "Review-only action quarantine",
+        True,
+        "correction/reversal and synthetic corporate-action rows stay neutral",
+    )
+
+
+def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
+    """Return whether high-risk transaction families remain explicit backlog gates."""
+    matrix = yaml.safe_load(_TRANSACTION_SEMANTICS_MATRIX_PATH.read_text())
+    rows = matrix["rows"]
+    expected = {
+        code: (
+            "capital-return policy required",
+            "REP/report semantics",
+        )
+        for code in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES
+    }
+    expected.update(
+        {
+            code: (
+                "short-side evidence required",
+                "amount and quantity signs",
+            )
+            for code in SHORT_SIDE_BACKLOG_TRANSACTION_CODES
+        }
+    )
+
+    failures = []
+    for code, required_fragments in sorted(expected.items()):
+        row = rows[code]
+        coverage_notes = str(row["coverage_notes"])
+        if row["coverage_status"] != "backlog":
+            failures.append(f"{code} status={row['coverage_status']}")
+        missing_fragments = [
+            fragment
+            for fragment in required_fragments
+            if fragment not in coverage_notes
+        ]
+        if missing_fragments:
+            failures.append(f"{code} missing {', '.join(missing_fragments)}")
+        if row["fixtures"]:
+            failures.append(f"{code} has fixture(s): {row['fixtures']}")
+
+    if failures:
+        return _ScenarioCheck(
+            "Capital-return and short-side backlog gates",
+            False,
+            "; ".join(failures),
+        )
+    return _ScenarioCheck(
+        "Capital-return and short-side backlog gates",
+        True,
+        "rc/pd and ss/cs remain backlog until policy and evidence are present",
+    )
+
+
+def _site_variant_transactions(site_directory: Path, variant_name: str) -> pl.DataFrame:
+    """Return snapshot A transactions for one site-variant fixture."""
+    specification = PerformanceComparisonSpecification(
+        site_directory / variant_name / _DEMO_YAML
+    )
+    frame = TransactionsLoader(specification).load("a")
+    if frame is None:
+        raise AssertionError(f"{variant_name} transaction fixture did not load")
+    return frame
 
 
 if __name__ == "__main__":

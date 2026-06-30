@@ -9,6 +9,8 @@ transaction codes whose performance treatment cannot be trusted from code alone.
 | `imex_context` | IMEX-style transaction rows include source/destination and special-security context, so conditional YAML can classify `li`, `lo`, `dp`, and `wd`. |
 | `rep_semantics` | REP/report-style rows carry already-reviewed category and sign semantics, so a site contract can use those fields as the blocking classification context. |
 | `imex_code_only` | Code-only IMEX-style rows intentionally omit the required context and must fail before YAML can classify ambiguous external flows. |
+| `local_opt_out` | Code-only ambiguous rows classify only because `enforce_ambiguous_axys_flows` is explicitly disabled; this models reviewed local-risk behavior, not the default path. |
+| `review_only_actions` | REP/report-style rows mark correction/reversal-like rows and a synthetic corporate-action marker as neutral review evidence, not formula inputs. |
 
 The `imex_context` and `rep_semantics` contract files intentionally match the
 documented onboarding profiles in

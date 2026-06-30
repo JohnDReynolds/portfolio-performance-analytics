@@ -1,5 +1,7 @@
 # Starter site extract contract for Axys/APX performance-comparison inputs.
 #
+# See ../../site_extract_readiness_checklist.md before adapting this template.
+#
 # Copy this file beside a comparison YAML, trim the columns to fields your
 # local IMEX/REP extract actually exposes, and reference it with:
 #

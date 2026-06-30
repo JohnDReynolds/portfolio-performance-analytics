@@ -16,14 +16,29 @@ from ppar.performance_comparison import (
     TransactionsLoader,
 )
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison.backlog_gates import (
+    CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES,
+    CAPITAL_RETURN_POSSIBLE_ROLES,
+    CAPITAL_RETURN_REQUIRED_EVIDENCE,
+    SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
+    SHORT_SIDE_REQUIRED_EVIDENCE,
+    transaction_backlog_gate,
+)
 from ppar.performance_comparison.config_validation import validate_config
 from ppar.performance_comparison.extract_contract import validate_extract_contract
+from ppar.performance_comparison.fixed_income import (
+    FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
+    FIXED_INCOME_FORMULA_INPUTS,
+    FIXED_INCOME_OUT_OF_SCOPE,
+    fixed_income_transaction_boundary,
+)
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
     TRANSACTION_CASH_FLOW_SIGN_NONE,
     TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
     TRANSACTION_CASH_FLOW_SIGN_UNKNOWN,
     TRANSACTION_CATEGORY_BUY,
+    TRANSACTION_CATEGORY_CORPORATE_ACTION,
     TRANSACTION_CATEGORY_EXTERNAL_FLOW,
     TRANSACTION_CATEGORY_FEE_EXPENSE,
     TRANSACTION_CATEGORY_INCOME,
@@ -43,8 +58,8 @@ from ppar.performance_comparison.transactions import (
     normalize_transaction_cash_flow_sign,
     normalize_transaction_category,
     normalize_transaction_performance_flow_sign,
-    transaction_impact_semantics_available,
     transaction_category_from_code,
+    transaction_impact_semantics_available,
 )
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
@@ -284,8 +299,53 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(transaction_category_from_code("li"), "unknown")
         self.assertEqual(transaction_category_from_code("lo"), "unknown")
         self.assertEqual(transaction_category_from_code("dp"), "unknown")
+        self.assertEqual(transaction_category_from_code("ai"), "unknown")
+        self.assertEqual(transaction_category_from_code("pa"), "unknown")
+        self.assertEqual(transaction_category_from_code("sa"), "unknown")
+        self.assertEqual(transaction_category_from_code("pd"), "unknown")
+        self.assertEqual(transaction_category_from_code("rc"), "unknown")
+        self.assertEqual(transaction_category_from_code("ss"), "unknown")
+        self.assertEqual(transaction_category_from_code("cs"), "unknown")
         self.assertEqual(transaction_category_from_code("SELL"), "sell")
         self.assertEqual(transaction_category_from_code("not-a-real-code"), "unknown")
+
+    def test_fixed_income_transaction_boundary_is_modified_dietz_scoped(self) -> None:
+        """Fixed-income helper names safe formula inputs and blocked backlog codes."""
+        self.assertEqual(fixed_income_transaction_boundary("in"), "safe_income")
+        for code in FIXED_INCOME_BACKLOG_TRANSACTION_CODES:
+            with self.subTest(code=code):
+                self.assertEqual(fixed_income_transaction_boundary(code), "backlog")
+                self.assertEqual(transaction_category_from_code(code), "unknown")
+
+        self.assertIn(
+            "ordinary interest transaction amounts",
+            FIXED_INCOME_FORMULA_INPUTS,
+        )
+        self.assertIn(
+            "configured holdings.accrued changes",
+            FIXED_INCOME_FORMULA_INPUTS,
+        )
+        self.assertIn("amortization/accretion engine", FIXED_INCOME_OUT_OF_SCOPE)
+        self.assertIn("yield calculation", FIXED_INCOME_OUT_OF_SCOPE)
+
+    def test_high_risk_backlog_gates_are_code_only_boundaries(self) -> None:
+        """Capital-return and short-side codes stay gated without context."""
+        for code in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES:
+            with self.subTest(code=code):
+                self.assertEqual(transaction_backlog_gate(code), "capital_return_policy")
+                self.assertEqual(transaction_category_from_code(code), "unknown")
+
+        for code in SHORT_SIDE_BACKLOG_TRANSACTION_CODES:
+            with self.subTest(code=code):
+                self.assertEqual(transaction_backlog_gate(code), "short_side_evidence")
+                self.assertEqual(transaction_category_from_code(code), "unknown")
+
+        self.assertIn("performance income", CAPITAL_RETURN_POSSIBLE_ROLES)
+        self.assertIn("corporate-action evidence", CAPITAL_RETURN_POSSIBLE_ROLES)
+        self.assertIn("review-only evidence", CAPITAL_RETURN_POSSIBLE_ROLES)
+        self.assertIn("cost-basis or principal context", CAPITAL_RETURN_REQUIRED_EVIDENCE)
+        self.assertIn("short security type", SHORT_SIDE_REQUIRED_EVIDENCE)
+        self.assertIn("amount and quantity signs", SHORT_SIDE_REQUIRED_EVIDENCE)
 
     def test_transaction_sign_semantics_use_documented_vocabulary(self) -> None:
         """Transaction sign semantics normalize only recognized source labels."""
@@ -807,6 +867,63 @@ class TestTransactionsLoader(unittest.TestCase):
             set(frame.get_column(pc_cols.TRANSACTION_SEMANTICS_SOURCE).to_list()),
             {TRANSACTION_SEMANTICS_SOURCE_YAML_RULE},
         )
+        expected_rows = {
+            ("li", "$pty", "$cash", "", ""): (
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            ),
+            ("li", "$acct", "INTERNAL_ACCT", "", ""): (
+                TRANSACTION_CATEGORY_TRANSFER,
+                TRANSACTION_CASH_FLOW_SIGN_NONE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+            ),
+            ("lo", "$pty", "$cash", "", ""): (
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            ),
+            ("lo", "$acct", "INTERNAL_ACCT", "", ""): (
+                TRANSACTION_CATEGORY_TRANSFER,
+                TRANSACTION_CASH_FLOW_SIGN_NONE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+            ),
+            ("dp", "$pty", "$cash", "exus", "custfee"): (
+                TRANSACTION_CATEGORY_FEE_EXPENSE,
+                TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+            ),
+            ("dp", "$sweep", "MMF", "", ""): (
+                TRANSACTION_CATEGORY_TRANSFER,
+                TRANSACTION_CASH_FLOW_SIGN_NONE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+            ),
+            ("wd", "$pty", "$cash", "", ""): (
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            ),
+            ("wd", "$sweep", "MMF", "", ""): (
+                TRANSACTION_CATEGORY_TRANSFER,
+                TRANSACTION_CASH_FLOW_SIGN_NONE,
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+            ),
+        }
+        actual_rows = {}
+        for row in frame.iter_rows(named=True):
+            key = (
+                row[pc_cols.TRANSACTION_CODE],
+                row[pc_cols.SOURCE_DESTINATION_TYPE] or "",
+                row[pc_cols.SOURCE_DESTINATION_SYMBOL] or "",
+                row[pc_cols.SPECIAL_SECURITY_TYPE] or "",
+                row[pc_cols.SPECIAL_SECURITY_SYMBOL] or "",
+            )
+            actual_rows[key] = (
+                row[pc_cols.TRANSACTION_CATEGORY],
+                row[pc_cols.CASH_FLOW_SIGN],
+                row[pc_cols.PERFORMANCE_FLOW_SIGN],
+            )
+        self.assertEqual(actual_rows, expected_rows)
 
     def test_site_variant_rep_semantics_can_supply_ambiguous_flow_context(self) -> None:
         """REP/report semantics can be the reviewed context for ambiguous codes."""
@@ -867,6 +984,64 @@ class TestTransactionsLoader(unittest.TestCase):
                     pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
                     pc_cols.PERFORMANCE_FLOW_SIGN: (
                         TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+            ],
+        )
+
+    def test_site_variant_review_only_actions_stay_neutral(self) -> None:
+        """Correction and synthetic corporate-action rows stay review-only."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "review_only_actions"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "CXL",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_TRANSFER,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NONE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "REV",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_TRANSFER,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NONE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: ";",
+                    pc_cols.TRANSACTION_CATEGORY: (
+                        TRANSACTION_CATEGORY_CORPORATE_ACTION
+                    ),
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NONE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
                     ),
                     pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
                         TRANSACTION_SEMANTICS_SOURCE_SOURCE
@@ -994,6 +1169,80 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertIn("ambiguous Axys transaction codes DP, LI, LO, WD", message)
         self.assertIn("IMEX transaction code alone is not enough", message)
         self.assertIn("REP/report extract", message)
+
+    def test_site_variant_local_opt_out_classifies_code_only_rows(self) -> None:
+        """Reviewed local opt-out allows code-only ambiguous rows by design."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "local_opt_out"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "li",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "lo",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "dp",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "wd",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+            ],
+        )
+        self.assertFalse(
+            validate_config(
+                _SITE_VARIANT_FIXTURES_PATH
+                / "local_opt_out"
+                / "ppar_performance_comparison.yaml"
+            )["enforce_ambiguous_axys_flows"]
+        )
 
     def test_ambiguous_axys_code_without_matching_context_raises_error(self) -> None:
         """Ambiguous Axys codes fail when IMEX fields cannot match a YAML rule."""

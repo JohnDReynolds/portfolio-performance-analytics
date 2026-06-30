@@ -405,6 +405,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("intentionally non-additive", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
+            self.assertIn("source context", readme)
+            self.assertIn("transaction semantics summary", readme)
             self.assertIn(
                 "`needs_review_summary.csv`: top triage table for changed periods",
                 readme,
@@ -421,7 +423,24 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
+            self.assertEqual(manifest["manifest_version"], 1)
             self.assertEqual(manifest["title"], "Bundle Restatement")
+            self.assertEqual(
+                set(manifest),
+                {
+                    "artifacts",
+                    "bundle_type",
+                    "counts",
+                    "created_at",
+                    "manifest_version",
+                    "options",
+                    "review_entrypoints",
+                    "source_context",
+                    "tables",
+                    "title",
+                    "transaction_semantics",
+                },
+            )
             self.assertEqual(manifest["counts"]["findings"], 16)
             self.assertEqual(manifest["counts"]["active_findings"], 16)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
@@ -432,6 +451,43 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertEqual(manifest["artifacts"]["readme"], "README.md")
             self.assertNotIn("report", manifest["artifacts"])
+            self.assertEqual(manifest["source_context"]["comparison_path"], None)
+            self.assertEqual(manifest["source_context"]["extract_contract"], None)
+            self.assertIn("observed_codes", manifest["transaction_semantics"])
+            self.assertIn("unknown_category_count", manifest["transaction_semantics"])
+            self.assertEqual(
+                manifest["transaction_semantics"]["ambiguous_context_blocked_count"],
+                0,
+            )
+            self.assertEqual(
+                manifest["review_entrypoints"]["primary_review"],
+                "report.html",
+            )
+            self.assertEqual(
+                manifest["review_entrypoints"]["period_triage"],
+                "needs_review_summary.csv",
+            )
+            self.assertEqual(
+                manifest["review_entrypoints"]["formula_input_causes"],
+                "cause_summary.csv",
+            )
+            self.assertEqual(
+                manifest["review_entrypoints"]["supporting_context"],
+                "context_evidence_summary.csv",
+            )
+            self.assertEqual(
+                manifest["review_entrypoints"]["transaction_diagnostics"],
+                [
+                    "transaction_activity.csv",
+                    "transaction_cross_checks.csv",
+                    "flow_cross_check_reconciliation.csv",
+                    "transaction_matching_diagnostics.csv",
+                ],
+            )
+            self.assertEqual(
+                manifest["review_entrypoints"]["audit_trail"],
+                "findings.csv",
+            )
             self.assertEqual(
                 manifest["artifacts"]["needs_review_summary"],
                 "needs_review_summary.csv",
@@ -529,6 +585,42 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("impact_method", top_evidence.columns)
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
+
+    def test_write_report_bundle_manifest_includes_source_context(self) -> None:
+        """Report bundle manifests summarize comparison and extract-contract context."""
+        findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                comparison_path=_RESTATEMENT_TRANSACTION_RULES_PATH,
+                require_complete_yaml_setup=False,
+            )
+
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+
+        source_context = manifest["source_context"]
+        extract_contract = source_context["extract_contract"]
+        semantics = manifest["transaction_semantics"]
+        self.assertEqual(
+            source_context["comparison_path"],
+            str(_RESTATEMENT_TRANSACTION_RULES_PATH),
+        )
+        self.assertEqual(
+            extract_contract["path"],
+            "packaged:ppar.demos.data.axys/demo_extract_availability.yaml",
+        )
+        self.assertTrue(extract_contract["enforce_ambiguous_axys_flows"])
+        self.assertIn(
+            "source_destination_type",
+            extract_contract["required_transaction_context_columns"],
+        )
+        self.assertIn(
+            "special_security_symbol",
+            extract_contract["required_transaction_context_columns"],
+        )
+        self.assertIn("BUY", semantics["observed_codes"])
+        self.assertEqual(semantics["unknown_category_count"], 0)
 
     def test_write_report_bundle_requires_complete_yaml_by_default(self) -> None:
         """User-facing bundles fail when changed source fields lack YAML policy."""
@@ -1294,6 +1386,105 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn("artifact file 'needs_review_summary.csv' is missing", issues)
+
+    def test_report_bundle_validation_catches_missing_manifest_key(self) -> None:
+        """Bundle validation rejects missing required top-level manifest keys."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            del manifest["manifest_version"]
+            paths["manifest"].write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn("manifest top-level key 'manifest_version' is missing", issues)
+        self.assertIn("manifest manifest_version is unsupported", issues)
+
+    def test_report_bundle_validation_catches_unknown_review_entrypoint(self) -> None:
+        """Bundle validation rejects review entrypoints outside declared artifacts."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            manifest["review_entrypoints"]["period_triage"] = "missing.csv"
+            paths["manifest"].write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn(
+            (
+                "manifest review entrypoint 'period_triage' points to "
+                "undeclared artifact 'missing.csv'"
+            ),
+            issues,
+        )
+
+    def test_report_bundle_validation_catches_bad_source_context(self) -> None:
+        """Bundle validation checks source-context manifest metadata shape."""
+        findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                comparison_path=_RESTATEMENT_TRANSACTION_RULES_PATH,
+                require_complete_yaml_setup=False,
+            )
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            manifest["source_context"]["extract_contract"][
+                "required_transaction_context_columns"
+            ] = "source_destination_type"
+            paths["manifest"].write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn(
+            (
+                "manifest extract_contract.required_transaction_context_columns "
+                "is malformed"
+            ),
+            issues,
+        )
+
+    def test_report_bundle_validation_catches_bad_transaction_summary(self) -> None:
+        """Bundle validation checks transaction-semantics manifest metadata."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            manifest["transaction_semantics"]["unknown_category_count"] = -1
+            paths["manifest"].write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn(
+            "manifest transaction_semantics.unknown_category_count is malformed",
+            issues,
+        )
 
     def test_report_bundle_validation_catches_missing_review_workbook(self) -> None:
         """Bundle validation reports workbook artifacts that are absent."""

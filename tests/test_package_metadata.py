@@ -42,6 +42,19 @@ from ppar.performance_comparison.methods import (
 from ppar.performance_comparison import (
     transactions as performance_comparison_transactions,
 )
+from ppar.performance_comparison import backlog_gates as performance_backlog_gates
+from ppar.performance_comparison import fixed_income as performance_fixed_income
+from ppar.performance_comparison import (
+    transaction_summary as performance_transaction_summary,
+)
+from ppar.performance_comparison.transaction_boundary_registry import (
+    TRANSACTION_BOUNDARY_REGISTRY,
+    registered_transaction_codes,
+    transaction_boundary_groups,
+)
+from ppar.performance_comparison import (
+    transaction_boundary_registry as performance_boundary_registry,
+)
 from ppar.performance_comparison.return_reconstruction import (
     DERIVED_RETURN_DIFFERENCE,
     RECONSTRUCTION_STATUS,
@@ -285,17 +298,41 @@ class TestPackageMetadata(unittest.TestCase):
             "docs/axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md"
         )
         matrix_yaml_path = Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        boundary_snapshot_path = Path(
+            "docs/performance_comparison_transaction_boundary_snapshot.md"
+        )
+        evidence_pack_review_path = Path(
+            "docs/performance_comparison_evidence_pack_review.md"
+        )
         source_contract = Path("docs/performance_comparison_demo_source_contract.md")
         roadmap = Path("docs/performance_comparison_roadmap.md")
 
         self.assertTrue(matrix_path.exists())
         self.assertTrue(matrix_yaml_path.exists())
+        self.assertTrue(boundary_snapshot_path.exists())
+        self.assertTrue(evidence_pack_review_path.exists())
         self.assertIn(
             "axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md",
             source_contract.read_text(encoding=util.ENCODING),
         )
         self.assertIn(
+            "performance_comparison_transaction_boundary_snapshot.md",
+            source_contract.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
+            "performance_comparison_evidence_pack_review.md",
+            source_contract.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
             "axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md",
+            roadmap.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
+            "performance_comparison_transaction_boundary_snapshot.md",
+            roadmap.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
+            "performance_comparison_evidence_pack_review.md",
             roadmap.read_text(encoding=util.ENCODING),
         )
 
@@ -329,11 +366,12 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertIn("Phase 8B: Reinvestment Pair Feasibility Gate", roadmap)
         self.assertIn("Status: partial test-only coverage", roadmap)
-        self.assertIn("`dv` income leg plus a paired `by` purchase leg", roadmap)
-        self.assertIn("dividend-wash/source symbol", roadmap)
+        self.assertIn("`dv` income leg plus a related `by` purchase leg", roadmap)
+        self.assertIn("formula-role evidence", roadmap)
         self.assertIn("no portfolio-level external-flow treatment", roadmap)
         self.assertIn("must not count the buy\n  leg as an external contribution", roadmap)
         self.assertIn("must not count\n  the dividend income twice", roadmap)
+        self.assertIn("likely related income and buy\n  evidence", roadmap)
         self.assertIn("synthetic reinvestment examples belong in test-only data", roadmap)
 
     def test_fixed_income_transaction_boundary_gate_is_documented(self) -> None:
@@ -341,6 +379,9 @@ class TestPackageMetadata(unittest.TestCase):
         roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
             encoding=util.ENCODING
         )
+        source_contract = Path(
+            "docs/performance_comparison_demo_source_contract.md"
+        ).read_text(encoding=util.ENCODING)
 
         self.assertIn("Phase 8C: Fixed-Income Transaction Boundary Gate", roadmap)
         self.assertIn("ordinary `in` interest rows", roadmap)
@@ -349,6 +390,230 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("local mapping or\n  REP/report semantics", roadmap)
         self.assertIn("quantity or principal\n  exposure", roadmap)
         self.assertIn("before it is treated as performance income", roadmap)
+        self.assertIn(
+            "two proved fixed-income Modified Dietz inputs",
+            source_contract,
+        )
+        self.assertIn("amortization/accretion engine", source_contract)
+        self.assertIn("bond principal schedule", source_contract)
+
+    def test_fixed_income_modified_dietz_phase_is_documented(self) -> None:
+        """The roadmap keeps Phase 10 scoped to Modified Dietz formula inputs."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Phase 10: Fixed-Income Modified Dietz Boundary", roadmap)
+        self.assertIn("Phase 10A: Fixed-Income Formula Boundary", roadmap)
+        self.assertIn("ordinary `in` interest transaction amounts", roadmap)
+        self.assertIn("configured `holdings.accrued` changes", roadmap)
+        self.assertIn("amortization/accretion engines", roadmap)
+        self.assertIn("bond principal schedule reconstruction", roadmap)
+        self.assertIn("Phase 10B: Test-Only Ordinary Interest + Accrued Audit", roadmap)
+        self.assertIn("`INCOME0603` remains an ordinary `in` transaction", roadmap)
+        self.assertIn("positive `TNOTE2Y` `holdings.accrued` values", roadmap)
+        self.assertIn(
+            "Phase 10C: Principal Paydown / Accrued-Interest Backlog Contract",
+            roadmap,
+        )
+        self.assertIn("backlog codes remain `unknown` by code alone", roadmap)
+        self.assertIn("Phase 10D: Fixed-Income Reviewer Reporting", roadmap)
+        self.assertIn("not silently inferred income or flows", roadmap)
+
+    def test_test_only_transaction_semantics_phase_is_documented(self) -> None:
+        """The roadmap keeps Phase 11 in the test-only semantics lane."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Phase 11: Test-Only Transaction Semantics Expansion", roadmap)
+        self.assertIn("Phase 11A: Reversal / Cancellation Boundary", roadmap)
+        self.assertIn("`CXL` stays transfer-neutral", roadmap)
+        self.assertIn("`REV` stays transfer-neutral", roadmap)
+        self.assertIn("Phase 11B: Expanded `dp` / `wd` Context Matrix", roadmap)
+        self.assertIn("fee-like `dp` is performance-impacting", roadmap)
+        self.assertIn("sweep-like `wd` stays neutral transfer evidence", roadmap)
+        self.assertIn("Phase 11C: Synthetic Corporate-Action Quarantine", roadmap)
+        self.assertIn("neutral corporate-action row", roadmap)
+        self.assertIn("without turning it into a Modified Dietz formula\ninput", roadmap)
+        self.assertIn("Phase 11D: Demo Matrix + Roadmap Reporting", roadmap)
+        self.assertIn("review-only action quarantine", roadmap)
+
+    def test_return_capital_and_short_backlog_phase_is_documented(self) -> None:
+        """The roadmap and matrix keep high-risk backlog gates explicit."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+
+        self.assertIn(
+            "Phase 12: Return-of-Capital And Short-Side Backlog Gates",
+            roadmap,
+        )
+        self.assertIn("Phase 12A: Return-of-Capital Policy Boundary", roadmap)
+        self.assertIn("Code-only `rc` rows stay `unknown`", roadmap)
+        self.assertIn(
+            "Phase 12B: Principal / Capital Return Vocabulary Alignment",
+            roadmap,
+        )
+        self.assertIn("`pd` remains aligned with the capital-return gate", roadmap)
+        self.assertIn("Phase 12C: Short Sale / Cover Short Evidence Gate", roadmap)
+        self.assertIn("Code-only short-side rows stay `unknown`", roadmap)
+        self.assertIn("Phase 12D: Matrix + Validator Reporting", roadmap)
+        self.assertIn("`Capital-return and short-side backlog\ngates`", roadmap)
+
+        for code in ("rc", "pd", "ss", "cs"):
+            with self.subTest(code=code):
+                row = matrix_yaml["rows"][code]
+                self.assertEqual(row["coverage_status"], "backlog")
+                self.assertEqual(row["fixtures"], [])
+                self.assertIn("Backlog gate:", row["coverage_notes"])
+
+    def test_matrix_consolidation_phase_is_documented(self) -> None:
+        """The roadmap documents the release-readiness consolidation phase."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+        snapshot = Path(
+            "docs/performance_comparison_transaction_boundary_snapshot.md"
+        ).read_text(encoding=util.ENCODING)
+
+        self.assertIn("Phase 13: Matrix Consolidation And Release Readiness", roadmap)
+        self.assertIn("Phase 13A: Transaction Boundary Registry", roadmap)
+        self.assertIn("transaction_boundary_registry", roadmap)
+        self.assertIn("Phase 13B: Demo Matrix Validator Cleanup", roadmap)
+        self.assertIn("baseline and\nattribution checks", roadmap)
+        self.assertIn("Phase 13C: Roadmap / Matrix Consistency Audit", roadmap)
+        self.assertIn("Phase 13D: Pre-Commit Release Snapshot", roadmap)
+        self.assertIn("Covered Formula Inputs", snapshot)
+        self.assertIn("Context-Required Rows", snapshot)
+        self.assertIn("Backlog Gates", snapshot)
+
+    def test_final_review_pack_phase_is_documented(self) -> None:
+        """The roadmap and review pack document commit-preparation scope."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+        review_pack = Path(
+            "docs/performance_comparison_evidence_pack_review.md"
+        ).read_text(encoding=util.ENCODING)
+
+        self.assertIn("Phase 14: Final Review Pack And Commit Preparation", roadmap)
+        self.assertIn("Phase 14A: Change Inventory", roadmap)
+        self.assertIn("Phase 14B: Public API / Package Surface Check", roadmap)
+        self.assertIn("Phase 14C: Diff Hygiene Pass", roadmap)
+        self.assertIn("Phase 14D: Commit-Ready Validation", roadmap)
+        self.assertIn("Change Inventory", review_pack)
+        self.assertIn("Public Surface", review_pack)
+        self.assertIn("Suggested Commit Message", review_pack)
+        self.assertIn("Add performance comparison evidence-pack boundaries", review_pack)
+
+    def test_phase_roadmap_sections_are_unique_after_review_pack(self) -> None:
+        """The active roadmap keeps one section per late phase train."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for phase in range(9, 15):
+            with self.subTest(phase=phase):
+                self.assertEqual(roadmap.count(f"### Phase {phase}:"), 1)
+        self.assertEqual(roadmap.count("## Guiding Principle"), 1)
+        self.assertEqual(roadmap.count("## Transaction-Type Backlog"), 1)
+
+    def test_evidence_pack_hardening_phase_is_documented(self) -> None:
+        """The roadmap keeps the reviewer-readiness train tied to evidence packs."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Phase 9: Evidence-Pack Hardening And Reviewer Readiness", roadmap)
+        self.assertIn("Phase 9A: Bundle Navigation Manifest", roadmap)
+        self.assertIn("reviewer entrypoints", roadmap)
+        self.assertIn("comparison YAML path", roadmap)
+        self.assertIn("extract-contract summary metadata", roadmap)
+        self.assertIn("Phase 9B: Site Extract Readiness", roadmap)
+        self.assertIn("missing transaction context columns", roadmap)
+        self.assertIn("Phase 9C: Test-Only Semantics Expansion", roadmap)
+        self.assertIn("Modified Dietz formula role", roadmap)
+        self.assertIn("Phase 9D: Manifest Validation And Extract Context Summary", roadmap)
+        self.assertIn("review_entrypoints", roadmap)
+        self.assertIn("required\n  transaction context columns", roadmap)
+        self.assertIn("observed transaction codes", roadmap)
+        self.assertIn("Phase 9E: Bundle Validation Completion", roadmap)
+        self.assertIn("source_context.extract_contract", roadmap)
+        self.assertIn("Phase 9F: Extract Context Operator Readiness", roadmap)
+        self.assertIn("Phase 9G: Shared Transaction Semantics Summary", roadmap)
+        self.assertIn("codes without YAML rules", roadmap)
+        self.assertIn("Phase 9H: Operator Checklist Docs", roadmap)
+        self.assertIn("site_extract_readiness_checklist.md", roadmap)
+        self.assertIn("Phase 9I: Test-Only Ambiguous Flow Matrix", roadmap)
+        self.assertIn("Ambiguous flow context variants", roadmap)
+        self.assertIn("Phase 9J: Code-Only Failure Fixtures", roadmap)
+        self.assertIn("Code-only failure guard", roadmap)
+        self.assertIn("Phase 9K: Local Opt-Out Boundary", roadmap)
+        self.assertIn("Reviewed local opt-out", roadmap)
+        self.assertIn("Phase 9L: Demo Matrix Reporting Polish", roadmap)
+        self.assertIn("Phase 9M: Evidence-Pack Golden Bundle Fixture", roadmap)
+        self.assertIn("manifest_version", roadmap)
+        self.assertIn("Phase 9N: README / CLI Review Flow Tightening", roadmap)
+        self.assertIn("Phase 9O: Bundle Manifest Regression Contract", roadmap)
+        self.assertIn("Phase 9P: Final Phase-9 Consolidation", roadmap)
+        self.assertIn("Status: complete.", roadmap)
+        self.assertIn("release-ready evidence-pack baseline", roadmap)
+
+    def test_site_extract_readiness_checklist_is_documented(self) -> None:
+        """The site extract readiness checklist remains linked from setup docs."""
+        checklist = Path("docs/site_extract_readiness_checklist.md")
+        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        template = Path("docs/axys-apx-reference/templates/site_extract_contract.yaml")
+
+        self.assertTrue(checklist.exists())
+        checklist_text = checklist.read_text(encoding=util.ENCODING)
+        self.assertIn("IMEX With Context Fields", checklist_text)
+        self.assertIn("REP/Report Semantic Fallback", checklist_text)
+        self.assertIn("Code-Only Failure Mode", checklist_text)
+        self.assertIn("Reviewed Local Opt-Out", checklist_text)
+        self.assertIn("Handoff Evidence", checklist_text)
+        self.assertIn(
+            "site_extract_readiness_checklist.md",
+            source_contract.read_text(encoding=util.ENCODING),
+        )
+        self.assertIn(
+            "site_extract_readiness_checklist.md",
+            template.read_text(encoding=util.ENCODING),
+        )
+
+    def test_site_variant_local_opt_out_fixture_is_documented(self) -> None:
+        """The reviewed local opt-out fixture is documented as non-default."""
+        readme = Path("tests/data/axys/site_variants/README.md").read_text(
+            encoding=util.ENCODING
+        )
+        source_contract = Path("docs/performance_comparison_demo_source_contract.md")
+        local_opt_out = Path(
+            "tests/data/axys/site_variants/local_opt_out/ppar_performance_comparison.yaml"
+        )
+
+        self.assertTrue(local_opt_out.exists())
+        self.assertIn("local_opt_out", readme)
+        self.assertIn("enforce_ambiguous_axys_flows", readme)
+        self.assertIn(
+            "local_opt_out",
+            source_contract.read_text(encoding=util.ENCODING),
+        )
+
+    def test_reinvestment_gate_stays_modified_dietz_scoped(self) -> None:
+        """Dividend reinvestment docs avoid requiring accounting-style matching."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("does\nnot require accounting-style pair matching", roadmap)
+        self.assertIn("The required formula boundary is narrower", roadmap)
+        self.assertIn("`dv` is income", roadmap)
+        self.assertIn("`by` is a\nsecurity-level flow", roadmap)
+        self.assertIn("optional\nreviewer polish", roadmap)
 
     def test_transaction_semantics_matrix_yaml_matches_appendix_codes(self) -> None:
         """The machine-readable transaction matrix stays aligned with the appendix."""
@@ -400,6 +665,46 @@ class TestPackageMetadata(unittest.TestCase):
                             self.assertTrue(fixtures, code)
                         self.assertNotIn("Backlog pending", coverage_notes)
 
+    def test_transaction_boundary_registry_matches_matrix_codes(self) -> None:
+        """The boundary registry covers every matrix row and key overlap."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        matrix_codes = set(matrix_yaml["required_matrix_codes"])
+
+        self.assertLessEqual(matrix_codes, registered_transaction_codes())
+        self.assertEqual(
+            transaction_boundary_groups("in"),
+            ("packaged_formula", "fixed_income_safe"),
+        )
+        self.assertIn(
+            "ambiguous_context_required",
+            transaction_boundary_groups("wd"),
+        )
+        self.assertIn("review_only_test", transaction_boundary_groups(";"))
+        self.assertIn("context_only", transaction_boundary_groups("exus"))
+        self.assertIn("standalone_backlog", transaction_boundary_groups("epus"))
+        self.assertIn("fixed_income_backlog", transaction_boundary_groups("pd"))
+        self.assertIn("capital_return_backlog", transaction_boundary_groups("pd"))
+        self.assertIn("short_side_backlog", transaction_boundary_groups("ss"))
+        self.assertEqual(transaction_boundary_groups("not-a-real-code"), ())
+
+        registered_groups = set(TRANSACTION_BOUNDARY_REGISTRY)
+        self.assertEqual(
+            registered_groups,
+            {
+                "packaged_formula",
+                "fixed_income_safe",
+                "ambiguous_context_required",
+                "review_only_test",
+                "context_only",
+                "fixed_income_backlog",
+                "capital_return_backlog",
+                "short_side_backlog",
+                "standalone_backlog",
+            },
+        )
+
     def test_demo_transaction_rules_are_known_to_semantics_matrix(self) -> None:
         """Packaged demo transaction rules cannot introduce undocumented codes."""
         matrix_yaml = _load_yaml(
@@ -431,6 +736,12 @@ class TestPackageMetadata(unittest.TestCase):
         code_only_codes = _transaction_codes_in_csv(
             Path("tests/data/axys/site_variants/imex_code_only/snapshot_a/transactions.csv")
         )
+        review_only_codes = _transaction_codes_in_csv(
+            Path(
+                "tests/data/axys/site_variants/review_only_actions/"
+                "snapshot_a/transactions.csv"
+            )
+        )
 
         for code, metadata in matrix_yaml["rows"].items():
             fixtures = metadata["fixtures"]
@@ -447,10 +758,37 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertTrue(code in imex_context_codes or code in {"exus"}, code)
             if "site_variants/rep_semantics" in fixtures:
                 self.assertIn(code, rep_semantics_codes, code)
+            if "site_variants/review_only_actions" in fixtures:
+                self.assertIn(code, review_only_codes, code)
 
         self.assertLessEqual(
             set(matrix_yaml["ambiguous_external_flow_codes"]),
             imex_context_codes & rep_semantics_codes & code_only_codes,
+        )
+
+    def test_review_only_action_fixture_is_documented(self) -> None:
+        """Synthetic review-only action rows remain a test-only quarantine."""
+        readme = Path("tests/data/axys/site_variants/README.md").read_text(
+            encoding=util.ENCODING
+        )
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        fixture = Path(
+            "tests/data/axys/site_variants/review_only_actions/"
+            "ppar_performance_comparison.yaml"
+        )
+
+        self.assertTrue(fixture.exists())
+        self.assertIn("review_only_actions", readme)
+        self.assertIn("neutral review evidence", readme)
+        self.assertEqual(
+            matrix_yaml["rows"][";"]["fixtures"],
+            ["site_variants/review_only_actions"],
+        )
+        self.assertIn(
+            "synthetic corporate-action markers",
+            matrix_yaml["rows"][";"]["coverage_notes"],
         )
 
     def test_transaction_semantics_matrix_matches_ambiguous_fixture_outputs(self) -> None:
@@ -1236,6 +1574,33 @@ class TestPackageMetadata(unittest.TestCase):
         for name, imported_object in expected_exports.items():
             with self.subTest(name=name):
                 self.assertIs(imported_object, getattr(performance_comparison, name))
+
+    def test_performance_comparison_boundary_helpers_are_submodules(self) -> None:
+        """Boundary helper modules are importable without top-level export churn."""
+        top_level_exports = set(performance_comparison.__all__)
+        helper_modules = {
+            "backlog_gates": performance_backlog_gates,
+            "fixed_income": performance_fixed_income,
+            "transaction_boundary_registry": performance_boundary_registry,
+            "transaction_summary": performance_transaction_summary,
+        }
+
+        self.assertEqual(
+            performance_fixed_income.fixed_income_transaction_boundary("in"),
+            "safe_income",
+        )
+        self.assertEqual(
+            performance_backlog_gates.transaction_backlog_gate("rc"),
+            "capital_return_policy",
+        )
+        self.assertIn(
+            "packaged_formula",
+            performance_boundary_registry.transaction_boundary_groups("by"),
+        )
+        self.assertTrue(
+            hasattr(performance_transaction_summary, "transaction_semantics_summary")
+        )
+        self.assertTrue(top_level_exports.isdisjoint(helper_modules))
 
     def test_public_performance_comparison_runner_import_contract(self) -> None:
         """The runner module exposes only the compact workflow helper surface."""

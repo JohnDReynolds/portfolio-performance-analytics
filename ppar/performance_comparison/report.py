@@ -429,6 +429,7 @@ def write_performance_comparison_report_bundle(
         title=title,
         top_evidence_limit=top_evidence_limit,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        comparison_path=comparison_path,
         artifact_paths=paths,
         tables=tables,
     )

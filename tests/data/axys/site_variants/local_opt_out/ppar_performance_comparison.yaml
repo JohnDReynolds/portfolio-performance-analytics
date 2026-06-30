@@ -1,0 +1,37 @@
+comparison:
+  name: Axys site variant with reviewed local ambiguous-flow opt-out
+
+snapshots:
+  a:
+    label: local_opt_out_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: local_opt_out_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+extract_contract:
+  enforce_ambiguous_axys_flows: false
+
+transaction_rules:
+  li:
+    transaction_category: external_flow
+    cash_flow_sign: positive
+    performance_flow_sign: external
+  lo:
+    transaction_category: external_flow
+    cash_flow_sign: negative
+    performance_flow_sign: external
+  dp:
+    transaction_category: fee_expense
+    cash_flow_sign: negative
+    performance_flow_sign: performance
+  wd:
+    transaction_category: external_flow
+    cash_flow_sign: negative
+    performance_flow_sign: external

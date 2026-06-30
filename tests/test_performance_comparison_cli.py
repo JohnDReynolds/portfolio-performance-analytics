@@ -256,6 +256,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Extract contract: packaged:", result.stdout)
         self.assertIn("Enforce ambiguous Axys flows: True", result.stdout)
         self.assertIn(
+            "Required transaction context columns: security_type, "
+            "source_destination_symbol, source_destination_type, "
+            "special_security_symbol, special_security_type",
+            result.stdout,
+        )
+        self.assertIn("Report-bundle source context:", result.stdout)
+        self.assertIn("transaction semantics summary", result.stdout)
+        self.assertIn(
             "Transaction codes observed: BUY, DIV, INT, SELL, SPLIT",
             result.stdout,
         )
@@ -307,6 +315,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         )
 
         self.assertIn("Demo matrix validation passed:", result.stdout)
+        self.assertIn("Demo matrix coverage includes ambiguous-flow", result.stdout)
         self.assertIn("Clean/no issue", result.stdout)
         self.assertIn("Missing transaction method", result.stdout)
         self.assertIn("Missing transaction rules", result.stdout)
@@ -317,6 +326,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Security field-role specifications", result.stdout)
         self.assertIn("Suppressed finding", result.stdout)
         self.assertIn("Residual withheld", result.stdout)
+        self.assertIn("Ambiguous flow context variants", result.stdout)
+        self.assertIn("Code-only failure guard", result.stdout)
+        self.assertIn("Reviewed local opt-out", result.stdout)
+        self.assertIn("Review-only action quarantine", result.stdout)
+        self.assertIn("Capital-return and short-side backlog gates", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def _write_bundle(self, output_directory: Path) -> None:

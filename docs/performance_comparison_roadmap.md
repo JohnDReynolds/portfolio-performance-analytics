@@ -733,6 +733,8 @@ Ongoing coverage requirement:
   machine-readable coverage contract. Coverage is complete only when every row
   has a non-backlog fixture or an explicit documented reason to remain
   review-only/unknown.
+- [Boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
+  is the compact reviewer-facing view of the same coverage boundary.
 - Matrix rows and pair patterns now include machine-checked `coverage_notes`, so
   each covered, context-only, partial, or backlog entry carries a rationale
   instead of relying only on table prose.
@@ -934,26 +936,29 @@ review-only or implemented corporate-action behavior.
 #### Phase 8B: Reinvestment Pair Feasibility Gate
 
 The next useful test-only pair family is a reinvested dividend represented by a
-`dv` income leg plus a paired `by` purchase leg. This should not enter packaged
-demo data until the comparison engine can prove the pair is one economic
-reinvestment, not two unrelated effects.
+`dv` income leg plus a related `by` purchase leg. For Modified Dietz, this does
+not require accounting-style pair matching before the rows can be classified.
+The required formula boundary is narrower: `dv` is income, and `by` is a
+security-level flow that must not become a portfolio external contribution.
 
 Status: partial test-only coverage. Return-reconstruction tests now prove the
 `by` leg is not treated as a portfolio external flow and the `dv` leg is not
-counted twice as security income. Full pair matching remains future work.
+counted twice as security income. Lightweight pair detection remains optional
+reviewer polish for grouping related evidence, not a prerequisite for Modified
+Dietz support.
 
 Before adding a reinvestment fixture, require:
 
-- pairing evidence: same portfolio, security or reinvestment target, date or
-  settlement window, dividend-wash/source symbol, and offsetting amount
-  relationship;
+- formula-role evidence: same portfolio, security or reinvestment target, date
+  or settlement window, and enough source context to show the dividend income
+  and security-level buy are not portfolio-level external flows;
 - YAML semantics: `dv` remains performance income and `by` remains a
   security-level flow, with no portfolio-level external-flow treatment;
 - double-count guard: portfolio return reconstruction must not count the buy
   leg as an external contribution, and security reconstruction must not count
   the dividend income twice;
-- report behavior: workbook rows should show the income and buy evidence as
-  related, while making clear which formula input each row supports;
+- report behavior: workbook rows may show likely related income and buy
+  evidence together, while making clear which formula input each row supports;
 - fixture home: synthetic reinvestment examples belong in test-only data until
   a realistic packaged period and security story makes the example useful to a
   reviewer.
@@ -1012,6 +1017,534 @@ Demo-data notes:
 - Current analytics demo data generation history lives in
   [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
 - Those files are historical/process notes; this file is the active roadmap.
+
+### Phase 9: Evidence-Pack Hardening And Reviewer Readiness
+
+Phase 9 turns the current comparison engine and transaction-semantics guardrails
+into a portable evidence pack that a reviewer can inspect, validate, and hand
+off without knowing the fixture harness.
+
+This phase should not add a new accounting surface. It should make existing
+Modified Dietz formula inputs, supporting evidence, extract-contract context,
+and diagnostics easier to find and reproduce.
+
+#### Phase 9A: Bundle Navigation Manifest
+
+Status: complete for the current report-bundle evidence pack.
+
+Report-bundle manifests now include reviewer entrypoints:
+
+- primary review artifact;
+- period triage table;
+- formula-input cause summary;
+- supporting context summary;
+- transaction diagnostic artifacts;
+- finding-level audit trail.
+
+The manifest also records the comparison YAML path when the bundle writer knows
+it. This keeps generated bundles closer to a review evidence pack: the README is
+for humans, while `manifest.json` gives automation and handoff tooling a stable
+artifact map.
+
+Next hardening steps:
+
+- validate that manifest entrypoints point to declared artifacts;
+- include extract-contract summary metadata when a comparison YAML has
+  `extract_contract.path`;
+- include observed transaction-code and unresolved-semantics summary counts;
+- keep entrypoints stable even when optional workbook or reconstruction
+  diagnostics are included.
+
+#### Phase 9B: Site Extract Readiness
+
+Status: complete for the current ambiguous-flow onboarding surface.
+
+Site-specific extract contracts should become easier to adopt without weakening
+the Axys ambiguous-flow guardrail.
+
+Near-term work:
+
+- improve `validate_config` messages for missing transaction context columns;
+- add a concise operator-facing checklist for IMEX context, REP/report
+  semantics, and code-only failure modes;
+- keep `li`, `lo`, `dp`, and `wd` hard-fail behavior tied to the extract
+  contract instead of to transaction code alone;
+- prefer REP/report or local-discovery examples when IMEX cannot expose enough
+  context.
+
+#### Phase 9C: Test-Only Semantics Expansion
+
+Status: complete for the current ambiguous-flow fixture expansion.
+
+The next scenario expansion should stay test-only unless a case adds a clear
+reviewer story to the packaged demo.
+
+Priority examples:
+
+- more `li`/`lo` external and neutral variants;
+- additional `dp`/`wd` fee, sweep, transfer, and external-flow variants;
+- uppercase correction, cancellation, and reversal-like rows;
+- synthetic corporate-action examples that prove expected review-only or
+  blocked-classification behavior.
+
+Evidence-blocked families such as `ai`, `pa`, `sa`, `pd`, `ss`, `cs`, `rc`,
+mergers, spin-offs, and ticker changes should remain backlog until source
+context identifies the Modified Dietz formula role or confirms that the row is
+review-only evidence.
+
+#### Phase 9D: Manifest Validation And Extract Context Summary
+
+Status: complete for the current manifest contract.
+
+Report-bundle validation now checks that `review_entrypoints` values point to
+declared bundle artifacts. This keeps the machine-readable navigation contract
+from drifting away from the files in the handoff bundle.
+
+Report-bundle manifests now also include:
+
+- source context with the comparison YAML path;
+- extract-contract path, ambiguous-flow enforcement status, and required
+  transaction context columns when a comparison YAML is available;
+- transaction-semantics summary fields for observed transaction codes, unknown
+  category counts, and ambiguous-context blocked counts.
+
+Next hardening steps:
+
+- include missing blocking context columns when validation has that information;
+- keep transaction-semantics summary counts aligned with future blocked-run or
+  preflight diagnostics;
+- expose the same extract-contract summary in `validate_config` output when it
+  helps operators fix source files faster.
+
+#### Phase 9E: Bundle Validation Completion
+
+Status: complete for the current manifest schema.
+
+Bundle validation now checks the shape of:
+
+- `source_context`;
+- `source_context.extract_contract`;
+- `transaction_semantics`;
+- `review_entrypoints`, including optional list-valued entrypoints.
+
+This keeps generated evidence packs machine-checkable after handoff, not merely
+present at write time.
+
+#### Phase 9F: Extract Context Operator Readiness
+
+Status: complete for the current CLI and checklist surface.
+
+`validate_config` now prints the required transaction context columns from the
+resolved extract contract. This gives operators the same context-column signal
+that appears in bundle manifests, before they write a report bundle.
+
+Next hardening steps:
+
+- make missing-column error messages group the missing fields by operator task;
+- add a local-contract example with ambiguous-flow enforcement disabled only as
+  an explicit reviewed opt-out fixture;
+- keep the CLI output compact enough for smoke-test and onboarding use.
+
+#### Phase 9G: Shared Transaction Semantics Summary
+
+Status: complete for the current validation and bundle paths.
+
+Transaction semantics summaries now use shared helper logic for bundle manifests
+and `validate_config`. The shared shape covers observed transaction codes,
+codes without YAML rules, unknown category counts, semantics-source counts, and
+ambiguous-context blocked counts.
+
+The bundle manifest uses full transaction files when the comparison YAML path is
+available, and falls back to finding rows only when the writer has no source
+configuration path.
+
+#### Phase 9H: Operator Checklist Docs
+
+Status: complete for the current site-extract onboarding docs.
+
+[`site_extract_readiness_checklist.md`](site_extract_readiness_checklist.md)
+now gives operators a short setup checklist for:
+
+- IMEX extracts with context fields;
+- REP/report semantic fallbacks;
+- expected code-only failure mode;
+- bundle-manifest handoff evidence.
+
+The checklist is linked from the packaged demo source contract and the starter
+site extract-contract template.
+
+#### Phase 9I: Test-Only Ambiguous Flow Matrix
+
+Status: complete for the current `li`/`lo`/`dp`/`wd` matrix.
+
+The test-only `imex_context` site variant now explicitly proves the ambiguous
+Axys flow matrix for `li`, `lo`, `dp`, and `wd`:
+
+- `li` external contribution and neutral transfer;
+- `lo` external withdrawal/deliver-out and neutral transfer;
+- `dp` fee-like performance row and neutral transfer/sweep;
+- `wd` external withdrawal and neutral transfer/sweep.
+
+The demo matrix validator reports this as `Ambiguous flow context variants` so
+coverage is visible from the CLI, not only from unit-test internals.
+
+#### Phase 9J: Code-Only Failure Fixtures
+
+Status: complete for the current code-only failure guard.
+
+The `imex_code_only` fixture remains the explicit failure case for ambiguous
+Axys flow codes without context columns. The demo matrix validator reports this
+as `Code-only failure guard` and expects the loader to fail before broad YAML
+classification can treat `li`, `lo`, `dp`, or `wd` as performance inputs.
+
+#### Phase 9K: Local Opt-Out Boundary
+
+Status: complete for the current reviewed local opt-out fixture.
+
+The `local_opt_out` site variant documents the reviewed local-risk path:
+
+```yaml
+extract_contract:
+  enforce_ambiguous_axys_flows: false
+```
+
+This fixture proves the opt-out is supported without making it the normal
+workflow. The demo matrix validator reports it as `Reviewed local opt-out`.
+
+#### Phase 9L: Demo Matrix Reporting Polish
+
+Status: complete for the current demo matrix output.
+
+The demo matrix validator now reports the semantic coverage families created by
+this phase train:
+
+- ambiguous flow context variants;
+- code-only failure guard;
+- reviewed local opt-out.
+
+This keeps the evidence-pack summary readable as the test-only scenario surface
+expands.
+
+#### Phase 9M: Evidence-Pack Golden Bundle Fixture
+
+Status: complete for the current compact manifest contract.
+
+Report-bundle tests now pin the compact evidence-pack manifest surface:
+
+- top-level manifest keys;
+- `manifest_version`;
+- `source_context`;
+- `source_context.extract_contract`;
+- `transaction_semantics`;
+- `review_entrypoints`;
+- required CSV artifacts and row-count tables.
+
+This is intentionally a contract test, not a large static golden file.
+
+#### Phase 9N: README / CLI Review Flow Tightening
+
+Status: complete for the current review flow.
+
+The bundle README now tells reviewers that `manifest.json` records the artifact
+map, source context, transaction semantics summary, and row-count metadata.
+`validate_config` also names the source-context/transaction-semantics handoff
+surface before report generation, and `validate_demo_matrix` names the
+ambiguous-flow coverage families in its success output.
+
+#### Phase 9O: Bundle Manifest Regression Contract
+
+Status: complete for the current manifest schema.
+
+Bundle validation now checks required top-level manifest keys, manifest version,
+source context shape, transaction semantics shape, review entrypoint references,
+artifact presence, CSV row counts, and optional workbook structure.
+
+Future manifest extensions should either preserve this schema or intentionally
+advance `manifest_version` with matching validation and tests.
+
+#### Phase 9P: Final Phase-9 Consolidation
+
+Status: complete.
+
+Phase 9 is now a release-ready evidence-pack baseline:
+
+- bundle manifests are navigable, validated, and source-aware;
+- site extract readiness is documented for IMEX, REP/report fallback, code-only
+  failure, and reviewed local opt-out paths;
+- ambiguous Axys `li`, `lo`, `dp`, and `wd` semantics have test-only context,
+  failure, and opt-out fixtures;
+- `validate_config` and `validate_demo_matrix` expose the evidence-pack story
+  in CLI output.
+
+Next useful trains should move to a new phase family rather than continuing to
+grow Phase 9 indefinitely.
+
+### Phase 10: Fixed-Income Modified Dietz Boundary
+
+Phase 10 keeps fixed-income work attached to Modified Dietz formula inputs
+instead of drifting into bond accounting.
+
+#### Phase 10A: Fixed-Income Formula Boundary
+
+Status: complete for the current ordinary-interest/accrued boundary.
+
+The supported fixed-income formula inputs are intentionally narrow:
+
+- ordinary `in` interest transaction amounts that are classified as
+  performance income; and
+- configured `holdings.accrued` changes that feed beginning/end market value
+  or security-level performance evidence.
+
+The following remain outside the return-reconstruction layer:
+
+- amortization/accretion engines;
+- bond principal schedule reconstruction;
+- yield calculation;
+- tax-lot accounting.
+
+Those topics may provide supporting evidence in a source extract or reviewer
+report, but they are not prerequisites for calculating Modified Dietz once the
+formula inputs are available.
+
+#### Phase 10B: Test-Only Ordinary Interest + Accrued Audit
+
+Status: complete for packaged demo guardrails.
+
+The packaged demo audit now pins the proved fixed-income story:
+
+- `INCOME0603` remains an ordinary `in` transaction on `TNOTE2Y`;
+- the row resolves as performance income;
+- the packaged snapshots include positive `TNOTE2Y` `holdings.accrued` values;
+- `ai`, `pa`, `sa`, and `pd` do not appear in packaged transaction files.
+
+This proves the current public fixture without adding new synthetic bond
+accounting behavior.
+
+#### Phase 10C: Principal Paydown / Accrued-Interest Backlog Contract
+
+Status: complete for the current code-level boundary.
+
+The transaction boundary helper treats:
+
+- `in` as safe ordinary interest;
+- `ai`, `pa`, `sa`, and `pd` as backlog codes;
+- all other codes as outside this fixed-income boundary helper.
+
+The backlog codes remain `unknown` by code alone. They need source context,
+local mapping, REP/report semantics, and coherent holdings/cash/performance
+evidence before ppar can assign a Modified Dietz role.
+
+#### Phase 10D: Fixed-Income Reviewer Reporting
+
+Status: complete for the current report surface.
+
+Reviewer output should continue to explain fixed-income rows in formula terms:
+
+- ordinary interest is a transaction amount classified as performance income;
+- `holdings.accrued` is valuation/performance evidence when configured;
+- under-evidenced principal-paydown or accrued-interest transaction rows are
+  blocked backlog items, not silently inferred income or flows.
+
+Future reporting polish can group these rows more clearly, but it should not
+change the formula boundary without new source evidence.
+
+### Phase 11: Test-Only Transaction Semantics Expansion
+
+Phase 11 expands the test-only transaction-semantics surface without adding new
+packaged demo accounting stories.
+
+#### Phase 11A: Reversal / Cancellation Boundary
+
+Status: complete for the current review-only fixture.
+
+The `review_only_actions` site variant carries uppercase correction-like rows
+as source-reviewed neutral evidence:
+
+- `CXL` stays transfer-neutral;
+- `REV` stays transfer-neutral;
+- both rows use source semantics, not broad transaction-code inference.
+
+This proves correction/cancellation/reversal-like rows can be loaded for review
+without treating an unlinked uppercase row as a new economic event.
+
+#### Phase 11B: Expanded `dp` / `wd` Context Matrix
+
+Status: complete for the current site-variant matrix.
+
+The `imex_context` site variant remains the test-only home for `dp` and `wd`
+context expansion:
+
+- fee-like `dp` is performance-impacting only when special-security context
+  proves the fee role;
+- sweep-like `dp` stays neutral transfer evidence;
+- external `wd` requires cash plus external-party context;
+- sweep-like `wd` stays neutral transfer evidence.
+
+The demo matrix validator reports these rows as ambiguous-flow context variants.
+
+#### Phase 11C: Synthetic Corporate-Action Quarantine
+
+Status: complete for the current review-only fixture.
+
+The same `review_only_actions` fixture includes a synthetic `;` marker as a
+neutral corporate-action row. This is deliberately test-only. It proves ppar can
+carry corporate-action evidence without turning it into a Modified Dietz formula
+input or claiming packaged split support.
+
+Real-world splits, mergers, spin-offs, ticker changes, and return-of-capital
+examples remain backlog until source evidence identifies their formula role or
+confirms they are review-only evidence.
+
+#### Phase 11D: Demo Matrix + Roadmap Reporting
+
+Status: complete for the current validator/reporting surface.
+
+The demo matrix validator now reports review-only action quarantine alongside
+ambiguous-flow context variants, the code-only failure guard, and reviewed
+local opt-out coverage. This keeps test-only semantic expansion visible without
+changing the packaged demo promise.
+
+### Phase 12: Return-of-Capital And Short-Side Backlog Gates
+
+Phase 12 sharpens high-risk backlog boundaries without implementing return of
+capital, principal-paydown, short-sale, or cover-short accounting.
+
+#### Phase 12A: Return-of-Capital Policy Boundary
+
+Status: complete for the current backlog contract.
+
+`rc` remains a capital-return policy gate. A site must provide security
+identity, amount sign, cost-basis or report treatment, and local mapping or
+REP/report semantics before ppar can choose among:
+
+- performance income;
+- corporate-action evidence;
+- review-only evidence.
+
+Code-only `rc` rows stay `unknown`; they are not silently treated as income,
+external flows, or corporate actions.
+
+#### Phase 12B: Principal / Capital Return Vocabulary Alignment
+
+Status: complete for the current matrix and helper vocabulary.
+
+`pd` remains aligned with the capital-return gate even though it also belongs
+to the fixed-income backlog. Principal paydown needs bond security type,
+principal-paydown context, cash movement, principal exposure or quantity
+change, and local mapping or REP/report semantics before it can be classified.
+
+This keeps "return of capital," "principal paydown," and "corporate action" as
+separate reviewer decisions rather than interchangeable labels.
+
+#### Phase 12C: Short Sale / Cover Short Evidence Gate
+
+Status: complete for the current backlog contract.
+
+`ss` and `cs` remain short-side evidence gates. They need short security type,
+cash, margin, or short-account symbols, amount and quantity signs, and local
+mapping or REP/report semantics before ppar can classify them.
+
+Code-only short-side rows stay `unknown`; the project does not infer universal
+short-account treatment from the Axys code alone.
+
+#### Phase 12D: Matrix + Validator Reporting
+
+Status: complete for the current validator surface.
+
+The demo matrix validator now reports `Capital-return and short-side backlog
+gates`. The check enforces that `rc`, `pd`, `ss`, and `cs` remain backlog rows
+with no fixture claims until the semantics matrix records enough policy and
+evidence to support classification.
+
+### Phase 13: Matrix Consolidation And Release Readiness
+
+Phase 13 consolidates the transaction-boundary story created by the previous
+phase trains.
+
+#### Phase 13A: Transaction Boundary Registry
+
+Status: complete for the current registry surface.
+
+`ppar.performance_comparison.transaction_boundary_registry` now groups
+transaction codes into reviewer-facing boundary families:
+
+- packaged formula rows;
+- fixed-income safe rows;
+- ambiguous context-required rows;
+- review-only test rows;
+- context-only rows;
+- fixed-income backlog;
+- capital-return backlog;
+- short-side backlog;
+- standalone backlog.
+
+The registry is intentionally descriptive. It does not classify transactions at
+runtime or replace the transaction semantics matrix.
+
+#### Phase 13B: Demo Matrix Validator Cleanup
+
+Status: complete for the current validator organization.
+
+`validate_demo_matrix` groups scenario checks by review purpose: baseline and
+attribution checks, site-variant checks, review-only quarantine checks, and
+backlog-gate checks. This keeps the validator readable as it becomes a coverage
+contract rather than only a demo smoke test.
+
+#### Phase 13C: Roadmap / Matrix Consistency Audit
+
+Status: complete for the current docs and matrix tests.
+
+Tests now cross-check the boundary registry against
+`transaction_semantics_matrix.yaml`, the roadmap phase claims, and the
+site-variant fixtures. The goal is to prevent docs from claiming coverage that
+the matrix or fixtures do not support.
+
+#### Phase 13D: Pre-Commit Release Snapshot
+
+Status: complete for the current release-readiness note.
+
+[Boundary snapshot](performance_comparison_transaction_boundary_snapshot.md)
+summarizes the current covered, context-required, review-only, context-only,
+and backlog-gated transaction families. It is a reviewer aid; the YAML matrix
+remains the implementation contract.
+
+### Phase 14: Final Review Pack And Commit Preparation
+
+Phase 14 turns the accumulated evidence-pack work into a commit-ready review
+surface.
+
+#### Phase 14A: Change Inventory
+
+Status: complete for the current review pack.
+
+[Evidence-pack review](performance_comparison_evidence_pack_review.md)
+summarizes the work by theme: evidence-pack manifests, site extract readiness,
+transaction boundaries, test-only fixtures, validator coverage, and reviewer
+docs.
+
+#### Phase 14B: Public API / Package Surface Check
+
+Status: complete for the current helper modules.
+
+The new boundary helpers are intentionally direct submodule imports, not
+top-level `ppar.performance_comparison` exports. This keeps the public workflow
+API focused while still making the review helpers importable for validators and
+tests.
+
+#### Phase 14C: Diff Hygiene Pass
+
+Status: complete for the current roadmap and docs checks.
+
+The roadmap has one Phase 9-14 section each, followed by the guiding principle
+and transaction backlog. Docs tests pin the review-pack links and public surface
+expectations so stale or duplicated release-prep language is easier to catch.
+
+#### Phase 14D: Commit-Ready Validation
+
+Status: complete for the current validation pass.
+
+Commit preparation should include the demo matrix validator and the full test
+suite. Do not commit generated review work until both pass.
 
 ## Guiding Principle
 

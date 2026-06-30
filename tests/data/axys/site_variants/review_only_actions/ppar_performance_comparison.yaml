@@ -1,0 +1,20 @@
+comparison:
+  name: Axys site variant with review-only action semantics
+
+snapshots:
+  a:
+    label: review_only_actions_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: review_only_actions_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+extract_contract:
+  path: site_extract_contract.yaml
+  enforce_ambiguous_axys_flows: true

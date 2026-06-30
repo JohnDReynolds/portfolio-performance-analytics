@@ -19,6 +19,10 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.config_validation import validate_config
+from ppar.performance_comparison.fixed_income import (
+    FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
+    fixed_income_transaction_boundary,
+)
 from ppar.performance_comparison.transactions import (
     TRANSACTION_CATEGORY_EXTERNAL_FLOW,
     TRANSACTION_CATEGORY_FEE_EXPENSE,
@@ -65,7 +69,6 @@ _DEMO_EXTRACT_AVAILABILITY_PATH = (
 )
 _PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "wd"}
 _TEST_ONLY_TRANSACTION_CODES = {"lo"}
-_FIXED_INCOME_BACKLOG_TRANSACTION_CODES = {"ai", "pa", "sa", "pd"}
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
@@ -398,16 +401,28 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 observed_codes = set(transactions["TRAN"].astype(str))
 
                 self.assertTrue(
-                    observed_codes.isdisjoint(_FIXED_INCOME_BACKLOG_TRANSACTION_CODES)
+                    observed_codes.isdisjoint(FIXED_INCOME_BACKLOG_TRANSACTION_CODES)
                 )
 
                 fixed_income_interest = transactions.loc[
                     transactions["TRANSACTION_ID"] == "INCOME0603"
                 ].iloc[0]
                 self.assertEqual(fixed_income_interest["TRAN"], "in")
+                self.assertEqual(
+                    fixed_income_transaction_boundary(fixed_income_interest["TRAN"]),
+                    "safe_income",
+                )
                 self.assertEqual(fixed_income_interest["SEC"], "TNOTE2Y")
                 self.assertEqual(fixed_income_interest["SEC_TYPE"], "fius")
                 self.assertGreater(fixed_income_interest["AMOUNT"], 0)
+
+                holdings = pd.read_csv(
+                    _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "holdings.csv"
+                )
+                fixed_income_holdings = holdings.loc[holdings["SEC"] == "TNOTE2Y"]
+
+                self.assertFalse(fixed_income_holdings.empty)
+                self.assertGreater(fixed_income_holdings["ACCRUED"].sum(), 0)
 
                 frame = TransactionsLoader(specification).load(snapshot_key)
                 assert frame is not None

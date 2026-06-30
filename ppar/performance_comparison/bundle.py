@@ -13,12 +13,19 @@ import polars as pl
 
 # Project imports
 import ppar.utilities as util
+from ppar.performance_comparison import extract_contract as _pc_extract_contract
 from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison.specification import (
+    PerformanceComparisonSpecification,
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
+from ppar.performance_comparison.transaction_summary import (
+    transaction_rule_codes,
+    transaction_semantics_summary,
+)
+from ppar.performance_comparison.transactions import TransactionsLoader
 
 __all__ = [
     "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
@@ -47,6 +54,20 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "transaction_activity",
     "transaction_matching_diagnostics",
     "top_evidence",
+)
+_REPORT_BUNDLE_MANIFEST_VERSION = 1
+_REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
+    "bundle_type",
+    "manifest_version",
+    "created_at",
+    "title",
+    "options",
+    "source_context",
+    "counts",
+    "transaction_semantics",
+    "artifacts",
+    "tables",
+    "review_entrypoints",
 )
 
 
@@ -144,7 +165,8 @@ def write_report_bundle_readme(
         "## Audit/Export Files",
         "",
         "- `findings.csv`: complete finding-level comparison output.",
-        "- `manifest.json`: machine-readable artifact and row-count metadata.",
+        "- `manifest.json`: machine-readable artifact map, source context, "
+        "transaction semantics summary, and row-count metadata.",
         *_report_bundle_readme_table_lines(tables),
     ]
     output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
@@ -172,6 +194,7 @@ def write_report_bundle_manifest(
     title: str,
     top_evidence_limit: int,
     include_reconstruction_diagnostics: bool = False,
+    comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
 ) -> Path:
@@ -185,6 +208,8 @@ def write_report_bundle_manifest(
         top_evidence_limit: Maximum number of evidence rows shown per period.
         include_reconstruction_diagnostics: Whether interim reconstruction
             diagnostics are included in the bundle.
+        comparison_path: Optional comparison YAML path used to generate the
+            bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
 
@@ -197,6 +222,7 @@ def write_report_bundle_manifest(
         title=title,
         top_evidence_limit=top_evidence_limit,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        comparison_path=comparison_path,
         artifact_paths=artifact_paths,
         tables=tables,
     )
@@ -214,6 +240,7 @@ def report_bundle_manifest(
     title: str,
     top_evidence_limit: int,
     include_reconstruction_diagnostics: bool = False,
+    comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
 ) -> dict[str, object]:
@@ -226,6 +253,8 @@ def report_bundle_manifest(
         top_evidence_limit: Maximum number of evidence rows shown per period.
         include_reconstruction_diagnostics: Whether interim reconstruction
             diagnostics are included in the bundle.
+        comparison_path: Optional comparison YAML path used to generate the
+            bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
 
@@ -235,17 +264,23 @@ def report_bundle_manifest(
     suppressed_count = findings.height - active_findings.height
     return {
         "bundle_type": "performance_comparison_report",
+        "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
         "created_at": dt.datetime.now(dt.UTC).isoformat(),
         "title": title,
         "options": {
             "top_evidence_limit": top_evidence_limit,
             "include_reconstruction_diagnostics": include_reconstruction_diagnostics,
         },
+        "source_context": _report_bundle_source_context(comparison_path),
         "counts": {
             "findings": findings.height,
             "active_findings": active_findings.height,
             "suppressed_findings": suppressed_count,
         },
+        "transaction_semantics": _report_bundle_transaction_semantics(
+            active_findings,
+            comparison_path=comparison_path,
+        ),
         "artifacts": {
             name: path.name
             for name, path in sorted(artifact_paths.items())
@@ -257,7 +292,92 @@ def report_bundle_manifest(
                 for name, table in sorted(tables.items())
             },
         },
+        "review_entrypoints": _report_bundle_review_entrypoints(
+            artifact_paths,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        ),
     }
+
+
+def _report_bundle_source_context(
+    comparison_path: util.PathLike | None,
+) -> dict[str, object]:
+    """Return source metadata that helps reviewers reproduce a bundle."""
+    if comparison_path is None:
+        return {
+            "comparison_path": None,
+            "extract_contract": None,
+        }
+    specification = PerformanceComparisonSpecification(comparison_path)
+    return {
+        "comparison_path": str(comparison_path),
+        "extract_contract": _pc_extract_contract.extract_contract_summary(
+            specification.values,
+            specification_path=specification.path,
+        ),
+    }
+
+
+def _report_bundle_transaction_semantics(
+    active_findings: pl.DataFrame,
+    *,
+    comparison_path: util.PathLike | None,
+) -> dict[str, object]:
+    """Return compact transaction semantics metadata for a report bundle."""
+    if comparison_path is None:
+        return transaction_semantics_summary([active_findings])
+    specification = PerformanceComparisonSpecification(comparison_path)
+    loader = TransactionsLoader(specification)
+    frames = [
+        frame
+        for snapshot_key in ("a", "b")
+        if (frame := loader.load(snapshot_key)) is not None
+    ]
+    return transaction_semantics_summary(
+        frames,
+        rule_codes=transaction_rule_codes(specification.values),
+    )
+
+
+def _report_bundle_review_entrypoints(
+    artifact_paths: Mapping[str, Path],
+    *,
+    include_reconstruction_diagnostics: bool,
+) -> dict[str, object]:
+    """Return the intended first-stop artifacts for reviewer navigation."""
+    artifacts = {name: path.name for name, path in sorted(artifact_paths.items())}
+    transaction_diagnostics = [
+        artifacts[name]
+        for name in (
+            "transaction_activity",
+            "transaction_cross_checks",
+            "flow_cross_check_reconciliation",
+            "transaction_matching_diagnostics",
+        )
+        if name in artifacts
+    ]
+    entrypoints: dict[str, object] = {
+        "primary_review": artifacts.get(
+            _pc_review_model.REVIEW_WORKBOOK_ARTIFACT,
+            artifacts.get("html_report"),
+        ),
+        "period_triage": artifacts.get("needs_review_summary"),
+        "formula_input_causes": artifacts.get("cause_summary"),
+        "supporting_context": artifacts.get("context_evidence_summary"),
+        "transaction_diagnostics": transaction_diagnostics,
+        "audit_trail": artifacts.get("findings"),
+    }
+    if include_reconstruction_diagnostics:
+        entrypoints["return_reconstruction"] = [
+            artifacts[name]
+            for name in (
+                _pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT,
+                _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+                _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+            )
+            if name in artifacts
+        ]
+    return entrypoints
 
 
 def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str]:
@@ -279,9 +399,13 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
         return ["manifest.json is not a JSON object"]
 
     issues: list[str] = []
+    issues.extend(_report_bundle_manifest_shape_issues(manifest))
     artifacts = _manifest_mapping(manifest, "artifacts")
     tables = _manifest_mapping(manifest, "tables")
     issues.extend(_report_bundle_artifact_issues(bundle_path, artifacts))
+    issues.extend(_report_bundle_review_entrypoint_issues(manifest, artifacts))
+    issues.extend(_report_bundle_source_context_issues(manifest))
+    issues.extend(_report_bundle_transaction_semantics_issues(manifest))
     issues.extend(_report_bundle_table_issues(bundle_path, artifacts, tables))
     issues.extend(_report_bundle_workbook_issues(bundle_path, artifacts))
     return issues
@@ -361,6 +485,162 @@ def _report_bundle_artifact_issues(
         if not (bundle_path / artifact_file).is_file():
             issues.append(f"artifact file {artifact_file!r} is missing")
     return issues
+
+
+def _report_bundle_manifest_shape_issues(
+    manifest: Mapping[str, object],
+) -> list[str]:
+    """Return top-level manifest schema issues."""
+    issues: list[str] = []
+    for key in _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS:
+        if key not in manifest:
+            issues.append(f"manifest top-level key {key!r} is missing")
+    if manifest.get("bundle_type") != "performance_comparison_report":
+        issues.append("manifest bundle_type is malformed")
+    version = manifest.get("manifest_version")
+    if (
+        not isinstance(version, int)
+        or isinstance(version, bool)
+        or version != _REPORT_BUNDLE_MANIFEST_VERSION
+    ):
+        issues.append("manifest manifest_version is unsupported")
+    if not isinstance(manifest.get("created_at"), str):
+        issues.append("manifest created_at is malformed")
+    if not isinstance(manifest.get("title"), str):
+        issues.append("manifest title is malformed")
+    if not isinstance(manifest.get("options"), dict):
+        issues.append("manifest options is missing or malformed")
+    if not isinstance(manifest.get("counts"), dict):
+        issues.append("manifest counts is missing or malformed")
+    return issues
+
+
+def _report_bundle_review_entrypoint_issues(
+    manifest: Mapping[str, object],
+    artifacts: Mapping[str, object],
+) -> list[str]:
+    """Return review-entrypoint references that do not map to artifacts."""
+    declared_artifacts = {
+        artifact_file
+        for artifact_file in artifacts.values()
+        if isinstance(artifact_file, str) and artifact_file
+    }
+    entrypoints = _manifest_mapping(manifest, "review_entrypoints")
+    issues: list[str] = []
+    for entrypoint_name, entrypoint_value in entrypoints.items():
+        issues.extend(
+            _review_entrypoint_value_issues(
+                entrypoint_name,
+                entrypoint_value,
+                declared_artifacts,
+            )
+        )
+    return issues
+
+
+def _report_bundle_source_context_issues(
+    manifest: Mapping[str, object],
+) -> list[str]:
+    """Return malformed source-context metadata issues."""
+    source_context = manifest.get("source_context")
+    if not isinstance(source_context, dict):
+        return ["manifest source_context is missing or malformed"]
+    issues: list[str] = []
+    if "comparison_path" not in source_context:
+        issues.append("manifest source_context.comparison_path is missing")
+    extract_contract = source_context.get("extract_contract")
+    if extract_contract is None:
+        return issues
+    if not isinstance(extract_contract, dict):
+        return ["manifest source_context.extract_contract is malformed"]
+    issues.extend(_extract_contract_summary_issues(extract_contract))
+    return issues
+
+
+def _extract_contract_summary_issues(
+    extract_contract: Mapping[str, object],
+) -> list[str]:
+    """Return malformed extract-contract summary issues."""
+    issues: list[str] = []
+    if not isinstance(extract_contract.get("path"), str):
+        issues.append("manifest extract_contract.path is missing or malformed")
+    enforce_value = extract_contract.get("enforce_ambiguous_axys_flows")
+    if not isinstance(enforce_value, bool):
+        issues.append(
+            "manifest extract_contract.enforce_ambiguous_axys_flows is malformed"
+        )
+    context_columns = extract_contract.get("required_transaction_context_columns")
+    if not _is_string_list(context_columns):
+        issues.append(
+            "manifest extract_contract.required_transaction_context_columns "
+            "is malformed"
+        )
+    return issues
+
+
+def _report_bundle_transaction_semantics_issues(
+    manifest: Mapping[str, object],
+) -> list[str]:
+    """Return malformed transaction-semantics summary issues."""
+    semantics = manifest.get("transaction_semantics")
+    if not isinstance(semantics, dict):
+        return ["manifest transaction_semantics is missing or malformed"]
+    issues: list[str] = []
+    for key in ("observed_codes", "codes_without_yaml_rules"):
+        if not _is_string_list(semantics.get(key)):
+            issues.append(f"manifest transaction_semantics.{key} is malformed")
+    for key in ("unknown_category_count", "ambiguous_context_blocked_count"):
+        value = semantics.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            issues.append(f"manifest transaction_semantics.{key} is malformed")
+    counts = semantics.get("semantics_source_counts")
+    if not isinstance(counts, dict) or not all(
+        isinstance(key, str)
+        and isinstance(value, int)
+        and not isinstance(value, bool)
+        and value >= 0
+        for key, value in counts.items()
+    ):
+        issues.append(
+            "manifest transaction_semantics.semantics_source_counts is malformed"
+        )
+    return issues
+
+
+def _is_string_list(value: object) -> bool:
+    """Return whether a value is a list of strings."""
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def _review_entrypoint_value_issues(
+    entrypoint_name: str,
+    entrypoint_value: object,
+    declared_artifacts: set[str],
+) -> list[str]:
+    """Return issues for one manifest review-entrypoint value."""
+    if entrypoint_value is None:
+        return []
+    if isinstance(entrypoint_value, str):
+        if entrypoint_value in declared_artifacts:
+            return []
+        return [
+            (
+                f"manifest review entrypoint {entrypoint_name!r} points to "
+                f"undeclared artifact {entrypoint_value!r}"
+            )
+        ]
+    if isinstance(entrypoint_value, list):
+        issues: list[str] = []
+        for item in entrypoint_value:
+            issues.extend(
+                _review_entrypoint_value_issues(
+                    entrypoint_name,
+                    item,
+                    declared_artifacts,
+                )
+            )
+        return issues
+    return [f"manifest review entrypoint {entrypoint_name!r} is malformed"]
 
 
 def _report_bundle_table_issues(

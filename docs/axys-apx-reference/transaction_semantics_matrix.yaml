@@ -66,7 +66,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending short-account fixture evidence for short security type, collateral/cash treatment, and amount/quantity signs.
+    coverage_notes: "Backlog gate: short-side evidence required before classification. Needs short security type, cash/margin/short-account symbols, amount and quantity signs, and local mapping or REP/report semantics."
   cs:
     observed_meaning: Cover short.
     ppar_categories: [buy, unknown_pending_review]
@@ -77,7 +77,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending cover-short fixture evidence; uppercase CS cancellation evidence must stay separate from economic cover-short treatment.
+    coverage_notes: "Backlog gate: short-side evidence required before classification. Needs short security type, cash/margin/short-account symbols, amount and quantity signs, and local mapping or REP/report semantics; uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
   dv:
     observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
     ppar_categories: [income]
@@ -143,7 +143,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending explicit return-of-capital policy for performance income, corporate-action evidence, or review-only treatment.
+    coverage_notes: "Backlog gate: capital-return policy required before classification. Needs security identity, amount sign, cost-basis or report treatment, and local mapping or REP/report semantics before choosing performance income, corporate-action evidence, or review-only evidence."
   pd:
     observed_meaning: Principal paydown or bond return-of-capital case.
     ppar_categories: [income, corporate_action]
@@ -154,7 +154,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
-    coverage_notes: Backlog pending principal-paydown fixture that proves bond context, cash movement, principal exposure or quantity change, and income versus corporate-action/review-only treatment.
+    coverage_notes: "Backlog gate: capital-return policy required before classification. Needs bond security type, principal-paydown context, cash movement, principal exposure or quantity change, and local mapping or REP/report semantics before choosing income, corporate-action evidence, or review-only evidence."
   li:
     observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
     ppar_categories: [external_flow, transfer]
@@ -207,9 +207,9 @@ rows:
     required_evidence: [corporate_action_or_report_context, split_details, local_mapping]
     imex_confidence: low
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: Backlog pending real-world corporate-action or split evidence; user-facing demo must not use fictional future splits.
+    coverage_status: covered_site_variant
+    fixtures: [site_variants/review_only_actions]
+    coverage_notes: Test-only review-only action fixture proves synthetic corporate-action markers can stay neutral; real-world split support remains backlog for packaged demos.
   epus:
     observed_meaning: Management fee or fee-related token in conversion evidence.
     ppar_categories: [fee_expense]
