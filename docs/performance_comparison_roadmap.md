@@ -733,6 +733,9 @@ Ongoing coverage requirement:
   machine-readable coverage contract. Coverage is complete only when every row
   has a non-backlog fixture or an explicit documented reason to remain
   review-only/unknown.
+- Matrix rows and pair patterns now include machine-checked `coverage_notes`, so
+  each covered, context-only, partial, or backlog entry carries a rationale
+  instead of relying only on table prose.
 - External-flow coverage must include both positive and negative capital-flow
   cases, internal transfers, cash sweeps, fee/expense rows, income rows,
   corporate-action rows, and correction/cancellation/reversal-like rows when

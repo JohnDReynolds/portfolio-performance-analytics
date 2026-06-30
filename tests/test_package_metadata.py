@@ -318,11 +318,36 @@ class TestPackageMetadata(unittest.TestCase):
             self.assertIn("ppar_categories", metadata)
             self.assertIn("coverage_status", metadata)
             self.assertIn("fixtures", metadata)
+            self.assertIn("coverage_notes", metadata)
 
         self.assertEqual(
             set(matrix_yaml["ambiguous_external_flow_codes"]),
             {"li", "lo", "dp", "wd"},
         )
+
+    def test_transaction_semantics_matrix_rows_have_coverage_rationale(self) -> None:
+        """Each transaction matrix row explains its coverage or backlog status."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        coverage_statuses = set(matrix_yaml["coverage_statuses"])
+
+        for section_name in ("rows", "pair_patterns"):
+            for code, metadata in matrix_yaml[section_name].items():
+                with self.subTest(section=section_name, code=code):
+                    coverage_status = metadata["coverage_status"]
+                    fixtures = metadata.get("fixtures", [])
+                    coverage_notes = str(metadata.get("coverage_notes", "")).strip()
+
+                    self.assertIn(coverage_status, coverage_statuses)
+                    self.assertTrue(coverage_notes)
+                    if coverage_status == "backlog":
+                        self.assertEqual(fixtures, [], code)
+                        self.assertIn("Backlog", coverage_notes)
+                    else:
+                        if section_name == "rows":
+                            self.assertTrue(fixtures, code)
+                        self.assertNotIn("Backlog pending", coverage_notes)
 
     def test_demo_transaction_rules_are_known_to_semantics_matrix(self) -> None:
         """Packaged demo transaction rules cannot introduce undocumented codes."""

@@ -44,6 +44,7 @@ rows:
     rep_confidence: medium
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes normal buy rows; reinvestment-pair coverage remains backlog under pair_patterns.dv_by_reinvestment.
   sl:
     observed_meaning: Sell; positive closure leg.
     ppar_categories: [sell]
@@ -54,6 +55,7 @@ rows:
     rep_confidence: medium
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes normal sell rows with cash proceeds and security quantity changes.
   ss:
     observed_meaning: Short sale.
     ppar_categories: [sell, unknown_pending_review]
@@ -64,6 +66,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending short-account fixture evidence for short security type, collateral/cash treatment, and amount/quantity signs.
   cs:
     observed_meaning: Cover short.
     ppar_categories: [buy, unknown_pending_review]
@@ -74,6 +77,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending cover-short fixture evidence; uppercase CS cancellation evidence must stay separate from economic cover-short treatment.
   dv:
     observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
     ppar_categories: [income]
@@ -84,6 +88,7 @@ rows:
     rep_confidence: medium
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes ordinary dividend income rows; paired dividend-reinvestment coverage remains backlog under pair_patterns.dv_by_reinvestment.
   in:
     observed_meaning: Income, interest, cash-security dividend/income.
     ppar_categories: [income]
@@ -94,6 +99,7 @@ rows:
     rep_confidence: medium
     coverage_status: covered_packaged_demo
     fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes fixed-income/cash income rows used as performance income.
   ai:
     observed_meaning: Negative interest, accrued interest, margin interest.
     ppar_categories: [fee_expense, income]
@@ -104,6 +110,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending fixed-income, margin, or accrual context that distinguishes income from fee-expense treatment.
   sa:
     observed_meaning: Sell accrued interest.
     ppar_categories: [income, fee_expense]
@@ -114,6 +121,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending fixed-income/accrual fixture and local mapping for sell-accrued-interest behavior.
   pa:
     observed_meaning: Purchase accrued interest or accrued-interest-related buy-side case.
     ppar_categories: [fee_expense, income]
@@ -124,6 +132,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending fixed-income/accrual fixture and local mapping for purchase-accrued-interest behavior.
   rc:
     observed_meaning: Return of capital.
     ppar_categories: [income, corporate_action]
@@ -134,6 +143,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending explicit return-of-capital policy for performance income, corporate-action evidence, or review-only treatment.
   pd:
     observed_meaning: Principal paydown or bond return-of-capital case.
     ppar_categories: [income, corporate_action]
@@ -144,6 +154,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending principal-paydown fixture with bond context, principal exposure change, cash movement, and quantity policy.
   li:
     observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
     ppar_categories: [external_flow, transfer]
@@ -154,6 +165,7 @@ rows:
     rep_confidence: medium_high
     coverage_status: covered_site_variant
     fixtures: [site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Site-variant fixtures cover external-party inflow and internal-transfer cases; packaged demo inclusion awaits a realistic user-facing contribution story.
   lo:
     observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
     ppar_categories: [external_flow, transfer]
@@ -164,6 +176,7 @@ rows:
     rep_confidence: medium_high
     coverage_status: covered_site_variant
     fixtures: [site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Site-variant fixtures cover external-party outflow and internal-transfer cases; packaged demo inclusion awaits a realistic user-facing transfer story.
   dp:
     observed_meaning: Cash-security buy, tax, fee, recordkeeping, investment expense, service charge, debit-like case.
     ppar_categories: [fee_expense, transfer, unknown_pending_review]
@@ -174,6 +187,7 @@ rows:
     rep_confidence: medium_high
     coverage_status: covered_site_variant
     fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers fee-like dp; site-variant fixtures cover fee and transfer/sweep behavior plus REP/source semantics.
   wd:
     observed_meaning: Withdrawal or cash-security sell case.
     ppar_categories: [external_flow, transfer, sell]
@@ -184,6 +198,7 @@ rows:
     rep_confidence: medium_high
     coverage_status: covered_site_variant
     fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers external cash withdrawal; site-variant fixtures cover external and transfer/sweep behavior plus REP/source semantics.
   ";":
     observed_meaning: Journal, Other, Split marker in integration tables.
     ppar_categories: [corporate_action, unknown_pending_review]
@@ -194,6 +209,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending real-world corporate-action or split evidence; user-facing demo must not use fictional future splits.
   epus:
     observed_meaning: Management fee or fee-related token in conversion evidence.
     ppar_categories: [fee_expense]
@@ -204,6 +220,7 @@ rows:
     rep_confidence: medium
     coverage_status: backlog
     fixtures: []
+    coverage_notes: Backlog pending evidence that epus appears as a standalone transaction code rather than a fee token, label, or special-security context.
   exus:
     observed_meaning: Expense or fee-related token in conversion and special-security evidence.
     ppar_categories: [fee_expense]
@@ -214,28 +231,35 @@ rows:
     rep_confidence: medium
     coverage_status: covered_context_only
     fixtures: [packaged_demo, site_variants/imex_context]
+    coverage_notes: Covered only as special-security context for dp fee examples; standalone transaction-code treatment remains unproven.
 pair_patterns:
   dp_wd:
     codes: [dp, wd]
     ppar_treatment: transfer_neutral_when_context_proves_internal_sweep
     coverage_status: covered_site_variant
+    coverage_notes: IMEX-context fixture covers sweep/transfer rows; broader pairing/reversal matching remains future work.
   li_lo:
     codes: [li, lo]
     ppar_treatment: transfer_neutral_unless_external_party_context_proves_external_flow
     coverage_status: covered_site_variant
+    coverage_notes: IMEX-context fixture covers external-party and internal-account cases for both codes.
   ti_to:
     codes: [ti, to]
     ppar_treatment: unknown_pending_review
     coverage_status: backlog
+    coverage_notes: Backlog pending transaction-code evidence and local mapping for this cash-journal pair family.
   si_so:
     codes: [si, so]
     ppar_treatment: unknown_pending_review
     coverage_status: backlog
+    coverage_notes: Backlog pending transaction-code evidence and local mapping for this cash-journal pair family.
   tr_ts:
     codes: [tr, ts]
     ppar_treatment: unknown_pending_review
     coverage_status: backlog
+    coverage_notes: Backlog pending transaction-code evidence and local mapping for this cash-journal pair family.
   dv_by_reinvestment:
     codes: [dv, by]
     ppar_treatment: performance_pair_avoid_external_flow_double_count
     coverage_status: backlog
+    coverage_notes: Backlog pending reinvestment-pair fixture with dividend-wash context, matched dates, security, and amounts.

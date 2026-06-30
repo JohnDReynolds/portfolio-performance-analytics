@@ -47,6 +47,7 @@ Important boundary rules:
 | `IMEX confidence` | Confidence that a practical IMEX-style extract can provide enough fields for this treatment. |
 | `REP confidence` | Confidence that a REP/report/custom-report extract can provide enough fields for this treatment. |
 | `Coverage status` | Current ppar demo/test status. |
+| `coverage_notes` | Machine-readable YAML rationale explaining the fixture coverage, backlog boundary, or context-only treatment. |
 
 ## Core Observed Code Matrix
 
