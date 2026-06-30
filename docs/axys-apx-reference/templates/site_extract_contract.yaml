@@ -1,0 +1,29 @@
+# Starter site extract contract for Axys/APX performance-comparison inputs.
+#
+# Copy this file beside a comparison YAML, trim the columns to fields your
+# local IMEX/REP extract actually exposes, and reference it with:
+#
+# extract_contract:
+#   path: site_extract_contract.yaml
+#   enforce_ambiguous_axys_flows: true
+#
+# Every listed transaction column must use a supported ppar transaction alias
+# and must define both boolean guard flags below.
+datasets:
+  transactions.csv:
+    columns:
+      SEC_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SRC_DEST_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SRC_DEST_SYMBOL:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SPECIAL_SEC_TYPE:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
+      SPECIAL_SEC_SYMBOL:
+        requires_context_for_semantics: true
+        blocking_if_missing: true
