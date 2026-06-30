@@ -90,7 +90,8 @@ Use this order before assigning `external_flow`:
 1. Detect corrections, cancellations, deletes, and reversal-like rows.
 2. Apply explicit site mapping and reviewed REP/report semantics.
 3. For IMEX rows, require the context fields declared in the site extract
-   contract before classifying ambiguous codes.
+   contract before classifying ambiguous codes. Context-field presence alone is
+   not enough; the row values must match a reviewed conditional rule.
 4. Treat `li` and `lo` as external flows only when source/destination and
    security context prove an external party movement.
 5. Treat `wd` as an external withdrawal only when cash security and

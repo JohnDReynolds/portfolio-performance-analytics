@@ -116,6 +116,11 @@ classification. A richer REP/report extract, custom report, or local-discovery
 source is the preferred next design option when IMEX cannot provide that
 context.
 
+Having the context columns is necessary but not sufficient. The row values must
+match a reviewed conditional rule, or the source must provide reviewed
+category/sign semantics, before ppar treats an ambiguous Axys code as an
+external flow, transfer, fee/expense, or performance transaction.
+
 The default runtime guard uses
 `ppar/demos/data/axys/demo_extract_availability.yaml`. A site comparison YAML
 can point to a local contract when its validated IMEX/REP extract layout differs:
@@ -148,8 +153,8 @@ For a real Axys site, start by validating which extract shape is available:
 
 | Site extract shape | Contract/test expectation |
 | --- | --- |
-| IMEX transaction rows include source/destination and special-security context. | Keep ambiguous-flow enforcement on and classify `li`, `lo`, `dp`, and `wd` with conditional YAML rules that inspect those fields. |
-| REP/report or custom-report rows include reviewed category and sign semantics. | Keep ambiguous-flow enforcement on and mark the reviewed semantic fields as the blocking context in the site contract. |
+| IMEX transaction rows include source/destination and special-security context. | Keep ambiguous-flow enforcement on and classify `li`, `lo`, `dp`, and `wd` only with matching conditional YAML rules that inspect those fields. |
+| REP/report or custom-report rows include reviewed category and sign semantics. | Keep ambiguous-flow enforcement on and mark the reviewed semantic fields as the blocking context in the site contract; source semantics can mark ambiguous codes as external, neutral, or performance-affecting. |
 | IMEX rows expose only transaction code, amount, date, portfolio, and security. | Treat the extract as insufficient for ambiguous external-flow classification; use REP/report/custom-report evidence before running comparison. |
 
 The small fixtures in `tests/data/axys/site_variants/` pin these shapes. New

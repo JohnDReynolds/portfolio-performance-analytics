@@ -826,6 +826,110 @@ class TestTransactionsLoader(unittest.TestCase):
             ],
         )
 
+    def test_source_semantics_can_classify_ambiguous_codes_as_neutral(self) -> None:
+        """REP/report semantics can mark ambiguous Axys codes as non-external."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(
+                directory,
+                [
+                    "TRANSACTION_CATEGORY",
+                    "CASH_FLOW_SIGN",
+                    "PERFORMANCE_FLOW_SIGN",
+                ],
+            )
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
+            }
+            rows = {
+                "PORT": ["P1", "P1", "P1", "P1"],
+                "SEC": ["CASH_USD", "CASH_USD", "CASH_USD", "CASH_USD"],
+                "TRANSACTION_DATE": ["2025-01-31"] * 4,
+                "TRAN": ["li", "lo", "dp", "wd"],
+                "TRANSACTION_CATEGORY": [
+                    "transfer",
+                    "transfer",
+                    "fee_expense",
+                    "transfer",
+                ],
+                "CASH_FLOW_SIGN": ["none", "none", "negative", "none"],
+                "PERFORMANCE_FLOW_SIGN": [
+                    "neutral",
+                    "neutral",
+                    "performance",
+                    "neutral",
+                ],
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(rows).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+
+            self.assertEqual(
+                frame.select(
+                    pc_cols.TRANSACTION_CODE,
+                    pc_cols.TRANSACTION_CATEGORY,
+                    pc_cols.CASH_FLOW_SIGN,
+                    pc_cols.PERFORMANCE_FLOW_SIGN,
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+                ).to_dicts(),
+                [
+                    {
+                        pc_cols.TRANSACTION_CODE: "li",
+                        pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_TRANSFER,
+                        pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NONE,
+                        pc_cols.PERFORMANCE_FLOW_SIGN: (
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
+                        ),
+                        pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                            TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                        ),
+                    },
+                    {
+                        pc_cols.TRANSACTION_CODE: "lo",
+                        pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_TRANSFER,
+                        pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NONE,
+                        pc_cols.PERFORMANCE_FLOW_SIGN: (
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
+                        ),
+                        pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                            TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                        ),
+                    },
+                    {
+                        pc_cols.TRANSACTION_CODE: "dp",
+                        pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                        pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                        pc_cols.PERFORMANCE_FLOW_SIGN: (
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                        ),
+                        pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                            TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                        ),
+                    },
+                    {
+                        pc_cols.TRANSACTION_CODE: "wd",
+                        pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_TRANSFER,
+                        pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NONE,
+                        pc_cols.PERFORMANCE_FLOW_SIGN: (
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
+                        ),
+                        pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                            TRANSACTION_SEMANTICS_SOURCE_SOURCE
+                        ),
+                    },
+                ],
+            )
+
     def test_site_variant_code_only_imex_ambiguous_codes_fail_fast(self) -> None:
         """Code-only IMEX fixtures cannot classify ambiguous external flows."""
         specification = PerformanceComparisonSpecification(
@@ -883,6 +987,77 @@ class TestTransactionsLoader(unittest.TestCase):
             message = str(context.exception)
             self.assertIn("IMEX context fields", message)
             self.assertIn("REP/report extract", message)
+
+    def test_ambiguous_axys_code_with_nonmatching_context_raises_error(self) -> None:
+        """Context columns must match a reviewed rule before semantics are usable."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(
+                directory,
+                [
+                    "SRC_DEST_TYPE",
+                    "SRC_DEST_SYMBOL",
+                    "SPECIAL_SEC_TYPE",
+                    "SPECIAL_SEC_SYMBOL",
+                ],
+            )
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
+            }
+            configuration["transaction_rules"] = {
+                "dp": [
+                    {
+                        "when": {
+                            "special_security_type": "exus",
+                            "special_security_symbol": "custfee",
+                        },
+                        "transaction_category": "fee_expense",
+                        "cash_flow_sign": "negative",
+                        "performance_flow_sign": "performance",
+                    }
+                ],
+                "wd": [
+                    {
+                        "when": {
+                            "security_id": "CASH_USD",
+                            "source_destination_type": "$pty",
+                            "source_destination_symbol": "$cash",
+                        },
+                        "transaction_category": "external_flow",
+                        "cash_flow_sign": "negative",
+                        "performance_flow_sign": "external",
+                    }
+                ],
+            }
+            rows = {
+                "PORT": ["P1", "P1"],
+                "SEC": ["CASH_USD", "CASH_USD"],
+                "TRANSACTION_DATE": ["2025-01-31", "2025-01-31"],
+                "TRAN": ["dp", "wd"],
+                "SRC_DEST_TYPE": ["$pty", "$vendor"],
+                "SRC_DEST_SYMBOL": ["$cash", "UNKNOWN"],
+                "SPECIAL_SEC_TYPE": ["exus", ""],
+                "SPECIAL_SEC_SYMBOL": ["notcustfee", ""],
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(rows).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                TransactionsLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertIn("unknown transaction codes or categories", message)
+            self.assertIn("transaction_code=dp", message)
+            self.assertIn("source_destination_type=$vendor", message)
+            self.assertIn("special_security_symbol=notcustfee", message)
 
     def test_ambiguous_axys_code_with_unconditional_rule_requires_context(self) -> None:
         """Ambiguous Axys codes cannot be classified by broad rules without context."""
@@ -965,6 +1140,61 @@ class TestTransactionsLoader(unittest.TestCase):
             self.assertEqual(
                 row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
                 TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+            )
+
+    def test_context_rule_fills_only_missing_source_semantics(self) -> None:
+        """Recognized source fields and matching context rules combine as mixed."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            _write_extract_contract(directory, ["SRC_DEST_TYPE"])
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            configuration["extract_contract"] = {
+                "path": "site_extract_contract.yaml",
+                "enforce_ambiguous_axys_flows": True,
+            }
+            configuration["transaction_rules"] = {
+                "li": {
+                    "when": {"source_destination_type": "$pty"},
+                    "transaction_category": "external_flow",
+                    "cash_flow_sign": "positive",
+                    "performance_flow_sign": "external",
+                }
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["CASH_USD"],
+                        "TRANSACTION_DATE": ["2025-01-31"],
+                        "TRAN": ["li"],
+                        "SRC_DEST_TYPE": [" $PTY "],
+                        "TRANSACTION_CATEGORY": ["cash deposit"],
+                        "CASH_FLOW_SIGN": ["cash in"],
+                    }
+                ).write_csv(directory / snapshot_name / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = TransactionsLoader(specification).load("a")
+            assert frame is not None
+
+            row = frame.row(0, named=True)
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_CATEGORY],
+                TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+            )
+            self.assertEqual(row[pc_cols.CASH_FLOW_SIGN], TRANSACTION_CASH_FLOW_SIGN_POSITIVE)
+            self.assertEqual(
+                row[pc_cols.PERFORMANCE_FLOW_SIGN],
+                TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+            )
+            self.assertEqual(
+                row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+                TRANSACTION_SEMANTICS_SOURCE_MIXED,
             )
 
     def test_validate_config_rejects_extract_contract_without_transactions(self) -> None:
