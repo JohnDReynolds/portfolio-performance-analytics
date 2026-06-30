@@ -30,10 +30,10 @@ _MINIMUM_COLUMN_WIDTHS = {
     _pc_findings.DELTA_B_MINUS_A: 16,
     "change": 16,
 }
-_DEFAULT_COLUMN_WIDTH_CAP = 18
+_DEFAULT_COLUMN_WIDTH_CAP = 12
 _DATE_COLUMN_WIDTH_CAP = 10
-_TEXT_COLUMN_WIDTH_CAP = 30
-_KEY_COLUMN_WIDTH_CAP = 28
+_TEXT_COLUMN_WIDTH_CAP = 24
+_KEY_COLUMN_WIDTH_CAP = 22
 _COLUMN_WIDTH_CAPS = {
     _pc_findings.FROM_DATE: _DATE_COLUMN_WIDTH_CAP,
     _pc_findings.THRU_DATE: _DATE_COLUMN_WIDTH_CAP,
@@ -360,14 +360,10 @@ def _format_workbook_columns(
                 (int, float),
             ):
                 cell.number_format = WORKBOOK_NUMBER_FORMAT
-        if max_width == 0:
-            max_width = min(len(header), 10)
-        max_width = min(max_width, _workbook_column_width_cap(column_name))
-        max_width = max(max_width, _longest_header_word_width(header))
-        max_width = max(max_width, _MINIMUM_COLUMN_WIDTHS.get(column_name, 0))
-        worksheet.column_dimensions[column_letter].width = min(
-            max(max_width + 2, 8),
-            _workbook_column_width_cap(column_name) + 2,
+        worksheet.column_dimensions[column_letter].width = _workbook_column_width(
+            column_name,
+            header,
+            max_width,
         )
 
 
@@ -425,6 +421,23 @@ def _is_workbook_numeric_column(column_name: str) -> bool:
 def _workbook_column_width_cap(column_name: str) -> int:
     """Return the preferred reviewer-facing width cap for a workbook column."""
     return _COLUMN_WIDTH_CAPS.get(column_name, _DEFAULT_COLUMN_WIDTH_CAP)
+
+
+def _workbook_column_width(
+    column_name: str,
+    header: str,
+    content_width: int,
+) -> int:
+    """Return a compact width that still avoids splitting header words."""
+    cap = _workbook_column_width_cap(column_name)
+    if content_width == 0:
+        content_width = min(len(header), cap)
+    safe_width = max(
+        min(content_width, cap),
+        _longest_header_word_width(header),
+        _MINIMUM_COLUMN_WIDTHS.get(column_name, 0),
+    )
+    return min(max(safe_width + 2, 8), cap + 2)
 
 
 def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
