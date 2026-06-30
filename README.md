@@ -210,6 +210,12 @@ Source-checkout smoke test:
 ./.venv/bin/python -m ppar.demos.performance_comparison_security_demo
 ```
 
+For the full packaged performance-comparison demo guardrail pass, run:
+
+```bash
+./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+```
+
 Generated demo artifacts live under `_demo_output/analytics`,
 `_demo_output/axys_analytics`, `_demo_output/performance_comparison_portfolio`,
 and `_demo_output/performance_comparison_security`. The core analytics demo and

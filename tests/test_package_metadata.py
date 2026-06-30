@@ -533,6 +533,7 @@ class TestPackageMetadata(unittest.TestCase):
             "ppar.performance_comparison.cli.validate_bundle",
             "ppar.performance_comparison.cli.validate_config",
             "ppar.performance_comparison.cli.validate_demo_matrix",
+            "scripts/check_performance_comparison_demo_health.py",
             "_demo_output/performance_comparison_portfolio",
             "_demo_output/performance_comparison_security",
             "report.xlsx",

@@ -173,6 +173,17 @@ After generating the workbook demo bundle, validate it with:
   _demo_output/performance_comparison_security
 ```
 
+For a full packaged-demo health pass, use the consolidated source-checkout
+script:
+
+```bash
+./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+```
+
+That script runs the rebuild drift audit, extract-availability appendix check,
+portfolio/security bundle generation, bundle validation, and packaged scenario
+matrix validation.
+
 ## YAML Policy Decision Guide
 
 Use the YAML policy blocks to state what ppar is allowed to treat as an

@@ -56,6 +56,7 @@ can be run from a source checkout with `./.venv/bin/python -m <module>`.
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
+| `scripts/check_performance_comparison_demo_health.py` | Runs packaged performance-comparison demo guardrails. | `./.venv/bin/python scripts/check_performance_comparison_demo_health.py` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
 | `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
 | `scripts/audit_performance_comparison_demo_data.py` | Wrapper around the packaged demo-data audit. | Backward-compatible audit command. |
@@ -127,6 +128,16 @@ The performance comparison demo can be smoke-tested noninteractively:
 
 Open the generated `report.xlsx` first. Use `report.html` when you want the same
 review model in a browser.
+
+For the full packaged-demo guardrail pass, run:
+
+```bash
+./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+```
+
+This consolidates the operational rebuild drift audit, extract-availability
+appendix check, portfolio/security bundle generation, bundle validation, and
+packaged scenario-matrix validation.
 
 ### Generate A Custom Review Bundle
 
