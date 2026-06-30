@@ -1,4 +1,4 @@
-# Chapter_02_Axys_Architecture.md
+# Chapter 02 — Axys Architecture
 
 Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_02_Axys_Architecture.md`
@@ -117,7 +117,7 @@ Axys reporting/output layer
 | External source layer | Custodian, broker, aggregation, migration, and user-entered data can feed Axys workflows. | High Confidence | Strongest evidence is third-party integration documentation. |
 | IMEX/import-export layer | Axys Import/Export utility is used in third-party workflows to import transactions, positions, and prices. | Verified for those workflows | Native complete object catalog is Unknown. |
 | Trade Blotter layer | Transaction imports can route to a Trade Blotter such as `topost.trn` in supplied integration evidence. | Verified for CI workflow; Medium Confidence as broader Axys concept | Exact native blotter schema is Unknown. |
-| File-oriented data layer | Axys uses files such as `.cli`, `sec.inf`, `type.inf`, `.pri`, and `split.inf` in supplied conversion/integration evidence. | High Confidence for file existence in cited contexts | Complete native file layout is Unknown. |
+| File-oriented data layer | Axys uses files such as `.cli`, `sec.inf`, `type.inf`, `.pri`, and `split.inf` in supplied conversion/integration evidence; `PRF` and `GRP` also appear as migration leads. | High Confidence for file existence in cited contexts; Medium Confidence for migration leads | Complete native file layout is Unknown. |
 | REP/report layer | Axys reports are written in RepLang; `.REP` files such as `AMAN.REP` appear in supplied examples. | Verified for examples | Full RepLang grammar is Unknown. |
 | Direct-file layer | Knowledgeable users may read/write direct files, but this is discouraged due to version/file-format risk. | Medium Confidence | Consultant evidence; should be treated as high-risk. |
 
@@ -148,11 +148,15 @@ The following artifacts are supported by the supplied research. They are not a c
 | `topost.trn` | Trade Blotter | Axys Trade Blotter file used by CI; generated transactions are appended. | Yes | No | Verified for CI workflow | Complete field layout Unknown. |
 | `$pathtrn` | Folder label | Axys user folder / Trade Blotter location in CI evidence. | Yes | No | Verified for CI workflow | Installation-specific label. |
 | `sec.inf` | Security information | Security information file referenced in Axys integration/conversion research. | Yes | Also exported in APX CI context as compatibility/interface data. | Verified in integration/conversion contexts | Complete field layout Unknown. |
+| `SECURITY.INF` | Security master | Uppercase file-name form referenced as a migration/conversion lead. | Yes | Unknown | Medium Confidence | Treat as case/style variant or conversion shorthand until sample files confirm. |
 | `type.inf` | Security type information | Security type information file referenced in Axys integration/conversion research. | Yes | Also exported in APX CI context as compatibility/interface data. | Verified in integration/conversion contexts | Complete field layout Unknown. |
+| `TYPE.INF` | Security type information | Uppercase file-name form referenced as a migration/conversion lead. | Yes | Unknown | Medium Confidence | Treat as case/style variant or conversion shorthand until sample files confirm. |
 | `$pathinf` | Folder label | Axys information folder containing `sec.inf` and `type.inf` in CI evidence. | Yes | No | Verified for CI workflow | Example paths may vary. |
 | `.pri` / `*.pri` | Prices | Price files referenced in Axys conversion/integration workflows. | Yes | APX AIA examples include `.pri` files. | Verified for integration contexts | Complete price file layout Unknown. |
 | `$pathpri` | Folder label | Axys price folder label in CI evidence. | Yes | No | Verified for CI workflow | Installation-specific label. |
 | `split.inf` / `SPLIT.INF` | Corporate actions / splits | Axys securities splits file in conversion research. | Yes | Unknown as native APX file | High Confidence | Complete split layout Unknown. |
+| `PRF` / `.PRF` | Performance returns | Migration/conversion source mentions PRF files as performance-return leads. | Yes | Unknown | Medium Confidence | Candidate artifact only; exact native/export status Unknown. |
+| `GRP` / `.GRP` | Groups / classifications | Migration/conversion source mentions GRP files as group/color-group leads. | Yes | Unknown | Medium Confidence | Candidate artifact only; exact native/export status Unknown. |
 | `.pos` | Positions | Replacement position files created by Position Post in CI evidence. | Yes | Unknown | Verified for CI workflow | Not proven as complete native holdings store. |
 | `ptopost.trn` | Position import staging | CI position file written in CSV format; may include lot-specific data where enabled. | Yes | Unknown | Verified for CI workflow | CI artifact, not native spec. |
 | `$pathlog` | Logs | Folder where Axys Import/Export logs are written in CI workflow. | Yes | No | Verified for CI workflow | Exact log schema Unknown. |
@@ -279,6 +283,7 @@ Acceptance step in the integration workflow
 | Whether Axys and APX use identical IMEX object names | Unknown |
 | Complete IMEX field lists, data types, required fields, error codes, and rollback behavior | Unknown |
 | Whether IMEX can be safely automated by command line in all versions | Unknown |
+| Whether `*.imx` control/configuration files exist in a given environment and define object behavior | Unknown |
 
 ---
 
@@ -561,6 +566,7 @@ Any Axys extract used for integration, audit, or research should record the foll
 |---|---|---:|---|
 | Direct Axys file access can break across versions. | Axys | Medium / High Confidence | Prefer IMEX/REP; test after upgrades. |
 | Axys 3.7 to 3.8 conversion reportedly changed some file formats. | Axys | Medium Confidence | Version-specific direct-file readers need regression testing. |
+| `CLI`, `PRI`, `INF`, `PRF`, and `GRP` may be native files, export files, or migration shorthand depending on version/context. | Axys | Medium Confidence | Do not promote these names into a complete file dictionary without sample files or vendor documentation. |
 | Open/in-use price files can cause Axys price import failure. | Axys CI workflow | Verified | Review `imexPrices.log`; avoid imports while files are open. |
 | CI Accept step affects whether transactions re-download. | Axys CI workflow | Verified | Skipping acceptance can duplicate downloads in later runs. |
 | Security ambiguity blocks imports in CI workflows. | Axys/APX CI | Verified | Resolve symbol/type ambiguity and translations before import. |
@@ -742,6 +748,25 @@ Do not treat this example as a complete Axys transaction import layout.
 
 ---
 
+## 15.1 Deep IMEX Architecture Update
+
+The 2026-06-30 IMEX deep research reinforces the architectural position of
+IMEX as an integration utility rather than a public data model.
+
+| Artifact / concept | Architectural role | Confidence |
+|---|---|---:|
+| `imex32.exe` | Axys Import/Export utility used by CI workflows. | Verified for CI |
+| `pospos32.exe` | Axys Post Positions utility. | Verified for CI |
+| `$pathexe`, `$pathtrn`, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog` | CI-observed folder labels for executables, Trade Blotter, portfolio/client files, security/type information, prices, and logs. | Verified for CI |
+| IMEX object catalog | Must be discovered from live Axys, vendor docs, templates, layouts, and logs; not publicly complete. | Unknown |
+| REP/report extraction | Architectural alternative when report-shaped values or performance tie-outs are needed. | High Confidence |
+
+Implementation guidance: capture object names, field labels/tokens, templates,
+formats, logs, Axys version, source row lineage, and confidence per client
+installation. Do not treat a normalized audit schema as an Axys native schema.
+
+---
+
 ## 16. Unsupported or Unknown Information
 
 The following items remain unsupported by the supplied material and must be documented as Unknown until additional evidence is provided.
@@ -770,18 +795,18 @@ This chapter was produced from the supplied research and source material only.
 
 | Source file | Used for |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT(38).md` | Governing editorial specification, confidence-label discipline, chapter structure. |
-| `Research_02_Axys_Architecture(1).md` | Core Axys/APX architecture findings, version differences, integration and reporting architecture. |
-| `Research_04_Security_Master(15).md` | Security master, `sec.inf`, `type.inf`, `imex32.exe`, `APXIX.exe`, security matching, symbol/type identity. |
-| `Research_05_Transactions(14).md` | Transaction lifecycle, Trade Blotter, `topost.trn`, observed transaction fields/codes, cancellation examples. |
-| `Research_06_Holdings(6).md` | Portfolio Appraisal, holdings reports, `.cli`, `.pos`, `CDIhold.rep`, position workflows. |
-| `Research_07_Cash(2).md` | Cash transaction representation, sweep handling, cash-like tokens, cash data model unknowns. |
-| `Research_08_Pricing(6).md` | `.pri`, `$pathpri`, price logs, missing/stale/calculated price behavior, APX price set contrast. |
-| `Research_09_Corporate_Actions(4).md` | `split.inf`, Axys conversion files, APX ACA / Reorg Utility / Trade Blotter contrast. |
-| `Research_10_Performance(2).md` | Performance capability, stored/recalculated unknowns, candidate performance interfaces. |
-| `Research_11_Classifications(3).md` | Asset class/sector/country/region/custom classification research, symbol/type join cautions, version notes. |
-| `Research_12_IMEX(8).md` | IMEX definition, files/folders, logs, REP32 connector contrast, object unknowns. |
-| `Research_13_REP(7).md` | REP/Replang architecture, Report Writer Pro, `AMAN.REP`, `REP32.exe`, report examples and quirks. |
+| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial specification, confidence-label discipline, chapter structure. |
+| `Research_02_Axys_Architecture.md` | Core Axys/APX architecture findings, version differences, integration and reporting architecture. |
+| `Research_04_Security_Master.md` | Security master, `sec.inf`, `type.inf`, `imex32.exe`, `APXIX.exe`, security matching, symbol/type identity. |
+| `Research_05_Transactions.md` | Transaction lifecycle, Trade Blotter, `topost.trn`, observed transaction fields/codes, cancellation examples. |
+| `Research_06_Holdings.md` | Portfolio Appraisal, holdings reports, `.cli`, `.pos`, `CDIhold.rep`, position workflows. |
+| `Research_07_Cash.md` | Cash transaction representation, sweep handling, cash-like tokens, cash data model unknowns. |
+| `Research_08_Pricing.md` | `.pri`, `$pathpri`, price logs, missing/stale/calculated price behavior, APX price set contrast. |
+| `Research_09_Corporate_Actions.md` | `split.inf`, Axys conversion files, APX ACA / Reorg Utility / Trade Blotter contrast. |
+| `Research_10_Performance.md` | Performance capability, stored/recalculated unknowns, candidate performance interfaces. |
+| `Research_11_Classifications.md` | Asset class/sector/country/region/custom classification research, symbol/type join cautions, version notes. |
+| `Research_12_IMEX.md` | IMEX definition, files/folders, logs, REP32 connector contrast, object unknowns. |
+| `Research_13_REP.md` | REP/Replang architecture, Report Writer Pro, `AMAN.REP`, `REP32.exe`, report examples and quirks. |
 
 ---
 

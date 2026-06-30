@@ -1,4 +1,4 @@
-# Chapter_01_Overview.md
+# Chapter 01 — Overview
 
 Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_01_Overview.md`
@@ -138,15 +138,15 @@ The repository is organized into subject chapters and matching research files. T
 | `Chapter_02_Axys_Architecture.md` | Axys architecture | Axys architecture, file-oriented character, IMEX, REP, data-domain dependencies, version cautions. | Supplied. |
 | `Chapter_03_APX_Architecture.md` | APX architecture | APX platform role, SQL/SSRS/reporting architecture, IMEX, blotter concepts, APX-specific Unknowns. | Supplied. |
 | `Chapter_04_Security_Master.md` | Security master | Security identity, symbol/type matching, `sec.inf`, `type.inf`, security translations. | Supplied. |
-| `Chapter_05_Transactions.md` | Transactions | Transaction role, blotters, observed transaction codes, translation patterns, IMEX and report status. | Supplied. |
+| `Chapter_05_Transactions.md` | Transactions | Transaction role, blotters, observed transaction codes, external-flow classification, translation patterns, IMEX and report status. | Supplied. |
 | `Chapter_06_Holdings.md` | Holdings | Portfolio Appraisal, positions, `.pos`, holdings extraction, reconciliation, stored/calculated Unknowns. | Supplied. |
 | `Chapter_07_Cash.md` | Cash | Cash activity, sweep/journal logic, cash-like symbols, cash-balance Unknowns. | Supplied. |
 | `Chapter_08_Pricing.md` | Pricing | `.pri` files, price import, missing/stale/calculated price behavior, APX price-set workflow evidence. | Supplied. |
 | `Chapter_09_Corporate_Actions.md` | Corporate actions | Axys `split.inf`, APX ACA/Reorg Utility workflow, dividends/reorg Unknowns. | Supplied. |
 | `Chapter_10_Performance.md` | Performance | Performance capability, report labels, APX attribution/contribution evidence, storage/recalculation Unknowns. | Supplied. |
 | `Chapter_11_Classifications.md` | Classifications | Security type versus classification, asset class/sector/country/region/custom classification evidence. | Supplied. |
-| `Chapter_12_IMEX.md` | IMEX | Import/export utilities, workflow artifacts, logs, object/field dictionary status. | Supplied. |
-| `Chapter_13_REP.md` | REP | `.REP`, RepLang, Report Writer Pro, REP32, report-based extraction. | Supplied. |
+| `Chapter_12_Imex.md` | IMEX | Import/export utilities, workflow artifacts, logs, object/field dictionary status. | Supplied. |
+| `Chapter_13_Rep.md` | REP | `.REP`, RepLang, Report Writer Pro, REP32, report-based extraction. | Supplied. |
 | `Chapter_14_Reports.md` | Reports | Axys and APX report families, APX named reports, report-label cautions. | Supplied. |
 | `Chapter_15_Data_Dictionary.md` | Data dictionary | Cross-repository field, token, file, utility, report-label, and artifact index. | Supplied. |
 | `Chapter_16_Glossary.md` | Glossary | Repository term definitions and ambiguity notes. | Supplied. |
@@ -494,8 +494,9 @@ This table is an observed-code catalog, not an official transaction-code matrix.
 | `CASH` / `cash` | Cash token in examples. | Yes | Yes | High Confidence as observed token |
 | `MMF` | Money-market/sweep vehicle token. | Yes | Yes | High Confidence as observed token |
 | `MARGIN` / `margin` | Margin cash/sweep token. | Yes | Yes | High Confidence as observed token |
+| `caus margin` | Margin/cash context used in observed negative-interest or margin-interest mappings. | Yes | Unknown | High Confidence as observed token; native definition Unknown |
 | `SHORT` / `short` | Short cash/sweep token. | Yes | Yes | High Confidence as observed token |
-| `dvwash`, `dvshrt`, `dvlong`, `cashrt`, `calong`, `income` | Special symbols excluded from sweep-removal logic in AIA workflows. | Yes | Yes | High Confidence as observed tokens; native definitions Unknown |
+| `dvwash`, `dvshrt`, `dvlong`, `cashrt`, `calong`, `income` | Special symbols excluded from sweep-removal logic in AIA workflows; `dvwash` also appears in reinvestment-linking evidence. | Yes | Yes | High Confidence as observed tokens; native definitions Unknown |
 
 ### 9.5 REP Expressions and Report Labels
 
@@ -642,6 +643,7 @@ The supplied REP/report chapters include an Axys `AMAN.REP` example.
 | Symbol alone can be ambiguous. | Yes | Yes | Verified in CI examples | Preserve symbol + type and source context. |
 | Security type is not asset class/sector/classification. | Yes | Yes | High Confidence | Do not conflate identity/security-type fields with classification fields. |
 | Uppercase transaction-code cancellation is observed but not universal. | Yes | Yes | Medium Confidence | Treat as workflow evidence, not complete native rule. |
+| Code-only external-flow classification is unsafe. | Yes | Yes | High Confidence as design rule | Treat `li`/`lo` as external-flow candidates, and route ambiguous `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases to review until context confirms treatment. |
 | Cash sweep and intra-account journal removal are integration-tool behaviors. | Yes | Yes | High Confidence for workflow; native behavior Unknown | Do not assume Axys/APX natively suppresses or removes these transactions. |
 | Price import can fail when a target Axys price file is open/in use. | Yes | No evidence | Verified for CI workflow | Review `imexPrices.log`. |
 | APX report names are not data sources by themselves. | N/A | Yes | Verified caution | Report names do not prove table names, views, or stored procedures. |
@@ -729,15 +731,15 @@ This chapter is based on the following supplied repository material only.
 | `Chapter_02_Axys_Architecture.md` | Axys architecture, file artifacts, IMEX, REP, data-domain dependencies, version cautions. |
 | `Chapter_03_APX_Architecture.md` | APX architecture, platform role, SSRS/reporting, IMEX, SQL/access paths, blotter concepts. |
 | `Chapter_04_Security_Master.md` | Security identity, symbol/type matching, `sec.inf`, `type.inf`, translations, field evidence. |
-| `Chapter_05_Transactions.md` | Transaction lifecycle, blotters, observed transaction codes, translation and cancellation examples. |
+| `Chapter_05_Transactions.md` | Transaction lifecycle, blotters, observed transaction codes, external-flow classification, translation and cancellation examples. |
 | `Chapter_06_Holdings.md` | Holdings/positions, Portfolio Appraisal, `.pos`, `CDIhold.rep`, reconciliation behavior. |
 | `Chapter_07_Cash.md` | Cash activity, cash-like tokens, sweeps, journals, cash-balance Unknowns. |
 | `Chapter_08_Pricing.md` | Pricing, `.pri`, missing/stale/calculated price evidence, APX price-set workflow. |
 | `Chapter_09_Corporate_Actions.md` | Axys `split.inf`, APX ACA/Reorg Utility workflow, corporate-action Unknowns. |
 | `Chapter_10_Performance.md` | Performance capability, APX attribution/contribution labels, stored/recalculated Unknowns. |
 | `Chapter_11_Classifications.md` | Classification concepts, security type separation, asset class/sector/country/region/custom classification evidence. |
-| `Chapter_12_IMEX.md` | IMEX utilities, logs, workflow artifacts, object/field dictionary status. |
-| `Chapter_13_REP.md` | REP, RepLang, Report Writer Pro, REP32, report extraction risks and examples. |
+| `Chapter_12_Imex.md` | IMEX utilities, logs, workflow artifacts, object/field dictionary status. |
+| `Chapter_13_Rep.md` | REP, RepLang, Report Writer Pro, REP32, report extraction risks and examples. |
 | `Chapter_14_Reports.md` | Report families, APX named reports, report-label cautions. |
 | `Chapter_15_Data_Dictionary.md` | Cross-repository field, token, artifact, report, and dictionary consolidation. |
 | `Chapter_16_Glossary.md` | Repository term definitions, ambiguities, and implementation notes. |

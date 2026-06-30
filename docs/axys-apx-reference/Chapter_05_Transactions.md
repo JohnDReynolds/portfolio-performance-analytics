@@ -1,6 +1,6 @@
-# 05 --- Transactions
+# Chapter 05 — Transactions
 
-> **Repository chapter:** `docs/05-Transactions.md`\
+> **Repository chapter:** `docs/axys-apx-reference/Chapter_05_Transactions.md`\
 > **Status:** Draft technical reference based only on supplied research
 > material.\
 > **Evidence standard:** Facts are marked as Verified, High Confidence,
@@ -111,7 +111,51 @@ Performance, reports, IMEX, REP, reconciliation, and audit
   model
   --------------------------------------------------------------------------
 
-### 1.2 Interpretation Rule
+### 1.2 Practical Classification Guidance
+
+For performance, audit, and reconciliation work, it is useful to classify
+transactions into practical buckets such as external cash flows,
+trading activity, income, fees or expenses, corporate actions, and
+reversals or cancellations. External cash flows are especially important
+because deposits, withdrawals, transfers in or out, and cash sweeps can
+materially change cash balances and performance cash-flow interpretation.
+
+Observed examples in the supplied research include `by` and `sl` for
+security trades, `dv`, `in`, and `ai` for income-related activity,
+`li` and `lo` for transfer/external-flow candidates, and `dp` and `wd`
+for cash-related movement. The meaning of any one code should be
+determined with the surrounding context: sign, quantity, amount, security
+type, source/destination type, source/destination symbol, special
+security markers, performance/cash-flow flag if available, and
+firm-specific translation rules.
+
+For performance work, `li` and `lo` are the most important external-flow
+candidates, but they are not sufficient by themselves. A cash
+contribution pattern may use `li` with cash-like source/destination
+fields such as `$pty` and `$cash`; a security-in-kind transfer may also
+use `li` with a non-cash security and quantity. Similarly, `lo` can
+represent a client withdrawal or an outgoing security transfer, but it
+can also appear in debit, correction, or internal movement contexts.
+Therefore, external-flow treatment should be assigned only after
+checking code, security type, source/destination fields, signs, special
+symbols, and firm-specific mapping.
+
+Recommended classification order for audit products:
+
+1. Detect reversals, cancellations, and uppercase-code deletes before
+   treating a record as a new economic event.
+2. Apply firm-specific transaction translation overrides, because public
+   integration tables explicitly allow special cases and
+   financial-institution-specific customization.
+3. Interpret security type and symbol, including cash, fee, income,
+   margin, short, and dividend-wash symbols.
+4. Interpret the code family: trade, transfer, income/accrual, fee/cash,
+   corporate action, principal event, or journal/other.
+5. Use amount and quantity signs to determine direction.
+6. Assign performance treatment: external flow, internal return event,
+   correction/reversal, non-performance event, or unknown.
+
+### 1.3 Interpretation Rule
 
 Transaction code alone is not sufficient to determine accounting
 meaning. Interpretation may depend on:
@@ -1254,7 +1298,9 @@ APX processing order.
                 system.
 
   Posting Date  Date posted to       Unknown          Unknown          Unknown   Unknown                  Unknown
-                accounting records.
+                accounting records;                                                               important for
+                useful for explaining                                                              historical
+                historical changes.                                                                 review.
 
   Quantity      Units traded or      Expected         Expected         Unknown   Observed in                 High
                 affected.                                              name      report sample       conceptually
@@ -1287,6 +1333,36 @@ APX processing order.
 
   Source ID     External transaction Unknown          Unknown          Unknown   Unknown                  Unknown
                 identifier.
+
+  Cash Impact   Signed cash movement Unknown          Unknown          Unknown   Unknown                  Medium
+                normalized for audit                                                                as recommended
+                and performance use.                                                                   field
+
+  Position      Signed quantity or   Unknown          Unknown          Unknown   Unknown                  Medium
+  Impact        principal movement                                                                  as recommended
+                normalized for audit                                                                   field
+                use.
+
+  Performance   Explicit source or   Unknown          Unknown          Unknown   Unknown                  Medium
+  Cash-Flow     derived flag for                                                                    as recommended
+  Flag          external-flow                                                                        field
+                treatment.
+
+  Classification Derived transaction Unknown          Unknown          Unknown   Unknown                  Medium
+                family, such as                                                                     as recommended
+                external flow, trade,                                                               field
+                income, fee,
+                corporate action,
+                correction, or
+                unknown.
+
+  Classification Confidence assigned Unknown          Unknown          Unknown   Unknown                  Medium
+  Confidence    by mapping/audit                                                                     as recommended
+                logic.                                                                                 field
+
+  Raw Line      Preserved source      Unknown          Unknown          Unknown   Unknown                  Medium
+                record for audit                                                                     as recommended
+                traceability.                                                                         field
 
   Comment       Free-form note.      Unknown          Observed in      Unknown   Unknown           Medium for APX
                                                       import workflow  name                              workflow
@@ -1334,6 +1410,11 @@ It is **not** an official Axys or APX transaction-code reference. Codes
 may be native, integration-layer mappings, version-specific,
 configuration-dependent, context-dependent, or incomplete.
 
+The strongest public transaction-code evidence in the supplied research
+comes from ByAllAccounts Custodial Integrator default translation tables
+and Morningstar Axys conversion notes. Those sources are useful for audit
+design, but they do not establish a complete native Axys/APX code manual.
+
 ### 8.2 Observed Transaction Code Matrix
 
   ---------------------------------------------------------------------------------------------------
@@ -1359,13 +1440,15 @@ configuration-dependent, context-dependent, or incomplete.
   `cs`        Cover short                Unknown     Observed            Medium Observed in APX
                                                                                 integration evidence.
 
-  `li`        Deliver in / transfer in / Observed    Observed            Medium Meaning may depend on
-              credit / deposit /                                                sign/configuration.
-              positive movement
+  `li`        Deliver in / transfer in / Observed    Observed            Medium External-flow
+              credit / deposit /                                                candidate; context
+              positive movement                                                 determines final
+                                                                                treatment.
 
-  `lo`        Deliver out / transfer out Observed    Observed            Medium Meaning may depend on
-              / debit / withdrawal /                                            sign/configuration.
-              negative movement
+  `lo`        Deliver out / transfer out Observed    Observed            Medium External-flow
+              / debit / withdrawal /                                            candidate; context
+              negative movement                                                 determines final
+                                                                                treatment.
 
   `dv`        Dividend / income /        Unknown     Observed            Medium Often relevant to
               reinvestment leg                                                  reinvestment.
@@ -1384,16 +1467,18 @@ configuration-dependent, context-dependent, or incomplete.
   `sa`        Sell accrued interest      Unknown     Observed            Medium Requires vendor
                                                                                 confirmation.
 
-  `pa`        Reinvested dividend /      Unknown     Observed     Low to Medium Meaning requires
-              accrued-interest-related                                          further verification.
-              buy-like case
+  `pa`        Purchase accrued interest  Unknown     Observed     Low to Medium Meaning requires
+              / accrued-interest-related                                        further verification.
+              buy-side case
 
-  `dp`        Debit / fee-related / tax  Unknown     Observed            Medium Multiple meanings
-              / service charge /                                                depending on context.
-              cash-security case
+  `dp`        Debit / fee-related / tax  Unknown     Observed            Medium Multiple meanings;
+              / service charge /                                                usually not an
+              cash-security case                                                external flow without
+                                                                                additional evidence.
 
-  `wd`        Withdrawal / cash-security Unknown     Observed            Medium Context-dependent.
-              sell case
+  `wd`        Withdrawal / cash-security Unknown     Observed            Medium Context-dependent;
+              sell case                                                         not automatically a
+                                                                                client withdrawal.
 
   `;`         Journal / comment / other  Unknown     Observed            Medium Treat as observed
               / split in integration                                            integration behavior
@@ -1524,7 +1609,69 @@ configuration-dependent, context-dependent, or incomplete.
   Withdrawal          `lo`                            Medium Outflow-like.
   -----------------------------------------------------------------------------------
 
-### 8.4 Cancellation and Reversal
+### 8.4 Practical Classification Matrix
+
+The following matrix is a practical audit/performance aid derived from
+observed research. It is not an official Axys/APX code dictionary.
+
+| Code or marker | Practical group | External flow? | Performance / audit implication |
+|---|---|---:|---|
+| `li` | Transfer / external-flow candidate | Often, not always | Candidate contribution or security-in-kind transfer; verify cash/security fields and firm mapping. |
+| `lo` | Transfer / external-flow candidate | Often, not always | Candidate withdrawal or outgoing security transfer; separate fees, corrections, and internal journals. |
+| `by`, `sl`, `ss`, `cs` | Trading activity | No | Affects holdings, cash, realized gain/loss, and exposure; validate price, quantity, commission, and settlement cash. |
+| `dv`, `in` | Income | No | Affects income and cash unless reinvested or netted; validate expected dividend/coupon and pay-date treatment. |
+| `ai`, `pa`, `sa` | Accrual / interest adjunct | No | Validate accrued-interest, margin-interest, day-count, and settlement economics. |
+| `dp`, `wd` | Cash, fee, expense, or cash-security movement | Usually no | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, or true movement. |
+| `rc`, `pd` | Corporate action / principal event | Usually no | Validate return-of-capital, paydown, cost-basis, factor, and amortization treatment. |
+| `;` | Journal, split, other, or placeholder | Usually no | Require firm mapping or manual review before performance treatment. |
+| Uppercase code, e.g. `BY` | Reversal / deletion | Depends on original | Link to the original transaction and reverse original economics rather than treating it as independent activity. |
+| `epus`, `exus` | Fee/expense security type or marker | No | Preserve as security/type context, not as a standalone transaction-code conclusion. |
+| `dvwash` | Reinvestment wash symbol | No | Link dividend and reinvestment buy legs; avoid treating wash cash as external cash flow. |
+| `caus margin` | Margin cash symbol/context | No | Supports margin-interest classification; separate financing expense from external flow. |
+
+### 8.5 Minimal Firm-Specific Mapping to Collect
+
+Because public research does not provide complete official native code
+matrices, each implementation should collect a client-specific mapping
+for ambiguous transaction families.
+
+| Raw code | Security type | Security symbol | Source/destination type | Source/destination symbol | Firm meaning | External flow? | Notes |
+|---|---|---|---|---|---|---:|---|
+| `li` | Cash or non-cash | Client-specific | `$pty` or equivalent | `$cash` or equivalent | Contribution, security transfer in, correction, or other | Confirm | Identify cash versus in-kind transfer. |
+| `lo` | Cash or non-cash | Client-specific | `$pty` or equivalent | `$cash` or equivalent | Withdrawal, security transfer out, correction, or other | Confirm | Separate client withdrawal from fees and journals. |
+| `dp` | `epus`, `exus`, cash, or other | Fee/tax/cash symbol | Client-specific | Client-specific | Fee, expense, tax, cash-security buy, or other | Usually no | Confirm gross/net performance treatment. |
+| `wd` | Cash or cash-like | Cash-security symbol | Client-specific | Client-specific | Cash-security sell, sweep, withdrawal-like event, or other | Usually no | Do not infer client withdrawal from name alone. |
+| `;` | Any | Any | Any | Any | Split, journal, other, or placeholder | Usually no | Route high-value items to manual review. |
+| `dv` / `by` | Real security | Real symbol or `dvwash` | `$ity` or equivalent | `$income` or wash symbol | Dividend reinvestment | No | Link income and buy legs to avoid double counting. |
+| `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
+| `rc` / `pd` | Real security or bond/MBS | Real symbol | Client-specific | Client-specific | Return of capital or principal paydown | No | Confirm cost-basis, factor, and amortization treatment. |
+
+### 8.6 Observed Public Mapping Examples
+
+The supplied research now includes a public WebPortfolio-to-Axys mapping
+appendix. The examples below are representative mappings from that
+appendix and are not universal Axys transaction-code rules.
+
+| Normalized source event | Sign/context | Observed Axys code(s) | Classification caution |
+|---|---|---|---|
+| Deposit / direct deposit / credit | Cash in | `li` | External inflow candidate; confirm outside-party source and cash fields. |
+| Withdrawal / check / payment | Cash out | `lo` | External outflow candidate; separate client withdrawal from fees and journals. |
+| Transfer | Positive / negative | `li` / `lo` | May be cash transfer, in-kind transfer, or internal movement. |
+| Buy / sell | Security | `by` / `sl` | Trade activity, not external flow. |
+| Short / cover short | Security | `ss` / `cs` | Trade activity; validate short exposure and cash signs. |
+| Dividend / reinvestment | Income plus buy | `dv`, `by`, `dvwash` | Link paired legs and avoid double-counting income or wash cash. |
+| Interest / negative interest | Positive / negative | `in` / `ai` | Separate income from margin or financing expense. |
+| Fee / service charge / expense | Fee context | `dp` with `epus`/`exus` symbols | Fee or expense, not client withdrawal unless firm policy proves otherwise. |
+| Cash-security buy/sell | Cash security | `dp` / `wd` | Cash-security handling; do not infer external cash flow from the code name. |
+| Return of capital / paydown | Normal / bond | `rc` / `pd` | Issuer/principal event, not client capital flow. |
+| Split / journal / other | Special marker | `;` | Requires firm mapping or manual review. |
+| Reversal / deletion | Original code uppercased | e.g. `BY` | Reverse original economics; flag orphan reversals. |
+
+Ambiguous `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases should
+fall into a "requires review" bucket until firm mapping or supporting
+source evidence confirms the audit classification.
+
+### 8.7 Cancellation and Reversal
 
   ------------------------------------------------------------------------------------------
   Statement                Axys             APX                     Confidence Notes
@@ -1618,7 +1765,8 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
                    pair in
                    ByAllAccounts
                    integration
-                   evidence.
+                   evidence, often
+                   with `dvwash`.
   ------------------------------------------------------------------------
 
 ### 9.4 Fee Pattern
@@ -1641,6 +1789,18 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
                    or
                    `epus expense`.
   -------------------------------------------------------------------------
+
+### 9.5 Withholding-Tax and Negative-Income Patterns
+
+Observed integration mappings allow several possible treatments for
+withholding taxes or income reductions. These are classification
+patterns, not verified native Axys/APX field rules.
+
+| Pattern | Meaning | Audit implication |
+|---|---|---|
+| Separate expense line such as `dp` with `exus` or withholding symbol | Gross dividend plus separate tax/fee | Link income and tax lines for gross/net review. |
+| Negative `dv` or negative `in` | Tax or adjustment reduces income directly | Easier net cash view, but gross income can be obscured. |
+| Withholding-tax field on income transaction | Single income record carries tax detail | Prefer this when preserved because it keeps gross/net detail together. |
 
 ------------------------------------------------------------------------
 
@@ -1897,6 +2057,30 @@ confirmed native Axys/APX validation behavior unless explicitly noted.
                                     stale prices
                                     before
                                     export/posting.
+
+  TR-035 External  High             Candidate                         High
+  Flow                              external-flow
+  Misclassified                     transaction is
+                                    classified using
+                                    code alone without
+                                    security,
+                                    source/destination,
+                                    sign, and firm
+                                    mapping context.
+
+  TR-036 Fee /     High             Fee, expense,                     Medium
+  Expense as                        tax, cash-security
+  Flow                              movement, or sweep
+                                    is treated as a
+                                    client contribution
+                                    or withdrawal.
+
+  TR-037 Orphan    High             Uppercase                         Medium
+  Reversal                          reversal/cancel
+                                    code cannot be
+                                    linked to its
+                                    original
+                                    transaction.
   -------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -2328,3 +2512,19 @@ supplied material would be needed:
   canceled, corrected, and rejected   transitions, and historical
   transactions.                       reconstruction.
   -----------------------------------------------------------------------
+
+## 16. Deep IMEX Update
+
+The 2026-06-30 IMEX deep research strengthens the implementation guidance for
+transaction extracts without closing the official-schema unknowns.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| `topost.trn` | Axys Trade Blotter file in `$pathtrn`; generated CI transactions are appended and existing transactions are left unchanged. | Verified for CI |
+| File creation | Axys Import/Export can create `topost.trn` if it does not exist in the configured user folder. | Verified for CI |
+| Comment boundaries | CI may create beginning and ending comment transactions around generated imports. | Verified for CI |
+| Candidate fields | Portfolio, transaction code/subtype, dates, symbol/type, quantity, price, amounts, commission, fees, accrued interest, withholding, source/destination context, cost fields, Perf/CW, Mark to Market, currency, FX, comments, and external IDs should be inspected in live Axys. | Discovery guidance |
+| External-flow classification | Source/destination and special-security context can be necessary for `li`, `lo`, `dp`, and `wd`, but official IMEX availability of those fields remains Unknown. | Medium / Unknown |
+| REP fallback | If IMEX cannot expose enough context to classify external flows, use REP/report/custom extraction as a candidate source of classification evidence. | Design guidance |
+
+Transaction code alone should not be used as a universal external-flow rule.

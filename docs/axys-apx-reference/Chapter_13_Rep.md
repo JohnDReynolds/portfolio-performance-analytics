@@ -1,7 +1,7 @@
 # Chapter 13 — REP
 
 Repository: AXYS / APX Reference Repository
-Chapter: `docs/13-REP.md`
+Chapter: `docs/axys-apx-reference/Chapter_13_Rep.md`
 Prepared: 2026-06-29
 Status: Draft technical reference chapter based only on supplied source material.
 
@@ -17,7 +17,7 @@ Status: Draft technical reference chapter based only on supplied source material
 
 REP is the Advent reporting layer associated with report files, report source, report execution, report customization, and report-driven data extraction in Axys and APX environments.
 
-This chapter documents REP as a technical interface. It does **not** attempt to catalog every Axys or APX standard report. Standard report content belongs primarily in `14-Reports.md`. This chapter focuses on:
+This chapter documents REP as a technical interface. It does **not** attempt to catalog every Axys or APX standard report. Standard report content belongs primarily in `Chapter_14_Reports.md`. This chapter focuses on:
 
 - `.REP` report files
 - RepLang
@@ -29,6 +29,8 @@ This chapter documents REP as a technical interface. It does **not** attempt to 
 - the boundary between REP, IMEX, APX SQL/Public Views/SSRS/REST, and direct file access
 
 All unsupported behavior is marked **Unknown**.
+
+REP should be treated as a reporting and extraction interface rather than a source of canonical transaction semantics. A report can expose holdings, cash, performance, or classification outputs derived from underlying transactions, but the report label or REP variable does not by itself establish the underlying transaction classification. In practice, report extraction should be paired with transaction-level evidence when interpreting flows or audit outcomes.
 
 ### 1.1 Confidence labels
 
@@ -457,7 +459,7 @@ Connector uploads/processes extracted data
 
 ## 13. Cross-Chapter Integration Notes
 
-### 13.1 Relationship to `12-IMEX.md`
+### 13.1 Relationship to `Chapter_12_Imex.md`
 
 | Topic | REP chapter treatment | IMEX chapter treatment |
 |---|---|---|
@@ -466,7 +468,7 @@ Connector uploads/processes extracted data
 | IMEX object names | Unknown here. | Unknown unless supported by IMEX evidence. |
 | `topost.trn`, `sec.inf`, `type.inf`, `.pri`, `.cli` | Mention only where relevant to REP/IMEX boundary. | Primary IMEX/file-interface context. |
 
-### 13.2 Relationship to `14-Reports.md`
+### 13.2 Relationship to `Chapter_14_Reports.md`
 
 | Topic | REP chapter treatment | Reports chapter treatment |
 |---|---|---|
@@ -475,7 +477,7 @@ Connector uploads/processes extracted data
 | Report output fields | Only sample-supported examples. | Full catalog if evidence exists. |
 | Report purpose and interpretation | Limited. | Primary topic. |
 
-### 13.3 Relationship to `10-Performance.md`
+### 13.3 Relationship to `Chapter_10_Performance.md`
 
 | Topic | REP chapter treatment | Performance chapter treatment |
 |---|---|---|
@@ -483,7 +485,7 @@ Connector uploads/processes extracted data
 | Stored vs recalculated values | Mark Unknown unless report-specific evidence exists. | Primary research topic. |
 | Report values as audit evidence | REP can expose values; exact source Unknown. | Compare against performance data model. |
 
-### 13.4 Relationship to `05-Transactions.md`
+### 13.4 Relationship to `Chapter_05_Transactions.md`
 
 | Topic | REP chapter treatment | Transactions chapter treatment |
 |---|---|---|
@@ -520,9 +522,9 @@ This chapter is based only on the supplied repository blueprint and research fil
 
 | Ref | Source | Use in chapter |
 |---|---|---|
-| IMEX-001 | `Research_12_IMEX(1).md` | REP vs IMEX distinction, connector extraction, `.RPW`/`.REP`, direct file access caution, version notes. |
-| SEC-001 | `Research_04_Security_Master(8).md` | REP32 and report/macro extraction context; APX public view limitations. |
-| TRN-001 | `Research_05_Transactions(7).md` | Transaction Summary Report/report-output cross-reference; `didpost.aud` and transaction report boundary. |
+| IMEX-001 | `Research_12_IMEX.md` | REP vs IMEX distinction, connector extraction, `.RPW`/`.REP`, direct file access caution, version notes. |
+| SEC-001 | `Research_04_Security_Master.md` | REP32 and report/macro extraction context; APX public view limitations. |
+| TRN-001 | `Research_05_Transactions.md` | Transaction Summary Report/report-output cross-reference; `didpost.aud` and transaction report boundary. |
 
 ---
 
@@ -599,3 +601,17 @@ The current supplied material is sufficient for a conservative REP chapter, but 
 | Sample REP output used as data extracts. | Output parsing rules and field layout. |
 | Known production examples where REP output differs from IMEX output. | Interface reconciliation and audit behavior. |
 | Versioned report files from Axys 3.8.6 vs 3.8.7 or APX 15.x/16.x/17.x. | Version-difference documentation. |
+
+## 17. Deep IMEX Update
+
+The deep IMEX research clarifies the REP/IMEX split for extraction design.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| REP as fallback | REP/Replang/custom reports are appropriate when IMEX schemas are incomplete or values must match user-visible reports. | High Confidence |
+| Connector evidence | Salentica Data Broker uses Advent standard reports, macros, REP32, RepLang scripting, and installed Advent Client Tools for Axys/APX extraction. | Verified for connector |
+| Best-fit split | Use IMEX first for security reference, security types, transactions, prices, and positions where stable objects exist; use REP for performance, classification performance, and report-specific tie-outs. | Design guidance |
+| Required metadata | REP-derived extracts should record report file/name, version, parameters, layout, row lineage, and stored-vs-recalculated confidence. | Design guidance |
+
+A report label or REP variable does not by itself establish underlying IMEX,
+database, transaction, or performance semantics.

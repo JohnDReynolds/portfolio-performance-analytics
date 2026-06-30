@@ -1,7 +1,7 @@
 # Chapter 07 — Cash
 
 **Repository:** AXYS / APX Reference Repository
-**Chapter:** `docs/07-Cash.md`
+**Chapter:** `docs/axys-apx-reference/Chapter_07_Cash.md`
 **Status:** Technical reference chapter based only on supplied research/source material
 **Prepared:** 2026-06-29
 
@@ -16,6 +16,8 @@
 ## 1. Overview
 
 Cash in Axys/APX documentation should be treated as a portfolio-accounting topic with several distinct layers:
+
+Cash activity is best interpreted as a transaction-classification problem rather than a code-only problem. A code such as `dp`, `wd`, `li`, or `lo` can represent cash movement, income, fees, or other accounting activity depending on sign, security type, source/destination fields, special symbols, and translation rules. The supplied research also shows that sweeps and intra-account journals may be removed or netted by integration logic, which should not be assumed to be native Axys or APX behavior without separate evidence.
 
 | Layer | Description | Confidence |
 |---|---|---:|
@@ -154,6 +156,14 @@ The following table catalogs observed codes from supplied research. These are no
 | `cs` | Cover short / negative closure leg. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 | `ss` | Short sale. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 
+`li` and `lo` are best treated as external-flow candidates rather than
+automatic contribution/withdrawal conclusions. A true client cash
+contribution or withdrawal should be separated from security-in-kind
+transfers, cash-security activity, fees, sweeps, corrections, and
+same-day internal journals by checking security type, source/destination
+type, source/destination symbol, amount and quantity signs, and
+firm-specific mapping.
+
 ### 4.2 Transaction-Code Caveats
 
 | Caveat | Confidence | Notes |
@@ -199,6 +209,7 @@ Implementation note: because cash balances may be derived, reported, stored, or 
 | `CASH` | Cash symbol/token in examples. | Yes | Yes | High Confidence |
 | `MMF` | Money market fund / sweep vehicle token in examples. | Yes | Yes | High Confidence |
 | `MARGIN` | Margin cash/sweep symbol in examples. | Yes | Yes | High Confidence |
+| `caus margin` | Margin/cash context used in public negative-interest or margin-interest mappings. | Yes | Unknown | High Confidence as observed; native definition Unknown |
 | `SHORT` | Short cash/sweep symbol in examples. | Yes | Yes | High Confidence |
 | `dvwash` | Dividend wash special symbol excluded from sweep-removal logic. | Yes | Yes in AIA docs | High Confidence as observed; Unknown native definition |
 | `dvshrt` | Special symbol excluded from sweep-removal logic. | Yes | Yes | High Confidence as observed; Unknown native definition |
@@ -215,6 +226,7 @@ Implementation note: because cash balances may be derived, reported, stored, or 
 | Money market sweep vehicles may look like holdings or cash depending on extract/report path. | Downstream tools should explicitly decide whether to treat sweep vehicles as cash, securities, or both. | High Confidence |
 | Margin and short cash require separate handling. | Do not assume all cash-like symbols represent unrestricted long cash. | High Confidence |
 | Dividend-wash and income-like symbols are excluded from sweep-removal logic in AIA workflows. | Treat `dvwash`, `dvshrt`, `dvlong`, `cashrt`, `calong`, and `income` cautiously. | High Confidence |
+| Margin-interest mappings may use margin cash context such as `caus margin`. | Separate financing expense from external cash-flow treatment. | High Confidence as observed mapping guidance |
 | Native definitions of many symbols are not supplied. | Do not promote observed tokens into authoritative native field definitions. | Unknown |
 
 ---

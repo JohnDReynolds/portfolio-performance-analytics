@@ -870,3 +870,16 @@ Repository impact:
    - URLs: `https://adventguru.com/category/portfolio-management-systems/axys/`, `https://adventguru.com/category/portfolio-management-systems/apx/`, `https://adventguru.com/2024/02/`, `https://adventguru.com/tag/apx/`
    - Supports: practitioner commentary on security type handling, security-master merging dependencies, public views/SQL/REST options, and Report Writer Pro/Replang usage.
 
+## Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional security-master points to carry into Chapter 04:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| `sec.inf` / `type.inf` role | Public CI evidence supports `sec.inf` and `type.inf` as Axys reference inputs used to map external securities and generate valid transaction, position, and price imports. | Verified for CI workflow |
+| Missing prices diagnostic | `MISSINGPRICES_yyyymmdd.csv` exposes `Symbol`, `Type`, `Name`, `WP Account`, and `Institution` in CI context. | Verified for CI output |
+| Security translations diagnostic | `SECTRANSLATIONS_yyyymmdd.csv` exposes WebPortfolio identifiers, institution/account context, Axys Symbol, Type, Created, and Last Modified in CI context. | Verified for CI output |
+| Candidate live-discovery fields | A live IMEX catalog should inspect symbol, security type, names, ticker, CUSIP, ISIN, SEDOL, currency, price multiplier, factor, coupon, maturity, classifications, and user-defined fields. | Discovery guidance |
+| Critical caveat | These diagnostics and candidate fields do not prove an official universal Axys IMEX security-master schema. | Unknown / boundary |

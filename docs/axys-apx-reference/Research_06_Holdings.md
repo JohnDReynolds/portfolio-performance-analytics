@@ -334,3 +334,19 @@ To produce a stronger final chapter, collect any of the following:
 9. Any client-specific notes documenting how holdings are calculated relative to transactions, prices, splits, and accruals.
 
 Until those are available, the final chapter should heavily distinguish verified report behavior from unknown internal data-storage behavior.
+
+## 14. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional holdings/position points:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| `ptopost.trn` | CI writes positions to `\CI\exported\ptopost.trn` in CSV format before Position Post. | Verified for CI workflow |
+| `.pos` files | Position Post can create replacement `.pos` files in the Axys position folder for configured portfolios. | Verified for CI workflow |
+| Position lots | When lots are enabled and available, position output may contain lot-specific data and use `imexPositionLots.log`. | Verified for CI workflow |
+| Cash / money-market fallback | For cash or money-market positions, or where no lot exists, CI may output position data instead of lot data. | Verified for CI workflow |
+| Candidate position fields | Live discovery should inspect portfolio/account, as-of date, symbol/type/name, quantity/units, price, market value, accrued income, cost/book/tax cost, local/base currency, FX rate, stale flag, and custodian/account context. | Discovery guidance |
+| Candidate lot fields | Live discovery should inspect lot identifier, open/acquisition dates, quantity, cost, market value, tax-cost fields, currency, and source row lineage. | Discovery guidance |
+| Boundary | `ptopost.trn` and `.pos` evidence is integration-level position evidence; it does not establish native holdings storage mechanics or standard holdings report columns. | Unknown / boundary |

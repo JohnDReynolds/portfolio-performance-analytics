@@ -738,3 +738,18 @@ The strongest supported material is integration-layer evidence:
 - AdventGuru provides useful consultant evidence for `mergepri` and direct-file-access caution.
 
 The core unresolved gap remains the official native price field dictionary for Axys and APX. Until `.pri` samples, IMEX object definitions, APX public views, or official pricing manuals are available, future Chapter 08 should preserve exact field names, object names, report names, and native storage behavior as **Unknown**.
+
+## Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional pricing points:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| `.pri` workflow | Public CI evidence supports appending prices to prior-business-day price files in `$pathpri`. | Verified for CI workflow |
+| No overwrite behavior | If a security already exists in the price file for that day and already has a price, CI does not replace it. | Verified for CI workflow |
+| Multiple historical days | If historical price days are delivered, CI may show one `imexPrices` tab per historical day. | Verified for CI workflow |
+| Price preview fields | CI preview evidence includes Symbol, Price, Source, Price Date, and Price As-Of Date. | Verified for CI workflow |
+| Candidate price fields | Live discovery should inspect symbol, type, price date, price, price source, currency, factor, quote multiplier, and price-set/source provenance where available. | Discovery guidance |
+| Boundary | `.pri` workflow evidence does not prove the official native IMEX price object name or full price-file layout. | Unknown / boundary |

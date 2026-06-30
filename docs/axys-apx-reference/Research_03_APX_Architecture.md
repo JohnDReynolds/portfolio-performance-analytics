@@ -492,3 +492,16 @@ The Salentica material supports a practical integration pattern: installed Adven
 
 Practitioner sources are valuable for implementation quirks, especially IMEX, conversion, and REST API observations. They should be treated as High Confidence only when they describe direct practical procedures and Medium Confidence when extrapolated to broader APX behavior.
 
+## 18. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+APX-relevant additions from the Axys-focused IMEX research:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| APX IMEX continuity | Practitioner evidence says APX v1.x through v4.x retained IMEX functionality, but fixed-format generation was eliminated. | Medium |
+| APX-to-Axys exports | Conversion evidence mentions APX exporting Axys v3-format reference data such as sectors, industries, asset classes, indexes, composites, and performance history. | Medium |
+| Performance history | Public conversion evidence says performance-history export through IMEX can be frustrating; exact APX object/field names remain Unknown. | Medium / Unknown |
+| Alternative surfaces | APX extraction may use REP/RepLang, SSRS, SQL/public views/stored accounting functions, REST, or third-party ETL depending on deployment and support boundaries. | Medium / High Confidence by surface |
+| Boundary | Do not assume APX IMEX object names, fields, command syntax, or fixed-format behavior match Axys without APX-specific documentation or samples. | Unknown |

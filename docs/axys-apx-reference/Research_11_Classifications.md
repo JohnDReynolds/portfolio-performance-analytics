@@ -704,3 +704,16 @@ Recommended tone:
 - “Exact native field names are not yet verified” should be preserved until actual IMEX/REP/database evidence is supplied.
 - Avoid creating a fake data dictionary. Use the field dictionary above as a research inventory, not a vendor schema.
 
+## 16. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional classification points:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| Exportable reference lists | Public conversion evidence mentions sectors, industries, asset classes, indexes, and composites as exportable/reference data in Axys/APX migration contexts. | Medium |
+| Candidate classification fields | Live discovery should inspect code, description/name, sort order, parent group, security assignment, portfolio label assignment, and effective-date behavior where available. | Discovery guidance |
+| Security type distinction | Security Type Information (`type.inf`) is not the same as classification hierarchy; both may be needed to understand reporting behavior. | High Confidence |
+| REP comparison | Classification reports should be compared with IMEX exports because report-level rollups may differ from raw assignment fields. | Design guidance |
+| Boundary | Exact IMEX object names and field lists for classifications, indexes, composites, labels, and assignments remain Unknown. | Unknown |

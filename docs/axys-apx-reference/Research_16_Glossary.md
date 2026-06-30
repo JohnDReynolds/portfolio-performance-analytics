@@ -431,3 +431,29 @@ The final glossary will become much more useful if the following are supplied be
 # 19. Summary
 
 This research file supports a useful glossary chapter but intentionally avoids false precision. The most reliable verified terms are product-level, reporting-level, and broad capability terms. The least verified areas are exact field names, transaction codes, IMEX object names, REP internals, report names, and processing behavior. Those should remain Unknown until supported by vendor documentation, REP source, IMEX export samples, or production observations.
+
+---
+
+# 20. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional glossary candidates:
+
+| Term | Definition / usage | Confidence |
+|---|---|---:|
+| `imex32.exe` | Axys Import/Export utility executable in CI evidence. | Verified for CI |
+| `pospos32.exe` | Axys Post Positions utility executable in CI evidence. | Verified for CI |
+| `$pathexe` | Axys executable folder label in CI configuration. | Verified for CI |
+| `$pathtrn` | Axys user/Trade Blotter folder label in CI configuration. | Verified for CI |
+| `$pathcli` | Axys client/portfolio file folder label in CI configuration. | Verified for CI |
+| `$pathinf` | Axys information folder label containing `sec.inf` and `type.inf` in CI context. | Verified for CI |
+| `$pathpri` | Axys price folder label containing `*.pri` files in CI context. | Verified for CI |
+| `$pathlog` | Axys IMEX log folder label in CI context. | Verified for CI |
+| `ptopost.trn` | CI position file, CSV format, optionally containing lots when enabled/available. | Verified for CI |
+| `MISSINGPRICES_yyyymmdd.csv` | CI optional diagnostic file for unresolved/missing prices. | Verified for CI |
+| `SECTRANSLATIONS_yyyymmdd.csv` | CI optional security translation diagnostic/output file. | Verified for CI |
+| `imex_catalog` | Proposed product-owned catalog of observed IMEX objects, fields, formats, directionality, examples, source, and confidence by version/installation. | Design guidance |
+
+These terms should be labeled as CI/integration or product-design terms unless
+additional vendor documentation confirms native Axys/APX status.

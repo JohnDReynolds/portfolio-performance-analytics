@@ -20,6 +20,8 @@ Reports are a core functional area of both Axys and APX. In this repository, a *
 
 This chapter intentionally separates:
 
+Reports are downstream views of the accounting data model. They may summarize transactions, cash, holdings, performance, and classifications, but a report label such as "Asset Flows" or "Activity Profile" is not proof of the underlying transaction semantics. For implementation and audit work, report outputs should be traced back to the originating transactions and normalized flow classifications rather than treated as a self-describing source of truth.
+
 | Topic | Description | Primary Chapter |
 |---|---|---|
 | Reports | User-facing and analyst-facing report outputs, report families, report labels, report behavior, and report reconciliation cautions. | Chapter 14 |

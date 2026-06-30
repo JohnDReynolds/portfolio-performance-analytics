@@ -561,3 +561,17 @@ The available evidence supports a cautious architecture chapter centered on thes
 5. APX is architecturally distinct: public vendor and SEC sources support that APX uses a SQL-based, centralized platform and broader integrated CRM/reporting/packaging architecture.
 6. Low-level Axys architecture details — file layout, locking, scheduling, IMEX object schema, REP field dictionary, and stored/recalculated performance rules — remain Unknown and require vendor manuals, installed-system samples, or production observations.
 
+## 22. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Architecture-level additions:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| `imex32.exe` | Axys Import/Export utility and primary public-facing import/export interface in CI evidence. | Verified for CI |
+| `pospos32.exe` | Axys Post Positions utility used with position-post workflows. | Verified for CI |
+| Folder labels | `$pathexe`, `$pathtrn`, `$pathcli`, `$pathinf`, `$pathpri`, and `$pathlog` are observed CI folder labels for executables, Trade Blotter, client files, information files, prices, and logs. | Verified for CI |
+| IMEX boundary | IMEX is safer than direct native-file access, but public evidence does not expose one universal object/field catalog. | High Confidence / Unknown |
+| Discovery requirement | Real integrations should discover object names, fields, templates, formats, and logs from the licensed installation and record Axys version. | Design guidance |
+| REP boundary | REP/Replang/custom reports remain an architectural extraction path for report-shaped or performance tie-out values. | High Confidence |

@@ -509,5 +509,47 @@ Verified facts available from the supplied blueprint:
 6. Unsupported information should be marked Unknown.
 7. The required field dictionary format is: `Field`, `Description`, `Axys`, `APX`, `IMEX`, `REP`, `Confidence`.
 
-No actual Axys/APX field names, IMEX layouts, REP report names, report fields, file names, version differences, or quirks were supplied. Therefore, all product-specific data dictionary content remains Unknown pending additional source material.
+The original blueprint did not itself supply Axys/APX field names, IMEX layouts,
+REP report names, report fields, file names, version differences, or quirks.
+Later research addenda provide observed integration labels and candidate
+normalized schemas, but official native field dictionaries remain Unknown
+pending vendor documentation, live IMEX catalogs, or sanitized production
+exports.
 
+## 21. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+The deep IMEX research adds product-design field inventories. These are
+normalized audit-schema candidates, not official Axys/APX field dictionaries.
+
+### 21.1 Candidate normalized schemas
+
+| Normalized object | Candidate fields / field families |
+|---|---|
+| Security master | `security_id`, `security_symbol`, `security_type`, name, CUSIP, ISIN, ticker, asset class, sector, industry, country, currency, multiplier, income type, coupon/frequency, maturity, issue date, factor, user fields, source file/row. |
+| Transactions | Portfolio, transaction ID/code, trade/settle/post dates, security symbol/type, quantity, price, gross/net/cash amount, commission, fees, accrued interest, withholding, source/destination type and symbol, currency, FX, cost date/amount, Perf/CW, Mark to Market, comments, external source ID, source file/row. |
+| Prices | Security symbol/type, price date, price, price source, currency, factor, source file/row. |
+| Positions | Portfolio, as-of date, security symbol/type, quantity, price, market value, accrued income, cost amount, currency, FX, stale flag, source file/row. |
+| Position lots | Portfolio, as-of date, security, lot ID, open/acquisition date, quantity, cost, market value, currency, source file/row. |
+| Performance | Portfolio/security/classification/composite identifiers, period dates, level, beginning/ending market value, average weight, return, contribution, external flow, income, fees, source report/row. |
+
+### 21.2 Catalog metadata required for reliability
+
+Any future field dictionary should include:
+
+- extraction mechanism: IMEX, REP, report, SQL/public view, manual file, or
+  integration output;
+- exact source artifact: object name, report name, file name, template, or log;
+- Axys/APX version and client installation context;
+- original field label and internal token when available;
+- data type, width, precision, and date format;
+- import/export availability and required status;
+- sample value;
+- confidence and source lineage.
+
+### 21.3 Boundary
+
+No candidate normalized field above should be documented as generally available
+in Axys IMEX until confirmed by a live IMEX catalog, vendor manual, or sanitized
+export sample.

@@ -1,4 +1,4 @@
-# Chapter_16_Glossary.md
+# Chapter 16 — Glossary
 
 Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_16_Glossary.md`
@@ -209,8 +209,14 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 | Cover Short | Transaction reducing short exposure. | Exact native Axys code behavior Unknown. | Observed `cs` in APX integration examples. | Transaction import/report context. | Medium Confidence for observed examples. |
 | Deliver In / Transfer In | Movement of security/cash into a portfolio without ordinary purchase economics. | `li` appears in Axys conversion/integration contexts; interpretation can depend on `.cli` setting in conversion evidence. | `li` appears in APX integration examples. | Transaction import/conversion context. | Medium Confidence; code-only interpretation unsafe. |
 | Deliver Out / Transfer Out | Movement of security/cash out of a portfolio without ordinary sale economics. | `lo` appears in Axys conversion/integration contexts; interpretation can depend on `.cli` setting. | `lo` appears in APX integration examples. | Transaction import/conversion context. | Medium Confidence; code-only interpretation unsafe. |
+| External-Flow Candidate | Transaction that may represent capital entering or leaving the managed portfolio, but requires contextual classification before performance treatment. | `li`/`lo` are observed candidates, not automatic conclusions. | `li`/`lo` are observed candidates, not automatic conclusions. | Performance, cash, transaction audit. | High Confidence as implementation guidance. |
+| Requires Review Bucket | Audit classification state for ambiguous transaction patterns that cannot be safely mapped from code alone. | Recommended for `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases. | Same recommendation. | Performance, cash, transaction audit. | High Confidence as implementation guidance. |
+| Transaction Classification | Derived economic family assigned from code plus context, such as external flow, trade, income, fee, corporate action, correction, or unknown. | Recommended for downstream audit; not verified as native field. | Recommended for downstream audit; not verified as native field. | Data dictionary/performance/audit context. | Medium Confidence as recommended field. |
+| Classification Confidence | Audit confidence assigned to a derived transaction classification. | Recommended; not verified as native field. | Recommended; not verified as native field. | Data dictionary/audit context. | Medium Confidence as recommended field. |
 | Reversal / Cancellation | Transaction or import record intended to cancel/delete/reverse a prior transaction. | Uppercase code pattern such as `by` → `BY` appears in Axys workflow evidence. | Same pattern appears in APX workflow evidence. | Trade Blotter/import context. | Medium Confidence; universal native rule Unknown. |
 | Reinvestment | Income distribution reinvested into additional shares/units. | Morningstar conversion research says Axys distribution reinvestments may appear as Buy + Distribution pairs. | ByAllAccounts APX research shows `dv`/`by` paired examples. | Transaction/conversion context. | Medium Confidence |
+| `dvwash` | Dividend reinvestment wash symbol used in observed public mappings. | Used to link dividend and buy legs in integration evidence; native definition Unknown. | Observed in AIA/sweep-symbol contexts. | Reinvestment/cash-symbol context. | High Confidence as observed token; native definition Unknown. |
+| `caus margin` | Margin/cash context used in observed negative-interest or margin-interest mappings. | Observed in public mapping evidence. | APX native status Unknown. | Margin-interest/cash-symbol context. | High Confidence as observed token; native definition Unknown. |
 | Dividend | Income distribution from a security. | Exact storage/transaction/report behavior Unknown. | Exact behavior Unknown; report examples show dividends in Transaction Summary context. | Transaction/report/corporate-action context. | Unknown / Medium depending report label. |
 | Interest | Fixed income or cash income. | Axys fixed-income capability implies handling, but exact transaction behavior Unknown. | Exact behavior Unknown; integration examples include income/interest logic. | Transaction/cash/income context. | Medium Confidence |
 | Return of Capital | Distribution reducing cost basis and/or returning capital. | Exact Axys behavior Unknown. | `rc` and bond-related `pd` appear in APX integration examples. | Transaction/corporate action context. | Medium Confidence for observed examples; official behavior Unknown. |
@@ -366,6 +372,12 @@ The entries in this section are candidate field-name concepts. They are not auth
 | Industry Sector | Classification label in APX reports. | Unknown. | Observed in APX attribution/contribution examples. | Report label. | Verified for APX report label. |
 | SourceId | Price source label observed in APX AIA price context. | N/A. | Observed. | Price import/source context. | Verified for AIA context only. |
 | Perf/CW | Column in Axys `topost.trn` per ByAllAccounts CI research. | Observed. | Unknown. | Trade Blotter/import field. | Verified for CI context; meaning requires source documentation. |
+| Cash Impact | Signed normalized cash effect used for audit/performance classification. | Not verified as native field. | Not verified as native field. | Transaction extract/audit target. | Medium Confidence as recommended field. |
+| Position Impact | Signed normalized quantity or principal effect. | Not verified as native field. | Not verified as native field. | Transaction extract/audit target. | Medium Confidence as recommended field. |
+| Performance Cash-Flow Flag | Explicit or derived field indicating external-flow treatment. | Not verified as native field. | Not verified as native field. | Performance/audit target. | Medium Confidence as recommended field. |
+| Transaction Classification | Derived transaction family used for audit and downstream interpretation. | Not verified as native field. | Not verified as native field. | Transaction extract/audit target. | Medium Confidence as recommended field. |
+| Classification Confidence | Confidence assigned to derived transaction classification. | Not verified as native field. | Not verified as native field. | Transaction extract/audit target. | Medium Confidence as recommended field. |
+| Raw Line | Original source record retained for audit traceability. | Not verified as native field. | Not verified as native field. | Transaction extract/audit target. | Medium Confidence as recommended field. |
 | Mark to Market | Field/value required for non-system-currency transactions in ByAllAccounts Axys CI context. | Observed. | Unknown. | Transaction import/multicurrency context. | Verified for CI context. |
 | Broker Representative Field | APX/AIA field populated from `$brok` in research. | May appear in Axys/APX integration contexts. | Observed in APX AIA workflow. | Transaction blotter field. | Medium / High Confidence for workflow. |
 | Lot Location | Axys-era/APX workflow concept used for lot accounting/custodian tracking. | Described as old Axys carryover in APX AIA research. | Used in APX AIA workflow. | Lot/transaction context. | Medium Confidence |
@@ -435,6 +447,23 @@ The entries in this section are candidate field-name concepts. They are not auth
 | Replang Keyword Set | Available RepLang keywords/functions. | Practitioner source says Axys has roughly 100 keywords. | Practitioner source says APX adds 100+ more keywords in current versions. | REP language context. | Medium Confidence; exact list Unknown. |
 | Windows 7 / Windows 10 | OS versions recommended for one Data Broker connector machine. | Connector environment only. | Connector environment only. | REP32/client tools connector context. | Verified for connector only. |
 
+### 14.2 Deep IMEX Terms
+
+| Term | Definition | Axys | APX | Context | Confidence |
+|---|---|---:|---:|---|---:|
+| `imex32.exe` | Axys Import/Export utility executable in CI evidence. | Yes | No | IMEX utility. | Verified for CI |
+| `pospos32.exe` | Axys Post Positions utility executable in CI evidence. | Yes | No | Position-post workflow. | Verified for CI |
+| `$pathexe` | Axys executable folder label in CI configuration. | Yes | No | Folder label. | Verified for CI |
+| `$pathtrn` | Axys user/Trade Blotter folder label in CI configuration. | Yes | No | Folder label for `topost.trn`. | Verified for CI |
+| `$pathcli` | Axys client/portfolio file folder label in CI configuration. | Yes | No | Folder label for `*.cli`. | Verified for CI |
+| `$pathinf` | Axys information folder label containing `sec.inf` and `type.inf` in CI context. | Yes | No | Security/type reference folder. | Verified for CI |
+| `$pathpri` | Axys price folder label containing `*.pri` files in CI context. | Yes | No | Price folder. | Verified for CI |
+| `$pathlog` | Axys IMEX log folder label in CI context. | Yes | No | IMEX logs. | Verified for CI |
+| `ptopost.trn` | CI position file, CSV format, optionally containing lot data. | Yes | Unknown | Position import/post workflow. | Verified for CI |
+| `MISSINGPRICES_yyyymmdd.csv` | CI optional diagnostic file for missing/unresolved prices. | Yes | Unknown | CI diagnostic output, not native schema. | Verified for CI |
+| `SECTRANSLATIONS_yyyymmdd.csv` | CI optional security translation diagnostic/output file. | Yes | Unknown | CI diagnostic output, not native security master. | Verified for CI |
+| `imex_catalog` | Product-owned catalog of observed IMEX objects, fields, formats, directionality, examples, source, and confidence by version/installation. | Design term | Design term | Audit/integration design. | Design guidance |
+
 ---
 
 ## 15. Known Ambiguities and Implementation Notes
@@ -487,22 +516,22 @@ This chapter was prepared from the supplied repository blueprint and research fi
 
 | Supplied File | Role in Chapter 16 |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT(46).md` | Governing editorial specification, confidence labels, chapter structure, and field dictionary standard. |
-| `Research_02_Axys_Architecture(5).md` | Axys architecture, file orientation, IMEX, REP, version differences. |
-| `Research_03_APX_Architecture(4).md` | APX architecture, SSRS, IMEX, REP32, APX report names, SQL/API options. |
-| `Research_04_Security_Master(19).md` | Security master terms, `sec.inf`, `type.inf`, symbols, security types, duplicate/security translation quirks. |
-| `Research_05_Transactions(18).md` | Transaction lifecycle, Trade Blotter, codes observed in integrations, reversals, fees, reinvestments. |
-| `Research_06_Holdings(10).md` | Holdings, Portfolio Appraisal, position blotters, `CDIhold.rep`, group behavior. |
-| `Research_07_Cash(6).md` | Cash, sweeps, intra-account journals, cash-like symbols, cash transaction contexts. |
-| `Research_08_Pricing(10).md` | Pricing, `.pri`, price sets, calculated/missing/stale prices, price-source terminology. |
-| `Research_09_Corporate_Actions(8).md` | Corporate actions, `split.inf`, ACA for APX, Reorg Utility, Trade Blotter. |
-| `Research_10_Performance(6).md` | Performance measurement, benchmark, stored/recalculated unknowns, performance data model terms. |
-| `Research_11_Classifications(7).md` | Classification terms, asset class, sector, industry, country, custom classification, storage unknowns. |
-| `Research_12_IMEX(12).md` | IMEX terms, files/folders, logs, Axys/APX import/export behavior, direct-file cautions. |
-| `Research_13_REP(11).md` | REP, RepLang, Report Writer Pro, REP32, `.REP`, report examples and tokens. |
-| `Research_14_Reports(3).md` | APX report guide names, report families, APX report labels, report/IMEX/REP distinctions. |
-| `Research_15_Data_Dictionary(2).md` | Data dictionary conventions, field family organization, source precedence, Unknown handling. |
-| `Research_16_Glossary(1).md` | Glossary research base and initial term inventory. |
+| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial specification, confidence labels, chapter structure, and field dictionary standard. |
+| `Research_02_Axys_Architecture.md` | Axys architecture, file orientation, IMEX, REP, version differences. |
+| `Research_03_APX_Architecture.md` | APX architecture, SSRS, IMEX, REP32, APX report names, SQL/API options. |
+| `Research_04_Security_Master.md` | Security master terms, `sec.inf`, `type.inf`, symbols, security types, duplicate/security translation quirks. |
+| `Research_05_Transactions.md` | Transaction lifecycle, Trade Blotter, codes observed in integrations, reversals, fees, reinvestments. |
+| `Research_06_Holdings.md` | Holdings, Portfolio Appraisal, position blotters, `CDIhold.rep`, group behavior. |
+| `Research_07_Cash.md` | Cash, sweeps, intra-account journals, cash-like symbols, cash transaction contexts. |
+| `Research_08_Pricing.md` | Pricing, `.pri`, price sets, calculated/missing/stale prices, price-source terminology. |
+| `Research_09_Corporate_Actions.md` | Corporate actions, `split.inf`, ACA for APX, Reorg Utility, Trade Blotter. |
+| `Research_10_Performance.md` | Performance measurement, benchmark, stored/recalculated unknowns, performance data model terms. |
+| `Research_11_Classifications.md` | Classification terms, asset class, sector, industry, country, custom classification, storage unknowns. |
+| `Research_12_IMEX.md` | IMEX terms, files/folders, logs, Axys/APX import/export behavior, direct-file cautions. |
+| `Research_13_REP.md` | REP, RepLang, Report Writer Pro, REP32, `.REP`, report examples and tokens. |
+| `Research_14_Reports.md` | APX report guide names, report families, APX report labels, report/IMEX/REP distinctions. |
+| `Research_15_Data_Dictionary.md` | Data dictionary conventions, field family organization, source precedence, Unknown handling. |
+| `Research_16_Glossary.md` | Glossary research base and initial term inventory. |
 
 ---
 

@@ -1,7 +1,7 @@
 # Chapter 06 — Holdings
 
 Repository: AXYS / APX Reference Repository
-Chapter file: `docs/06-Holdings.md`
+Chapter file: `docs/axys-apx-reference/Chapter_06_Holdings.md`
 Prepared: 2026-06-29
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
@@ -18,6 +18,8 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 This chapter documents holdings and position-related behavior in Axys and APX using only the supplied research material.
 
 In this chapter, **holdings** means a portfolio's assets or positions as shown or extracted at a point in time. The available evidence is strongest for report output, reconciliation workflows, third-party integration workflows, and named artifacts. The available evidence is weaker for native storage models, canonical IMEX object names, and internal Axys/APX calculation rules.
+
+A holdings change should be read as the outcome of posted transactions and associated accounting rules, not as a standalone event inferred from a transaction code. For performance and reconciliation work, it is helpful to distinguish external cash flows from trading activity, income, fees, and corporate-action events because those categories affect cash, lots, cost basis, and valuation differently.
 
 ### Confidence labels
 
@@ -56,6 +58,7 @@ In this chapter, **holdings** means a portfolio's assets or positions as shown o
 | `Portfolio Code` is an available Portfolio Appraisal column in Axys Report Writer. | Verified | CSSI example. |
 | Axys Report Writer has a `Management Mode` option relevant to group Portfolio Appraisal output. | Verified | CSSI example. |
 | A CSSI sample Portfolio Appraisal displayed `Quantity`, `Security`, `Price`, `Market Value`, `Pct Assets`, `Yield`, and `Portfolio Code`. | Verified for sample | Do not treat this as a complete default field list. |
+| The same CSSI sample includes grouping labels such as `EQUITY MUTUAL FUNDS`, `U.S. Equity`, and `Large Cap`. | Verified for sample | Treat these as example report headings, not universal classification values. |
 
 ### 2.2 Axys group Portfolio Appraisal behavior
 
@@ -88,11 +91,11 @@ The supplied material identifies several Axys files that are relevant to holding
 
 | File / artifact | Description in supplied evidence | Holdings relevance | Confidence |
 |---|---|---|---:|
-| `.cli` | Client files in Morningstar conversion guide. | Portfolio/client source context; cost-basis and client-file settings may affect converted data. | Verified |
-| `sec.inf` | Securities file in Morningstar conversion guide. | Security master input for holdings interpretation. | Verified |
-| `type.inf` | Security type file in Morningstar conversion guide. | Security type/classification input for holdings interpretation. | Verified |
-| `split.inf` | Securities splits file in Morningstar conversion guide. | Split information may affect position quantities. | Verified |
-| `.pri` | Security prices file in Morningstar conversion guide. | Pricing input for holdings valuation. | Verified |
+| `.cli (clients file)` | Client files in Morningstar conversion guide. | Portfolio/client source context; cost-basis and client-file settings may affect converted data. | Verified |
+| `sec.inf (securities file)` | Securities file in Morningstar conversion guide. | Security master input for holdings interpretation. | Verified |
+| `type.inf (security type file)` | Security type file in Morningstar conversion guide. | Security type/classification input for holdings interpretation. | Verified |
+| `split.inf (securities splits file)` | Securities splits file in Morningstar conversion guide. | Split information may affect position quantities. | Verified |
+| `.pri (security prices file)` | Security prices file in Morningstar conversion guide. | Pricing input for holdings valuation. | Verified |
 | `.pos` | Position source/import files in AIA and Custodial Integrator contexts. | Position files used in reconciliation/import workflows. | Verified for cited workflows |
 | `CDIhold.rep` | WealthTechs-provided report used to calculate historical holdings in AIA workflow. | Historical holdings extract. | Verified for AIA workflow |
 | `$pathCDI` | Custom label mapped to network path for AIA holdings extract workflow. | Output path for holdings extract workflow. | Verified for workflow |
@@ -144,6 +147,7 @@ The supplied material identifies several Axys files that are relevant to holding
 |---|---:|---|
 | APX has a Portfolio Appraisal report. | Medium Confidence | Based on APX reports guide search-result evidence; full guide was not supplied or verified in the research. |
 | APX Portfolio Appraisal can show holdings by individual tax lot or position. | Medium Confidence | Same limitation: full APX reports guide is needed before treating as Verified. |
+| Public APX sample client reports may include a `PORTFOLIO APPRAISAL` section and report parameters such as `STY:APX`. | Medium Confidence | Downstream client-report evidence only; do not treat as a vendor report specification. |
 | Standard APX Portfolio Appraisal default columns are Unknown. | Unknown | No complete APX report output or guide section supplied. |
 | APX group behavior for Portfolio Appraisal is Unknown. | Unknown | No APX-specific evidence comparable to the Axys CSSI group example. |
 
@@ -511,3 +515,18 @@ The supplied research is sufficient for this conservative chapter, but a more co
 8. Sample current-date and historical holdings extracts from Axys and APX.
 9. Client-specific notes documenting how holdings are calculated relative to transactions, prices, splits, and accruals.
 
+## 14. Deep IMEX Update
+
+The deep IMEX research adds position-import detail that belongs with holdings
+only as IMEX-adjacent position evidence.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| `ptopost.trn` | CI writes positions to `\CI\exported\ptopost.trn` in CSV format. | Verified for CI |
+| `.pos` files | Position Post can create replacement `.pos` files for configured Axys portfolios. | Verified for CI |
+| Position lots | If lots are enabled and available, position output may contain lot data and use `imexPositionLots.log`. | Verified for CI |
+| Candidate position fields | Portfolio/account, as-of date, symbol/type/name, quantity, price, market value, accrued income, cost, local/base currency, FX, stale flag, and custodian/account context. | Discovery guidance |
+| Candidate lot fields | Lot identifier, open/acquisition dates, quantity, cost, market value, tax-cost fields, currency, and source row lineage. | Discovery guidance |
+
+This evidence does not establish native holdings storage mechanics or standard
+Portfolio Appraisal columns.

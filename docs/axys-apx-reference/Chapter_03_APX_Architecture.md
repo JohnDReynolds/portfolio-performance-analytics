@@ -1,4 +1,4 @@
-# Chapter_03_APX_Architecture.md
+# Chapter 03 — APX Architecture
 
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `Chapter_03_APX_Architecture.md`
@@ -519,19 +519,19 @@ This chapter was prepared from the supplied repository files only.
 
 | Reference | Supplied File | Use in This Chapter |
 |---|---|---|
-| Blueprint | `AXYS_APX_REFERENCE_BLUEPRINT(40).md` | Governing specification, chapter template, confidence discipline. |
-| APX architecture research | `Research_03_APX_Architecture(1).md` | Primary source for APX architecture, reports, IMEX, REP, version references, quirks, Unknowns. |
-| Axys architecture research | `Research_02_Axys_Architecture(2).md` | Axys/APX contrast, file-oriented Axys context, reporting and IMEX contrast. |
-| Security master research | `Research_04_Security_Master(16).md` | APX Symbol, APX Security Type, `sec.inf`, `type.inf`, security matching quirks. |
-| Transactions research | `Research_05_Transactions(15).md` | Trade Blotter, transaction translation, blotter examples, cancellation example. |
-| Holdings research | `Research_06_Holdings(7).md` | Portfolio Appraisal, Position Blotter, holdings extract workflow. |
-| Cash research | `Research_07_Cash(3).md` | Cash transaction representation and cash-like symbols in APX workflows. |
-| Pricing research | `Research_08_Pricing(7).md` | APX pricing settings, price sets, `SourceId`, price-file update behavior. |
-| Corporate actions research | `Research_09_Corporate_Actions(5).md` | ACA/APX workflow, Reorg Utility, Trade Blotter corporate-action posting. |
-| Performance research | `Research_10_Performance(3).md` | APX performance analytics, stored-versus-recalculated Unknowns. |
-| Classifications research | `Research_11_Classifications(4).md` | APX classification report capabilities and classification Unknowns. |
-| IMEX research | `Research_12_IMEX(9).md` | IMEX/Import Export Utility, logs, APX/Axys differences, file examples, Unknowns. |
-| REP research | `Research_13_REP(8).md` | REP32, RepLang, Report Writer Pro, APX SSRS/REP relationship, report quirks. |
+| Blueprint | `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing specification, chapter template, confidence discipline. |
+| APX architecture research | `Research_03_APX_Architecture.md` | Primary source for APX architecture, reports, IMEX, REP, version references, quirks, Unknowns. |
+| Axys architecture research | `Research_02_Axys_Architecture.md` | Axys/APX contrast, file-oriented Axys context, reporting and IMEX contrast. |
+| Security master research | `Research_04_Security_Master.md` | APX Symbol, APX Security Type, `sec.inf`, `type.inf`, security matching quirks. |
+| Transactions research | `Research_05_Transactions.md` | Trade Blotter, transaction translation, blotter examples, cancellation example. |
+| Holdings research | `Research_06_Holdings.md` | Portfolio Appraisal, Position Blotter, holdings extract workflow. |
+| Cash research | `Research_07_Cash.md` | Cash transaction representation and cash-like symbols in APX workflows. |
+| Pricing research | `Research_08_Pricing.md` | APX pricing settings, price sets, `SourceId`, price-file update behavior. |
+| Corporate actions research | `Research_09_Corporate_Actions.md` | ACA/APX workflow, Reorg Utility, Trade Blotter corporate-action posting. |
+| Performance research | `Research_10_Performance.md` | APX performance analytics, stored-versus-recalculated Unknowns. |
+| Classifications research | `Research_11_Classifications.md` | APX classification report capabilities and classification Unknowns. |
+| IMEX research | `Research_12_IMEX.md` | IMEX/Import Export Utility, logs, APX/Axys differences, file examples, Unknowns. |
+| REP research | `Research_13_REP.md` | REP32, RepLang, Report Writer Pro, APX SSRS/REP relationship, report quirks. |
 
 ---
 
@@ -620,3 +620,18 @@ The most important unresolved APX architecture facts are:
 | Stored-versus-recalculated performance behavior. | Needed for performance audit and reproducibility. |
 | Exact relationship among SSRS, REP32, Replang, macros, and report packaging. | Needed for reporting architecture. |
 | Version-specific behavior across APX releases and deployment models. | Needed for safe implementation guidance. |
+
+## 17. Deep IMEX Update
+
+The Axys IMEX deep research adds APX contrast points that should remain
+architecture-level, not field-level claims.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| APX IMEX continuity | Practitioner evidence says APX v1.x through v4.x retained IMEX functionality while fixed-format generation was eliminated. | Medium |
+| APX-to-Axys exports | Conversion evidence mentions APX exporting Axys v3-format reference data such as sectors, industries, asset classes, indexes, composites, and performance history. | Medium |
+| Performance history | Performance-history export through IMEX is mentioned as difficult; exact APX object and fields remain Unknown. | Medium / Unknown |
+| Alternative extraction surfaces | REP/RepLang, SSRS, SQL/public views/stored accounting functions, REST, and third-party ETL may be relevant depending on deployment. | Medium / High Confidence by surface |
+
+Do not assume APX IMEX object names, fields, command syntax, or fixed-format
+behavior match Axys without APX-specific documentation or samples.

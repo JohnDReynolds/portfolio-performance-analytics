@@ -541,3 +541,16 @@ When converting this research into `Chapter_10_Performance.md`:
    - composite/GIPS performance.
 6. Treat `Unknown` as a valid result, not a gap to fill with speculation.
 
+## 18. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional performance-related points:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| Performance history | Public conversion evidence mentions performance history as an IMEX/migration concern, but clean object names and field lists remain Unknown. | Medium / Unknown |
+| Candidate performance fields | Live discovery should inspect portfolio/security/classification/composite identifiers, period start/end dates, beginning/ending market value, return, contribution, external flow, income, fees, average/modified-Dietz weights, benchmark, and currency fields. | Discovery guidance |
+| `portperf` / `secperf` status | The deep research reinforces that `portperf` and `secperf` should remain normalized/product-local names unless a live IMEX object, report output, or vendor manual confirms native names. | Unknown |
+| REP/report preference | Performance values often require user-visible tie-out; REP/Replang/custom reports may be more appropriate than IMEX when the exact reported value matters. | Design guidance |
+| Catalog requirement | Any product should record extraction mechanism, source report or IMEX object, source row, calculation/stored-value confidence, and version. | Design guidance |

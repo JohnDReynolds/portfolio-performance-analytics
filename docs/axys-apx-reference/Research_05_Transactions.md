@@ -1346,6 +1346,420 @@ Morningstar Axys conversion evidence states that `li` deliver-in and `lo` delive
 | Setting code `N` in the referenced 53rd character position maps `li`/`lo` to Credit/Debit of Security in Morningstar conversion. | Axys | Medium |
 | Code-only transaction interpretation is unsafe for `li`/`lo`. | Axys | High as a design recommendation; Medium source evidence. |
 
+### 9.8 Practical Classification Reference for Performance and Audit
+
+The following section consolidates the standalone Axys Transaction Types Reference into this research chapter. It is a working reference for classifying Advent/SS&C Axys transaction types for performance, audit, reconciliation, and data-quality rules. It should not be treated as an official Axys manual or exhaustive proprietary code list. The most important practical point remains that transaction code alone is usually not sufficient. In practice, classification should use the transaction code together with security type, security symbol, source/destination type, source/destination symbol, quantity/sign, amount/sign, cash-security versus non-cash-security context, performance/cash-flow flag if available, and firm-specific trade-blotter mapping.
+
+Public source notes for the standalone transaction-types reference:
+
+- Custodial Integrator translates normalized WebPortfolio transaction types into Axys transaction codes and fields.
+- The ByAllAccounts default translation table includes Axys codes such as `li`, `lo`, `by`, `sl`, `cs`, `ss`, `dv`, `in`, `ai`, `dp`, `wd`, `pa`, `sa`, `rc`, and `pd`.
+- The same table warns that special cases and financial-institution-specific customizations can affect translation.
+- Morningstar conversion notes discuss `epus`, `exus`, and the special treatment of `li`/`lo` deliver-in/deliver-out versus credit/debit behavior based on a setting in the Axys `.cli` client file.
+
+#### 9.8.1 Executive Classification Table
+
+| Axys code / marker | Common meaning | Group | External cash flow? | Position effect | Cash effect | Performance / audit notes |
+|---|---|---|---|---|---|---|
+| `li` | Deliver in / credit / deposit / transfer in | External cash flows / transfers | Often yes, but depends | Cash or security increase | Often increase | Core candidate for contribution/inflow. Must distinguish cash contribution from security transfer, internal journal, or correction. |
+| `lo` | Deliver out / debit / withdrawal / transfer out | External cash flows / transfers | Often yes, but depends | Cash or security decrease | Often decrease | Core candidate for withdrawal/outflow. Must distinguish client withdrawal from fee, internal movement, or security transfer. |
+| `by` | Buy | Trading activity | No | Increase long position | Decrease cash | Match execution price to close; validate commission, accrued interest, and settlement cash. |
+| `sl` | Sell | Trading activity | No | Decrease long position | Increase cash | Match execution price to close; validate realized gain/loss, quantity, commission, settlement cash. |
+| `cs` | Cover short | Trading activity | No | Decrease short position | Usually decrease cash | Public integration table maps cover-short to `cs`. Also appears in some closure scenarios. |
+| `ss` | Short sale | Trading activity | No | Increase short position | Usually increase cash/proceeds | Validate borrow/short-sale treatment, proceeds, and exposure sign. |
+| `dv` | Dividend | Income | No | Usually none unless reinvested | Increase cash or wash cash | Common equity dividend code; can be paired with `by` for reinvestment. |
+| `in` | Interest / income | Income | No | Usually none | Increase cash | Common interest/bond income code. For cash-security dividend/income, public mappings may use `in`. |
+| `ai` | Accrued interest / negative interest / margin interest | Income / trading adjunct | No | Usually none | Increase/decrease depending use | Public table maps negative interest and margin interest to `ai`; accrued-interest sell side maps to `sa`. |
+| `pa` | Accrued interest on buy / purchase accrued interest | Trading adjunct / income | No | Usually none | Usually decrease cash | Used in public table for buy accrued interest; not an external cash flow. |
+| `sa` | Accrued interest on sell / sale accrued interest | Trading adjunct / income | No | Usually none | Usually increase cash | Used in public table for sell accrued interest; not an external cash flow. |
+| `dp` | Disbursement/payment/deposit-like cash transaction; fee/expense in integration mappings | Internal cash movements / expenses | Usually no | Usually none | Usually decrease/increase depending sign/context | Public mappings use `dp` for fees, service charges, investment expenses, cash-security buys, and some taxes. Needs firm-specific interpretation. |
+| `wd` | Withdrawal-like cash entry for cash-security sell | Internal cash movements / cash security | Usually no | Usually none | Usually increase/decrease depending context | Public table maps cash-security sell to `wd`; do not assume it is a client withdrawal. |
+| `rc` | Return of capital | Corporate actions / income | Usually no | Usually none or cost-basis impact | Increase cash | Validate against corporate action data; affects tax-lot/cost-basis and income classification. |
+| `pd` | Principal paydown | Corporate actions / fixed income | Usually no | Decrease principal/quantity or cost basis | Increase cash | Important for MBS/ABS/bonds. Conversion notes warn Axys principal-paydown data may be incomplete for downstream processing. |
+| `;` | Split / journal / other marker in public table | Corporate actions / non-performance | Usually no | Depends | Depends | Public table shows `;` for SPLIT, JOURNAL, and OTHER. Treat as placeholder/marker requiring manual interpretation. |
+| `epus` | Expense/security type used for expenses/taxes/recordkeeping | Fee/expense security type | No | Usually none | Usually decrease cash | Morningstar notes convert Axys `epus` fee types as management fees; CI uses it as a configurable fee type. |
+| `exus` | Expense/security type used for expenses/custody fees | Fee/expense security type | No | Usually none | Usually decrease cash | Morningstar notes convert Axys `exus` as expenses; CI examples use `exus custfee`. |
+| `dvwash` | Dividend reinvestment wash security/symbol | Reinvestment support | No | Support marker | Wash cash | Used to pair dividend and buy for reinvested dividends. Not a true economic holding. |
+| `caus margin` | Margin/cash symbol used in margin interest mappings | Financing support | No | Usually none | Cash/margin balance | Used in public mapping for negative interest/margin interest. |
+| Uppercase transaction code, e.g. `BY` | Reversal/deletion of original transaction | Non-performance-affecting / correction | Depends | Reverses original | Reverses original | CI states reversal transactions convert the original type code to uppercase, Axys representation for transaction deletion. |
+
+#### 9.8.2 Group 1 — External Cash Flows
+
+External cash-flow classification is central for Modified Dietz and performance audit. In Axys, the most likely transaction codes are `li` and `lo`, but the economic meaning depends on the security/cash fields and firm setup.
+
+##### `li` — Deliver in / inflow / credit / deposit / transfer in
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Incoming cash or security transfer. |
+| Typical use | Client contribution, direct deposit, incoming ACAT/security transfer, positive ATM/POS/transfer mapping, credit. |
+| External flow? | Usually yes for true client contributions/transfers into the managed account. Not always. |
+| Cash contribution pattern | `li` with source/destination type like `$pty` and source/destination symbol like `$cash`. |
+| Security transfer pattern | `li` with non-cash security type/symbol and positive quantity. |
+| Performance treatment | External flow for Dietz/TWR if it represents capital entering the portfolio from outside. |
+| Audit tests | Compare to custodian cash-flow record; detect same-day offsetting `lo`; identify duplicate posting; verify performance-flow flag; verify quantity/price for security-in-kind transfers. |
+| Common pitfall | Treating every `li` as a client contribution. Some are corrections, security credits, internal transfers, or data-interface artifacts. |
+
+Practical classification rule:
+
+```text
+if code == 'li' and cash security/symbol == cash and source/destination indicates outside party:
+    classify as external cash inflow candidate
+elif code == 'li' and noncash security:
+    classify as security transfer-in candidate
+else:
+    classify as deliver-in requiring firm mapping
+```
+
+##### `lo` — Deliver out / outflow / debit / withdrawal / transfer out
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Outgoing cash or security transfer. |
+| Typical use | Client withdrawal, direct debit, check/payment, outgoing transfer, negative ATM/POS/transfer mapping, debit. |
+| External flow? | Usually yes for true client withdrawals/transfers out of the managed account. Not always. |
+| Cash withdrawal pattern | `lo` with source/destination type like `$pty` and source/destination symbol like `$cash`. |
+| Security transfer pattern | `lo` with non-cash security type/symbol and negative/outgoing quantity. |
+| Performance treatment | External flow for Dietz/TWR if it represents capital leaving the portfolio to the client/outside party. |
+| Audit tests | Compare to custodian withdrawal records; detect duplicate outflow; separate fees/taxes from true withdrawals; identify same-day transfer across household accounts. |
+| Common pitfall | Treating all `lo` as external withdrawals. Some `lo` transactions may be debit/correction/security-out events. |
+
+#### 9.8.3 Group 2 — Internal Cash Movements, Fees, Expenses, and Financing
+
+These transactions affect cash but generally should not be treated as external client cash flows unless a firm's methodology explicitly says so.
+
+##### `dp` — Payment/disbursement/deposit-like cash transaction, often used for fees/expenses in integrations
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Context-dependent cash posting. Public mappings show `dp` for fee, service charge, investment expense, cash-security buy, and some tax mappings. |
+| External flow? | Usually no. |
+| Position effect | Usually none, unless paired with a security/fee symbol. |
+| Cash effect | Usually decreases cash for fees/expenses, but sign/context matter. |
+| Common security types/symbols | `exus custfee`, `epus expense`, `epus with`, and other firm-defined fee symbols. |
+| Audit tests | Fee reasonableness; management-fee schedule; custody-fee schedule; withholding-tax classification; detect fees incorrectly marked as withdrawals. |
+| Performance treatment | Usually an internal expense affecting return, not an external flow. But gross-of-fee versus net-of-fee reporting matters. |
+
+##### `wd` — Cash-security sell withdrawal-like code
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Public table maps cash-security SELL to `wd`. |
+| External flow? | Usually no by itself. |
+| Audit tests | Confirm whether this is cash-security liquidation versus client withdrawal. |
+| Common pitfall | Name looks like withdrawal, but mapping may represent sale/redemption of a cash security. |
+
+##### `ai` — Accrued interest / negative interest / margin interest
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Interest-related adjustment, often negative interest or margin interest in public mappings. |
+| External flow? | No. |
+| Cash effect | Usually expense/debit for margin interest; sign matters. |
+| Audit tests | Validate against margin debit balances and rate schedules; separate from normal bond interest. |
+
+##### `epus` and `exus` — Expense-related Axys security types
+
+These are not transaction codes in the same way as `by` or `sl`; they commonly appear as special security types or fee/expense classifications in Axys interface data.
+
+| Security type | Common use | Audit notes |
+|---|---|---|
+| `epus` | Expense/payment/security type, management fee, tax/withholding in some mappings | Morningstar conversion notes say Axys `epus` fee codes are converted as management fees. Confirm firm use. |
+| `exus` | Expense/security type, custody fee, service charge, generic expense | Morningstar conversion notes say Axys `exus` is converted as expenses. Confirm firm use. |
+
+#### 9.8.4 Group 3 — Trading Activity
+
+Trading transactions normally affect holdings and cash but should not be classified as external flows.
+
+##### `by` — Buy
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Purchase of a security. |
+| External flow? | No. |
+| Position effect | Increases long position. |
+| Cash effect | Decreases cash. |
+| Performance treatment | Internal transaction; affects holdings and future return but not a client flow. |
+| Audit tests | Execution price vs market close; commission reasonableness; settlement amount; cash availability; trade-date versus settle-date; duplicate trade detection. |
+| Special cases | Reinvested dividends may be represented as paired `dv` + `by`, often using `dvwash`. |
+
+##### `sl` — Sell
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Sale of a long security. |
+| External flow? | No. |
+| Position effect | Decreases long position. |
+| Cash effect | Increases cash. |
+| Audit tests | Execution price vs market close; realized gain/loss; lot relief; settlement amount; commission; wash-sale/tax-lot implications where applicable. |
+
+##### `ss` — Short sale
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Opening/increasing short position. |
+| External flow? | No. |
+| Position effect | Increases short exposure. |
+| Cash effect | Usually increases cash/proceeds or short-credit balance. |
+| Audit tests | Quantity sign; market value sign; borrow fees; margin treatment; performance exposure sign. |
+
+##### `cs` — Cover short
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Closing/decreasing short position. |
+| External flow? | No. |
+| Position effect | Decreases short exposure. |
+| Cash effect | Usually decreases cash. |
+| Audit tests | Quantity sign; gain/loss; short proceeds; closing price validation. |
+
+##### `pa` — Purchase accrued interest / accrued interest on buy
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Accrued interest paid when buying a bond. |
+| External flow? | No. |
+| Position effect | Usually none; attached to bond trade economics. |
+| Cash effect | Decreases cash as part of settlement. |
+| Audit tests | Validate accrued days, coupon, day-count convention, settlement date, ex-coupon rules. |
+
+##### `sa` — Sale accrued interest / accrued interest on sell
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Accrued interest received when selling a bond. |
+| External flow? | No. |
+| Position effect | Usually none; attached to bond trade economics. |
+| Cash effect | Increases cash as part of settlement. |
+| Audit tests | Validate accrued days, coupon, day-count convention, settlement date, ex-coupon rules. |
+
+#### 9.8.5 Group 4 — Income
+
+Income transactions usually affect cash and return, but are not external cash flows.
+
+##### `dv` — Dividend
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Dividend income from equity or dividend-paying security. |
+| External flow? | No. |
+| Cash effect | Increases cash unless reinvested or netted with withholding. |
+| Position effect | None unless paired with reinvestment buy. |
+| Audit tests | Expected dividend amount = shares × dividend rate; compare ex-date, record date, payable date; withholding-tax treatment; foreign tax reclaim; duplicate dividends. |
+| Reinvestment pattern | Public mapping shows reinvestment as `dv` plus `by`, often using `dvwash`. |
+
+##### `in` — Interest / income
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Interest income, bond income, cash-security income, or income on certain security types. |
+| External flow? | No. |
+| Cash effect | Increases cash. |
+| Position effect | Usually none. |
+| Audit tests | Validate bond coupon schedule, coupon rate, day count, position quantity, pay date, accrued interest, and cash receipt. |
+
+##### Negative dividend / withholding tax treatments
+
+Some interfaces can represent withholding taxes or related tax/fee adjustments in different ways:
+
+| Pattern | Meaning | Audit implication |
+|---|---|---|
+| Separate expense line, e.g. `dp` with `exus`/withholding symbol | Gross dividend plus separate tax/fee | Good for gross/net audit but requires linking lines. |
+| Negative `dv` or negative `in` | Tax reduces income directly | Easier net cash but can obscure gross income. |
+| Withholding tax field on income transaction | Single income transaction with withholding field | Best if downstream system preserves field. |
+
+#### 9.8.6 Group 5 — Corporate Actions and Fixed-Income Principal Events
+
+##### `rc` — Return of capital
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Return of capital distribution. |
+| External flow? | Usually no; it is issuer distribution, not client capital movement. |
+| Cash effect | Increases cash. |
+| Cost-basis effect | Often reduces cost basis. |
+| Audit tests | Compare to corporate action source; verify tax classification; ensure not misclassified as dividend; verify cost-basis adjustment. |
+
+##### `pd` — Principal paydown
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Principal repayment/paydown, common for mortgage-backed and asset-backed securities. |
+| External flow? | No. |
+| Cash effect | Increases cash. |
+| Position effect | Decreases principal balance or amortized quantity depending system method. |
+| Audit tests | Validate principal factor; beginning factor vs ending factor; quantity/principal decrease; cash received; cost-basis and amortization. |
+| Known issue | Conversion notes warn that Axys data may not contain complete downstream information for securities with principal paydown transaction types in some conversion contexts. |
+
+##### `;` — Split / journal / other marker
+
+| Attribute | Notes |
+|---|---|
+| Primary interpretation | Public translation table shows `;` for split, journal, and other. This appears to be a marker/placeholder rather than a conventional economic trade code. |
+| External flow? | Usually no. |
+| Position effect | For splits: quantity changes, market value should not materially change. For journals/other: depends. |
+| Audit tests | For splits: verify split ratio, pre/post quantity, price adjustment, no artificial return. For journals/other: require firm mapping. |
+
+#### 9.8.7 Group 6 — Non-Performance-Affecting Events, Reversals, Corrections, and Placeholders
+
+##### Uppercase transaction codes — reversal / deletion
+
+Public CI documentation states that reversal transactions are translated by converting the original transaction type code to uppercase. For example, if the original code was `by`, the reversal code is `BY`.
+
+| Attribute | Notes |
+|---|---|
+| Meaning | Reversal/deletion of original transaction. |
+| Performance treatment | Should reverse the original transaction's effect; do not count as a new independent economic event. |
+| Audit tests | Match uppercase reversal to original lower-case transaction; verify same security, date, quantity, amount; identify orphan reversals. |
+
+##### `;` / OTHER / JOURNAL
+
+| Attribute | Notes |
+|---|---|
+| Meaning | Placeholder or special handling in public mappings. |
+| Performance treatment | Cannot classify safely without firm-specific mapping. |
+| Audit tests | Require manual review bucket; high-value journals should be reconciled to operational explanation. |
+
+#### 9.8.8 Suggested Audit-Rule Matrix
+
+| Audit rule | Relevant codes | Test |
+|---|---|---|
+| External-flow detection | `li`, `lo` | Identify cash/security flows that enter/leave portfolio from outside; exclude fees, trades, income, internal transfers. |
+| Performance change explanation | `li`, `lo`, `dv`, `in`, `rc`, `pd`, `by`, `sl`, reversals | Compare prior-run vs current-run transaction sets for same historical period. |
+| Trade price reasonableness | `by`, `sl`, `ss`, `cs` | Compare execution price to same-day close, high/low, or VWAP where available. |
+| Dividend expected vs actual | `dv`, negative `dv`, withholding lines | Shares × declared dividend rate; match payable date and withholding. |
+| Interest/coupon expected vs actual | `in`, `ai`, `pa`, `sa` | Coupon schedule, day count, accrual, settlement dates. |
+| Split integrity | `;` split marker, firm split codes if any | Quantity changes by split ratio; price adjusts inversely; market value / MV approximately unchanged. |
+| Return of capital classification | `rc` | Verify tax/corporate-action classification; cost basis decreases; not treated as ordinary dividend. |
+| Principal paydown | `pd` | Validate principal factor, cash received, principal reduction, amortization. |
+| Fee classification | `dp`, `epus`, `exus`, fee symbols | Separate custody fee, management fee, withholding tax, other expense; gross/net performance treatment. |
+| Reversal/orphan detection | Uppercase codes | Match reversal to original; flag orphan reversals or mismatched amounts. |
+| Reinvestment linkage | `dv` + `by`, `dvwash` | Confirm dividend cash equals reinvestment buy amount; avoid double-counting income/cash. |
+
+#### 9.8.9 Recommended Normalized Transaction Fields for an Audit Product
+
+To classify Axys/APX transactions robustly, normalize raw data into this schema:
+
+| Field | Type | Notes |
+|---|---:|---|
+| `portfolio_id` | string | Axys portfolio/client code. |
+| `transaction_id` | string | Stable ID if available; otherwise hash of raw fields. |
+| `trade_date` | date | Economic/trade date. |
+| `settle_date` | date nullable | Settlement date. |
+| `posted_date` | date nullable | When posted/changed in system. Important for "why did history change?" |
+| `transaction_code_raw` | string | Raw Axys code, preserving case. |
+| `transaction_code_norm` | string | Lowercase normalized code. |
+| `is_reversal` | boolean | True if uppercase reversal/deletion or explicit cancel flag. |
+| `security_type` | string nullable | e.g. `csus`, `caus`, `fius`, `epus`, `exus`. |
+| `security_id` | string nullable | Axys symbol/CUSIP/cash/fee symbol. |
+| `src_dest_type` | string nullable | e.g. `$pty`, `$ity`, `$pth`. |
+| `src_dest_symbol` | string nullable | e.g. `$cash`, `$income`. |
+| `quantity` | decimal nullable | Signed if available. |
+| `price` | decimal nullable | Transaction price. |
+| `gross_amount` | decimal nullable | Before fees/taxes if available. |
+| `net_amount` | decimal nullable | Net cash impact if available. |
+| `commission` | decimal nullable | Trade commission. |
+| `withholding_tax` | decimal nullable | Foreign/tax withholding. |
+| `cash_impact` | decimal nullable | Signed cash impact in base currency. |
+| `position_impact` | decimal nullable | Signed quantity/principal impact. |
+| `currency` | string nullable | Transaction currency. |
+| `performance_cash_flow_flag` | string/boolean nullable | Use if Axys/firm exports it. |
+| `classification` | enum | External flow, trade, income, fee, corp action, correction, unknown. |
+| `classification_confidence` | enum | Confirmed, probable, requires mapping, unknown. |
+| `raw_line` | string | Preserve original source for audit traceability. |
+
+#### 9.8.10 Practical Classification Hierarchy
+
+Use a hierarchy like this instead of classifying by transaction code alone:
+
+1. **Reversal / cancel detection** — Uppercase code or cancel flag means reversal/delete; link back to original transaction.
+2. **Explicit firm mapping override** — Apply client-specific mapping table first. This is essential for `dp`, `wd`, `li`, `lo`, `epus`, `exus`, and `;` records.
+3. **Security type and symbol** — Cash security, fee security, income cash, dividend wash, margin cash, real security.
+4. **Code family** — `by/sl/ss/cs` = trade family; `dv/in/ai/pa/sa` = income/accrual family; `li/lo` = transfer/external-flow candidate; `rc/pd` = corporate-action/principal family; `dp/wd` = cash/fee/context-dependent family.
+5. **Amount and quantity signs** — Positive/negative units and cash can determine in/out direction.
+6. **Performance treatment** — Decide whether the event is an external flow, internal return event, non-managed transfer, correction, or non-performance event.
+
+#### 9.8.11 Minimal Firm-Specific Mapping Table to Request from Each Axys Client
+
+Ask each client to complete this table for their implementation:
+
+| Raw code | Security type | Security symbol | Src/Dest type | Src/Dest symbol | Meaning at this firm | External flow? | Gross/net performance? | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `li` | `caus`/cash | `$cash` | `$pty` | `$cash` | Client contribution | Yes | N/A | Confirm cash symbol. |
+| `lo` | `caus`/cash | `$cash` | `$pty` | `$cash` | Client withdrawal | Yes | N/A | Confirm checks vs fees. |
+| `dp` | `exus` | `custfee` | `$pty` | `$cash` | Custody fee | No | Net/gross depends | Confirm reporting policy. |
+| `dp` | `epus` | `expense` | `$pty` | `$cash` | Management fee | No | Net/gross depends | Confirm if fee should be excluded for gross-of-fee. |
+| `dv` | real security | real symbol | `$ity` | `$income` | Dividend | No | Return event | Link to expected dividend feed. |
+| `in` | bond/security | real symbol | `$ity` | `$income` | Interest | No | Return event | Link to coupon schedule. |
+| `rc` | real security | real symbol | `$pty` | `$cash` | Return of capital | No | Return/cost basis event | Confirm cost-basis handling. |
+| `pd` | bond/MBS | real symbol | `$pty` | `$cash` | Principal paydown | No | Principal event | Confirm principal factor handling. |
+
+#### 9.8.12 Publicly Observed WebPortfolio-to-Axys Mappings
+
+The following rows are based on public ByAllAccounts Custodial Integrator default mappings. They are useful because they show how a real Axys integration maps normalized custodian activity into Axys codes, but they are not a universal Axys transaction-code manual.
+
+| Normalized transaction type | Sign/context | Axys code(s) observed | Notes |
+|---|---|---|---|
+| ATM | `+` | `li` | Cash in. |
+| ATM | `-` | `lo` | Cash out. |
+| BUY | security | `by` | Standard buy. |
+| BUY | cash security | `dp` | Context-dependent cash security handling. |
+| COVER SHORT | security | `cs` | Cover short. |
+| BUY ACCRUED INTEREST | bond/accrual | `pa` | Purchase accrued interest. |
+| BUY Reinvested Div | reinvested dividend | `by` with `dvwash` | Reinvestment support. |
+| CHECK | cash out | `lo` | Likely withdrawal/payment. |
+| CLOSURE | `+` | `sl` | Public table maps positive closure to sell. |
+| CLOSURE | `-` | `cs` | Public table maps negative closure to cover short. |
+| CREDIT | cash/security | `li` | Inflow/credit candidate. |
+| DEBIT | non-cash security | `lo` | Debit/outflow candidate. |
+| DEBIT tax | tax/fee | `dp` with `epus with` | Withholding/tax style mapping. |
+| DEPOSIT | cash | `li` | External inflow candidate. |
+| DEPOSIT | non-cash security | `li` and `by` | Transfer/deposit plus buy in some contexts. |
+| DIRECT DEBIT | cash out | `lo` | External outflow candidate. |
+| DIRECT DEPOSIT | cash in | `li` | External inflow candidate. |
+| DIVIDEND | dividend-paying security | `dv` | Dividend. |
+| DIVIDEND | cash security | `in` | Cash-security income. |
+| DIVIDEND | reinvested dividend | `dv` with `dvwash` | Paired with buy. |
+| FEE | fee | `dp` with `exus custfee` | Fee/expense, not external flow. |
+| RECORDKEEPING | fee | `dp` with `epus expense` | Fee/expense. |
+| INCOME | bond security | `in` | Interest/income. |
+| INCOME | cash security | `in` | Cash income. |
+| INCOME | dividend-paying security | `dv` | Dividend-style income. |
+| INTEREST | `+` | `in` | Interest income. |
+| INTEREST | `-` | `ai` | Negative interest/accrual/margin-style mapping. |
+| INVESTMENT EXPENSE | fee | `dp` with `exus custfee` | Expense. |
+| JOURNAL | other | `;` | Requires firm mapping/manual review. |
+| MARGIN INTEREST | margin | `ai` with `caus margin` | Financing expense. |
+| OTHER | other | `;` | Requires firm mapping/manual review. |
+| PAYMENT | cash out | `lo` | Payment/withdrawal candidate. |
+| POINT OF SALE | `+` | `li` | Cash in candidate. |
+| POINT OF SALE | `-` | `lo` | Cash out candidate. |
+| REINVESTMENT | dividend + buy | `dv` and `by` with `dvwash` | Reinvested dividend pair. |
+| REPEAT PAYMENT | cash out | `lo` | Payment/outflow candidate. |
+| RETURN OF CAPITAL | normal | `rc` | Return of capital. |
+| RETURN OF CAPITAL | bond security | `pd` | Principal paydown. |
+| SELL | security | `sl` | Standard sell. |
+| SELL | cash security | `wd` | Cash security handling. |
+| SHORT | security | `ss` | Short sale. |
+| SELL ACCRUED INTEREST | bond/accrual | `sa` | Sale accrued interest. |
+| SERVICE CHARGE | fee | `dp` with `exus custfee` | Fee/expense. |
+| SPLIT | split | `;` | Split marker/special handling. |
+| TRANSFER | `+` | `li` | Transfer in candidate. |
+| TRANSFER | `-` | `lo` | Transfer out candidate. |
+| WITHDRAWAL | cash out | `lo` | External outflow candidate. |
+
+#### 9.8.13 Bottom Line for an Audit Product
+
+For an Axys/APX audit product, treat this reference as a seed mapping. The product should ship with:
+
+1. A default mapping based on observed public Axys integration behavior.
+2. A client-specific mapping override table.
+3. A confidence level on every transaction classification.
+4. A “requires review” bucket for ambiguous `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases.
+5. A reconciliation report showing how raw codes were converted into audit classifications.
+
+This design avoids the biggest risk: falsely treating every cash-like transaction as a performance external flow.
+
 ---
 
 ## 10. Transaction Field Dictionary
@@ -2909,3 +3323,19 @@ The chapter cannot responsibly document without Unknown labels:
 - complete Trade Blotter field layout,
 - native audit-retention behavior,
 - REP/Replang source definitions.
+
+## E.18 Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional transaction-specific points:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| `topost.trn` role | Public CI evidence supports `topost.trn` as the Axys Trade Blotter file in `$pathtrn`; generated transactions are appended and existing transactions are left unchanged. | Verified for CI workflow |
+| File creation | If the Trade Blotter file does not exist, Axys Import/Export can create one in the configured user folder in the CI workflow. | Verified for CI workflow |
+| Comment boundaries | CI can create beginning and ending comment transactions around its generated block. | Verified for CI workflow |
+| Transaction comments | CI can include source transaction information as Trade Blotter comments that do not post unless configured. | Verified for CI workflow |
+| Candidate transaction fields | A live Axys catalog should inspect portfolio, transaction code/subtype, trade/settle/post/effective dates, symbol/type, quantity, price, gross/net/cash amounts, commission, fees, accrued interest, withholding, source/destination type and symbol, cost fields, Perf/CW, Mark to Market, currency, FX, external source ID, and comments. | Discovery guidance |
+| External-flow caution | Source/destination and special-security fields are observed integration labels, but official IMEX availability remains Unknown. Transaction-code-only interpretation remains unsafe for `li`, `lo`, `dp`, and `wd`. | Medium / Unknown boundary |
+| REP fallback | When IMEX does not expose enough transaction context to classify flows, report extraction or custom REP output should be considered for classification evidence. | Design guidance |

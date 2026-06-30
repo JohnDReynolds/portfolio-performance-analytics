@@ -499,3 +499,16 @@ The eventual `docs/13-REP.md` chapter could use this structure:
 | Processing behavior | Low-Partial | Some specific execution/editing behaviors verified; calculation internals unknown. |
 | Version differences | Low-Partial | Some Axys 3.8.7 and connector-supported versions known; report language changes unknown. |
 
+## 21. Deep IMEX Addendum Incorporated 2026-06-30
+
+Source: `axys_imex_deep_research.md`.
+
+Additional REP/IMEX boundary points:
+
+| Topic | Addendum | Confidence |
+|---|---|---:|
+| REP as alternative extraction | Deep IMEX research reinforces that REP/Replang/custom reports are an alternative extraction path when IMEX object schemas are incomplete or when values must tie to user-visible reports. | High Confidence |
+| Connector evidence | Salentica Data Broker uses Advent standard reports, macros, REP32, RepLang scripting, and installed Advent Client Tools for Axys/APX extraction. | Verified for connector |
+| Best-fit split | IMEX is the better starting point for security reference, security types, prices, transactions, and positions where object/export support exists; REP is often better for performance values, classification performance, and report-specific tie-outs. | Design guidance |
+| Required metadata | REP-derived extracts should record report file/name, version, parameters, layout, row lineage, and whether values are stored or recalculated. | Design guidance |
+| Boundary | A report label or REP variable does not by itself establish underlying transaction, performance, or IMEX field semantics. | Medium / boundary |

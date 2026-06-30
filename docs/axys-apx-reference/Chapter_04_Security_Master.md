@@ -1,4 +1,4 @@
-# 04 – Security Master
+# Chapter 04 — Security Master
 
 > Repository chapter expanded from the supplied chapter, research notes, independent research addenda, and repository blueprint. This chapter treats the research files as raw evidence and reorganizes the supported facts into a technical reference. Unsupported items are marked **Unknown**. Integration-specific behavior is identified as such and is not promoted to native Axys/APX behavior unless the supplied research supports that conclusion.
 
@@ -798,6 +798,24 @@ The following evidence would convert many Unknowns into documented facts.
 | 8 | REP report source for security-list/security-master reports. | REP report names and field exposure. |
 | 9 | Security samples for equities, mutual funds, bonds, options, cash equivalents, currencies. | Asset-class-specific field coverage. |
 | 10 | Version-specific Axys/APX documentation. | Version differences. |
+
+---
+
+## 15.1 Deep IMEX Update
+
+The deep IMEX research reinforces that `sec.inf` and `type.inf` are supported
+as CI-observed Axys reference files, but not as complete public schemas.
+
+| Item | Chapter treatment | Confidence |
+|---|---|---:|
+| `sec.inf` | Security Information used by CI to map external securities and generate valid imports. | Verified for CI |
+| `type.inf` | Security Type Information used by CI with security master data. | Verified for CI |
+| `MISSINGPRICES_yyyymmdd.csv` | CI diagnostic with Symbol, Type, Name, WP Account, and Institution. | Verified for CI output |
+| `SECTRANSLATIONS_yyyymmdd.csv` | CI diagnostic/output mapping WebPortfolio identifiers to Axys Symbol and Type. | Verified for CI output |
+| Candidate live-discovery fields | Symbol/type, name, ticker, CUSIP, ISIN, currency, multiplier, factor, coupon, maturity, classifications, and user-defined fields. | Discovery guidance |
+
+Do not present the CI diagnostics or candidate live-discovery fields as an
+official universal Axys IMEX security-master schema.
 
 ---
 

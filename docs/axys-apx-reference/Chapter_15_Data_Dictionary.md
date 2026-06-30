@@ -94,14 +94,14 @@ The supplied research supports the following high-level entities. Exact native f
 | Entity / Data Area | Axys | APX | Evidence Status | Confidence |
 |---|---|---|---|---|
 | Portfolio / account | Supported as a core accounting/reporting entity. | Supported as a core accounting/reporting entity. | Exact native key fields are only partially observed. | Verified at product/entity level; field-level Unknown |
-| Security master | Supported; `sec.inf` and `type.inf` appear in integration/conversion evidence. | Supported; security information and security type appear in integration evidence; APX native table names are not supplied. | Symbol + security type appears repeatedly in matching workflows. | Verified in integration context |
+| Security master | Supported; `sec.inf`, `SECURITY.INF`, `type.inf`, and `TYPE.INF` appear in integration/conversion evidence. | Supported; security information and security type appear in integration evidence; APX native table names are not supplied. | Symbol + security type appears repeatedly in matching workflows. | Verified in integration context; uppercase names are Medium Confidence migration leads |
 | Transactions | Supported; `.cli`, `topost.trn`, and transaction-code examples appear in research. | Supported; Trade Blotter, transaction translation, and Transaction Summary report labels appear in research. | Official complete transaction-code matrix is not supplied. | Verified at entity level; code matrix Medium/Unknown |
 | Holdings / positions | Supported through Portfolio Appraisal, position files, `.pos`, and reports. | Supported through Portfolio Appraisal, Position Blotter, SQL/current-date extraction in AIA workflow, and reports. | Native storage model remains Unknown. | Verified at entity level |
 | Cash | Represented through transaction activity and cash-like symbols/tokens in integrations. | Represented through transaction activity and cash-like symbols/tokens in integrations. | Native cash balance objects and report names remain Unknown. | High Confidence for integration tokens; native fields Unknown |
 | Prices | `*.pri`, `$pathpri`, `imexPrices.log`, calculated price behavior appear in research. | AIA price-file update logic, price set logic, and `SourceId` appear in research. | Native price schema remains Unknown. | Verified for workflow artifacts; native fields Unknown |
 | Corporate actions | `split.inf` is supported for Axys split evidence; dividends/reorgs likely transaction-driven but not fully verified. | ACA for APX sends holdings to ACA, runs APX Reorg Utility, posts to APX Trade Blotter. | Exact corporate-action field dictionary Unknown. | Axys split file High Confidence; APX ACA workflow Verified |
-| Performance | Product-level capability supported; APX reports expose portfolio/benchmark/attribution labels. | Product-level capability supported; APX reports expose performance/attribution/contribution labels. | Exact IMEX objects such as `portperf`/`secperf` remain unverified. | Product-level Verified; field-level mixed |
-| Classifications | Axys supports grouping/reporting by asset class, sector, country, region, etc. | APX report guide supports custom classification, industry group, sector in report context. | Native classification storage remains Unknown. | Report/category support Verified; native fields Unknown |
+| Performance | Product-level capability supported; APX reports expose portfolio/benchmark/attribution labels; `PRF` appears as a performance-return migration lead. | Product-level capability supported; APX reports expose performance/attribution/contribution labels. | Exact IMEX objects such as `portperf`/`secperf` remain unverified. | Product-level Verified; field-level mixed; `PRF` Medium Confidence |
+| Classifications | Axys supports grouping/reporting by asset class, sector, country, region, etc.; `GRP` appears as a group/color-group migration lead. | APX report guide supports custom classification, industry group, sector in report context. | Native classification storage remains Unknown. | Report/category support Verified; native fields Unknown; `GRP` Medium Confidence |
 | IMEX | Axys Import/Export utility observed as `imex32.exe`; imports transaction, position, and price files in CI workflow. | APX import/export observed as `APXIX.exe` / `ApxIx` / IMEX logs in integration contexts. | Exact object list and field dictionary Unknown. | Verified for utilities/workflows; object fields Unknown |
 | REP / reports | Axys `.REP`, Replang, `AMAN.REP`, Report Writer Pro, `REP32.exe` are supported. | APX supports SSRS reports and also has REP32/Replang extraction evidence in connector context. | Exact report source dictionaries Unknown. | Verified for examples; full syntax Unknown |
 
@@ -119,9 +119,13 @@ The supplied research supports the following high-level entities. Exact native f
 | `*.cli` | Axys client/portfolio files referenced in conversion and integration research. | Yes | Unknown / APX `.cli` appears in some APX integration notes but native status Unknown | Related | Unknown | Verified for Axys conversion/integration context |
 | `.cli` | Advent/Axys client file; Morningstar conversion evidence says cost-basis data may be present if exported. | Yes | Unknown | Related | Unknown | Medium Confidence for field content |
 | `sec.inf` | Securities/security information file in Axys conversion and integration evidence. | Yes | APX CI context also references `sec.inf` | Related | Unknown | Verified in conversion/integration context |
+| `SECURITY.INF` | Uppercase security-master file-name form referenced as a migration/conversion lead. | Yes | Unknown | Unknown | Unknown | Medium Confidence |
 | `type.inf` | Security type information file in Axys conversion and integration evidence. | Yes | APX CI context also references `type.inf` | Related | Unknown | Verified in conversion/integration context |
+| `TYPE.INF` | Uppercase security-type file-name form referenced as a migration/conversion lead. | Yes | Unknown | Unknown | Unknown | Medium Confidence |
 | `split.inf` / `SPLIT.INF` | Securities splits file in Axys conversion/corporate-action research. | Yes | Unknown native APX status | Unknown | Unknown | High Confidence for Axys |
 | `*.pri` | Security price files in Axys price folder/integration evidence. | Yes | APX AIA examples use `.pri` file names in price workflow | Related | No | Verified for integration context |
+| `PRF` / `.PRF` | Performance-return migration/conversion file lead. | Yes | Unknown | Unknown | Unknown | Medium Confidence |
+| `GRP` / `.GRP` | Group/color-group migration/conversion file lead. | Yes | Unknown | Unknown | Unknown | Medium Confidence |
 | `*.pos` | Position files created/replaced in Axys Position Post / CI workflow. | Yes | Unknown | Related | No | Verified for CI context |
 | `ptopost.trn` | Position file written by CI to `\CI\exported\ptopost.trn`; may contain lot-specific data when enabled/available. | Yes | Unknown | Related | No | Verified for CI context |
 | `$pathexe` | Axys executable folder label in CI configuration. | Yes | No | Configuration | No | Verified in CI context |
@@ -392,7 +396,7 @@ This table is an observed-code catalog only. It is not a complete official Axys/
 | `pd` | Principal paydown / bond return-of-capital case. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `ai` | Accrued interest or margin interest depending context. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `sa` | Sell accrued interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `pa` | Reinvested dividend / accrued-interest-related buy-like case; meaning requires further verification. | Unknown | Observed | Trade Blotter/import context | Unknown | Low to Medium Confidence |
+| `pa` | Purchase accrued interest / accrued-interest-related buy-side case; meaning requires further verification. | Unknown | Observed | Trade Blotter/import context | Unknown | Low to Medium Confidence |
 | `dp` | Debit / fee-related / tax / service charge / cash-security case. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `wd` | Withdrawal / cash-security sell case. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `;` | Journal / comment / other / split in integration table. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
@@ -414,6 +418,7 @@ These tokens are observed in integration workflows. Native cash-balance schema r
 | `CASH` / `cash` | Cash symbol/token in integration examples. | Yes | Yes | Related | Unknown | High Confidence as observed token |
 | `MMF` | Money-market/sweep vehicle symbol in examples. | Yes | Yes | Related | Unknown | High Confidence as observed token |
 | `MARGIN` / `margin` | Margin cash/sweep symbol in examples. | Yes | Yes | Related | Unknown | High Confidence as observed token |
+| `caus margin` | Margin/cash context used in public negative-interest or margin-interest mappings. | Yes | Unknown | Related | Unknown | High Confidence as observed token; native definition Unknown |
 | `SHORT` / `short` | Short cash/sweep symbol in examples. | Yes | Yes | Related | Unknown | High Confidence as observed token |
 | `dvwash` | Dividend wash special symbol excluded from sweep-removal logic. | Yes | Yes in AIA docs | Related | Unknown | High Confidence as observed token; native definition Unknown |
 | `dvshrt` | Special symbol excluded from sweep-removal logic. | Yes | Yes | Related | Unknown | High Confidence as observed token; native definition Unknown |
@@ -688,6 +693,43 @@ This table maps concepts across observed labels. It does not assert identical se
 
 These examples are included because they are explicitly supported by supplied research. They are not general import/export templates unless stated.
 
+### 13.0 Candidate Performance Field Checklist
+
+Research 10 includes the following candidate performance field spellings as a checklist,
+not as verified Axys/APX field names. Replace them only after a sample export, report
+definition, IMEX object dictionary, or vendor documentation confirms the exact labels.
+
+```text
+PortfolioCode
+PortfolioName
+StartDate
+EndDate
+CurrencyCode
+BeginningMarketValue
+EndingMarketValue
+NetContributions
+Income
+Fees
+PortfolioReturn
+GrossReturn
+NetReturn
+BenchmarkCode
+BenchmarkReturn
+SecurityID
+Symbol
+SecurityName
+AssetClass
+Sector
+Industry
+Weight
+SecurityReturn
+Contribution
+LocalReturn
+CurrencyEffect
+AccruedIncome
+RunDate
+```
+
 ### 13.1 Axys Asset Export Field Order Example
 
 AdvisorEngine’s Axys asset import workflow expects this field order from an Axys XLS export:
@@ -895,6 +937,12 @@ These are recommended minimum **conceptual** field families for downstream use. 
 | Price / unit price | Execution price | Observed as report label | Medium Confidence |
 | Amount | Cash/economic amount | Observed in APX report labels | Medium Confidence |
 | Source/destination type/symbol | Cash/security movement context | Observed in integration examples | Medium Confidence |
+| Cash impact | Signed normalized cash effect for audit and performance classification | Not verified as native field | Medium Confidence as recommended field |
+| Position impact | Signed normalized quantity or principal effect | Not verified as native field | Medium Confidence as recommended field |
+| Performance cash-flow flag | Explicit or derived external-flow treatment | Not verified as native field | Medium Confidence as recommended field |
+| Transaction classification | External flow, trade, income, fee, corporate action, correction, or unknown | Not verified as native field | Medium Confidence as recommended field |
+| Classification confidence | Confidence assigned by mapping/audit logic | Not verified as native field | Medium Confidence as recommended field |
+| Raw source line | Original source record retained for traceability | Not verified as native field | Medium Confidence as recommended field |
 | Broker / broker representative | Operational metadata | Observed in AIA workflow | Medium Confidence |
 | Comment | Operational note | Observed in AIA workflow | Medium Confidence |
 
@@ -1006,27 +1054,53 @@ The following gaps should remain Unknown until supported by vendor documentation
 
 ---
 
+## 17.5 Deep IMEX Normalized Schema Guidance
+
+The 2026-06-30 IMEX deep research adds normalized audit-schema candidates.
+These are not official Axys/APX field dictionaries and should remain separate
+from native field claims.
+
+| Normalized object | Candidate field families |
+|---|---|
+| Security master | Security ID/symbol/type, names, CUSIP, ISIN, ticker, asset class, sector, industry, country, currency, multiplier, coupon/frequency, maturity, issue date, factor, user fields, source file/row. |
+| Transactions | Portfolio, transaction ID/code, trade/settle/post dates, security symbol/type, quantity, price, gross/net/cash amount, commission, fees, accrued interest, withholding, source/destination type and symbol, currency, FX, cost fields, Perf/CW, Mark to Market, comments, external source ID, source file/row. |
+| Prices | Security symbol/type, price date, price, price source, currency, factor, source file/row. |
+| Positions | Portfolio, as-of date, security symbol/type, quantity, price, market value, accrued income, cost, currency, FX, stale flag, source file/row. |
+| Position lots | Portfolio, as-of date, security, lot ID, open/acquisition date, quantity, cost, market value, currency, source file/row. |
+| Performance | Portfolio/security/classification/composite identifiers, period dates, level, beginning/ending market value, weight, return, contribution, external flow, income, fees, source report/row. |
+
+Any implementation dictionary should also record extraction mechanism, exact
+source artifact, Axys/APX version, original label, internal token if known, data
+type, width, precision, required/import/export status, sample value, confidence,
+and source lineage.
+
+No normalized field in this section should be documented as generally available
+in Axys IMEX until confirmed by a live IMEX catalog, vendor manual, or sanitized
+export sample.
+
+---
+
 ## 18. References
 
 This chapter was prepared from the supplied repository blueprint and supplied research files only.
 
 | Source Material | Use |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT(44).md` | Governing editorial standard, confidence labels, chapter structure, field dictionary format |
-| `Research_02_Axys_Architecture(4).md` | Axys architecture, files, IMEX, REP, version/file-format cautions |
-| `Research_03_APX_Architecture(3).md` | APX architecture, SSRS reporting, APX IMEX, REP32, APX reports |
-| `Research_04_Security_Master(18).md` | Security master fields/tokens, `sec.inf`, `type.inf`, security matching, symbol/type behavior |
-| `Research_05_Transactions(17).md` | Transaction fields, transaction codes, Trade Blotter, source/destination fields, cancellation behavior |
-| `Research_06_Holdings(9).md` | Portfolio Appraisal fields, holdings/positions, position/lot blotters, holdings extract reports |
-| `Research_07_Cash(5).md` | Cash tokens, cash sweeps, cash-like source/destination symbols, cash transaction behavior |
-| `Research_08_Pricing(9).md` | Price files, price logs, price source/sets, calculated prices, APX price-file update logic |
-| `Research_09_Corporate_Actions(7).md` | `split.inf`, ACA for APX, Reorg Utility, corporate-action field unknowns |
-| `Research_10_Performance(5).md` | Performance field candidates, product-level performance capability, performance Unknowns |
-| `Research_11_Classifications(6).md` | Classification fields/categories, asset class/sector/industry group, custom classification |
-| `Research_12_IMEX(11).md` | IMEX utilities, logs, file/folder labels, Data Broker/REP32 extraction, native object unknowns |
-| `Research_13_REP(10).md` | REP/Replang tokens, report files, Report Writer Pro, REP32, SSRS distinction |
-| `Research_14_Reports(2).md` | APX report names and labels, report categories, report/IMEX distinction |
-| `Research_15_Data_Dictionary(1).md` | Data dictionary design, source precedence, unknown tracking |
+| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial standard, confidence labels, chapter structure, field dictionary format |
+| `Research_02_Axys_Architecture.md` | Axys architecture, files, IMEX, REP, version/file-format cautions |
+| `Research_03_APX_Architecture.md` | APX architecture, SSRS reporting, APX IMEX, REP32, APX reports |
+| `Research_04_Security_Master.md` | Security master fields/tokens, `sec.inf`, `type.inf`, security matching, symbol/type behavior |
+| `Research_05_Transactions.md` | Transaction fields, transaction codes, Trade Blotter, source/destination fields, cancellation behavior |
+| `Research_06_Holdings.md` | Portfolio Appraisal fields, holdings/positions, position/lot blotters, holdings extract reports |
+| `Research_07_Cash.md` | Cash tokens, cash sweeps, cash-like source/destination symbols, cash transaction behavior |
+| `Research_08_Pricing.md` | Price files, price logs, price source/sets, calculated prices, APX price-file update logic |
+| `Research_09_Corporate_Actions.md` | `split.inf`, ACA for APX, Reorg Utility, corporate-action field unknowns |
+| `Research_10_Performance.md` | Performance field candidates, product-level performance capability, performance Unknowns |
+| `Research_11_Classifications.md` | Classification fields/categories, asset class/sector/industry group, custom classification |
+| `Research_12_IMEX.md` | IMEX utilities, logs, file/folder labels, Data Broker/REP32 extraction, native object unknowns |
+| `Research_13_REP.md` | REP/Replang tokens, report files, Report Writer Pro, REP32, SSRS distinction |
+| `Research_14_Reports.md` | APX report names and labels, report categories, report/IMEX distinction |
+| `Research_15_Data_Dictionary.md` | Data dictionary design, source precedence, unknown tracking |
 
 ---
 

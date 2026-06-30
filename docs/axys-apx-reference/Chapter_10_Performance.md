@@ -21,6 +21,22 @@ The available supplied research supports broad performance/reporting capability 
 
 Therefore, this chapter is intentionally conservative. Unsupported implementation details are marked **Unknown**.
 
+Performance inputs are downstream of transactions, holdings, cash, prices, and classifications. The supplied evidence does not support treating a transaction code or a report label as sufficient proof of performance semantics; for implementation and audit work, performance analysis should preserve the raw event context and classify external flows, trading activity, income, fees, and corporate actions before interpreting returns and cash-flow effects.
+
+In particular, `li` and `lo` should be handled as external-flow
+candidates, not automatic Modified Dietz contribution/withdrawal flags.
+The classification should use security type, security symbol,
+source/destination type and symbol, amount and quantity signs,
+reversal/cancellation state, and firm-specific mapping so that fees,
+sweeps, corrections, cash-security activity, and in-kind transfers are
+not misread as client cash flows.
+
+Performance review workflows should preserve a "requires review" bucket
+for ambiguous `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases. In
+observed public mappings, dividend reinvestment may use `dv`, `by`, and
+`dvwash`, while margin-interest handling may use `ai` with margin cash
+context; neither pattern should be treated as an external cash flow.
+
 ### 1.1 Confidence labels
 
 | Label | Meaning in this chapter |
@@ -322,32 +338,39 @@ This table follows the repository field dictionary standard. It includes observe
 
 | Field | Description | Axys | APX | IMEX | REP | Confidence |
 |---|---|---:|---:|---:|---:|---:|
-| Portfolio/account identifier | Identifies account/portfolio whose performance is reported. | Unknown exact field | Unknown exact field | Unknown | Unknown | Unknown |
-| Portfolio code | Portfolio code appears in Axys reporting examples outside performance. | Yes, report context | Unknown | Unknown | Yes, in REP examples | Verified outside performance |
+| Portfolio/account identifier | Identifies account/portfolio whose performance is reported; research checklist aliases include `PortfolioCode` / account id. | Unknown exact field | Unknown exact field | Unknown | Unknown | Unknown |
+| Portfolio name | Portfolio/account display name; research checklist alias `PortfolioName`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Portfolio code | Portfolio code appears in Axys reporting examples outside performance; exact performance field name Unknown. | Yes, report context | Unknown | Unknown | Yes, in REP examples | Verified outside performance |
 | Security symbol | Product security identifier; symbol/type pairing is important in integration contexts. | Yes | Yes | Unknown | Unknown | Medium Confidence |
 | Security type | Product security type; not the same as asset class/classification. | Yes | Yes | Unknown | Unknown | Medium Confidence |
-| Start date | Beginning date of performance period. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| End date | Ending date of performance period. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Beginning market value | Valuation at period start. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Ending market value | Valuation at period end. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Contributions/withdrawals | External cash flows. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Start date | Beginning date of performance period; research checklist alias `StartDate`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| End date | Ending date of performance period; research checklist alias `EndDate`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Currency code | Base, reporting, or local currency code; research checklist alias `CurrencyCode`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Beginning market value | Valuation at period start; research checklist alias `BeginningMarketValue`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Ending market value | Valuation at period end; research checklist alias `EndingMarketValue`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Contributions/withdrawals | External-flow treatment derived from classified cash/security movements; research checklist alias `NetContributions`. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Income | Income included in performance. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Fees | Fees included/excluded depending on gross/net return. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Portfolio return | Account-level return. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Security return | Security-level return. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Portfolio return | Account-level return; research checklist alias `PortfolioReturn`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Gross return | Gross-of-fee return; research checklist alias `GrossReturn`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Net return | Net-of-fee return; research checklist alias `NetReturn`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Security identifier | Security identifier used in a performance row; research checklist alias `SecurityID`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Security name | Security display name; research checklist alias `SecurityName`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Security return | Security-level return; research checklist alias `SecurityReturn`. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Weight | Security or classification weight. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Contribution | Contribution to portfolio return. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Benchmark code | Benchmark identifier. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Benchmark return | Benchmark period return. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Asset class | Reporting/performance grouping category in Axys product material. | Yes, category | Likely | Unknown | Likely report output | Medium Confidence |
+| Benchmark code | Benchmark identifier; research checklist alias `BenchmarkCode`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Benchmark return | Benchmark period return; research checklist alias `BenchmarkReturn`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Asset class | Reporting/performance grouping category in Axys product material; research checklist alias `AssetClass`. | Yes, category | Likely | Unknown | Likely report output | Medium Confidence |
 | Sector | Reporting/performance grouping category. | Yes, category | Yes, report category | Unknown | Likely report output | Medium Confidence |
 | Country | Axys performance display category. | Yes, category | Unknown | Unknown | Likely report output | Medium Confidence |
 | Region | Axys performance display category. | Yes, category | Unknown | Unknown | Likely report output | Medium Confidence |
 | Industry group | APX report-guide snippet category. | Unknown | Yes, report category | Unknown | Likely report output | Medium Confidence |
 | Custom classification | APX report-guide snippet category. | Unknown | Yes, report category | Unknown | Likely report output | Medium Confidence |
-| Local return | Local-currency return. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Currency effect | Currency/FX effect. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Run date | Report/export run timestamp. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Local return | Local-currency return; research checklist alias `LocalReturn`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Currency effect | Currency/FX effect; research checklist alias `CurrencyEffect`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Accrued income | Accrued income included in valuation/performance; research checklist alias `AccruedIncome`. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Run date | Report/export run timestamp; research checklist alias `RunDate`. | Unknown | Unknown | Unknown | Unknown | Unknown |
 
 ---
 
@@ -444,17 +467,17 @@ This chapter is based only on supplied repository research and source summaries.
 
 | Supplied file | Use in this chapter |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT(34).md` | Governing chapter structure, confidence labels, and facts-first standard. |
-| `Research_10_Performance(1).md` | Primary performance research. |
-| `Research_12_IMEX(7).md` | IMEX, REP32, file/interface, direct-file-access, and import/export cautions. |
-| `Research_13_REP(6).md` | REP, RepLang, Report Writer Pro, REP32, SSRS/reporting-path evidence. |
-| `Research_04_Security_Master(14).md` | Security identity, symbol/type, security master dependencies. |
-| `Research_05_Transactions(13).md` | Transaction dependencies, performance restatement risk, transaction correction implications. |
-| `Research_06_Holdings(5).md` | Holdings/report valuation dependencies. |
-| `Research_07_Cash(1).md` | Cash, cash-flow, and performance/cash treatment unknowns. |
-| `Research_08_Pricing(5).md` | Price files, stale/missing/calculated prices, price restatement implications. |
-| `Research_09_Corporate_Actions(3).md` | Corporate-action effects on holdings/prices/transactions/performance. |
-| `Research_11_Classifications(2).md` | Classification reporting categories and historical-classification unknowns. |
+| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing chapter structure, confidence labels, and facts-first standard. |
+| `Research_10_Performance.md` | Primary performance research. |
+| `Research_12_IMEX.md` | IMEX, REP32, file/interface, direct-file-access, and import/export cautions. |
+| `Research_13_REP.md` | REP, RepLang, Report Writer Pro, REP32, SSRS/reporting-path evidence. |
+| `Research_04_Security_Master.md` | Security identity, symbol/type, security master dependencies. |
+| `Research_05_Transactions.md` | Transaction dependencies, performance restatement risk, transaction correction implications. |
+| `Research_06_Holdings.md` | Holdings/report valuation dependencies. |
+| `Research_07_Cash.md` | Cash, cash-flow, and performance/cash treatment unknowns. |
+| `Research_08_Pricing.md` | Price files, stale/missing/calculated prices, price restatement implications. |
+| `Research_09_Corporate_Actions.md` | Corporate-action effects on holdings/prices/transactions/performance. |
+| `Research_11_Classifications.md` | Classification reporting categories and historical-classification unknowns. |
 
 External source names and URLs are preserved in the supplied research files rather than repeated as authoritative direct citations here.
 
@@ -509,3 +532,15 @@ To upgrade this chapter from conservative reference to implementation manual, co
 | Multi-currency performance examples | Determine local/base/currency-effect support. |
 | Composite/GIPS report examples | Determine composite aggregation/storage/report behavior. |
 
+## 15. Deep IMEX Update
+
+The deep IMEX research confirms that performance remains a report/extract
+boundary area rather than a solved IMEX object dictionary.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| Performance history | Public conversion evidence mentions performance history as an IMEX/migration concern, but object names and fields remain Unknown. | Medium / Unknown |
+| `portperf` / `secperf` | Treat as normalized/local names unless a live IMEX object, report output, or vendor manual confirms native names. | Unknown |
+| Candidate live-discovery fields | Portfolio/security/classification/composite IDs, period dates, beginning/ending market value, return, contribution, external flow, income, fees, weights, benchmark, and currency fields. | Discovery guidance |
+| REP/report preference | Use REP/Replang/custom reports when reported performance must tie to user-visible Axys/APX output. | Design guidance |
+| Extraction metadata | Record source object/report, parameters, version, row lineage, and stored-vs-recalculated confidence. | Design guidance |

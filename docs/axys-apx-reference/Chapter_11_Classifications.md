@@ -1,7 +1,7 @@
-# 11. Classifications
+# Chapter 11 — Classifications
 
 Repository: AXYS / APX Reference Repository
-Chapter: `docs/11-Classifications.md`
+Chapter: `docs/axys-apx-reference/Chapter_11_Classifications.md`
 Prepared from supplied research material: 2026-06-29
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
@@ -18,6 +18,8 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 This chapter documents classification-related behavior in SS&C Advent Axys and SS&C Advent Portfolio Exchange (APX), based only on the supplied research and source material.
 
 The term **classification** is used conservatively in this chapter. The supplied research does not establish a single native Axys/APX object named `classification`. Instead, classification-like information appears in several different contexts:
+
+Classification outputs should be kept distinct from transaction semantics. A transaction can represent a trade, income event, fee, transfer, or cash flow, while the reporting classification of that event (asset class, sector, industry, country, region, custom group) is a separate concern. In practice, classification joins should retain the raw security identity, security type, and source context rather than relying on transaction code alone.
 
 | Context | Examples | Status |
 |---|---|---:|
@@ -345,9 +347,9 @@ The following model is a documentation and extraction model. It is not asserted 
 | `security_identity` | Preserve system security identity. | system, symbol, type | name, ticker, CUSIP, source | High Confidence as integration model |
 | `security_type` | Preserve product security type metadata. | system, type | type description, reserved prefix flag, source | Medium Confidence |
 | `classification_scheme` | Identify classification family. | system, scheme name | asset class, sector, industry group, country, region, custom scheme | Medium Confidence |
-| `classification_value` | Store lookup value in a scheme. | system, scheme, code/name | display name, parent, sort order | Unknown as native; useful as model |
+| `classification_value` | Store lookup value in a scheme. | system, `scheme_id`, `class_code` | display name, parent, sort order | Unknown as native; useful as model |
 | `security_classification_assignment` | Assign a security to a classification value. | system, symbol, type, scheme | value, effective date if present, source | Unknown as native; useful as model |
-| `portfolio_grouping_assignment` | Assign a portfolio/account to grouping category. | system, portfolio code, scheme/category | manager, objective, asset class, custom category | Medium Confidence for Axys portfolio grouping |
+| `portfolio_classification_assignment` / portfolio grouping assignment | Assign a portfolio/account to grouping category. | system, portfolio code, scheme/category | manager, objective, asset class, custom category | Medium Confidence for Axys portfolio grouping |
 | `report_classification_output` | Capture report-derived classifications/allocations. | report, as-of date, portfolio/group, classification | market value, percent, weight, return, source report | Medium Confidence |
 
 ### 6.3 Data lineage requirements
@@ -605,15 +607,15 @@ This chapter was drafted from the supplied research files and their referenced s
 
 | Supplied research file | Use in this chapter |
 |---|---|
-| `AXYS_APX_REFERENCE_BLUEPRINT(29).md` | Governing editorial rules, confidence labels, chapter template, and Unknown handling. |
+| `AXYS_APX_REFERENCE_BLUEPRINT.md` | Governing editorial rules, confidence labels, chapter template, and Unknown handling. |
 | `Research_11_Classifications.md` | Primary classification research: Axys/APX classification capabilities, field candidates, IMEX/REP unknowns, test plan, quirks. |
-| `Research_04_Security_Master(12).md` | Security identity, `sec.inf`, `type.inf`, symbol/type matching, security import dependencies, duplicate security quirks. |
-| `Research_06_Holdings(3).md` | Portfolio Appraisal, holdings fields, group/management mode behavior, report examples, `CDIhold.rep`. |
-| `Research_12_IMEX(5).md` | IMEX definition, Axys/APX IMEX behavior, file/folder evidence, REP32 extraction context, direct file access cautions. |
-| `Research_13_REP(4).md` | RepLang, `.REP`, Report Writer Pro, REP32, report execution, APX reporting paths. |
-| `Research_05_Transactions(11).md` | Trade Blotter/label context and transaction-related caution where labels are not proven classifications. |
-| `Research_08_Pricing(3).md` | Pricing/reporting and security master dependency cautions relevant to classification-enriched holdings/valuation. |
-| `Research_09_Corporate_Actions(1).md` | Security master and corporate-action context; no direct classification field definitions supplied. |
+| `Research_04_Security_Master.md` | Security identity, `sec.inf`, `type.inf`, symbol/type matching, security import dependencies, duplicate security quirks. |
+| `Research_06_Holdings.md` | Portfolio Appraisal, holdings fields, group/management mode behavior, report examples, `CDIhold.rep`. |
+| `Research_12_IMEX.md` | IMEX definition, Axys/APX IMEX behavior, file/folder evidence, REP32 extraction context, direct file access cautions. |
+| `Research_13_REP.md` | RepLang, `.REP`, Report Writer Pro, REP32, report execution, APX reporting paths. |
+| `Research_05_Transactions.md` | Trade Blotter/label context and transaction-related caution where labels are not proven classifications. |
+| `Research_08_Pricing.md` | Pricing/reporting and security master dependency cautions relevant to classification-enriched holdings/valuation. |
+| `Research_09_Corporate_Actions.md` | Security master and corporate-action context; no direct classification field definitions supplied. |
 
 Referenced external source categories from the supplied research include:
 
@@ -662,3 +664,18 @@ Referenced external source categories from the supplied research include:
 | Small anonymized classification export | Confirms symbol/type/name/CUSIP/asset class/sector/industry/country/region/custom fields. |
 | Before/after classification edit test | Confirms historical classification behavior. |
 | Versioned exports from Axys/APX environments | Confirms version differences and field stability. |
+
+## 14. Deep IMEX Update
+
+The deep IMEX research adds classification/reference-list export leads but does
+not close the field dictionary.
+
+| Topic | Chapter treatment | Confidence |
+|---|---|---:|
+| Reference lists | Sectors, industries, asset classes, indexes, and composites are mentioned in conversion/export contexts. | Medium |
+| Candidate live-discovery fields | Code, description/name, sort order, parent group, security assignment, portfolio label assignment, and effective-date behavior. | Discovery guidance |
+| Security type distinction | `type.inf` Security Type Information is related reference data but is not the same as asset class/sector/industry classification. | High Confidence |
+| IMEX vs REP comparison | Compare raw IMEX classification exports with REP/report rollups to detect report-derived grouping or overrides. | Design guidance |
+
+Exact IMEX object names and field lists for classifications, indexes,
+composites, labels, and assignments remain Unknown.
