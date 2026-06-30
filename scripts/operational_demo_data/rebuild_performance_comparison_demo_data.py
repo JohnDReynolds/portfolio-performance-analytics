@@ -156,7 +156,6 @@ _CASH_SECURITY_ID: Final = "CASH_USD"
 _EXPECTED_SCENARIO_COVERAGE: Final = {
     "axys_full_spec_b": {
         "transaction_scenarios_by_type": {
-            ";": 1,
             "by": 1,
             "dp": 1,
             "dv": 1,
@@ -165,7 +164,6 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "wd": 1,
         },
         "transaction_derived_holdings_by_type": {
-            ";": 1,
             "by": 2,
             "dp": 1,
             "dv": 1,

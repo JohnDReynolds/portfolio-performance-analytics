@@ -389,7 +389,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row[3] for row in security_rows},
-                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y", "TSLA"},
+                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y"},
                 )
                 self.assertEqual({row[7] for row in security_rows}, {"Fully Explained"})
                 fully_explained_rows = [

@@ -780,7 +780,9 @@ transaction type:
 - `dv` and `in` increase ending `CASH_USD` holdings;
 - `by` increases the traded security holding and reduces cash;
 - `sl` reduces the traded security holding and increases cash;
-- `;` split evidence remains outside transaction-derived holding impacts for now.
+- split/corporate-action evidence is intentionally absent from the current
+  user-facing full-spec demo until it can use a real-world split in a period
+  designed for that corporate action.
 
 Suggested source-of-truth inputs:
 
@@ -825,6 +827,9 @@ complete:
 - market value formula, including whether accrued is separate from market value
 - reported fixed-income accrual amount treatment
 - corporate-action treatment for splits and future action types
+- real-world corporate-action fixture policy: user-facing demo splits must use
+  actual historical split dates/securities, not fictional future splits; purely
+  synthetic corporate-action cases belong in clearly labeled test-only fixtures.
 - cash security identifier policy, including multi-currency cash accounts
 - rounding policy for quantities, prices, market values, cash, and performance
 
@@ -854,13 +859,13 @@ Current packaged demo coverage includes realistic examples of:
 - dividend
 - interest
 - fee
-- split / corporate action evidence
 - accrual change
 
 Remaining high-value examples to add:
 
 - portfolio contribution
 - transfer in / transfer out
+- real-world split / corporate action evidence
 - bond maturity / principal paydown
 - corporate actions beyond splits
 

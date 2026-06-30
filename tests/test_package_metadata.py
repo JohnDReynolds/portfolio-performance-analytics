@@ -612,13 +612,11 @@ class TestPackageMetadata(unittest.TestCase):
             places=2,
         )
 
-    def test_axys_demo_split_transaction_updates_security_holding(self) -> None:
-        """Packaged split rows update the affected security without a cash amount."""
+    def test_axys_demo_omits_synthetic_future_splits(self) -> None:
+        """Packaged full-spec demo avoids fictional future split transactions."""
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
-        transaction_id = ("BALANCED0503",)
-        holding_key = ("BALANCED", "TSLA", "2026-04-30")
 
         transactions_a = _csv_rows_by_key(
             snapshot_a / "transactions.csv",
@@ -628,49 +626,14 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "transactions.csv",
             ("TRANSACTION_ID",),
         )
-        holdings_a = _csv_rows_by_key(
-            snapshot_a / "holdings.csv",
-            ("PORT", "SEC", "HOLDING_DATE"),
-        )
-        holdings_b = _csv_rows_by_key(
-            snapshot_b / "holdings.csv",
-            ("PORT", "SEC", "HOLDING_DATE"),
-        )
 
-        self.assertEqual(transactions_a[transaction_id]["TRAN"], ";")
-        self.assertEqual(transactions_b[transaction_id]["TRAN"], ";")
-        self.assertAlmostEqual(
-            _float_delta(
-                transactions_a[transaction_id],
-                transactions_b[transaction_id],
-                "QTY",
-            ),
-            410.6989,
-            places=4,
-        )
-        self.assertAlmostEqual(
-            _float_delta(
-                transactions_a[transaction_id],
-                transactions_b[transaction_id],
-                "AMOUNT",
-            ),
-            0.0,
-            places=2,
-        )
-        self.assertAlmostEqual(
-            _float_delta(holdings_a[holding_key], holdings_b[holding_key], "QTY"),
-            410.6989,
-            places=4,
-        )
-        self.assertAlmostEqual(
-            _float_delta(
-                holdings_a[holding_key],
-                holdings_b[holding_key],
-                "MKT_VAL",
-            ),
-            44355.48,
-            places=2,
-        )
+        for rows in (transactions_a, transactions_b):
+            split_rows = [
+                row
+                for row in rows.values()
+                if row["TRAN"] == ";" and row["SEC"] == "TSLA"
+            ]
+            self.assertEqual(split_rows, [])
 
     def test_axys_demo_withdrawal_changes_cash_and_flow_return(self) -> None:
         """Packaged withdrawal changes cash, flow, and reconstructed return."""

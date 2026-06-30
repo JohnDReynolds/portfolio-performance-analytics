@@ -192,8 +192,8 @@ rows:
     required_evidence: [corporate_action_or_report_context, split_details, local_mapping]
     imex_confidence: low
     rep_confidence: medium
-    coverage_status: covered_packaged_demo
-    fixtures: [packaged_demo]
+    coverage_status: backlog
+    fixtures: []
   epus:
     observed_meaning: Management fee or fee-related token in conversion evidence.
     ppar_categories: [fee_expense]

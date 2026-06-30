@@ -96,7 +96,7 @@ The source transaction code and the normalized transaction category are distinct
 | `li` | `external_flow` or `transfer` | Defensive rule for Axys-style long-in examples; external party context is required before treating it as an external flow. |
 | `lo` | `external_flow` or `transfer` | Defensive rule for Axys-style long-out examples; external party context is required before treating it as an external flow. |
 | `wd` | `external_flow` or `transfer` | External withdrawal only when cash security and source/destination context confirm the packaged demo cash-withdrawal case. |
-| `;` | `corporate_action` | Split/journal/other-style review evidence in this packaged demo. |
+| `;` | `corporate_action` | Reserved for future split/journal/other-style evidence; user-facing split examples should use real historical corporate actions. |
 
 Reviewer-facing explanations should preserve the source code as it appears in
 the source file. For example, a changed buy transaction should display `by:`,

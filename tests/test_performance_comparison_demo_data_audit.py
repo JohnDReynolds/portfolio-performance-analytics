@@ -294,7 +294,6 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         context_fields = _dataset_fields(context)
 
         self.assertIn((pc_cols.HOLDINGS, pc_cols.COST), context_fields)
-        self.assertIn((pc_cols.TRANSACTIONS, pc_cols.QUANTITY), context_fields)
         self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
         self.assertFalse(
             any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in context_fields)
@@ -343,11 +342,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["axys_full_spec_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["axys_full_spec_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["axys_full_spec_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 7)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 6)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_scenarios_by_type"],
             {
-                ";": 1,
                 "by": 1,
                 "dp": 1,
                 "dv": 1,
@@ -356,11 +354,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 9)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 8)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
             {
-                ";": 1,
                 "by": 2,
                 "dp": 1,
                 "dv": 1,
@@ -448,21 +445,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 9)
+        self.assertEqual(len(adjustments), 8)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
         )
-        self._assert_adjustment(
-            by_scenario["BALANCED0503 ; transaction changes ending holding."],
-            portfolio="BALANCED",
-            security="TSLA",
-            holding_date="2026-04-30",
-            deltas={
-                "QTY": 410.6989,
-                "MKT_VAL": 44355.4812,
-                "COST": 44355.4812,
-            },
+        self.assertNotIn(
+            "BALANCED0503 ; transaction changes ending holding.",
+            by_scenario,
         )
         self._assert_adjustment(
             by_scenario["ALPHA0203 wd transaction changes cash balance."],

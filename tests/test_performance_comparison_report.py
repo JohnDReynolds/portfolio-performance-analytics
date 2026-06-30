@@ -925,12 +925,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ("transactions", "quantity"),
             }.issubset(promoted_fields)
         )
-        split_holding_cause = underlying_causes.filter(
-            (pl.col("dataset") == "holdings")
-            & (pl.col("source_column") == "market_value")
-            & (pl.col("security_id") == "TSLA")
-        )
-        self.assertEqual(split_holding_cause.height, 1)
         self.assertFalse(
             {
                 ("transactions", "commission"),

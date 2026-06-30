@@ -3,6 +3,5 @@ axys_full_spec_b,ALPHA0203,0.0,0.0,-1500.0,0.0,Withdrawal correction increases e
 axys_full_spec_b,ALPHA0401,1.1372,0.15,-196.98,10.0,AAPL buy correction changes quantity price commission and amount.
 axys_full_spec_b,BALANCED0203,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
 axys_full_spec_b,BALANCED0502,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
-axys_full_spec_b,BALANCED0503,410.6989,0.0,0.0,0.0,TSLA split correction changes quantity without cash impact.
 axys_full_spec_b,INCOME0203,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
 axys_full_spec_b,INCOME0603,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.
