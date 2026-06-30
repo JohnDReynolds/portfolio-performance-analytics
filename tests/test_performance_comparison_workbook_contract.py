@@ -353,6 +353,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 comparison_path=_PORTFOLIO_COMPARISON_PATH,
                 comparison_level="security",
             )
+            readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertIn("explain each security period", readme)
+            self.assertIn("follow a security period across CSV artifacts", readme)
+            self.assertNotIn("explain each performance period", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],

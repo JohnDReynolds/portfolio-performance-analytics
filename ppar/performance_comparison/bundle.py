@@ -114,6 +114,7 @@ def write_report_bundle_readme(
         if include_workbook
         else f"1. Open `report.html` and start with {primary_sheet}."
     )
+    review_unit = _readme_review_unit(comparison_level)
     lines = [
         f"# {_escape_readme_text(title)}",
         "",
@@ -128,10 +129,10 @@ def write_report_bundle_readme(
         "",
         first_review_step,
         f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
-        "source-data differences explain each performance period.",
+        f"source-data differences explain each {review_unit}.",
         f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} and "
         f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} as supporting detail.",
-        "4. Use the `review_key` column to follow a period across CSV artifacts.",
+        f"4. Use the `review_key` column to follow a {review_unit} across CSV artifacts.",
         "",
         "## Audit/Export Files",
         "",
@@ -141,6 +142,13 @@ def write_report_bundle_readme(
     ]
     output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
     return output_path
+
+
+def _readme_review_unit(comparison_level: str) -> str:
+    """Return reviewer-facing wording for the primary comparison grain."""
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return "security period"
+    return "performance period"
 
 
 def _escape_readme_text(value: object) -> str:

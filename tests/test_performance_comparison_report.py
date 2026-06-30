@@ -394,6 +394,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("## Recommended Review Order", readme)
             self.assertIn("start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
+            self.assertIn("explain each performance period", readme)
+            self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn(
@@ -970,6 +972,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)
             self.assertIn("## Audit/Export Files", readme)
+            self.assertIn("explain each performance period", readme)
+            self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertLess(
                 readme.index("`report.xlsx`: Excel review workbook"),
                 readme.index("`report.html`: browser review report"),
