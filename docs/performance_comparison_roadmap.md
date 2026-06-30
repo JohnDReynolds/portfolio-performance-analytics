@@ -695,6 +695,9 @@ Implemented guardrail:
   `blocking_if_missing` flags.
 - `docs/axys-apx-reference/templates/site_extract_contract.yaml` is the starter
   template for site-specific contracts.
+- packaged demo-data audit tests now assert that the user-facing `wd` withdrawal
+  rows resolve as external flows and the fee-like `dp` rows resolve as
+  fee-expense performance rows in both packaged snapshots.
 - `tests/data/axys/site_variants/` contains small site-shape fixtures for the
   next hardening layer: IMEX rows with context fields, REP/report rows with
   reviewed semantics, and code-only IMEX rows that must fail for ambiguous Axys

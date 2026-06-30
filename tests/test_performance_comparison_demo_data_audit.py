@@ -19,6 +19,14 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.config_validation import validate_config
+from ppar.performance_comparison.transactions import (
+    TRANSACTION_CATEGORY_EXTERNAL_FLOW,
+    TRANSACTION_CATEGORY_FEE_EXPENSE,
+    TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+    TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
+)
 from ppar.performance_comparison.workbook_tables import (
     _workbook_context_table,
     _workbook_underlying_causes_table,
@@ -115,6 +123,19 @@ def _dataset_fields(frame: pl.DataFrame) -> set[tuple[str, str | None]]:
     return {
         (str(row["dataset"]), row["source_column"])
         for row in frame.select(["dataset", "source_column"]).iter_rows(named=True)
+    }
+
+
+def _resolved_transaction_semantics(row: dict[str, object]) -> dict[str, object]:
+    """Return the transaction semantics fields that decide flow treatment."""
+    return {
+        pc_cols.TRANSACTION_CODE: row[pc_cols.TRANSACTION_CODE],
+        pc_cols.TRANSACTION_CATEGORY: row[pc_cols.TRANSACTION_CATEGORY],
+        pc_cols.CASH_FLOW_SIGN: row[pc_cols.CASH_FLOW_SIGN],
+        pc_cols.PERFORMANCE_FLOW_SIGN: row[pc_cols.PERFORMANCE_FLOW_SIGN],
+        pc_cols.TRANSACTION_SEMANTICS_SOURCE: row[
+            pc_cols.TRANSACTION_SEMANTICS_SOURCE
+        ],
     }
 
 
@@ -247,6 +268,55 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertTrue(observed_codes.issubset(configured_codes))
         self.assertTrue({"dp", "li", "lo", "wd"}.issubset(configured_codes))
+
+    def test_packaged_demo_resolves_ambiguous_axys_flow_examples(self) -> None:
+        """Packaged ambiguous-code examples resolve only through reviewed context."""
+        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+
+        for snapshot_key in ("a", "b"):
+            with self.subTest(snapshot_key=snapshot_key):
+                frame = TransactionsLoader(specification).load(snapshot_key)
+                assert frame is not None
+                resolved_rows = {
+                    str(row[pc_cols.TRANSACTION_ID]): row
+                    for row in frame.filter(
+                        pl.col(pc_cols.TRANSACTION_ID).is_in(
+                            ["ALPHA0203", "INCOME0203"]
+                        )
+                    ).iter_rows(named=True)
+                }
+
+                self.assertEqual(set(resolved_rows), {"ALPHA0203", "INCOME0203"})
+                self.assertEqual(
+                    _resolved_transaction_semantics(resolved_rows["ALPHA0203"]),
+                    {
+                        pc_cols.TRANSACTION_CODE: "wd",
+                        pc_cols.TRANSACTION_CATEGORY: (
+                            TRANSACTION_CATEGORY_EXTERNAL_FLOW
+                        ),
+                        pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                        pc_cols.PERFORMANCE_FLOW_SIGN: (
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                        ),
+                        pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                            TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                        ),
+                    },
+                )
+                self.assertEqual(
+                    _resolved_transaction_semantics(resolved_rows["INCOME0203"]),
+                    {
+                        pc_cols.TRANSACTION_CODE: "dp",
+                        pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                        pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                        pc_cols.PERFORMANCE_FLOW_SIGN: (
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                        ),
+                        pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                            TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                        ),
+                    },
+                )
 
     def test_packaged_demo_transaction_codes_stay_reviewer_realistic(self) -> None:
         """Packaged transaction rows avoid synthetic semantic edge cases."""
