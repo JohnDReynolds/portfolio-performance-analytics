@@ -472,6 +472,24 @@ class TestPackageMetadata(unittest.TestCase):
             },
         )
 
+    def test_repository_guide_documents_demo_onboarding_commands(self) -> None:
+        """The repository guide keeps the Axys demo smoke path discoverable."""
+        guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
+
+        for expected_text in [
+            "ppar.demos.performance_comparison_portfolio_demo",
+            "ppar.demos.performance_comparison_security_demo",
+            "ppar.performance_comparison.cli.validate_bundle",
+            "ppar.performance_comparison.cli.validate_config",
+            "ppar.performance_comparison.cli.validate_demo_matrix",
+            "_demo_output/performance_comparison_portfolio",
+            "_demo_output/performance_comparison_security",
+            "report.xlsx",
+            "All demo commands print the generated artifact paths",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, guide)
+
     def test_axys_demo_resources_are_packaged(self) -> None:
         """The Axys demos use packaged resources instead of test fixtures."""
         axys_demo_data = files("ppar.demos.data") / "axys"

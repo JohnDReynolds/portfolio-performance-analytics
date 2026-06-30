@@ -111,8 +111,8 @@ The installed demo commands write durable artifacts under `_demo_output/`:
 | `ppar.demos.performance_comparison_portfolio_demo` | `_demo_output/performance_comparison_portfolio` | Portfolio review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
 | `ppar.demos.performance_comparison_security_demo` | `_demo_output/performance_comparison_security` | Security review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
 
-All three demos print the generated artifact paths and leave browser opening to
-the reviewer.
+All demo commands print the generated artifact paths and leave browser opening
+to the reviewer.
 
 The performance comparison demo can be smoke-tested noninteractively:
 
