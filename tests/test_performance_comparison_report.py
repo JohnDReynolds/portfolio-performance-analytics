@@ -998,7 +998,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     workbook[sheet_name].column_dimensions[
                         workbook[sheet_name].cell(row=1, column=column).column_letter
                     ].width
-                    <= 32
+                    <= 40
                     for sheet_name in workbook.sheetnames
                     for column in range(1, workbook[sheet_name].max_column + 1)
                 )
@@ -1009,7 +1009,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(performance_change_sheet.column_dimensions["I"].width, 24)
             underlying_causes_sheet = workbook["Performance Difference Causes"]
             self.assertEqual(underlying_causes_sheet.column_dimensions["E"].width, 22)
-            self.assertEqual(underlying_causes_sheet.column_dimensions["K"].width, 32)
+            self.assertEqual(underlying_causes_sheet.column_dimensions["K"].width, 40)
             self.assertEqual(
                 [
                     _normalized_header(
