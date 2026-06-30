@@ -94,6 +94,10 @@ Data used:
   `;`) to normalized categories such as `buy`, `sell`, `income`, `fee_expense`,
   `external_flow`, and `corporate_action`. Reviewer-facing explanations preserve
   the source code rather than uppercasing or replacing it with the category.
+- Packaged transaction rows intentionally use only the small user-facing set
+  `by`, `sl`, `dv`, `in`, `dp`, and `wd`. More ambiguous `li`/`lo` transfer
+  cases and synthetic corporate-action rows live in test-only fixtures until a
+  realistic packaged story and evidence trail justify adding them here.
 - YAML: includes explicit `portfolio_return_reconstruction` settings for
   Modified Dietz diagnostic checks.
 - YAML: includes explicit `security_return_reconstruction` settings for

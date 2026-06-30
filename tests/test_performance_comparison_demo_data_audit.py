@@ -51,6 +51,9 @@ _PACKAGED_AXYS_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 )
+_PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "wd"}
+_TEST_ONLY_TRANSACTION_CODES = {"li", "lo"}
+_REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.ACCRUED),
@@ -244,6 +247,31 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertTrue(observed_codes.issubset(configured_codes))
         self.assertTrue({"dp", "li", "lo", "wd"}.issubset(configured_codes))
+
+    def test_packaged_demo_transaction_codes_stay_reviewer_realistic(self) -> None:
+        """Packaged transaction rows avoid synthetic semantic edge cases."""
+        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+            transactions = pd.read_csv(
+                _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
+            )
+            observed_codes = set(transactions["TRAN"].astype(str))
+
+            self.assertLessEqual(observed_codes, _PACKAGED_DEMO_TRANSACTION_CODES)
+            self.assertTrue(observed_codes.isdisjoint(_TEST_ONLY_TRANSACTION_CODES))
+
+    def test_packaged_demo_has_no_unevidenced_corporate_action_rows(self) -> None:
+        """User-facing corporate actions require real-world evidence first."""
+        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+            transactions = pd.read_csv(
+                _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
+            )
+            observed_codes = set(transactions["TRAN"].astype(str))
+
+            self.assertTrue(
+                observed_codes.isdisjoint(
+                    _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES
+                )
+            )
 
     def test_packaged_demo_wd_uses_contextual_external_flow_rule(self) -> None:
         """Packaged Axys wd rows classify external flow from context, not code alone."""
