@@ -520,12 +520,9 @@ def _security_performance(performance: pd.DataFrame) -> pd.DataFrame:
                 "PORTFOLIO_CODE": row["portfolio_code"],
                 "PORTFOLIO_NAME": row["portfolio_name"],
                 "SECURITY_ID": row["identifier"],
-                "SECURITY_NAME": row["name"],
                 "ASSET_CLASS": row["asset_class"],
                 "SECTOR": row["sector"],
                 "COUNTRY": "US",
-                "CURRENCY": "USD",
-                "PERIOD_ID": "",
                 "CALENDAR_MONTH": "",
                 "FROM_DATE": row["from_date"].date(),
                 "THRU_DATE": row["thru_date"].date(),
@@ -568,7 +565,6 @@ def _portfolio_performance(performance: pd.DataFrame) -> pd.DataFrame:
                 "GAIN_LOSS": round(_BASE_MARKET_VALUE * portfolio_return - income, 2),
                 "PORTFOLIO_CODE": portfolio_code,
                 "PORTFOLIO_NAME": portfolio_name,
-                "PERIOD_ID": "",
                 "CALENDAR_MONTH": "",
                 "FROM_DATE": from_date.date(),
                 "THRU_DATE": thru_date.date(),
@@ -681,7 +677,6 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         "PRICE": price,
                         "AMOUNT": amount,
                         "COMMISSION": commission,
-                        "BROKER": "DEMO",
                     }
                 )
             if (
@@ -702,7 +697,6 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         "PRICE": 0.0,
                         "AMOUNT": _TNOTE2Y_PRIOR_INTEREST_AMOUNT,
                         "COMMISSION": 0.0,
-                        "BROKER": "DEMO",
                     }
                 )
     return pd.DataFrame(rows)

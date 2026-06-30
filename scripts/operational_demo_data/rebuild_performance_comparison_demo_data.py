@@ -66,7 +66,6 @@ _PORTPERF_COLUMNS: Final = [
     "GAIN_LOSS",
     "PORTFOLIO_CODE",
     "PORTFOLIO_NAME",
-    "PERIOD_ID",
     "FROM_DATE",
     "THRU_DATE",
     "BEGIN_MV",
@@ -143,8 +142,9 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
 }
 _SECURITY_FLOW_CODES: Final = {"by", "sl"}
 _INCOME_CODES: Final = {"dv", "in", "dp"}
-_PORTFOLIO_EXTERNAL_FLOW_CODES: Final = {"wd"}
+_AMBIGUOUS_EXTERNAL_FLOW_CODES: Final = {"li", "lo", "wd"}
 _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
+    ";",
     "by",
     "sl",
     "wd",
@@ -165,6 +165,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "wd": 1,
         },
         "transaction_derived_holdings_by_type": {
+            ";": 1,
             "by": 2,
             "dp": 1,
             "dv": 1,
@@ -701,7 +702,8 @@ def _transaction_derived_holding_adjustments(
         These rules intentionally cover only simple demo scenarios. They are not
         a full accounting engine. Buy/sell rows update the traded security and
         the cash balance. Cash-like income, fee, deposit, and withdrawal rows
-        update only the cash balance.
+        update only the cash balance. Corporate-action quantity corrections
+        update only the affected security holding.
     """
     if snapshot_name == _BASE_SNAPSHOT_DIRECTORY:
         return ()
@@ -760,7 +762,20 @@ def _transaction_derived_holding_adjustments(
                     scenario=f"{row.TRANSACTION_ID} sl transaction changes cash balance.",
                 )
             )
-        else:
+        elif transaction_code == ";":
+            adjustments.append(
+                _security_trade_adjustment(
+                    snapshot_name,
+                    holdings=holdings,
+                    transaction_code=transaction_code,
+                    portfolio=str(row.PORT),
+                    security=str(row.SEC),
+                    holding_date=holding_date,
+                    quantity_delta=float(row.QTY_delta),
+                    scenario=f"{row.TRANSACTION_ID} ; transaction changes ending holding.",
+                )
+            )
+        elif _is_cash_balance_transaction(row):
             adjustments.append(
                 _cash_adjustment(
                     snapshot_name,
@@ -792,6 +807,18 @@ def _changed_transaction_rows(
         "AMOUNT",
         "COMMISSION",
     ]
+    context_columns = [
+        column
+        for column in (
+            "SEC_TYPE",
+            "SRC_DEST_TYPE",
+            "SRC_DEST_SYMBOL",
+            "SPECIAL_SEC_TYPE",
+            "SPECIAL_SEC_SYMBOL",
+        )
+        if column in base_transactions.columns and column in current_transactions.columns
+    ]
+    compare_columns.extend(context_columns)
     base = base_transactions[compare_columns]
     current = current_transactions[compare_columns]
     merged = base.merge(
@@ -816,6 +843,16 @@ def _changed_transaction_rows(
         current_security = str(row.SEC_current)
         base_code = str(row.TRAN_base)
         current_code = str(row.TRAN_current)
+        context_values: dict[str, str] = {}
+        for column in context_columns:
+            base_value = _row_string(row, f"{column}_base")
+            current_value = _row_string(row, f"{column}_current")
+            if base_value != current_value:
+                raise ValueError(
+                    "Transaction scenario rows may change numeric fields only: "
+                    f"{row.TRANSACTION_ID}."
+                )
+            context_values[column] = base_value
         if (
             base_port != current_port
             or base_security != current_security
@@ -841,6 +878,7 @@ def _changed_transaction_rows(
                 "TRANSACTION_DATE": pd.Timestamp(row.TRANSACTION_DATE_base),
                 "SEC": base_security,
                 "TRAN": base_code,
+                **context_values,
                 **{f"{column}_delta": delta for column, delta in deltas.items()},
             }
         )
@@ -1389,12 +1427,11 @@ def _portfolio_flows(
 ) -> tuple[float, float]:
     """Return net and weighted portfolio-level external flows."""
     rows = _period_transactions(transactions, portfolio_code, from_date, thru_date)
-    rows = rows[
-        rows["TRAN"].isin(set(reconstruction.flow_categories) | _PORTFOLIO_EXTERNAL_FLOW_CODES)
-    ]
     net_flow = 0.0
     weighted_flow = 0.0
     for row in rows.itertuples(index=False):
+        if not _is_portfolio_external_flow(row, reconstruction):
+            continue
         flow = float(row.AMOUNT)
         weight = _flow_weight(reconstruction, from_date, thru_date, row.TRANSACTION_DATE)
         net_flow += flow
@@ -1426,6 +1463,48 @@ def _period_transactions(
         transactions["PORT"].eq(portfolio_code)
         & transactions["TRANSACTION_DATE"].between(from_date, thru_date)
     ]
+
+
+def _is_portfolio_external_flow(
+    row: object,
+    reconstruction: PortfolioReturnReconstruction,
+) -> bool:
+    """Return whether one raw Axys demo transaction is a portfolio external flow."""
+    transaction_code = _row_string(row, "TRAN").lower()
+    if transaction_code in set(reconstruction.flow_categories):
+        return True
+    if transaction_code not in _AMBIGUOUS_EXTERNAL_FLOW_CODES:
+        return False
+    if _row_string(row, "SRC_DEST_TYPE").lower() != "$pty":
+        return False
+    if transaction_code == "wd":
+        return (
+            _row_string(row, "SEC").upper() == _CASH_SECURITY_ID
+            and _row_string(row, "SRC_DEST_SYMBOL").lower() == "$cash"
+        )
+    return True
+
+
+def _is_cash_balance_transaction(row: object) -> bool:
+    """Return whether a changed transaction row should adjust demo cash holdings."""
+    transaction_code = _row_string(row, "TRAN").lower()
+    if transaction_code in {"dv", "in", "dp"}:
+        return True
+    if transaction_code == "wd":
+        return (
+            _row_string(row, "SEC").upper() == _CASH_SECURITY_ID
+            and _row_string(row, "SRC_DEST_TYPE").lower() == "$pty"
+            and _row_string(row, "SRC_DEST_SYMBOL").lower() == "$cash"
+        )
+    return False
+
+
+def _row_string(row: object, field: str) -> str:
+    """Return a string field value from a pandas namedtuple row."""
+    value = getattr(row, field, "")
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
 
 
 def _flow_weight(

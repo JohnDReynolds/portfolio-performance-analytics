@@ -234,7 +234,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         and row[10]
                         == (
                             "CASH_USD beginning holdings.market_value decreased by "
-                            "1,500.00 in Snapshot B."
+                            "1,500.00."
                         )
                         for row in alpha_february_rows
                     )
@@ -260,9 +260,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Configured transaction impact method is present" in str(row[10])
                         or "Modified Dietz" in str(row[10])
                         or "Supporting detail for changed holdings value" in str(row[10])
-                        or "Included through transactions.net_flow" in str(row[10])
-                        or "The transaction amount changed" in str(row[10])
-                        or "in Snapshot B" in str(row[10])
+                        or "External flow" in str(row[10])
+                        or "Helped explain" in str(row[10])
+                        or "Caused cash-balance" in str(row[10])
+                        or "Caused transactions.amount" in str(row[10])
+                        or "ending holdings." in str(row[10])
+                        or "beginning holdings." in str(row[10])
                         for row in underlying_rows
                     )
                 )
@@ -303,13 +306,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ]
                 self.assertTrue(
                     any(
-                        guidance.startswith("by: The ")
+                        guidance.startswith("by: Helped explain")
+                        or guidance.startswith("by: Caused transactions.amount")
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
-                        guidance.startswith("sl: The ")
+                        guidance.startswith("sl: Helped explain")
+                        or guidance.startswith("sl: Caused transactions.amount")
                         for guidance in transaction_component_guidance
                     )
                 )
@@ -384,7 +389,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row[3] for row in security_rows},
-                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y"},
+                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y", "TSLA"},
                 )
                 self.assertEqual({row[7] for row in security_rows}, {"Fully Explained"})
                 fully_explained_rows = [

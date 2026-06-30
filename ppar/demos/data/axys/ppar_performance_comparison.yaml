@@ -77,21 +77,55 @@ transaction_rules:
   # performance-impacting. Gross-of-fees returns need an explicit future
   # return-basis policy before fees should be treated this way.
   dp:
-    transaction_category: fee_expense
-    cash_flow_sign: negative
-    performance_flow_sign: performance
+    - when:
+        special_security_type: exus
+        special_security_symbol: custfee
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
   in:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+  li:
+    - when:
+        source_destination_type: $pty
+      transaction_category: external_flow
+      cash_flow_sign: positive
+      performance_flow_sign: external
+    - when:
+        source_destination_type: $acct
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral
+  lo:
+    - when:
+        source_destination_type: $pty
+      transaction_category: external_flow
+      cash_flow_sign: negative
+      performance_flow_sign: external
+    - when:
+        source_destination_type: $acct
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral
   ";":
     transaction_category: corporate_action
     cash_flow_sign: none
     performance_flow_sign: neutral
   wd:
-    transaction_category: external_flow
-    cash_flow_sign: negative
-    performance_flow_sign: external
+    - when:
+        security_id: CASH_USD
+        source_destination_type: $pty
+        source_destination_symbol: $cash
+      transaction_category: external_flow
+      cash_flow_sign: negative
+      performance_flow_sign: external
+    - when:
+        source_destination_type: $sweep
+      transaction_category: transfer
+      cash_flow_sign: none
+      performance_flow_sign: neutral
 
 transaction_impact_methods:
   external_flow:

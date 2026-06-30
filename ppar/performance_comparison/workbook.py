@@ -254,7 +254,7 @@ def _add_workbook_sheet(
         cell.fill = styles["header_fill"]
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
-    worksheet.row_dimensions[1].height = 36
+    worksheet.row_dimensions[1].height = 48
     _format_workbook_columns(worksheet, columns, headers)
 
 

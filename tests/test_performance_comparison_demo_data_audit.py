@@ -12,7 +12,11 @@ import pandas as pd
 import polars as pl
 import yaml
 
-from ppar.performance_comparison import compare_snapshots
+from ppar.performance_comparison import (
+    PerformanceComparisonSpecification,
+    TransactionsLoader,
+    compare_snapshots,
+)
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.config_validation import validate_config
 from ppar.performance_comparison.workbook_tables import (
@@ -29,6 +33,9 @@ _REBUILD_SCRIPT_PATH = (
     / "operational_demo_data"
     / "rebuild_performance_comparison_demo_data.py"
 )
+_RENDER_EXTRACT_AVAILABILITY_SCRIPT_PATH = (
+    _REPO_ROOT / "scripts" / "render_demo_extract_availability.py"
+)
 _PACKAGED_COMPARISON_PATH = (
     _REPO_ROOT
     / "ppar"
@@ -41,6 +48,9 @@ _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 )
 _PACKAGED_AXYS_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
+_DEMO_EXTRACT_AVAILABILITY_PATH = (
+    _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
+)
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.ACCRUED),
@@ -83,6 +93,20 @@ def _load_rebuild_module():
     return module
 
 
+def _load_extract_availability_renderer():
+    """Load the extract-availability renderer as a test module."""
+    spec = importlib.util.spec_from_file_location(
+        "render_demo_extract_availability",
+        _RENDER_EXTRACT_AVAILABILITY_SCRIPT_PATH,
+    )
+    if spec is None or spec.loader is None:
+        raise AssertionError("Could not load extract-availability renderer.")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _dataset_fields(frame: pl.DataFrame) -> set[tuple[str, str | None]]:
     """Return normalized dataset/source-column pairs from a workbook table."""
     return {
@@ -109,14 +133,99 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         ]:
             self.assertIn(expected_text, normalized_text)
 
+    def test_packaged_demo_extract_availability_covers_current_headers(self) -> None:
+        """Every packaged Axys demo CSV field has extraction-confidence metadata."""
+        availability = yaml.safe_load(
+            _DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertIsInstance(availability, dict)
+
+        labels = set(availability["confidence_labels"])
+        name_labels = set(availability["name_confidence_labels"])
+        source_strategy_labels = set(availability["source_strategy_labels"])
+        datasets = availability["datasets"]
+        expected_files = {
+            path.name
+            for path in (_PACKAGED_AXYS_DIRECTORY / "axys_full_spec_a").glob("*.csv")
+        }
+        self.assertEqual(set(datasets), expected_files)
+
+        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+            snapshot_path = _PACKAGED_AXYS_DIRECTORY / snapshot_directory
+            for file_name in sorted(expected_files):
+                header = list(pd.read_csv(snapshot_path / file_name, nrows=0).columns)
+                columns = datasets[file_name]["columns"]
+
+                self.assertEqual(list(columns), header)
+                for column_name, metadata in columns.items():
+                    self.assertIn(metadata["imex_confidence"], labels, column_name)
+                    self.assertIn(metadata["rep_confidence"], labels, column_name)
+                    self.assertTrue(str(metadata["normalized_meaning"]).strip())
+                    self.assertTrue(str(metadata["basis"]).strip())
+                    open_questions = metadata["open_questions"]
+                    self.assertIsInstance(open_questions, list, column_name)
+                    self.assertTrue(open_questions, column_name)
+                    for question in open_questions:
+                        self.assertTrue(str(question).strip(), column_name)
+                    candidate_axys_names = metadata["candidate_axys_names"]
+                    candidate_report_labels = metadata["candidate_report_labels"]
+                    self.assertIsInstance(candidate_axys_names, list, column_name)
+                    self.assertIsInstance(candidate_report_labels, list, column_name)
+                    self.assertTrue(candidate_axys_names, column_name)
+                    self.assertTrue(candidate_report_labels, column_name)
+                    for candidate_name in candidate_axys_names + candidate_report_labels:
+                        self.assertTrue(str(candidate_name).strip(), column_name)
+                    self.assertIn(metadata["name_confidence"], name_labels, column_name)
+                    self.assertTrue(str(metadata["name_notes"]).strip())
+                    self.assertIn(
+                        metadata["preferred_source"],
+                        source_strategy_labels,
+                        column_name,
+                    )
+                    self.assertIn(
+                        metadata["fallback_source"],
+                        source_strategy_labels,
+                        column_name,
+                    )
+                    self.assertIsInstance(
+                        metadata["requires_context_for_semantics"],
+                        bool,
+                        column_name,
+                    )
+                    self.assertIsInstance(
+                        metadata["blocking_if_missing"],
+                        bool,
+                        column_name,
+                    )
+                    self.assertTrue(str(metadata["source_strategy_notes"]).strip())
+                    self.assertTrue(str(metadata["comments"]).strip())
+
+        transaction_columns = datasets["transactions.csv"]["columns"]
+        for context_column in [
+            "SEC_TYPE",
+            "SRC_DEST_TYPE",
+            "SRC_DEST_SYMBOL",
+            "SPECIAL_SEC_TYPE",
+            "SPECIAL_SEC_SYMBOL",
+        ]:
+            metadata = transaction_columns[context_column]
+            self.assertTrue(metadata["requires_context_for_semantics"])
+            self.assertTrue(metadata["blocking_if_missing"])
+
+    def test_packaged_demo_extract_availability_appendix_is_current(self) -> None:
+        """The human-readable appendix is rendered from the YAML contract."""
+        renderer = _load_extract_availability_renderer()
+
+        self.assertEqual(renderer.main(["--check"]), 0)
+
     def test_packaged_demo_transaction_rules_cover_observed_codes(self) -> None:
         """Packaged demo YAML explicitly defines every observed transaction code."""
         summary = validate_config(_PACKAGED_COMPARISON_PATH)
 
         self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
 
-    def test_packaged_demo_transaction_rules_match_observed_codes(self) -> None:
-        """Packaged demo YAML has one transaction rule for each source code."""
+    def test_packaged_demo_transaction_rules_cover_ambiguous_axys_codes(self) -> None:
+        """Packaged demo YAML covers observed and ambiguous Axys source codes."""
         observed_codes: set[str] = set()
         for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
             transactions = pd.read_csv(
@@ -133,7 +242,28 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         configured_codes = set(configuration["transaction_rules"].keys())
 
-        self.assertEqual(configured_codes, observed_codes)
+        self.assertTrue(observed_codes.issubset(configured_codes))
+        self.assertTrue({"dp", "li", "lo", "wd"}.issubset(configured_codes))
+
+    def test_packaged_demo_wd_uses_contextual_external_flow_rule(self) -> None:
+        """Packaged Axys wd rows classify external flow from context, not code alone."""
+        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        row = frame.filter(pl.col(pc_cols.TRANSACTION_ID) == "ALPHA0203").row(
+            0,
+            named=True,
+        )
+
+        self.assertEqual(row[pc_cols.TRANSACTION_CODE], "wd")
+        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_TYPE], "$pty")
+        self.assertEqual(row[pc_cols.SOURCE_DESTINATION_SYMBOL], "$cash")
+        self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], "external_flow")
+        self.assertEqual(
+            row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+            "yaml_rule",
+        )
 
     def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
         """Performance Difference Causes only contains approved demo fields."""
@@ -226,10 +356,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 8)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 9)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
             {
+                ";": 1,
                 "by": 2,
                 "dp": 1,
                 "dv": 1,
@@ -317,10 +448,21 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 8)
+        self.assertEqual(len(adjustments), 9)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
+        )
+        self._assert_adjustment(
+            by_scenario["BALANCED0503 ; transaction changes ending holding."],
+            portfolio="BALANCED",
+            security="TSLA",
+            holding_date="2026-04-30",
+            deltas={
+                "QTY": 410.6989,
+                "MKT_VAL": 44355.4812,
+                "COST": 44355.4812,
+            },
         )
         self._assert_adjustment(
             by_scenario["ALPHA0203 wd transaction changes cash balance."],

@@ -1094,32 +1094,29 @@ def _workbook_portfolio_formula_guidance(
     if field == _RECONSTRUCTION_BEGINNING_VALUE_FIELD:
         return (
             f"Beginning portfolio value {_workbook_increased_or_decreased(difference)} "
-            f"by {change_text} in Snapshot B. A higher beginning value lowers the "
+            f"by {change_text}. A higher beginning value lowers the "
             "calculated return."
         )
     if field == _RECONSTRUCTION_ENDING_VALUE_FIELD:
         return (
             f"Ending portfolio value {_workbook_increased_or_decreased(difference)} "
-            f"by {change_text} in Snapshot B."
+            f"by {change_text}."
         )
     if field == _RECONSTRUCTION_NET_FLOW_FIELD:
         return (
             f"Net external flows {_workbook_increased_or_decreased(difference)} "
-            f"by {change_text} in Snapshot B."
+            f"by {change_text}."
         )
     if field == _RECONSTRUCTION_WEIGHTED_FLOW_FIELD:
         return (
             f"Weighted external flows {_workbook_increased_or_decreased(difference)} "
-            f"by {change_text} in Snapshot B."
+            f"by {change_text}."
         )
     if field == _RECONSTRUCTION_INCOME_FIELD:
-        return (
-            f"Income {_workbook_increased_or_decreased(difference)} by "
-            f"{change_text} in Snapshot B."
-        )
+        return f"Income {_workbook_increased_or_decreased(difference)} by {change_text}."
     return (
         f"{role_label} {_workbook_increased_or_decreased(difference)} by "
-        f"{change_text} in Snapshot B."
+        f"{change_text}."
     )
 
 
@@ -1135,33 +1132,32 @@ def _workbook_security_formula_guidance(
     if field == _RECONSTRUCTION_BEGINNING_VALUE_FIELD:
         return (
             f"{security_prefix}beginning value "
-            f"{_workbook_increased_or_decreased(difference)} by {change_text} in "
-            "Snapshot B. A higher beginning value lowers the calculated return."
+            f"{_workbook_increased_or_decreased(difference)} by {change_text}. "
+            "A higher beginning value lowers the calculated return."
         )
     if field == _RECONSTRUCTION_ENDING_VALUE_FIELD:
         return (
             f"{security_prefix}ending value "
-            f"{_workbook_increased_or_decreased(difference)} by {change_text} in "
-            "Snapshot B."
+            f"{_workbook_increased_or_decreased(difference)} by {change_text}."
         )
     if field == _RECONSTRUCTION_NET_FLOW_FIELD:
         return (
             f"{security_prefix}buy/sell flow was {change_text} "
-            f"{_workbook_higher_or_lower(difference)} in Snapshot B."
+            f"{_workbook_higher_or_lower(difference)}."
         )
     if field == _RECONSTRUCTION_WEIGHTED_FLOW_FIELD:
         return (
             f"{security_prefix}date-weighted buy/sell flow was {change_text} "
-            f"{_workbook_higher_or_lower(difference)} in Snapshot B."
+            f"{_workbook_higher_or_lower(difference)}."
         )
     if field == _RECONSTRUCTION_INCOME_FIELD:
         return (
             f"{security_prefix}income {_workbook_increased_or_decreased(difference)} "
-            f"by {change_text} in Snapshot B."
+            f"by {change_text}."
         )
     return (
         f"{security_prefix}{role_label.lower()} "
-        f"{_workbook_increased_or_decreased(difference)} by {change_text} in Snapshot B."
+        f"{_workbook_increased_or_decreased(difference)} by {change_text}."
     )
 
 
@@ -2405,6 +2401,8 @@ def _workbook_source_row_explanation(
         return _workbook_holding_detail_explanation(row, source_column)
     if dataset == pc_cols.TRANSACTIONS:
         if source_column == pc_cols.AMOUNT:
+            if row.get(_pc_findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
+                return _workbook_portfolio_external_flow_transaction_explanation(row)
             return _workbook_transaction_cash_balance_explanation(row)
         return _workbook_transaction_component_explanation(row, source_column)
     if dataset == pc_cols.CASH:
@@ -2557,22 +2555,35 @@ def _workbook_transaction_reconstruction_flow_guidance(
     comparison_level = row.get("_workbook_reconstruction_comparison_level")
     if comparison_level == SECURITY_COMPARISON_LEVEL:
         return _workbook_transaction_component_explanation(row, pc_cols.AMOUNT)
+    if row.get(_pc_findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
+        return _workbook_portfolio_external_flow_transaction_explanation(row)
     return _workbook_transaction_cash_balance_explanation(row)
+
+
+def _workbook_portfolio_external_flow_transaction_explanation(
+    row: Mapping[str, object],
+) -> str:
+    """Return source-data wording for a portfolio external-flow transaction."""
+    flow_delta = _workbook_row_change_value(row)
+    weighted_flow_delta = (
+        (_number_or_none(flow_delta) or 0.0) * _workbook_source_flow_weight(row)
+    )
+    return (
+        f"{_workbook_transaction_code_prefix(row)}External flow "
+        f"{_workbook_increased_or_decreased(flow_delta)} by "
+        f"{_workbook_change_amount_text(flow_delta)}; weighted external flow "
+        f"{_workbook_increased_or_decreased(weighted_flow_delta)} by "
+        f"{_workbook_change_amount_text(weighted_flow_delta)}."
+    )
 
 
 def _workbook_transaction_cash_balance_explanation(row: Mapping[str, object]) -> str:
     """Return source-data wording for a transaction's ending cash-balance effect."""
-    cash_security_id = _format_value(row.get(_WORKBOOK_CASH_BALANCE_SECURITY_ID))
-    cash_field = (
-        f"{cash_security_id} ending holdings.market_value"
-        if cash_security_id
-        else "ending holdings cash-balance"
-    )
     return (
-        f"{_workbook_transaction_code_prefix(row)}Caused {cash_field} "
+        f"{_workbook_transaction_code_prefix(row)}Caused cash-balance "
+        "ending holdings.market_value "
         f"to {_workbook_cash_balance_increased_or_decreased(row)} by "
-        f"{_workbook_change_amount_text(_workbook_row_change_value(row))} "
-        "in Snapshot B."
+        f"{_workbook_change_amount_text(_workbook_row_change_value(row))}."
     )
 
 
@@ -2597,7 +2608,7 @@ def _workbook_holding_detail_explanation(
     return (
         f"{security_prefix}{holdings_label}.{source_column} "
         f"{_workbook_increased_or_decreased(change_value)} by "
-        f"{change_text} in Snapshot B."
+        f"{change_text}."
     )
 
 
@@ -2609,7 +2620,7 @@ def _workbook_cash_detail_explanation(
     change_value = _workbook_row_change_value(row)
     return (
         f"Cash {source_column} {_workbook_increased_or_decreased(change_value)} "
-        f"by {_workbook_change_amount_text(change_value)} in Snapshot B."
+        f"by {_workbook_change_amount_text(change_value)}."
     )
 
 
@@ -2636,11 +2647,28 @@ def _workbook_transaction_component_explanation(
     """Return plain-language explanation for transaction component rows."""
     security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
     security_text = f" for {security_id}" if security_id else ""
+    if source_column == pc_cols.COMMISSION:
+        change_value = _workbook_row_change_value(row)
+        change_number = _number_or_none(change_value)
+        change_verb = (
+            "decrease"
+            if change_number is not None and change_number < 0
+            else "increase"
+        )
+        return (
+            f"{_workbook_transaction_code_prefix(row)}Caused transactions.amount "
+            f"to {change_verb} "
+            f"by {_workbook_change_amount_text(change_value)}."
+        )
+    if source_column in {pc_cols.PRICE, pc_cols.QUANTITY}:
+        return (
+            f"{_workbook_transaction_code_prefix(row)}Helped explain the changed "
+            f"transactions.amount{security_text}."
+        )
     return (
         f"{_workbook_transaction_code_prefix(row)}The {source_column}"
         f"{security_text} changed by "
-        f"{_workbook_change_amount_text(_workbook_row_change_value(row))} "
-        "in Snapshot B."
+        f"{_workbook_change_amount_text(_workbook_row_change_value(row))}."
     )
 
 
@@ -2733,8 +2761,8 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
         )
     if dataset == pc_cols.HOLDINGS:
         return (
-            "This holding changed in Snapshot B. The beginning or ending portfolio "
-            "value row shows the counted effect."
+            "This holding changed. The beginning or ending portfolio value row "
+            "shows the counted effect."
         )
     if dataset == pc_cols.CASH:
         return (

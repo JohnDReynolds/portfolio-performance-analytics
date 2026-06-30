@@ -296,9 +296,20 @@ def _assert_workbook_explained_row_actions(
                 or "changed transactions.amount" in str(required_setup)
                 or "changed holdings.market_value" in str(required_setup)
                 or "Input for changed" in str(required_setup)
-                or "Included through transactions.net_flow" in str(required_setup)
+                or "Helped explain" in str(required_setup)
+                or "Caused transactions.amount" in str(required_setup)
+                or "Caused cash-balance" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
+                continue
+            if (
+                "ending holdings." in str(required_setup)
+                or "beginning holdings." in str(required_setup)
+            ):
+                test_case.assertIn(
+                    row.get("impact_status"),
+                    {"Review only", "Missing impact input"},
+                )
                 continue
             if "in Snapshot B" in str(required_setup):
                 test_case.assertIn(
@@ -601,10 +612,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(rules_transaction_amount["estimated_impact"][0])
         self.assertEqual(
             rules_transaction_amount["review_guidance"][0],
-            (
-                "BUY: Caused ending holdings cash-balance to decrease by "
-                "100.00 in Snapshot B."
-            ),
+            "BUY: Caused cash-balance ending holdings.market_value to decrease by 100.00.",
         )
         rules_transaction_quantity = rules_causes.filter(
             (pl.col("dataset") == "transactions")
@@ -616,11 +624,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
-            "BUY: The quantity for AAPL changed by 1.00 in Snapshot B.",
+            "BUY: Helped explain the changed transactions.amount for AAPL.",
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],
-            "BUY: The price for AAPL changed by 0.50 in Snapshot B.",
+            "BUY: Helped explain the changed transactions.amount for AAPL.",
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -666,7 +674,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             transaction_amount["review_note"][0],
-            "BUY: Caused ending holdings cash-balance to decrease by 10.00 in Snapshot B.",
+            "BUY: Caused cash-balance ending holdings.market_value to decrease by 10.00.",
         )
 
     def test_transaction_commission_policy_marks_other_data_differences_review_only(
@@ -691,7 +699,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(commission["estimated_impact"][0])
         self.assertEqual(
             commission["review_note"][0],
-            "BUY: The commission for AAPL changed by 2.50 in Snapshot B.",
+            "BUY: Caused transactions.amount to increase by 2.50.",
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -768,13 +776,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertAlmostEqual(plain_holding["estimated_impact"][0], 0.01)
         self.assertEqual(
             plain_holding["review_guidance"][0],
-            "AAPL ending holdings.market_value increased by 10.00 in Snapshot B.",
+            "AAPL ending holdings.market_value increased by 10.00.",
         )
         self.assertEqual(configured_holding.height, 1)
         self.assertAlmostEqual(configured_holding["estimated_impact"][0], 0.01)
         self.assertEqual(
             configured_holding["review_guidance"][0],
-            "AAPL ending holdings.market_value increased by 10.00 in Snapshot B.",
+            "AAPL ending holdings.market_value increased by 10.00.",
         )
 
     def test_holding_accrued_impact_method_explains_accrued_row(self) -> None:
@@ -812,13 +820,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertAlmostEqual(plain_accrued["estimated_impact"][0], 0.005)
         self.assertEqual(
             plain_accrued["review_guidance"][0],
-            "AAPL ending holdings.accrued increased by 5.00 in Snapshot B.",
+            "AAPL ending holdings.accrued increased by 5.00.",
         )
         self.assertEqual(configured_accrued.height, 1)
         self.assertAlmostEqual(configured_accrued["estimated_impact"][0], 0.005)
         self.assertEqual(
             configured_accrued["review_guidance"][0],
-            "AAPL ending holdings.accrued increased by 5.00 in Snapshot B.",
+            "AAPL ending holdings.accrued increased by 5.00.",
         )
 
     def test_evidence_only_impact_method_marks_row_review_only(self) -> None:
@@ -870,14 +878,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertEqual(plain_quantity.height, 1)
         self.assertEqual(
             plain_quantity["review_guidance"][0],
-            "AAPL ending holdings.quantity increased by 1.00 in Snapshot B.",
+            "AAPL ending holdings.quantity increased by 1.00.",
         )
         self.assertEqual(plain_quantity["impact_status"][0], "Review only")
         self.assertEqual(configured_quantity.height, 1)
         self.assertIsNone(configured_quantity["estimated_impact"][0])
         self.assertEqual(
             configured_quantity["review_note"][0],
-            "AAPL ending holdings.quantity increased by 1.00 in Snapshot B.",
+            "AAPL ending holdings.quantity increased by 1.00.",
         )
 
     def test_portfolio_workbook_links_changed_periods_to_underlying_causes(self) -> None:
@@ -917,12 +925,12 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ("transactions", "quantity"),
             }.issubset(promoted_fields)
         )
-        split_evidence = other_data_differences.filter(
-            (pl.col("dataset") == "transactions")
-            & (pl.col("source_column") == "quantity")
+        split_holding_cause = underlying_causes.filter(
+            (pl.col("dataset") == "holdings")
+            & (pl.col("source_column") == "market_value")
             & (pl.col("security_id") == "TSLA")
         )
-        self.assertEqual(split_evidence.height, 1)
+        self.assertEqual(split_holding_cause.height, 1)
         self.assertFalse(
             {
                 ("transactions", "commission"),
