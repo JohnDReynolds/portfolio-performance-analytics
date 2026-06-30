@@ -861,13 +861,19 @@ Current packaged demo coverage includes realistic examples of:
 - fee
 - accrual change
 
-Remaining high-value examples to add:
+Next expansion should be ordered by realism and by the evidence needed to
+classify Axys transaction semantics safely.
 
-- portfolio contribution
-- transfer in / transfer out
-- real-world split / corporate action evidence
-- bond maturity / principal paydown
-- corporate actions beyond splits
+| Priority | Scenario family | Permanent home | Required evidence before implementation | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | Portfolio contribution | Packaged demo candidate | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | Natural counterpart to the current withdrawal example. Use an ordinary cash contribution rather than a synthetic edge case. |
+| 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures already prove the classification patterns. Add to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
+| 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
+| 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | Do not add a user-facing bond maturity until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
+| 5 | Return of capital (`rc`) | Test-only first | Security, amount sign, cost-basis/report treatment, whether return is performance income or review-only corporate-action evidence. | Needs explicit policy before it can explain performance. |
+| 6 | Real-world split / corporate action evidence | Packaged demo only when the demo period/security supports a real historical event | Actual historical date/security, split ratio, quantity and price treatment, security master/report evidence, and a policy for whether it is explanatory or review-only. | User-facing demo splits must not be fictional future events. Synthetic corporate-action fixtures belong in clearly labeled test-only data. |
+| 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys convention. |
+| 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
 
 For any additional examples:
 
@@ -915,29 +921,20 @@ Fail hard when required YAML rules are missing.
 
 ## Transaction-Type Backlog
 
-The next transaction-type categories should be added in this order:
+Use Phase 8 as the implementation order. This backlog is the policy boundary:
 
-1. **Contribution / withdrawal**
+- Packaged demo additions should be realistic, internally consistent, and
+  understandable to a reviewer without knowing the fixture harness.
+- Test-only fixtures should absorb synthetic edge cases, code-only failure
+  cases, local-policy gaps, and ambiguous Axys semantics that need surgical
+  proof.
+- Evidence-blocked cases should stay backlog until IMEX context, REP/report
+  semantics, or real source samples justify a classification.
 
-   These are true portfolio-level external flows. They change the capital base
-   and require Modified Dietz or another explicit flow-weighting convention
-   before they can be treated as return-reconstruction inputs.
+Near-term backlog by home:
 
-2. **Transfer in / transfer out**
-
-   These resemble contributions and withdrawals, but the system must know
-   whether the transfer is external to the reviewed portfolio or internal to the
-   vendor/account structure. They should use the same flow-weighting machinery
-   once their external/internal treatment is explicit.
-
-3. **Bond maturity / principal paydown**
-
-   These are useful for fixed-income review because they reduce a bond holding
-   and increase cash. They may also interact with accrued interest, amortization,
-   realized gain/loss, and vendor-specific income treatment.
-
-4. **Corporate actions beyond splits**
-
-   Mergers, spin-offs, and ticker changes are valuable audit evidence, but they
-   often require security-identifier mapping and vendor-specific rules before
-   they can be explained cleanly.
+| Home | Transaction families | Exit criteria |
+| --- | --- | --- |
+| Packaged demo candidate | contribution; possibly realistic `li`/`lo`; real historical split when the demo period supports it | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
+| Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. |
+| Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes | Axys/REP/report evidence identifies required fields and ppar treatment well enough to avoid code-only classification. |
