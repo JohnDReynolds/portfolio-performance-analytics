@@ -377,6 +377,40 @@ class TestPackageMetadata(unittest.TestCase):
             imex_context_codes & rep_semantics_codes & code_only_codes,
         )
 
+    def test_transaction_semantics_matrix_matches_ambiguous_fixture_outputs(self) -> None:
+        """Documented ambiguous-code semantics include IMEX-context fixture behavior."""
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        specification = PerformanceComparisonSpecification(
+            Path(
+                "tests/data/axys/site_variants/imex_context/"
+                "ppar_performance_comparison.yaml"
+            )
+        )
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        for code in matrix_yaml["ambiguous_external_flow_codes"]:
+            rows = frame.filter(pl.col(schema.TRANSACTION_CODE) == code)
+            documented = matrix_yaml["rows"][code]
+
+            self.assertLessEqual(
+                set(rows.get_column(schema.TRANSACTION_CATEGORY).to_list()),
+                set(documented["ppar_categories"]),
+                code,
+            )
+            self.assertLessEqual(
+                set(rows.get_column(schema.CASH_FLOW_SIGN).to_list()),
+                set(documented["cash_flow_signs"]),
+                code,
+            )
+            self.assertLessEqual(
+                set(rows.get_column(schema.PERFORMANCE_FLOW_SIGN).to_list()),
+                set(documented["performance_flow_signs"]),
+                code,
+            )
+
     def test_axys_package_is_included(self) -> None:
         """The Axys subpackage is included in distribution metadata."""
         with open("pyproject.toml", "rb") as file:

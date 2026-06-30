@@ -265,6 +265,27 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "yaml_rule",
         )
 
+    def test_packaged_demo_dp_uses_contextual_fee_rule(self) -> None:
+        """Packaged Axys dp fee rows stay performance items, not external flows."""
+        specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        row = frame.filter(pl.col(pc_cols.TRANSACTION_ID) == "INCOME0203").row(
+            0,
+            named=True,
+        )
+
+        self.assertEqual(row[pc_cols.TRANSACTION_CODE], "dp")
+        self.assertEqual(row[pc_cols.SPECIAL_SECURITY_TYPE], "exus")
+        self.assertEqual(row[pc_cols.SPECIAL_SECURITY_SYMBOL], "custfee")
+        self.assertEqual(row[pc_cols.TRANSACTION_CATEGORY], "fee_expense")
+        self.assertEqual(row[pc_cols.PERFORMANCE_FLOW_SIGN], "performance")
+        self.assertEqual(
+            row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
+            "yaml_rule",
+        )
+
     def test_packaged_demo_cause_fields_match_source_contract(self) -> None:
         """Performance Difference Causes only contains approved demo fields."""
         findings = compare_snapshots(
