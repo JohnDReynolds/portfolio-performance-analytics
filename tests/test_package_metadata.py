@@ -299,6 +299,24 @@ class TestPackageMetadata(unittest.TestCase):
             roadmap.read_text(encoding=util.ENCODING),
         )
 
+    def test_demo_transaction_expansion_gate_is_documented(self) -> None:
+        """The roadmap keeps future packaged Axys transaction additions gated."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Phase 8A: Realistic Transaction Expansion Gate", roadmap)
+        self.assertIn("plain portfolio\ncontribution", roadmap)
+        self.assertIn("source/destination type", roadmap)
+        self.assertIn("source/destination symbol", roadmap)
+        self.assertIn("REP/report\n  semantic fields", roadmap)
+        self.assertIn("context, not from an ambiguous code alone", roadmap)
+        self.assertIn("generated ending `CASH_USD` holding", roadmap)
+        self.assertIn("portfolio Modified Dietz\n  reconstruction", roadmap)
+        self.assertIn("without double-counting", roadmap)
+        self.assertIn("`li`/`lo`, additional `dp`/`wd`", roadmap)
+        self.assertIn("actual historical split date", roadmap)
+
     def test_transaction_semantics_matrix_yaml_matches_appendix_codes(self) -> None:
         """The machine-readable transaction matrix stays aligned with the appendix."""
         matrix_yaml = _load_yaml(

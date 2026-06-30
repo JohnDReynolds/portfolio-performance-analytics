@@ -881,6 +881,37 @@ classify Axys transaction semantics safely.
 | 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys convention. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
 
+#### Phase 8A: Realistic Transaction Expansion Gate
+
+The next packaged-demo transaction scenario should be a plain portfolio
+contribution only if it can pass the same end-to-end standard as the current
+withdrawal example. Before adding it to `axys_full_spec_a` or
+`axys_full_spec_b`, document and verify:
+
+- scenario intent: which portfolio, period, cash security, and reviewer-facing
+  business story the contribution represents;
+- source evidence: the Axys-style transaction code, amount sign,
+  source/destination type, source/destination symbol, and any REP/report
+  semantic fields needed to prove it is an external capital inflow;
+- YAML semantics: the `transaction_rules` entry classifies the row from
+  context, not from an ambiguous code alone, and preserves the correct
+  `external_flow` cash/performance signs;
+- cash and holdings: the transaction-derived cash movement reconciles to the
+  generated ending `CASH_USD` holding for the affected period;
+- return reconstruction: `portperf.csv` and the portfolio Modified Dietz
+  reconstruction agree on net external flow, weighted flow, and return impact;
+- report behavior: workbook and CSV artifacts explain the changed contribution
+  without double-counting security-level buy/sell, income, fee, or holdings
+  effects;
+- docs and tests: this roadmap, the demo source contract, the packaged demo
+  README, the semantics matrix, and audit tests all name the expected treatment.
+
+`li`/`lo`, additional `dp`/`wd`, and synthetic corporate-action scenarios should
+remain test-only until they meet their own version of this gate. A real-world
+split can move into the packaged demo only when the demo period and security
+support an actual historical split date and the row is clearly tied to
+review-only or implemented corporate-action behavior.
+
 For any additional examples:
 
 - Make all accounting internally consistent.
