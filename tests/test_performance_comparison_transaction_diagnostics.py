@@ -8,8 +8,11 @@ from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import _transaction_diagnostics as tx_diagnostics
 from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS,
+    TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+    TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
+    TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
 )
 from ppar.performance_comparison.transactions import (
@@ -28,6 +31,9 @@ class TransactionDiagnosticsTest(unittest.TestCase):
         rows = [
             {TRANSACTION_MATCH_STATUS: "future_status"},
             {TRANSACTION_MATCH_STATUS: TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED},
+            {TRANSACTION_MATCH_STATUS: TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH},
+            {TRANSACTION_MATCH_STATUS: TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B},
+            {TRANSACTION_MATCH_STATUS: TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B},
             {TRANSACTION_MATCH_STATUS: TRANSACTION_MATCH_STATUS_ID_UNMATCHED},
             {TRANSACTION_MATCH_STATUS: TRANSACTION_MATCH_STATUS_ID_MATCH},
         ]
@@ -44,6 +50,9 @@ class TransactionDiagnosticsTest(unittest.TestCase):
             sorted_statuses,
             [
                 TRANSACTION_MATCH_STATUS_ID_MATCH,
+                TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+                TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+                TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
                 TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
                 TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
                 "future_status",

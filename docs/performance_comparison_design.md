@@ -174,7 +174,8 @@ Finding and review classification values are centralized in:
 - `FindingConfidence`: `high`.
 - `EvidenceRole`: `target_output`, `direct_input`, `related_output`, and
   `context`.
-- `TransactionMatchStatus`: `transaction_id_match`,
+- `TransactionMatchStatus`: `matched_by_id`, `added_in_snapshot_b`,
+  `missing_from_snapshot_b`, `ambiguous_fallback_match`,
   `transaction_id_unmatched`, and `strict_fallback_unmatched`.
 
 When a value crosses into Polars tables, CSVs, HTML, XLSX, or YAML, it
@@ -790,14 +791,22 @@ date if present, transaction code, quantity, price, and amount. This avoids
 guessing that two similar rows are the same transaction. In that fallback mode,
 an amount restatement is expected to appear as one `PC-TXN-DROP` and one
 `PC-TXN-ADD`, not as `PC-TXN-AMT`. Transaction findings expose
-`transaction_match_status` so reviewers can distinguish `transaction_id_match`,
-`transaction_id_unmatched`, and `strict_fallback_unmatched` evidence.
+`transaction_match_status` so reviewers can distinguish `matched_by_id`,
+`added_in_snapshot_b`, `missing_from_snapshot_b`,
+`ambiguous_fallback_match`, `transaction_id_unmatched`, and
+`strict_fallback_unmatched` evidence.
 
 Duplicate comparison keys should fail loudly before row-presence checks or
 value comparisons run. Silent duplicate handling can collapse rows into a set
 or multiply rows during joins, both of which can produce misleading findings.
 The default policy is therefore to raise an error for duplicate keys in either
 snapshot.
+
+The exception is transaction strict-fallback matching. Two identical same-day
+transactions can legitimately occur when no stable `transaction_id` is
+available, so duplicate fallback keys should be reported as
+`ambiguous_fallback_match` diagnostics instead of paired as edits or rejected
+as invalid source-data.
 
 ### Finding
 
@@ -1791,10 +1800,12 @@ this table as `flow_cross_check_reconciliation.csv`.
 
 Transaction matching diagnostics are summarized separately from transaction
 activity. The `transaction_matching_diagnostics()` helper and report section
-count existing transaction matching labels such as `transaction_id_match`,
-`transaction_id_unmatched`, and `strict_fallback_unmatched`, with reviewer
-notes explaining whether rows were paired by stable transaction ID or left
-unmatched by conservative strict fallback keys. Report bundles include this
+count transaction matching labels such as `matched_by_id`,
+`added_in_snapshot_b`, `missing_from_snapshot_b`,
+`ambiguous_fallback_match`, `transaction_id_unmatched`, and
+`strict_fallback_unmatched`, with reviewer notes explaining whether rows were
+paired by stable transaction ID, appeared in only one snapshot, or were left
+unpaired because fallback keys were ambiguous. Report bundles include this
 table as `transaction_matching_diagnostics.csv`.
 
 Report bundles include `report.html` as the browser view of the same review

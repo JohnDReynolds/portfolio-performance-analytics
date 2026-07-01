@@ -762,7 +762,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_match_status", transaction_matching.columns)
             self.assertEqual(
                 transaction_matching["transaction_match_status"][0],
-                "transaction_id_match",
+                "matched_by_id",
             )
             self.assertIn(
                 "transaction matching status counts",

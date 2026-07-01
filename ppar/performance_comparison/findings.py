@@ -56,6 +56,9 @@ __all__ = [
     "TRANSACTION_MATCH_STATUS_ID_MATCH",
     "TRANSACTION_MATCH_STATUS_ID_UNMATCHED",
     "TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED",
+    "TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B",
+    "TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B",
+    "TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH",
     "IMPACT_POLICY",
     "IMPACT_POLICY_EVIDENCE_ONLY_PREFIX",
     "IMPACT_POLICY_CASH_BALANCE",
@@ -96,6 +99,7 @@ __all__ = [
     "PC_FX_RATE",
     "PC_TXN_ADD",
     "PC_TXN_DROP",
+    "PC_TXN_AMBIG",
     "PC_TXN_AMT",
     "PC_TXN_QTY",
     "PC_TXN_PRICE",
@@ -208,6 +212,7 @@ PC_PRICE: Final[str] = "PC-PRICE"
 PC_FX_RATE: Final[str] = "PC-FX-RATE"
 PC_TXN_ADD: Final[str] = "PC-TXN-ADD"
 PC_TXN_DROP: Final[str] = "PC-TXN-DROP"
+PC_TXN_AMBIG: Final[str] = "PC-TXN-AMBIG"
 PC_TXN_AMT: Final[str] = "PC-TXN-AMT"
 PC_TXN_QTY: Final[str] = "PC-TXN-QTY"
 PC_TXN_PRICE: Final[str] = "PC-TXN-PRICE"
@@ -239,9 +244,12 @@ class EvidenceRole(StrEnum):
 class TransactionMatchStatus(StrEnum):
     """Supported transaction matching diagnostic labels."""
 
-    ID_MATCH = "transaction_id_match"
+    ID_MATCH = "matched_by_id"
     ID_UNMATCHED = "transaction_id_unmatched"
     STRICT_FALLBACK_UNMATCHED = "strict_fallback_unmatched"
+    ADDED_IN_SNAPSHOT_B = "added_in_snapshot_b"
+    MISSING_FROM_SNAPSHOT_B = "missing_from_snapshot_b"
+    AMBIGUOUS_FALLBACK_MATCH = "ambiguous_fallback_match"
 
 
 TRANSACTION_MATCH_STATUS_ID_MATCH: Final[TransactionMatchStatus] = (
@@ -252,6 +260,15 @@ TRANSACTION_MATCH_STATUS_ID_UNMATCHED: Final[TransactionMatchStatus] = (
 )
 TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED: Final[TransactionMatchStatus] = (
     TransactionMatchStatus.STRICT_FALLBACK_UNMATCHED
+)
+TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.ADDED_IN_SNAPSHOT_B
+)
+TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.MISSING_FROM_SNAPSHOT_B
+)
+TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.AMBIGUOUS_FALLBACK_MATCH
 )
 
 SEVERITY_INFORMATIONAL: Final[FindingSeverity] = FindingSeverity.INFORMATIONAL

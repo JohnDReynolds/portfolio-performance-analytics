@@ -24,8 +24,10 @@ from ppar.performance_comparison.findings import (
     RELATED_OUTPUT,
     TARGET_OUTPUT,
     TransactionMatchStatus,
+    TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+    TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
-    TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
+    TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     PC_CASH_MV,
     PC_FX_RATE,
@@ -40,6 +42,7 @@ from ppar.performance_comparison.findings import (
     PC_SEC_RET,
     PC_SEC_WGT,
     PC_TXN_ADD,
+    PC_TXN_AMBIG,
     PC_TXN_AMT,
     PC_TXN_COMM,
     PC_TXN_DROP,
@@ -528,16 +531,10 @@ class PerformanceComparison:
         portfolio_periods = self._portfolio_periods()
         return_denominators = self._portfolio_period_return_denominators()
         fallback_periods = self._single_changed_portfolio_return_periods()
-        findings = self._row_presence_findings(
+        findings = self._transaction_row_presence_findings(
             snapshot_a,
             snapshot_b,
             key_columns,
-            PC_TXN_ADD,
-            PC_TXN_DROP,
-            pc_cols.TRANSACTIONS,
-            "Transaction row appears only in snapshot B.",
-            "Transaction row appears only in snapshot A.",
-            self._transaction_unmatched_status(key_columns),
         )
         if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
             findings.extend(
@@ -566,14 +563,23 @@ class PerformanceComparison:
         add_message: str = "Portfolio performance row appears only in snapshot B.",
         drop_message: str = "Portfolio performance row appears only in snapshot A.",
         transaction_match_status: TransactionMatchStatus | None = None,
+        add_transaction_match_status: TransactionMatchStatus | None = None,
+        drop_transaction_match_status: TransactionMatchStatus | None = None,
+        allow_duplicate_keys: bool = False,
     ) -> list[Finding]:
         """Return findings for portfolio rows present in only one snapshot."""
-        self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
-        self._validate_unique_keys(snapshot_b, key_columns, dataset, "snapshot B")
+        if allow_duplicate_keys:
+            self._validate_complete_keys(snapshot_a, key_columns, dataset, "snapshot A")
+            self._validate_complete_keys(snapshot_b, key_columns, dataset, "snapshot B")
+        else:
+            self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
+            self._validate_unique_keys(snapshot_b, key_columns, dataset, "snapshot B")
         rows_a = self._row_keys(snapshot_a, key_columns)
         rows_b = self._row_keys(snapshot_b, key_columns)
         source_file = self._source_file(dataset)
         findings: list[Finding] = []
+        add_status = add_transaction_match_status or transaction_match_status
+        drop_status = drop_transaction_match_status or transaction_match_status
 
         for row_key in sorted(rows_b - rows_a, key=self._sortable_key):
             findings.append(
@@ -584,7 +590,7 @@ class PerformanceComparison:
                     dataset,
                     source_file,
                     add_message,
-                    transaction_match_status,
+                    add_status,
                 )
             )
         for row_key in sorted(rows_a - rows_b, key=self._sortable_key):
@@ -596,9 +602,55 @@ class PerformanceComparison:
                     dataset,
                     source_file,
                     drop_message,
-                    transaction_match_status,
+                    drop_status,
                 )
             )
+        return findings
+
+    def _transaction_row_presence_findings(
+        self,
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+        key_columns: tuple[str, ...],
+    ) -> list[Finding]:
+        """Return transaction add/drop findings and fallback ambiguity diagnostics."""
+        if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
+            return self._row_presence_findings(
+                snapshot_a,
+                snapshot_b,
+                key_columns,
+                PC_TXN_ADD,
+                PC_TXN_DROP,
+                pc_cols.TRANSACTIONS,
+                "Transaction row appears only in snapshot B.",
+                "Transaction row appears only in snapshot A.",
+                add_transaction_match_status=TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+                drop_transaction_match_status=(
+                    TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B
+                ),
+            )
+
+        findings = self._row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+            PC_TXN_ADD,
+            PC_TXN_DROP,
+            pc_cols.TRANSACTIONS,
+            "Transaction row appears only in snapshot B.",
+            "Transaction row appears only in snapshot A.",
+            TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
+            add_transaction_match_status=TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+            drop_transaction_match_status=TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+            allow_duplicate_keys=True,
+        )
+        findings.extend(
+            self._transaction_fallback_ambiguity_findings(
+                snapshot_a,
+                snapshot_b,
+                key_columns,
+            )
+        )
         return findings
 
     def _changed_object_findings(
@@ -864,19 +916,12 @@ class PerformanceComparison:
         snapshot_label: str,
     ) -> None:
         """Raise if a normalized frame has duplicate comparison keys."""
-        null_key_rows = frame.filter(
-            pl.any_horizontal(pl.col(column).is_null() for column in key_columns)
+        PerformanceComparison._validate_complete_keys(
+            frame,
+            key_columns,
+            dataset,
+            snapshot_label,
         )
-        if not null_key_rows.is_empty():
-            null_key = null_key_rows.select(key_columns).row(0, named=True)
-            key_names = ", ".join(key_columns)
-            raise PpaError(
-                (
-                    f"{dataset} contains missing {snapshot_label} comparison "
-                    f"key values for key columns {key_names}: {null_key}"
-                ),
-                112,
-            )
 
         duplicate_keys = (
             frame.group_by(list(key_columns))
@@ -894,6 +939,105 @@ class PerformanceComparison:
                 f"key columns {key_names}: {duplicate_key}"
             ),
             112,
+        )
+
+    @staticmethod
+    def _validate_complete_keys(
+        frame: pl.DataFrame,
+        key_columns: tuple[str, ...],
+        dataset: str,
+        snapshot_label: str,
+    ) -> None:
+        """Raise if a normalized frame has missing comparison key values."""
+        null_key_rows = frame.filter(
+            pl.any_horizontal(pl.col(column).is_null() for column in key_columns)
+        )
+        if not null_key_rows.is_empty():
+            null_key = null_key_rows.select(key_columns).row(0, named=True)
+            key_names = ", ".join(key_columns)
+            raise PpaError(
+                (
+                    f"{dataset} contains missing {snapshot_label} comparison "
+                    f"key values for key columns {key_names}: {null_key}"
+                ),
+                112,
+            )
+
+    def _transaction_fallback_ambiguity_findings(
+        self,
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+        key_columns: tuple[str, ...],
+    ) -> list[Finding]:
+        """Return ambiguity diagnostics for duplicate fallback transaction keys."""
+        duplicate_keys = self._duplicate_transaction_fallback_keys(
+            snapshot_a,
+            snapshot_b,
+            key_columns,
+        )
+        if duplicate_keys.is_empty():
+            return []
+
+        source_file = self._source_file(pc_cols.TRANSACTIONS)
+        findings: list[Finding] = []
+        for row in duplicate_keys.iter_rows(named=True):
+            row_key = tuple(row[column] for column in key_columns)
+            row_context = dict(zip(key_columns, row_key, strict=True))
+            findings.append(
+                Finding(
+                    code=PC_TXN_AMBIG,
+                    severity=SEVERITY_INFORMATIONAL,
+                    confidence=CONFIDENCE_HIGH,
+                    dataset=pc_cols.TRANSACTIONS,
+                    evidence_role=CONTEXT,
+                    portfolio_id=row_context.get(pc_cols.PORTFOLIO_ID),
+                    security_id=row_context.get(pc_cols.SECURITY_ID),
+                    from_date=row_context.get(pc_cols.FROM_DATE),
+                    thru_date=row_context.get(pc_cols.THRU_DATE),
+                    input_date=self._input_date(row_context, pc_cols.TRANSACTIONS),
+                    source_file=source_file,
+                    transaction_match_status=(
+                        TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH
+                    ),
+                    snapshot_a_value=row.get("snapshot_a_count"),
+                    snapshot_b_value=row.get("snapshot_b_count"),
+                    message=(
+                        "Duplicate strict fallback transaction keys make row "
+                        "pairing ambiguous; review as separate same-key activity."
+                    ),
+                )
+            )
+        return findings
+
+    @staticmethod
+    def _duplicate_transaction_fallback_keys(
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+        key_columns: tuple[str, ...],
+    ) -> pl.DataFrame:
+        """Return fallback keys duplicated in either transaction snapshot."""
+        duplicate_frames = []
+        for frame, count_name in (
+            (snapshot_a, "snapshot_a_count"),
+            (snapshot_b, "snapshot_b_count"),
+        ):
+            duplicate_frames.append(
+                frame.group_by(list(key_columns))
+                .len(name=count_name)
+                .filter(pl.col(count_name) > 1)
+            )
+
+        duplicate_keys = duplicate_frames[0].join(
+            duplicate_frames[1],
+            on=list(key_columns),
+            how="full",
+            coalesce=True,
+        )
+        if duplicate_keys.is_empty():
+            return duplicate_keys
+        return duplicate_keys.with_columns(
+            pl.col("snapshot_a_count").fill_null(0),
+            pl.col("snapshot_b_count").fill_null(0),
         )
 
     @staticmethod
@@ -1321,15 +1465,6 @@ class PerformanceComparison:
             snapshot_b,
             _TRANSACTION_FALLBACK_KEY_COLUMNS,
         )
-
-    @staticmethod
-    def _transaction_unmatched_status(
-        key_columns: tuple[str, ...],
-    ) -> TransactionMatchStatus:
-        """Return the unmatched transaction diagnostic for a comparison key."""
-        if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
-            return TRANSACTION_MATCH_STATUS_ID_UNMATCHED
-        return TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED
 
     @staticmethod
     def _key_finding(

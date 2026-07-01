@@ -66,6 +66,7 @@ from ppar.performance_comparison.findings import (
     PC_SEC_RET,
     PC_SEC_WGT,
     PC_TXN_ADD,
+    PC_TXN_AMBIG,
     PC_TXN_AMT,
     PC_TXN_COMM,
     PC_TXN_DROP,
@@ -87,8 +88,11 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
     TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
     TRANSACTION_CATEGORY,
+    TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+    TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
+    TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
     PERFORMANCE_FLOW_SIGN,
@@ -123,6 +127,38 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
         (snapshot_path / "transactions.csv").write_text(
             "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
             f"PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,{amount}\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "transactions": "transactions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_duplicate_transaction_fallback_specification(directory: Path) -> Path:
+    """Write a fixture with legitimate duplicate same-day fallback keys."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,1000.00,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
+            "PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,100.00\n"
+            "PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,100.00\n",
             encoding="utf-8",
         )
 
@@ -3015,10 +3051,60 @@ class TestPerformanceComparison(unittest.TestCase):
                 {
                     finding[TRANSACTION_MATCH_STATUS]
                     for finding in finding_dicts
-                    if finding[FINDING_CODE] in {PC_TXN_ADD, PC_TXN_DROP}
+                    if finding[FINDING_CODE] == PC_TXN_ADD
                 },
-                {TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED},
+                {TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B},
             )
+            self.assertEqual(
+                {
+                    finding[TRANSACTION_MATCH_STATUS]
+                    for finding in finding_dicts
+                    if finding[FINDING_CODE] == PC_TXN_DROP
+                },
+                {TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B},
+            )
+
+    def test_duplicate_transaction_fallback_keys_are_ambiguity_diagnostics(self) -> None:
+        """Duplicate fallback keys are legitimate but unsafe to pair as edits."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_duplicate_transaction_fallback_specification(
+                Path(temp_dir)
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            finding_dicts = [finding.to_dict() for finding in findings]
+
+            self.assertEqual(len(finding_dicts), 1)
+            ambiguity = finding_dicts[0]
+            self.assertEqual(ambiguity[FINDING_CODE], PC_TXN_AMBIG)
+            self.assertEqual(
+                ambiguity[TRANSACTION_MATCH_STATUS],
+                TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
+            )
+            self.assertEqual(ambiguity["snapshot_a_value"], 2)
+            self.assertEqual(ambiguity["snapshot_b_value"], 2)
+            self.assertIn("ambiguous", str(ambiguity["message"]))
+
+    def test_duplicate_transaction_ids_still_fail_loudly(self) -> None:
+        """Stable transaction IDs remain unique comparison keys."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_period_specification(Path(temp_dir))
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                transaction_path = Path(temp_dir) / snapshot_name / "transactions.csv"
+                transaction_path.write_text(
+                    "TRANSACTION_ID,PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,"
+                    "PRICE,AMOUNT,CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+                    "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
+                    "100.00,cash out,external\n"
+                    "TXN1,PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,"
+                    "100.00,cash out,external\n",
+                    encoding="utf-8",
+                )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            with self.assertRaises(PpaError):
+                PerformanceComparison(specification).compare_transactions()
 
 
 if __name__ == "__main__":

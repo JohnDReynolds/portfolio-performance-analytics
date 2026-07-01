@@ -1751,14 +1751,16 @@ case.
 
 ### Phase 22: Transaction Matching Diagnostics Depth
 
-Status: proposed as the next functional phase.
+Status: complete for first-pass transaction match outcome vocabulary.
 
-The next non-wording target is to make transaction matching diagnostics easier
-to review without broadening ppar into an accounting system. The useful scope is
-reviewer visibility into why a transaction row matched by transaction ID,
-matched by strict fallback fields, or remained unmatched. This should improve
-auditability of the existing Modified Dietz evidence path rather than adding
-tax-lot, cost-basis, or accounting-ledger reconstruction.
+Transaction matching diagnostics now distinguish stable ID matches, snapshot-B
+adds, snapshot-B missing rows, and ambiguous strict-fallback keys. Stable
+`transaction_id` matches remain the only high-confidence edit pairing. Strict
+fallback keys still prevent amount restatements from being inferred as edits,
+and duplicate fallback keys are reported as ambiguity diagnostics because two
+identical same-day transactions can be legitimate. This improves auditability
+of the existing Modified Dietz evidence path without adding tax-lot,
+cost-basis, or accounting-ledger reconstruction.
 
 ## Guiding Principle
 
