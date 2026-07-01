@@ -290,12 +290,22 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     else:
                         self.assertIsNotNone(row[5])
                 balanced_may = partly_explained_rows[0]
-                self.assertIn("Start in Raw Audit Trail", balanced_may[7])
-                self.assertIn("portfolio_performance.", balanced_may[7])
-                self.assertIn("Other Data Differences", balanced_may[7])
+                self.assertIn("The Unexplained Difference (+2.00 bps)", balanced_may[7])
+                self.assertIn(
+                    "Compare portfolio_performance.portfolio_return",
+                    balanced_may[7],
+                )
+                self.assertIn(
+                    "portfolio_performance.begin_market_value and "
+                    "portfolio_performance.end_market_value",
+                    balanced_may[7],
+                )
+                self.assertNotIn("portfolio_performance.gain_loss", balanced_may[7])
+                self.assertNotIn("holdings.cost", balanced_may[7])
                 income_april = unexplained_rows[0]
-                self.assertIn("No supported additive cause explains", income_april[7])
-                self.assertIn("holdings.cost (TNOTE5Y)", income_april[7])
+                self.assertIn("The Unexplained Difference (+3.50 bps)", income_april[7])
+                self.assertIn("portfolio_performance.portfolio_return", income_april[7])
+                self.assertNotIn("holdings.cost", income_april[7])
                 self.assertNotIn(
                     'Review the "Other Data Differences" sheet and '
                     '"Raw Audit Trail" sheet',

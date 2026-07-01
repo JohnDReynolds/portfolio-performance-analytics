@@ -616,8 +616,16 @@ def _workbook_performance_comments(
         if abs(residual) <= _WORKBOOK_UNEXPLAINED_TOLERANCE:
             return ""
         if abs(underlying_estimated_total) > 0:
-            return _workbook_unexplained_review_comment(review_hint, partly=True)
-        return _workbook_unexplained_review_comment(review_hint, partly=False)
+            return _workbook_unexplained_review_comment(
+                review_hint,
+                partly=True,
+                residual=residual,
+            )
+        return _workbook_unexplained_review_comment(
+            review_hint,
+            partly=False,
+            residual=residual,
+        )
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
         return ""
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
@@ -629,12 +637,14 @@ def _workbook_unexplained_review_comment(
     review_hint: str | None,
     *,
     partly: bool,
+    residual: float | None = None,
 ) -> str:
     """Return directed comments for unresolved performance differences."""
+    residual_text = _workbook_residual_size_text(residual)
     prefix = (
-        "The explained rows account for part of this difference."
+        f"{residual_text} remains after the explained rows."
         if partly
-        else "No supported additive cause explains this difference."
+        else f"{residual_text} has no supported additive cause."
     )
     if review_hint:
         return f"{prefix} {review_hint}"
@@ -642,6 +652,14 @@ def _workbook_unexplained_review_comment(
         f"{prefix} Start with matching Review Key rows in Performance Difference "
         'Causes, Other Data Differences, and Raw Audit Trail.'
     )
+
+
+def _workbook_residual_size_text(residual: float | None) -> str:
+    """Return a compact residual size phrase for review comments."""
+    if residual is None:
+        return "The Unexplained Difference"
+    basis_points = residual * 10000
+    return f"The Unexplained Difference ({basis_points:+.2f} bps)"
 
 
 def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
@@ -1234,53 +1252,67 @@ def _workbook_residual_review_hints(
     """Return directed review hints for periods with unexplained residuals."""
     hints: dict[tuple[object, ...], str] = {}
     rows_by_key: dict[tuple[object, ...], list[dict[str, object]]] = {}
-    for row in _workbook_ranked_changed_rows_for_level(
+    for row in _workbook_with_primary_review_key(
         findings,
-        comparison_level=comparison_level,
-    ):
+        comparison_level,
+    ).iter_rows(named=True):
         rows_by_key.setdefault(
             _workbook_primary_key(row, comparison_level),
             [],
         ).append(row)
 
     for key, rows in rows_by_key.items():
-        reported_refs = _workbook_review_field_refs(
-            (row for row in rows if _workbook_is_reported_diagnostic_row(row)),
+        target_refs = _workbook_review_field_refs(
+            (
+                row
+                for row in rows
+                if _workbook_is_reported_diagnostic_row(row)
+                and row.get(_pc_findings.SOURCE_COLUMN)
+                in {pc_cols.PORTFOLIO_RETURN, pc_cols.SECURITY_RETURN}
+            ),
             comparison_level=comparison_level,
         )
-        context_refs = _workbook_review_field_refs(
-            (row for row in rows if _workbook_is_context_row(row)),
+        formula_refs = _workbook_review_field_refs(
+            (
+                row
+                for row in rows
+                if _workbook_is_reported_diagnostic_row(row)
+                and row.get(_pc_findings.SOURCE_COLUMN)
+                in {
+                    pc_cols.BEGIN_MARKET_VALUE,
+                    pc_cols.END_MARKET_VALUE,
+                    pc_cols.FLOW,
+                    pc_cols.INCOME,
+                }
+            ),
             comparison_level=comparison_level,
         )
         hints[key] = _workbook_residual_review_hint(
-            reported_refs=reported_refs,
-            context_refs=context_refs,
+            target_refs=target_refs,
+            formula_refs=formula_refs,
         )
     return hints
 
 
 def _workbook_residual_review_hint(
     *,
-    reported_refs: Sequence[str],
-    context_refs: Sequence[str],
+    target_refs: Sequence[str],
+    formula_refs: Sequence[str],
 ) -> str:
     """Return one directed reviewer hint from available evidence rows."""
-    parts = []
-    if reported_refs:
-        parts.append(
-            "Start in Raw Audit Trail with "
-            f"{_workbook_join_review_refs(reported_refs)}; these rows show the "
-            "reported performance-extract change being reconciled."
+    if target_refs and formula_refs:
+        return (
+            f"Compare {_workbook_join_review_refs(target_refs)} to the Modified "
+            f"Dietz input rows {_workbook_join_review_refs(formula_refs)} in Raw "
+            "Audit Trail. The remaining difference is a reported-performance "
+            "residual, not an additive source-data cause."
         )
-    if context_refs:
-        lead = "Then check" if reported_refs else "Start in"
-        parts.append(
-            f"{lead} Other Data Differences for "
-            f"{_workbook_join_review_refs(context_refs)}; these rows are useful "
-            "evidence but are not counted as additive Modified Dietz causes."
+    if target_refs:
+        return (
+            f"Start with {_workbook_join_review_refs(target_refs)} in Raw Audit "
+            "Trail. No supported Modified Dietz input row explains the remaining "
+            "reported return difference."
         )
-    if parts:
-        return " ".join(parts)
     return (
         "Start with rows that share this Review Key in Performance Difference Causes, "
         "Other Data Differences, and Raw Audit Trail."
@@ -1317,10 +1349,10 @@ def _workbook_review_ref_sort_key(row: Mapping[str, object]) -> tuple[int, str]:
     priority = {
         pc_cols.PORTFOLIO_RETURN: 0,
         pc_cols.SECURITY_RETURN: 0,
-        pc_cols.CONTRIBUTION: 1,
+        pc_cols.BEGIN_MARKET_VALUE: 1,
         pc_cols.END_MARKET_VALUE: 2,
-        pc_cols.BEGIN_MARKET_VALUE: 3,
-        pc_cols.GAIN_LOSS: 4,
+        pc_cols.FLOW: 3,
+        pc_cols.INCOME: 4,
     }.get(source_column, 10)
     return priority, _workbook_dataset_field(row)
 
