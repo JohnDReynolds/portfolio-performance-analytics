@@ -1509,15 +1509,20 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     _normalized_header(
                         findings_sheet.cell(row=1, column=column).value
                     )
-                    for column in range(1, 7)
+                    for column in range(1, 12)
                 ],
                 [
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Source Dataset",
-                    "Input Field",
+                    "As Of Date",
+                    "Dataset Field",
                     "Security",
+                    "Snapshot A Value",
+                    "Snapshot B Value",
+                    "B - A Difference",
+                    "Performance Difference Explained",
+                    "Explanation",
                 ],
             )
             self.assertEqual(

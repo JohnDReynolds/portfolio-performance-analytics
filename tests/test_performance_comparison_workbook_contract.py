@@ -41,8 +41,8 @@ _COMMON_LEFT_HEADERS = [
     "Portfolio",
     "From Date",
     "Thru Date",
-    "Source Dataset",
-    "Input Field",
+    "As Of Date",
+    "Dataset Field",
     "Security",
 ]
 _IDENTIFIABLE_LEFT_HEADERS = [
@@ -152,10 +152,11 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertNotIn("same review model in a browser", readme)
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("source-data differences", readme)
-            self.assertIn("Source Dataset", html_report)
+            self.assertIn("Dataset Field", html_report)
+            self.assertNotIn("Source Dataset", html_report)
             self.assertNotIn("Source-Data Dataset", html_report)
             self.assertIn(
-                "Normalized dataset where the source-data discrepancy was found.",
+                "Changed input field, shown as dataset.field.",
                 html_report,
             )
             self.assertNotIn("Normalized source dataset", html_report)
@@ -221,8 +222,16 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     _NON_ADDITIVE_HEADERS,
                 )
                 self.assertEqual(
-                    _header_values(workbook["Raw Audit Trail"])[:7],
-                    [*_COMMON_LEFT_HEADERS, "Transaction Category"],
+                    _header_values(workbook["Raw Audit Trail"])[:12],
+                    [
+                        *_COMMON_LEFT_HEADERS,
+                        "Snapshot A Value",
+                        "Snapshot B Value",
+                        "B - A Difference",
+                        "Performance Difference Explained",
+                        "Explanation",
+                        "Code",
+                    ],
                 )
                 self.assertEqual(
                     _header_values(workbook["Raw Audit Trail"])[-1],
@@ -280,6 +289,18 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         self.assertIsNone(row[5])
                     else:
                         self.assertIsNotNone(row[5])
+                balanced_may = partly_explained_rows[0]
+                self.assertIn("Start in Raw Audit Trail", balanced_may[7])
+                self.assertIn("portfolio_performance.", balanced_may[7])
+                self.assertIn("Other Data Differences", balanced_may[7])
+                income_april = unexplained_rows[0]
+                self.assertIn("No supported additive cause explains", income_april[7])
+                self.assertIn("holdings.cost (TNOTE5Y)", income_april[7])
+                self.assertNotIn(
+                    'Review the "Other Data Differences" sheet and '
+                    '"Raw Audit Trail" sheet',
+                    income_april[7],
+                )
                 self.assertTrue(
                     all(
                         isinstance(value, (int, float)) and not isinstance(value, bool)
