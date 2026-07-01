@@ -444,6 +444,10 @@ source `transaction_code` values remain native lower-case codes such as `by`,
 normalized categories such as `buy`, `sell`, `income`, `external_flow`, and
 `corporate_action`. The normalized category is an explanation label and a rule
 selector; it does not replace the source transaction code in the audit trail.
+Transaction-code normalization is limited to semantic classification and
+rule-coverage checks. It is not a broad case-insensitive comparison policy for
+source identifiers; reviewer handoff artifacts preserve native transaction-code
+case.
 
 `cash_flow_sign` and `performance_flow_sign` are optional source-supplied
 semantics. They should not be inferred from transaction code in the first pass.

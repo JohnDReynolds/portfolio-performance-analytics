@@ -20,7 +20,7 @@ The operational demos should eventually include:
 - three small portfolios (`ALPHA`, `BALANCED`, and `INCOME`);
 - controlled restatements for performance-comparison examples.
 
-## Phase 1: Prototype Generated Source-Data
+## Phase 1: Prototype Generated Source-data
 
 Status: complete.
 

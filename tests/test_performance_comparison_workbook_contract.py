@@ -150,6 +150,21 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("Open `report.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
+            html_report = paths["html_report"].read_text(encoding="utf-8")
+            self.assertIn("source-data differences", readme)
+            self.assertIn("Source Dataset", html_report)
+            self.assertNotIn("Source-Data Dataset", html_report)
+
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            review_summary = json.loads(
+                paths["review_summary"].read_text(encoding="utf-8")
+            )
+            for summary in (manifest, review_summary):
+                transaction_semantics = summary["transaction_semantics"]
+                self.assertIn("by", transaction_semantics["observed_codes"])
+                self.assertIn("sl", transaction_semantics["observed_codes"])
+                self.assertNotIn("BY", transaction_semantics["observed_codes"])
+                self.assertNotIn("SL", transaction_semantics["observed_codes"])
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],

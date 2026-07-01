@@ -1727,7 +1727,9 @@ Status: complete for the current review summary and manifest contract.
 `manifest.json` and `review_summary.json` now preserve native observed
 transaction-code strings in `observed_codes`. YAML coverage still normalizes
 transaction codes for rule-key lookup, but the review handoff no longer converts
-native lower-case demo codes such as `by` and `sl` to upper case.
+native lower-case demo codes such as `by` and `sl` to upper case. This
+normalization is scoped to semantic classification and rule coverage; it is not
+a broad case-insensitive equality policy for source identifiers.
 
 #### Phase 21B: Source Dataset Report Label
 
@@ -1746,6 +1748,17 @@ Regression coverage now pins security identifiers as exact comparison keys:
 an in-place value change. Transaction-code normalization remains limited to
 explicit semantic rule/category lookups; reviewer metadata retains native code
 case.
+
+### Phase 22: Transaction Matching Diagnostics Depth
+
+Status: proposed as the next functional phase.
+
+The next non-wording target is to make transaction matching diagnostics easier
+to review without broadening ppar into an accounting system. The useful scope is
+reviewer visibility into why a transaction row matched by transaction ID,
+matched by strict fallback fields, or remained unmatched. This should improve
+auditability of the existing Modified Dietz evidence path rather than adding
+tax-lot, cost-basis, or accounting-ledger reconstruction.
 
 ## Guiding Principle
 

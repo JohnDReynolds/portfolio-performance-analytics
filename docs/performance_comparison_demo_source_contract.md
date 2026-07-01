@@ -106,6 +106,13 @@ Reviewer-facing explanations should preserve the source code as it appears in
 the source file. For example, a changed buy transaction should display `by:`,
 not `BY:` or `buy:`.
 
+The comparison code may normalize transaction-code strings only for explicit
+semantic classification, such as matching YAML `transaction_rules`, checking
+whether a code belongs to a reviewed boundary family, or deriving a normalized
+`Transaction Category`. That normalization is not a general equality rule for
+source identifiers, and it must not rewrite reviewer handoff artifacts such as
+`observed_codes`, workbook explanations, or audit-trail transaction-code values.
+
 The Axys/APX transaction reference documents support using short Axys/APX-style
 codes for common examples such as buys, sells, dividends, interest, fees, and
 withdrawals where the evidence is strong enough for demo purposes. Code alone is

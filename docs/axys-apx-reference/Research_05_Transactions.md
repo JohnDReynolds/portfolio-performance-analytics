@@ -531,7 +531,7 @@ Historical transaction changes may affect:
 The processing pipeline focuses on transformation from raw source-data to posted accounting records.
 
 ```text
-Acquire Source-Data
+Acquire Source-data
         ↓
 Normalize Records
         ↓
@@ -566,7 +566,7 @@ Reporting / IMEX / REP / Reconciliation / Audit
 
 | Stage | Purpose | Typical Failure |
 |---|---|---|
-| Acquire Source-Data | Obtain transactions from custodian, broker, OMS, manual entry, or provider. | Missing file, stale file, incomplete batch. |
+| Acquire Source-data | Obtain transactions from custodian, broker, OMS, manual entry, or provider. | Missing file, stale file, incomplete batch. |
 | Normalize | Convert source formats into common representation. | Bad dates, inconsistent signs, malformed identifiers. |
 | Portfolio Translation | Map external account to internal portfolio. | Unknown portfolio, duplicate mapping, inactive account. |
 | Security Translation | Map ticker/CUSIP/ISIN/source security to internal security. | Unknown security, ambiguous security, duplicate mapping. |

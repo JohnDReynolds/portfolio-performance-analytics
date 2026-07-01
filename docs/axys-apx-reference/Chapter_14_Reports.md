@@ -67,7 +67,7 @@ Reports are downstream views of the accounting data model. They may summarize tr
 | Performance analytics | Portfolio, benchmark, contribution, attribution, and risk reporting. | Yes | Yes | Verified at product level; APX names Verified |
 | Data extraction | Report output used as an integration/export surface. | Yes | Yes | High Confidence |
 
-### 2.2 Report Output Is Not Necessarily Source-Data
+### 2.2 Report Output Is Not Necessarily Source-data
 
 Report labels are not automatically native field names. A report column such as `Market Value`, `Contrib`, `Avg Wgt`, or `Portfolio Return` may be:
 
