@@ -83,7 +83,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertIn("TNOTE2Y", set(axys["sec_ref"]["SECURITY_ID"]))
 
     def test_restatement_snapshot_contains_controlled_differences(self) -> None:
-        """Snapshot B includes source data differences across key datasets."""
+        """Snapshot B includes source-data differences across key datasets."""
         performance = self.generator.derive_operational_performance(
             self.source,
             equity_count=8,

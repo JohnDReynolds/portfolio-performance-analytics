@@ -99,7 +99,7 @@ _REVIEW_VOCABULARY = {
         "reconstruction or additive explanation."
     ),
     "source_data": (
-        "The source data is the original loaded portfolio, security, transaction, "
+        "The source-data is the original loaded portfolio, security, transaction, "
         "holding, cash, FX, or reference data compared by the report."
     ),
     "finding_level": (
@@ -131,7 +131,7 @@ _REVIEW_VOCABULARY = {
         "not be summed into explained performance change."
     ),
     "explained_change": (
-        "The explained-change wording names how source data differences account "
+        "The explained-change wording names how source-data differences account "
         "for a reported return difference."
     ),
     "backlog_gate": (
@@ -216,7 +216,7 @@ def write_report_bundle_readme(
         "",
         first_review_step,
         f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
-        f"source data differences additively explain each {review_unit}.",
+        f"source-data differences additively explain each {review_unit}.",
         f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} and "
         f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} as supporting detail: "
         f"{_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} is review-only context, "

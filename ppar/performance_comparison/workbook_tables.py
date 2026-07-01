@@ -1422,7 +1422,7 @@ def _workbook_formula_source_attributed_rows(
     cash_security_matches: Mapping[tuple[object, ...], object],
     comparison_level: str,
 ) -> list[dict[str, object]]:
-    """Return formula impacts allocated onto recognizable source data rows."""
+    """Return formula impacts allocated onto recognizable source-data rows."""
     rows_by_key: dict[tuple[object, ...], dict[str, object]] = {}
     for formula_row in formula_rows:
         estimated_impact = _number_or_none(formula_row.get(_ESTIMATED_IMPACT))
@@ -1687,7 +1687,7 @@ def _workbook_source_row_key(
     row: Mapping[str, object],
     comparison_level: str,
 ) -> tuple[object, ...]:
-    """Return a stable key for one source data row in the workbook."""
+    """Return a stable key for one source-data row in the workbook."""
     return (
         *_workbook_primary_key(row, comparison_level),
         row.get(_pc_findings.DATASET),
@@ -2396,7 +2396,7 @@ def _workbook_source_row_explanation(
     dataset: str,
     source_column: str,
 ) -> str:
-    """Return source data explanation text when a row has a known source shape."""
+    """Return source-data explanation text when a row has a known source shape."""
     if dataset == pc_cols.HOLDINGS:
         return _workbook_holding_detail_explanation(row, source_column)
     if dataset == pc_cols.TRANSACTIONS:
@@ -2545,7 +2545,7 @@ def _workbook_related_input_guidance(
         return _workbook_holding_detail_explanation(row, source_column)
     if dataset == pc_cols.TRANSACTIONS:
         return _workbook_transaction_component_explanation(row, source_column)
-    return "This source data change supports the related counted row."
+    return "This source-data change supports the related counted row."
 
 
 def _workbook_transaction_reconstruction_flow_guidance(
@@ -2563,7 +2563,7 @@ def _workbook_transaction_reconstruction_flow_guidance(
 def _workbook_portfolio_external_flow_transaction_explanation(
     row: Mapping[str, object],
 ) -> str:
-    """Return source data wording for a portfolio external-flow transaction."""
+    """Return source-data wording for a portfolio external-flow transaction."""
     flow_delta = _workbook_row_change_value(row)
     weighted_flow_delta = (
         (_number_or_none(flow_delta) or 0.0) * _workbook_source_flow_weight(row)
@@ -2578,7 +2578,7 @@ def _workbook_portfolio_external_flow_transaction_explanation(
 
 
 def _workbook_transaction_cash_balance_explanation(row: Mapping[str, object]) -> str:
-    """Return source data wording for a transaction's ending cash-balance effect."""
+    """Return source-data wording for a transaction's ending cash-balance effect."""
     return (
         f"{_workbook_transaction_code_prefix(row)}Caused cash-balance "
         "ending holdings.market_value "
@@ -3074,7 +3074,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _REVIEW_PRIORITY_REASON: "Review Priority Reason",
         _RETURN_IMPACT_TREATMENT: "Return Impact Treatment",
         _pc_findings.FINDING_CODE: "Code",
-        _pc_findings.DATASET: "Input Dataset",
+        _pc_findings.DATASET: "Source-Data Dataset",
         _pc_findings.SOURCE_COLUMN: "Input Field",
         _pc_findings.MESSAGE: "Message",
         _pc_findings.SEVERITY: "Severity",
@@ -3157,7 +3157,7 @@ def workbook_column_tooltip(column: str) -> str:
         _REVIEW_KEY: (
             "Stable performance-period key used to connect workbook rows."
         ),
-        _pc_findings.PORTFOLIO_ID: "Portfolio identifier from the compared source data.",
+        _pc_findings.PORTFOLIO_ID: "Portfolio identifier from the compared source-data.",
         _pc_findings.FROM_DATE: "Beginning date of the affected performance period.",
         _pc_findings.THRU_DATE: "Ending date of the affected performance period.",
         _pc_findings.SECURITY_ID: "Security identifier, when the discrepancy is security-level.",
@@ -3202,7 +3202,7 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_explain.REVIEW_RANK: "Priority rank within the portfolio period.",
         _pc_findings.FINDING_CODE: "Stable finding code for the discrepancy type.",
         _pc_findings.CONFIDENCE: "Confidence level for the finding or impact interpretation.",
-        _pc_findings.DATASET: "Normalized input dataset where the discrepancy was found.",
+        _pc_findings.DATASET: "Normalized source-data dataset where the discrepancy was found.",
         _pc_findings.EVIDENCE_ROLE: (
             "Whether the finding is target output, direct input, related output, or context."
         ),

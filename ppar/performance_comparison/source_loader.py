@@ -218,7 +218,7 @@ def require_numeric_columns(
     """Raise if present numeric columns contain nonblank nonnumeric values.
 
     Args:
-        frame: Normalized source DataFrame.
+        frame: Normalized source frame.
         columns: Normalized numeric columns to validate when present.
         dataset_name: Normalized dataset name for error messages.
         path: Source CSV path.

@@ -635,7 +635,7 @@ This dictionary includes only fields, labels, tokens, and artifacts supported in
 ### 15.1 Axys CI Import Architecture Example
 
 ```text
-External source data
+External source-data
     ↓
 Custodial Integrator
     ├── Reads Axys Security Information (`sec.inf`)

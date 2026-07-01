@@ -81,7 +81,7 @@ The strongest supplied evidence is integration-layer evidence. Complete native A
 Custodial Integrator evidence supports the following Axys-oriented workflow:
 
 ```text
-External source data
+External source-data
         ↓
 Custodial Integrator download / translation
         ↓

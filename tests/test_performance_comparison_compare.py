@@ -703,7 +703,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertEqual(len(drop_findings), 1)
 
     def test_compare_combines_primary_portfolio_and_source_findings(self) -> None:
-        """Portfolio comparison returns portfolio-result and source data findings."""
+        """Portfolio comparison returns portfolio-result and source-data findings."""
         finding_dicts = [
             finding.to_dict() for finding in self._restatement_combined_findings
         ]
@@ -979,7 +979,7 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertAlmostEqual(accrued_candidate[ESTIMATED_RETURN_IMPACT], 0.005)
 
     def test_evidence_only_policy_is_loaded_from_yaml(self) -> None:
-        """Explicit evidence-only policy is carried into source data findings."""
+        """Explicit evidence-only policy is carried into source-data findings."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_holding_period_specification(Path(temp_dir))
             holding_path = Path(temp_dir) / "snapshot_b" / "holdings.csv"

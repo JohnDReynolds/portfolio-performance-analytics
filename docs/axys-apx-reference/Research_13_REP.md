@@ -221,7 +221,7 @@ The chapter `13-REP.md` should distinguish REP from IMEX without documenting IME
 | Customization | Edit RepLang, use Report Writer Pro, customize report packaging/macros. | Change object, field selection, export/import configuration. | Medium-High |
 | Automation evidence | Standard reports and macros can be run by connector using REP32 engine. | Unknown in this REP research file. | Verified for connector |
 | Data extraction suitability | Good when a required value exists only or most conveniently in a report, but can be brittle if report layout changes. | Good when stable structured object export exists. | Medium Confidence; general implementation observation, not vendor-verified |
-| Audit use | Report output can validate/compare accounting results or expose calculated values. | IMEX can provide source data and stored object values. | Medium Confidence |
+| Audit use | Report output can validate/compare accounting results or expose calculated values. | IMEX can provide source-data and stored object values. | Medium Confidence |
 
 Implementation note: Use REP as an integration surface only when the report result itself is the intended data product, or when IMEX/API/database access cannot provide the needed calculated value. REP extraction should be treated as report-version-sensitive unless field names, headings, output format, and macro parameters are controlled.
 

@@ -195,7 +195,7 @@ def portfolio_return_reconstruction_checks(
 
     Args:
         comparison_path: Path to a performance comparison YAML file. ``None``
-            returns an empty table because reconstruction needs source data.
+            returns an empty table because reconstruction needs source-data.
 
     Returns:
         Stable Polars table with one row per portfolio-period that can be
@@ -225,7 +225,7 @@ def security_return_reconstruction_checks(
 
     Args:
         comparison_path: Path to a performance comparison YAML file. ``None``
-            returns an empty table because reconstruction needs source data.
+            returns an empty table because reconstruction needs source-data.
 
     Returns:
         Stable Polars table with one row per portfolio-security-period that can

@@ -67,7 +67,7 @@ Reports are downstream views of the accounting data model. They may summarize tr
 | Performance analytics | Portfolio, benchmark, contribution, attribution, and risk reporting. | Yes | Yes | Verified at product level; APX names Verified |
 | Data extraction | Report output used as an integration/export surface. | Yes | Yes | High Confidence |
 
-### 2.2 Report Output Is Not Necessarily Source Data
+### 2.2 Report Output Is Not Necessarily Source-Data
 
 Report labels are not automatically native field names. A report column such as `Market Value`, `Contrib`, `Avg Wgt`, or `Portfolio Return` may be:
 
@@ -286,7 +286,7 @@ For each report that must reconcile to IMEX or downstream tooling, capture the f
 | Report source artifact | `.REP`, `.RPW`, macro, RDL, package definition. | Mostly Unknown. |
 | Runtime parameters | Portfolio/group, date range, benchmark, classification, currency, fee basis. | Mostly Unknown. |
 | Output fields | Column labels, sections, hierarchy, totals. | Partially known for APX examples and Axys Portfolio Appraisal sample. |
-| Source data | Native files, APX SQL, public views, stored accounting functions, performance stores, IMEX objects. | Unknown. |
+| Source-data | Native files, APX SQL, public views, stored accounting functions, performance stores, IMEX objects. | Unknown. |
 | Calculation method | Stored vs recalculated; linked vs point-to-point; gross/net; benchmark alignment. | Unknown. |
 | Version | Report behavior and available reports may differ by version. | Mostly Unknown. |
 | Local customization | Custom reports may diverge from vendor standards. | Unknown for installed sites. |
@@ -488,7 +488,7 @@ This section defines a repository documentation model for reports. It is not an 
 | Detail labels | `Security`, `Avg Wgt`, `Return`, `Contrib`. | Verified |
 | Grouping | `Industry Sector` appears as grouping label in examples. | Verified |
 | Formula | Unknown. | Unknown |
-| Source datasets | Unknown. | Unknown |
+| Source-data sets | Unknown. | Unknown |
 
 ### 9.4 APX: Contribution Summary
 
@@ -500,7 +500,7 @@ This section defines a repository documentation model for reports. It is not an 
 | Benchmark optionality | May be run without benchmark for absolute performance focus. | Verified |
 | Detail labels | `Avg Wgt`, `Return`, `Contrib`. | Verified |
 | Formula | Unknown. | Unknown |
-| Source datasets | Unknown. | Unknown |
+| Source-data sets | Unknown. | Unknown |
 
 ---
 
@@ -578,7 +578,7 @@ The following items remain Unknown and should not be documented as facts until s
 | Complete standard report catalog | Unknown | Partially known | Provide installed report catalog or vendor report guide. |
 | Exact report file names | Unknown | Unknown | Provide REP/RDL/report source tree. |
 | Report parameter names | Unknown | Unknown | Provide report definitions, screenshots, or RDL/REP source. |
-| Report source data | Unknown | Unknown | Inspect REP source, APX RDL datasets, APX SQL, public views, or stored accounting functions. |
+| Report source-data | Unknown | Unknown | Inspect REP source, APX RDL datasets, APX SQL, public views, or stored accounting functions. |
 | Stored vs recalculated performance behavior | Unknown | Unknown | Compare controlled report outputs with stored exports and reruns after input changes. |
 | Report-to-IMEX equivalence | Unknown | Unknown | Provide matched report output and IMEX extracts. |
 | Gross/net-of-fee handling | Unknown | Unknown | Provide report options/source and fee examples. |

@@ -344,7 +344,7 @@ REP, RepLang, Report Writer Pro, and REP32 are documented as report and report-e
 
 | Rule | Description | Confidence |
 |---|---|---:|
-| Report output is not automatically source data | Report labels may be presentation labels, calculated values, renamed fields, or stored values. | High Confidence |
+| Report output is not automatically source-data | Report labels may be presentation labels, calculated values, renamed fields, or stored values. | High Confidence |
 | Report names are not database table names | APX report names do not prove APX SQL object names. | Verified caution |
 | Report values may be stored or recalculated | Exact behavior is report-specific and mostly Unknown. | Unknown / High Confidence as caution |
 | Report parsing is layout-sensitive | Columns, headings, sections, totals, and formatting can change. | Medium / High Confidence |

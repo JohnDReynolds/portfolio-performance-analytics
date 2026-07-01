@@ -241,6 +241,36 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertEqual(pyproject["project"]["license"], "LicenseRef-Proprietary")
         self.assertEqual(pyproject["project"]["license-files"], ["LICENSE"])
 
+    def test_source_data_term_is_standardized(self) -> None:
+        """Docs and reviewer-facing code use one source-data prose term."""
+        forbidden_terms = (
+            "input" + " data",
+            "input" + "-data",
+            "source" + " data",
+        )
+        scanned_paths = [Path("README.md")]
+        for root in (
+            Path("docs"),
+            Path("ppar/performance_comparison"),
+            Path("tests"),
+        ):
+            scanned_paths.extend(
+                path
+                for path in root.rglob("*")
+                if path.suffix in {".md", ".py"}
+            )
+
+        violations = []
+        for path in scanned_paths:
+            text = path.read_text(encoding=util.ENCODING)
+            for line_number, line in enumerate(text.splitlines(), start=1):
+                lowered = line.lower()
+                for term in forbidden_terms:
+                    if term in lowered:
+                        violations.append(f"{path}:{line_number}: {term}")
+
+        self.assertEqual([], violations)
+
     def test_manifest_keeps_source_distribution_resources(self) -> None:
         """The source distribution manifest includes checkout scripts and demo data."""
         manifest = Path("MANIFEST.in").read_text(encoding=util.ENCODING)

@@ -122,14 +122,14 @@ def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
 
 
 def validate_yaml_setup_complete(findings: pl.DataFrame) -> None:
-    """Raise if changed source data fields lack explicit YAML policy.
+    """Raise if changed source-data fields lack explicit YAML policy.
 
     Args:
         findings: Findings table returned by ``compare_snapshots`` or
             ``findings_to_polars``.
 
     Raises:
-        PpaError: If a changed source data field that ppar knows how to classify
+        PpaError: If a changed source-data field that ppar knows how to classify
             is not explicitly configured as additive, evidence-only, or
             suppressed by YAML.
     """

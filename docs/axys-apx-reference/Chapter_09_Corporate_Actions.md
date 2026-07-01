@@ -559,7 +559,7 @@ To test a corporate-action workflow across Axys/APX, a sanitized example should 
 | Split file or action record | Verify event date, factor, and security key. |
 | Trade Blotter export | Validate pending/reviewed postings. |
 | Posted transaction export | Validate final accounting effect. |
-| REP/report output | Compare user-facing reports against source data. |
+| REP/report output | Compare user-facing reports against source-data. |
 | Audit trail/export/logs | Confirm processing source, user/script, date/time, and corrections. |
 
 ---

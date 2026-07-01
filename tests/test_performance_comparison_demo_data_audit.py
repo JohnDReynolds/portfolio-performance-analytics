@@ -151,7 +151,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     """Verify packaged demo data remains internally consistent."""
 
     def test_packaged_demo_source_contract_documents_boundaries(self) -> None:
-        """The packaged demo contract preserves key source data boundaries."""
+        """The packaged demo contract preserves key source-data boundaries."""
         text = _DEMO_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8")
         normalized_text = " ".join(text.split())
 

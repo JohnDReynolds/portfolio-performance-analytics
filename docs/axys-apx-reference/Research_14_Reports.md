@@ -253,7 +253,7 @@ For each report documented in the chapter, the research should eventually collec
 | Report engine | REP/Replang, Report Writer Pro, SSRS, other | APX guide: SSRS for guide-covered reports; Axys Unknown |
 | Report source file | Needed for reproducibility and field mapping | Unknown |
 | Parameter list | Dates, portfolio, benchmark, grouping, currency, fees, etc. | Unknown |
-| Source data | Database tables, IMEX objects, performance stores, price/security master | Unknown |
+| Source-data | Database tables, IMEX objects, performance stores, price/security master | Unknown |
 | Output fields | Labels and definitions | Partially known for APX attribution/contribution examples |
 | Calculation method | Stored vs recalculated, time-weighted vs other, linked vs point-to-point | Unknown |
 | Version | Axys/APX version affects behavior | Unknown |
@@ -507,7 +507,7 @@ To complete `Chapter_14_Reports.md`, collect the following:
 | 1 | APX report catalog from installed environment | Verify report names beyond public APX guide |
 | 1 | Sample Axys report outputs for holdings, transactions, performance, contribution, AUM, allocation | Build field dictionary and behavior notes |
 | 1 | Sample APX report outputs for same categories | Build APX field dictionary and behavior notes |
-| 1 | REP/Replang source files for representative Axys reports | Identify exact fields, parameters, source data, and logic |
+| 1 | REP/Replang source files for representative Axys reports | Identify exact fields, parameters, source-data, and logic |
 | 1 | APX SSRS RDL files or SSRS catalog export | Identify exact datasets, parameters, labels, grouping, and queries |
 | 1 | IMEX exports corresponding to same report periods/portfolios | Document report-to-IMEX reconciliation |
 | 2 | Vendor user guides for Axys Report Writer Pro / Replang | Document syntax and supported customization |

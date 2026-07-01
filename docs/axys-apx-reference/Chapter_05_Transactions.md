@@ -34,7 +34,7 @@ A practical transaction lifecycle supported by the supplied research is:
 ``` text
 Economic event
     ↓
-External source data
+External source-data
     ↓
 Normalization and translation
     ↓

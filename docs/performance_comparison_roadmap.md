@@ -115,7 +115,7 @@ That is cleaner and more defensible.
 
 ## Portfolio-Level Reconstruction
 
-At the portfolio level, return inputs should be reconstructed from source data
+At the portfolio level, return inputs should be reconstructed from source-data
 where possible:
 
 ```text
@@ -259,7 +259,7 @@ Security return changed
       transactions.commission changed
 ```
 
-Only actual source data rows should normally receive a counted `Performance
+Only actual source-data rows should normally receive a counted `Performance
 Difference Explained`. Reconstruction formula math may be used internally, but
 the default user-facing workbook should attribute the explanation back to rows
 the user recognizes from holdings and transactions.
@@ -280,9 +280,9 @@ Current status: the normal user-facing workbook now uses `Performance
 Differences`, `Performance Difference Causes`, `Other Data Differences`, and
 `Raw Audit Trail`. Reconstruction diagnostic sheets remain opt-in so the
 default workbook stays focused on reviewable performance differences and their
-source data causes.
+source-data causes.
 
-`Performance Difference Causes` should contain source data rows:
+`Performance Difference Causes` should contain source-data rows:
 
 ```text
 holdings.market_value
@@ -586,7 +586,7 @@ Why did reported performance change from Snapshot A to Snapshot B?
 
 It should not become a general accounting engine. The goal is to generate demo
 fixtures that consistently explain performance differences from recognizable
-source data changes, while leaving non-performance accounting differences as
+source-data changes, while leaving non-performance accounting differences as
 `Other Data Differences`.
 
 Useful Axys/APX transaction references:
@@ -610,7 +610,7 @@ review-only evidence.
 Contract question:
 
 ```text
-What source data changes are allowed to explain reported performance changes?
+What source-data changes are allowed to explain reported performance changes?
 ```
 
 Performance-explaining inputs:
@@ -757,7 +757,7 @@ Status: complete for the current packaged performance-comparison demo fixture.
 The packaged demo source contract is documented in
 [`performance_comparison_demo_source_contract.md`](performance_comparison_demo_source_contract.md).
 It states that the packaged CSVs are normalized demo extracts, not official
-Axys/APX native schemas, and defines the narrow source data fields ppar is
+Axys/APX native schemas, and defines the narrow source-data fields ppar is
 allowed to use when explaining performance differences.
 
 The packaged demo audit now verifies the user-facing report tables follow the

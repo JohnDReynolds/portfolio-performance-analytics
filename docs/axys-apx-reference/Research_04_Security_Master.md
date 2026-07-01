@@ -152,7 +152,7 @@ These notes follow `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. The blueprint 
 | Topic | Note | Confidence |
 |---|---|---:|
 | Extract strategy | A practical extract may be generated through REP32 standard reports/macros rather than direct database/file access, depending on the environment. | High Confidence |
-| Field names in report output | CRM import examples show user-facing report/export column labels may not equal native database/file fields. Treat such labels as report/export labels unless verified from source data dictionary. | High Confidence |
+| Field names in report output | CRM import examples show user-facing report/export column labels may not equal native database/file fields. Treat such labels as report/export labels unless verified from source-data dictionary. | High Confidence |
 | Public views | APX public views may be useful for some extracts, but do not assume full security-master coverage without validating the view list in the client environment. | Verified / implementation caution |
 
 ## Processing behavior

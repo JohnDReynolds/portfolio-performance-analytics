@@ -155,7 +155,7 @@ Collect factual information about pricing in Axys and APX for future use in `08-
 **Observed Behavior — Verified for ByAllAccounts CI workflow:** CI downloads external data, merges it with Axys security information, produces transaction, position, and price files, and imports those files into Axys using the Axys Import/Export utility.
 
 ```text
-External source data
+External source-data
         ↓
 Custodial Integrator download / translation
         ↓
@@ -172,7 +172,7 @@ IMEX log review (`imexPrices.log`)
 
 | Step | Evidence-supported statement | Confidence |
 |---|---|---:|
-| Translate source data | CI uses Axys security information to generate output files. | Verified for CI |
+| Translate source-data | CI uses Axys security information to generate output files. | Verified for CI |
 | Produce price file | CI produces price files as part of data translation. | Verified for CI |
 | Import via IMEX | Requested Transaction, Position, and Price files are imported into Axys using Axys Import/Export utility. | Verified for CI |
 | Log review | IMEX logs can be reviewed after import. | Verified for CI |

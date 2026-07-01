@@ -514,7 +514,7 @@ The final chapter should avoid claiming that classifications are one single nati
    - CUSIP/ticker when available
 3. “Security Type” is not the same as “Asset Class,” “Sector,” “Industry,” or custom classification.
 4. For extraction, the repository should document:
-   - raw source data path, if using IMEX
+   - raw source-data path, if using IMEX
    - report source path, if using REP/Replang
    - APX SQL/report path, if using APX database access
    - exact source of classification values

@@ -3,7 +3,7 @@
 ## Purpose
 
 The performance comparison feature explains why calculated performance for the
-same portfolio and period changed between two source data extraction dates.
+same portfolio and period changed between two source-data extraction dates.
 
 This document is the deep design/reference note. Active forward-looking work is
 tracked in the central
@@ -103,9 +103,9 @@ Current report vocabulary:
 - `Performance Differences`: the main review sheet. It compares reported
   performance between Snapshot A and Snapshot B, shows the explained portion,
   and leaves `Unexplained Difference` blank when a row is fully explained.
-- `Performance Difference Causes`: source data rows that are counted in
+- `Performance Difference Causes`: source-data rows that are counted in
   `Explained Difference`.
-- `Other Data Differences`: source data rows that changed but are not counted in
+- `Other Data Differences`: source-data rows that changed but are not counted in
   `Explained Difference`.
 - `Raw Audit Trail`: detailed finding rows used for audit and troubleshooting.
 - `Transaction Code`: the source transaction code from the input file, such as
@@ -120,7 +120,7 @@ Current report vocabulary:
 - `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
   command for validating packaged scenario coverage.
 - [Axys Common-Core Export Reference](axys_common_core_export.md): starter
-  export shape for Axys-oriented source data.
+  export shape for Axys-oriented source-data.
 
 This checkpoint is still a comparison and evidence organization layer. It is
 not yet a causal attribution engine or a full return calculator. The report
@@ -678,7 +678,7 @@ Loaded transaction rows also carry `transaction_semantics_source` so reviewers
 can audit how the normalized category/sign/flow treatment was obtained:
 
 - `source`: Usable sign/flow semantics came from recognized source fields, with
-  any category supplied by source data or transaction-code inference.
+  any category supplied by source-data or transaction-code inference.
 - `yaml_rule`: Usable sign/flow semantics came entirely from `transaction_rules`.
 - `mixed`: Some recognized semantics came from the source, while YAML rules
   filled other missing or `unknown` fields.
@@ -1675,7 +1675,7 @@ difference. The
 cash, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
-now requires every changed source data field that ppar knows how to classify to
+now requires every changed source-data field that ppar knows how to classify to
 be explicitly configured as additive, evidence-only, or suppressed in YAML
 before any report artifacts are written. Evidence-only input rows normally stay
 in the `Other Data Differences` sheet, but plausible evidence-only rows for a period or

@@ -210,7 +210,7 @@ def _html_workbook_contents_section(
             [
                 f"<p>Start with {_escape_html(primary_sheet_name)}, then use "
                 f"{_escape_html(_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET)} "
-                "to see which source data differences explain each period.</p>",
+                "to see which source-data differences explain each period.</p>",
                 '<ol class="pc-contents-list">',
                 *items,
                 "</ol>",
@@ -349,7 +349,7 @@ def write_performance_comparison_report_bundle(
         top_evidence_limit: Maximum number of top-evidence rows to include per
             portfolio period in ``top_evidence.csv``.
         include_workbook: Whether to include an XLSX review workbook.
-        require_complete_yaml_setup: Whether every changed source data field
+        require_complete_yaml_setup: Whether every changed source-data field
             that ppar knows how to classify must have explicit additive,
             evidence-only, or suppression YAML before bundle artifacts are
             written.

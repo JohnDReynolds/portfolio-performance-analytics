@@ -110,7 +110,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--allow-incomplete-yaml",
         action="store_true",
         help=(
-            "Write a diagnostic bundle even when changed source data fields are "
+            "Write a diagnostic bundle even when changed source-data fields are "
             "not explicitly classified by additive, evidence-only, or suppression "
             "YAML."
         ),

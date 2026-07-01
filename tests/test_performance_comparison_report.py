@@ -492,8 +492,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
-            self.assertIn("source data differences", readme)
-            self.assertNotIn("source-data", readme)
+            self.assertIn("source-data differences", readme)
+            self.assertNotIn("source" + " data", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertIn(
                 "`transaction_activity.csv`, `transaction_cross_checks.csv`, and "
@@ -634,7 +634,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 review_summary["review_vocabulary"]["formula_input"],
             )
             self.assertIn(
-                "source data",
+                "source-data",
                 review_summary["review_vocabulary"]["source_data"],
             )
             self.assertIn(
@@ -1445,7 +1445,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Input Dataset",
+                    "Source-Data Dataset",
                     "Input Field",
                     "Security",
                 ],

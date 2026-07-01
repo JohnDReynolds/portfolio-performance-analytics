@@ -6,7 +6,7 @@ investment performance. It has two main workflows:
 | Feature | Question It Answers |
 | --- | --- |
 | **Analytics** | Why did this portfolio outperform or underperform its benchmark? |
-| **Performance Comparison** | Why did reported performance change between two source data snapshots? |
+| **Performance Comparison** | Why did reported performance change between two source-data snapshots? |
 
 [License](LICENSE)
 
@@ -92,7 +92,7 @@ The inputs required to produce the analytics fall into three categories:
 2. Classification items and descriptions. (Optional)
 3. Mappings from the classification scheme of the weights and returns to a reporting classification. (Optional)
 
-The input data may be provided directly as either:
+The source-data may be provided directly as either:
 1. Pandas DataFrames.
 2. Polars DataFrames.
 3. Python dictionaries (for Classifications and Mappings).
@@ -110,8 +110,8 @@ from_date,thru_date,identifier,weight,return,name
 Wide performance files with per-identifier columns such as `AAPL.ret` and
 `AAPL.wgt` are not supported.
 
-For sample input data sources, please refer to the ``ppar-analytics-demo``
-command and the ppar/demos/data directory. Once the input data has been
+For sample source-data files, please refer to the ``ppar-analytics-demo``
+command and the ppar/demos/data directory. Once the source-data has been
 provided, then the analytics may be requested using different calculation
 parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
@@ -164,7 +164,7 @@ frequency; the short forms `m`, `q`, and `y` are also accepted.
 
 ## Performance Comparison
 
-The performance comparison feature compares two source data snapshots and helps
+The performance comparison feature compares two source-data snapshots and helps
 explain why reported performance changed between extraction dates. Portfolio
 comparison uses `portfolio_performance` as the primary result dataset; security
 comparison uses `security_performance` as the primary result dataset. Both paths
@@ -172,7 +172,7 @@ can use normalized transactions, holdings, FX rates, cash, and
 security-reference data, then write a review bundle with HTML, CSV, manifest,
 and XLSX workbook artifacts.
 
-Before a user-facing review bundle is written, every changed source data field
+Before a user-facing review bundle is written, every changed source-data field
 that ppar knows how to classify must be explicitly configured in YAML as
 additive, evidence-only, or suppressed. Missing YAML is a hard stop, so workbook
 statuses such as `Partly Explained` and `Unexplained` are reserved for complete
