@@ -146,7 +146,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("Raw Audit Trail sheet", readme)
+            self.assertIn("Raw Audit Trail", readme)
+            self.assertNotIn("## Primary Review Artifact", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
@@ -264,6 +265,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Helped explain" in str(row[10])
                         or "Caused cash-balance" in str(row[10])
                         or "Caused transactions.amount" in str(row[10])
+                        or "transactions.amount to" in str(row[10])
                         or "ending holdings." in str(row[10])
                         or "beginning holdings." in str(row[10])
                         for row in underlying_rows
@@ -307,14 +309,20 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     any(
                         guidance.startswith("by: Helped explain")
-                        or guidance.startswith("by: Caused transactions.amount")
+                        or (
+                            guidance.startswith("by: Caused ")
+                            and "transactions.amount to" in guidance
+                        )
                         for guidance in transaction_component_guidance
                     )
                 )
                 self.assertTrue(
                     any(
                         guidance.startswith("sl: Helped explain")
-                        or guidance.startswith("sl: Caused transactions.amount")
+                        or (
+                            guidance.startswith("sl: Caused ")
+                            and "transactions.amount to" in guidance
+                        )
                         for guidance in transaction_component_guidance
                     )
                 )

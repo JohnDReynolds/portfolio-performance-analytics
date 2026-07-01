@@ -177,30 +177,6 @@ def write_report_bundle_readme(
         Normalized destination path.
     """
     primary_sheet = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
-    detail_sheets = (
-        f"{_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} sheet, "
-        f"{_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} sheet, and "
-        f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} sheet"
-    )
-    excel_line = (
-        f"- `report.xlsx`: Excel review workbook with the {primary_sheet} sheet, "
-        f"{detail_sheets}."
-    )
-    html_line = (
-        "- `report.html`: browser review report with the same sections and order as "
-        "`report.xlsx`."
-    )
-    primary_artifact_lines = (
-        [excel_line, html_line]
-        if include_workbook
-        else [html_line]
-    )
-    opening_line = (
-        "Open `report.xlsx` first for Excel review. Use `report.html` when you want "
-        "the same review model in a browser."
-        if include_workbook
-        else "Open `report.html` for the browser review."
-    )
     first_review_step = (
         f"1. Open `report.xlsx` or `report.html` and start with {primary_sheet}."
         if include_workbook
@@ -211,11 +187,6 @@ def write_report_bundle_readme(
         f"# {_escape_readme_text(title)}",
         "",
         "This directory is a portable performance-comparison review bundle.",
-        opening_line,
-        "",
-        "## Primary Review Artifact",
-        "",
-        *primary_artifact_lines,
         "",
         "## Recommended Review Order",
         "",

@@ -2655,15 +2655,32 @@ def _workbook_transaction_component_explanation(
             if change_number is not None and change_number < 0
             else "increase"
         )
+        transaction_amount = (
+            f"{security_id} transactions.amount"
+            if security_id
+            else "transactions.amount"
+        )
         return (
-            f"{_workbook_transaction_code_prefix(row)}Caused transactions.amount "
+            f"{_workbook_transaction_code_prefix(row)}Caused {transaction_amount} "
             f"to {change_verb} "
             f"by {_workbook_change_amount_text(change_value)}."
         )
     if source_column in {pc_cols.PRICE, pc_cols.QUANTITY}:
+        change_value = _workbook_row_change_value(row)
+        change_number = _number_or_none(change_value)
+        change_verb = (
+            "decrease"
+            if change_number is not None and change_number < 0
+            else "increase"
+        )
+        transaction_amount = (
+            f"{security_id} transactions.amount"
+            if security_id
+            else "transactions.amount"
+        )
         return (
-            f"{_workbook_transaction_code_prefix(row)}Helped explain the changed "
-            f"transactions.amount{security_text}."
+            f"{_workbook_transaction_code_prefix(row)}Caused {transaction_amount} "
+            f"to {change_verb}."
         )
     return (
         f"{_workbook_transaction_code_prefix(row)}The {source_column}"

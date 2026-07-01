@@ -299,6 +299,7 @@ def _assert_workbook_explained_row_actions(
                 or "Input for changed" in str(required_setup)
                 or "Helped explain" in str(required_setup)
                 or "Caused transactions.amount" in str(required_setup)
+                or "transactions.amount to" in str(required_setup)
                 or "Caused cash-balance" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
@@ -476,8 +477,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Performance Difference Causes", html_report)
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
-            self.assertIn("## Primary Review Artifact", readme)
-            self.assertIn("`report.html`: browser review report", readme)
+            self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
@@ -855,11 +855,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
-            "BUY: Helped explain the changed transactions.amount for AAPL.",
+            "BUY: Caused AAPL transactions.amount to increase.",
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],
-            "BUY: Helped explain the changed transactions.amount for AAPL.",
+            "BUY: Caused AAPL transactions.amount to increase.",
         )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
@@ -930,7 +930,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         self.assertIsNone(commission["estimated_impact"][0])
         self.assertEqual(
             commission["review_note"][0],
-            "BUY: Caused transactions.amount to increase by 2.50.",
+            "BUY: Caused AAPL transactions.amount to increase by 2.50.",
         )
 
     def test_security_differences_roll_up_security_underlying_causes(self) -> None:
@@ -1195,10 +1195,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "report.xlsx",
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("`report.xlsx`: Excel review workbook", readme)
-            self.assertIn("Open `report.xlsx` first", readme)
             self.assertIn("1. Open `report.xlsx` or `report.html`", readme)
-            self.assertIn("## Primary Review Artifact", readme)
+            self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("explain each performance period", readme)
@@ -1209,10 +1207,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction and external-flow diagnostics", readme)
             self.assertIn("cross-check rows may be", readme)
             self.assertIn("intentionally non-additive", readme)
-            self.assertLess(
-                readme.index("`report.xlsx`: Excel review workbook"),
-                readme.index("`report.html`: browser review report"),
-            )
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
