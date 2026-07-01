@@ -316,6 +316,28 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("include scripts/*.py", manifest)
         self.assertNotIn("scripts", pyproject["tool"]["setuptools"]["packages"])
 
+    def test_package_data_excludes_generation_internals(self) -> None:
+        """Wheel package-data exposes demo inputs, not source-checkout tooling."""
+        with open("pyproject.toml", "rb") as file:
+            pyproject = tomllib.load(file)
+        package_data_patterns = pyproject["tool"]["setuptools"]["package-data"]["ppar"]
+
+        forbidden_fragments = (
+            "_demo_output",
+            "docs/",
+            "scripts/",
+            "tests/",
+            "operational_demo_data",
+            "GENERATION_NOTES",
+        )
+
+        for pattern in package_data_patterns:
+            with self.subTest(pattern=pattern):
+                self.assertFalse(
+                    any(fragment in pattern for fragment in forbidden_fragments),
+                    f"{pattern} exposes generation or source-checkout internals.",
+                )
+
     def test_package_data_patterns_cover_demo_resources(self) -> None:
         """Every packaged demo resource is covered by explicit package-data globs."""
         with open("pyproject.toml", "rb") as file:
@@ -334,6 +356,22 @@ class TestPackageMetadata(unittest.TestCase):
                     any(fnmatch(resource_path, pattern) for pattern in package_data_patterns),
                     f"{resource_path} is not covered by package-data patterns.",
                 )
+
+    def test_packaged_axys_demo_files_are_product_inputs(self) -> None:
+        """Packaged Axys demo files stay limited to user-facing inputs and notes."""
+        allowed_suffixes = {".csv", ".md", ".yaml"}
+        axys_demo_files = [
+            path
+            for path in Path("ppar/demos/data/axys").rglob("*")
+            if path.is_file()
+        ]
+
+        self.assertGreater(len(axys_demo_files), 0)
+        for path in axys_demo_files:
+            with self.subTest(path=path.as_posix()):
+                self.assertIn(path.suffix, allowed_suffixes)
+                self.assertNotIn("_demo_output", path.as_posix())
+                self.assertNotIn("operational_demo_data", path.as_posix())
 
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
@@ -609,11 +647,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Evidence-blocked backlog", roadmap)
         self.assertIn("Policy expansion", roadmap)
         self.assertIn("PyPI package includes the actual packaged Axys demo", roadmap)
+        self.assertIn("Wheel package-data stays limited to demo inputs", roadmap)
         self.assertIn("minimum required datasets and fields", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
+        self.assertIn("Phase 38: Packaging Surface And Product Boundary Audit", roadmap)
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""

@@ -183,16 +183,16 @@ After generating the workbook demo bundle, validate it with:
   _demo_output/performance_comparison_security
 ```
 
-For a full packaged-demo health pass, use the consolidated source-checkout
-script:
+For a full packaged-demo health pass from a source checkout, maintainers can use
+the consolidated maintenance script:
 
 ```bash
 ./.venv/bin/python scripts/check_performance_comparison_demo_health.py
 ```
 
-That script runs the rebuild drift audit, extract-availability appendix check,
-portfolio/security bundle generation, bundle validation, and packaged scenario
-matrix validation.
+That script is not part of the installed-package demo workflow. It runs the
+rebuild drift audit, extract-availability appendix check, portfolio/security
+bundle generation, bundle validation, and packaged scenario matrix validation.
 
 ## YAML Policy Decision Guide
 
@@ -243,7 +243,8 @@ differences in the workbook. Test-only fixtures can still cover unresolved or
 policy-gap scenarios, but the user-facing demo should not depend on accidental
 internal inconsistency.
 
-The derived `secperf.csv` and `portperf.csv` files are kept aligned with:
+From a source checkout, maintainers keep the derived `secperf.csv` and
+`portperf.csv` files aligned with:
 
 ```bash
 ./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py

@@ -26,7 +26,7 @@ many disconnected entry points.
 | `ppar/axys/` | Axys-specific ingestion and normalization support. |
 | `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
 | `ppar/demos/` | Installed demo entry points, including the performance comparison demo commands. |
-| `ppar/demos/data/` | Packaged demo data shipped with source distributions and wheels. |
+| `ppar/demos/data/` | Packaged demo inputs shipped with source distributions and wheels. |
 | `ppar/demos/data/axys/` | Packaged user-facing Axys demo snapshots and comparison YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
@@ -49,9 +49,11 @@ many disconnected entry points.
 
 ## Scripts
 
-The `scripts/` directory contains repository-maintenance helpers. Performance
-Comparison command implementations live in `ppar.performance_comparison.cli` and
-can be run from a source checkout with `./.venv/bin/python -m <module>`.
+The `scripts/` directory contains source-checkout maintenance helpers. Those
+helpers may be included in source distributions for maintainers, but they are
+not installed-package demo workflows. Performance Comparison command
+implementations live in `ppar.performance_comparison.cli` and can be run from a
+source checkout with `./.venv/bin/python -m <module>`.
 
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
