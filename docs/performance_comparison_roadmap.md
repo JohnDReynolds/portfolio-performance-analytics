@@ -2136,6 +2136,27 @@ The generated portfolio and security bundles still validate, and the generated
 benchmarking task, but the known repeated security reconstruction bottleneck is
 addressed.
 
+### Phase 43: Cleanup And Artifact Retention Sweep
+
+Status: complete for a first conservative dead-code and artifact-boundary pass.
+
+The cleanup pass removed a stale workbook helper for the standalone
+`Transaction Match Diagnostics` worksheet, which Phase 28 had already demoted
+from the normal workbook/report flow. Transaction match status labels and
+tooltips remain because those fields still appear on Raw Audit Trail rows and
+in the audit-support CSV.
+
+The artifact review did not identify a safe CSV deletion. Required bundle CSVs
+remain manifested, validated, documented, or used as reviewer/automation
+handoff artifacts. In particular, transaction and flow diagnostics are still
+supplementary CSVs, and `transaction_matching_diagnostics.csv` remains
+transaction row-identity audit support rather than a first-stop review surface.
+
+Broader simplification remains open. Future cleanup should target high-payoff
+report/workbook helper simplifications and obsolete compatibility shims only
+when tests prove the public report, manifest, and packaged-demo boundaries are
+unchanged.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

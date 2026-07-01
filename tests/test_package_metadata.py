@@ -683,6 +683,9 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("share a per-build reconstruction diagnostics", roadmap)
         self.assertIn("cache is scoped to one comparison path", roadmap)
         self.assertIn("9.2 seconds to about 3.6 seconds", roadmap)
+        self.assertIn("Phase 43: Cleanup And Artifact Retention Sweep", roadmap)
+        self.assertIn("removed a stale workbook helper", roadmap)
+        self.assertIn("transaction row-identity audit support", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 

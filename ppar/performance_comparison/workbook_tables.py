@@ -3138,17 +3138,6 @@ def _workbook_return_reconstruction_summary_columns() -> tuple[str, ...]:
     )
 
 
-def _workbook_transaction_matching_diagnostic_columns() -> tuple[str, ...]:
-    """Return Transaction Match Diagnostics worksheet columns."""
-    return (
-        _pc_findings.TRANSACTION_MATCH_STATUS,
-        _pc_explain.FINDING_COUNT,
-        _pc_explain.TRANSACTION_MATCH_CONFIDENCE,
-        _pc_explain.TRANSACTION_MATCH_INTERPRETATION,
-        _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE,
-    )
-
-
 def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
     """Return reviewer-first Findings worksheet columns with review key last."""
     preferred_columns = (
