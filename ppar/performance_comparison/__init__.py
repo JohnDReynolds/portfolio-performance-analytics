@@ -2,6 +2,7 @@
 
 from ppar.performance_comparison.bundle import (
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
+    report_bundle_contract,
     report_bundle_validation_issues,
 )
 from ppar.performance_comparison.cash import CashLoader
@@ -95,6 +96,7 @@ __all__ = [
     "portfolio_period_summary",
     "portfolio_period_transaction_cross_checks",
     "rank_portfolio_period_evidence",
+    "report_bundle_contract",
     "report_bundle_validation_issues",
     "security_period_evidence_breakdown",
     "security_period_summary",

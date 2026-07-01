@@ -101,6 +101,7 @@ from ppar.performance_comparison import (
     portfolio_period_summary,
     portfolio_period_transaction_cross_checks,
     rank_portfolio_period_evidence,
+    report_bundle_contract,
     report_bundle_validation_issues,
     security_period_evidence_breakdown,
     security_period_summary,
@@ -1554,6 +1555,7 @@ class TestPackageMetadata(unittest.TestCase):
                 portfolio_period_transaction_cross_checks
             ),
             "rank_portfolio_period_evidence": rank_portfolio_period_evidence,
+            "report_bundle_contract": report_bundle_contract,
             "report_bundle_validation_issues": report_bundle_validation_issues,
             "security_period_evidence_breakdown": security_period_evidence_breakdown,
             "security_period_summary": security_period_summary,

@@ -6,7 +6,7 @@ import importlib
 import json
 from pathlib import Path
 import tempfile
-from typing import Any
+from typing import Any, cast
 import unittest
 from unittest import mock
 
@@ -22,6 +22,7 @@ from ppar.performance_comparison import (
     TARGET_OUTPUT,
     compare_snapshots,
     findings_to_polars,
+    report_bundle_contract,
     report_bundle_validation_issues,
     write_performance_comparison_report_bundle,
     write_performance_comparison_review_workbook,
@@ -358,13 +359,101 @@ def _normalized_header(value: object) -> object:
     return value
 
 
+def _entrypoint_files(entrypoints: Mapping[str, object]) -> set[str]:
+    """Return non-empty artifact filenames referenced by review entrypoints."""
+    files: set[str] = set()
+    for value in entrypoints.values():
+        if isinstance(value, str) and value:
+            files.add(value)
+            continue
+        if isinstance(value, list):
+            files.update(item for item in value if isinstance(item, str) and item)
+    return files
+
+
 class TestPerformanceComparisonReport(unittest.TestCase):
     """Verify report rendering and artifact generation for comparison findings."""
+
+    def test_report_bundle_contract_snapshot(self) -> None:
+        """The public report-bundle contract exposes reviewer handoff shape."""
+        self.assertEqual(
+            report_bundle_contract(),
+            {
+                "bundle_type": "performance_comparison_report",
+                "manifest_version": 1,
+                "required_artifacts": [
+                    "html_report",
+                    "readme",
+                    "manifest",
+                    "review_summary",
+                    "findings",
+                    "needs_review_summary",
+                    "portfolio_period_summary",
+                    "cause_summary",
+                    "impact_estimates",
+                    "impact_coverage",
+                    "context_evidence_summary",
+                    "context_evidence",
+                    "transaction_cross_checks",
+                    "flow_cross_check_reconciliation",
+                    "residual_status",
+                    "transaction_activity",
+                    "transaction_matching_diagnostics",
+                    "top_evidence",
+                ],
+                "required_manifest_keys": [
+                    "bundle_type",
+                    "manifest_version",
+                    "created_at",
+                    "title",
+                    "options",
+                    "source_context",
+                    "counts",
+                    "transaction_semantics",
+                    "artifacts",
+                    "tables",
+                    "review_entrypoints",
+                ],
+                "required_review_entrypoints": [
+                    "primary_review",
+                    "period_triage",
+                    "formula_input_causes",
+                    "supporting_context",
+                    "transaction_diagnostics",
+                    "audit_trail",
+                    "review_handoff",
+                ],
+                "review_basis": "Modified Dietz evidence pack",
+                "review_summary_version": 1,
+                "required_review_summary_keys": [
+                    "summary_version",
+                    "review_basis",
+                    "review_vocabulary",
+                    "entrypoints",
+                    "source_context",
+                    "counts",
+                    "transaction_semantics",
+                    "artifacts",
+                ],
+                "review_vocabulary_keys": [
+                    "formula_input",
+                    "supporting_evidence",
+                    "context_only",
+                    "review_only",
+                    "backlog_gate",
+                ],
+            },
+        )
 
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
         """Report bundles contain HTML, CSV tables, and manifest metadata."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
-        expected_keys = set(REPORT_BUNDLE_REQUIRED_ARTIFACTS)
+        contract = report_bundle_contract()
+        required_artifacts = cast(list[str], contract["required_artifacts"])
+        required_manifest_keys = cast(list[str], contract["required_manifest_keys"])
+        required_entrypoints = cast(list[str], contract["required_review_entrypoints"])
+        required_summary_keys = cast(list[str], contract["required_review_summary_keys"])
+        expected_keys = set(required_artifacts)
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
 
@@ -405,6 +494,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("intentionally non-additive", readme)
             self.assertIn("`review_summary.json`", readme)
             self.assertIn("Modified Dietz vocabulary", readme)
+            self.assertIn("`needs_review_summary.csv`", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn("source context", readme)
@@ -425,23 +515,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["bundle_type"], "performance_comparison_report")
-            self.assertEqual(manifest["manifest_version"], 1)
+            self.assertEqual(manifest["manifest_version"], contract["manifest_version"])
             self.assertEqual(manifest["title"], "Bundle Restatement")
             self.assertEqual(
                 set(manifest),
-                {
-                    "artifacts",
-                    "bundle_type",
-                    "counts",
-                    "created_at",
-                    "manifest_version",
-                    "options",
-                    "review_entrypoints",
-                    "source_context",
-                    "tables",
-                    "title",
-                    "transaction_semantics",
-                },
+                set(required_manifest_keys),
             )
             self.assertEqual(manifest["counts"]["findings"], 16)
             self.assertEqual(manifest["counts"]["active_findings"], 16)
@@ -520,21 +598,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 set(review_summary),
-                {
-                    "artifacts",
-                    "counts",
-                    "entrypoints",
-                    "review_basis",
-                    "review_vocabulary",
-                    "source_context",
-                    "summary_version",
-                    "transaction_semantics",
-                },
+                set(required_summary_keys),
             )
-            self.assertEqual(review_summary["summary_version"], 1)
+            self.assertEqual(
+                review_summary["summary_version"],
+                contract["review_summary_version"],
+            )
             self.assertEqual(
                 review_summary["review_basis"],
-                "Modified Dietz evidence pack",
+                contract["review_basis"],
             )
             self.assertEqual(review_summary["entrypoints"], manifest["review_entrypoints"])
             self.assertEqual(review_summary["source_context"], manifest["source_context"])
@@ -551,6 +623,17 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "Modified Dietz",
                 review_summary["review_vocabulary"]["formula_input"],
             )
+            self.assertEqual(
+                set(review_summary["entrypoints"]),
+                set(required_entrypoints),
+            )
+            artifact_files = set(manifest["artifacts"].values())
+            self.assertTrue(
+                _entrypoint_files(review_summary["entrypoints"]) <= artifact_files
+            )
+            self.assertIn(review_summary["entrypoints"]["primary_review"], readme)
+            self.assertIn(review_summary["entrypoints"]["period_triage"], readme)
+            self.assertIn(review_summary["entrypoints"]["review_handoff"], readme)
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
             self.assertEqual(needs_review.height, 1)

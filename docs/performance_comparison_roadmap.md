@@ -1610,6 +1610,35 @@ rejects missing summary keys. The summary remains a compact mirror of selected
 manifest fields, with one internal Modified Dietz review-basis constant and one
 internal vocabulary contract.
 
+### Phase 17: Centralized Bundle Contract
+
+Phase 17 closes the report-bundle contract loop by making the handoff shape
+available from one helper.
+
+#### Phase 17A: Public Contract Helper
+
+Status: complete for the current report-bundle contract.
+
+`report_bundle_contract()` returns the stable generated-bundle handoff contract:
+
+- required artifact keys;
+- manifest version and required manifest keys;
+- required review entrypoints;
+- review-summary version and required summary keys;
+- Modified Dietz review basis and vocabulary keys.
+
+The helper keeps validation, tests, docs, and reviewer automation aligned
+without broadening transaction classification behavior.
+
+#### Phase 17B: Contract Snapshot And Handoff Consistency
+
+Status: complete for the current generated-bundle contract.
+
+Report tests now pin the public contract helper and check that
+`README.md`, `manifest.json`, and `review_summary.json` agree on reviewer
+first-stop artifacts. This keeps the bundle readable for humans while preserving
+one machine-readable contract for automation.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

@@ -29,6 +29,7 @@ from ppar.performance_comparison.transactions import TransactionsLoader
 
 __all__ = [
     "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
+    "report_bundle_contract",
     "report_bundle_manifest",
     "report_bundle_validation_issues",
     "write_csv_artifact",
@@ -114,6 +115,31 @@ _REVIEW_VOCABULARY = {
         "justify a Modified Dietz treatment."
     ),
 }
+
+
+def report_bundle_contract() -> dict[str, object]:
+    """Return the stable machine-readable report-bundle contract.
+
+    Returns:
+        JSON-serializable contract data for generated report bundles.
+
+    Notes:
+        This helper describes the bundle handoff surface; it does not describe
+        all internal implementation details or optional diagnostic artifacts.
+    """
+    return {
+        "bundle_type": "performance_comparison_report",
+        "required_artifacts": list(REPORT_BUNDLE_REQUIRED_ARTIFACTS),
+        "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
+        "required_manifest_keys": list(_REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS),
+        "required_review_entrypoints": list(
+            _REPORT_BUNDLE_REQUIRED_REVIEW_ENTRYPOINTS
+        ),
+        "review_summary_version": _REVIEW_SUMMARY_VERSION,
+        "review_basis": _REVIEW_BASIS,
+        "required_review_summary_keys": list(_REVIEW_SUMMARY_REQUIRED_KEYS),
+        "review_vocabulary_keys": list(_REVIEW_VOCABULARY),
+    }
 
 
 def write_csv_artifact(table: pl.DataFrame, output_path: Path) -> Path:
