@@ -1579,6 +1579,37 @@ Bundle validation now checks that `review_summary.json` is present, has the
 expected summary schema, and matches the manifest fields it repeats. This makes
 the compact handoff artifact useful without creating a second source of truth.
 
+### Phase 16: Bundle Contract Hardening
+
+Phase 16 tightens the report-bundle handoff contract without adding transaction
+classification scope.
+
+#### Phase 16A: Required Entrypoint Drift Guards
+
+Status: complete for the current report-bundle contract.
+
+Bundle validation now requires the standard review-entrypoint names:
+
+- primary review;
+- period triage;
+- formula-input causes;
+- supporting context;
+- transaction diagnostics;
+- audit trail;
+- review handoff.
+
+This keeps reviewer and automation entrypoints stable even when future bundle
+artifacts are added.
+
+#### Phase 16B: Summary Schema Drift Guards
+
+Status: complete for the current compact summary schema.
+
+Report tests now pin the top-level `review_summary.json` keys, and validation
+rejects missing summary keys. The summary remains a compact mirror of selected
+manifest fields, with one internal Modified Dietz review-basis constant and one
+internal vocabulary contract.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

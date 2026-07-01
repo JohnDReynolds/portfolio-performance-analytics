@@ -71,7 +71,17 @@ _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "tables",
     "review_entrypoints",
 )
+_REPORT_BUNDLE_REQUIRED_REVIEW_ENTRYPOINTS = (
+    "primary_review",
+    "period_triage",
+    "formula_input_causes",
+    "supporting_context",
+    "transaction_diagnostics",
+    "audit_trail",
+    "review_handoff",
+)
 _REVIEW_SUMMARY_VERSION = 1
+_REVIEW_BASIS = "Modified Dietz evidence pack"
 _REVIEW_SUMMARY_REQUIRED_KEYS = (
     "summary_version",
     "review_basis",
@@ -314,7 +324,7 @@ def _report_bundle_review_summary(
     """
     return {
         "summary_version": _REVIEW_SUMMARY_VERSION,
-        "review_basis": "Modified Dietz evidence pack",
+        "review_basis": _REVIEW_BASIS,
         "review_vocabulary": dict(_REVIEW_VOCABULARY),
         "entrypoints": _manifest_mapping(manifest, "review_entrypoints"),
         "source_context": _manifest_mapping(manifest, "source_context"),
@@ -620,6 +630,9 @@ def _report_bundle_review_entrypoint_issues(
     }
     entrypoints = _manifest_mapping(manifest, "review_entrypoints")
     issues: list[str] = []
+    for entrypoint_name in _REPORT_BUNDLE_REQUIRED_REVIEW_ENTRYPOINTS:
+        if entrypoint_name not in entrypoints:
+            issues.append(f"manifest review entrypoint {entrypoint_name!r} is missing")
     for entrypoint_name, entrypoint_value in entrypoints.items():
         issues.extend(
             _review_entrypoint_value_issues(
@@ -723,7 +736,7 @@ def _report_bundle_review_summary_issues(
             issues.append(f"review_summary top-level key {key!r} is missing")
     if summary.get("summary_version") != _REVIEW_SUMMARY_VERSION:
         issues.append("review_summary summary_version is unsupported")
-    if summary.get("review_basis") != "Modified Dietz evidence pack":
+    if summary.get("review_basis") != _REVIEW_BASIS:
         issues.append("review_summary review_basis is malformed")
 
     vocabulary = summary.get("review_vocabulary")

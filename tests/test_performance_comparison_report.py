@@ -519,6 +519,20 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 paths["review_summary"].read_text(encoding="utf-8")
             )
             self.assertEqual(
+                set(review_summary),
+                {
+                    "artifacts",
+                    "counts",
+                    "entrypoints",
+                    "review_basis",
+                    "review_vocabulary",
+                    "source_context",
+                    "summary_version",
+                    "transaction_semantics",
+                },
+            )
+            self.assertEqual(review_summary["summary_version"], 1)
+            self.assertEqual(
                 review_summary["review_basis"],
                 "Modified Dietz evidence pack",
             )
@@ -1467,6 +1481,26 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues,
         )
 
+    def test_report_bundle_validation_catches_missing_review_entrypoint(self) -> None:
+        """Bundle validation rejects drift in required review-entrypoint names."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
+            manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+            del manifest["review_entrypoints"]["review_handoff"]
+            paths["manifest"].write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn("manifest review entrypoint 'review_handoff' is missing", issues)
+
     def test_report_bundle_validation_catches_bad_source_context(self) -> None:
         """Bundle validation checks source-context manifest metadata shape."""
         findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
@@ -1538,6 +1572,29 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn("review_summary entrypoints does not match manifest", issues)
+
+    def test_report_bundle_validation_catches_missing_review_summary_key(self) -> None:
+        """Bundle validation rejects drift in compact review-summary keys."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
+            summary = json.loads(paths["review_summary"].read_text(encoding="utf-8"))
+            del summary["review_vocabulary"]
+            paths["review_summary"].write_text(
+                json.dumps(summary, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn(
+            "review_summary top-level key 'review_vocabulary' is missing",
+            issues,
+        )
 
     def test_report_bundle_validation_catches_missing_review_workbook(self) -> None:
         """Bundle validation reports workbook artifacts that are absent."""
