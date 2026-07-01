@@ -220,6 +220,43 @@ def _write_security_transaction_period_specification(directory: Path) -> Path:
     return specification_path
 
 
+def _write_security_case_sensitive_specification(directory: Path) -> Path:
+    """Write a fixture whose security identifiers differ only by case."""
+    for snapshot_name, security_id in (("snapshot_a", "AAPL"), ("snapshot_b", "aapl")):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "secperf.csv").write_text(
+            "PORT,SEC,FROM_DATE,THRU_DATE,BEG_MV,SEC_RETURN,WEIGHT,CONTRIB\n"
+            f"PORT_A,{security_id},2025-05-01,2025-05-31,1000.00,0.0100,"
+            "1.0000,0.0100\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "comparison": {
+            "level": "security",
+        },
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "security_performance": "secperf.csv",
+        },
+        "security_return_impact_methods": {
+            "transactions": {
+                "method": "modified_dietz",
+                "flow_timing": "transaction_date",
+                "day_count": "actual_days",
+                "inclusion_rule": "beginning_of_day",
+            },
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
 def _write_transaction_outside_period_specification(directory: Path) -> Path:
     """Write a minimal transaction fixture whose trade date is outside period."""
     for snapshot_name, amount in (("snapshot_a", "100.00"), ("snapshot_b", "110.00")):
@@ -701,6 +738,39 @@ class TestPerformanceComparison(unittest.TestCase):
         )
         self.assertEqual(len(add_findings), 1)
         self.assertEqual(len(drop_findings), 1)
+
+    def test_security_identifiers_match_case_sensitively(self) -> None:
+        """Security identifiers that differ only by case are not the same key."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = _write_security_case_sensitive_specification(Path(temp_dir))
+            specification = PerformanceComparisonSpecification(path)
+
+            findings = [
+                finding.to_dict()
+                for finding in PerformanceComparison(
+                    specification
+                ).compare_security_performance()
+            ]
+
+        add_findings = [
+            finding
+            for finding in findings
+            if finding[FINDING_CODE] == PC_SEC_ADD and finding[SECURITY_ID] == "aapl"
+        ]
+        drop_findings = [
+            finding
+            for finding in findings
+            if finding[FINDING_CODE] == PC_SEC_DROP and finding[SECURITY_ID] == "AAPL"
+        ]
+        value_change_findings = [
+            finding
+            for finding in findings
+            if finding[FINDING_CODE] in {PC_SEC_RET, PC_SEC_WGT, PC_SEC_CONTR}
+        ]
+
+        self.assertEqual(len(add_findings), 1)
+        self.assertEqual(len(drop_findings), 1)
+        self.assertEqual(value_change_findings, [])
 
     def test_compare_combines_primary_portfolio_and_source_findings(self) -> None:
         """Portfolio comparison returns portfolio-result and source-data findings."""

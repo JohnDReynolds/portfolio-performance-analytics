@@ -1715,6 +1715,38 @@ Report and workbook contract tests now pin transaction component wording:
 - commission rows include the security and retain the commission delta;
 - the old `Helped explain the changed transactions.amount` wording is rejected.
 
+### Phase 21: Native-Code And Identifier Guardrails
+
+Phase 21 keeps reviewer metadata faithful to source extracts without weakening
+case-sensitive identifiers.
+
+#### Phase 21A: Native Transaction-Code Handoff
+
+Status: complete for the current review summary and manifest contract.
+
+`manifest.json` and `review_summary.json` now preserve native observed
+transaction-code strings in `observed_codes`. YAML coverage still normalizes
+transaction codes for rule-key lookup, but the review handoff no longer converts
+native lower-case demo codes such as `by` and `sl` to upper case.
+
+#### Phase 21B: Source Dataset Report Label
+
+Status: complete for the current workbook/report wording.
+
+The visible Raw Audit Trail dataset column now uses `Source Dataset`, while
+prose continues to use the standardized `source-data` term and JSON/API keys
+continue to use `source_data`.
+
+#### Phase 21C: Case-Sensitive Identifier Audit
+
+Status: complete for the current comparison and workbook paths.
+
+Regression coverage now pins security identifiers as exact comparison keys:
+`AAPL` and `aapl` remain separate securities and produce add/drop findings, not
+an in-place value change. Transaction-code normalization remains limited to
+explicit semantic rule/category lookups; reviewer metadata retains native code
+case.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
