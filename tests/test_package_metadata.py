@@ -7,6 +7,7 @@ from fnmatch import fnmatch
 import importlib.util
 from importlib.resources import files
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tomllib
@@ -243,10 +244,10 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_source_data_term_is_standardized(self) -> None:
         """Docs and reviewer-facing code use one source-data prose term."""
-        forbidden_terms = (
-            "input" + " data",
-            "input" + "-data",
-            "source" + " data",
+        forbidden_patterns = (
+            re.compile(r"\binput data\b", flags=re.IGNORECASE),
+            re.compile(r"\binput-data\b", flags=re.IGNORECASE),
+            re.compile(r"\bsource data\b", flags=re.IGNORECASE),
         )
         scanned_paths = [Path("README.md")]
         for root in (
@@ -264,10 +265,9 @@ class TestPackageMetadata(unittest.TestCase):
         for path in scanned_paths:
             text = path.read_text(encoding=util.ENCODING)
             for line_number, line in enumerate(text.splitlines(), start=1):
-                lowered = line.lower()
-                for term in forbidden_terms:
-                    if term in lowered:
-                        violations.append(f"{path}:{line_number}: {term}")
+                for pattern in forbidden_patterns:
+                    if pattern.search(line):
+                        violations.append(f"{path}:{line_number}: {pattern.pattern}")
 
         self.assertEqual([], violations)
 

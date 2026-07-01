@@ -41,7 +41,7 @@ _COMMON_LEFT_HEADERS = [
     "Portfolio",
     "From Date",
     "Thru Date",
-    "Source-Data Dataset",
+    "Source Dataset",
     "Input Field",
     "Security",
 ]

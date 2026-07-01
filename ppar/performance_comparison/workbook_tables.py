@@ -3074,7 +3074,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _REVIEW_PRIORITY_REASON: "Review Priority Reason",
         _RETURN_IMPACT_TREATMENT: "Return Impact Treatment",
         _pc_findings.FINDING_CODE: "Code",
-        _pc_findings.DATASET: "Source-Data Dataset",
+        _pc_findings.DATASET: "Source Dataset",
         _pc_findings.SOURCE_COLUMN: "Input Field",
         _pc_findings.MESSAGE: "Message",
         _pc_findings.SEVERITY: "Severity",
@@ -3202,7 +3202,7 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_explain.REVIEW_RANK: "Priority rank within the portfolio period.",
         _pc_findings.FINDING_CODE: "Stable finding code for the discrepancy type.",
         _pc_findings.CONFIDENCE: "Confidence level for the finding or impact interpretation.",
-        _pc_findings.DATASET: "Normalized source-data dataset where the discrepancy was found.",
+        _pc_findings.DATASET: "Normalized source dataset where the discrepancy was found.",
         _pc_findings.EVIDENCE_ROLE: (
             "Whether the finding is target output, direct input, related output, or context."
         ),

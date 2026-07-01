@@ -31,7 +31,7 @@ def transaction_semantics_summary(
     semantics_source_counts: dict[str, int] = {}
     unknown_category_count = 0
     for frame in frames:
-        observed_codes.update(transaction_codes(frame))
+        observed_codes.update(native_transaction_codes(frame))
         unknown_category_count += _column_value_count(
             frame,
             _pc_cols.TRANSACTION_CATEGORY,
@@ -43,7 +43,15 @@ def transaction_semantics_summary(
                 _column_counts(frame, _pc_cols.TRANSACTION_SEMANTICS_SOURCE),
             )
         )
-    codes_without_rules = observed_codes - rule_codes if rule_codes is not None else set()
+    codes_without_rules = (
+        {
+            code
+            for code in observed_codes
+            if normalized_transaction_code(code) not in rule_codes
+        }
+        if rule_codes is not None
+        else set()
+    )
     return {
         "observed_codes": sorted(observed_codes),
         "codes_without_yaml_rules": sorted(codes_without_rules),
@@ -60,6 +68,18 @@ def transaction_codes(frame: pl.DataFrame) -> set[str]:
     codes = set()
     for value in frame.get_column(_pc_cols.TRANSACTION_CODE):
         code = normalized_transaction_code(value)
+        if code:
+            codes.add(code)
+    return codes
+
+
+def native_transaction_codes(frame: pl.DataFrame) -> set[str]:
+    """Return native transaction-code strings observed in a transaction-like frame."""
+    if _pc_cols.TRANSACTION_CODE not in frame.columns:
+        return set()
+    codes = set()
+    for value in frame.get_column(_pc_cols.TRANSACTION_CODE):
+        code = native_transaction_code(value)
         if code:
             codes.add(code)
     return codes
@@ -82,6 +102,14 @@ def normalized_transaction_code(value: object) -> str:
     if value is None:
         return ""
     code = str(value).strip().upper()
+    return code if code else ""
+
+
+def native_transaction_code(value: object) -> str:
+    """Return a stripped native transaction code, or blank for missing values."""
+    if value is None:
+        return ""
+    code = str(value).strip()
     return code if code else ""
 
 

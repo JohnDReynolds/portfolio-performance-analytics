@@ -34,6 +34,9 @@ from ppar.performance_comparison.findings import (
     PC_PORT_RET,
     SEVERITY_MATERIAL,
 )
+from ppar.performance_comparison.transaction_summary import (
+    transaction_semantics_summary,
+)
 from ppar.performance_comparison.workbook_tables import (
     _workbook_context_table,
     _workbook_portfolio_changes_table,
@@ -451,6 +454,28 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ],
             },
         )
+
+    def test_transaction_semantics_summary_preserves_native_observed_codes(self) -> None:
+        """Review metadata keeps transaction-code case from the source rows."""
+        frame = pl.DataFrame(
+            {
+                pc_cols.TRANSACTION_CODE: ["by", "BY", " Sl ", None, ""],
+                pc_cols.TRANSACTION_CATEGORY: ["buy", "buy", "sell", "unknown", ""],
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE: [
+                    "yaml_rule",
+                    "source",
+                    "yaml_rule",
+                    "unknown",
+                    "",
+                ],
+            }
+        )
+
+        summary = transaction_semantics_summary([frame], rule_codes={"BY"})
+
+        self.assertEqual(summary["observed_codes"], ["BY", "Sl", "by"])
+        self.assertEqual(summary["codes_without_yaml_rules"], ["Sl"])
+        self.assertEqual(summary["unknown_category_count"], 1)
 
     def test_write_report_bundle_creates_review_artifacts(self) -> None:
         """Report bundles contain HTML, CSV tables, and manifest metadata."""
@@ -1445,7 +1470,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Portfolio",
                     "From Date",
                     "Thru Date",
-                    "Source-Data Dataset",
+                    "Source Dataset",
                     "Input Field",
                     "Security",
                 ],
