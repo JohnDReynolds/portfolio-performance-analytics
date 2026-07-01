@@ -1776,6 +1776,19 @@ explicit external-flow semantics and policy inputs are available. The behavior
 keeps the Modified Dietz timing effect visible without inferring that the two
 no-ID rows are the same transaction.
 
+### Phase 24: Conservative Singleton Fallback Matching
+
+Status: complete for exact one-to-one no-ID transaction matching.
+
+No-ID transaction rows may now be paired only when there is exactly one row in
+Snapshot A and one row in Snapshot B for the same portfolio, trade date,
+security identifier, and native transaction code. The match is case-sensitive
+and does not use amount, quantity, price, nearest-date, or fuzzy matching.
+Changed fields from this path are labeled `matched_by_singleton_fallback`,
+which is intentionally weaker than `matched_by_id`. Duplicate candidate groups
+remain ambiguity diagnostics, and date moves across periods remain add/drop
+timing evidence.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

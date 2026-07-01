@@ -14,6 +14,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+    TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
 )
 from ppar.performance_comparison.transactions import (
@@ -35,6 +36,11 @@ def transaction_match_review_note(match_status: object) -> str:
     """
     if match_status == TRANSACTION_MATCH_STATUS_ID_MATCH:
         return "Changed fields were compared on rows matched by transaction_id."
+    if match_status == TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH:
+        return (
+            "Changed fields were compared on an exact one-to-one fallback key; "
+            "review as weaker than a transaction_id match."
+        )
     if match_status == TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B:
         return "Transaction row appears only in snapshot B; review as added activity."
     if match_status == TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B:
@@ -66,11 +72,12 @@ def transaction_matching_diagnostic_sort_key(row: Mapping[str, object]) -> tuple
     """
     order = {
         TRANSACTION_MATCH_STATUS_ID_MATCH.value: 0,
-        TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B.value: 1,
-        TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B.value: 2,
-        TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH.value: 3,
-        TRANSACTION_MATCH_STATUS_ID_UNMATCHED.value: 4,
-        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED.value: 5,
+        TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH.value: 1,
+        TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B.value: 2,
+        TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B.value: 3,
+        TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH.value: 4,
+        TRANSACTION_MATCH_STATUS_ID_UNMATCHED.value: 5,
+        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED.value: 6,
     }
     match_status = str(row[TRANSACTION_MATCH_STATUS])
     return order.get(match_status, len(order)), str(match_status)

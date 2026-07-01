@@ -93,6 +93,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+    TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
     TRANSACTION_SEMANTICS_SOURCE,
     PERFORMANCE_FLOW_SIGN,
     Finding,
@@ -212,6 +213,92 @@ def _write_duplicate_transaction_fallback_specification(directory: Path) -> Path
             "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
             "PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,100.00\n"
             "PORT_A,AAPL,2025-05-15,2025-05-16,BUY,1,100.00,100.00\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "transactions": "transactions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_transaction_singleton_duplicate_specification(
+    directory: Path,
+    *,
+    snapshot_a_count: int,
+    snapshot_b_count: int,
+) -> Path:
+    """Write a no-ID fixture with duplicate singleton fallback candidates."""
+    for snapshot_name, row_count in (
+        ("snapshot_a", snapshot_a_count),
+        ("snapshot_b", snapshot_b_count),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,1000.00,0.01\n",
+            encoding="utf-8",
+        )
+        transaction_rows = [
+            f"PORT_A,AAPL,2025-05-15,2025-05-16,BUY,{index + 1},100.00,"
+            f"{100.00 + index:.2f}\n"
+            for index in range(row_count)
+        ]
+        (snapshot_path / "transactions.csv").write_text(
+            "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
+            + "".join(transaction_rows),
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "transactions": "transactions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_transaction_case_sensitive_singleton_specification(
+    directory: Path,
+    *,
+    snapshot_a_security: str = "AAPL",
+    snapshot_b_security: str = "AAPL",
+    snapshot_a_code: str = "BUY",
+    snapshot_b_code: str = "BUY",
+) -> Path:
+    """Write a no-ID singleton fixture with configurable identifier casing."""
+    for snapshot_name, security_id, transaction_code, amount in (
+        ("snapshot_a", snapshot_a_security, snapshot_a_code, "100.00"),
+        ("snapshot_b", snapshot_b_security, snapshot_b_code, "110.00"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,1000.00,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT\n"
+            f"PORT_A,{security_id},2025-05-15,2025-05-16,{transaction_code},"
+            f"1,100.00,{amount}\n",
             encoding="utf-8",
         )
 
@@ -3087,8 +3174,8 @@ class TestPerformanceComparison(unittest.TestCase):
             self.assertIsNone(amount_finding[RETURN_DENOMINATOR])
             self.assertEqual(transaction_candidates.height, 0)
 
-    def test_transaction_fallback_key_treats_amount_change_as_add_drop(self) -> None:
-        """Transaction amount changes require a stable transaction id."""
+    def test_transaction_singleton_fallback_matches_amount_change(self) -> None:
+        """Exact singleton no-ID transaction keys can compare changed fields."""
         with tempfile.TemporaryDirectory() as temp_dir:
             specification_path = _write_transaction_fallback_specification(Path(temp_dir))
             specification = PerformanceComparisonSpecification(specification_path)
@@ -3096,26 +3183,20 @@ class TestPerformanceComparison(unittest.TestCase):
             findings = PerformanceComparison(specification).compare_transactions()
             finding_dicts = [finding.to_dict() for finding in findings]
             finding_codes = [finding[FINDING_CODE] for finding in finding_dicts]
+            amount_finding = next(
+                finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] == PC_TXN_AMT
+            )
 
-            self.assertEqual(finding_codes.count(PC_TXN_ADD), 1)
-            self.assertEqual(finding_codes.count(PC_TXN_DROP), 1)
-            self.assertNotIn(PC_TXN_AMT, finding_codes)
+            self.assertNotIn(PC_TXN_ADD, finding_codes)
+            self.assertNotIn(PC_TXN_DROP, finding_codes)
+            self.assertEqual(finding_codes.count(PC_TXN_AMT), 1)
             self.assertEqual(
-                {
-                    finding[TRANSACTION_MATCH_STATUS]
-                    for finding in finding_dicts
-                    if finding[FINDING_CODE] == PC_TXN_ADD
-                },
-                {TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B},
+                amount_finding[TRANSACTION_MATCH_STATUS],
+                TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
             )
-            self.assertEqual(
-                {
-                    finding[TRANSACTION_MATCH_STATUS]
-                    for finding in finding_dicts
-                    if finding[FINDING_CODE] == PC_TXN_DROP
-                },
-                {TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B},
-            )
+            self.assertAlmostEqual(cast(float, amount_finding[DELTA_B_MINUS_A]), 10.0)
 
     def test_no_id_transaction_date_move_across_periods_is_timing_add_drop(
         self,
@@ -3173,6 +3254,71 @@ class TestPerformanceComparison(unittest.TestCase):
                 cast(float, added[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
                 -1000.0 / 10000.0,
             )
+
+    def test_duplicate_singleton_candidates_are_not_fallback_matched(self) -> None:
+        """Duplicate singleton candidates stay unpaired instead of guessing linkage."""
+        for snapshot_a_count, snapshot_b_count in ((2, 1), (1, 2)):
+            with self.subTest(a=snapshot_a_count, b=snapshot_b_count):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    specification_path = (
+                        _write_transaction_singleton_duplicate_specification(
+                            Path(temp_dir),
+                            snapshot_a_count=snapshot_a_count,
+                            snapshot_b_count=snapshot_b_count,
+                        )
+                    )
+                    specification = PerformanceComparisonSpecification(specification_path)
+
+                    findings = PerformanceComparison(specification).compare_transactions()
+                    finding_dicts = [finding.to_dict() for finding in findings]
+                    finding_codes = [finding[FINDING_CODE] for finding in finding_dicts]
+                    ambiguity = next(
+                        finding
+                        for finding in finding_dicts
+                        if finding[FINDING_CODE] == PC_TXN_AMBIG
+                    )
+
+                    self.assertNotIn(PC_TXN_AMT, finding_codes)
+                    self.assertEqual(
+                        ambiguity[TRANSACTION_MATCH_STATUS],
+                        TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
+                    )
+                    self.assertEqual(ambiguity["snapshot_a_value"], snapshot_a_count)
+                    self.assertEqual(ambiguity["snapshot_b_value"], snapshot_b_count)
+
+    def test_singleton_fallback_keeps_security_identifiers_case_sensitive(self) -> None:
+        """Security identifiers that differ only by case are not fallback matched."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_case_sensitive_singleton_specification(
+                Path(temp_dir),
+                snapshot_a_security="AAPL",
+                snapshot_b_security="aapl",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            finding_codes = [finding.to_dict()[FINDING_CODE] for finding in findings]
+
+            self.assertEqual(finding_codes.count(PC_TXN_ADD), 1)
+            self.assertEqual(finding_codes.count(PC_TXN_DROP), 1)
+            self.assertNotIn(PC_TXN_AMT, finding_codes)
+
+    def test_singleton_fallback_keeps_transaction_codes_case_sensitive(self) -> None:
+        """Native transaction codes that differ only by case are not fallback matched."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_transaction_case_sensitive_singleton_specification(
+                Path(temp_dir),
+                snapshot_a_code="BUY",
+                snapshot_b_code="buy",
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            finding_codes = [finding.to_dict()[FINDING_CODE] for finding in findings]
+
+            self.assertEqual(finding_codes.count(PC_TXN_ADD), 1)
+            self.assertEqual(finding_codes.count(PC_TXN_DROP), 1)
+            self.assertNotIn(PC_TXN_AMT, finding_codes)
 
     def test_duplicate_transaction_fallback_keys_are_ambiguity_diagnostics(self) -> None:
         """Duplicate fallback keys are legitimate but unsafe to pair as edits."""

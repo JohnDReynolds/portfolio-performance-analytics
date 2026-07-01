@@ -174,7 +174,8 @@ Finding and review classification values are centralized in:
 - `FindingConfidence`: `high`.
 - `EvidenceRole`: `target_output`, `direct_input`, `related_output`, and
   `context`.
-- `TransactionMatchStatus`: `matched_by_id`, `added_in_snapshot_b`,
+- `TransactionMatchStatus`: `matched_by_id`,
+  `matched_by_singleton_fallback`, `added_in_snapshot_b`,
   `missing_from_snapshot_b`, `ambiguous_fallback_match`,
   `transaction_id_unmatched`, and `strict_fallback_unmatched`.
 
@@ -785,16 +786,22 @@ The primary comparison keys should be configurable but have sensible defaults:
 - Holdings: portfolio code, security identifier, holding date.
 
 When transactions have a stable `transaction_id` in both snapshots, matching
-rows can report changed amounts as `PC-TXN-AMT`. When no transaction id is
-available, the fallback key includes portfolio, security, trade date, settlement
-date if present, transaction code, quantity, price, and amount. This avoids
-guessing that two similar rows are the same transaction. In that fallback mode,
-an amount restatement is expected to appear as one `PC-TXN-DROP` and one
-`PC-TXN-ADD`, not as `PC-TXN-AMT`. Transaction findings expose
+rows can report changed amounts as `PC-TXN-AMT` with `matched_by_id`. When no
+transaction id is available, an exact singleton fallback may pair rows only
+when there is exactly one transaction in each snapshot for the same portfolio,
+trade date, security identifier, and native transaction code. This fallback is
+case-sensitive and never uses fuzzy date, amount, quantity, or price matching.
+Changed fields from this path are labeled `matched_by_singleton_fallback` so
+reviewers can distinguish them from transaction-ID matches.
+
+Rows outside that exact singleton fallback use the stricter row-presence key,
+which includes portfolio, security, trade date, settlement date if present,
+transaction code, quantity, price, and amount. This avoids guessing that two
+similar rows are the same transaction. Transaction findings expose
 `transaction_match_status` so reviewers can distinguish `matched_by_id`,
-`added_in_snapshot_b`, `missing_from_snapshot_b`,
-`ambiguous_fallback_match`, `transaction_id_unmatched`, and
-`strict_fallback_unmatched` evidence.
+`matched_by_singleton_fallback`, `added_in_snapshot_b`,
+`missing_from_snapshot_b`, `ambiguous_fallback_match`,
+`transaction_id_unmatched`, and `strict_fallback_unmatched` evidence.
 
 Duplicate comparison keys should fail loudly before row-presence checks or
 value comparisons run. Silent duplicate handling can collapse rows into a set
@@ -1811,12 +1818,13 @@ this table as `flow_cross_check_reconciliation.csv`.
 Transaction matching diagnostics are summarized separately from transaction
 activity. The `transaction_matching_diagnostics()` helper and report section
 count transaction matching labels such as `matched_by_id`,
-`added_in_snapshot_b`, `missing_from_snapshot_b`,
-`ambiguous_fallback_match`, `transaction_id_unmatched`, and
-`strict_fallback_unmatched`, with reviewer notes explaining whether rows were
-paired by stable transaction ID, appeared in only one snapshot, or were left
-unpaired because fallback keys were ambiguous. Report bundles include this
-table as `transaction_matching_diagnostics.csv`.
+`matched_by_singleton_fallback`, `added_in_snapshot_b`,
+`missing_from_snapshot_b`, `ambiguous_fallback_match`,
+`transaction_id_unmatched`, and `strict_fallback_unmatched`, with reviewer
+notes explaining whether rows were paired by stable transaction ID, paired by
+exact singleton fallback, appeared in only one snapshot, or were left unpaired
+because fallback keys were ambiguous. Report bundles include this table as
+`transaction_matching_diagnostics.csv`.
 
 Report bundles include `report.html` as the browser view of the same review
 model used by `report.xlsx`. The HTML artifact is intentionally conservative:

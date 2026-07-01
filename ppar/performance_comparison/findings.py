@@ -54,6 +54,7 @@ __all__ = [
     "TRANSACTION_SEMANTICS_SOURCE",
     "TRANSACTION_MATCH_STATUS",
     "TRANSACTION_MATCH_STATUS_ID_MATCH",
+    "TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH",
     "TRANSACTION_MATCH_STATUS_ID_UNMATCHED",
     "TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED",
     "TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B",
@@ -245,6 +246,7 @@ class TransactionMatchStatus(StrEnum):
     """Supported transaction matching diagnostic labels."""
 
     ID_MATCH = "matched_by_id"
+    SINGLETON_FALLBACK_MATCH = "matched_by_singleton_fallback"
     ID_UNMATCHED = "transaction_id_unmatched"
     STRICT_FALLBACK_UNMATCHED = "strict_fallback_unmatched"
     ADDED_IN_SNAPSHOT_B = "added_in_snapshot_b"
@@ -254,6 +256,9 @@ class TransactionMatchStatus(StrEnum):
 
 TRANSACTION_MATCH_STATUS_ID_MATCH: Final[TransactionMatchStatus] = (
     TransactionMatchStatus.ID_MATCH
+)
+TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH: Final[TransactionMatchStatus] = (
+    TransactionMatchStatus.SINGLETON_FALLBACK_MATCH
 )
 TRANSACTION_MATCH_STATUS_ID_UNMATCHED: Final[TransactionMatchStatus] = (
     TransactionMatchStatus.ID_UNMATCHED

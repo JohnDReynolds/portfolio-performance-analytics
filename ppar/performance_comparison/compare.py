@@ -28,6 +28,7 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+    TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
     PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_FLOW,
@@ -134,6 +135,12 @@ _FX_RATE_KEY_COLUMNS: Final[tuple[str, str, str, str, str]] = (
     pc_cols.RATE_TYPE,
 )
 _TRANSACTION_ID_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.TRANSACTION_ID,)
+_TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
+    pc_cols.PORTFOLIO_ID,
+    pc_cols.SECURITY_ID,
+    pc_cols.TRANSACTION_DATE,
+    pc_cols.TRANSACTION_CODE,
+)
 _TRANSACTION_FALLBACK_KEY_COLUMNS: Final[tuple[str, ...]] = (
     pc_cols.PORTFOLIO_ID,
     pc_cols.SECURITY_ID,
@@ -551,6 +558,26 @@ class PerformanceComparison:
                     transaction_fallback_periods=fallback_periods,
                 )
             )
+        else:
+            singleton_a, singleton_b = self._transaction_singleton_match_frames(
+                snapshot_a,
+                snapshot_b,
+            )
+            findings.extend(
+                self._changed_value_findings(
+                    singleton_a,
+                    singleton_b,
+                    _TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS,
+                    _TRANSACTION_COMPARE_COLUMNS,
+                    pc_cols.TRANSACTIONS,
+                    portfolio_periods,
+                    return_denominators=return_denominators,
+                    transaction_match_status=(
+                        TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH
+                    ),
+                    transaction_fallback_periods=fallback_periods,
+                )
+            )
         return findings
 
     def _row_presence_findings(
@@ -638,6 +665,31 @@ class PerformanceComparison:
                 pc_cols.TRANSACTIONS,
                 "snapshot B",
             )
+            self._validate_complete_keys(
+                snapshot_a,
+                _TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS,
+                pc_cols.TRANSACTIONS,
+                "snapshot A",
+            )
+            self._validate_complete_keys(
+                snapshot_b,
+                _TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS,
+                pc_cols.TRANSACTIONS,
+                "snapshot B",
+            )
+
+            singleton_a, singleton_b = self._transaction_singleton_match_frames(
+                snapshot_a,
+                snapshot_b,
+            )
+            snapshot_a = self._without_transaction_singleton_matches(
+                snapshot_a,
+                singleton_a,
+            )
+            snapshot_b = self._without_transaction_singleton_matches(
+                snapshot_b,
+                singleton_b,
+            )
 
         findings = self._transaction_presence_findings_for_side(
             snapshot_b,
@@ -670,10 +722,64 @@ class PerformanceComparison:
             self._transaction_fallback_ambiguity_findings(
                 snapshot_a,
                 snapshot_b,
-                key_columns,
+                _TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS,
             )
         )
         return findings
+
+    def _transaction_singleton_match_frames(
+        self,
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Return no-ID transaction rows eligible for singleton fallback matching."""
+        singleton_keys = self._transaction_singleton_match_keys(snapshot_a, snapshot_b)
+        if singleton_keys.is_empty():
+            return snapshot_a.head(0), snapshot_b.head(0)
+        return (
+            snapshot_a.join(
+                singleton_keys,
+                on=list(_TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS),
+                how="inner",
+            ),
+            snapshot_b.join(
+                singleton_keys,
+                on=list(_TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS),
+                how="inner",
+            ),
+        )
+
+    @staticmethod
+    def _transaction_singleton_match_keys(
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+    ) -> pl.DataFrame:
+        """Return exact fallback keys with one transaction row on each side."""
+        key_columns = list(_TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS)
+        counts_a = snapshot_a.group_by(key_columns).len(name="snapshot_a_count")
+        counts_b = snapshot_b.group_by(key_columns).len(name="snapshot_b_count")
+        return (
+            counts_a.join(counts_b, on=key_columns, how="inner")
+            .filter(
+                (pl.col("snapshot_a_count") == 1)
+                & (pl.col("snapshot_b_count") == 1)
+            )
+            .select(key_columns)
+        )
+
+    @staticmethod
+    def _without_transaction_singleton_matches(
+        snapshot: pl.DataFrame,
+        singleton_rows: pl.DataFrame,
+    ) -> pl.DataFrame:
+        """Return transaction rows excluding singleton fallback matched rows."""
+        if singleton_rows.is_empty():
+            return snapshot
+        return snapshot.join(
+            singleton_rows.select(list(_TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS)),
+            on=list(_TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS),
+            how="anti",
+        )
 
     def _transaction_presence_findings_for_side(
         self,
@@ -1184,19 +1290,10 @@ class PerformanceComparison:
         key_columns: tuple[str, ...],
     ) -> pl.DataFrame:
         """Return fallback keys duplicated in either transaction snapshot."""
-        duplicate_frames = []
-        for frame, count_name in (
-            (snapshot_a, "snapshot_a_count"),
-            (snapshot_b, "snapshot_b_count"),
-        ):
-            duplicate_frames.append(
-                frame.group_by(list(key_columns))
-                .len(name=count_name)
-                .filter(pl.col(count_name) > 1)
-            )
-
-        duplicate_keys = duplicate_frames[0].join(
-            duplicate_frames[1],
+        counts_a = snapshot_a.group_by(list(key_columns)).len(name="snapshot_a_count")
+        counts_b = snapshot_b.group_by(list(key_columns)).len(name="snapshot_b_count")
+        duplicate_keys = counts_a.join(
+            counts_b,
             on=list(key_columns),
             how="full",
             coalesce=True,
@@ -1206,6 +1303,8 @@ class PerformanceComparison:
         return duplicate_keys.with_columns(
             pl.col("snapshot_a_count").fill_null(0),
             pl.col("snapshot_b_count").fill_null(0),
+        ).filter(
+            (pl.col("snapshot_a_count") > 1) | (pl.col("snapshot_b_count") > 1)
         )
 
     @staticmethod
