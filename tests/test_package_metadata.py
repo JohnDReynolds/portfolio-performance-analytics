@@ -581,6 +581,31 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertEqual(roadmap.count("## Guiding Principle"), 1)
         self.assertEqual(roadmap.count("## Transaction-Type Backlog"), 1)
 
+    def test_performance_comparison_roadmap_starts_with_current_status(self) -> None:
+        """The roadmap separates active backlog from historical phase notes."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for heading in (
+            "## How To Read This Roadmap",
+            "## Current Status",
+            "## Current Open Items",
+            "## Axys Extract Contract Review Map",
+            "## Implementation Phases",
+        ):
+            self.assertIn(heading, roadmap)
+
+        self.assertLess(
+            roadmap.index("## Current Open Items"),
+            roadmap.index("## Implementation Phases"),
+        )
+        self.assertIn("The remaining work is backlog expansion", roadmap)
+        self.assertIn("The phase notes below are an implementation journal", roadmap)
+        self.assertIn("Phase 37: Roadmap Readability Refactor", roadmap)
+        self.assertIn("Evidence-blocked backlog", roadmap)
+        self.assertIn("Policy expansion", roadmap)
+
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""
         roadmap = Path("docs/performance_comparison_roadmap.md").read_text(

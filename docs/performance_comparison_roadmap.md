@@ -12,6 +12,51 @@ Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
 [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
 
+## How To Read This Roadmap
+
+Start here when deciding what remains to do:
+
+- **Current Open Items** is the active backlog.
+- **Axys Extract Contract Review Map** shows the source-contract path that must
+  stay aligned as demo fields or site-extract rules change.
+- **Implementation Phases** is historical implementation detail. Most phase
+  notes are complete, superseded, or preserved as rationale rather than active
+  work.
+- **Transaction-Type Backlog** is the policy boundary for future transaction
+  coverage.
+
+## Current Status
+
+The current performance-comparison bundle is release-candidate quality for the
+packaged Axys demo scope. The portfolio and security demos generate `report.xlsx`,
+`report.html`, review-summary metadata, manifests, and CSV audit artifacts. The
+generated reports focus on Modified Dietz evidence, source-data differences,
+review-only context, and conservative transaction row identity.
+
+Completed guardrails now cover:
+
+- packaged Axys transaction extracts omit `TRANSACTION_ID`;
+- no-ID transaction matching is conservative and case-sensitive;
+- ambiguous Axys-style `dp`, `li`, `lo`, and `wd` codes require source/destination
+  or special-security context before classification;
+- cost, settlement-date, and unsupported corporate-action rows remain review
+  evidence unless an explicit future rule changes their treatment;
+- `portperf.gain_loss` and `secperf.gain_loss` are documented as report-style
+  performance-extract context, not native IMEX object claims or recomputed
+  accounting-ledger values;
+- generated bundle vocabulary and entrypoints are validated.
+
+## Current Open Items
+
+The remaining work is backlog expansion, not release-candidate cleanup.
+
+| Home | Open item | Exit criteria |
+| --- | --- | --- |
+| Packaged demo candidate | Nonredundant external-flow variants; realistic `li` / `lo` transfer examples; real historical split only if the demo period supports it. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
+| Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. |
+| Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
+| Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
+
 ## Axys Extract Contract Review Map
 
 The Axys extract guardrails now have a single review path:
@@ -369,6 +414,11 @@ corporate_action_treatment
 ```
 
 ## Implementation Phases
+
+The phase notes below are an implementation journal. Treat a phase as active
+only when its status says partial, backlog, future, or superseded with a named
+follow-up. Completed phases are retained to explain why the current bundle,
+tests, and source contracts look the way they do.
 
 ### Phase 1: Security-Level Flow Model
 
@@ -1930,6 +1980,17 @@ performance-comparison bundle." This keeps the browser/report.xlsx distinction
 clear without exposing the more internal "review surface" wording to first-time
 reviewers. Tests continue to reject both the old "same review model" phrase and
 the intermediate "Browser review surface" phrase.
+
+### Phase 37: Roadmap Readability Refactor
+
+Status: complete for active-backlog discoverability.
+
+The roadmap now starts with `How To Read This Roadmap`, `Current Status`, and
+`Current Open Items` sections so maintainers can see what remains before
+reading the implementation journal. The open work is summarized as backlog
+expansion, with packaged-demo candidates, test-only fixtures, evidence-blocked
+transaction families, and future policy expansion separated from completed
+release-candidate cleanup.
 
 ## Guiding Principle
 
