@@ -1897,6 +1897,18 @@ Generated bundle README guidance also frames
 `transaction_matching_diagnostics.csv` as conservative row-identity evidence
 rather than a user-facing transaction-linkage claim.
 
+### Phase 34: Demo Source-Contract Final Hardening
+
+Status: complete for packaged Axys field defensibility.
+
+The demo source contract now explicitly treats `portperf.gain_loss` and
+`secperf.gain_loss` as report-style performance-extract context, not native
+Axys/APX IMEX object claims or recomputed accounting-ledger values. Audit
+coverage pins that boundary in `demo_extract_availability.yaml`, confirms
+packaged transaction extracts still omit `TRANSACTION_ID`, and keeps
+source/destination and special-security context fields required for ambiguous
+Axys-style transaction classification.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

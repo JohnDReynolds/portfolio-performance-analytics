@@ -78,6 +78,7 @@ The packaged demo keeps four field groups separate:
 | `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
 | `transactions.quantity`, `transactions.price`, `transactions.commission` | Supporting inputs for changed `transactions.amount`; not a formula for `transactions.amount`. |
 | `holdings.cost` | Other data difference. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
+| `portperf.gain_loss`, `secperf.gain_loss` | Reported performance-extract context. These fields are defensible as report-style gain/loss components, but the local corpus does not prove native Axys/APX IMEX performance object names or calculation basis. They must not be described as recomputed tax-lot or accounting-ledger values. |
 | `transactions.settle_date` | Other data difference unless a future explicit settlement-date rule makes it performance-relevant. |
 | security-reference fields | Other data differences or suppressed context unless explicitly supported by a future rule. |
 

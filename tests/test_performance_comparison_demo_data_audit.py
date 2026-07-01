@@ -208,11 +208,20 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             self.assertIn(expected_text, normalized_lower_text)
 
         for expected_text in [
-            "Cost changes are useful review evidence but do not explain reported performance",
-            "Other data difference unless a future explicit settlement-date rule",
-            "conservative no-ID path",
+            "cost changes are useful review evidence but do not explain reported performance",
+            "reported performance-extract context",
+            "defensible as report-style gain/loss components",
+            "must not be described as recomputed tax-lot or accounting-ledger values",
+            "other data difference unless a future explicit settlement-date rule",
+            "conservative no-id path",
             "does not prove a durable native transaction identifier",
             "not a full accounting-system export",
+        ]:
+            self.assertIn(expected_text, normalized_lower_text)
+
+        for expected_text in [
+            "Cost changes are useful review evidence but do not explain reported performance",
+            "Other data difference unless a future explicit settlement-date rule",
         ]:
             self.assertIn(expected_text, normalized_text)
 
@@ -348,6 +357,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     self.assertTrue(str(metadata["comments"]).strip())
 
         transaction_columns = datasets["transactions.csv"]["columns"]
+        self.assertNotIn("TRANSACTION_ID", transaction_columns)
         for context_column in [
             "SEC_TYPE",
             "SRC_DEST_TYPE",
@@ -358,6 +368,30 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             metadata = transaction_columns[context_column]
             self.assertTrue(metadata["requires_context_for_semantics"])
             self.assertTrue(metadata["blocking_if_missing"])
+
+    def test_packaged_demo_gain_loss_metadata_stays_report_style_context(self) -> None:
+        """GAIN_LOSS remains report-style performance context, not a native claim."""
+        availability = yaml.safe_load(
+            _DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8")
+        )
+        datasets = availability["datasets"]
+
+        for file_name in ("portperf.csv", "secperf.csv"):
+            with self.subTest(file_name=file_name):
+                metadata = datasets[file_name]["columns"]["GAIN_LOSS"]
+
+                self.assertEqual(metadata["name_confidence"], "report_label_inferred")
+                self.assertEqual(metadata["preferred_source"], "rep_preferred")
+                self.assertEqual(
+                    metadata["fallback_source"],
+                    "local_discovery_required",
+                )
+                self.assertIn(
+                    "does not prove a native IMEX performance object/field",
+                    metadata["basis"],
+                )
+                self.assertIn("report-dependent", metadata["comments"])
+                self.assertIn("Report-style label", metadata["name_notes"])
 
     def test_packaged_demo_extract_availability_appendix_is_current(self) -> None:
         """The human-readable appendix is rendered from the YAML contract."""
