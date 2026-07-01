@@ -1639,6 +1639,29 @@ Report tests now pin the public contract helper and check that
 first-stop artifacts. This keeps the bundle readable for humans while preserving
 one machine-readable contract for automation.
 
+### Phase 18: Public Contract Discoverability
+
+Phase 18 makes the generated-bundle contract easier to find without expanding
+the report-bundle behavior.
+
+#### Phase 18A: Design / Repository Guide Touchpoint
+
+Status: complete for the current public contract helper.
+
+The design reference and repository guide now name `report_bundle_contract()` as
+the public helper for inspecting the generated report-bundle handoff surface.
+The docs describe it as a contract helper for required artifacts, manifest keys,
+review entrypoints, review-summary keys, Modified Dietz review basis, and
+vocabulary keys.
+
+#### Phase 18B: Discoverability Guard
+
+Status: complete for the current docs surface.
+
+Package metadata tests now keep the design and repository-guide references in
+place. This keeps the helper discoverable without turning it into a transaction
+classification or accounting layer.
+
 ### Phase 19: Generated Demo Bundle Smoke
 
 Phase 19 verifies the generated reviewer surface after the bundle-contract and
