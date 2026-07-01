@@ -281,6 +281,24 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertEqual([], violations)
 
+    def test_public_demo_review_guidance_matches_current_bundle_shape(self) -> None:
+        """Public docs describe report files as review surfaces and CSVs as audit aids."""
+        root_readme = Path("README.md").read_text(encoding=util.ENCODING)
+        axys_readme = Path("ppar/demos/data/axys/README.md").read_text(
+            encoding=util.ENCODING
+        )
+        normalized_root_readme = " ".join(root_readme.split())
+        normalized_axys_readme = " ".join(axys_readme.split())
+
+        for text in (root_readme, axys_readme):
+            self.assertIn("use `report.html` for browser review", text.lower())
+            self.assertIn("CSV artifacts", text)
+            self.assertIn("audit traceability", text)
+            self.assertNotIn("same review model in a browser", text)
+
+        self.assertIn("open `report.xlsx` when present", normalized_root_readme)
+        self.assertIn("Open `report.xlsx` when present", normalized_axys_readme)
+
     def test_manifest_keeps_source_distribution_resources(self) -> None:
         """The source distribution manifest includes checkout scripts and demo data."""
         manifest = Path("MANIFEST.in").read_text(encoding=util.ENCODING)

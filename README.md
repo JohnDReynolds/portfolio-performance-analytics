@@ -224,8 +224,9 @@ the Axys demo reads the data through Axys-shaped exports before handing the
 same analytics object shape to the shared renderer. Both analytics demos use
 quarterly reporting and write tables and charts. All demos write files and
 print the review paths instead of opening browser windows automatically. The
-performance comparison demos write both `report.xlsx` and `report.html`; start
-review in the generated `report.xlsx`.
+performance comparison demos write both `report.xlsx` and `report.html`; open
+`report.xlsx` when present, use `report.html` for browser review, and keep the
+CSV artifacts for diagnostics and audit traceability.
 
 ---
 

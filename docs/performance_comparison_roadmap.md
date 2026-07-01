@@ -1874,6 +1874,16 @@ changes that treatment, preserve the conservative no-ID transaction path, and
 verify report-bundle metadata keeps standardized review vocabulary and
 entrypoints aligned after the transaction-match diagnostics demotion.
 
+### Phase 32: Release Readiness Sweep
+
+Status: complete for public handoff consistency.
+
+The public README and packaged Axys README now use the same handoff language as
+generated bundles: open `report.xlsx` when present, use `report.html` for
+browser review, and keep CSV artifacts for diagnostics and audit traceability.
+Regression coverage pins that wording so the older "same review model in a
+browser" phrasing does not drift back into public demo guidance.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

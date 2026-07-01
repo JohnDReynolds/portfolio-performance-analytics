@@ -51,10 +51,10 @@ Output:
 - `_demo_output/performance_comparison_security/manifest.json`
 - `_demo_output/performance_comparison_security/*.csv`
 
-Start review in `report.xlsx`. Use `report.html` when you want the same review
-model in a browser. The report is designed for review, not for raw data export.
-It separates performance differences from identifiable input differences and
-other evidence:
+Open `report.xlsx` when present. Use `report.html` for browser review, and keep
+the CSV artifacts for supplementary diagnostics and audit traceability. The
+report is designed for review, not for raw data export. It separates performance
+differences from identifiable input differences and other evidence:
 
 - `Performance Differences` sheet: one row per portfolio period with a performance
   difference in the portfolio demo.
