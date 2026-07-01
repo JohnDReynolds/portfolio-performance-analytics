@@ -50,6 +50,13 @@ Completed guardrails now cover:
 - `portperf.gain_loss` and `secperf.gain_loss` are documented as report-style
   performance-extract context, not native IMEX object claims or recomputed
   accounting-ledger values;
+- report-bundle artifacts are classified as first-stop review surfaces,
+  reviewer handoff metadata, audit/export backbone, supplementary diagnostics,
+  or opt-in reconstruction diagnostics;
+- production performance-comparison code has no Pandas dependency in its core
+  path; large source-data reads, joins, grouping, and validation remain in
+  Polars, with row iteration concentrated in presentation and diagnostic
+  assembly;
 - the packaged portfolio and security reports intentionally include Fully
   Explained, intentional `Partly Explained`, and intentional `Unexplained`
   review examples;
@@ -64,9 +71,7 @@ Modified Dietz report cleanup.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Report bundle cleanup | Remove obsolete CSV artifacts from generated report bundles. | Manifest, README, validation tests, and generated bundle contents agree on the current artifact set. |
 | Code cleanup | Remove old dead code, obsolete legacy paths, and unnecessary backward-compatibility shims. | Public behavior stays covered; deleted paths have no package/API/test dependency. |
-| Polars execution audit | Confirm performance-comparison code uses Polars/lazy Polars where it materially matters. | Pandas use is absent from production hot paths or explicitly justified at boundaries; large joins/aggregations stay in Polars. |
 | Speed bottleneck sweep | Identify major runtime bottlenecks and 80/20 execution-speed wins. | Profiling or targeted timing identifies the top bottlenecks; near-term fixes are separated from longer refactors. |
 | Simplification sweep | Identify 80/20 refactors that reduce complexity without changing report behavior. | Candidate refactors are ranked by risk and payoff; only high-confidence simplifications move into implementation. |
 
@@ -2081,6 +2086,33 @@ diagnostic escape hatch is explicit and shared with bundle generation:
 `require_complete_yaml_setup=False` in the API. The packaged demo remains
 strict-valid; intentionally incomplete validation fixtures opt into diagnostic
 validation when they need to inspect malformed or partial setup.
+
+### Phase 41: Artifact Taxonomy And Polars Recon
+
+Status: complete for report-bundle artifact classification and first-pass
+execution audit.
+
+The generated bundle artifacts are now grouped into first-stop review surfaces,
+reviewer handoff metadata, audit/export backbone tables, supplementary
+diagnostics, and opt-in reconstruction diagnostics. The audit did not identify
+a safe obsolete CSV to remove: each required artifact is still produced,
+manifested, validated, or used as a reviewer/automation handoff. CSV diagnostics
+therefore remain in the bundle, while `report.xlsx` and `report.html` stay the
+first-stop review surfaces.
+
+The first-pass execution audit found no Pandas import or `to_pandas` conversion
+inside `ppar.performance_comparison`. Source loading, joins, grouping, duplicate
+checks, and bundle validation are Polars-based. Remaining row iteration is
+mostly presentation assembly, reviewer guidance, transaction diagnostics, and
+edge-case comparison output where row-shaped prose or audit records are being
+created. Quick demo timing in the local environment put portfolio bundle
+generation at about four seconds and security bundle generation at about nine
+seconds. A `cProfile` pass on the slower security demo showed the largest
+cumulative cost in repeated security return reconstruction checks during
+workbook/report sheet assembly, especially repeated Polars `filter().collect()`
+calls inside reconstruction input lookup. Future speed work should benchmark
+and cache or batch those reconstruction lookups before attempting broader
+vectorized rewrites.
 
 ## Guiding Principle
 

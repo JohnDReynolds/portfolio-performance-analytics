@@ -674,6 +674,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("| YAML strictness |", roadmap)
         self.assertIn("validate_config` now uses the same complete-YAML", roadmap)
         self.assertIn("`--allow-incomplete-yaml`", roadmap)
+        self.assertIn("Phase 41: Artifact Taxonomy And Polars Recon", roadmap)
+        self.assertIn("first-stop review surfaces", roadmap)
+        self.assertIn("no Pandas import or `to_pandas` conversion", roadmap)
+        self.assertIn("security return reconstruction checks", roadmap)
+        self.assertIn("filter().collect()", roadmap)
+        self.assertNotIn("| Report bundle cleanup |", roadmap)
+        self.assertNotIn("| Polars execution audit |", roadmap)
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""

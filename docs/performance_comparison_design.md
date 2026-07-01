@@ -1650,15 +1650,29 @@ The intended bundle review order starts in the generated report files:
 2. `Raw Audit Trail` / `findings.csv`: complete finding-level audit output for
    troubleshooting and traceability.
 
-Other generated helper tables include `impact_estimates.csv`,
-`cause_summary.csv`, `transaction_activity.csv`, `transaction_cross_checks.csv`,
-`flow_cross_check_reconciliation.csv`, `transaction_matching_diagnostics.csv`,
-`residual_status.csv`, `portfolio_period_summary.csv`, and `top_evidence.csv`.
+The generated artifacts fall into a small taxonomy:
+
+- first-stop review surfaces: `report.xlsx` and `report.html`;
+- reviewer handoff metadata: `README.md`, `manifest.json`, and
+  `review_summary.json`;
+- audit/export backbone: `findings.csv`, `needs_review_summary.csv`,
+  `portfolio_period_summary.csv`, `cause_summary.csv`, `impact_estimates.csv`,
+  `impact_coverage.csv`, `top_evidence.csv`, and `residual_status.csv`;
+- supplementary diagnostics: `context_evidence_summary.csv`,
+  `context_evidence.csv`, `transaction_activity.csv`,
+  `transaction_cross_checks.csv`, `flow_cross_check_reconciliation.csv`, and
+  `transaction_matching_diagnostics.csv`;
+- opt-in reconstruction diagnostics: `reconstruction_summary.csv`,
+  `return_reconstruction_checks.csv`, and
+  `security_return_reconstruction_checks.csv`.
+
 Generated bundle `README.md` files explicitly point reviewers to the transaction
 activity, transaction cross-check, and flow-reconciliation CSVs as supplementary
 transaction and external-flow diagnostics. `transaction_matching_diagnostics.csv`
 is audit-support for transaction row-identity evidence rather than a main review
-section.
+section. The CSV artifacts remain in the bundle because they make handoffs,
+automation, validation, and troubleshooting reproducible; they are not meant to
+replace the first-stop workbook/report review flow.
 
 The `ppar.performance_comparison.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.
