@@ -514,9 +514,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertNotIn("same review model in a browser", readme)
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
-            self.assertIn("start with Performance Differences", readme)
+            self.assertIn("Start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
+            self.assertIn("Other Data Differences for review-only context", readme)
+            self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
             self.assertIn("source-data differences", readme)
             self.assertNotIn("source" + " data", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
@@ -527,6 +529,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertIn(
                 "supplementary transaction and external-flow diagnostics",
+                readme,
+            )
+            self.assertIn(
+                "`transaction_matching_diagnostics.csv` only when auditing "
+                "transaction row-identity evidence",
                 readme,
             )
             self.assertNotIn("cross-check rows may be", readme)
@@ -1272,16 +1279,26 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertNotIn("Open `report.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
-            self.assertIn("1. Open `report.xlsx` or `report.html`", readme)
+            self.assertIn(
+                "1. Open `report.xlsx` when present; use `report.html` for "
+                "browser review.",
+                readme,
+            )
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn("additively explain each performance period", readme)
-            self.assertIn("Other Data Differences is review-only context", readme)
-            self.assertIn("Raw Audit Trail is the complete finding-level audit trail", readme)
+            self.assertIn("Other Data Differences for review-only context", readme)
+            self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
+            self.assertIn("complete finding-level audit trail", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertIn("supplementary transaction and external-flow diagnostics", readme)
+            self.assertIn(
+                "`transaction_matching_diagnostics.csv` only when auditing "
+                "transaction row-identity evidence",
+                readme,
+            )
             self.assertNotIn("cross-check rows may be", readme)
 
             workbook = openpyxl.load_workbook(

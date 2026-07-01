@@ -202,9 +202,10 @@ def write_report_bundle_readme(
     """
     primary_sheet = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
     first_review_step = (
-        f"1. Open `report.xlsx` or `report.html` and start with {primary_sheet}."
+        f"1. Open `report.xlsx` when present; use `report.html` for browser "
+        f"review. Start with {primary_sheet}."
         if include_workbook
-        else f"1. Open `report.html` and start with {primary_sheet}."
+        else f"1. Open `report.html`. Start with {primary_sheet}."
     )
     review_unit = _readme_review_unit(comparison_level)
     lines = [
@@ -217,15 +218,16 @@ def write_report_bundle_readme(
         first_review_step,
         f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
         f"source-data differences additively explain each {review_unit}.",
-        f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} and "
-        f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} as supporting detail: "
-        f"{_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} is review-only context, "
-        f"while {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} is the complete "
+        f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} for "
+        f"review-only context. Use {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} "
+        "for audit and troubleshooting; it is the complete "
         "finding-level audit trail.",
         f"4. Use the `review_key` column to follow a {review_unit} across CSV artifacts.",
         "5. Use `transaction_activity.csv`, `transaction_cross_checks.csv`, and "
         "`flow_cross_check_reconciliation.csv` for supplementary transaction "
         "and external-flow diagnostics.",
+        "   Use `transaction_matching_diagnostics.csv` only when auditing "
+        "transaction row-identity evidence.",
         "6. Use `review_summary.json` when handing the bundle to another reviewer "
         "or automation. It names the Modified Dietz vocabulary, entrypoints, "
         "source context, and transaction-semantics summary in one compact file.",

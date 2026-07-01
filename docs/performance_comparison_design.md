@@ -1642,22 +1642,15 @@ keys, manifest keys, review entrypoints, review-summary keys, Modified Dietz
 review basis, and review vocabulary keys. It is a contract surface for the
 bundle, not a new transaction-classification or accounting layer.
 
-The intended bundle review order depends on whether a workbook was included:
+The intended bundle review order starts in the generated report files:
 
-1. `report.xlsx`, when present: primary reviewer artifact. Start with
-   the `Performance Differences` sheet, then use the `Performance Difference Causes` sheet
-   to understand what explains each portfolio-period difference.
-2. `report.html`: browser-readable version of the same review model and sheet
-   order used by `report.xlsx`.
-3. `needs_review_summary.csv`: changed portfolio periods and suggested next
-   steps, plus drilldown artifacts for each triage row.
-4. `impact_coverage.csv`: estimated versus evidence-only cause areas, missing
-   impact inputs, and reviewer-facing coverage status.
-5. `context_evidence.csv`: context-only changes such as cost basis,
-   commissions, and security-master reference fields. These rows support
-   reviewer interpretation and are explicitly excluded from return-impact
-   estimates.
-6. `findings.csv`: complete finding-level audit output.
+1. `report.xlsx`, when present, or `report.html` for browser review. Start with
+   `Performance Differences`, then use `Performance Difference Causes` to
+   understand what explains each portfolio-period difference.
+2. `Other Data Differences`: review-only context that is not counted in
+   `Explained Difference`.
+3. `Raw Audit Trail` / `findings.csv`: complete finding-level audit output for
+   troubleshooting and traceability.
 
 Other generated helper tables include `impact_estimates.csv`,
 `cause_summary.csv`, `transaction_activity.csv`, `transaction_cross_checks.csv`,
@@ -1665,7 +1658,9 @@ Other generated helper tables include `impact_estimates.csv`,
 `residual_status.csv`, `portfolio_period_summary.csv`, and `top_evidence.csv`.
 Generated bundle `README.md` files explicitly point reviewers to the transaction
 activity, transaction cross-check, and flow-reconciliation CSVs as supplementary
-transaction and external-flow diagnostics.
+transaction and external-flow diagnostics. `transaction_matching_diagnostics.csv`
+is audit-support for transaction row-identity evidence rather than a main review
+section.
 
 The `ppar.performance_comparison.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.

@@ -76,6 +76,9 @@ other evidence:
   Transaction quantity, price, and commission rows usually live here as
   supporting evidence for changed `transactions.amount`.
 - `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
+  Transaction match status appears here for audit and troubleshooting; the
+  separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
+  support rather than a main review sheet.
 
 Data used:
 

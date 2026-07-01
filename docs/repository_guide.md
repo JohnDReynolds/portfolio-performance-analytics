@@ -126,8 +126,9 @@ The performance comparison demo can be smoke-tested noninteractively:
   _demo_output/performance_comparison_security
 ```
 
-Open the generated `report.xlsx` first. Use `report.html` when you want the same
-review model in a browser.
+Open the generated `report.xlsx` first when it is present. Use `report.html`
+for browser review, and keep the CSV artifacts for supplementary diagnostics
+and audit traceability.
 
 For the full packaged-demo guardrail pass, run:
 

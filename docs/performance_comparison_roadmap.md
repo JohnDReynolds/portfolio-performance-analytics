@@ -1836,6 +1836,18 @@ status remains visible on raw audit rows, and the audit-support
 and manifest. This keeps row-identity evidence available without making an
 internal matching diagnostic a first-stop reviewer section.
 
+### Phase 29: Report Focus And Audit Placement Polish
+
+Status: complete for generated bundle handoff wording.
+
+The generated bundle README now makes the review/audit split explicit: start in
+`report.xlsx` when present, use `report.html` for browser review, use
+`Performance Difference Causes` for additive source-data explanations, and use
+`Raw Audit Trail` for audit and troubleshooting. Supplementary transaction and
+external-flow diagnostics remain CSV artifacts, while
+`transaction_matching_diagnostics.csv` is positioned specifically as
+transaction row-identity audit support rather than a main review stop.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
