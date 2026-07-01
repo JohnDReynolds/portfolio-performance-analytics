@@ -1762,6 +1762,20 @@ identical same-day transactions can be legitimate. This improves auditability
 of the existing Modified Dietz evidence path without adding tax-lot,
 cost-basis, or accounting-ledger reconstruction.
 
+### Phase 23: No-ID Transaction Timing Evidence
+
+Status: complete for first-pass cross-period timing diagnostics.
+
+Transaction presence findings now use the full transaction source row rather
+than only the comparison key. When no stable `transaction_id` exists and a
+transaction date changes, including a move from one performance period to the
+next, the comparison reports an old-date `missing_from_snapshot_b` row and a
+new-date `added_in_snapshot_b` row. These rows preserve portfolio/security/date
+context and can carry review-only Modified Dietz cross-check estimates when
+explicit external-flow semantics and policy inputs are available. The behavior
+keeps the Modified Dietz timing effect visible without inferring that the two
+no-ID rows are the same transaction.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

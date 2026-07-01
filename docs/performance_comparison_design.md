@@ -808,6 +808,16 @@ available, so duplicate fallback keys should be reported as
 `ambiguous_fallback_match` diagnostics instead of paired as edits or rejected
 as invalid source-data.
 
+Transaction add/drop findings are built from the full source row, not only the
+comparison key. When a no-ID transaction date changes, including a move from
+one performance period to the next, the report should show one
+`missing_from_snapshot_b` row at the old date/period and one
+`added_in_snapshot_b` row at the new date/period. If the rows have explicit
+external-flow semantics and a Modified Dietz policy, each add/drop row may
+carry a review-only `modified_dietz cross-check estimate` using that row's own
+period and flow date. The row is still not treated as an in-place transaction
+edit.
+
 ### Finding
 
 A finding is one observed difference or one explanation of a difference.

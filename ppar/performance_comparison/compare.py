@@ -28,7 +28,6 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
-    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_FLOW,
@@ -535,6 +534,8 @@ class PerformanceComparison:
             snapshot_a,
             snapshot_b,
             key_columns,
+            portfolio_periods,
+            return_denominators,
         )
         if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
             findings.extend(
@@ -565,15 +566,10 @@ class PerformanceComparison:
         transaction_match_status: TransactionMatchStatus | None = None,
         add_transaction_match_status: TransactionMatchStatus | None = None,
         drop_transaction_match_status: TransactionMatchStatus | None = None,
-        allow_duplicate_keys: bool = False,
     ) -> list[Finding]:
         """Return findings for portfolio rows present in only one snapshot."""
-        if allow_duplicate_keys:
-            self._validate_complete_keys(snapshot_a, key_columns, dataset, "snapshot A")
-            self._validate_complete_keys(snapshot_b, key_columns, dataset, "snapshot B")
-        else:
-            self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
-            self._validate_unique_keys(snapshot_b, key_columns, dataset, "snapshot B")
+        self._validate_unique_keys(snapshot_a, key_columns, dataset, "snapshot A")
+        self._validate_unique_keys(snapshot_b, key_columns, dataset, "snapshot B")
         rows_a = self._row_keys(snapshot_a, key_columns)
         rows_b = self._row_keys(snapshot_b, key_columns)
         source_file = self._source_file(dataset)
@@ -612,38 +608,64 @@ class PerformanceComparison:
         snapshot_a: pl.DataFrame,
         snapshot_b: pl.DataFrame,
         key_columns: tuple[str, ...],
+        portfolio_periods: pl.DataFrame | None,
+        return_denominators: Mapping[tuple[object, object, object], float] | None,
     ) -> list[Finding]:
         """Return transaction add/drop findings and fallback ambiguity diagnostics."""
         if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
-            return self._row_presence_findings(
+            self._validate_unique_keys(
+                snapshot_a,
+                key_columns,
+                pc_cols.TRANSACTIONS,
+                "snapshot A",
+            )
+            self._validate_unique_keys(
+                snapshot_b,
+                key_columns,
+                pc_cols.TRANSACTIONS,
+                "snapshot B",
+            )
+        else:
+            self._validate_complete_keys(
+                snapshot_a,
+                key_columns,
+                pc_cols.TRANSACTIONS,
+                "snapshot A",
+            )
+            self._validate_complete_keys(
+                snapshot_b,
+                key_columns,
+                pc_cols.TRANSACTIONS,
+                "snapshot B",
+            )
+
+        findings = self._transaction_presence_findings_for_side(
+            snapshot_b,
+            snapshot_a,
+            key_columns,
+            PC_TXN_ADD,
+            "Transaction row appears only in snapshot B.",
+            TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+            "b",
+            portfolio_periods,
+            return_denominators,
+        )
+        findings.extend(
+            self._transaction_presence_findings_for_side(
                 snapshot_a,
                 snapshot_b,
                 key_columns,
-                PC_TXN_ADD,
                 PC_TXN_DROP,
-                pc_cols.TRANSACTIONS,
-                "Transaction row appears only in snapshot B.",
                 "Transaction row appears only in snapshot A.",
-                add_transaction_match_status=TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
-                drop_transaction_match_status=(
-                    TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B
-                ),
+                TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+                "a",
+                portfolio_periods,
+                return_denominators,
             )
-
-        findings = self._row_presence_findings(
-            snapshot_a,
-            snapshot_b,
-            key_columns,
-            PC_TXN_ADD,
-            PC_TXN_DROP,
-            pc_cols.TRANSACTIONS,
-            "Transaction row appears only in snapshot B.",
-            "Transaction row appears only in snapshot A.",
-            TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
-            add_transaction_match_status=TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
-            drop_transaction_match_status=TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
-            allow_duplicate_keys=True,
         )
+        if key_columns == _TRANSACTION_ID_KEY_COLUMNS:
+            return findings
+
         findings.extend(
             self._transaction_fallback_ambiguity_findings(
                 snapshot_a,
@@ -652,6 +674,152 @@ class PerformanceComparison:
             )
         )
         return findings
+
+    def _transaction_presence_findings_for_side(
+        self,
+        source_snapshot: pl.DataFrame,
+        other_snapshot: pl.DataFrame,
+        key_columns: tuple[str, ...],
+        code: str,
+        message: str,
+        transaction_match_status: TransactionMatchStatus,
+        snapshot_side: str,
+        portfolio_periods: pl.DataFrame | None,
+        return_denominators: Mapping[tuple[object, object, object], float] | None,
+    ) -> list[Finding]:
+        """Return transaction findings for rows present in only one snapshot."""
+        other_keys = other_snapshot.select(key_columns).unique()
+        unmatched = source_snapshot.join(
+            other_keys,
+            on=list(key_columns),
+            how="anti",
+        )
+        if unmatched.is_empty():
+            return []
+
+        rows = sorted(
+            unmatched.iter_rows(named=True),
+            key=lambda row: self._sortable_key(
+                tuple(row[column] for column in key_columns)
+            ),
+        )
+        return [
+            self._transaction_presence_finding(
+                row,
+                code,
+                message,
+                transaction_match_status,
+                snapshot_side,
+                portfolio_periods,
+                return_denominators,
+            )
+            for row in rows
+        ]
+
+    def _transaction_presence_finding(
+        self,
+        row: Mapping[str, object],
+        code: str,
+        message: str,
+        transaction_match_status: TransactionMatchStatus,
+        snapshot_side: str,
+        portfolio_periods: pl.DataFrame | None,
+        return_denominators: Mapping[tuple[object, object, object], float] | None,
+    ) -> Finding:
+        """Return a dated transaction add/drop finding from a source row."""
+        from_date, thru_date = period_context_for_dated_evidence(
+            row,
+            pc_cols.TRANSACTIONS,
+            portfolio_periods,
+        )
+        portfolio_id = row.get(pc_cols.PORTFOLIO_ID)
+        amount = row.get(pc_cols.AMOUNT)
+        amount_delta = self._transaction_presence_amount_delta(amount, snapshot_side)
+        snapshot_a_value = amount if snapshot_side == "a" else None
+        snapshot_b_value = amount if snapshot_side == "b" else None
+        return_denominator = self._return_denominator(
+            row,
+            pc_cols.TRANSACTIONS,
+            portfolio_id,
+            from_date,
+            thru_date,
+            return_denominators,
+        )
+        impact_policy = self._impact_policy(pc_cols.TRANSACTIONS, pc_cols.AMOUNT)
+        transaction_impact_policy = self._transaction_impact_policy(
+            row,
+            pc_cols.TRANSACTIONS,
+            pc_cols.AMOUNT,
+        )
+        return Finding(
+            code=code,
+            severity=SEVERITY_INFORMATIONAL,
+            confidence=CONFIDENCE_HIGH,
+            dataset=pc_cols.TRANSACTIONS,
+            evidence_role=self._evidence_role(code, pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
+            portfolio_id=portfolio_id,
+            security_id=row.get(pc_cols.SECURITY_ID),
+            from_date=from_date,
+            thru_date=thru_date,
+            input_date=self._input_date(row, pc_cols.TRANSACTIONS),
+            source_file=self._source_file(pc_cols.TRANSACTIONS),
+            source_column=pc_cols.AMOUNT,
+            transaction_code=self._transaction_code(row, pc_cols.TRANSACTIONS),
+            transaction_category=self._transaction_category(row, pc_cols.TRANSACTIONS),
+            cash_flow_sign=self._transaction_cash_flow_sign(row, pc_cols.TRANSACTIONS),
+            performance_flow_sign=self._transaction_performance_flow_sign(
+                row,
+                pc_cols.TRANSACTIONS,
+            ),
+            transaction_semantics_source=self._transaction_semantics_source(
+                row,
+                pc_cols.TRANSACTIONS,
+            ),
+            transaction_match_status=transaction_match_status,
+            impact_policy=impact_policy,
+            transaction_impact_policy=transaction_impact_policy,
+            transaction_impact_diagnostic=self._transaction_impact_diagnostic(
+                row,
+                pc_cols.TRANSACTIONS,
+                pc_cols.AMOUNT,
+                portfolio_id,
+                from_date,
+                thru_date,
+                return_denominator,
+            ),
+            transaction_impact_diagnostic_estimate=(
+                self._transaction_impact_diagnostic_estimate(
+                    row,
+                    pc_cols.TRANSACTIONS,
+                    pc_cols.AMOUNT,
+                    portfolio_id,
+                    from_date,
+                    thru_date,
+                    return_denominator,
+                    amount_delta,
+                )
+            ),
+            snapshot_a_value=snapshot_a_value,
+            snapshot_b_value=snapshot_b_value,
+            delta_b_minus_a=amount_delta,
+            return_denominator=return_denominator,
+            message=message,
+        )
+
+    @staticmethod
+    def _transaction_presence_amount_delta(
+        amount: object,
+        snapshot_side: str,
+    ) -> float | None:
+        """Return B-minus-A amount delta for a transaction presence finding."""
+        if isinstance(amount, bool) or not isinstance(amount, (int, float)):
+            return None
+        amount_float = float(amount)
+        if snapshot_side == "a":
+            return -amount_float
+        if snapshot_side == "b":
+            return amount_float
+        return None
 
     def _changed_object_findings(
         self,

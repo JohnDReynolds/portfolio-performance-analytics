@@ -93,7 +93,6 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS,
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
-    TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
     TRANSACTION_SEMANTICS_SOURCE,
     PERFORMANCE_FLOW_SIGN,
     Finding,
@@ -138,6 +137,60 @@ def _write_transaction_fallback_specification(directory: Path) -> Path:
         "files": {
             "portfolio_performance": "portperf.csv",
             "transactions": "transactions.csv",
+        },
+    }
+    specification_path = directory / "ppar_performance_comparison.yaml"
+    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
+    return specification_path
+
+
+def _write_no_id_transaction_date_move_specification(directory: Path) -> Path:
+    """Write a no-ID fixture where a transaction moves across periods."""
+    for snapshot_name, transaction_date in (
+        ("snapshot_a", "2025-05-31"),
+        ("snapshot_b", "2025-06-01"),
+    ):
+        snapshot_path = directory / snapshot_name
+        snapshot_path.mkdir()
+        (snapshot_path / "portperf.csv").write_text(
+            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
+            "PORT_A,2025-05-01,2025-05-31,10000.00,0.01\n"
+            "PORT_A,2025-06-01,2025-06-30,10000.00,0.01\n",
+            encoding="utf-8",
+        )
+        (snapshot_path / "transactions.csv").write_text(
+            "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT,"
+            "CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
+            f"PORT_A,CASH_USD,{transaction_date},{transaction_date},cf,0,0,"
+            "-1000.00,negative,external\n",
+            encoding="utf-8",
+        )
+
+    specification = {
+        "snapshots": {
+            "a": {"path": "snapshot_a"},
+            "b": {"path": "snapshot_b"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "transactions": "transactions.csv",
+        },
+        "transaction_rules": {
+            "cf": {
+                "transaction_category": "external_flow",
+                "cash_flow_sign": "negative",
+                "performance_flow_sign": "external",
+            },
+        },
+        "transaction_impact_methods": {
+            "external_flow": {
+                "method": "modified_dietz",
+                "flow_timing": "trade_date",
+                "day_count": "actual_days",
+                "inclusion_rule": "beginning_of_day",
+                "denominator_source": "begin_market_value",
+                "double_count_policy": "cross_check_only",
+            },
         },
     }
     specification_path = directory / "ppar_performance_comparison.yaml"
@@ -3062,6 +3115,63 @@ class TestPerformanceComparison(unittest.TestCase):
                     if finding[FINDING_CODE] == PC_TXN_DROP
                 },
                 {TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B},
+            )
+
+    def test_no_id_transaction_date_move_across_periods_is_timing_add_drop(
+        self,
+    ) -> None:
+        """No-ID date moves remain add/drop evidence with period timing impact."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            specification_path = _write_no_id_transaction_date_move_specification(
+                Path(temp_dir)
+            )
+            specification = PerformanceComparisonSpecification(specification_path)
+
+            findings = PerformanceComparison(specification).compare_transactions()
+            finding_dicts = [finding.to_dict() for finding in findings]
+            finding_by_code = {
+                finding[FINDING_CODE]: finding
+                for finding in finding_dicts
+                if finding[FINDING_CODE] in {PC_TXN_ADD, PC_TXN_DROP}
+            }
+
+            self.assertEqual(set(finding_by_code), {PC_TXN_ADD, PC_TXN_DROP})
+            self.assertNotIn(
+                PC_TXN_AMT,
+                {finding[FINDING_CODE] for finding in finding_dicts},
+            )
+
+            dropped = finding_by_code[PC_TXN_DROP]
+            added = finding_by_code[PC_TXN_ADD]
+            self.assertEqual(
+                dropped[TRANSACTION_MATCH_STATUS],
+                TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+            )
+            self.assertEqual(
+                added[TRANSACTION_MATCH_STATUS],
+                TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+            )
+            self.assertEqual(str(dropped[FROM_DATE]), "2025-05-01")
+            self.assertEqual(str(dropped[THRU_DATE]), "2025-05-31")
+            self.assertEqual(str(dropped["input_date"]), "2025-05-31")
+            self.assertEqual(str(added[FROM_DATE]), "2025-06-01")
+            self.assertEqual(str(added[THRU_DATE]), "2025-06-30")
+            self.assertEqual(str(added["input_date"]), "2025-06-01")
+            self.assertEqual(
+                dropped[TRANSACTION_IMPACT_DIAGNOSTIC],
+                "modified_dietz cross-check estimate",
+            )
+            self.assertEqual(
+                added[TRANSACTION_IMPACT_DIAGNOSTIC],
+                "modified_dietz cross-check estimate",
+            )
+            self.assertAlmostEqual(
+                cast(float, dropped[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
+                1000.0 * (1.0 / 31.0) / 10000.0,
+            )
+            self.assertAlmostEqual(
+                cast(float, added[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
+                -1000.0 / 10000.0,
             )
 
     def test_duplicate_transaction_fallback_keys_are_ambiguity_diagnostics(self) -> None:
