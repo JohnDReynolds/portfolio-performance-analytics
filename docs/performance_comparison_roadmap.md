@@ -272,16 +272,16 @@ A future workbook could include:
 Performance Differences
 Performance Difference Causes
 Other Data Differences
-Transaction Match Diagnostics
 Return Reconstruction Checks
 Raw Audit Trail
 ```
 
 Current status: the normal user-facing workbook now uses `Performance
 Differences`, `Performance Difference Causes`, `Other Data Differences`,
-`Transaction Match Diagnostics`, and `Raw Audit Trail`. Reconstruction
-diagnostic sheets remain opt-in so the default workbook stays focused on
-reviewable performance differences and their source-data causes.
+and `Raw Audit Trail`. Transaction matching diagnostics remain available in the
+bundle CSVs and raw audit trail rather than as a standalone default sheet.
+Reconstruction diagnostic sheets remain opt-in so the default workbook stays
+focused on reviewable performance differences and their source-data causes.
 
 `Performance Difference Causes` should contain source-data rows:
 
@@ -1803,14 +1803,15 @@ only; transaction identity remains conservative and case-sensitive.
 
 ### Phase 26: Transaction Match Diagnostics Report Visibility
 
-Status: complete for shared workbook/browser report presentation.
+Status: superseded by Phase 28.
 
-`Transaction Match Diagnostics` is now a shared workbook/report section, backed
-by the existing `transaction_matching_diagnostics.csv` table. This makes match
-status counts, confidence, interpretation, and review notes visible in
-`report.xlsx` and `report.html` without changing transaction matching behavior
-or Modified Dietz calculations. Demo report regeneration now includes an
-explicit before/after HTML content diff check in the phase close-out.
+This phase previously promoted `Transaction Match Diagnostics` to a shared
+workbook/report section backed by the existing
+`transaction_matching_diagnostics.csv` table. It made match status counts,
+confidence, interpretation, and review notes visible in `report.xlsx` and
+`report.html` without changing transaction matching behavior or Modified Dietz
+calculations. Phase 28 later demoted that standalone section back to audit
+support.
 
 ### Phase 27: No-ID Packaged Axys Demo
 
@@ -1823,6 +1824,17 @@ and test-covered when a local extract provides them, but the packaged demo now
 exercises the conservative no-ID matching path by default. Source/destination
 and special-security context remains in the packaged transaction rows where it
 is needed to classify ambiguous Axys-style codes safely.
+
+### Phase 28: Demote Transaction Match Diagnostics
+
+Status: complete for reviewer-facing report focus.
+
+The standalone `Transaction Match Diagnostics` section has been removed from
+the normal `report.xlsx` and `report.html` review flow. Transaction match
+status remains visible on raw audit rows, and the audit-support
+`transaction_matching_diagnostics.csv` artifact remains in the report bundle
+and manifest. This keeps row-identity evidence available without making an
+internal matching diagnostic a first-stop reviewer section.
 
 ## Guiding Principle
 

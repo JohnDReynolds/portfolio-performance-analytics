@@ -107,9 +107,9 @@ Current report vocabulary:
   `Explained Difference`.
 - `Other Data Differences`: source-data rows that changed but are not counted in
   `Explained Difference`.
-- `Transaction Match Diagnostics`: supplementary transaction row-identity
-  counts, confidence, interpretation, and review notes.
 - `Raw Audit Trail`: detailed finding rows used for audit and troubleshooting.
+- `transaction_matching_diagnostics.csv`: supplementary transaction row-identity
+  counts, confidence, interpretation, and review notes for audit use.
 - `Transaction Code`: the source transaction code from the input file, such as
   an Axys/APX IMEX code.
 - `Transaction Category`: ppar's normalized interpretation of a transaction code
@@ -1818,8 +1818,8 @@ signals only; they do not change contribution totals. Report bundles include
 this table as `flow_cross_check_reconciliation.csv`.
 
 Transaction matching diagnostics are summarized separately from transaction
-activity. The `transaction_matching_diagnostics()` helper and report section
-count transaction matching labels such as `matched_by_id`,
+activity. The `transaction_matching_diagnostics()` helper and bundle CSV count
+transaction matching labels such as `matched_by_id`,
 `matched_by_singleton_fallback`, `added_in_snapshot_b`,
 `missing_from_snapshot_b`, `ambiguous_fallback_match`,
 `transaction_id_unmatched`, and `strict_fallback_unmatched`, with reviewer
@@ -1829,8 +1829,9 @@ withheld ambiguous fallback groups. Reviewer notes explain whether rows were
 paired by stable transaction ID, paired by exact singleton fallback, appeared
 in only one snapshot, or were left unpaired because fallback keys were
 ambiguous. Report bundles include this table as
-`transaction_matching_diagnostics.csv`, and the same table appears in
-`report.xlsx` and `report.html` as `Transaction Match Diagnostics`.
+`transaction_matching_diagnostics.csv`; row-level match status remains visible
+in the raw audit trail, but the normal workbook and HTML review flow do not
+surface a standalone transaction-match section.
 
 Report bundles include `report.html` as the browser view of the same review
 model used by `report.xlsx`. The HTML artifact is intentionally conservative:

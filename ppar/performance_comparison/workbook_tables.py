@@ -384,15 +384,6 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name=(
-                _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_ARTIFACT
-            ),
-            sheet_name=_pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET,
-            table=_pc_explain.transaction_matching_diagnostics(active_findings),
-            columns=_workbook_transaction_matching_diagnostic_columns(),
-            labels=_workbook_column_labels(),
-        ),
-        _pc_workbook.ReviewWorkbookSheet(
             artifact_name=_pc_review_model.RAW_AUDIT_TRAIL_ARTIFACT,
             sheet_name=_pc_review_model.RAW_AUDIT_TRAIL_SHEET,
             table=_workbook_sorted_table(

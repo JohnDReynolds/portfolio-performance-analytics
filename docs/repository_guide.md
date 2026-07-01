@@ -250,11 +250,11 @@ specific output directory after a bundle is written.
 
 Both portfolio and security workbooks start with the `Performance Differences`
 sheet. They then use the `Performance Difference Causes` sheet, `Other Data
-Differences` sheet, `Transaction Match Diagnostics` sheet, and `Raw Audit
-Trail` sheet. Explained amounts appear on `Performance Difference Causes`
-sheet rows when ppar has a defensible input-level explanation. The action
-sheets use an `Explanation` column written for reviewers; the diagnostic and
-raw audit sheets keep lower-level fields for troubleshooting.
+Differences` sheet, and `Raw Audit Trail` sheet. Explained amounts appear on
+`Performance Difference Causes` sheet rows when ppar has a defensible
+input-level explanation. The action sheets use an `Explanation` column written
+for reviewers; the raw audit sheet and bundle CSV artifacts keep lower-level
+fields for troubleshooting.
 
 ## Suggested Consolidation Rules
 
