@@ -65,7 +65,7 @@ source checkout with `./.venv/bin/python -m <module>`.
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates performance comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
-| `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch YAML setup issues before generating reports. |
+| `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch source-data and YAML setup issues before generating reports. |
 
 ## Installed Commands
 
@@ -187,6 +187,9 @@ Use this after generating report/workbook output.
 ```
 
 Use this before report generation when you are editing YAML.
+By default, it rejects changed source-data fields that lack additive,
+evidence-only, or suppression YAML. Use `--allow-incomplete-yaml` only for
+diagnostic checks of intentionally incomplete fixtures.
 
 ### Run Project Checks
 

@@ -12,6 +12,8 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import schema as _pc_cols
 from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.extract_contract import extract_contract_summary
+from ppar.performance_comparison.findings import findings_to_polars
+from ppar.performance_comparison.runner import validate_yaml_setup_complete
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.source_data_contract import (
     comparison_required_dataset_names,
@@ -43,7 +45,10 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
-        summary = validate_config(args.comparison_path)
+        summary = validate_config(
+            args.comparison_path,
+            require_complete_yaml_setup=not args.allow_incomplete_yaml,
+        )
     except PpaError as error:
         print(f"Config validation failed: {args.comparison_path}", file=sys.stderr)
         print(f"- {error}", file=sys.stderr)
@@ -91,11 +96,17 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def validate_config(comparison_path: Path) -> dict[str, object]:
+def validate_config(
+    comparison_path: Path,
+    *,
+    require_complete_yaml_setup: bool = True,
+) -> dict[str, object]:
     """Validate one comparison YAML file and return a compact summary.
 
     Args:
         comparison_path: Path to a performance comparison YAML file.
+        require_complete_yaml_setup: Whether to reject changed source-data
+            fields that lack additive, evidence-only, or suppression YAML.
 
     Returns:
         Summary fields for the resolved snapshots, configured datasets, and
@@ -105,8 +116,23 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         PpaError: If the comparison specification, configured files,
             transaction rules, or transaction impact methods are invalid.
     """
+    return _validate_config(
+        comparison_path,
+        require_complete_yaml_setup=require_complete_yaml_setup,
+    )
+
+
+def _validate_config(
+    comparison_path: Path,
+    *,
+    require_complete_yaml_setup: bool,
+) -> dict[str, object]:
+    """Validate one comparison YAML file with explicit YAML setup strictness."""
     specification = PerformanceComparisonSpecification(comparison_path)
-    PerformanceComparison(specification)
+    comparison = PerformanceComparison(specification)
+    findings = findings_to_polars(comparison.compare())
+    if require_complete_yaml_setup:
+        validate_yaml_setup_complete(findings)
     transaction_preview = _validate_transactions(specification)
     contract_summary = extract_contract_summary(
         specification.values,
@@ -118,6 +144,9 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         include_reconstruction_sources=(
             specification.portfolio_return_reconstruction is not None
             or specification.security_return_reconstruction is not None
+        ),
+        include_security_performance=(
+            specification.security_return_reconstruction is not None
         ),
     )
     return {
@@ -308,6 +337,15 @@ def _argument_parser() -> argparse.ArgumentParser:
         "comparison_path",
         type=Path,
         help="Path to a ppar_performance_comparison.yaml file.",
+    )
+    parser.add_argument(
+        "--allow-incomplete-yaml",
+        action="store_true",
+        help=(
+            "Validate file/schema/contract shape even when changed source-data "
+            "fields are not explicitly classified by additive, evidence-only, "
+            "or suppression YAML."
+        ),
     )
     return parser
 

@@ -245,7 +245,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         result = subprocess.run(
             _module_command(
                 _VALIDATE_CONFIG_MODULE,
-                str(_RESTATEMENT_COMPARISON_PATH),
+                str(_PORTFOLIO_COMPARISON_PATH),
             ),
             check=True,
             capture_output=True,
@@ -254,24 +254,29 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
         self.assertIn("Config validation passed:", result.stdout)
         self.assertIn("Configured datasets:", result.stdout)
-        self.assertIn("Minimum required datasets: portfolio_performance", result.stdout)
+        self.assertIn(
+            "Minimum required datasets: holdings, portfolio_performance, "
+            "security_performance, transactions",
+            result.stdout,
+        )
         self.assertIn("Required source-data columns:", result.stdout)
         self.assertIn(
             "portfolio_performance: portfolio_id, from_date, thru_date, "
             "portfolio_return",
             result.stdout,
         )
-        self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn(
-            "Contribution impact methods: portfolio_source_field, "
-            "security_contribution, security_return",
+            "security_performance: portfolio_id, security_id, from_date, "
+            "thru_date, security_return",
             result.stdout,
         )
+        self.assertIn("Missing optional files: none", result.stdout)
+        self.assertIn("Contribution impact methods: none", result.stdout)
         self.assertIn("Cash impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: none", result.stdout)
         self.assertIn("Security master impact methods: none", result.stdout)
-        self.assertIn("Transaction rules configured: 0", result.stdout)
-        self.assertIn("Transaction impact methods: none", result.stdout)
+        self.assertIn("Transaction rules configured: 9", result.stdout)
+        self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Extract contract: packaged:", result.stdout)
         self.assertIn("Enforce ambiguous Axys flows: True", result.stdout)
@@ -284,14 +289,46 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Report-bundle source context:", result.stdout)
         self.assertIn("transaction semantics summary", result.stdout)
         self.assertIn(
-            "Transaction codes observed: BUY, DIV, INT, SELL, SPLIT",
+            "Transaction codes observed: by, dp, dv, in, li, sl, wd",
             result.stdout,
         )
-        self.assertIn(
-            "Transaction codes without YAML rules: BUY, DIV, INT, SELL, SPLIT",
-            result.stdout,
-        )
+        self.assertIn("Transaction codes without YAML rules: none", result.stdout)
         self.assertIn("Transaction semantics sources:", result.stdout)
+        self.assertEqual(result.stderr, "")
+
+    def test_validate_config_cli_module_rejects_incomplete_yaml_by_default(self) -> None:
+        """The config validator rejects report YAML that would write misleading output."""
+        result = subprocess.run(
+            _module_command(
+                _VALIDATE_CONFIG_MODULE,
+                str(_RESTATEMENT_COMPARISON_PATH),
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("Config validation failed:", result.stderr)
+        self.assertIn("YAML setup is incomplete", result.stderr)
+        self.assertIn("transactions.amount", result.stderr)
+
+    def test_validate_config_cli_module_allows_diagnostic_incomplete_yaml(self) -> None:
+        """Incomplete YAML validation remains available with an explicit flag."""
+        result = subprocess.run(
+            _module_command(
+                _VALIDATE_CONFIG_MODULE,
+                str(_RESTATEMENT_COMPARISON_PATH),
+                "--allow-incomplete-yaml",
+            ),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Config validation passed:", result.stdout)
+        self.assertIn("Transaction codes without YAML rules: BUY, DIV, INT, SELL, SPLIT", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_validate_config_cli_module_reports_invalid_yaml_contract(self) -> None:

@@ -657,6 +657,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
         self.assertIn("Phase 38: Packaging Surface And Product Boundary Audit", roadmap)
+        self.assertIn(
+            "Phase 40: YAML Strictness And Misleading-Report Prevention",
+            roadmap,
+        )
+        self.assertIn("validate_config` now uses the same complete-YAML", roadmap)
+        self.assertIn("`--allow-incomplete-yaml`", roadmap)
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""
@@ -1589,14 +1595,20 @@ class TestPackageMetadata(unittest.TestCase):
         """Contract summaries name formula-source datasets when requested."""
         summary = performance_source_data_contract.source_data_contract_summary(
             include_reconstruction_sources=True,
+            include_security_performance=True,
         )
 
         self.assertEqual(
             summary["required_datasets"],
-            "holdings, portfolio_performance, transactions",
+            "holdings, portfolio_performance, security_performance, transactions",
         )
         self.assertIn(
             "holdings: portfolio_id, security_id, holding_date",
+            summary["required_columns"],
+        )
+        self.assertIn(
+            "security_performance: portfolio_id, security_id, from_date, "
+            "thru_date, security_return",
             summary["required_columns"],
         )
         self.assertIn(

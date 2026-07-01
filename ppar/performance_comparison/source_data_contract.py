@@ -129,6 +129,7 @@ def source_data_contract_summary(
     *,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_sources: bool = False,
+    include_security_performance: bool = False,
 ) -> dict[str, str]:
     """Return compact source-data contract strings for CLI and tests.
 
@@ -137,6 +138,8 @@ def source_data_contract_summary(
             ``"security"``.
         include_reconstruction_sources: Whether to include the holdings and
             transaction datasets required by return reconstruction.
+        include_security_performance: Whether security performance is required
+            by security comparison or security return reconstruction.
 
     Returns:
         A compact dictionary containing required dataset and required-column
@@ -149,6 +152,8 @@ def source_data_contract_summary(
     }
     if include_reconstruction_sources:
         required_names.update({pc_cols.HOLDINGS, pc_cols.TRANSACTIONS})
+    if include_security_performance:
+        required_names.add(pc_cols.SECURITY_PERFORMANCE)
     contracts_by_name = {contract.name: contract for contract in _SOURCE_DATA_CONTRACT}
     required_columns = [
         f"{name}: {', '.join(contracts_by_name[name].required_columns)}"

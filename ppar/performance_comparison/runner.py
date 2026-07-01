@@ -97,6 +97,8 @@ def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
             unexplained changed rows.
     """
     active_findings = findings
+    if active_findings.is_empty():
+        return
     if SUPPRESSED in active_findings.columns:
         active_findings = active_findings.filter(~pl.col(SUPPRESSED))
     coverage = _pc_explain.portfolio_period_impact_coverage_summary(active_findings)
@@ -134,6 +136,8 @@ def validate_yaml_setup_complete(findings: pl.DataFrame) -> None:
             suppressed by YAML.
     """
     active_findings = findings
+    if active_findings.is_empty():
+        return
     if SUPPRESSED in active_findings.columns:
         active_findings = active_findings.filter(~pl.col(SUPPRESSED))
     if active_findings.is_empty():

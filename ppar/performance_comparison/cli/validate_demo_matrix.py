@@ -703,7 +703,7 @@ def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
 def _check_reviewed_local_opt_out(site_directory: Path) -> _ScenarioCheck:
     """Return whether the reviewed local opt-out boundary remains explicit."""
     yaml_path = site_directory / "local_opt_out" / _DEMO_YAML
-    summary = validate_config(yaml_path)
+    summary = validate_config(yaml_path, require_complete_yaml_setup=False)
     if summary["enforce_ambiguous_axys_flows"] is not False:
         return _ScenarioCheck(
             "Reviewed local opt-out",

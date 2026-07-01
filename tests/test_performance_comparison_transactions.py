@@ -1240,7 +1240,8 @@ class TestTransactionsLoader(unittest.TestCase):
             validate_config(
                 _SITE_VARIANT_FIXTURES_PATH
                 / "local_opt_out"
-                / "ppar_performance_comparison.yaml"
+                / "ppar_performance_comparison.yaml",
+                require_complete_yaml_setup=False,
             )["enforce_ambiguous_axys_flows"]
         )
 

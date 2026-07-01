@@ -118,7 +118,8 @@ Current report vocabulary:
 - `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
   for validating an existing report bundle.
 - `ppar.performance_comparison.cli.validate_config`: source-checkout command
-  for validating a comparison YAML file.
+  for validating a comparison YAML file and its default report-readiness
+  guardrails.
 - `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
   command for validating packaged scenario coverage.
 - [Axys Common-Core Export Reference](axys_common_core_export.md): starter
@@ -1718,11 +1719,12 @@ Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.
 
-YAML setup completeness is the default report-bundle guardrail. The API option
-`require_complete_yaml_setup=True` and the CLI default fail before writing
-artifacts if a changed source field lacks additive, evidence-only, or
-suppression YAML. The CLI flag `--allow-incomplete-yaml` exists only for
-diagnostic bundles and tests. Strict supported-attribution setup remains an
+YAML setup completeness is the default config-validation and report-bundle
+guardrail. `validate_config` and the report-bundle API option
+`require_complete_yaml_setup=True` fail before writing artifacts if a changed
+source field lacks additive, evidence-only, or suppression YAML. The shared CLI
+flag `--allow-incomplete-yaml` exists only for diagnostic config checks,
+diagnostic bundles, and tests. Strict supported-attribution setup remains an
 additional opt-in guardrail through `require_causal_attribution=True`,
 `--require-causal-attribution`, or `--require-supported-attribution-setup`.
 Strict causal attribution does not require every performance difference to be
