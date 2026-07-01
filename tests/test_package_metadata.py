@@ -179,6 +179,16 @@ def _transaction_codes_in_csv(path: Path) -> set[str]:
         }
 
 
+def _demo_transactions_by_natural_key(
+    snapshot_path: Path,
+) -> dict[tuple[str, str, str, str], dict[str, str]]:
+    """Return packaged Axys transactions keyed by visible row attributes."""
+    return _csv_rows_by_key(
+        snapshot_path / "transactions.csv",
+        ("PORT", "TRANSACTION_DATE", "SEC", "TRAN"),
+    )
+
+
 def _float_delta(
     snapshot_a: dict[str, str],
     snapshot_b: dict[str, str],
@@ -984,14 +994,8 @@ class TestPackageMetadata(unittest.TestCase):
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
 
-        transactions_a = _csv_rows_by_key(
-            snapshot_a / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
-        transactions_b = _csv_rows_by_key(
-            snapshot_b / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
+        transactions_a = _demo_transactions_by_natural_key(snapshot_a)
+        transactions_b = _demo_transactions_by_natural_key(snapshot_b)
         holdings_a = _csv_rows_by_key(
             snapshot_a / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
@@ -1002,13 +1006,13 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         changed_trade_cases = (
-            ("ALPHA0401", "2026-03-31", ()),
-            ("BALANCED0203", "2026-01-30", ()),
+            (("ALPHA", "2026-03-05", "AAPL", "by"), "2026-03-31", ()),
+            (("BALANCED", "2026-01-15", "MSFT", "sl"), "2026-01-30", ()),
         )
-        for transaction_id, holding_date, other_cash_transaction_ids in changed_trade_cases:
-            with self.subTest(transaction_id=transaction_id):
-                transaction_a = transactions_a[(transaction_id,)]
-                transaction_b = transactions_b[(transaction_id,)]
+        for transaction_key, holding_date, other_cash_transaction_keys in changed_trade_cases:
+            with self.subTest(transaction_key=transaction_key):
+                transaction_a = transactions_a[transaction_key]
+                transaction_b = transactions_b[transaction_key]
                 portfolio = transaction_a["PORT"]
                 security = transaction_a["SEC"]
                 holding_a = holdings_a[(portfolio, security, holding_date)]
@@ -1024,10 +1028,10 @@ class TestPackageMetadata(unittest.TestCase):
                     holding_quantity_delta = quantity_delta
                 month_end_price = float(holding_a["PRICE"])
                 expected_cash_delta = amount_delta
-                for cash_transaction_id in other_cash_transaction_ids:
+                for cash_transaction_key in other_cash_transaction_keys:
                     expected_cash_delta += _float_delta(
-                        transactions_a[(cash_transaction_id,)],
-                        transactions_b[(cash_transaction_id,)],
+                        transactions_a[cash_transaction_key],
+                        transactions_b[cash_transaction_key],
                         "AMOUNT",
                     )
 
@@ -1076,7 +1080,7 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
-        transaction_id = ("INCOME0203",)
+        transaction_key = ("INCOME", "2026-01-20", "CASH_USD", "dp")
         cash_holding_key = ("INCOME", "CASH_USD", "2026-01-30")
         cash_performance_key = (
             "INCOME",
@@ -1085,14 +1089,8 @@ class TestPackageMetadata(unittest.TestCase):
             "2026-01-30",
         )
 
-        transactions_a = _csv_rows_by_key(
-            snapshot_a / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
-        transactions_b = _csv_rows_by_key(
-            snapshot_b / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
+        transactions_a = _demo_transactions_by_natural_key(snapshot_a)
+        transactions_b = _demo_transactions_by_natural_key(snapshot_b)
         holdings_a = _csv_rows_by_key(
             snapshot_a / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
@@ -1111,8 +1109,8 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         amount_delta = _float_delta(
-            transactions_a[transaction_id],
-            transactions_b[transaction_id],
+            transactions_a[transaction_key],
+            transactions_b[transaction_key],
             "AMOUNT",
         )
         self.assertLess(amount_delta, 0)
@@ -1137,14 +1135,8 @@ class TestPackageMetadata(unittest.TestCase):
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
 
-        transactions_a = _csv_rows_by_key(
-            snapshot_a / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
-        transactions_b = _csv_rows_by_key(
-            snapshot_b / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
+        transactions_a = _demo_transactions_by_natural_key(snapshot_a)
+        transactions_b = _demo_transactions_by_natural_key(snapshot_b)
 
         for rows in (transactions_a, transactions_b):
             split_rows = [
@@ -1159,7 +1151,7 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.demos.data") / "axys"
         snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
         snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
-        transaction_id = ("ALPHA0203",)
+        transaction_key = ("ALPHA", "2026-01-20", "CASH_USD", "wd")
         cash_holding_key = ("ALPHA", "CASH_USD", "2026-01-30")
         cash_performance_key = (
             "ALPHA",
@@ -1169,14 +1161,8 @@ class TestPackageMetadata(unittest.TestCase):
         )
         portfolio_key = ("ALPHA", "2026-01-01", "2026-01-30")
 
-        transactions_a = _csv_rows_by_key(
-            snapshot_a / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
-        transactions_b = _csv_rows_by_key(
-            snapshot_b / "transactions.csv",
-            ("TRANSACTION_ID",),
-        )
+        transactions_a = _demo_transactions_by_natural_key(snapshot_a)
+        transactions_b = _demo_transactions_by_natural_key(snapshot_b)
         holdings_a = _csv_rows_by_key(
             snapshot_a / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
@@ -1203,11 +1189,11 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         amount_delta = _float_delta(
-            transactions_a[transaction_id],
-            transactions_b[transaction_id],
+            transactions_a[transaction_key],
+            transactions_b[transaction_key],
             "AMOUNT",
         )
-        self.assertEqual(transactions_a[transaction_id]["TRAN"], "wd")
+        self.assertEqual(transactions_a[transaction_key]["TRAN"], "wd")
         self.assertLess(amount_delta, 0)
         self.assertAlmostEqual(
             _float_delta(holdings_a[cash_holding_key], holdings_b[cash_holding_key], "MKT_VAL"),

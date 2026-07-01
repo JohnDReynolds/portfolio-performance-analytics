@@ -101,6 +101,9 @@ Data used:
   `li`/`lo` transfer cases and synthetic corporate-action rows live in
   test-only fixtures until a realistic packaged story and evidence trail
   justify adding them here.
+- Packaged transaction rows omit `TRANSACTION_ID`. ppar supports stable
+  transaction IDs when a local extract provides them, but the packaged Axys
+  demo uses the more realistic conservative no-ID path by default.
 - Current transaction coverage by home:
 
   | Home | Transaction families |

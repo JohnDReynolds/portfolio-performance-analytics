@@ -126,6 +126,23 @@ def _load_extract_availability_renderer():
     return module
 
 
+def _transaction_row(
+    frame: pl.DataFrame,
+    *,
+    portfolio: str,
+    transaction_date: str,
+    security: str,
+    transaction_code: str,
+) -> dict[str, object]:
+    """Return one transaction row by visible packaged-demo attributes."""
+    return frame.filter(
+        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio)
+        & (pl.col(pc_cols.TRANSACTION_DATE).cast(pl.String) == transaction_date)
+        & (pl.col(pc_cols.SECURITY_ID) == security)
+        & (pl.col(pc_cols.TRANSACTION_CODE) == transaction_code)
+    ).row(0, named=True)
+
+
 def _dataset_fields(frame: pl.DataFrame) -> set[tuple[str, str | None]]:
     """Return normalized dataset/source-column pairs from a workbook table."""
     return {
@@ -321,12 +338,20 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 frame = TransactionsLoader(specification).load(snapshot_key)
                 assert frame is not None
                 resolved_rows = {
-                    str(row[pc_cols.TRANSACTION_ID]): row
-                    for row in frame.filter(
-                        pl.col(pc_cols.TRANSACTION_ID).is_in(
-                            ["ALPHA0203", "INCOME0203"]
-                        )
-                    ).iter_rows(named=True)
+                    "ALPHA0203": _transaction_row(
+                        frame,
+                        portfolio="ALPHA",
+                        transaction_date="2026-01-20",
+                        security="CASH_USD",
+                        transaction_code="wd",
+                    ),
+                    "INCOME0203": _transaction_row(
+                        frame,
+                        portfolio="INCOME",
+                        transaction_date="2026-01-20",
+                        security="CASH_USD",
+                        transaction_code="dp",
+                    ),
                 }
 
                 self.assertEqual(set(resolved_rows), {"ALPHA0203", "INCOME0203"})
@@ -405,7 +430,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 )
 
                 fixed_income_interest = transactions.loc[
-                    transactions["TRANSACTION_ID"] == "INCOME0603"
+                    (transactions["PORT"] == "INCOME")
+                    & (transactions["TRANSACTION_DATE"] == "2026-05-15")
+                    & (transactions["SEC"] == "TNOTE2Y")
+                    & (transactions["TRAN"] == "in")
                 ].iloc[0]
                 self.assertEqual(fixed_income_interest["TRAN"], "in")
                 self.assertEqual(
@@ -426,9 +454,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
                 frame = TransactionsLoader(specification).load(snapshot_key)
                 assert frame is not None
-                resolved_row = frame.filter(
-                    pl.col(pc_cols.TRANSACTION_ID) == "INCOME0603"
-                ).row(0, named=True)
+                resolved_row = _transaction_row(
+                    frame,
+                    portfolio="INCOME",
+                    transaction_date="2026-05-15",
+                    security="TNOTE2Y",
+                    transaction_code="in",
+                )
 
                 self.assertEqual(resolved_row[pc_cols.TRANSACTION_CODE], "in")
                 self.assertEqual(
@@ -450,9 +482,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        row = frame.filter(pl.col(pc_cols.TRANSACTION_ID) == "ALPHA0203").row(
-            0,
-            named=True,
+        row = _transaction_row(
+            frame,
+            portfolio="ALPHA",
+            transaction_date="2026-01-20",
+            security="CASH_USD",
+            transaction_code="wd",
         )
 
         self.assertEqual(row[pc_cols.TRANSACTION_CODE], "wd")
@@ -470,9 +505,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        row = frame.filter(pl.col(pc_cols.TRANSACTION_ID) == "INCOME0203").row(
-            0,
-            named=True,
+        row = _transaction_row(
+            frame,
+            portfolio="INCOME",
+            transaction_date="2026-01-20",
+            security="CASH_USD",
+            transaction_code="dp",
         )
 
         self.assertEqual(row[pc_cols.TRANSACTION_CODE], "dp")
@@ -650,10 +688,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
         base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
-        base_transactions = pd.read_csv(
+        base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "axys_full_spec_a" / "transactions.csv"
         )
-        rebuilt_transactions = pd.read_csv(
+        rebuilt_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "axys_full_spec_b" / "transactions.csv"
         )
         periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")
@@ -829,7 +867,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
         base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
-        base_transactions = pd.read_csv(
+        base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "axys_full_spec_a" / "transactions.csv"
         )
         periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")

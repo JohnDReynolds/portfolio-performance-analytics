@@ -60,6 +60,12 @@ those details as verified Axys/APX facts.
 | `transactions.settle_date` | Other data difference unless a future explicit settlement-date rule makes it performance-relevant. |
 | security-reference fields | Other data differences or suppressed context unless explicitly supported by a future rule. |
 
+The packaged Axys demo deliberately omits `transactions.transaction_id`.
+Stable transaction IDs are supported by ppar and remain the strongest matching
+path when a site can provide them, but the local Axys/APX research corpus does
+not prove a durable native transaction identifier as typical Axys REP/IMEX
+output. The packaged demo therefore exercises the conservative no-ID path.
+
 ## Cash-Balance Policy
 
 `CASH_USD` is a normalized demo cash-balance holding. It should not be described

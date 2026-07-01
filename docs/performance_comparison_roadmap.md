@@ -1812,6 +1812,18 @@ status counts, confidence, interpretation, and review notes visible in
 or Modified Dietz calculations. Demo report regeneration now includes an
 explicit before/after HTML content diff check in the phase close-out.
 
+### Phase 27: No-ID Packaged Axys Demo
+
+Status: complete for packaged demo source realism.
+
+The user-facing Axys demo transaction CSVs now omit `TRANSACTION_ID` because
+the local Axys/APX research corpus does not prove a durable native transaction
+identifier as typical REP/IMEX output. Stable transaction IDs remain supported
+and test-covered when a local extract provides them, but the packaged demo now
+exercises the conservative no-ID matching path by default. Source/destination
+and special-security context remains in the packaged transaction rows where it
+is needed to classify ambiguous Axys-style codes safely.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

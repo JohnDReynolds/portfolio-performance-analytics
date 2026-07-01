@@ -863,27 +863,6 @@ datasets:
         source_strategy_notes: Attribution-style values are report-sensitive; do not assume IMEX availability.
   transactions.csv:
     columns:
-      TRANSACTION_ID:
-        normalized_meaning: Stable transaction identifier.
-        imex_confidence: low_medium
-        rep_confidence: low_medium
-        comments: A site may have IDs or row keys, but a durable posted-transaction ID is not proven.
-        basis: Stable transaction ID is a demo/reconciliation convenience; durable native ID is not proven by the local corpus.
-        open_questions:
-        - Confirm whether local Axys exports a stable posted transaction identifier.
-        candidate_axys_names:
-        - Transaction ID
-        - Row ID
-        candidate_report_labels:
-        - Transaction ID
-        - Reference
-        name_confidence: normalized_demo_only
-        name_notes: Stable native transaction ID is not proven; use a local durable key if available.
-        preferred_source: local_discovery_required
-        fallback_source: imex_then_rep_cross_check
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: A stable native ID is not proven; ppar may need a deterministic local row key.
       PORT:
         normalized_meaning: Portfolio/account identifier.
         imex_confidence: high

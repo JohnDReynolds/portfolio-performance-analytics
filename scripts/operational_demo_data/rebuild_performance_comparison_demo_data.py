@@ -119,6 +119,7 @@ _HOLDING_SCENARIO_TYPES: Final = {
     "cost_only_correction",
 }
 _TRANSACTION_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "AMOUNT", "COMMISSION"]
+_TRANSACTION_ID_COLUMN: Final = "TRANSACTION_ID"
 _TRANSACTION_SOURCE_COLUMNS: Final = [
     "PORT",
     "TRANSACTION_DATE",
@@ -131,10 +132,14 @@ _TRANSACTION_SOURCE_COLUMNS: Final = [
     "SPECIAL_SEC_TYPE",
     "SPECIAL_SEC_SYMBOL",
 ]
+_PACKAGED_TRANSACTION_COLUMNS: Final = [
+    *_TRANSACTION_SOURCE_COLUMNS,
+    *_TRANSACTION_NUMERIC_COLUMNS,
+]
 _TRANSACTION_SCENARIO_COLUMNS: Final = [
     "snapshot",
     "action",
-    "TRANSACTION_ID",
+    _TRANSACTION_ID_COLUMN,
     *_TRANSACTION_SOURCE_COLUMNS,
     *_TRANSACTION_NUMERIC_COLUMNS,
     "QTY_delta",
@@ -436,7 +441,9 @@ def rebuild_demo_performance_files(
     snapshots: list[dict[str, object]] = []
     base_snapshot_directory = axys_directory / _BASE_SNAPSHOT_DIRECTORY
     base_holdings = pd.read_csv(base_snapshot_directory / "holdings.csv")
-    base_transactions = pd.read_csv(base_snapshot_directory / "transactions.csv")
+    base_transactions = _read_packaged_transactions(
+        base_snapshot_directory / "transactions.csv"
+    )
     holding_scenarios = _load_holding_scenarios(holding_scenarios_path)
     transaction_scenarios = _load_transaction_scenarios(transaction_scenarios_path)
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
@@ -444,7 +451,9 @@ def rebuild_demo_performance_files(
         current_secperf = pd.read_csv(snapshot_directory / "secperf.csv")
         current_portperf = pd.read_csv(snapshot_directory / "portperf.csv")
         holdings = pd.read_csv(snapshot_directory / "holdings.csv")
-        current_transactions = pd.read_csv(snapshot_directory / "transactions.csv")
+        current_transactions = _read_packaged_transactions(
+            snapshot_directory / "transactions.csv"
+        )
         rebuilt_transactions = _rebuild_transactions(
             snapshot_name,
             current_transactions=current_transactions,
@@ -511,7 +520,10 @@ def rebuild_demo_performance_files(
         )
         has_holdings_drift = holdings_delta > _CHECK_TOLERANCE
         if write:
-            rebuilt_transactions.to_csv(snapshot_directory / "transactions.csv", index=False)
+            _write_packaged_transactions(
+                rebuilt_transactions,
+                snapshot_directory / "transactions.csv",
+            )
             rebuilt_holdings.to_csv(snapshot_directory / "holdings.csv", index=False)
             rebuilt_secperf.to_csv(snapshot_directory / "secperf.csv", index=False)
             rebuilt_portperf.to_csv(snapshot_directory / "portperf.csv", index=False)
@@ -641,6 +653,63 @@ def _transaction_scenario_type_counts(
             )
         counts[transaction_code] = counts.get(transaction_code, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _read_packaged_transactions(path: Path) -> pd.DataFrame:
+    """Return packaged transactions with internal scenario IDs restored.
+
+    The user-facing Axys demo intentionally omits ``TRANSACTION_ID`` because a
+    durable native transaction identifier is not proven as typical Axys output.
+    The rebuild scenario CSV still uses deterministic IDs as internal fixture
+    handles so the demo derivation remains auditable.
+    """
+    return _with_internal_transaction_ids(pd.read_csv(path))
+
+
+def _write_packaged_transactions(transactions: pd.DataFrame, path: Path) -> None:
+    """Write user-facing transactions without internal scenario IDs."""
+    transactions[_PACKAGED_TRANSACTION_COLUMNS].to_csv(path, index=False)
+
+
+def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Return transactions with deterministic internal scenario IDs."""
+    if _TRANSACTION_ID_COLUMN in transactions.columns:
+        return transactions.copy()
+
+    missing_columns = [
+        column
+        for column in _PACKAGED_TRANSACTION_COLUMNS
+        if column not in transactions.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "transactions.csv is missing columns required to derive internal "
+            f"scenario IDs: {missing_columns}."
+        )
+
+    rows = transactions.copy()
+    rows.insert(0, _TRANSACTION_ID_COLUMN, _derived_transaction_ids(rows))
+    return rows
+
+
+def _derived_transaction_ids(transactions: pd.DataFrame) -> list[str]:
+    """Return stable fixture IDs from portfolio, transaction month, and row order."""
+    period_index_by_portfolio: dict[str, dict[object, int]] = {}
+    row_count_by_period: dict[tuple[str, object], int] = {}
+    identifiers: list[str] = []
+    for row in transactions.itertuples(index=False):
+        portfolio = str(getattr(row, "PORT"))
+        transaction_month = pd.Timestamp(getattr(row, "TRANSACTION_DATE")).to_period("M")
+        portfolio_periods = period_index_by_portfolio.setdefault(portfolio, {})
+        if transaction_month not in portfolio_periods:
+            portfolio_periods[transaction_month] = len(portfolio_periods) + 1
+        period_index = portfolio_periods[transaction_month]
+        row_count_key = (portfolio, transaction_month)
+        row_count_by_period[row_count_key] = row_count_by_period.get(row_count_key, 0) + 1
+        identifiers.append(
+            f"{portfolio}{period_index:02d}{row_count_by_period[row_count_key]:02d}"
+        )
+    return identifiers
 
 
 def _transaction_derived_holding_type_counts(

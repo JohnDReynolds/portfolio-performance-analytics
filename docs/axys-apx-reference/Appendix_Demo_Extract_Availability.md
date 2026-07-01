@@ -124,7 +124,6 @@ Use this matrix as an implementation planning aid:
 
 | Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
 |---|---|---|---|---|---|---|---|
-| transactions | `TRANSACTION_ID` | Stable transaction identifier. | Low / Medium | Low / Medium | Stable transaction ID is a demo/reconciliation convenience; durable native ID is not proven by the local corpus. | Confirm whether local Axys exports a stable posted transaction identifier. | A site may have IDs or row keys, but a durable posted-transaction ID is not proven. |
 | transactions | `PORT` | Portfolio/account identifier. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Core transaction/account field. |
 | transactions | `TRANSACTION_DATE` | Trade or economic date. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Trade date appears in report evidence and transaction import workflows. |
 | transactions | `SETTLE_DATE` | Settlement or pay date. | Medium | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Settle date appears in report-output evidence; IMEX availability is profile-dependent. |
@@ -215,7 +214,6 @@ These names are candidate aliases for local discovery. They are not assertions t
 
 | Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
 |---|---|---|---|---|---|
-| transactions | `TRANSACTION_ID` | Transaction ID, Row ID | Transaction ID, Reference | Normalized Demo Only | Stable native transaction ID is not proven; use a local durable key if available. |
 | transactions | `PORT` | PORT, Portfolio, Account | Portfolio, Account | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `TRANSACTION_DATE` | Trade Date, Transaction Date | Trade Date, Transaction Date | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `SETTLE_DATE` | Settle Date, Settlement Date, Pay Date | Settle Date, Settlement Date | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
@@ -308,7 +306,6 @@ This matrix translates availability confidence into implementation guidance. `Bl
 
 | Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
 |---|---|---|---|---|---|---|
-| transactions | `TRANSACTION_ID` | Local discovery required | IMEX then REP cross-check | No | No | A stable native ID is not proven; ppar may need a deterministic local row key. |
 | transactions | `PORT` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `TRANSACTION_DATE` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `SETTLE_DATE` | IMEX then REP cross-check | REP preferred | No | No | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
