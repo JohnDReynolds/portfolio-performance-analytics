@@ -154,6 +154,16 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertIn("source-data differences", readme)
             self.assertIn("Source Dataset", html_report)
             self.assertNotIn("Source-Data Dataset", html_report)
+            self.assertIn(
+                "Normalized dataset where the source-data discrepancy was found.",
+                html_report,
+            )
+            self.assertNotIn("Normalized source dataset", html_report)
+            self.assertIn(
+                "Browser review surface for this performance-comparison bundle.",
+                html_report,
+            )
+            self.assertNotIn("same review model", html_report)
             self.assertNotIn("Transaction Match Diagnostics", html_report)
             self.assertNotIn("Match Confidence", html_report)
 

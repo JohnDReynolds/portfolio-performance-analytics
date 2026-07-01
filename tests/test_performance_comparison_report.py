@@ -504,6 +504,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertFalse((output_directory / "report.md").exists())
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("<h1>Bundle Restatement</h1>", html_report)
+            self.assertIn(
+                "Browser review surface for this performance-comparison bundle.",
+                html_report,
+            )
+            self.assertNotIn("same review model", html_report)
             self.assertIn("Performance Differences", html_report)
             self.assertIn("Performance Difference Causes", html_report)
             readme = paths["readme"].read_text(encoding="utf-8")

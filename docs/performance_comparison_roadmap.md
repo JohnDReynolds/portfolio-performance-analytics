@@ -1909,6 +1909,18 @@ packaged transaction extracts still omit `TRANSACTION_ID`, and keeps
 source/destination and special-security context fields required for ambiguous
 Axys-style transaction classification.
 
+### Phase 35: Final Release Candidate Audit
+
+Status: complete for generated handoff wording consistency.
+
+The release-candidate audit regenerated both performance-comparison demo
+bundles and checked report HTML, README, manifest, review summary, transaction
+matching diagnostics, transaction activity, and flow reconciliation artifacts.
+The HTML report header now describes `report.html` as the browser review
+surface for the bundle instead of reusing the older "same review model"
+phrasing. The visible `Source Dataset` report label remains unchanged, while
+its tooltip now uses standardized `source-data` prose.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
