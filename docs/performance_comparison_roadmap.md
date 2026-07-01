@@ -1863,6 +1863,17 @@ singleton fallback behavior, duplicate-candidate quarantine, case-sensitive
 transaction/security keys, and date-move add/drop treatment with Modified Dietz
 timing estimates.
 
+### Phase 31: Final Demo Contract Pass
+
+Status: complete for review vocabulary and metadata guardrails.
+
+The demo contract now explicitly says the packaged comparison demo is
+formula-focused and is not a full accounting-system export. Contract tests pin
+cost and settlement fields as review evidence unless an explicit future rule
+changes that treatment, preserve the conservative no-ID transaction path, and
+verify report-bundle metadata keeps standardized review vocabulary and
+entrypoints aligned after the transaction-match diagnostics demotion.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

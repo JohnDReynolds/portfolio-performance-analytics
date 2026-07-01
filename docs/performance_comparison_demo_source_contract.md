@@ -11,6 +11,7 @@ Why did reported performance change from Snapshot A to Snapshot B?
 The packaged CSV files are normalized demo extracts. They are not official Axys/APX
 native schemas, not universal IMEX layouts, and not claims about how every
 Axys/APX installation stores data internally.
+The demo is formula-focused; it is not a full accounting-system export.
 
 ## Governing References
 

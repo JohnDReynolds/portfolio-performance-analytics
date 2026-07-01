@@ -613,6 +613,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "transaction_matching_diagnostics.csv",
                 ],
             )
+            self.assertNotEqual(
+                manifest["review_entrypoints"]["primary_review"],
+                "transaction_matching_diagnostics.csv",
+            )
             self.assertEqual(
                 manifest["review_entrypoints"]["audit_trail"],
                 "findings.csv",
@@ -661,6 +665,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             for vocabulary_key in contract["review_vocabulary_keys"]:
                 self.assertIn(vocabulary_key, review_summary["review_vocabulary"])
+            self.assertEqual(
+                set(review_summary["review_vocabulary"]),
+                set(contract["review_vocabulary_keys"]),
+            )
             self.assertIn(
                 "Modified Dietz",
                 review_summary["review_vocabulary"]["formula_input"],
@@ -668,6 +676,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn(
                 "source-data",
                 review_summary["review_vocabulary"]["source_data"],
+            )
+            self.assertIn(
+                "reviewer judgment",
+                review_summary["review_vocabulary"]["review_only"],
+            )
+            self.assertIn(
+                "audit",
+                review_summary["review_vocabulary"]["evidence_only"],
             )
             self.assertIn(
                 "finding-level",

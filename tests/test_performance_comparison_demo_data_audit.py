@@ -207,6 +207,15 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         ]:
             self.assertIn(expected_text, normalized_lower_text)
 
+        for expected_text in [
+            "Cost changes are useful review evidence but do not explain reported performance",
+            "Other data difference unless a future explicit settlement-date rule",
+            "conservative no-ID path",
+            "does not prove a durable native transaction identifier",
+            "not a full accounting-system export",
+        ]:
+            self.assertIn(expected_text, normalized_text)
+
     def test_packaged_demo_transaction_fields_stay_user_facing(self) -> None:
         """Packaged transaction extracts omit internal IDs but keep rule context."""
         scenario_path = (
