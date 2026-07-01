@@ -309,7 +309,7 @@ class PerformanceComparison:
 
         Returns:
             Findings for the configured primary performance-result dataset plus
-            shared source-data findings.
+            shared source data findings.
         """
         findings = self._primary_performance_findings()
         findings.extend(self.compare_security_master())

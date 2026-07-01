@@ -1155,7 +1155,7 @@ def _evidence_only_impact_policies(
 
     Returns:
         Policy labels keyed by ``(dataset, source_column)``. These policies
-        document known source-data differences that should remain review-only.
+        document known source data differences that should remain review-only.
 
     Raises:
         PpaError: If evidence-only impact configuration is malformed or names

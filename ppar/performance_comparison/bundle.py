@@ -98,6 +98,18 @@ _REVIEW_VOCABULARY = {
         "A value that ppar can use directly in the Modified Dietz return "
         "reconstruction or additive explanation."
     ),
+    "source_data": (
+        "The source data is the original loaded portfolio, security, transaction, "
+        "holding, cash, FX, or reference data compared by the report."
+    ),
+    "finding_level": (
+        "The individual finding-level comparison-row detail before period or "
+        "cause-area rollups."
+    ),
+    "cause_area": (
+        "A cause-area grouping used to summarize related finding-level "
+        "differences."
+    ),
     "supporting_evidence": (
         "Source evidence that helps audit or explain a formula input without "
         "being counted as a separate return input."
@@ -107,8 +119,20 @@ _REVIEW_VOCABULARY = {
         "not counted in the Modified Dietz formula."
     ),
     "review_only": (
-        "Evidence shown for reviewer judgment with no automatic return-impact "
-        "treatment."
+        "Rows marked review-only are shown for reviewer judgment with no automatic "
+        "return-impact treatment."
+    ),
+    "evidence_only": (
+        "Rows marked evidence-only are retained for audit or review without being "
+        "counted as additive Modified Dietz inputs."
+    ),
+    "non_additive": (
+        "Rows marked non-additive are diagnostics or cross-check rows that must "
+        "not be summed into explained performance change."
+    ),
+    "explained_change": (
+        "The explained-change wording names how source data differences account "
+        "for a reported return difference."
     ),
     "backlog_gate": (
         "A transaction or evidence family blocked until policy or source samples "
@@ -192,7 +216,7 @@ def write_report_bundle_readme(
         "",
         first_review_step,
         f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
-        f"source-data differences additively explain each {review_unit}.",
+        f"source data differences additively explain each {review_unit}.",
         f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} and "
         f"{_pc_review_model.RAW_AUDIT_TRAIL_SHEET} as supporting detail: "
         f"{_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} is review-only context, "
@@ -200,9 +224,8 @@ def write_report_bundle_readme(
         "finding-level audit trail.",
         f"4. Use the `review_key` column to follow a {review_unit} across CSV artifacts.",
         "5. Use `transaction_activity.csv`, `transaction_cross_checks.csv`, and "
-        "`flow_cross_check_reconciliation.csv` for transaction and external-flow "
-        "diagnostics. These CSVs are audit aids; cross-check rows may be "
-        "evidence-only or intentionally non-additive.",
+        "`flow_cross_check_reconciliation.csv` for supplementary transaction "
+        "and external-flow diagnostics.",
         "6. Use `review_summary.json` when handing the bundle to another reviewer "
         "or automation. It names the Modified Dietz vocabulary, entrypoints, "
         "source context, and transaction-semantics summary in one compact file.",

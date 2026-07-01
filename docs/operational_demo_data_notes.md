@@ -160,7 +160,7 @@ contains the intended examples without opening the fixture CSV files.
 The workbook should answer:
 
 ```text
-This performance difference happened, and these underlying source-data
+This performance difference happened, and these underlying source data
 differences explain it.
 ```
 

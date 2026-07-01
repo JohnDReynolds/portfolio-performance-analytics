@@ -195,7 +195,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         return self._suppressed_findings.clone()
 
     def _portfolio_suppressed(self) -> pl.DataFrame:
-        """Return portfolio findings with one source-data row marked suppressed."""
+        """Return portfolio findings with one source data row marked suppressed."""
         return self._restatement().with_columns(
             pl.when(pl.col(FINDING_CODE) == PC_TXN_AMT)
             .then(pl.lit(True))

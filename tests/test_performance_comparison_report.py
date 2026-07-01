@@ -438,9 +438,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ],
                 "review_vocabulary_keys": [
                     "formula_input",
+                    "source_data",
+                    "finding_level",
+                    "cause_area",
                     "supporting_evidence",
                     "context_only",
                     "review_only",
+                    "evidence_only",
+                    "non_additive",
+                    "explained_change",
                     "backlog_gate",
                 ],
             },
@@ -486,14 +492,19 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
+            self.assertIn("source data differences", readme)
+            self.assertNotIn("source-data", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertIn(
                 "`transaction_activity.csv`, `transaction_cross_checks.csv`, and "
                 "`flow_cross_check_reconciliation.csv`",
                 readme,
             )
-            self.assertIn("cross-check rows may be", readme)
-            self.assertIn("intentionally non-additive", readme)
+            self.assertIn(
+                "supplementary transaction and external-flow diagnostics",
+                readme,
+            )
+            self.assertNotIn("cross-check rows may be", readme)
             self.assertIn("`review_summary.json`", readme)
             self.assertIn("Modified Dietz vocabulary", readme)
             self.assertIn("`needs_review_summary.csv`", readme)
@@ -616,14 +627,39 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 review_summary["transaction_semantics"],
                 manifest["transaction_semantics"],
             )
-            self.assertIn("formula_input", review_summary["review_vocabulary"])
-            self.assertIn("supporting_evidence", review_summary["review_vocabulary"])
-            self.assertIn("context_only", review_summary["review_vocabulary"])
-            self.assertIn("review_only", review_summary["review_vocabulary"])
-            self.assertIn("backlog_gate", review_summary["review_vocabulary"])
+            for vocabulary_key in contract["review_vocabulary_keys"]:
+                self.assertIn(vocabulary_key, review_summary["review_vocabulary"])
             self.assertIn(
                 "Modified Dietz",
                 review_summary["review_vocabulary"]["formula_input"],
+            )
+            self.assertIn(
+                "source data",
+                review_summary["review_vocabulary"]["source_data"],
+            )
+            self.assertIn(
+                "finding-level",
+                review_summary["review_vocabulary"]["finding_level"],
+            )
+            self.assertIn(
+                "cause-area",
+                review_summary["review_vocabulary"]["cause_area"],
+            )
+            self.assertIn(
+                "review-only",
+                review_summary["review_vocabulary"]["review_only"],
+            )
+            self.assertIn(
+                "evidence-only",
+                review_summary["review_vocabulary"]["evidence_only"],
+            )
+            self.assertIn(
+                "non-additive",
+                review_summary["review_vocabulary"]["non_additive"],
+            )
+            self.assertIn(
+                "explained-change",
+                review_summary["review_vocabulary"]["explained_change"],
             )
             self.assertEqual(
                 set(review_summary["entrypoints"]),
@@ -1220,9 +1256,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Other Data Differences is review-only context", readme)
             self.assertIn("Raw Audit Trail is the complete finding-level audit trail", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
-            self.assertIn("transaction and external-flow diagnostics", readme)
-            self.assertIn("cross-check rows may be", readme)
-            self.assertIn("intentionally non-additive", readme)
+            self.assertIn("supplementary transaction and external-flow diagnostics", readme)
+            self.assertNotIn("cross-check rows may be", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
