@@ -182,7 +182,7 @@ def _performance_comparison_html_report(
             '<main class="pc-report">',
             '<header class="pc-header">',
             f"<h1>{_escape_html(title)}</h1>",
-            "<p>Browser review surface for this performance-comparison bundle.</p>",
+            "<p>Browser view for reviewing this performance-comparison bundle.</p>",
             "</header>",
             _html_workbook_contents_section(sheets),
             *[_html_workbook_sheet_section(sheet) for sheet in sheets],

@@ -1921,6 +1921,16 @@ surface for the bundle instead of reusing the older "same review model"
 phrasing. The visible `Source Dataset` report label remains unchanged, while
 its tooltip now uses standardized `source-data` prose.
 
+### Phase 36: Reader-Facing Language Final Polish
+
+Status: complete for report-header plain language.
+
+The generated HTML report header now says "Browser view for reviewing this
+performance-comparison bundle." This keeps the browser/report.xlsx distinction
+clear without exposing the more internal "review surface" wording to first-time
+reviewers. Tests continue to reject both the old "same review model" phrase and
+the intermediate "Browser review surface" phrase.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
