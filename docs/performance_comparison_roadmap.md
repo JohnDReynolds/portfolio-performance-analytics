@@ -44,6 +44,9 @@ Completed guardrails now cover:
 - `portperf.gain_loss` and `secperf.gain_loss` are documented as report-style
   performance-extract context, not native IMEX object claims or recomputed
   accounting-ledger values;
+- the packaged portfolio and security reports intentionally include Fully
+  Explained, intentional `Partly Explained`, and intentional `Unexplained`
+  review examples;
 - generated bundle vocabulary and entrypoints are validated.
 
 ## Current Open Items
@@ -58,7 +61,6 @@ Modified Dietz report cleanup.
 | Packaging surface | Confirm the PyPI package includes the actual packaged Axys demo CSV/YAML/README files, but excludes demo-generation internals that are not part of the end product. | Wheel package-data stays limited to demo inputs and user-facing notes; source-distribution maintenance scripts are documented as source-checkout tooling, not installed-package workflow. |
 | User-facing input contract | Document the minimum required datasets and fields for a usable comparison. | User-facing docs name required portfolio performance, security performance, holdings, transaction, and reference fields; validation hard-stops when required datasets or fields are missing. Phase 39 completed the core source-data contract and reconstruction-file preflight guard; broader site-specific contract examples remain future hardening. |
 | YAML strictness | Audit whether YAML validation prevents unintelligible or misleading reports. | Missing transaction rules, missing impact methods, ambiguous Axys context gaps, and unclassified changed fields fail before report generation unless explicitly marked evidence-only or suppressed. Phase 40 aligned `validate_config` with default report-bundle YAML completeness checks; broader policy-by-policy message polish remains future hardening. |
-| Demo explanation quality | Add at least one intentional `Unexplained` and one intentional `Partly Explained` period to each user-facing portfolio/security report when realistic. | Each period is real-world plausible, named in demo notes, visible in `report.xlsx` and `report.html`, and gives the reviewer a useful reason or next action. |
 | Report bundle cleanup | Remove obsolete CSV artifacts from generated report bundles. | Manifest, README, validation tests, and generated bundle contents agree on the current artifact set. |
 | Code cleanup | Remove old dead code, obsolete legacy paths, and unnecessary backward-compatibility shims. | Public behavior stays covered; deleted paths have no package/API/test dependency. |
 | Polars execution audit | Confirm performance-comparison code uses Polars/lazy Polars where it materially matters. | Pandas use is absent from production hot paths or explicitly justified at boundaries; large joins/aggregations stay in Polars. |

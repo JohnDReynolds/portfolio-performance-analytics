@@ -162,6 +162,25 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
         "Intentional vendor/methodology residual used to demonstrate unresolved review."
     ),
 }
+_INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS: Final = {
+    ("BALANCED", "2026-05-01", "2026-05-29"): 0.0002,
+    ("INCOME", "2026-04-01", "2026-04-30"): 0.00035,
+}
+_INTENTIONAL_SECURITY_RESIDUALS: Final = {
+    ("BALANCED", "MSFT", "2026-05-01", "2026-05-29", "Partly Explained"): (
+        "Intentional partial security example: a holding correction explains "
+        "part of the reported security-return change, with the remainder left "
+        "as a methodology/source-data residual."
+    ),
+    ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30", "Unexplained"): (
+        "Intentional unexplained security example: reported security return "
+        "changed while the visible source-data change is cost-only context."
+    ),
+}
+_INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
+    ("BALANCED", "MSFT", "2026-05-01", "2026-05-29"): 0.002,
+    ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"): 0.004,
+}
 _SECURITY_FLOW_CODES: Final = {"by", "sl"}
 _INCOME_CODES: Final = {"dv", "in", "dp"}
 _AMBIGUOUS_EXTERNAL_FLOW_CODES: Final = {"li", "lo", "wd"}
@@ -476,12 +495,14 @@ def rebuild_demo_performance_files(
         )
 
         rebuilt_secperf = _rebuild_security_performance(
+            snapshot_name,
             current_secperf,
             rebuilt_holdings,
             rebuilt_transactions,
             security_reconstruction,
         )
         rebuilt_portperf = _rebuild_portfolio_performance(
+            snapshot_name,
             current_portperf,
             rebuilt_holdings,
             rebuilt_transactions,
@@ -1355,6 +1376,7 @@ def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
 
 
 def _rebuild_security_performance(
+    snapshot_name: str,
     secperf: pd.DataFrame,
     holdings: pd.DataFrame,
     transactions: pd.DataFrame,
@@ -1422,10 +1444,13 @@ def _rebuild_security_performance(
     period_begin_market_value = rebuilt.groupby(_PERIOD_KEY)["BEGIN_MV"].transform("sum")
     rebuilt["BEGIN_WEIGHT"] = (rebuilt["BEGIN_MV"] / period_begin_market_value).round(10)
     rebuilt["CONTRIBUTION"] = (rebuilt["BEGIN_WEIGHT"] * rebuilt["SEC_RETURN"]).round(10)
+    if snapshot_name != _BASE_SNAPSHOT_DIRECTORY:
+        rebuilt = _with_intentional_security_return_residuals(rebuilt)
     return rebuilt[secperf.columns]
 
 
 def _rebuild_portfolio_performance(
+    snapshot_name: str,
     portperf: pd.DataFrame,
     holdings: pd.DataFrame,
     transactions: pd.DataFrame,
@@ -1484,7 +1509,59 @@ def _rebuild_portfolio_performance(
             }
         )
         rows.append(rebuilt_row)
-    return pd.DataFrame(rows)[_PORTPERF_COLUMNS]
+    rebuilt = pd.DataFrame(rows)
+    if snapshot_name != _BASE_SNAPSHOT_DIRECTORY:
+        rebuilt = _with_intentional_portfolio_return_residuals(rebuilt)
+    return rebuilt[_PORTPERF_COLUMNS]
+
+
+def _with_intentional_portfolio_return_residuals(portperf: pd.DataFrame) -> pd.DataFrame:
+    """Return portfolio performance with explicit reported-return residuals."""
+    adjusted = portperf.copy()
+    for (portfolio, from_date, thru_date), residual in (
+        _INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS.items()
+    ):
+        mask = (
+            adjusted["PORTFOLIO_CODE"].eq(portfolio)
+            & adjusted["FROM_DATE"].eq(from_date)
+            & adjusted["THRU_DATE"].eq(thru_date)
+        )
+        if int(mask.sum()) != 1:
+            raise ValueError(
+                "Intentional portfolio residual must match one portperf row: "
+                f"{portfolio}/{from_date}/{thru_date}."
+            )
+        adjusted.loc[mask, "PORT_RETURN"] = (
+            adjusted.loc[mask, "PORT_RETURN"].astype(float) + residual
+        ).round(10)
+    return adjusted
+
+
+def _with_intentional_security_return_residuals(secperf: pd.DataFrame) -> pd.DataFrame:
+    """Return security performance with explicit reported-return residuals."""
+    adjusted = secperf.copy()
+    for (portfolio, security, from_date, thru_date), residual in (
+        _INTENTIONAL_SECURITY_RETURN_RESIDUALS.items()
+    ):
+        mask = (
+            adjusted["PORTFOLIO_CODE"].eq(portfolio)
+            & adjusted["SECURITY_ID"].eq(security)
+            & adjusted["FROM_DATE"].eq(from_date)
+            & adjusted["THRU_DATE"].eq(thru_date)
+        )
+        if int(mask.sum()) != 1:
+            raise ValueError(
+                "Intentional security residual must match one secperf row: "
+                f"{portfolio}/{security}/{from_date}/{thru_date}."
+            )
+        adjusted.loc[mask, "SEC_RETURN"] = (
+            adjusted.loc[mask, "SEC_RETURN"].astype(float) + residual
+        ).round(10)
+        adjusted.loc[mask, "CONTRIBUTION"] = (
+            adjusted.loc[mask, "BEGIN_WEIGHT"].astype(float)
+            * adjusted.loc[mask, "SEC_RETURN"].astype(float)
+        ).round(10)
+    return adjusted
 
 
 def _holding_values(holdings: pd.DataFrame) -> pd.DataFrame:
@@ -1757,7 +1834,14 @@ def _audit_visible_security_residuals(comparison_path: Path) -> list[AuditIssue]
                     _security_residual_issue(row, "Fully explained row has residual.")
                 )
             continue
-        if abs(unexplained) > _RETURN_TOLERANCE:
+        key = (
+            str(row["portfolio_id"]),
+            str(row["security_id"]),
+            row["from_date"].isoformat(),
+            row["thru_date"].isoformat(),
+            status,
+        )
+        if key not in _INTENTIONAL_SECURITY_RESIDUALS:
             issues.append(
                 _security_residual_issue(
                     row,

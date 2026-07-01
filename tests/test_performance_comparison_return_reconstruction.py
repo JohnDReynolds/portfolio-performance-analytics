@@ -23,6 +23,7 @@ from ppar.performance_comparison.return_reconstruction import (
     RECONSTRUCTION_CATEGORY,
     RECONSTRUCTION_STATUS,
     RECONSTRUCTION_STATUS_ALIGNED,
+    RECONSTRUCTION_STATUS_DIFFERENT,
     RECONSTRUCTION_STATUS_MISSING_INPUTS,
     REPORTED_RETURN_DIFFERENCE,
     WEIGHTED_FLOW_B,
@@ -40,6 +41,14 @@ _BASELINE_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison.yaml"
 )
 _DEMO_AXYS_DIRECTORY = Path("ppar/demos/data/axys")
+_INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS = {
+    ("BALANCED", "2026-05-01", "2026-05-29"),
+    ("INCOME", "2026-04-01", "2026-04-30"),
+}
+_INTENTIONAL_SECURITY_DIFFERENT_KEYS = {
+    ("BALANCED", "MSFT", "2026-05-01", "2026-05-29"),
+    ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"),
+}
 
 
 def _write_reinvestment_pair_fixture(directory: Path) -> Path:
@@ -234,11 +243,18 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         self.assertTrue(summary.is_empty())
 
     def test_demo_reconstruction_checks_show_review_statuses(self) -> None:
-        """Packaged demo reconstruction is aligned except missing first opens."""
+        """Packaged demo reconstruction only differs for named residual examples."""
         checks = portfolio_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
 
         statuses = set(checks.get_column(RECONSTRUCTION_STATUS).to_list())
-        self.assertEqual(statuses, {RECONSTRUCTION_STATUS_ALIGNED, RECONSTRUCTION_STATUS_MISSING_INPUTS})
+        self.assertEqual(
+            statuses,
+            {
+                RECONSTRUCTION_STATUS_ALIGNED,
+                RECONSTRUCTION_STATUS_DIFFERENT,
+                RECONSTRUCTION_STATUS_MISSING_INPUTS,
+            },
+        )
 
         alpha_withdrawal = checks.filter(
             (pl.col("portfolio_id") == "ALPHA")
@@ -256,7 +272,7 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         )
 
     def test_demo_portfolio_reconstruction_has_no_differences(self) -> None:
-        """Packaged portfolio performance is generated from reconstruction inputs."""
+        """Portfolio reconstruction differences are limited to intentional rows."""
         checks = portfolio_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
         different_rows = checks.filter(
             ~pl.col(RECONSTRUCTION_STATUS).is_in(
@@ -264,14 +280,48 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
             )
         )
 
-        self.assertTrue(different_rows.is_empty())
+        self.assertEqual(
+            {
+                (
+                    row["portfolio_id"],
+                    row["from_date"].isoformat(),
+                    row["thru_date"].isoformat(),
+                )
+                for row in different_rows.iter_rows(named=True)
+            },
+            _INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS,
+        )
 
     def test_demo_security_reconstruction_checks_show_flow_inputs(self) -> None:
         """Security reconstruction treats buy/sell rows as security-level flows."""
         checks = security_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
 
         statuses = set(checks.get_column(RECONSTRUCTION_STATUS).to_list())
-        self.assertEqual(statuses, {RECONSTRUCTION_STATUS_ALIGNED, RECONSTRUCTION_STATUS_MISSING_INPUTS})
+        self.assertEqual(
+            statuses,
+            {
+                RECONSTRUCTION_STATUS_ALIGNED,
+                RECONSTRUCTION_STATUS_DIFFERENT,
+                RECONSTRUCTION_STATUS_MISSING_INPUTS,
+            },
+        )
+        different_rows = checks.filter(
+            ~pl.col(RECONSTRUCTION_STATUS).is_in(
+                [RECONSTRUCTION_STATUS_ALIGNED, RECONSTRUCTION_STATUS_MISSING_INPUTS]
+            )
+        )
+        self.assertEqual(
+            {
+                (
+                    row["portfolio_id"],
+                    row["security_id"],
+                    row["from_date"].isoformat(),
+                    row["thru_date"].isoformat(),
+                )
+                for row in different_rows.iter_rows(named=True)
+            },
+            _INTENTIONAL_SECURITY_DIFFERENT_KEYS,
+        )
 
         alpha_aapl = checks.filter(
             (pl.col("portfolio_id") == "ALPHA")

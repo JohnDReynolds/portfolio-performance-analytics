@@ -238,8 +238,48 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 statuses = {row[6] for row in portfolio_rows}
                 self.assertTrue(portfolio_differences)
                 self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
-                self.assertEqual(statuses, {"Fully Explained"})
-                self.assertTrue(all(row[6] == "Fully Explained" for row in portfolio_rows))
+                self.assertEqual(
+                    statuses,
+                    {"Fully Explained", "Partly Explained", "Unexplained"},
+                )
+                partly_explained_rows = [
+                    row for row in portfolio_rows if row[6] == "Partly Explained"
+                ]
+                unexplained_rows = [
+                    row for row in portfolio_rows if row[6] == "Unexplained"
+                ]
+                self.assertEqual(
+                    {
+                        (
+                            row[0],
+                            _workbook_date_text(row[1]),
+                            _workbook_date_text(row[2]),
+                        )
+                        for row in partly_explained_rows
+                    },
+                    {("BALANCED", "2026-05-01", "2026-05-29")},
+                )
+                self.assertEqual(
+                    {
+                        (
+                            row[0],
+                            _workbook_date_text(row[1]),
+                            _workbook_date_text(row[2]),
+                        )
+                        for row in unexplained_rows
+                    },
+                    {("INCOME", "2026-04-01", "2026-04-30")},
+                )
+                for row in portfolio_rows:
+                    if row[6] == "Fully Explained":
+                        self.assertAlmostEqual(
+                            _numeric_value(row[3]),
+                            _numeric_value(row[4]),
+                            places=6,
+                        )
+                        self.assertIsNone(row[5])
+                    else:
+                        self.assertIsNotNone(row[5])
                 self.assertTrue(
                     all(
                         isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -444,9 +484,38 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row[3] for row in security_rows},
-                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y"},
+                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y", "TNOTE5Y"},
                 )
-                self.assertEqual({row[7] for row in security_rows}, {"Fully Explained"})
+                self.assertEqual(
+                    {row[7] for row in security_rows},
+                    {"Fully Explained", "Partly Explained", "Unexplained"},
+                )
+                self.assertEqual(
+                    {
+                        (
+                            row[0],
+                            row[3],
+                            _workbook_date_text(row[1]),
+                            _workbook_date_text(row[2]),
+                        )
+                        for row in security_rows
+                        if row[7] == "Partly Explained"
+                    },
+                    {("BALANCED", "MSFT", "2026-05-01", "2026-05-29")},
+                )
+                self.assertEqual(
+                    {
+                        (
+                            row[0],
+                            row[3],
+                            _workbook_date_text(row[1]),
+                            _workbook_date_text(row[2]),
+                        )
+                        for row in security_rows
+                        if row[7] == "Unexplained"
+                    },
+                    {("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30")},
+                )
                 fully_explained_rows = [
                     row for row in security_rows if row[7] == "Fully Explained"
                 ]

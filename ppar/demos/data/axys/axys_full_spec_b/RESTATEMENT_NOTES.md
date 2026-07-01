@@ -21,8 +21,10 @@ Snapshot B intentionally restates selected rows from the operational snapshot:
 - `BALANCED`, April 2026: one JPM `dv` dividend amount increases. This
   performance-income transaction amount is mirrored by higher `CASH_USD`.
 - `BALANCED`, May 2026: the same AAPL price correction applies globally, and an
-  MSFT holding market value is corrected. Together these explain the
-  portfolio-period performance difference.
+  MSFT holding market value is corrected. Together these explain part of the
+  portfolio-period and MSFT security-period performance differences. Snapshot B
+  also includes a small intentional reported-return residual so the packaged
+  reports show a realistic Partly Explained review case.
 - `INCOME`, January 2026: one fee-like `dp` transaction increases the advisory
   fee expense and lowers `CASH_USD`. The row is classified from special-security
   context, not from the `dp` code alone.
@@ -31,7 +33,9 @@ Snapshot B intentionally restates selected rows from the operational snapshot:
   TNOTE2Y market value and accrued interest are additive, TNOTE2Y quantity is
   related evidence, and cost remains context.
 - `INCOME`, April 2026: a TNOTE5Y cost-only correction remains review evidence
-  and does not explain performance by itself.
+  and does not explain performance by itself. Snapshot B also includes an
+  intentional reported-return residual so the packaged reports show a realistic
+  Unexplained review case with plausible but non-additive evidence.
 
 The corresponding YAML files define transaction semantics. Standard field roles
 distinguish performance inputs, related input components, reported performance

@@ -33,6 +33,8 @@ from ppar.performance_comparison.transactions import (
 )
 from ppar.performance_comparison.workbook_tables import (
     _workbook_context_table,
+    _workbook_portfolio_changes_table,
+    _workbook_security_changes_table,
     _workbook_underlying_causes_table,
 )
 
@@ -672,6 +674,63 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             (pc_cols.HOLDINGS, pc_cols.ACCRUED),
             _dataset_fields(_workbook_context_table(findings)),
         )
+
+    def test_packaged_demo_intentional_review_status_examples(self) -> None:
+        """Packaged reports preserve intentional partial and unresolved periods."""
+        portfolio_findings = compare_snapshots(_PACKAGED_COMPARISON_PATH)
+        portfolio_changes = _workbook_portfolio_changes_table(
+            portfolio_findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        )
+        portfolio_statuses = {
+            (
+                row["portfolio_id"],
+                row["from_date"].isoformat(),
+                row["thru_date"].isoformat(),
+            ): row
+            for row in portfolio_changes.iter_rows(named=True)
+        }
+
+        partly_explained = portfolio_statuses[("BALANCED", "2026-05-01", "2026-05-29")]
+        unexplained = portfolio_statuses[("INCOME", "2026-04-01", "2026-04-30")]
+        self.assertEqual(partly_explained["review_status"], "Partly Explained")
+        self.assertGreater(abs(partly_explained["estimated_cause_total"]), 0.0)
+        self.assertGreater(abs(partly_explained["unexplained_change"]), 0.0)
+        self.assertEqual(unexplained["review_status"], "Unexplained")
+        self.assertEqual(unexplained["estimated_cause_total"], 0.0)
+        self.assertGreater(abs(unexplained["unexplained_change"]), 0.0)
+
+        security_findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            comparison_level="security",
+        )
+        security_changes = _workbook_security_changes_table(
+            security_findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+            comparison_level="security",
+        )
+        security_statuses = {
+            (
+                row["portfolio_id"],
+                row["security_id"],
+                row["from_date"].isoformat(),
+                row["thru_date"].isoformat(),
+            ): row
+            for row in security_changes.iter_rows(named=True)
+        }
+
+        partly_explained = security_statuses[
+            ("BALANCED", "MSFT", "2026-05-01", "2026-05-29")
+        ]
+        unexplained = security_statuses[
+            ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30")
+        ]
+        self.assertEqual(partly_explained["review_status"], "Partly Explained")
+        self.assertGreater(abs(partly_explained["estimated_cause_total"]), 0.0)
+        self.assertGreater(abs(partly_explained["unexplained_change"]), 0.0)
+        self.assertEqual(unexplained["review_status"], "Unexplained")
+        self.assertEqual(unexplained["estimated_cause_total"], 0.0)
+        self.assertGreater(abs(unexplained["unexplained_change"]), 0.0)
 
     def test_packaged_performance_comparison_demo_data_foots(self) -> None:
         """Packaged demo data has no accidental accounting or residual issues."""

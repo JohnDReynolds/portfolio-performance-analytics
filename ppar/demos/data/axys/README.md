@@ -148,8 +148,9 @@ Expected workbook:
   It should also show supporting input-component rows without assigning them
   `Performance Difference Explained` values when those rows help explain a
   counted source-data difference.
-- Portfolio-period and security-period differences in the packaged demo should
-  be fully explained.
+- The packaged demo intentionally includes fully explained, partly explained,
+  and unexplained periods so reviewers can see each status in both report
+  families.
 - Optional reconstruction diagnostics should show where source-derived Modified
   Dietz returns agree with reported return differences and where they do not.
 - The controlled restatement includes:
@@ -162,11 +163,16 @@ Expected workbook:
   - a fully explained BALANCED period with an external cash contribution;
   - a fully explained INCOME period with a larger advisory-fee expense and
     matching lower `CASH_USD` ending value;
-  - a fully explained BALANCED period with both an AAPL price correction and a
-    standalone MSFT holding market-value correction;
+  - a partly explained BALANCED period where the same AAPL price correction and
+    standalone MSFT holding market-value correction explain part of the
+    reported portfolio and MSFT security return differences, leaving an
+    intentional residual for reviewer triage;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Other Data Differences` sheet;
+  - an unexplained INCOME period where a TNOTE5Y cost-only correction is useful
+    review evidence but no supported Modified Dietz input explains the
+    reported portfolio and TNOTE5Y security return differences;
   - an ALPHA external-withdrawal restatement visible in the return
     reconstruction check.
 

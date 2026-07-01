@@ -63,6 +63,7 @@ from ppar.performance_comparison.return_reconstruction import (
     DERIVED_RETURN_DIFFERENCE,
     RECONSTRUCTION_STATUS,
     RECONSTRUCTION_STATUS_ALIGNED,
+    RECONSTRUCTION_STATUS_DIFFERENT,
     RECONSTRUCTION_STATUS_MISSING_INPUTS,
     REPORTED_RETURN_DIFFERENCE,
     portfolio_return_reconstruction_checks,
@@ -117,6 +118,11 @@ from ppar.performance_comparison import (
     write_performance_comparison_report_bundle,
     write_performance_comparison_review_workbook,
 )
+
+_INTENTIONAL_PORTFOLIO_RECONSTRUCTION_DIFFERENT_KEYS = {
+    ("BALANCED", "2026-05-01", "2026-05-29"),
+    ("INCOME", "2026-04-01", "2026-04-30"),
+}
 
 
 def _is_type_alias_assignment(node: ast.AnnAssign) -> bool:
@@ -1428,12 +1434,15 @@ class TestPackageMetadata(unittest.TestCase):
                             places=2,
                         )
                         reconstruction_row = checks[key]
+                        allowed_statuses = {
+                            RECONSTRUCTION_STATUS_ALIGNED,
+                            RECONSTRUCTION_STATUS_MISSING_INPUTS,
+                        }
+                        if key in _INTENTIONAL_PORTFOLIO_RECONSTRUCTION_DIFFERENT_KEYS:
+                            allowed_statuses.add(RECONSTRUCTION_STATUS_DIFFERENT)
                         self.assertIn(
                             reconstruction_row[RECONSTRUCTION_STATUS],
-                            {
-                                RECONSTRUCTION_STATUS_ALIGNED,
-                                RECONSTRUCTION_STATUS_MISSING_INPUTS,
-                            },
+                            allowed_statuses,
                         )
                         if (
                             reconstruction_row[RECONSTRUCTION_STATUS]
