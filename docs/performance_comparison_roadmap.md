@@ -1639,6 +1639,59 @@ Report tests now pin the public contract helper and check that
 first-stop artifacts. This keeps the bundle readable for humans while preserving
 one machine-readable contract for automation.
 
+### Phase 19: Generated Demo Bundle Smoke
+
+Phase 19 verifies the generated reviewer surface after the bundle-contract and
+wording changes.
+
+#### Phase 19A: Portfolio / Security Bundle Regeneration
+
+Status: complete for the current generated demo bundles.
+
+The packaged portfolio and security comparison demos were regenerated under
+`_demo_output/performance_comparison_portfolio` and
+`_demo_output/performance_comparison_security`. The generated output remains
+ignored by Git; the smoke is a reviewer-surface check, not a source artifact to
+commit.
+
+#### Phase 19B: Generated Bundle Validation
+
+Status: complete for the current generated demo bundles.
+
+Both generated bundles passed `ppar.performance_comparison.cli.validate_bundle`.
+The spot check confirmed:
+
+- `README.md` starts with the recommended review order;
+- `manifest.json` and `review_summary.json` agree on review entrypoints;
+- transaction component wording is security-prefixed;
+- price and quantity component explanations do not repeat raw component deltas;
+- commission explanations retain the commission delta.
+
+### Phase 20: Reviewer Wording Guards
+
+Phase 20 pins the reviewer-facing wording that Phase 19 verified.
+
+#### Phase 20A: README Wording Contract
+
+Status: complete for the current generated-bundle README.
+
+Report and workbook contract tests now reject the removed README phrases:
+
+- `## Primary Review Artifact`;
+- `Open report.xlsx first`;
+- `same review model in a browser`.
+
+#### Phase 20B: Transaction Explanation Contract
+
+Status: complete for the current workbook/report wording.
+
+Report and workbook contract tests now pin transaction component wording:
+
+- price and quantity rows say the security's `transactions.amount` increased or
+  decreased, without repeating the raw price or quantity delta in prose;
+- commission rows include the security and retain the commission delta;
+- the old `Helped explain the changed transactions.amount` wording is rejected.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

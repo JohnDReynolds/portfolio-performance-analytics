@@ -479,6 +479,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("# Bundle Restatement", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)
+            self.assertNotIn("Open `report.xlsx` first", readme)
+            self.assertNotIn("same review model in a browser", readme)
             self.assertNotIn("report.md", readme)
             self.assertIn("## Recommended Review Order", readme)
             self.assertIn("start with Performance Differences", readme)
@@ -861,6 +863,18 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             rules_transaction_price["review_guidance"][0],
             "BUY: Caused AAPL transactions.amount to increase.",
         )
+        self.assertNotIn(
+            "by 0.50",
+            rules_transaction_price["review_guidance"][0],
+        )
+        self.assertNotIn(
+            "Helped explain the changed transactions.amount",
+            rules_transaction_quantity["review_guidance"][0],
+        )
+        self.assertNotIn(
+            "Helped explain the changed transactions.amount",
+            rules_transaction_price["review_guidance"][0],
+        )
 
     def test_configured_transaction_method_with_zero_denominator_needs_inputs(
         self,
@@ -1195,6 +1209,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "report.xlsx",
             )
             readme = paths["readme"].read_text(encoding="utf-8")
+            self.assertNotIn("Open `report.xlsx` first", readme)
+            self.assertNotIn("same review model in a browser", readme)
             self.assertIn("1. Open `report.xlsx` or `report.html`", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("## Secondary Review Views", readme)

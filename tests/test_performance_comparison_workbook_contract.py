@@ -148,6 +148,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("Raw Audit Trail", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
+            self.assertNotIn("Open `report.xlsx` first", readme)
+            self.assertNotIn("same review model in a browser", readme)
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
@@ -306,6 +308,19 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if str(row[4]).startswith("transactions.")
                 ]
+                self.assertFalse(
+                    any(
+                        "Helped explain the changed transactions.amount" in guidance
+                        for guidance in transaction_component_guidance
+                    )
+                )
+                self.assertFalse(
+                    any(
+                        "transactions.amount to increase by 0.25" in guidance
+                        or "transactions.amount to increase by 0.15" in guidance
+                        for guidance in transaction_component_guidance
+                    )
+                )
                 self.assertTrue(
                     any(
                         guidance.startswith("by: Helped explain")
