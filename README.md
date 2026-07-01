@@ -184,6 +184,20 @@ The packaged portfolio and security demos share one YAML file:
 lower-case transaction codes such as `by`, `sl`, `dv`, `in`, `dp`, `wd`, and
 `;` to normalized transaction categories used by the comparison logic.
 
+Minimum source-data contract:
+
+- `portfolio_performance` is required for portfolio comparison and must provide
+  `portfolio_id`, `from_date`, `thru_date`, and `portfolio_return`.
+- `security_performance` is required for security comparison or security return
+  reconstruction and must provide `portfolio_id`, `security_id`, `from_date`,
+  `thru_date`, and `security_return`.
+- `holdings` and `transactions` are required when return reconstruction is
+  configured or when their fields are used as performance explanations.
+- `security_master`, `cash`, and `fx_rates` are optional unless their rows are
+  configured as source-data evidence.
+- Required datasets must exist in both snapshots, and required normalized
+  columns must resolve unambiguously before ppar writes a review report.
+
 Use these entry points:
 
 - [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): recommended

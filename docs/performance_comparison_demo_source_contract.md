@@ -106,10 +106,10 @@ flow-category, income-category, return-basis, and sign-convention YAML fields.
 | `transactions.security_type`, `transactions.source_destination_type`, `transactions.source_destination_symbol`, `transactions.special_security_type`, `transactions.special_security_symbol` | Context used by conditional YAML transaction rules. These fields help classify ambiguous Axys-style transaction codes; they are not themselves performance-cause fields. |
 | `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
 | `transactions.quantity`, `transactions.price`, `transactions.commission` | Supporting inputs for changed `transactions.amount`; not a formula for `transactions.amount`. |
-| `holdings.cost` | Other data difference. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
+| `holdings.cost` | Review evidence. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
 | `portperf.gain_loss`, `secperf.gain_loss` | Reported performance-extract context. These fields are defensible as report-style gain/loss components, but the local corpus does not prove native Axys/APX IMEX performance object names or calculation basis. They must not be described as recomputed tax-lot or accounting-ledger values. |
-| `transactions.settle_date` | Other data difference unless a future explicit settlement-date rule makes it performance-relevant. |
-| security-reference fields | Other data differences or suppressed context unless explicitly supported by a future rule. |
+| `transactions.settle_date` | Review evidence unless a future explicit settlement-date rule makes it performance-relevant. |
+| security-reference fields | Review evidence or suppressed context unless explicitly supported by a future rule. |
 
 The packaged Axys demo deliberately omits `transactions.transaction_id`.
 Stable transaction IDs are supported by ppar and remain the strongest matching

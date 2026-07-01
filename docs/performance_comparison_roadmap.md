@@ -35,6 +35,12 @@ review-only context, and conservative transaction row identity.
 
 Completed guardrails now cover:
 
+- the PyPI wheel package-data surface includes packaged demo CSV/YAML/README
+  inputs but excludes source-checkout generation internals;
+- the minimum source-data contract is documented and `validate_config` prints
+  required datasets and required normalized columns;
+- default YAML validation hard-stops before report generation when changed
+  fields lack additive, evidence-only, or suppression treatment;
 - packaged Axys transaction extracts omit `TRANSACTION_ID`;
 - no-ID transaction matching is conservative and case-sensitive;
 - ambiguous Axys-style `dp`, `li`, `lo`, and `wd` codes require source/destination
@@ -58,9 +64,6 @@ Modified Dietz report cleanup.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Packaging surface | Confirm the PyPI package includes the actual packaged Axys demo CSV/YAML/README files, but excludes demo-generation internals that are not part of the end product. | Wheel package-data stays limited to demo inputs and user-facing notes; source-distribution maintenance scripts are documented as source-checkout tooling, not installed-package workflow. |
-| User-facing input contract | Document the minimum required datasets and fields for a usable comparison. | User-facing docs name required portfolio performance, security performance, holdings, transaction, and reference fields; validation hard-stops when required datasets or fields are missing. Phase 39 completed the core source-data contract and reconstruction-file preflight guard; broader site-specific contract examples remain future hardening. |
-| YAML strictness | Audit whether YAML validation prevents unintelligible or misleading reports. | Missing transaction rules, missing impact methods, ambiguous Axys context gaps, and unclassified changed fields fail before report generation unless explicitly marked evidence-only or suppressed. Phase 40 aligned `validate_config` with default report-bundle YAML completeness checks; broader policy-by-policy message polish remains future hardening. |
 | Report bundle cleanup | Remove obsolete CSV artifacts from generated report bundles. | Manifest, README, validation tests, and generated bundle contents agree on the current artifact set. |
 | Code cleanup | Remove old dead code, obsolete legacy paths, and unnecessary backward-compatibility shims. | Public behavior stays covered; deleted paths have no package/API/test dependency. |
 | Polars execution audit | Confirm performance-comparison code uses Polars/lazy Polars where it materially matters. | Pandas use is absent from production hot paths or explicitly justified at boundaries; large joins/aggregations stay in Polars. |

@@ -652,12 +652,14 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIn("The remaining work is backlog expansion", roadmap)
         self.assertIn("The phase notes below are an implementation journal", roadmap)
+        self.assertIn("Completed guardrails now cover:", roadmap)
         self.assertIn("Phase 37: Roadmap Readability Refactor", roadmap)
         self.assertIn("Evidence-blocked backlog", roadmap)
         self.assertIn("Policy expansion", roadmap)
-        self.assertIn("PyPI package includes the actual packaged Axys demo", roadmap)
-        self.assertIn("Wheel package-data stays limited to demo inputs", roadmap)
-        self.assertIn("minimum required datasets and fields", roadmap)
+        self.assertIn("PyPI wheel package-data surface includes packaged demo", roadmap)
+        self.assertIn("excludes source-checkout generation internals", roadmap)
+        self.assertIn("minimum source-data contract is documented", roadmap)
+        self.assertIn("required datasets and required normalized columns", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
         self.assertIn("Richer APX demo", roadmap)
@@ -667,6 +669,9 @@ class TestPackageMetadata(unittest.TestCase):
             "Phase 40: YAML Strictness And Misleading-Report Prevention",
             roadmap,
         )
+        self.assertNotIn("| Packaging surface |", roadmap)
+        self.assertNotIn("| User-facing input contract |", roadmap)
+        self.assertNotIn("| YAML strictness |", roadmap)
         self.assertIn("validate_config` now uses the same complete-YAML", roadmap)
         self.assertIn("`--allow-incomplete-yaml`", roadmap)
 
@@ -1575,11 +1580,15 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_minimum_source_data_contract_is_documented(self) -> None:
         """The source-data contract helper and user-facing docs stay aligned."""
+        root_readme = Path("README.md").read_text(encoding=util.ENCODING)
         contract_doc = Path("docs/performance_comparison_demo_source_contract.md").read_text(
             encoding=util.ENCODING
         )
         contracts = performance_source_data_contract.source_data_contract()
 
+        self.assertIn("Minimum source-data contract:", root_readme)
+        self.assertIn("required normalized", root_readme)
+        self.assertIn("columns must resolve unambiguously", root_readme)
         self.assertIn("## Minimum Source-Data Contract", contract_doc)
         self.assertIn("stops before producing a report", contract_doc)
         self.assertIn("return reconstruction is configured", contract_doc)

@@ -214,7 +214,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "reported performance-extract context",
             "defensible as report-style gain/loss components",
             "must not be described as recomputed tax-lot or accounting-ledger values",
-            "other data difference unless a future explicit settlement-date rule",
+            "review evidence unless a future explicit settlement-date rule",
             "conservative no-id path",
             "does not prove a durable native transaction identifier",
             "not a full accounting-system export",
@@ -223,7 +223,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         for expected_text in [
             "Cost changes are useful review evidence but do not explain reported performance",
-            "Other data difference unless a future explicit settlement-date rule",
+            "Review evidence unless a future explicit settlement-date rule",
         ]:
             self.assertIn(expected_text, normalized_text)
 
