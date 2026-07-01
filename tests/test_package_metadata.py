@@ -591,6 +591,9 @@ class TestPackageMetadata(unittest.TestCase):
             "## How To Read This Roadmap",
             "## Current Status",
             "## Current Open Items",
+            "### Near-Term Deliverables",
+            "### Transaction Coverage Expansion",
+            "### Longer-Term Deliverables",
             "## Axys Extract Contract Review Map",
             "## Implementation Phases",
         ):
@@ -605,6 +608,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 37: Roadmap Readability Refactor", roadmap)
         self.assertIn("Evidence-blocked backlog", roadmap)
         self.assertIn("Policy expansion", roadmap)
+        self.assertIn("PyPI package includes the actual packaged Axys demo", roadmap)
+        self.assertIn("minimum required datasets and fields", roadmap)
+        self.assertIn("intentional `Unexplained`", roadmap)
+        self.assertIn("Do not add \"all transaction types\"", roadmap)
+        self.assertIn("Richer APX demo", roadmap)
+        self.assertIn("multi-currency data must affect comparison behavior", roadmap)
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""

@@ -48,7 +48,22 @@ Completed guardrails now cover:
 
 ## Current Open Items
 
-The remaining work is backlog expansion, not release-candidate cleanup.
+The remaining work is backlog expansion and release hardening, not core
+Modified Dietz report cleanup.
+
+### Near-Term Deliverables
+
+| Area | Deliverable | Exit criteria |
+| --- | --- | --- |
+| Packaging surface | Confirm the PyPI package includes the actual packaged Axys demo CSV/YAML/README files, but excludes demo-generation internals that are not part of the end product. | Wheel/sdist checks prove packaged demo inputs are included and generation-only code/docs are not exposed as product documentation. |
+| User-facing input contract | Document the minimum required datasets and fields for a usable comparison. | User-facing docs name required portfolio performance, security performance, holdings, transaction, and reference fields; validation hard-stops when required datasets or fields are missing. |
+| YAML strictness | Audit whether YAML validation prevents unintelligible or misleading reports. | Missing transaction rules, missing impact methods, ambiguous Axys context gaps, and unclassified changed fields fail before report generation unless explicitly marked evidence-only or suppressed. |
+| Demo explanation quality | Add at least one intentional `Unexplained` and one intentional `Partly Explained` period to each user-facing portfolio/security report when realistic. | Each period is real-world plausible, named in demo notes, visible in `report.xlsx` and `report.html`, and gives the reviewer a useful reason or next action. |
+| Report bundle cleanup | Remove obsolete CSV artifacts from generated report bundles. | Manifest, README, validation tests, and generated bundle contents agree on the current artifact set. |
+| Code cleanup | Remove old dead code, obsolete legacy paths, and unnecessary backward-compatibility shims. | Public behavior stays covered; deleted paths have no package/API/test dependency. |
+| Polars execution audit | Confirm performance-comparison code uses Polars/lazy Polars where it materially matters. | Pandas use is absent from production hot paths or explicitly justified at boundaries; large joins/aggregations stay in Polars. |
+| Speed bottleneck sweep | Identify major runtime bottlenecks and 80/20 execution-speed wins. | Profiling or targeted timing identifies the top bottlenecks; near-term fixes are separated from longer refactors. |
+| Simplification sweep | Identify 80/20 refactors that reduce complexity without changing report behavior. | Candidate refactors are ranked by risk and payoff; only high-confidence simplifications move into implementation. |
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
@@ -56,6 +71,29 @@ The remaining work is backlog expansion, not release-candidate cleanup.
 | Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. |
 | Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
+
+### Transaction Coverage Expansion
+
+Do not add "all transaction types" directly to the packaged Axys demo. Expand
+coverage in this order:
+
+1. Add or update the transaction semantics matrix with the evidence needed for
+   the transaction family.
+2. Add test-only fixtures for code-only failure, context-required behavior, and
+   review-only behavior.
+3. Promote a row to the packaged demo only when it is realistic, internally
+   consistent, and useful to the reviewer.
+
+Packaged demo rows should stay narrow enough to tell a coherent Modified Dietz
+story. Synthetic edge cases belong in test-only fixtures.
+
+### Longer-Term Deliverables
+
+| Area | Deliverable | Exit criteria |
+| --- | --- | --- |
+| Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
+| Multi-currency model | Add multi-currency source-data examples only when cash-account mapping, FX rates, reporting currency, and Modified Dietz treatment are explicit. | Reports distinguish FX/rate effects from cash-flow and valuation effects without implying vendor methodology that is not evidenced. |
+| Broader extract discovery | Review `docs/axys-apx-reference` for APX/Axys fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
 
 ## Axys Extract Contract Review Map
 
