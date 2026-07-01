@@ -1848,6 +1848,21 @@ external-flow diagnostics remain CSV artifacts, while
 `transaction_matching_diagnostics.csv` is positioned specifically as
 transaction row-identity audit support rather than a main review stop.
 
+### Phase 30: Demo Realism And No-ID Matching Audit
+
+Status: complete for packaged demo field-boundary guardrails.
+
+The packaged Axys demo now has an explicit field-boundary taxonomy separating
+mandatory product inputs, realistic packaged-demo fields, optional
+local-enrichment fields, and internal scenario/rebuild fields. Regression
+coverage pins the user-facing transaction header, confirms packaged
+transactions omit `TRANSACTION_ID`, confirms rule-disambiguation context fields
+remain packaged, and allows deterministic `TRANSACTION_ID` only in internal
+scenario tooling. Existing no-ID matching coverage already proves exact
+singleton fallback behavior, duplicate-candidate quarantine, case-sensitive
+transaction/security keys, and date-move add/drop treatment with Modified Dietz
+timing estimates.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

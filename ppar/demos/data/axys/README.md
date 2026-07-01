@@ -12,6 +12,8 @@ primary review level at runtime.
 The packaged CSV files follow the
 [Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
 They are normalized demo extracts, not official Axys/APX native schemas.
+The source contract separates mandatory product inputs, realistic packaged-demo
+fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
 [Demo Extract Availability](../../../../docs/axys-apx-reference/Appendix_Demo_Extract_Availability.md).
 
@@ -106,7 +108,9 @@ Data used:
   justify adding them here.
 - Packaged transaction rows omit `TRANSACTION_ID`. ppar supports stable
   transaction IDs when a local extract provides them, but the packaged Axys
-  demo uses the more realistic conservative no-ID path by default.
+  demo uses the more realistic conservative no-ID path by default. Internal
+  scenario/rebuild files may still use deterministic transaction IDs as fixture
+  handles; those IDs are not packaged as user-facing Axys transaction fields.
 - Current transaction coverage by home:
 
   | Home | Transaction families |

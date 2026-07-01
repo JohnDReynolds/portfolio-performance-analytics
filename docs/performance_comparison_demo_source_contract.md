@@ -46,6 +46,26 @@ those details as verified Axys/APX facts.
 | `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 | `security_master.csv` | Normalized security-reference context. | Security-reference changes are context unless a future supported rule makes a field performance-relevant. |
 
+## Field Boundary Taxonomy
+
+The packaged demo keeps four field groups separate:
+
+- **Mandatory product inputs**: fields ppar needs to compare Modified Dietz
+  performance, such as period dates, beginning/ending market value, return,
+  holdings value, and transaction amount when transaction rules classify the
+  row.
+- **Realistic packaged-demo fields**: Axys-style or report-style fields that
+  are defensible in the local research corpus and useful for the packaged
+  review story, such as transaction dates, security identifiers, transaction
+  codes, quantity, price, commission, cost, accrued interest, and portfolio or
+  security performance values.
+- **Optional local-enrichment fields**: fields ppar can use when a client site
+  can provide them, but that the packaged demo does not assume as typical Axys
+  output. Stable transaction IDs are the main example.
+- **Internal scenario/rebuild fields**: deterministic fixture handles used by
+  demo-generation scripts. These may include `TRANSACTION_ID`, but they must
+  not leak into the user-facing packaged Axys transaction CSVs.
+
 ## Field Role Contract
 
 | Source field family | Performance-comparison role |

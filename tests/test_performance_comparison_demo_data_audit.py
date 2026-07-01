@@ -70,6 +70,22 @@ _DEMO_EXTRACT_AVAILABILITY_PATH = (
 _PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "wd"}
 _TEST_ONLY_TRANSACTION_CODES = {"lo"}
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
+_PACKAGED_TRANSACTION_COLUMNS = [
+    "PORT",
+    "TRANSACTION_DATE",
+    "SETTLE_DATE",
+    "SEC",
+    "TRAN",
+    "SEC_TYPE",
+    "SRC_DEST_TYPE",
+    "SRC_DEST_SYMBOL",
+    "SPECIAL_SEC_TYPE",
+    "SPECIAL_SEC_SYMBOL",
+    "QTY",
+    "PRICE",
+    "AMOUNT",
+    "COMMISSION",
+]
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.ACCRUED),
@@ -171,6 +187,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         """The packaged demo contract preserves key source-data boundaries."""
         text = _DEMO_SOURCE_CONTRACT_PATH.read_text(encoding="utf-8")
         normalized_text = " ".join(text.split())
+        normalized_lower_text = normalized_text.lower()
 
         for expected_text in [
             "normalized demo extracts",
@@ -181,6 +198,43 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "transaction_rules",
         ]:
             self.assertIn(expected_text, normalized_text)
+
+        for expected_text in [
+            "mandatory product inputs",
+            "realistic packaged-demo fields",
+            "optional local-enrichment fields",
+            "internal scenario/rebuild fields",
+        ]:
+            self.assertIn(expected_text, normalized_lower_text)
+
+    def test_packaged_demo_transaction_fields_stay_user_facing(self) -> None:
+        """Packaged transaction extracts omit internal IDs but keep rule context."""
+        scenario_path = (
+            _REPO_ROOT
+            / "scripts"
+            / "operational_demo_data"
+            / "performance_comparison_transaction_scenarios.csv"
+        )
+
+        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+            with self.subTest(snapshot_directory=snapshot_directory):
+                transactions = pd.read_csv(
+                    _PACKAGED_AXYS_DIRECTORY
+                    / snapshot_directory
+                    / "transactions.csv",
+                    nrows=0,
+                )
+
+                self.assertEqual(
+                    list(transactions.columns),
+                    _PACKAGED_TRANSACTION_COLUMNS,
+                )
+                self.assertNotIn("TRANSACTION_ID", transactions.columns)
+                self.assertIn("SRC_DEST_TYPE", transactions.columns)
+                self.assertIn("SPECIAL_SEC_TYPE", transactions.columns)
+
+        scenario_columns = pd.read_csv(scenario_path, nrows=0).columns
+        self.assertIn("TRANSACTION_ID", scenario_columns)
 
     def test_packaged_demo_readme_documents_transaction_coverage_map(self) -> None:
         """The packaged demo README names packaged, test-only, and backlog rows."""
