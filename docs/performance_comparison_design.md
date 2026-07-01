@@ -1599,10 +1599,16 @@ be interpreted as a calculated residual.
 
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
 The bundle contains the HTML report, raw findings, current report helper tables
-as CSV files, a short `README.md`, and a JSON manifest with options, counts,
-artifact names, and row counts. This makes reviewer
-handoffs reproducible without coupling the comparison engine to a future
-Axys-specific presentation layer.
+as CSV files, a short `README.md`, a compact `review_summary.json`, and a JSON
+manifest with options, counts, artifact names, and row counts. This makes
+reviewer handoffs reproducible without coupling the comparison engine to a
+future Axys-specific presentation layer.
+
+Use `report_bundle_contract()` when code or review automation needs to inspect
+the generated-bundle handoff shape. The helper returns the required artifact
+keys, manifest keys, review entrypoints, review-summary keys, Modified Dietz
+review basis, and review vocabulary keys. It is a contract surface for the
+bundle, not a new transaction-classification or accounting layer.
 
 The intended bundle review order depends on whether a workbook was included:
 

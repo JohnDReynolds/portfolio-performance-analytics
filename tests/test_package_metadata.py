@@ -876,6 +876,7 @@ class TestPackageMetadata(unittest.TestCase):
             "_demo_output/performance_comparison_portfolio",
             "_demo_output/performance_comparison_security",
             "report.xlsx",
+            "report_bundle_contract()",
             "All demo commands print the generated artifact paths",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -894,6 +895,9 @@ class TestPackageMetadata(unittest.TestCase):
             "_demo_output/performance_comparison_security",
             "report.xlsx",
             "report.html",
+            "review_summary.json",
+            "report_bundle_contract()",
+            "not a new transaction-classification or accounting layer",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, design)

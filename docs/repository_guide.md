@@ -153,6 +153,11 @@ Use this lower-level command when you want to choose a YAML file or output
 directory yourself. The packaged demo command above is the recommended
 user-facing demo.
 
+Code that needs to inspect the generated report-bundle handoff surface should
+use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
+the required artifact keys, manifest keys, review entrypoints, review-summary
+keys, Modified Dietz review basis, and review vocabulary keys.
+
 ### Validate The Packaged Demo Matrix
 
 ```bash
