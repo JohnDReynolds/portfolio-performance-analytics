@@ -32,7 +32,7 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_SEMANTICS_SOURCE_YAML_RULE,
 )
 from ppar.performance_comparison.workbook_tables import (
-    _workbook_context_table,
+    _workbook_raw_audit_trail_table,
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
@@ -638,22 +638,22 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in cause_fields)
         )
 
-    def test_packaged_demo_other_data_differences_match_source_contract(self) -> None:
-        """Cost and non-performance evidence stays in Other Data Differences."""
+    def test_packaged_demo_audit_fields_match_source_contract(self) -> None:
+        """Cost remains audit evidence, not an additive performance cause."""
         findings = compare_snapshots(
             _PACKAGED_COMPARISON_PATH,
             require_causal_attribution=True,
         )
 
         causes = _workbook_underlying_causes_table(findings)
-        context = _workbook_context_table(findings)
+        raw_audit_trail = _workbook_raw_audit_trail_table(findings)
         cause_fields = _dataset_fields(causes)
-        context_fields = _dataset_fields(context)
+        raw_fields = _dataset_fields(raw_audit_trail)
 
-        self.assertIn((pc_cols.HOLDINGS, pc_cols.COST), context_fields)
+        self.assertIn((pc_cols.HOLDINGS, pc_cols.COST), raw_fields)
         self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
         self.assertFalse(
-            any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in context_fields)
+            any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in cause_fields)
         )
 
     def test_packaged_demo_accrual_changes_are_performance_causes(self) -> None:
@@ -670,10 +670,6 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
 
         self.assertGreater(accrued_causes.height, 0)
-        self.assertNotIn(
-            (pc_cols.HOLDINGS, pc_cols.ACCRUED),
-            _dataset_fields(_workbook_context_table(findings)),
-        )
 
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
         """Packaged reports preserve intentional partial and unresolved periods."""

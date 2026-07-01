@@ -68,15 +68,10 @@ differences from identifiable input differences and other evidence:
 - Optional reconstruction diagnostics can add `Return Reconstruction Checks`,
   `Security Return Checks`, and `Reconstruction Summary` sheets for
   implementation review, but normal demo output excludes them by default.
-- Evidence-only input rows normally appear in the `Other Data Differences` sheet. If a
-  portfolio or security period still has an unexplained difference, plausible
-  evidence-only input rows for that same review key are promoted into the
-  `Performance Difference Causes` sheet with blank `Performance Difference Explained`
-  values so the likely explanation is visible in one place.
-- `Other Data Differences` sheet: review-only supporting rows that are not used to
-  explain return differences and are not needed to review an unresolved period.
-  Transaction quantity, price, and commission rows usually live here as
-  supporting evidence for changed `transactions.amount`.
+- Review-only supporting rows remain in the `Raw Audit Trail`. Transaction
+  quantity, price, and commission rows may also appear on
+  `Performance Difference Causes` when they support a changed
+  `transactions.amount`.
 - `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
   Transaction match status appears here for audit and troubleshooting; the
   separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
@@ -169,7 +164,7 @@ Expected workbook:
     intentional residual for reviewer triage;
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
-    evidence, and TNOTE2Y cost in the `Other Data Differences` sheet;
+    evidence, and TNOTE2Y cost in the `Raw Audit Trail`;
   - an unexplained INCOME period where a TNOTE5Y cost-only correction is useful
     review evidence but no supported Modified Dietz input explains the
     reported portfolio and TNOTE5Y security return differences;
@@ -212,9 +207,9 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. |
-| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Other Data Differences` as support for the related performance input. |
+| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Raw Audit Trail` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | holding cost, FX rates, security reference data, unsupported fields | Shown on the `Other Data Differences` sheet unless promoted for review of an unresolved period. |
+| `context` | holding cost, FX rates, security reference data, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

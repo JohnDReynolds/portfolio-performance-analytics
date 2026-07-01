@@ -218,10 +218,8 @@ def write_report_bundle_readme(
         first_review_step,
         f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
         f"source-data differences additively explain each {review_unit}.",
-        f"3. Use {_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET} for "
-        f"review-only context. Use {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} "
-        "for audit and troubleshooting; it is the complete "
-        "finding-level audit trail.",
+        f"3. Use {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} for audit and "
+        "troubleshooting; it is the complete finding-level audit trail.",
         f"4. Use the `review_key` column to follow a {review_unit} across CSV artifacts.",
         "5. Use `transaction_activity.csv`, `transaction_cross_checks.csv`, and "
         "`flow_cross_check_reconciliation.csv` for supplementary transaction "

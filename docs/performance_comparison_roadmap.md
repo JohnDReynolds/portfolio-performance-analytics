@@ -97,6 +97,12 @@ story. Synthetic edge cases belong in test-only fixtures.
 | Multi-currency model | Add multi-currency source-data examples only when cash-account mapping, FX rates, reporting currency, and Modified Dietz treatment are explicit. | Reports distinguish FX/rate effects from cash-flow and valuation effects without implying vendor methodology that is not evidenced. |
 | Broader extract discovery | Review `docs/axys-apx-reference` for APX/Axys fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
 
+### Eventual Deliverables
+
+| Area | Deliverable | Exit criteria |
+| --- | --- | --- |
+| Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
+
 ## Axys Extract Contract Review Map
 
 The Axys extract guardrails now have a single review path:
@@ -356,14 +362,13 @@ A future workbook could include:
 ```text
 Performance Differences
 Performance Difference Causes
-Other Data Differences
 Return Reconstruction Checks
 Raw Audit Trail
 ```
 
 Current status: the normal user-facing workbook now uses `Performance
-Differences`, `Performance Difference Causes`, `Other Data Differences`,
-and `Raw Audit Trail`. Transaction matching diagnostics remain available in the
+Differences`, `Performance Difference Causes`, and `Raw Audit Trail`.
+Transaction matching diagnostics remain available in the
 bundle CSVs and raw audit trail rather than as a standalone default sheet.
 Reconstruction diagnostic sheets remain opt-in so the default workbook stays
 focused on reviewable performance differences and their source-data causes.
@@ -541,7 +546,7 @@ numerator, denominator, and source component inputs.
 - Generate comments from cause/residual patterns, not from free-form inference.
 - Prefer specific worksheet and field references over generic instructions.
 - Keep comments short enough for the workbook, with detailed evidence remaining
-  in `Performance Difference Causes`, `Other Data Differences`, and `Raw Audit Trail`.
+  in `Performance Difference Causes` and `Raw Audit Trail`.
 - Make guidance action-oriented and understandable when formula rows and
   supporting rows overlap.
 
@@ -678,7 +683,7 @@ Why did reported performance change from Snapshot A to Snapshot B?
 It should not become a general accounting engine. The goal is to generate demo
 fixtures that consistently explain performance differences from recognizable
 source-data changes, while leaving non-performance accounting differences as
-`Other Data Differences`.
+raw audit evidence.
 
 Useful Axys/APX transaction references:
 
@@ -724,7 +729,7 @@ Supporting evidence:
 - security identifiers and portfolio identifiers needed to connect evidence to
   the affected performance input.
 
-`Other Data Differences`:
+Raw audit evidence:
 
 - cost and cost-basis fields;
 - broker;
@@ -855,7 +860,7 @@ The packaged demo audit now verifies the user-facing report tables follow the
 source contract:
 
 - `Performance Difference Causes` only contains approved demo source fields;
-- holdings `cost` stays in `Other Data Differences`;
+- holdings `cost` stays in `Raw Audit Trail`;
 - configured holdings `accrued` changes remain performance-cause rows;
 - security-reference fields do not appear as performance causes or demo context
   evidence.
@@ -945,7 +950,7 @@ before writing if:
 This phase is intentionally larger than the current scenario guardrails, but its
 scope should stay narrow. It should explain performance-input changes, not
 rebuild portfolio accounting. Cost differences should remain visible as
-`Other Data Differences` unless they become direct inputs to a supported
+raw audit evidence unless they become direct inputs to a supported
 performance explanation.
 
 ### Phase 8: Improve Demo Data

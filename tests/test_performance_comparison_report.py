@@ -38,8 +38,8 @@ from ppar.performance_comparison.transaction_summary import (
     transaction_semantics_summary,
 )
 from ppar.performance_comparison.workbook_tables import (
-    _workbook_context_table,
     _workbook_portfolio_changes_table,
+    _workbook_raw_audit_trail_table,
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
 )
@@ -523,7 +523,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
-            self.assertIn("Other Data Differences for review-only context", readme)
             self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
             self.assertIn("source-data differences", readme)
             self.assertNotIn("source" + " data", readme)
@@ -924,18 +923,9 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         rules_findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
         rules_causes = _workbook_underlying_causes_table(rules_findings)
-        rules_context = _workbook_context_table(rules_findings)
         rules_transaction_amount = rules_causes.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "amount")
-        )
-        rules_transaction_quantity = rules_context.filter(
-            (pl.col("dataset") == "transactions")
-            & (pl.col("source_column") == "quantity")
-        )
-        rules_transaction_price = rules_context.filter(
-            (pl.col("dataset") == "transactions")
-            & (pl.col("source_column") == "price")
         )
         self.assertEqual(rules_transaction_amount.height, 1)
         self.assertIsNone(rules_transaction_amount["estimated_impact"][0])
@@ -1018,7 +1008,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "BUY: Caused cash-balance ending holdings.market_value to decrease by 10.00.",
         )
 
-    def test_transaction_commission_policy_marks_other_data_differences_review_only(
+    def test_transaction_commission_policy_marks_commission_review_only(
         self,
     ) -> None:
         """Commission appears as review-only supporting evidence."""
@@ -1027,11 +1017,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 Path(temp_dir)
             )
 
-            context = _workbook_context_table(
+            raw_audit_trail = _workbook_raw_audit_trail_table(
                 compare_snapshots(comparison_path),
             )
 
-        commission = context.filter(
+        commission = raw_audit_trail.filter(
             (pl.col("dataset") == "transactions")
             & (pl.col("source_column") == "commission")
         )
@@ -1238,18 +1228,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
 
         portfolio_changes = _workbook_portfolio_changes_table(findings)
         underlying_causes = _workbook_underlying_causes_table(findings)
-        other_data_differences = _workbook_context_table(findings)
         portfolio_keys = set(portfolio_changes["review_key"].to_list())
         cause_keys = set(underlying_causes["review_key"].to_list())
         promoted_fields = {
             (str(row["dataset"]), str(row["source_column"]))
             for row in underlying_causes.select(["dataset", "source_column"]).iter_rows(
-                named=True
-            )
-        }
-        other_data_differences_fields = {
-            (str(row["dataset"]), str(row["source_column"]))
-            for row in other_data_differences.select(["dataset", "source_column"]).iter_rows(
                 named=True
             )
         }
@@ -1265,12 +1248,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ("transactions", "price"),
                 ("transactions", "quantity"),
             }.issubset(promoted_fields)
-        )
-        self.assertFalse(
-            {
-                ("transactions", "commission"),
-                ("transactions", "price"),
-            }.intersection(other_data_differences_fields)
         )
         _assert_workbook_explained_rows_reconcile(
             self,
@@ -1317,7 +1294,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn("additively explain each performance period", readme)
-            self.assertIn("Other Data Differences for review-only context", readme)
             self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
             self.assertIn("complete finding-level audit trail", readme)
             self.assertIn("follow a performance period across CSV artifacts", readme)
@@ -1337,7 +1313,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 [
                     "Performance Differences",
                     "Performance Difference Causes",
-                    "Other Data Differences",
                     "Raw Audit Trail",
                 ],
             )
@@ -1477,31 +1452,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 ][0],
                 "PORT_A::2025-05-30::2025-05-30",
             )
-
-            context_sheet = workbook["Other Data Differences"]
-            self.assertGreater(context_sheet.max_row, 1)
-            self.assertEqual(
-                [_normalized_header(cell.value) for cell in context_sheet[1]],
-                [
-                    "Portfolio",
-                    "From Date",
-                    "Thru Date",
-                    "As Of Date",
-                    "Dataset Field",
-                    "Security",
-                    "Snapshot A Value",
-                    "Snapshot B Value",
-                    "B - A Difference",
-                    "Explanation",
-                    "Review Key",
-                ],
-            )
-            self.assertNotIn(
-                "Performance Difference Explained",
-                [cell.value for cell in context_sheet[1]],
-            )
-            self.assertNotIn("Code", [cell.value for cell in context_sheet[1]])
-            self.assertNotIn("Review Rank", [cell.value for cell in context_sheet[1]])
 
             findings_sheet = workbook["Raw Audit Trail"]
             self.assertEqual(

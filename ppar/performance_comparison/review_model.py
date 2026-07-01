@@ -15,7 +15,6 @@ REVIEW_WORKBOOK_FILE_NAME: Final[str] = "report.xlsx"
 
 PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
 PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT: Final[str] = "performance_difference_causes"
-OTHER_DATA_DIFFERENCES_ARTIFACT: Final[str] = "other_data_differences"
 RAW_AUDIT_TRAIL_ARTIFACT: Final[str] = "raw_audit_trail"
 TRANSACTION_MATCHING_DIAGNOSTICS_ARTIFACT: Final[str] = (
     "transaction_matching_diagnostics"
@@ -31,7 +30,6 @@ RECONSTRUCTION_SUMMARY_SHEET: Final[str] = "Reconstruction Summary"
 RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Return Reconstruction Checks"
 SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Security Return Checks"
 PERFORMANCE_DIFFERENCE_CAUSES_SHEET: Final[str] = "Performance Difference Causes"
-OTHER_DATA_DIFFERENCES_SHEET: Final[str] = "Other Data Differences"
 TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: Final[str] = (
     "Transaction Match Diagnostics"
 )
@@ -43,7 +41,6 @@ PRIMARY_REVIEW_SHEETS: Final[tuple[str, ...]] = (
 )
 SHARED_REVIEW_SHEETS: Final[tuple[str, ...]] = (
     PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    OTHER_DATA_DIFFERENCES_SHEET,
     RAW_AUDIT_TRAIL_SHEET,
 )
 EXPECTED_REVIEW_SHEETS: Final[tuple[str, ...]] = (

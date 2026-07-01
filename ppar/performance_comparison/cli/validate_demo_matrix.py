@@ -29,8 +29,8 @@ from ppar.performance_comparison.report import (
     _residual_status_table,
 )
 from ppar.performance_comparison.workbook_tables import (
-    _workbook_context_table,
     _workbook_portfolio_changes_table,
+    _workbook_raw_audit_trail_table,
     _workbook_underlying_causes_table,
 )
 
@@ -158,7 +158,7 @@ def _validate_demo_matrix(
 
     baseline_portfolio_changes = _workbook_portfolio_changes_table(baseline_findings)
     restatement_causes = _workbook_underlying_causes_table(restatement_findings)
-    restatement_context = _workbook_context_table(restatement_findings)
+    restatement_raw_audit_trail = _workbook_raw_audit_trail_table(restatement_findings)
     transaction_rules_causes = _workbook_underlying_causes_table(transaction_rules_findings)
     multi_causes = _workbook_underlying_causes_table(multi_findings)
     policy_gap_causes = _workbook_underlying_causes_table(policy_gap_findings)
@@ -174,7 +174,7 @@ def _validate_demo_matrix(
         _baseline_and_attribution_checks(
             baseline_portfolio_changes,
             restatement_causes,
-            restatement_context,
+            restatement_raw_audit_trail,
             transaction_rules_causes,
             policy_gap_causes,
             context_evidence,
@@ -229,7 +229,7 @@ def _argument_parser() -> argparse.ArgumentParser:
 def _baseline_and_attribution_checks(
     baseline_portfolio_changes: pl.DataFrame,
     restatement_causes: pl.DataFrame,
-    restatement_context: pl.DataFrame,
+    restatement_raw_audit_trail: pl.DataFrame,
     transaction_rules_causes: pl.DataFrame,
     policy_gap_causes: pl.DataFrame,
     context_evidence: pl.DataFrame,
@@ -258,7 +258,7 @@ def _baseline_and_attribution_checks(
             "review_guidance",
             "transaction_rules",
         ),
-        _check_transaction_rows_visible(restatement_causes, restatement_context),
+        _check_transaction_rows_visible(restatement_causes, restatement_raw_audit_trail),
         _check_transaction_rules_explain_amount(transaction_rules_causes),
         _check_non_empty_table(
             "Context-only evidence",
@@ -326,13 +326,13 @@ def _check_workbook_column(
 
 def _check_transaction_rows_visible(
     causes: pl.DataFrame,
-    context: pl.DataFrame,
+    raw_audit_trail: pl.DataFrame,
 ) -> _ScenarioCheck:
     """Return whether the single-restatement workbook table shows transactions."""
     transaction_rows = pl.concat(
         [
             causes.filter(pl.col("dataset") == "transactions"),
-            context.filter(pl.col("dataset") == "transactions"),
+            raw_audit_trail.filter(pl.col("dataset") == "transactions"),
         ],
         how="diagonal_relaxed",
     )
@@ -528,21 +528,23 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
                 f"{dataset}.{column}" for dataset, column in missing_promoted_fields
             ),
         )
-    context = _workbook_context_table(findings)
-    context_fields = {
+    raw_audit_trail = _workbook_raw_audit_trail_table(findings)
+    raw_fields = {
         (str(row["dataset"]), str(row["source_column"]))
-        for row in context.select(["dataset", "source_column"]).iter_rows(named=True)
+        for row in raw_audit_trail.select(["dataset", "source_column"]).iter_rows(
+            named=True
+        )
     }
-    expected_context_fields = {
+    expected_raw_fields = {
         ("holdings", "cost"),
     }
-    missing_context_fields = sorted(expected_context_fields - context_fields)
-    if missing_context_fields:
+    missing_raw_fields = sorted(expected_raw_fields - raw_fields)
+    if missing_raw_fields:
         return _ScenarioCheck(
             name,
             False,
-            "portfolio fixture is missing context field(s): "
-            + ", ".join(f"{dataset}.{column}" for dataset, column in missing_context_fields),
+            "portfolio fixture is missing raw audit field(s): "
+            + ", ".join(f"{dataset}.{column}" for dataset, column in missing_raw_fields),
         )
     return _ScenarioCheck(
         name,

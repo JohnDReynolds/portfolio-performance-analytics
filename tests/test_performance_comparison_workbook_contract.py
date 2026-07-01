@@ -24,7 +24,6 @@ _PORTFOLIO_COMPARISON_PATH = Path(
 _EXPECTED_PORTFOLIO_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
@@ -34,7 +33,6 @@ _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _COMMON_LEFT_HEADERS = [
@@ -52,14 +50,6 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "As Of Date",
     "Dataset Field",
     "Security",
-]
-_NON_ADDITIVE_HEADERS = [
-    *_IDENTIFIABLE_LEFT_HEADERS,
-    "Snapshot A Value",
-    "Snapshot B Value",
-    "B - A Difference",
-    "Explanation",
-    "Review Key",
 ]
 _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
     ("BALANCED", "2026-05-01", "2026-05-29", "Partly Explained"),
@@ -218,10 +208,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     _raw_header_values(workbook["Performance Difference Causes"]),
                 )
                 self.assertEqual(
-                    _header_values(workbook["Other Data Differences"]),
-                    _NON_ADDITIVE_HEADERS,
-                )
-                self.assertEqual(
                     _header_values(workbook["Raw Audit Trail"])[:12],
                     [
                         *_COMMON_LEFT_HEADERS,
@@ -290,25 +276,24 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     else:
                         self.assertIsNotNone(row[5])
                 balanced_may = partly_explained_rows[0]
-                self.assertIn("The Unexplained Difference (+2.00 bps)", balanced_may[7])
                 self.assertIn(
-                    "Compare portfolio_performance.portfolio_return",
-                    balanced_may[7],
-                )
-                self.assertIn(
-                    "portfolio_performance.begin_market_value and "
-                    "portfolio_performance.end_market_value",
+                    "The remaining Unexplained Difference may be due to missing "
+                    "source-data, source-file timing differences, or vendor "
+                    "methodology that does not match the YAML specifications.",
                     balanced_may[7],
                 )
                 self.assertNotIn("portfolio_performance.gain_loss", balanced_may[7])
                 self.assertNotIn("holdings.cost", balanced_may[7])
                 income_april = unexplained_rows[0]
-                self.assertIn("The Unexplained Difference (+3.50 bps)", income_april[7])
-                self.assertIn("portfolio_performance.portfolio_return", income_april[7])
+                self.assertIn(
+                    "The Unexplained Difference may be due to missing source-data, "
+                    "source-file timing differences, or vendor methodology that "
+                    "does not match the YAML specifications.",
+                    income_april[7],
+                )
                 self.assertNotIn("holdings.cost", income_april[7])
                 self.assertNotIn(
-                    'Review the "Other Data Differences" sheet and '
-                    '"Raw Audit Trail" sheet',
+                    'Review the "Raw Audit Trail" sheet',
                     income_april[7],
                 )
                 self.assertTrue(
@@ -449,13 +434,9 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     any(guidance.startswith("dv: ") for guidance in transaction_guidance)
                 )
-                context_rows = _sheet_rows(workbook["Other Data Differences"])
-                context_fields = {row[4] for row in context_rows}
-                self.assertTrue(
-                    {
-                        "holdings.cost",
-                    }.issubset(context_fields)
-                )
+                raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
+                raw_fields = {row[4] for row in raw_rows}
+                self.assertIn("holdings.cost", raw_fields)
             finally:
                 workbook.close()
 
@@ -598,7 +579,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     (128.0 + 50.0 + 80.0) / 64000.0,
                     places=6,
                 )
-                context_rows = _sheet_rows(workbook["Other Data Differences"])
+                raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
                 self.assertTrue(
                     {
                         ("holdings.cost", "AAPL"),
@@ -606,7 +587,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("holdings.cost", "MSFT"),
                         ("holdings.cost", "TNOTE2Y"),
                     }.issubset(
-                        {(row[4], row[5]) for row in context_rows}
+                        {(row[4], row[5]) for row in raw_rows}
                     )
                 )
                 underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])

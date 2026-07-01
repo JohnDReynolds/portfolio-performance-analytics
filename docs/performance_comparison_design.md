@@ -81,17 +81,18 @@ Current workbook field roles:
 - `input_component`: fields that explain or reconcile a performance input, such
   as holding quantity/price and transaction
   quantity/price/commission. Holding quantity can appear beside a related
-  holding market-value input. Transaction quantity, price, and commission
-  normally remain in the `Other Data Differences` sheet as support for changed
-  `transactions.amount`, so transaction arithmetic is not double-counted or
-  treated as a rebuilt accounting-system formula.
+  holding market-value input. Transaction quantity, price, and commission may
+  appear beside a related `transactions.amount` row, while non-promoted support
+  remains in the `Raw Audit Trail`, so transaction arithmetic is not
+  double-counted or treated as a rebuilt accounting-system formula.
 - `reported_performance_component`: portfolio/security performance output
   fields such as return, income, gain/loss, contribution, weight, and market
   value. These remain reporting diagnostics and are not treated as underlying
   causes.
 - `context`: review-only supporting fields such as holding cost, FX rates,
-  security reference fields, and unknown fields. These normally remain on the
-  `Other Data Differences` sheet.
+  security reference fields, and unknown fields. These remain in the
+  `Raw Audit Trail` unless they are direct inputs to a supported performance
+  explanation.
 
 The packaged user-facing performance-comparison demos represent cash as a
 `CASH_USD` row in the holdings file rather than as a separate `cash.csv` file.
@@ -104,8 +105,6 @@ Current report vocabulary:
   performance between Snapshot A and Snapshot B, shows the explained portion,
   and leaves `Unexplained Difference` blank when a row is fully explained.
 - `Performance Difference Causes`: source-data rows that are counted in
-  `Explained Difference`.
-- `Other Data Differences`: source-data rows that changed but are not counted in
   `Explained Difference`.
 - `Raw Audit Trail`: detailed finding rows used for audit and troubleshooting.
 - `transaction_matching_diagnostics.csv`: supplementary transaction row-identity
@@ -1648,9 +1647,7 @@ The intended bundle review order starts in the generated report files:
 1. `report.xlsx`, when present, or `report.html` for browser review. Start with
    `Performance Differences`, then use `Performance Difference Causes` to
    understand what explains each portfolio-period difference.
-2. `Other Data Differences`: review-only context that is not counted in
-   `Explained Difference`.
-3. `Raw Audit Trail` / `findings.csv`: complete finding-level audit output for
+2. `Raw Audit Trail` / `findings.csv`: complete finding-level audit output for
    troubleshooting and traceability.
 
 Other generated helper tables include `impact_estimates.csv`,
@@ -1705,16 +1702,15 @@ differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
 now requires every changed source-data field that ppar knows how to classify to
 be explicitly configured as additive, evidence-only, or suppressed in YAML
-before any report artifacts are written. Evidence-only input rows normally stay
-in the `Other Data Differences` sheet, but plausible evidence-only rows for a period or
-security with a meaningful unexplained remainder are promoted into the
-`Performance Difference Causes` sheet with blank `Performance Difference Explained` values.
-This promotion is a workbook presentation rule, not a new attribution model.
+before any report artifacts are written. Unresolved residuals are summarized in
+the `Performance Differences` comments and the full underlying finding detail
+remains in `Raw Audit Trail`; there is no default residual-evidence sheet unless
+a future diagnostic can identify a real reviewable mechanism.
 Changed periods without any visible cause or promoted evidence row get a
-`no_underlying_causes_found` diagnostic row. The `Other Data Differences` sheet lists
-review-only supporting rows. The `Raw Audit Trail` sheet preserves the full
-finding-level detail, including reported-performance diagnostics that confirm
-reporting differences but are not root causes.
+`no_underlying_causes_found` diagnostic row. The `Raw Audit Trail` sheet
+preserves the full finding-level detail, including context rows such as cost and
+reported-performance diagnostics that confirm reporting differences but are not
+root causes.
 Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.
@@ -1788,9 +1784,9 @@ Row-level `context_evidence.csv` detail carries the same priority labels and
 reasons as the grouped summary so reviewers do not need to infer priority by
 joining artifacts manually.
 In the workbook, plausible evidence-only input rows for unresolved periods may
-be shown on the `Performance Difference Causes` sheet instead of the `Other Data Differences`
-sheet so the reviewer can see likely explanations and calculated explanations
-together. Transaction component rows such as `transactions.quantity`,
+be shown on the `Performance Difference Causes` sheet so the reviewer can see
+likely explanations and calculated explanations together. Transaction component
+rows such as `transactions.quantity`,
 `transactions.price`, and `transactions.commission` also appear on the
 `Performance Difference Causes` sheet when they support a changed `transactions.amount`;
 their explained-difference columns remain blank because they are inputs for the

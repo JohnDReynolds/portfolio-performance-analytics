@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 import datetime as _dt
 from pathlib import Path
 
@@ -373,17 +373,6 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name=_pc_review_model.OTHER_DATA_DIFFERENCES_ARTIFACT,
-            sheet_name=_pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
-            table=_workbook_context_table(
-                active_findings,
-                comparison_path=comparison_path,
-                comparison_level=comparison_level,
-            ),
-            columns=_workbook_non_additive_change_columns(),
-            labels=_workbook_column_labels(),
-        ),
-        _pc_workbook.ReviewWorkbookSheet(
             artifact_name=_pc_review_model.RAW_AUDIT_TRAIL_ARTIFACT,
             sheet_name=_pc_review_model.RAW_AUDIT_TRAIL_SHEET,
             table=_workbook_raw_audit_trail_table(
@@ -413,10 +402,6 @@ def _workbook_portfolio_changes_table(
         findings,
         comparison_path=comparison_path,
     )
-    review_hints = _workbook_residual_review_hints(
-        findings,
-        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
-    )
     rows = [
         _workbook_performance_change_row(
             {
@@ -425,8 +410,7 @@ def _workbook_portfolio_changes_table(
                     _workbook_period_key(row),
                     0.0,
                 ),
-            },
-            review_hint=review_hints.get(_workbook_period_key(row)),
+            }
         )
         for row in coverage.iter_rows(named=True)
     ]
@@ -533,8 +517,6 @@ def _workbook_primary_coverage_summary(
 
 def _workbook_performance_change_row(
     row: Mapping[str, object],
-    *,
-    review_hint: str | None = None,
 ) -> dict[str, object]:
     """Return one plain-English performance-change workbook row."""
     performance_change = _workbook_performance_difference(row)
@@ -559,7 +541,7 @@ def _workbook_performance_change_row(
         _ESTIMATED_CAUSE_TOTAL: estimated_total,
         _UNEXPLAINED_CHANGE: unexplained_display,
         _REVIEW_STATUS: review_status,
-        _REVIEW_NOTE: _workbook_performance_comments(row, review_hint=review_hint),
+        _REVIEW_NOTE: _workbook_performance_comments(row),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
 
@@ -598,8 +580,6 @@ def _workbook_explanation_status(row: Mapping[str, object]) -> str:
 
 def _workbook_performance_comments(
     row: Mapping[str, object],
-    *,
-    review_hint: str | None = None,
 ) -> str:
     """Return plain-language comments for a performance difference."""
     if _workbook_explanation_status(row) == _STATUS_FULLY_EXPLAINED:
@@ -617,49 +597,53 @@ def _workbook_performance_comments(
             return ""
         if abs(underlying_estimated_total) > 0:
             return _workbook_unexplained_review_comment(
-                review_hint,
                 partly=True,
                 residual=residual,
+                explained=underlying_estimated_total,
             )
         return _workbook_unexplained_review_comment(
-            review_hint,
             partly=False,
             residual=residual,
         )
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_COMPLETE_ESTIMATES:
         return ""
     if status == _pc_explain.IMPACT_COVERAGE_STATUS_PARTIAL_ESTIMATES:
-        return _workbook_unexplained_review_comment(review_hint, partly=True)
-    return _workbook_unexplained_review_comment(review_hint, partly=False)
+        return _workbook_unexplained_review_comment(partly=True)
+    return _workbook_unexplained_review_comment(partly=False)
 
 
 def _workbook_unexplained_review_comment(
-    review_hint: str | None,
     *,
     partly: bool,
     residual: float | None = None,
+    explained: float | None = None,
 ) -> str:
     """Return directed comments for unresolved performance differences."""
-    residual_text = _workbook_residual_size_text(residual)
-    prefix = (
-        f"{residual_text} remains after the explained rows."
-        if partly
-        else f"{residual_text} has no supported additive cause."
-    )
-    if review_hint:
-        return f"{prefix} {review_hint}"
+    if residual is not None and partly and explained is not None:
+        del explained
+        return (
+            "The remaining Unexplained Difference may be due to missing "
+            "source-data, source-file timing differences, or vendor methodology that "
+            "does not match the YAML specifications."
+        )
+    if residual is not None:
+        del residual
+        return (
+            "The Unexplained Difference may be due to missing source-data, "
+            "source-file timing differences, or vendor methodology that does "
+            "not match the YAML specifications."
+        )
+    if partly:
+        return (
+            "The remaining Unexplained Difference may be due to missing "
+            "source-data, source-file timing differences, or vendor methodology that "
+            "does not match the YAML specifications."
+        )
     return (
-        f"{prefix} Start with matching Review Key rows in Performance Difference "
-        'Causes, Other Data Differences, and Raw Audit Trail.'
+        "The Unexplained Difference may be due to missing source-data, "
+        "source-file timing differences, or vendor methodology that does not "
+        "match the YAML specifications."
     )
-
-
-def _workbook_residual_size_text(residual: float | None) -> str:
-    """Return a compact residual size phrase for review comments."""
-    if residual is None:
-        return "The Unexplained Difference"
-    basis_points = residual * 10000
-    return f"The Unexplained Difference ({basis_points:+.2f} bps)"
 
 
 def _workbook_empty_portfolio_changes_table() -> pl.DataFrame:
@@ -705,10 +689,6 @@ def _workbook_security_changes_table(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
     )
-    review_hints = _workbook_residual_review_hints(
-        findings,
-        comparison_level=comparison_level,
-    )
     rows: list[dict[str, object]] = []
     if not summary.is_empty():
         rows = [
@@ -719,8 +699,7 @@ def _workbook_security_changes_table(
                         _workbook_security_period_key(row),
                         0.0,
                     ),
-                },
-                review_hint=review_hints.get(_workbook_security_period_key(row)),
+                }
             )
             for row in summary.iter_rows(named=True)
         ]
@@ -1244,150 +1223,11 @@ def _workbook_security_period_key(
     )
 
 
-def _workbook_residual_review_hints(
-    findings: pl.DataFrame,
-    *,
-    comparison_level: str,
-) -> dict[tuple[object, ...], str]:
-    """Return directed review hints for periods with unexplained residuals."""
-    hints: dict[tuple[object, ...], str] = {}
-    rows_by_key: dict[tuple[object, ...], list[dict[str, object]]] = {}
-    for row in _workbook_with_primary_review_key(
-        findings,
-        comparison_level,
-    ).iter_rows(named=True):
-        rows_by_key.setdefault(
-            _workbook_primary_key(row, comparison_level),
-            [],
-        ).append(row)
-
-    for key, rows in rows_by_key.items():
-        target_refs = _workbook_review_field_refs(
-            (
-                row
-                for row in rows
-                if _workbook_is_reported_diagnostic_row(row)
-                and row.get(_pc_findings.SOURCE_COLUMN)
-                in {pc_cols.PORTFOLIO_RETURN, pc_cols.SECURITY_RETURN}
-            ),
-            comparison_level=comparison_level,
-        )
-        formula_refs = _workbook_review_field_refs(
-            (
-                row
-                for row in rows
-                if _workbook_is_reported_diagnostic_row(row)
-                and row.get(_pc_findings.SOURCE_COLUMN)
-                in {
-                    pc_cols.BEGIN_MARKET_VALUE,
-                    pc_cols.END_MARKET_VALUE,
-                    pc_cols.FLOW,
-                    pc_cols.INCOME,
-                }
-            ),
-            comparison_level=comparison_level,
-        )
-        hints[key] = _workbook_residual_review_hint(
-            target_refs=target_refs,
-            formula_refs=formula_refs,
-        )
-    return hints
-
-
-def _workbook_residual_review_hint(
-    *,
-    target_refs: Sequence[str],
-    formula_refs: Sequence[str],
-) -> str:
-    """Return one directed reviewer hint from available evidence rows."""
-    if target_refs and formula_refs:
-        return (
-            f"Compare {_workbook_join_review_refs(target_refs)} to the Modified "
-            f"Dietz input rows {_workbook_join_review_refs(formula_refs)} in Raw "
-            "Audit Trail. The remaining difference is a reported-performance "
-            "residual, not an additive source-data cause."
-        )
-    if target_refs:
-        return (
-            f"Start with {_workbook_join_review_refs(target_refs)} in Raw Audit "
-            "Trail. No supported Modified Dietz input row explains the remaining "
-            "reported return difference."
-        )
-    return (
-        "Start with rows that share this Review Key in Performance Difference Causes, "
-        "Other Data Differences, and Raw Audit Trail."
-    )
-
-
-def _workbook_review_field_refs(
-    rows: Iterable[Mapping[str, object]],
-    *,
-    comparison_level: str,
-    limit: int = 3,
-) -> list[str]:
-    """Return compact dataset-field references for review comments."""
-    refs: list[str] = []
-    seen: set[str] = set()
-    sorted_rows = sorted(
-        list(rows),
-        key=_workbook_review_ref_sort_key,
-    )
-    for row in sorted_rows:
-        ref = _workbook_review_field_ref(row, comparison_level=comparison_level)
-        if not ref or ref in seen:
-            continue
-        refs.append(ref)
-        seen.add(ref)
-        if len(refs) >= limit:
-            break
-    return refs
-
-
-def _workbook_review_ref_sort_key(row: Mapping[str, object]) -> tuple[int, str]:
-    """Return stable priority for review-comment evidence references."""
-    source_column = row.get(_pc_findings.SOURCE_COLUMN)
-    priority = {
-        pc_cols.PORTFOLIO_RETURN: 0,
-        pc_cols.SECURITY_RETURN: 0,
-        pc_cols.BEGIN_MARKET_VALUE: 1,
-        pc_cols.END_MARKET_VALUE: 2,
-        pc_cols.FLOW: 3,
-        pc_cols.INCOME: 4,
-    }.get(source_column, 10)
-    return priority, _workbook_dataset_field(row)
-
-
-def _workbook_review_field_ref(
-    row: Mapping[str, object],
-    *,
-    comparison_level: str,
-) -> str:
-    """Return one dataset-field reference for reviewer comments."""
-    dataset_field = _workbook_dataset_field(row)
-    if not dataset_field:
-        return ""
-    security_id = row.get(_pc_findings.SECURITY_ID)
-    if comparison_level == PORTFOLIO_COMPARISON_LEVEL and _has_text(security_id):
-        return f"{dataset_field} ({_format_value(security_id)})"
-    return dataset_field
-
-
-def _workbook_join_review_refs(refs: Sequence[str]) -> str:
-    """Join compact evidence references for a plain-language comment."""
-    if len(refs) <= 1:
-        return refs[0] if refs else ""
-    if len(refs) == 2:
-        return f"{refs[0]} and {refs[1]}"
-    return f"{', '.join(refs[:-1])}, and {refs[-1]}"
-
-
 def _workbook_security_change_row(
     row: Mapping[str, object],
-    *,
-    review_hint: str | None = None,
 ) -> dict[str, object]:
     """Return one security-level result row for the workbook."""
-    performance_row = _workbook_performance_change_row(row, review_hint=review_hint)
+    performance_row = _workbook_performance_change_row(row)
     return {
         **performance_row,
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
@@ -1960,12 +1800,15 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _REVIEW_NOTE: (
-            'Review the "Other Data Differences" sheet, "Raw Audit Trail" sheet, missing '
-            "datasets, or vendor methodology."
+            'Review the "Raw Audit Trail" sheet. The difference may be due to '
+            "missing source-data, source-file timing differences, or vendor "
+            "methodology that does not match the YAML specifications."
         ),
         _REVIEW_GUIDANCE: (
-            'No identifiable cause was found. Review the "Other Data Differences" '
-            'sheet, "Raw Audit Trail" sheet, missing datasets, or vendor methodology.'
+            'No identifiable cause was found. Review the "Raw Audit Trail" sheet. '
+            "The difference may be due to missing source-data, source-file timing "
+            "differences, or vendor methodology that does not match the YAML "
+            "specifications."
         ),
         _pc_findings.DATASET: _NO_UNDERLYING_CAUSE_DATASET,
         _pc_findings.SOURCE_COLUMN: None,
@@ -1974,45 +1817,6 @@ def _workbook_missing_underlying_cause_row(
         _USE_PRIORITY: _workbook_use_priority(_USE_DIAGNOSTIC),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
-
-
-def _workbook_context_table(
-    findings: pl.DataFrame,
-    *,
-    comparison_path: util.PathLike | None = None,
-    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
-) -> pl.DataFrame:
-    """Return review-context rows that are not additive return explanations."""
-    unexplained_keys = _workbook_unexplained_primary_keys(
-        findings,
-        comparison_path=comparison_path,
-        comparison_level=comparison_level,
-    )
-    performance_input_keys = _workbook_performance_input_family_keys(
-        findings,
-        comparison_level=comparison_level,
-    )
-    rows = []
-    for row in _workbook_ranked_changed_rows_for_level(
-        findings,
-        comparison_level=comparison_level,
-    ):
-        if not _workbook_is_context_row(row):
-            continue
-        if _workbook_should_promote_context_row(
-            row,
-            unexplained_keys,
-            performance_input_keys,
-            comparison_level=comparison_level,
-        ):
-            continue
-        rows.append(_workbook_changed_item_row(_workbook_non_additive_row(row)))
-    if not rows:
-        return _workbook_empty_changed_item_table()
-    return _workbook_sorted_table(
-        pl.DataFrame(rows, infer_schema_length=None),
-        _workbook_left_review_sort_columns(comparison_level=comparison_level),
-    )
 
 
 def _workbook_unexplained_primary_keys(
@@ -2558,17 +2362,14 @@ def _workbook_review_note(
     dataset = _format_value(row.get(_pc_findings.DATASET))
     source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
     if dataset in {pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.SECURITY_PERFORMANCE}:
-        return (
-            "This is simply a difference in the raw performance datasets. Check "
-            'the "Performance Difference Causes" sheet to see what explains it.'
-        )
+        return _workbook_performance_dataset_review_note(source_column)
     source_explanation = _workbook_source_row_explanation(row, dataset, source_column)
     if source_explanation:
         return source_explanation
     if _workbook_has_evidence_only_policy(row):
         return (
             'Review-only evidence; this row is not counted in '
-            '"Performance Differences"."Explained Difference".'
+            '"Performance Differences" or "Explained Difference".'
         )
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return (
@@ -2624,6 +2425,23 @@ def _workbook_source_row_explanation(
     return ""
 
 
+def _workbook_performance_dataset_review_note(source_column: str) -> str:
+    """Return review guidance for reported performance-extract rows."""
+    if source_column in {pc_cols.PORTFOLIO_RETURN, pc_cols.SECURITY_RETURN}:
+        return (
+            "Reported return residual; no supported source-data row explains "
+            "this difference."
+        )
+    if source_column in {
+        pc_cols.BEGIN_MARKET_VALUE,
+        pc_cols.END_MARKET_VALUE,
+        pc_cols.FLOW,
+        pc_cols.INCOME,
+    }:
+        return "Performance-extract input; not a separate additive cause."
+    return "Performance-extract diagnostic; not a separate additive cause."
+
+
 def _workbook_review_guidance(
     row: Mapping[str, object],
     estimated_impact: float | None,
@@ -2672,7 +2490,7 @@ def _workbook_review_guidance(
     if _workbook_has_evidence_only_policy(row):
         return (
             'Review-only evidence; this row is not counted in '
-            '"Performance Differences"."Explained Difference".'
+            '"Performance Differences" or "Explained Difference".'
         )
     if (
         _workbook_is_context_row(row)
@@ -3112,23 +2930,6 @@ def _workbook_underlying_cause_columns() -> tuple[str, ...]:
         _CHANGE,
         _ESTIMATED_IMPACT,
         _REVIEW_GUIDANCE,
-        _REVIEW_KEY,
-    )
-
-
-def _workbook_non_additive_change_columns() -> tuple[str, ...]:
-    """Return non-additive reported-performance and context worksheet columns."""
-    return (
-        _pc_findings.PORTFOLIO_ID,
-        _pc_findings.FROM_DATE,
-        _pc_findings.THRU_DATE,
-        _AS_OF_DATE,
-        _DATASET_FIELD,
-        _pc_findings.SECURITY_ID,
-        _pc_findings.SNAPSHOT_A_VALUE,
-        _pc_findings.SNAPSHOT_B_VALUE,
-        _CHANGE,
-        _REVIEW_NOTE,
         _REVIEW_KEY,
     )
 
