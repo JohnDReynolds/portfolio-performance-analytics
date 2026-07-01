@@ -558,7 +558,8 @@ class PerformanceComparisonSpecification:
 
     def _file(self, file_name: str, file_value: object) -> ComparisonFile:
         """Return one resolved comparison file definition."""
-        required = file_name == self._required_performance_file_name()
+        required_file_names = self._required_file_names()
+        required = file_name in required_file_names
         if isinstance(file_value, str):
             relative_path = Path(file_value)
         elif isinstance(file_value, dict):
@@ -569,10 +570,11 @@ class PerformanceComparisonSpecification:
                     504,
                 )
             if _REQUIRED_KEY in file_value:
-                if file_name == self._required_performance_file_name():
+                if file_name in required_file_names:
                     raise PpaError(
                         self._error_message(
-                            f"files.{file_name} must not specify required."
+                            f"files.{file_name} is required by the comparison "
+                            "contract and must not specify required."
                         ),
                         504,
                     )
@@ -627,6 +629,18 @@ class PerformanceComparisonSpecification:
         if self.comparison_level == SECURITY_COMPARISON_LEVEL:
             return _SECURITY_PERFORMANCE_KEY
         return _PORTFOLIO_PERFORMANCE_KEY
+
+    def _required_file_names(self) -> frozenset[str]:
+        """Return source file names required by comparison level and formulas."""
+        required_names = {self._required_performance_file_name()}
+        if (
+            self.portfolio_return_reconstruction is not None
+            or self.security_return_reconstruction is not None
+        ):
+            required_names.update({"holdings", "transactions"})
+        if self.security_return_reconstruction is not None:
+            required_names.add(_SECURITY_PERFORMANCE_KEY)
+        return frozenset(required_names)
 
     @staticmethod
     def _snapshot_file_path(

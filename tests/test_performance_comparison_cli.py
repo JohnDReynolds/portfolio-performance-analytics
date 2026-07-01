@@ -254,6 +254,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
         self.assertIn("Config validation passed:", result.stdout)
         self.assertIn("Configured datasets:", result.stdout)
+        self.assertIn("Minimum required datasets: portfolio_performance", result.stdout)
+        self.assertIn("Required source-data columns:", result.stdout)
+        self.assertIn(
+            "portfolio_performance: portfolio_id, from_date, thru_date, "
+            "portfolio_return",
+            result.stdout,
+        )
         self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn(
             "Contribution impact methods: portfolio_source_field, "

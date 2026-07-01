@@ -13,6 +13,10 @@ from ppar.performance_comparison import schema as _pc_cols
 from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.extract_contract import extract_contract_summary
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.source_data_contract import (
+    comparison_required_dataset_names,
+    source_data_contract_summary,
+)
 from ppar.performance_comparison.transaction_summary import (
     format_codes,
     format_semantics_source_counts,
@@ -49,6 +53,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Snapshot A: {summary['snapshot_a']}")
     print(f"Snapshot B: {summary['snapshot_b']}")
     print(f"Configured datasets: {summary['dataset_names']}")
+    print(f"Minimum required datasets: {summary['minimum_required_datasets']}")
+    print(f"Required source-data columns: {summary['required_source_data_columns']}")
     print(f"Missing optional files: {summary['missing_optional_files']}")
     print(f"Contribution impact methods: {summary['contribution_impact_methods']}")
     print(f"Holding impact methods: {summary['holding_impact_methods']}")
@@ -107,10 +113,21 @@ def validate_config(comparison_path: Path) -> dict[str, object]:
         specification_path=specification.path,
     )
     dataset_names = ", ".join(sorted(specification.files))
+    minimum_contract = source_data_contract_summary(
+        comparison_level=specification.comparison_level,
+        include_reconstruction_sources=(
+            specification.portfolio_return_reconstruction is not None
+            or specification.security_return_reconstruction is not None
+        ),
+    )
     return {
         "snapshot_a": specification.snapshot_a.path,
         "snapshot_b": specification.snapshot_b.path,
         "dataset_names": dataset_names,
+        "minimum_required_datasets": ", ".join(
+            comparison_required_dataset_names(specification)
+        ),
+        "required_source_data_columns": minimum_contract["required_columns"],
         "missing_optional_files": _missing_optional_files(specification),
         "contribution_impact_methods": _contribution_impact_methods(specification),
         "holding_impact_methods": _holding_impact_methods(specification),

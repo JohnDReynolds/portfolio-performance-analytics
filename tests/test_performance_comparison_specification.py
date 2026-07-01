@@ -119,6 +119,65 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 802"))
             self.assertIn("missing_transactions.csv", str(context.exception))
 
+    def test_reconstruction_source_files_are_required(self) -> None:
+        """Return reconstruction source files cannot be silently optional."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["portfolio_return_reconstruction"] = {
+                "method": "modified_dietz",
+                "beginning_value_source": "holdings",
+                "ending_value_source": "holdings",
+                "flow_source": "transactions",
+                "flow_timing": "transaction_date",
+                "day_count": "actual_days",
+                "inclusion_rule": "beginning_of_day",
+                "flow_categories": ["external_flow"],
+                "income_categories": ["income"],
+                "return_basis": "net",
+                "sign_convention": "signed_amount",
+            }
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "holdings": "missing_holdings.csv",
+                "transactions": "missing_transactions.csv",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaises(PpaError) as context:
+                PerformanceComparisonSpecification(path)
+
+            self.assertTrue(str(context.exception).startswith("Error 802"))
+            self.assertIn("missing_holdings.csv", str(context.exception))
+
+    def test_reconstruction_source_files_must_not_opt_out_of_required(self) -> None:
+        """Reconstruction-required files cannot override required to false."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["portfolio_return_reconstruction"] = {
+                "method": "modified_dietz",
+                "beginning_value_source": "holdings",
+                "ending_value_source": "holdings",
+                "flow_source": "transactions",
+                "flow_timing": "transaction_date",
+                "day_count": "actual_days",
+                "inclusion_rule": "beginning_of_day",
+                "flow_categories": ["external_flow"],
+                "income_categories": ["income"],
+                "return_basis": "net",
+                "sign_convention": "signed_amount",
+            }
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "holdings": {"path": "holdings.csv", "required": False},
+                "transactions": "transactions.csv",
+            }
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaisesRegex(PpaError, "required by the comparison contract"):
+                PerformanceComparisonSpecification(path)
+
     def test_duplicate_yaml_section_key_raises(self) -> None:
         """Duplicate YAML sections fail instead of silently overriding values."""
         with tempfile.TemporaryDirectory() as temp_dir:

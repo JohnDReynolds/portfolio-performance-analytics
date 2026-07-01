@@ -67,6 +67,35 @@ The packaged demo keeps four field groups separate:
   demo-generation scripts. These may include `TRANSACTION_ID`, but they must
   not leak into the user-facing packaged Axys transaction CSVs.
 
+## Minimum Source-Data Contract
+
+The comparison YAML must identify the source datasets ppar is allowed to read
+from both Snapshot A and Snapshot B. The selected comparison level determines
+the target performance dataset:
+
+| Dataset | Required when | Required normalized columns |
+| --- | --- | --- |
+| `portfolio_performance` | `comparison.level` is `portfolio`. | `portfolio_id`, `from_date`, `thru_date`, `portfolio_return` |
+| `security_performance` | `comparison.level` is `security`, or `security_return_reconstruction` is configured. | `portfolio_id`, `security_id`, `from_date`, `thru_date`, `security_return` |
+| `holdings` | Portfolio or security return reconstruction is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date` |
+| `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
+| `security_master` | Security-reference context or security-master rules are used. | `security_id` |
+| `cash` | Cash rows are used as source-data evidence. | `portfolio_id`, `cash_date` |
+| `fx_rates` | FX-rate rows are used as source-data evidence. | `from_currency`, `to_currency`, `rate_date`, `fx_rate` |
+
+Configured required datasets must exist in both snapshots. If a required source
+file is missing, if a required normalized column cannot be resolved from the
+source header and schema aliases, or if a required source column is ambiguous,
+ppar stops before producing a report. Optional datasets may be omitted; if a
+configured optional file exists, its required columns are still validated before
+that dataset contributes evidence.
+
+Return reconstruction tightens the contract. When portfolio or security return
+reconstruction is configured, `holdings` and `transactions` are required
+formula-source datasets, not optional evidence files. Modified Dietz also
+requires the configured reconstruction timing, day-count, inclusion,
+flow-category, income-category, return-basis, and sign-convention YAML fields.
+
 ## Field Role Contract
 
 | Source field family | Performance-comparison role |

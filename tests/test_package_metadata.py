@@ -48,6 +48,9 @@ from ppar.performance_comparison import fixed_income as performance_fixed_income
 from ppar.performance_comparison import (
     transaction_summary as performance_transaction_summary,
 )
+from ppar.performance_comparison import (
+    source_data_contract as performance_source_data_contract,
+)
 from ppar.performance_comparison.transaction_boundary_registry import (
     TRANSACTION_BOUNDARY_REGISTRY,
     registered_transaction_codes,
@@ -1555,6 +1558,52 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(term=term):
                 self.assertIn(term, matrix)
 
+    def test_minimum_source_data_contract_is_documented(self) -> None:
+        """The source-data contract helper and user-facing docs stay aligned."""
+        contract_doc = Path("docs/performance_comparison_demo_source_contract.md").read_text(
+            encoding=util.ENCODING
+        )
+        contracts = performance_source_data_contract.source_data_contract()
+
+        self.assertIn("## Minimum Source-Data Contract", contract_doc)
+        self.assertIn("stops before producing a report", contract_doc)
+        self.assertIn("return reconstruction is configured", contract_doc)
+        for contract in contracts:
+            with self.subTest(dataset=contract.name):
+                self.assertIn(f"`{contract.name}`", contract_doc)
+                for column in contract.required_columns:
+                    self.assertIn(f"`{column}`", contract_doc)
+
+    def test_source_data_contract_module_exports_public_helpers(self) -> None:
+        """The source-data contract module exports only its public helpers."""
+        expected_exports = {
+            "SourceDataDatasetContract",
+            "comparison_required_dataset_names",
+            "source_data_contract",
+            "source_data_contract_summary",
+        }
+
+        self.assertEqual(set(performance_source_data_contract.__all__), expected_exports)
+
+    def test_source_data_contract_summary_includes_reconstruction_sources(self) -> None:
+        """Contract summaries name formula-source datasets when requested."""
+        summary = performance_source_data_contract.source_data_contract_summary(
+            include_reconstruction_sources=True,
+        )
+
+        self.assertEqual(
+            summary["required_datasets"],
+            "holdings, portfolio_performance, transactions",
+        )
+        self.assertIn(
+            "holdings: portfolio_id, security_id, holding_date",
+            summary["required_columns"],
+        )
+        self.assertIn(
+            "transactions: portfolio_id, security_id, transaction_date",
+            summary["required_columns"],
+        )
+
     def test_performance_comparison_method_constants_use_enum_values(self) -> None:
         """Report and finding constants stay aligned with YAML method enums."""
         self.assertEqual(
@@ -1695,6 +1744,7 @@ class TestPackageMetadata(unittest.TestCase):
         helper_modules = {
             "backlog_gates": performance_backlog_gates,
             "fixed_income": performance_fixed_income,
+            "source_data_contract": performance_source_data_contract,
             "transaction_boundary_registry": performance_boundary_registry,
             "transaction_summary": performance_transaction_summary,
         }
