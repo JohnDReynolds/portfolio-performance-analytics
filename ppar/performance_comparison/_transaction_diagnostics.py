@@ -35,11 +35,16 @@ def transaction_match_review_note(match_status: object) -> str:
         Human-readable text explaining how to interpret the matching status.
     """
     if match_status == TRANSACTION_MATCH_STATUS_ID_MATCH:
-        return "Changed fields were compared on rows matched by transaction_id."
+        return (
+            "Changed fields were compared on rows matched by stable "
+            "transaction_id."
+        )
     if match_status == TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH:
         return (
-            "Changed fields were compared on an exact one-to-one fallback key; "
-            "review as weaker than a transaction_id match."
+            "Changed fields were compared only because there was exactly one "
+            "row in each snapshot for the same portfolio, trade date, security "
+            "identifier, and native transaction code; review as weaker than a "
+            "transaction_id match."
         )
     if match_status == TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B:
         return "Transaction row appears only in snapshot B; review as added activity."
@@ -55,7 +60,8 @@ def transaction_match_review_note(match_status: object) -> str:
     if match_status == TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED:
         return (
             "No stable transaction_id was available; strict fallback keys left "
-            "rows unmatched rather than inferring an edit."
+            "rows unmatched rather than inferring an edit from fuzzy, "
+            "nearest-date, amount, quantity, or price similarity."
         )
     return "Review this transaction matching status before interpreting activity."
 

@@ -227,7 +227,8 @@ def write_report_bundle_readme(
         "`flow_cross_check_reconciliation.csv` for supplementary transaction "
         "and external-flow diagnostics.",
         "   Use `transaction_matching_diagnostics.csv` only when auditing "
-        "transaction row-identity evidence.",
+        "transaction row-identity evidence; it reports conservative matching "
+        "status and does not imply fuzzy transaction linkage.",
         "6. Use `review_summary.json` when handing the bundle to another reviewer "
         "or automation. It names the Modified Dietz vocabulary, entrypoints, "
         "source context, and transaction-semantics summary in one compact file.",

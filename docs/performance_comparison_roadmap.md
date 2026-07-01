@@ -1884,6 +1884,19 @@ browser review, and keep CSV artifacts for diagnostics and audit traceability.
 Regression coverage pins that wording so the older "same review model in a
 browser" phrasing does not drift back into public demo guidance.
 
+### Phase 33: Transaction Evidence Realism And Conservative Matching Audit
+
+Status: complete for reviewer-facing transaction matching boundaries.
+
+Transaction matching diagnostic notes now name the confidence boundary directly:
+stable `transaction_id` matches are strongest, exact singleton fallback matches
+require one row in each snapshot for the same portfolio, trade date, security
+identifier, and native transaction code, and unmatched strict-fallback rows are
+not inferred from fuzzy, nearest-date, amount, quantity, or price similarity.
+Generated bundle README guidance also frames
+`transaction_matching_diagnostics.csv` as conservative row-identity evidence
+rather than a user-facing transaction-linkage claim.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

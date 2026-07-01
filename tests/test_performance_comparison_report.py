@@ -536,6 +536,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "transaction row-identity evidence",
                 readme,
             )
+            self.assertIn("conservative matching status", readme)
+            self.assertIn("does not imply fuzzy transaction linkage", readme)
             self.assertNotIn("cross-check rows may be", readme)
             self.assertIn("`review_summary.json`", readme)
             self.assertIn("Modified Dietz vocabulary", readme)
@@ -786,6 +788,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(
                 transaction_matching["transaction_match_status"][0],
                 "matched_by_id",
+            )
+            self.assertIn(
+                "stable transaction_id",
+                transaction_matching["transaction_match_review_note"][0],
             )
             self.assertIn(
                 "transaction matching status counts",

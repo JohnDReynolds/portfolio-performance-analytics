@@ -70,6 +70,20 @@ class TransactionDiagnosticsTest(unittest.TestCase):
 
         self.assertIn("strict fallback keys", note)
         self.assertIn("rather than inferring an edit", note)
+        self.assertIn("fuzzy", note)
+        self.assertIn("nearest-date", note)
+        self.assertIn("amount, quantity, or price similarity", note)
+
+    def test_singleton_fallback_note_names_exact_identity_key(self) -> None:
+        """Singleton fallback notes name the only permitted no-ID edit key."""
+        note = tx_diagnostics.transaction_match_review_note(
+            TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH
+        )
+
+        self.assertIn("exactly one row in each snapshot", note)
+        self.assertIn("same portfolio, trade date, security identifier", note)
+        self.assertIn("native transaction code", note)
+        self.assertIn("weaker than a transaction_id match", note)
 
     def test_transaction_matching_confidence_and_interpretation_are_reviewer_facing(
         self,
