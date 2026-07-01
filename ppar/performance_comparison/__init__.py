@@ -1,4 +1,10 @@
-"""Compare performance snapshots and explain restatements."""
+"""Compare performance snapshots and explain restatements.
+
+The package root intentionally exposes workflow entrypoints, source-data
+loaders, core finding objects, and report-bundle handoff helpers. More surgical
+policy, validation, and evidence-pack helpers remain importable as direct
+submodules so the root API does not grow with every internal review aid.
+"""
 
 from ppar.performance_comparison.bundle import (
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
@@ -60,34 +66,46 @@ from ppar.performance_comparison.specification import (
 from ppar.performance_comparison.transactions import TransactionsLoader
 
 __all__ = [
+    # Source-data loaders and comparison specification objects.
     "CashLoader",
     "ComparisonFile",
     "ComparisonSnapshot",
+    "FxRatesLoader",
+    "HoldingsLoader",
+    "PerformanceComparisonSpecification",
+    "PortfolioPerformanceLoader",
+    "SecurityPerformanceLoader",
+    "SecurityMasterLoader",
+    "TransactionsLoader",
+    # Core comparison and finding model.
     "CONTEXT",
     "DIRECT_INPUT",
     "EVIDENCE_ROLE",
     "Finding",
-    "FxRatesLoader",
+    "PerformanceComparison",
+    "RELATED_OUTPUT",
+    "TARGET_OUTPUT",
+    "compact_findings_table",
+    "compare_snapshots",
+    "findings_to_polars",
+    "schema",
+    "summarize_findings",
+    "validate_causal_attribution_ready",
+    "validate_yaml_setup_complete",
+    # Report and bundle handoff helpers.
+    "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
+    "report_bundle_contract",
+    "report_bundle_validation_issues",
+    "write_performance_comparison_report_bundle",
+    "write_performance_comparison_review_workbook",
+    # Suppression and explanation helpers kept for compatibility with existing
+    # review automation.
     "IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD",
     "IMPACT_BASIS_SECURITY_RETURN_WEIGHTED",
     "IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT",
     "IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV",
-    "PerformanceComparison",
-    "PortfolioPerformanceLoader",
-    "PerformanceComparisonSpecification",
-    "HoldingsLoader",
-    "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
-    "SecurityPerformanceLoader",
-    "SecurityMasterLoader",
     "SuppressionRule",
-    "RELATED_OUTPUT",
-    "TARGET_OUTPUT",
-    "TransactionsLoader",
     "apply_suppressions",
-    "schema",
-    "compact_findings_table",
-    "compare_snapshots",
-    "findings_to_polars",
     "portfolio_period_cause_summary",
     "portfolio_period_contribution_candidates",
     "portfolio_period_evidence_breakdown",
@@ -96,15 +114,8 @@ __all__ = [
     "portfolio_period_summary",
     "portfolio_period_transaction_cross_checks",
     "rank_portfolio_period_evidence",
-    "report_bundle_contract",
-    "report_bundle_validation_issues",
     "security_period_evidence_breakdown",
     "security_period_summary",
-    "summarize_findings",
-    "validate_causal_attribution_ready",
-    "validate_yaml_setup_complete",
     "transaction_activity_summary",
     "transaction_matching_diagnostics",
-    "write_performance_comparison_report_bundle",
-    "write_performance_comparison_review_workbook",
 ]

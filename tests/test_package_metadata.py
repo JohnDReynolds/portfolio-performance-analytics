@@ -686,6 +686,9 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 43: Cleanup And Artifact Retention Sweep", roadmap)
         self.assertIn("removed a stale workbook helper", roadmap)
         self.assertIn("transaction row-identity audit support", roadmap)
+        self.assertIn("Phase 44: Public API And Compatibility Shim Audit", roadmap)
+        self.assertIn("package-root `ppar.performance_comparison` API", roadmap)
+        self.assertIn("direct-submodule imports", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -1043,6 +1046,9 @@ class TestPackageMetadata(unittest.TestCase):
             "_demo_output/performance_comparison_security",
             "report.xlsx",
             "report_bundle_contract()",
+            "prefer the package-root workflow helpers",
+            "direct-submodule imports",
+            "package-root exports",
             "All demo commands print the generated artifact paths",
         ]:
             with self.subTest(expected_text=expected_text):

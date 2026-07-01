@@ -2157,6 +2157,28 @@ report/workbook helper simplifications and obsolete compatibility shims only
 when tests prove the public report, manifest, and packaged-demo boundaries are
 unchanged.
 
+### Phase 44: Public API And Compatibility Shim Audit
+
+Status: complete for a first public-surface boundary audit.
+
+The package-root `ppar.performance_comparison` API remains focused on workflow
+entrypoints, source-data loaders, core finding objects, and report-bundle
+handoff helpers. The root export list is now grouped by intent in code so
+maintainers can see which names are workflow surface, report handoff, and
+compatibility explanation helpers.
+
+No public root exports were removed in this pass. Existing tests and demos still
+import several explanation and diagnostic helpers from the package root, so
+removing them would be an API-breaking cleanup rather than a safe dead-code
+change. Boundary and evidence-pack helpers such as fixed-income rules, backlog
+gates, source-data contracts, transaction-boundary registry data, and
+transaction summaries remain direct-submodule imports and are intentionally not
+added to the package root.
+
+The repository guide now tells Python integrations to prefer package-root
+workflow helpers for normal comparison/report use, while treating specialized
+policy and evidence-pack helpers as direct-submodule imports.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

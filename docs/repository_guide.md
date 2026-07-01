@@ -161,6 +161,15 @@ use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
 the required artifact keys, manifest keys, review entrypoints, review-summary
 keys, Modified Dietz review basis, and review vocabulary keys.
 
+For Python integrations, prefer the package-root workflow helpers:
+`compare_snapshots()`, `write_performance_comparison_report_bundle()`,
+`write_performance_comparison_review_workbook()`, `report_bundle_contract()`,
+and `report_bundle_validation_issues()`. More specialized policy and
+evidence-pack helpers, such as fixed-income boundaries, backlog gates,
+transaction boundary registry data, transaction summaries, and source-data
+contract validation, are intentionally direct-submodule imports rather than
+package-root exports.
+
 ### Validate The Packaged Demo Matrix
 
 ```bash
