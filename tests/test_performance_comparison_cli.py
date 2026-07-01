@@ -113,6 +113,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue((output_directory / "context_evidence.csv").exists())
             self.assertTrue((output_directory / "impact_coverage.csv").exists())
             self.assertTrue((output_directory / "manifest.json").exists())
+            self.assertTrue((output_directory / "review_summary.json").exists())
             report = (output_directory / "report.html").read_text(encoding="utf-8")
             self.assertIn("<h1>Script Bundle Report</h1>", report)
             self.assertIn("Performance Differences", report)
@@ -134,7 +135,19 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "context_evidence_summary.csv",
             )
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
+            self.assertEqual(
+                manifest["artifacts"]["review_summary"],
+                "review_summary.json",
+            )
             self.assertNotIn("report", manifest["artifacts"])
+            review_summary = json.loads(
+                (output_directory / "review_summary.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                review_summary["review_basis"],
+                "Modified Dietz evidence pack",
+            )
+            self.assertEqual(review_summary["entrypoints"], manifest["review_entrypoints"])
 
     def test_bundle_cli_module_requires_complete_yaml_by_default(self) -> None:
         """The bundle CLI fails before writing reports from incomplete YAML."""

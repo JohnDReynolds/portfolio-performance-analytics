@@ -1546,6 +1546,39 @@ Status: complete for the current validation pass.
 Commit preparation should include the demo matrix validator and the full test
 suite. Do not commit generated review work until both pass.
 
+### Phase 15: Reviewer Handoff Summary
+
+Phase 15 keeps the review pack focused on Modified Dietz evidence while making
+bundle handoff easier for a second reviewer or automation.
+
+#### Phase 15A: Compact Bundle Summary Artifact
+
+Status: complete for the current report-bundle contract.
+
+Generated report bundles now include `review_summary.json`. The file repeats the
+small subset of manifest data a reviewer needs first:
+
+- Modified Dietz review vocabulary;
+- review entrypoints;
+- source context;
+- finding counts;
+- transaction-semantics summary;
+- artifact map.
+
+The summary intentionally distinguishes formula inputs from supporting evidence,
+context-only rows, review-only rows, and backlog gates. This keeps reinvested
+dividends, transaction diagnostics, and other evidence families from being
+treated as automatic return inputs unless policy and source evidence justify
+that treatment.
+
+#### Phase 15B: Handoff Validation
+
+Status: complete for the current summary schema.
+
+Bundle validation now checks that `review_summary.json` is present, has the
+expected summary schema, and matches the manifest fields it repeats. This makes
+the compact handoff artifact useful without creating a second source of truth.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

@@ -34,12 +34,14 @@ __all__ = [
     "write_csv_artifact",
     "write_report_bundle_manifest",
     "write_report_bundle_readme",
+    "write_report_bundle_review_summary",
 ]
 
 REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "html_report",
     "readme",
     "manifest",
+    "review_summary",
     "findings",
     "needs_review_summary",
     "portfolio_period_summary",
@@ -69,6 +71,39 @@ _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "tables",
     "review_entrypoints",
 )
+_REVIEW_SUMMARY_VERSION = 1
+_REVIEW_SUMMARY_REQUIRED_KEYS = (
+    "summary_version",
+    "review_basis",
+    "review_vocabulary",
+    "entrypoints",
+    "source_context",
+    "counts",
+    "transaction_semantics",
+    "artifacts",
+)
+_REVIEW_VOCABULARY = {
+    "formula_input": (
+        "A value that ppar can use directly in the Modified Dietz return "
+        "reconstruction or additive explanation."
+    ),
+    "supporting_evidence": (
+        "Source evidence that helps audit or explain a formula input without "
+        "being counted as a separate return input."
+    ),
+    "context_only": (
+        "Reviewer context that can prioritize or interpret a difference but is "
+        "not counted in the Modified Dietz formula."
+    ),
+    "review_only": (
+        "Evidence shown for reviewer judgment with no automatic return-impact "
+        "treatment."
+    ),
+    "backlog_gate": (
+        "A transaction or evidence family blocked until policy or source samples "
+        "justify a Modified Dietz treatment."
+    ),
+}
 
 
 def write_csv_artifact(table: pl.DataFrame, output_path: Path) -> Path:
@@ -161,12 +196,18 @@ def write_report_bundle_readme(
         "`flow_cross_check_reconciliation.csv` for transaction and external-flow "
         "diagnostics. These CSVs are audit aids; cross-check rows may be "
         "evidence-only or intentionally non-additive.",
+        "6. Use `review_summary.json` when handing the bundle to another reviewer "
+        "or automation. It names the Modified Dietz vocabulary, entrypoints, "
+        "source context, and transaction-semantics summary in one compact file.",
         "",
         "## Audit/Export Files",
         "",
         "- `findings.csv`: complete finding-level comparison output.",
         "- `manifest.json`: machine-readable artifact map, source context, "
         "transaction semantics summary, and row-count metadata.",
+        "- `review_summary.json`: compact reviewer handoff summary with Modified "
+        "Dietz vocabulary, entrypoints, source context, counts, and transaction "
+        "semantics.",
         *_report_bundle_readme_table_lines(tables),
     ]
     output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
@@ -231,6 +272,56 @@ def write_report_bundle_manifest(
         encoding=util.ENCODING,
     )
     return output_path
+
+
+def write_report_bundle_review_summary(
+    output_path: Path,
+    *,
+    manifest: Mapping[str, object],
+) -> Path:
+    """Write a compact review-handoff summary for a report bundle.
+
+    Args:
+        output_path: Destination summary path.
+        manifest: Manifest data for the same report bundle.
+
+    Returns:
+        Normalized destination path.
+    """
+    summary = _report_bundle_review_summary(manifest=manifest)
+    output_path.write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        encoding=util.ENCODING,
+    )
+    return output_path
+
+
+def _report_bundle_review_summary(
+    *,
+    manifest: Mapping[str, object],
+) -> dict[str, object]:
+    """Return compact reviewer-facing metadata for a report bundle.
+
+    Args:
+        manifest: Manifest data for the same report bundle.
+
+    Returns:
+        JSON-serializable review summary data.
+
+    Notes:
+        The summary repeats selected manifest fields intentionally. It is a
+        short reviewer handoff file, not the authoritative artifact inventory.
+    """
+    return {
+        "summary_version": _REVIEW_SUMMARY_VERSION,
+        "review_basis": "Modified Dietz evidence pack",
+        "review_vocabulary": dict(_REVIEW_VOCABULARY),
+        "entrypoints": _manifest_mapping(manifest, "review_entrypoints"),
+        "source_context": _manifest_mapping(manifest, "source_context"),
+        "counts": _manifest_mapping(manifest, "counts"),
+        "transaction_semantics": _manifest_mapping(manifest, "transaction_semantics"),
+        "artifacts": _manifest_mapping(manifest, "artifacts"),
+    }
 
 
 def report_bundle_manifest(
@@ -366,6 +457,7 @@ def _report_bundle_review_entrypoints(
         "supporting_context": artifacts.get("context_evidence_summary"),
         "transaction_diagnostics": transaction_diagnostics,
         "audit_trail": artifacts.get("findings"),
+        "review_handoff": artifacts.get("review_summary"),
     }
     if include_reconstruction_diagnostics:
         entrypoints["return_reconstruction"] = [
@@ -406,6 +498,7 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
     issues.extend(_report_bundle_review_entrypoint_issues(manifest, artifacts))
     issues.extend(_report_bundle_source_context_issues(manifest))
     issues.extend(_report_bundle_transaction_semantics_issues(manifest))
+    issues.extend(_report_bundle_review_summary_issues(bundle_path, manifest, artifacts))
     issues.extend(_report_bundle_table_issues(bundle_path, artifacts, tables))
     issues.extend(_report_bundle_workbook_issues(bundle_path, artifacts))
     return issues
@@ -605,6 +698,65 @@ def _report_bundle_transaction_semantics_issues(
             "manifest transaction_semantics.semantics_source_counts is malformed"
         )
     return issues
+
+
+def _report_bundle_review_summary_issues(
+    bundle_path: Path,
+    manifest: Mapping[str, object],
+    artifacts: Mapping[str, object],
+) -> list[str]:
+    """Return malformed review-summary artifact issues."""
+    summary_file = artifacts.get("review_summary")
+    if not isinstance(summary_file, str) or not summary_file:
+        return []
+    summary_path = bundle_path / summary_file
+    if not summary_path.exists():
+        return []
+
+    summary = _read_json_object(summary_path)
+    if summary is None:
+        return ["review_summary.json is not a JSON object"]
+
+    issues: list[str] = []
+    for key in _REVIEW_SUMMARY_REQUIRED_KEYS:
+        if key not in summary:
+            issues.append(f"review_summary top-level key {key!r} is missing")
+    if summary.get("summary_version") != _REVIEW_SUMMARY_VERSION:
+        issues.append("review_summary summary_version is unsupported")
+    if summary.get("review_basis") != "Modified Dietz evidence pack":
+        issues.append("review_summary review_basis is malformed")
+
+    vocabulary = summary.get("review_vocabulary")
+    if not isinstance(vocabulary, dict) or not all(
+        isinstance(value, str) and value
+        for value in vocabulary.values()
+    ):
+        issues.append("review_summary review_vocabulary is malformed")
+    elif set(vocabulary) != set(_REVIEW_VOCABULARY):
+        issues.append("review_summary review_vocabulary keys are malformed")
+
+    manifest_fields = {
+        "entrypoints": _manifest_mapping(manifest, "review_entrypoints"),
+        "source_context": _manifest_mapping(manifest, "source_context"),
+        "counts": _manifest_mapping(manifest, "counts"),
+        "transaction_semantics": _manifest_mapping(manifest, "transaction_semantics"),
+        "artifacts": _manifest_mapping(manifest, "artifacts"),
+    }
+    for key, expected_value in manifest_fields.items():
+        if summary.get(key) != expected_value:
+            issues.append(f"review_summary {key} does not match manifest")
+    return issues
+
+
+def _read_json_object(json_path: Path) -> dict[str, object] | None:
+    """Read a JSON object from a generated report-bundle file."""
+    try:
+        json_data: object = json.loads(json_path.read_text(encoding=util.ENCODING))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(json_data, dict):
+        return None
+    return {str(key): value for key, value in json_data.items()}
 
 
 def _is_string_list(value: object) -> bool:

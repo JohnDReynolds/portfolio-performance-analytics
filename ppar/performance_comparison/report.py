@@ -4,7 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from collections.abc import Mapping, Sequence
-import datetime as dt
+import json
 from pathlib import Path
 
 # Third-party imports
@@ -422,6 +422,7 @@ def write_performance_comparison_report_bundle(
     )
     manifest_path = bundle_directory / "manifest.json"
     paths["manifest"] = manifest_path
+    paths["review_summary"] = bundle_directory / "review_summary.json"
     _pc_bundle.write_report_bundle_manifest(
         manifest_path,
         findings=findings,
@@ -432,6 +433,12 @@ def write_performance_comparison_report_bundle(
         comparison_path=comparison_path,
         artifact_paths=paths,
         tables=tables,
+    )
+    manifest_data = json.loads(manifest_path.read_text(encoding=util.ENCODING))
+    manifest = {str(key): value for key, value in manifest_data.items()}
+    _pc_bundle.write_report_bundle_review_summary(
+        paths["review_summary"],
+        manifest=manifest,
     )
     validation_issues = _pc_bundle.report_bundle_validation_issues(bundle_directory)
     if validation_issues:

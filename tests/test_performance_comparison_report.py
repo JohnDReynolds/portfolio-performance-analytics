@@ -403,6 +403,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertIn("cross-check rows may be", readme)
             self.assertIn("intentionally non-additive", readme)
+            self.assertIn("`review_summary.json`", readme)
+            self.assertIn("Modified Dietz vocabulary", readme)
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("`manifest.json`: machine-readable artifact", readme)
             self.assertIn("source context", readme)
@@ -450,6 +452,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertEqual(manifest["artifacts"]["readme"], "README.md")
+            self.assertEqual(
+                manifest["artifacts"]["review_summary"],
+                "review_summary.json",
+            )
             self.assertNotIn("report", manifest["artifacts"])
             self.assertEqual(manifest["source_context"]["comparison_path"], None)
             self.assertEqual(manifest["source_context"]["extract_contract"], None)
@@ -489,6 +495,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "findings.csv",
             )
             self.assertEqual(
+                manifest["review_entrypoints"]["review_handoff"],
+                "review_summary.json",
+            )
+            self.assertEqual(
                 manifest["artifacts"]["needs_review_summary"],
                 "needs_review_summary.csv",
             )
@@ -504,6 +514,29 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 5)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 5)
+
+            review_summary = json.loads(
+                paths["review_summary"].read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                review_summary["review_basis"],
+                "Modified Dietz evidence pack",
+            )
+            self.assertEqual(review_summary["entrypoints"], manifest["review_entrypoints"])
+            self.assertEqual(review_summary["source_context"], manifest["source_context"])
+            self.assertEqual(
+                review_summary["transaction_semantics"],
+                manifest["transaction_semantics"],
+            )
+            self.assertIn("formula_input", review_summary["review_vocabulary"])
+            self.assertIn("supporting_evidence", review_summary["review_vocabulary"])
+            self.assertIn("context_only", review_summary["review_vocabulary"])
+            self.assertIn("review_only", review_summary["review_vocabulary"])
+            self.assertIn("backlog_gate", review_summary["review_vocabulary"])
+            self.assertIn(
+                "Modified Dietz",
+                review_summary["review_vocabulary"]["formula_input"],
+            )
 
             needs_review = pl.read_csv(paths["needs_review_summary"])
             self.assertEqual(needs_review.height, 1)
@@ -1485,6 +1518,26 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             "manifest transaction_semantics.unknown_category_count is malformed",
             issues,
         )
+
+    def test_report_bundle_validation_catches_bad_review_summary(self) -> None:
+        """Bundle validation checks compact review-summary metadata."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                directory,
+                require_complete_yaml_setup=False,
+            )
+            summary = json.loads(paths["review_summary"].read_text(encoding="utf-8"))
+            summary["entrypoints"]["period_triage"] = "stale.csv"
+            paths["review_summary"].write_text(
+                json.dumps(summary, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = report_bundle_validation_issues(directory)
+
+        self.assertIn("review_summary entrypoints does not match manifest", issues)
 
     def test_report_bundle_validation_catches_missing_review_workbook(self) -> None:
         """Bundle validation reports workbook artifacts that are absent."""
