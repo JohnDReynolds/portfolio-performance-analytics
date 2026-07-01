@@ -60,6 +60,60 @@ def transaction_match_review_note(match_status: object) -> str:
     return "Review this transaction matching status before interpreting activity."
 
 
+def transaction_match_confidence(match_status: object) -> str:
+    """Return reviewer-facing confidence tier for a transaction match status.
+
+    Args:
+        match_status: Transaction match-status value from the findings table.
+
+    Returns:
+        Confidence label for interpreting transaction row identity.
+    """
+    if match_status == TRANSACTION_MATCH_STATUS_ID_MATCH:
+        return "strong"
+    if match_status == TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH:
+        return "conservative_fallback"
+    if match_status in {
+        TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B,
+        TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
+    }:
+        return "unpaired"
+    if match_status == TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH:
+        return "withheld_ambiguous"
+    if match_status in {
+        TRANSACTION_MATCH_STATUS_ID_UNMATCHED,
+        TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
+    }:
+        return "unpaired"
+    return "review"
+
+
+def transaction_match_interpretation(match_status: object) -> str:
+    """Return concise reviewer interpretation for a transaction match status.
+
+    Args:
+        match_status: Transaction match-status value from the findings table.
+
+    Returns:
+        Short phrase describing what the status permits reviewers to infer.
+    """
+    if match_status == TRANSACTION_MATCH_STATUS_ID_MATCH:
+        return "same transaction by stable id"
+    if match_status == TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH:
+        return "same transaction by exact singleton fallback"
+    if match_status == TRANSACTION_MATCH_STATUS_ADDED_IN_SNAPSHOT_B:
+        return "source-data row added"
+    if match_status == TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B:
+        return "source-data row missing"
+    if match_status == TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH:
+        return "identity withheld due to duplicate candidates"
+    if match_status == TRANSACTION_MATCH_STATUS_ID_UNMATCHED:
+        return "not paired by transaction id"
+    if match_status == TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED:
+        return "not paired by strict fallback"
+    return "review before interpreting"
+
+
 def transaction_matching_diagnostic_sort_key(row: Mapping[str, object]) -> tuple[int, str]:
     """Return stable ordering for transaction matching diagnostic rows.
 

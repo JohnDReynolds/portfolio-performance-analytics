@@ -1789,6 +1789,17 @@ which is intentionally weaker than `matched_by_id`. Duplicate candidate groups
 remain ambiguity diagnostics, and date moves across periods remain add/drop
 timing evidence.
 
+### Phase 25: Transaction Match Review Language
+
+Status: complete for reviewer-facing match confidence diagnostics.
+
+Transaction matching diagnostics now include explicit confidence and
+interpretation columns. The report distinguishes strong transaction-ID matches,
+conservative exact singleton fallback matches, unpaired add/drop rows, and
+withheld ambiguous fallback groups without adding fuzzy matching or changing
+Modified Dietz impact calculations. The extra labels are presentation guidance
+only; transaction identity remains conservative and case-sensitive.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

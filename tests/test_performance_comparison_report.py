@@ -1568,7 +1568,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 paths["transaction_activity"].read_text(encoding="utf-8"),
             )
             self.assertIn(
-                "transaction_match_status,finding_count,transaction_match_review_note",
+                (
+                    "transaction_match_status,finding_count,"
+                    "transaction_match_confidence,transaction_match_interpretation,"
+                    "transaction_match_review_note"
+                ),
                 paths["transaction_matching_diagnostics"].read_text(encoding="utf-8"),
             )
 

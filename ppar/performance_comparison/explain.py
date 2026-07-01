@@ -242,6 +242,8 @@ CROSS_CHECK_ABSOLUTE_ESTIMATE_TOTAL = "cross_check_absolute_estimate_total"
 TRANSACTION_IMPACT_POLICIES = "transaction_impact_policies"
 TRANSACTION_IMPACT_DIAGNOSTICS = "transaction_impact_diagnostics"
 TRANSACTION_MATCH_STATUSES = "transaction_match_statuses"
+TRANSACTION_MATCH_CONFIDENCE = "transaction_match_confidence"
+TRANSACTION_MATCH_INTERPRETATION = "transaction_match_interpretation"
 TRANSACTION_MATCH_REVIEW_NOTE = "transaction_match_review_note"
 PORTFOLIO_FLOW_DELTA = "portfolio_flow_delta"
 PORTFOLIO_FLOW_IMPACT_ESTIMATE = "portfolio_flow_impact_estimate"
@@ -373,6 +375,8 @@ TRANSACTION_ACTIVITY_SUMMARY_COLUMNS = (
 TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS = (
     TRANSACTION_MATCH_STATUS,
     FINDING_COUNT,
+    TRANSACTION_MATCH_CONFIDENCE,
+    TRANSACTION_MATCH_INTERPRETATION,
     TRANSACTION_MATCH_REVIEW_NOTE,
 )
 PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS = (
@@ -1160,6 +1164,12 @@ def transaction_matching_diagnostics(
             {
                 TRANSACTION_MATCH_STATUS: match_status,
                 FINDING_COUNT: row[FINDING_COUNT],
+                TRANSACTION_MATCH_CONFIDENCE: (
+                    tx_diagnostics.transaction_match_confidence(match_status)
+                ),
+                TRANSACTION_MATCH_INTERPRETATION: (
+                    tx_diagnostics.transaction_match_interpretation(match_status)
+                ),
                 TRANSACTION_MATCH_REVIEW_NOTE: (
                     tx_diagnostics.transaction_match_review_note(match_status)
                 ),
@@ -3370,6 +3380,8 @@ def _empty_transaction_matching_diagnostics() -> pl.DataFrame:
         schema={
             TRANSACTION_MATCH_STATUS: pl.String,
             FINDING_COUNT: pl.UInt32,
+            TRANSACTION_MATCH_CONFIDENCE: pl.String,
+            TRANSACTION_MATCH_INTERPRETATION: pl.String,
             TRANSACTION_MATCH_REVIEW_NOTE: pl.String,
         }
     )

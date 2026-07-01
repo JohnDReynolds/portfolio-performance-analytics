@@ -1821,9 +1821,12 @@ count transaction matching labels such as `matched_by_id`,
 `matched_by_singleton_fallback`, `added_in_snapshot_b`,
 `missing_from_snapshot_b`, `ambiguous_fallback_match`,
 `transaction_id_unmatched`, and `strict_fallback_unmatched`, with reviewer
-notes explaining whether rows were paired by stable transaction ID, paired by
-exact singleton fallback, appeared in only one snapshot, or were left unpaired
-because fallback keys were ambiguous. Report bundles include this table as
+confidence and interpretation columns distinguishing strong transaction-ID
+matches, conservative singleton fallback matches, unpaired add/drop rows, and
+withheld ambiguous fallback groups. Reviewer notes explain whether rows were
+paired by stable transaction ID, paired by exact singleton fallback, appeared
+in only one snapshot, or were left unpaired because fallback keys were
+ambiguous. Report bundles include this table as
 `transaction_matching_diagnostics.csv`.
 
 Report bundles include `report.html` as the browser view of the same review

@@ -71,6 +71,35 @@ class TransactionDiagnosticsTest(unittest.TestCase):
         self.assertIn("strict fallback keys", note)
         self.assertIn("rather than inferring an edit", note)
 
+    def test_transaction_matching_confidence_and_interpretation_are_reviewer_facing(
+        self,
+    ) -> None:
+        """Match statuses expose concise confidence and interpretation labels."""
+        self.assertEqual(
+            tx_diagnostics.transaction_match_confidence(
+                TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH
+            ),
+            "conservative_fallback",
+        )
+        self.assertEqual(
+            tx_diagnostics.transaction_match_interpretation(
+                TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH
+            ),
+            "same transaction by exact singleton fallback",
+        )
+        self.assertEqual(
+            tx_diagnostics.transaction_match_confidence(
+                TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH
+            ),
+            "withheld_ambiguous",
+        )
+        self.assertEqual(
+            tx_diagnostics.transaction_match_interpretation(
+                TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH
+            ),
+            "identity withheld due to duplicate candidates",
+        )
+
     def test_semantics_source_counts_round_trip_in_business_order(self) -> None:
         """Transaction semantics source summaries parse and reformat stably."""
         counts = tx_diagnostics.parse_transaction_semantics_sources(

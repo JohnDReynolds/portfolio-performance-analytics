@@ -106,6 +106,8 @@ from ppar.performance_comparison.explain import (
     TRANSACTION_IMPACT_DIAGNOSTICS,
     TRANSACTION_IMPACT_POLICIES,
     TRANSACTION_MATCHING_DIAGNOSTIC_COLUMNS,
+    TRANSACTION_MATCH_CONFIDENCE,
+    TRANSACTION_MATCH_INTERPRETATION,
     TRANSACTION_MATCH_REVIEW_NOTE,
     TRANSACTION_SEMANTICS_SOURCES,
     TOP_CODES,
@@ -756,6 +758,11 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(diagnostics.height, 1)
         self.assertEqual(row[TRANSACTION_MATCH_STATUS], TRANSACTION_MATCH_STATUS_ID_MATCH)
         self.assertEqual(row[FINDING_COUNT], 3)
+        self.assertEqual(row[TRANSACTION_MATCH_CONFIDENCE], "strong")
+        self.assertEqual(
+            row[TRANSACTION_MATCH_INTERPRETATION],
+            "same transaction by stable id",
+        )
         self.assertIn("transaction_id", row[TRANSACTION_MATCH_REVIEW_NOTE])
 
         fallback_findings = findings.with_columns(
@@ -772,6 +779,11 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(
             fallback_row[TRANSACTION_MATCH_STATUS],
             TRANSACTION_MATCH_STATUS_STRICT_FALLBACK_UNMATCHED,
+        )
+        self.assertEqual(fallback_row[TRANSACTION_MATCH_CONFIDENCE], "unpaired")
+        self.assertEqual(
+            fallback_row[TRANSACTION_MATCH_INTERPRETATION],
+            "not paired by strict fallback",
         )
         self.assertIn("strict fallback keys", fallback_row[TRANSACTION_MATCH_REVIEW_NOTE])
         self.assertIn("rather than inferring an edit", fallback_row[TRANSACTION_MATCH_REVIEW_NOTE])
