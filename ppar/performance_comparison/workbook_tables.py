@@ -384,6 +384,15 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=(
+                _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_ARTIFACT
+            ),
+            sheet_name=_pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET,
+            table=_pc_explain.transaction_matching_diagnostics(active_findings),
+            columns=_workbook_transaction_matching_diagnostic_columns(),
+            labels=_workbook_column_labels(),
+        ),
+        _pc_workbook.ReviewWorkbookSheet(
             artifact_name=_pc_review_model.RAW_AUDIT_TRAIL_ARTIFACT,
             sheet_name=_pc_review_model.RAW_AUDIT_TRAIL_SHEET,
             table=_workbook_sorted_table(
@@ -3017,6 +3026,17 @@ def _workbook_return_reconstruction_summary_columns() -> tuple[str, ...]:
     )
 
 
+def _workbook_transaction_matching_diagnostic_columns() -> tuple[str, ...]:
+    """Return Transaction Match Diagnostics worksheet columns."""
+    return (
+        _pc_findings.TRANSACTION_MATCH_STATUS,
+        _pc_explain.FINDING_COUNT,
+        _pc_explain.TRANSACTION_MATCH_CONFIDENCE,
+        _pc_explain.TRANSACTION_MATCH_INTERPRETATION,
+        _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE,
+    )
+
+
 def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
     """Return reviewer-first Findings worksheet columns with review key last."""
     preferred_columns = (
@@ -3082,6 +3102,10 @@ def _workbook_column_labels() -> dict[str, str]:
         _pc_findings.EVIDENCE_ROLE: "Evidence Role",
         _pc_findings.SOURCE_FILE: "Source File",
         _pc_findings.TRANSACTION_CATEGORY: "Transaction Category",
+        _pc_findings.TRANSACTION_MATCH_STATUS: "Transaction Match Status",
+        _pc_explain.TRANSACTION_MATCH_CONFIDENCE: "Match Confidence",
+        _pc_explain.TRANSACTION_MATCH_INTERPRETATION: "Match Interpretation",
+        _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE: "Review Note",
         _pc_findings.SNAPSHOT_A_VALUE: "Snapshot A Value",
         _pc_findings.SNAPSHOT_B_VALUE: "Snapshot B Value",
         _pc_findings.DELTA_B_MINUS_A: "Delta B Minus A",
@@ -3218,6 +3242,15 @@ def workbook_column_tooltip(column: str) -> str:
         ),
         _pc_findings.TRANSACTION_MATCH_STATUS: (
             "How transaction rows were matched between snapshots."
+        ),
+        _pc_explain.TRANSACTION_MATCH_CONFIDENCE: (
+            "Reviewer-facing confidence tier for interpreting transaction row identity."
+        ),
+        _pc_explain.TRANSACTION_MATCH_INTERPRETATION: (
+            "Short description of what the match status permits reviewers to infer."
+        ),
+        _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE: (
+            "Plain-language note explaining the transaction match status."
         ),
         _pc_findings.IMPACT_POLICY: "Contribution/return impact policy used for this finding.",
         _pc_findings.TRANSACTION_IMPACT_POLICY: (

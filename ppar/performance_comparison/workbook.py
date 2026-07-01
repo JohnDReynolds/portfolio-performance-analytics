@@ -54,6 +54,8 @@ _NARRATIVE_COLUMNS = {
     _pc_findings.MESSAGE,
     "comments",
     "impact_message",
+    _pc_explain.TRANSACTION_MATCH_INTERPRETATION,
+    _pc_explain.TRANSACTION_MATCH_REVIEW_NOTE,
     "review_cues",
     "review_guidance",
     "review_note",
@@ -120,6 +122,13 @@ REQUIRED_HEADERS = {
         "B - A Difference",
         "Explanation",
         "Review Key",
+    ),
+    _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: (
+        "Transaction Match Status",
+        "Finding Count",
+        "Match Confidence",
+        "Match Interpretation",
+        "Review Note",
     ),
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET: (
         "Portfolio",

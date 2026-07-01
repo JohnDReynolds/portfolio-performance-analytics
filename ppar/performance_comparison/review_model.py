@@ -17,6 +17,9 @@ PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
 PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT: Final[str] = "performance_difference_causes"
 OTHER_DATA_DIFFERENCES_ARTIFACT: Final[str] = "other_data_differences"
 RAW_AUDIT_TRAIL_ARTIFACT: Final[str] = "raw_audit_trail"
+TRANSACTION_MATCHING_DIAGNOSTICS_ARTIFACT: Final[str] = (
+    "transaction_matching_diagnostics"
+)
 RECONSTRUCTION_SUMMARY_ARTIFACT: Final[str] = "reconstruction_summary"
 RETURN_RECONSTRUCTION_CHECKS_ARTIFACT: Final[str] = "return_reconstruction_checks"
 SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT: Final[str] = (
@@ -29,6 +32,9 @@ RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Return Reconstruction Checks"
 SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET: Final[str] = "Security Return Checks"
 PERFORMANCE_DIFFERENCE_CAUSES_SHEET: Final[str] = "Performance Difference Causes"
 OTHER_DATA_DIFFERENCES_SHEET: Final[str] = "Other Data Differences"
+TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: Final[str] = (
+    "Transaction Match Diagnostics"
+)
 RAW_AUDIT_TRAIL_SHEET: Final[str] = "Raw Audit Trail"
 REVIEW_ORDER_SECTION: Final[str] = "Review Order"
 
@@ -38,6 +44,7 @@ PRIMARY_REVIEW_SHEETS: Final[tuple[str, ...]] = (
 SHARED_REVIEW_SHEETS: Final[tuple[str, ...]] = (
     PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
     OTHER_DATA_DIFFERENCES_SHEET,
+    TRANSACTION_MATCHING_DIAGNOSTICS_SHEET,
     RAW_AUDIT_TRAIL_SHEET,
 )
 EXPECTED_REVIEW_SHEETS: Final[tuple[str, ...]] = (

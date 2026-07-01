@@ -107,6 +107,8 @@ Current report vocabulary:
   `Explained Difference`.
 - `Other Data Differences`: source-data rows that changed but are not counted in
   `Explained Difference`.
+- `Transaction Match Diagnostics`: supplementary transaction row-identity
+  counts, confidence, interpretation, and review notes.
 - `Raw Audit Trail`: detailed finding rows used for audit and troubleshooting.
 - `Transaction Code`: the source transaction code from the input file, such as
   an Axys/APX IMEX code.
@@ -1827,7 +1829,8 @@ withheld ambiguous fallback groups. Reviewer notes explain whether rows were
 paired by stable transaction ID, paired by exact singleton fallback, appeared
 in only one snapshot, or were left unpaired because fallback keys were
 ambiguous. Report bundles include this table as
-`transaction_matching_diagnostics.csv`.
+`transaction_matching_diagnostics.csv`, and the same table appears in
+`report.xlsx` and `report.html` as `Transaction Match Diagnostics`.
 
 Report bundles include `report.html` as the browser view of the same review
 model used by `report.xlsx`. The HTML artifact is intentionally conservative:

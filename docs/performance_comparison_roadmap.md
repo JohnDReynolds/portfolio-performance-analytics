@@ -272,15 +272,16 @@ A future workbook could include:
 Performance Differences
 Performance Difference Causes
 Other Data Differences
+Transaction Match Diagnostics
 Return Reconstruction Checks
 Raw Audit Trail
 ```
 
 Current status: the normal user-facing workbook now uses `Performance
-Differences`, `Performance Difference Causes`, `Other Data Differences`, and
-`Raw Audit Trail`. Reconstruction diagnostic sheets remain opt-in so the
-default workbook stays focused on reviewable performance differences and their
-source-data causes.
+Differences`, `Performance Difference Causes`, `Other Data Differences`,
+`Transaction Match Diagnostics`, and `Raw Audit Trail`. Reconstruction
+diagnostic sheets remain opt-in so the default workbook stays focused on
+reviewable performance differences and their source-data causes.
 
 `Performance Difference Causes` should contain source-data rows:
 
@@ -1799,6 +1800,17 @@ conservative exact singleton fallback matches, unpaired add/drop rows, and
 withheld ambiguous fallback groups without adding fuzzy matching or changing
 Modified Dietz impact calculations. The extra labels are presentation guidance
 only; transaction identity remains conservative and case-sensitive.
+
+### Phase 26: Transaction Match Diagnostics Report Visibility
+
+Status: complete for shared workbook/browser report presentation.
+
+`Transaction Match Diagnostics` is now a shared workbook/report section, backed
+by the existing `transaction_matching_diagnostics.csv` table. This makes match
+status counts, confidence, interpretation, and review notes visible in
+`report.xlsx` and `report.html` without changing transaction matching behavior
+or Modified Dietz calculations. Demo report regeneration now includes an
+explicit before/after HTML content diff check in the phase close-out.
 
 ## Guiding Principle
 

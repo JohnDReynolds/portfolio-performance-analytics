@@ -1293,6 +1293,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Performance Differences",
                     "Performance Difference Causes",
                     "Other Data Differences",
+                    "Transaction Match Diagnostics",
                     "Raw Audit Trail",
                 ],
             )

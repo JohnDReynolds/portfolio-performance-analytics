@@ -25,6 +25,7 @@ _EXPECTED_PORTFOLIO_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
     _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
+    _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET,
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
@@ -35,6 +36,7 @@ _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
     _pc_review_model.OTHER_DATA_DIFFERENCES_SHEET,
+    _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET,
     _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _COMMON_LEFT_HEADERS = [
@@ -154,6 +156,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertIn("source-data differences", readme)
             self.assertIn("Source Dataset", html_report)
             self.assertNotIn("Source-Data Dataset", html_report)
+            self.assertIn("Transaction Match Diagnostics", html_report)
+            self.assertIn("Match Confidence", html_report)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             review_summary = json.loads(
@@ -206,6 +210,16 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     _header_values(workbook["Other Data Differences"]),
                     _NON_ADDITIVE_HEADERS,
+                )
+                self.assertEqual(
+                    _header_values(workbook["Transaction Match Diagnostics"]),
+                    [
+                        "Transaction Match Status",
+                        "Finding Count",
+                        "Match Confidence",
+                        "Match Interpretation",
+                        "Review Note",
+                    ],
                 )
                 self.assertEqual(
                     _header_values(workbook["Raw Audit Trail"])[:7],

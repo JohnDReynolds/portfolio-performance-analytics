@@ -22,6 +22,8 @@ The workbook sheets at this checkpoint were:
   differences, with `Performance Difference Explained` when ppar has a
   defensible calculation.
 - `Other Data Differences` sheet: review-only supporting differences.
+- `Transaction Match Diagnostics` sheet: supplementary transaction row-identity
+  diagnostics.
 - `Raw Audit Trail` sheet: full finding-level detail.
 
 Workbook numeric cells were real Excel numbers where possible.
