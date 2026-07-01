@@ -679,6 +679,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("no Pandas import or `to_pandas` conversion", roadmap)
         self.assertIn("security return reconstruction checks", roadmap)
         self.assertIn("filter().collect()", roadmap)
+        self.assertIn("Phase 42: Reconstruction Diagnostics Cache", roadmap)
+        self.assertIn("share a per-build reconstruction diagnostics", roadmap)
+        self.assertIn("cache is scoped to one comparison path", roadmap)
+        self.assertIn("9.2 seconds to about 3.6 seconds", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 

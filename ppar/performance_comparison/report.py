@@ -23,7 +23,6 @@ from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import runner as _pc_runner
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
-from ppar.performance_comparison import return_reconstruction as _pc_return_reconstruction
 from ppar.performance_comparison.specification import PORTFOLIO_COMPARISON_LEVEL
 
 __all__ = [
@@ -144,6 +143,9 @@ def _performance_comparison_html_report(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _reconstruction_cache: (
+        _pc_workbook_tables._WorkbookReconstructionCache | None
+    ) = None,
 ) -> str:
     """Return the workbook-style HTML report used inside review bundles.
 
@@ -167,6 +169,7 @@ def _performance_comparison_html_report(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _reconstruction_cache=_reconstruction_cache,
     )
     return "\n".join(
         [
@@ -294,6 +297,9 @@ def _write_performance_comparison_html_report(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _reconstruction_cache: (
+        _pc_workbook_tables._WorkbookReconstructionCache | None
+    ) = None,
 ) -> Path:
     """Write the bundle HTML performance comparison report to disk.
 
@@ -321,6 +327,7 @@ def _write_performance_comparison_html_report(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _reconstruction_cache=_reconstruction_cache,
     )
     report_path.write_text(report, encoding=util.ENCODING)
     return report_path
@@ -378,11 +385,15 @@ def write_performance_comparison_report_bundle(
 
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
+    reconstruction_cache = _pc_workbook_tables._WorkbookReconstructionCache(
+        comparison_path
+    )
     tables = _report_bundle_tables(
         active_findings,
         top_evidence_limit,
         comparison_path=comparison_path,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _reconstruction_cache=reconstruction_cache,
     )
 
     paths: dict[str, Path] = {}
@@ -393,6 +404,7 @@ def write_performance_comparison_report_bundle(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _reconstruction_cache=reconstruction_cache,
     )
     paths["html_report"] = html_report_path
     paths["findings"] = _pc_bundle.write_csv_artifact(
@@ -412,6 +424,7 @@ def write_performance_comparison_report_bundle(
             comparison_path=comparison_path,
             comparison_level=comparison_level,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            _reconstruction_cache=reconstruction_cache,
         )
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
@@ -455,8 +468,14 @@ def _report_bundle_tables(
     *,
     comparison_path: util.PathLike | None = None,
     include_reconstruction_diagnostics: bool = False,
+    _reconstruction_cache: (
+        _pc_workbook_tables._WorkbookReconstructionCache | None
+    ) = None,
 ) -> dict[str, pl.DataFrame]:
     """Return report-bundle tables keyed by artifact stem."""
+    reconstruction_cache = _reconstruction_cache or (
+        _pc_workbook_tables._WorkbookReconstructionCache(comparison_path)
+    )
     tables = {
         "needs_review_summary": _needs_review_summary_table(active_findings),
         "portfolio_period_summary": _pc_explain.portfolio_period_summary(
@@ -486,14 +505,8 @@ def _report_bundle_tables(
         ),
     }
     if include_reconstruction_diagnostics:
-        reconstruction_checks = (
-            _pc_return_reconstruction.portfolio_return_reconstruction_checks(
-                comparison_path
-            )
-        )
-        reconstruction_summary = (
-            _pc_return_reconstruction.return_reconstruction_summary(comparison_path)
-        )
+        reconstruction_checks = reconstruction_cache.portfolio_checks()
+        reconstruction_summary = reconstruction_cache.summary()
         if not reconstruction_summary.is_empty():
             tables[_pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT] = (
                 reconstruction_summary
@@ -502,11 +515,7 @@ def _report_bundle_tables(
             tables[_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT] = (
                 reconstruction_checks
             )
-        security_reconstruction_checks = (
-            _pc_return_reconstruction.security_return_reconstruction_checks(
-                comparison_path
-            )
-        )
+        security_reconstruction_checks = reconstruction_cache.security_checks()
         if not security_reconstruction_checks.is_empty():
             tables[
                 _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT
@@ -525,6 +534,9 @@ def write_performance_comparison_review_workbook(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _reconstruction_cache: (
+        _pc_workbook_tables._WorkbookReconstructionCache | None
+    ) = None,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -551,6 +563,7 @@ def write_performance_comparison_review_workbook(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _reconstruction_cache=_reconstruction_cache,
     )
 
 

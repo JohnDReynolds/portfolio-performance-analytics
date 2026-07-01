@@ -57,6 +57,8 @@ Completed guardrails now cover:
   path; large source-data reads, joins, grouping, and validation remain in
   Polars, with row iteration concentrated in presentation and diagnostic
   assembly;
+- report and workbook assembly reuse per-build return-reconstruction diagnostics
+  instead of recomputing security checks for each sheet;
 - the packaged portfolio and security reports intentionally include Fully
   Explained, intentional `Partly Explained`, and intentional `Unexplained`
   review examples;
@@ -2113,6 +2115,26 @@ workbook/report sheet assembly, especially repeated Polars `filter().collect()`
 calls inside reconstruction input lookup. Future speed work should benchmark
 and cache or batch those reconstruction lookups before attempting broader
 vectorized rewrites.
+
+### Phase 42: Reconstruction Diagnostics Cache
+
+Status: complete for the first measured speed bottleneck.
+
+Report and workbook generation now share a per-build reconstruction diagnostics
+cache. The cache is scoped to one comparison path and one report/workbook build,
+so long-running processes do not reuse stale source files across separate
+builds. Direct helper calls still create a one-off cache, preserving the
+existing test/debug ergonomics.
+
+The targeted local timing improved materially:
+
+- security demo generation changed from about 9.2 seconds to about 3.6 seconds;
+- portfolio demo generation changed from about 4.0 seconds to about 2.9 seconds.
+
+The generated portfolio and security bundles still validate, and the generated
+`report.html` content remained unchanged. Broader speed work remains a future
+benchmarking task, but the known repeated security reconstruction bottleneck is
+addressed.
 
 ## Guiding Principle
 

@@ -145,6 +145,54 @@ _with_period_review_key = _pc_review_keys.with_period_review_key
 _with_security_review_key = _pc_review_keys.with_security_review_key
 
 
+class _WorkbookReconstructionCache:
+    """Cache reconstruction diagnostics for one workbook/report build."""
+
+    def __init__(self, comparison_path: util.PathLike | None) -> None:
+        self._comparison_path = comparison_path
+        self._portfolio_checks: pl.DataFrame | None = None
+        self._security_checks: pl.DataFrame | None = None
+        self._summary: pl.DataFrame | None = None
+
+    def portfolio_checks(self) -> pl.DataFrame:
+        """Return cached portfolio return-reconstruction checks."""
+        if self._portfolio_checks is None:
+            self._portfolio_checks = (
+                _pc_reconstruction.portfolio_return_reconstruction_checks(
+                    self._comparison_path
+                )
+            )
+        return self._portfolio_checks
+
+    def security_checks(self) -> pl.DataFrame:
+        """Return cached security return-reconstruction checks."""
+        if self._security_checks is None:
+            self._security_checks = (
+                _pc_reconstruction.security_return_reconstruction_checks(
+                    self._comparison_path
+                )
+            )
+        return self._security_checks
+
+    def summary(self) -> pl.DataFrame:
+        """Return cached return-reconstruction summary."""
+        if self._summary is None:
+            self._summary = _pc_reconstruction.return_reconstruction_summary(
+                self._comparison_path
+            )
+        return self._summary
+
+
+def _resolved_reconstruction_cache(
+    comparison_path: util.PathLike | None,
+    reconstruction_cache: _WorkbookReconstructionCache | None,
+) -> _WorkbookReconstructionCache:
+    """Return an existing reconstruction cache or create one for direct calls."""
+    if reconstruction_cache is not None:
+        return reconstruction_cache
+    return _WorkbookReconstructionCache(comparison_path)
+
+
 def write_performance_comparison_review_workbook(
     findings: pl.DataFrame,
     output_path: util.PathLike,
@@ -153,6 +201,7 @@ def write_performance_comparison_review_workbook(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> Path:
     """Write an XLSX workbook for performance comparison review.
 
@@ -189,6 +238,7 @@ def write_performance_comparison_review_workbook(
             comparison_path=comparison_path,
             comparison_level=comparison_level,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            _reconstruction_cache=_reconstruction_cache,
         ),
         output_path,
         column_tooltip=workbook_column_tooltip,
@@ -201,6 +251,7 @@ def performance_comparison_review_workbook_sheets(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return review workbook sheet specifications in reviewer-first order.
 
@@ -219,22 +270,27 @@ def performance_comparison_review_workbook_sheets(
         browser report.
     """
     active_findings = _active_findings(findings)
+    reconstruction_cache = _reconstruction_cache or _WorkbookReconstructionCache(
+        comparison_path
+    )
     primary_sheet = (
         _security_differences_sheet(
             active_findings,
             comparison_path=comparison_path,
+            reconstruction_cache=reconstruction_cache,
         )
         if comparison_level == SECURITY_COMPARISON_LEVEL
         else _portfolio_differences_sheet(
             active_findings,
             comparison_path=comparison_path,
+            reconstruction_cache=reconstruction_cache,
         )
     )
     diagnostic_sheets = (
         (
-            *_return_reconstruction_summary_sheets(comparison_path),
-            *_return_reconstruction_sheets(comparison_path),
-            *_security_return_reconstruction_sheets(comparison_path),
+            *_return_reconstruction_summary_sheets(reconstruction_cache),
+            *_return_reconstruction_sheets(reconstruction_cache),
+            *_security_return_reconstruction_sheets(reconstruction_cache),
         )
         if include_reconstruction_diagnostics
         else ()
@@ -247,15 +303,16 @@ def performance_comparison_review_workbook_sheets(
             active_findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
+            reconstruction_cache=reconstruction_cache,
         ),
     )
 
 
 def _return_reconstruction_summary_sheets(
-    comparison_path: util.PathLike | None,
+    reconstruction_cache: _WorkbookReconstructionCache,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return optional return-reconstruction diagnostic summary sheets."""
-    summary = _pc_reconstruction.return_reconstruction_summary(comparison_path)
+    summary = reconstruction_cache.summary()
     if summary.is_empty():
         return ()
     return (
@@ -270,12 +327,10 @@ def _return_reconstruction_summary_sheets(
 
 
 def _return_reconstruction_sheets(
-    comparison_path: util.PathLike | None,
+    reconstruction_cache: _WorkbookReconstructionCache,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return optional portfolio return-reconstruction diagnostic sheets."""
-    reconstruction_checks = (
-        _pc_reconstruction.portfolio_return_reconstruction_checks(comparison_path)
-    )
+    reconstruction_checks = reconstruction_cache.portfolio_checks()
     if reconstruction_checks.is_empty():
         return ()
     return (
@@ -290,12 +345,10 @@ def _return_reconstruction_sheets(
 
 
 def _security_return_reconstruction_sheets(
-    comparison_path: util.PathLike | None,
+    reconstruction_cache: _WorkbookReconstructionCache,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return optional security return-reconstruction diagnostic sheets."""
-    reconstruction_checks = (
-        _pc_reconstruction.security_return_reconstruction_checks(comparison_path)
-    )
+    reconstruction_checks = reconstruction_cache.security_checks()
     if reconstruction_checks.is_empty():
         return ()
     return (
@@ -315,6 +368,7 @@ def _portfolio_differences_sheet(
     active_findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None,
+    reconstruction_cache: _WorkbookReconstructionCache,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the portfolio-level performance differences sheet."""
     labels = _workbook_column_labels()
@@ -325,6 +379,7 @@ def _portfolio_differences_sheet(
         table=_workbook_portfolio_changes_table(
             active_findings,
             comparison_path=comparison_path,
+            reconstruction_cache=reconstruction_cache,
         ),
         columns=_workbook_portfolio_changes_columns(),
         labels=labels,
@@ -335,6 +390,7 @@ def _security_differences_sheet(
     active_findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None,
+    reconstruction_cache: _WorkbookReconstructionCache,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the security-level performance differences sheet."""
     labels = _workbook_column_labels()
@@ -346,6 +402,7 @@ def _security_differences_sheet(
             active_findings,
             comparison_path=comparison_path,
             comparison_level=SECURITY_COMPARISON_LEVEL,
+            reconstruction_cache=reconstruction_cache,
         ),
         columns=_workbook_security_changes_columns(),
         labels=labels,
@@ -358,6 +415,7 @@ def _shared_detail_sheets(
     *,
     comparison_path: util.PathLike | None,
     comparison_level: str,
+    reconstruction_cache: _WorkbookReconstructionCache,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return detail sheets shared by portfolio and security workflows."""
     detail_sheets = [
@@ -368,6 +426,7 @@ def _shared_detail_sheets(
                 active_findings,
                 comparison_path=comparison_path,
                 comparison_level=comparison_level,
+                reconstruction_cache=reconstruction_cache,
             ),
             columns=_workbook_underlying_cause_columns(),
             labels=_workbook_column_labels(),
@@ -391,6 +450,7 @@ def _workbook_portfolio_changes_table(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
     """Return one workbook row per changed portfolio period."""
     coverage = _with_period_review_key(
@@ -401,6 +461,10 @@ def _workbook_portfolio_changes_table(
     underlying_totals = _workbook_underlying_impact_totals(
         findings,
         comparison_path=comparison_path,
+        reconstruction_cache=_resolved_reconstruction_cache(
+            comparison_path,
+            reconstruction_cache,
+        ),
     )
     rows = [
         _workbook_performance_change_row(
@@ -424,13 +488,19 @@ def _workbook_underlying_impact_totals(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> dict[tuple[object, object, object], float]:
     """Return explained difference totals from underlying input rows."""
     totals: dict[tuple[object, object, object], float] = {}
     active_keys = _workbook_active_portfolio_period_keys(findings)
+    reconstruction_cache = _resolved_reconstruction_cache(
+        comparison_path,
+        reconstruction_cache,
+    )
     formula_rows = _workbook_portfolio_reconstruction_formula_rows(
         comparison_path,
         active_keys=active_keys,
+        reconstruction_cache=reconstruction_cache,
     )
     formula_keys = {_workbook_period_key(row) for row in formula_rows}
     for row in formula_rows:
@@ -681,6 +751,7 @@ def _workbook_security_changes_table(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
     """Return one workbook row per changed security period."""
     summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
@@ -688,6 +759,10 @@ def _workbook_security_changes_table(
         findings,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        reconstruction_cache=_resolved_reconstruction_cache(
+            comparison_path,
+            reconstruction_cache,
+        ),
     )
     rows: list[dict[str, object]] = []
     if not summary.is_empty():
@@ -717,13 +792,19 @@ def _workbook_security_underlying_impact_totals(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> dict[tuple[object, object, object, object], float]:
     """Return security-level explained totals from underlying input rows."""
     totals: dict[tuple[object, object, object, object], float] = {}
     active_keys = _workbook_active_security_period_keys(findings)
+    reconstruction_cache = _resolved_reconstruction_cache(
+        comparison_path,
+        reconstruction_cache,
+    )
     formula_rows = _workbook_security_reconstruction_formula_rows(
         comparison_path,
         active_keys=active_keys,
+        reconstruction_cache=reconstruction_cache,
     )
     formula_keys = {_workbook_security_period_key(row) for row in formula_rows}
     for row in formula_rows:
@@ -749,6 +830,7 @@ def _workbook_portfolio_reconstruction_formula_rows(
     comparison_path: util.PathLike | None,
     *,
     active_keys: set[tuple[object, object, object]] | None = None,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> list[dict[str, object]]:
     """Return portfolio reconstruction formula rows for Performance Difference Causes.
 
@@ -758,7 +840,11 @@ def _workbook_portfolio_reconstruction_formula_rows(
         underlying beginning value, ending value, flow, income, and denominator
         inputs.
     """
-    checks = _pc_reconstruction.portfolio_return_reconstruction_checks(comparison_path)
+    reconstruction_cache = _resolved_reconstruction_cache(
+        comparison_path,
+        reconstruction_cache,
+    )
+    checks = reconstruction_cache.portfolio_checks()
     if checks.is_empty():
         return []
 
@@ -779,6 +865,7 @@ def _workbook_security_reconstruction_formula_rows(
     comparison_path: util.PathLike | None,
     *,
     active_keys: set[tuple[object, object, object, object]] | None = None,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> list[dict[str, object]]:
     """Return security reconstruction formula rows for Performance Difference Causes.
 
@@ -787,7 +874,11 @@ def _workbook_security_reconstruction_formula_rows(
         ``Security Return Checks`` sheet remains the source for the underlying
         beginning value, ending value, flow, and income components.
     """
-    checks = _pc_reconstruction.security_return_reconstruction_checks(comparison_path)
+    reconstruction_cache = _resolved_reconstruction_cache(
+        comparison_path,
+        reconstruction_cache,
+    )
+    checks = reconstruction_cache.security_checks()
     if checks.is_empty():
         return []
 
@@ -1340,12 +1431,18 @@ def _workbook_underlying_causes_table(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
     """Return input rows that may directly explain performance differences."""
+    reconstruction_cache = _resolved_reconstruction_cache(
+        comparison_path,
+        reconstruction_cache,
+    )
     unexplained_keys = _workbook_unexplained_primary_keys(
         findings,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        reconstruction_cache=reconstruction_cache,
     )
     performance_input_keys = _workbook_performance_input_family_keys(
         findings,
@@ -1356,11 +1453,13 @@ def _workbook_underlying_causes_table(
         formula_rows = _workbook_security_reconstruction_formula_rows(
             comparison_path,
             active_keys=_workbook_active_security_period_keys(findings),
+            reconstruction_cache=reconstruction_cache,
         )
     else:
         formula_rows = _workbook_portfolio_reconstruction_formula_rows(
             comparison_path,
             active_keys=_workbook_active_portfolio_period_keys(findings),
+            reconstruction_cache=reconstruction_cache,
         )
     formula_keys = {
         _workbook_primary_key(row, comparison_level)
@@ -1824,18 +1923,25 @@ def _workbook_unexplained_primary_keys(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str,
+    reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> set[tuple[object, ...]]:
     """Return primary review keys with a meaningful unexplained remainder."""
+    reconstruction_cache = _resolved_reconstruction_cache(
+        comparison_path,
+        reconstruction_cache,
+    )
     if comparison_level == SECURITY_COMPARISON_LEVEL:
         summary = _workbook_security_changes_table(
             findings,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
+            reconstruction_cache=reconstruction_cache,
         )
     else:
         summary = _workbook_portfolio_changes_table(
             findings,
             comparison_path=comparison_path,
+            reconstruction_cache=reconstruction_cache,
         )
 
     keys: set[tuple[object, ...]] = set()
