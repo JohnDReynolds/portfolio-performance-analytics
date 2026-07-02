@@ -655,12 +655,18 @@ class PerformanceComparisonSpecification:
         for comparison_file in self.files.values():
             if not comparison_file.required:
                 continue
-            for file_path in (
-                comparison_file.snapshot_a_path,
-                comparison_file.snapshot_b_path,
+            for snapshot_key, file_path in (
+                ("a", comparison_file.snapshot_a_path),
+                ("b", comparison_file.snapshot_b_path),
             ):
                 if not util.file_path_exists(file_path):
-                    raise PpaError(self._error_message(util.file_path_error(file_path)), 802)
+                    raise PpaError(
+                        self._error_message(
+                            f"files.{comparison_file.name} is required but "
+                            f"snapshot {snapshot_key} is missing {file_path}."
+                        ),
+                        802,
+                    )
 
     def _validate_reconstruction_files(self) -> None:
         """Raise if opted-in return reconstruction lacks required source files."""

@@ -17,6 +17,16 @@ fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
 [Demo Extract Availability](../../../../docs/axys-apx-reference/Appendix_Demo_Extract_Availability.md).
 
+Before generating a local report bundle, run the comparison YAML validator. It
+checks the minimum required datasets, required normalized columns, transaction
+semantics, extract-contract guardrails, and complete YAML treatment for changed
+source-data fields:
+
+```bash
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
+  ppar/demos/data/axys/ppar_performance_comparison.yaml
+```
+
 | Role | YAML |
 | --- | --- |
 | Workbook demos | `ppar_performance_comparison.yaml` |

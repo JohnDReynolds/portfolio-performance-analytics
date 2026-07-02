@@ -1156,6 +1156,10 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
+            "ppar.performance_comparison.cli.validate_config",
+            "minimum required datasets",
+            "required normalized columns",
+            "complete YAML treatment",
             "`Performance Differences` sheet",
             "`Performance Difference Causes` sheet",
             "`Raw Audit Trail` sheet",

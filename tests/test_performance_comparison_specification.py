@@ -117,6 +117,8 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
                 PerformanceComparisonSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 802"))
+            self.assertIn("files.transactions", str(context.exception))
+            self.assertIn("snapshot a", str(context.exception))
             self.assertIn("missing_transactions.csv", str(context.exception))
 
     def test_reconstruction_source_files_are_required(self) -> None:
@@ -148,6 +150,8 @@ class TestPerformanceComparisonSpecification(unittest.TestCase):
                 PerformanceComparisonSpecification(path)
 
             self.assertTrue(str(context.exception).startswith("Error 802"))
+            self.assertIn("files.holdings", str(context.exception))
+            self.assertIn("snapshot a", str(context.exception))
             self.assertIn("missing_holdings.csv", str(context.exception))
 
     def test_reconstruction_source_files_must_not_opt_out_of_required(self) -> None:
