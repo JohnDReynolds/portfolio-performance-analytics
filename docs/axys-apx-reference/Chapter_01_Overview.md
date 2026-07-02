@@ -4,7 +4,7 @@ Repository: AXYS / APX Reference Repository
 Chapter: `Chapter_01_Overview.md`
 Prepared: 2026-06-29
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
-Source basis: supplied repository chapters `Chapter_02_Axys_Architecture.md` through `Chapter_16_Glossary.md` only
+Source basis: supplied repository chapters `Chapter_02_Axys_Architecture.md` through `Chapter_16_Glossary.md`, supporting research files, and implementation appendices
 
 ---
 
@@ -66,6 +66,7 @@ Use this index to jump to the chapters that most directly connect to a topic:
 - REP — report extraction and report-source context: [Chapter_13_Rep.md](Chapter_13_Rep.md).
 - Reports — report families and report-label caution: [Chapter_14_Reports.md](Chapter_14_Reports.md).
 - Data dictionary and glossary — field-level vocabulary and terminology: [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
+- Appendices — implementation aids: [Appendix_Transaction_Semantics_Matrix.md](Appendix_Transaction_Semantics_Matrix.md) for conservative transaction classification rules and [Appendix_Demo_Extract_Availability.md](Appendix_Demo_Extract_Availability.md) for packaged-demo extract availability.
 
 ## Chapter dependency map
 A compact view of the main evidence flow:
@@ -83,6 +84,7 @@ Choose the path that fits your immediate question:
 - If you need to understand transactions, start with [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md), [Chapter_05_Transactions.md](Chapter_05_Transactions.md), [Chapter_06_Holdings.md](Chapter_06_Holdings.md), and [Chapter_07_Cash.md](Chapter_07_Cash.md).
 - If you are focused on performance or reporting, start with [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_11_Classifications.md](Chapter_11_Classifications.md), [Chapter_13_Rep.md](Chapter_13_Rep.md), and [Chapter_14_Reports.md](Chapter_14_Reports.md).
 - If you are looking up a term or field, start with [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
+- If you are implementing ppar demo rules, use the appendices after reading the relevant chapters. They are cross-cutting aids, not replacement vendor documentation.
 
 ## How to read a chapter
 Each chapter is intended to be read in the same compact pattern:
@@ -97,8 +99,14 @@ Each chapter is intended to be read in the same compact pattern:
 Use the chapter files as the reader-facing reference. The `Research_*.md` files
 preserve source-by-source evidence, search history, dated research updates, and
 open questions that would make the chapters too noisy. Appendices are
-implementation-facing cross-cutting aids, such as transaction semantics and demo
-extract availability.
+implementation-facing cross-cutting aids:
+
+- [Appendix_Transaction_Semantics_Matrix.md](Appendix_Transaction_Semantics_Matrix.md) is the human-readable transaction classification contract for demo and test work. Its machine-readable companion is [transaction_semantics_matrix.yaml](transaction_semantics_matrix.yaml).
+- [Appendix_Demo_Extract_Availability.md](Appendix_Demo_Extract_Availability.md) is a generated view of packaged-demo extract availability. Its machine-readable source is `ppar/demos/data/axys/demo_extract_availability.yaml`.
+
+Appendices should summarize or operationalize chapter conclusions. If an
+appendix conflicts with a chapter, treat that as a cleanup issue rather than as
+a competing source of truth.
 
 Dated research-update or addendum sections should not be read as competing
 chapters. They are provenance notes for evidence that has been folded into the
@@ -190,6 +198,8 @@ The repository is organized into subject chapters and matching research files. T
 | `Chapter_14_Reports.md` | Reports | Axys and APX report families, APX named reports, report-label cautions. | Supplied. |
 | `Chapter_15_Data_Dictionary.md` | Data dictionary | Cross-repository field, token, file, utility, report-label, and artifact index. | Supplied. |
 | `Chapter_16_Glossary.md` | Glossary | Repository term definitions and ambiguity notes. | Supplied. |
+| `Appendix_Transaction_Semantics_Matrix.md` | Transaction semantics appendix | Implementation-facing transaction classification, matching, and coverage matrix for ppar demo/test work. | Cross-cutting aid; not an official vendor code manual. |
+| `Appendix_Demo_Extract_Availability.md` | Demo extract availability appendix | Generated confidence matrix for whether packaged demo datasets and columns are likely obtainable through Axys IMEX or REP-style extracts. | Generated from YAML; not an official schema. |
 
 ---
 
@@ -784,6 +794,8 @@ This chapter is based on the following supplied repository material only.
 | `Chapter_14_Reports.md` | Report families, APX named reports, report-label cautions. |
 | `Chapter_15_Data_Dictionary.md` | Cross-repository field, token, artifact, report, and dictionary consolidation. |
 | `Chapter_16_Glossary.md` | Repository term definitions, ambiguities, and implementation notes. |
+| `Appendix_Transaction_Semantics_Matrix.md` | Implementation-facing transaction classification and coverage matrix for ppar demo/test work. |
+| `Appendix_Demo_Extract_Availability.md` | Generated packaged-demo extract availability matrix. |
 
 ---
 
