@@ -503,11 +503,12 @@ This table is an observed-code catalog, not an official transaction-code matrix.
 | `dv` | Dividend / income / reinvestment leg in examples. | Observed in contexts | Observed | Medium Confidence |
 | `in` | Income / interest in examples. | Observed in contexts | Observed | Medium Confidence |
 | `rc` | Return of capital in examples. | Observed in contexts | Observed | Medium Confidence |
-| `pd` | Principal paydown / bond return-of-capital case in examples. | Observed in contexts | Observed | Medium Confidence |
-| `ai` | Accrued interest or margin interest depending context. | Observed in contexts | Observed | Medium Confidence |
-| `sa` | Sell accrued interest in examples. | Observed in contexts | Observed | Medium Confidence |
+| `pd` | Principal paydown / bond-security return-of-capital case in examples. | Observed in contexts | Observed | Medium Confidence |
+| `ai` | Negative interest or margin interest depending context. | Observed in contexts | Observed | Medium Confidence |
+| `sa` | Sale accrued interest / sell-side accrued interest in examples. | Observed in contexts | Observed | Medium Confidence |
+| `pa` | Purchase accrued interest / buy-side accrued interest in examples. | Observed in contexts | Observed | Medium Confidence |
 | `dp` | Debit / fee / tax / service charge / cash-security case. | Observed | Observed | Medium Confidence |
-| `wd` | Withdrawal / cash-security sell case. | Observed | Observed | Medium Confidence |
+| `wd` | Cash-security sell / withdrawal-like cash-security movement. | Observed | Observed | Medium Confidence |
 | `ti` / `to`, `si` / `so`, `tr` / `ts` | Opposite transaction pairs in intra-account cash journal removal logic. | Observed in AIA context | Observed in AIA context | High Confidence as workflow tokens |
 
 ### 9.4 Cash-Like Tokens

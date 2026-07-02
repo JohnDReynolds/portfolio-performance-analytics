@@ -393,12 +393,12 @@ This table is an observed-code catalog only. It is not a complete official Axys/
 | `dv` | Dividend / income / reinvestment leg. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `in` | Income / interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `rc` | Return of capital. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `pd` | Principal paydown / bond return-of-capital case. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `ai` | Accrued interest or margin interest depending context. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `sa` | Sell accrued interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `pa` | Purchase accrued interest / accrued-interest-related buy-side case; meaning requires further verification. | Unknown | Observed | Trade Blotter/import context | Unknown | Low to Medium Confidence |
+| `pd` | Principal paydown / bond-security return-of-capital case. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `ai` | Negative interest or margin interest depending context. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `sa` | Sale accrued interest / sell-side accrued interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `pa` | Purchase accrued interest / buy-side accrued interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `dp` | Debit / fee-related / tax / service charge / cash-security case. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `wd` | Withdrawal / cash-security sell case. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `wd` | Cash-security sell / withdrawal-like cash-security movement. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `;` | Journal / comment / other / split in integration table. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `ti` / `to` | Opposite transaction pair examples for intra-account cash journal removal. | Observed in AIA context | Observed in AIA context | Integration workflow | Unknown | High Confidence as observed tokens |
 | `si` / `so` | Opposite transaction pair examples for intra-account cash journal removal. | Observed in AIA context | Observed in AIA context | Integration workflow | Unknown | High Confidence as observed tokens |

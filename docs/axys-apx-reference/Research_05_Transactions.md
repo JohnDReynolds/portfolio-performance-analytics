@@ -1201,12 +1201,12 @@ Rows should be promoted to Verified only when supported by official vendor docum
 | `dv` | Dividend / income / reinvestment leg | Unknown | Observed | ByAllAccounts | Medium | Often paired with reinvestment. |
 | `in` | Income / interest | Unknown | Observed | ByAllAccounts | Medium | Added in deep mining/evidence hunt. |
 | `rc` | Return of capital | Unknown | Observed | ByAllAccounts | Medium | Requires vendor confirmation. |
-| `pd` | Principal paydown / bond return-of-capital case | Unknown | Observed | ByAllAccounts | Medium | Bond-related. |
-| `ai` | Accrued interest or margin interest | Unknown | Observed | ByAllAccounts | Medium | Requires context. |
-| `sa` | Sell accrued interest | Unknown | Observed | ByAllAccounts | Medium | Requires vendor confirmation. |
-| `pa` | Reinvested dividend / accrued-interest-related buy-like case | Unknown | Observed | ByAllAccounts | Low to Medium | Meaning requires further verification. |
+| `pd` | Principal paydown / bond-security return-of-capital case | Unknown | Observed | ByAllAccounts | Medium | Bond-related; conversion evidence flags reconciliation complications. |
+| `ai` | Negative interest or margin interest | Unknown | Observed | ByAllAccounts | Medium | Requires context; do not describe as generic accrued interest. |
+| `sa` | Sale accrued interest / sell-side accrued interest | Unknown | Observed | ByAllAccounts | Medium | Integration-level evidence. |
+| `pa` | Purchase accrued interest / buy-side accrued interest | Unknown | Observed | ByAllAccounts | Medium | Integration-level evidence. |
 | `dp` | Debit / fee-related / tax / service charge / cash-security case | Unknown | Observed | ByAllAccounts | Medium | Multiple meanings depending on context. |
-| `wd` | Withdrawal / cash-security sell case | Unknown | Observed | ByAllAccounts | Medium | Requires context. |
+| `wd` | Cash-security sell / withdrawal-like cash-security movement | Unknown | Observed | ByAllAccounts | Medium | Do not infer client withdrawal from the code name. |
 | `;` | Journal / comment / other / split in integration table | Unknown | Observed | ByAllAccounts | Medium | Treat as observed integration behavior. |
 
 ### 9.3 APX Default Translation Patterns Observed
@@ -3020,18 +3020,18 @@ The ByAllAccounts APX default translation table provides the strongest public co
 | `by` | Buy; reinvestment paired leg; non-cash deposit paired leg. | Medium | Integration translation table. |
 | `dp` | Cash security buy; tax; fee; recordkeeping; investment expense; service charge. | Medium | Context-dependent. |
 | `cs` | Cover short; negative closure. | Medium | Integration translation table. |
-| `pa` | Accrued interest / reinvested-dividend-related case in Buy row. | Low to Medium | Meaning remains ambiguous. |
+| `pa` | Purchase accrued interest / buy-side accrued interest. | Medium | BUY + ACCRUED INTEREST mapping; integration-level evidence, not official native code manual. |
 | `li` | ATM positive; credit; deposit; direct deposit; positive income bond security; point-of-sale positive; transfer positive. | Medium | Direction/sign dependent. |
 | `lo` | ATM negative; check; non-cash debit; direct debit; negative income bond security; payment; point-of-sale negative; transfer negative; withdrawal. | Medium | Direction/sign dependent. |
 | `dv` | Dividend; dividend-paying security income; reinvested dividend; reinvestment paired leg. | Medium | Income/reinvestment context. |
 | `in` | Cash-security dividend/income; interest positive. | Medium | Integration translation table. |
-| `ai` | Interest negative; margin interest. | Medium | Context-dependent. |
+| `ai` | Interest negative; margin interest. | Medium | Narrower than generic accrued interest; context-dependent financing/income adjustment. |
 | `rc` | Return of capital. | Medium | Integration translation table. |
-| `pd` | Bond-security return-of-capital/principal paydown. | Medium | Bond-related special case. |
+| `pd` | Bond-security return-of-capital/principal paydown. | Medium | Bond-related special case; conversion evidence also flags principal-paydown reconciliation complications. |
 | `sl` | Sell; positive closure. | Medium | Integration translation table. |
 | `wd` | Sell cash security. | Medium | Cash-security special case. |
 | `ss` | Short. | Medium | Integration translation table. |
-| `sa` | Accrued interest on sell. | Medium | Integration translation table. |
+| `sa` | Sale accrued interest / sell-side accrued interest. | Medium | SELL + ACCRUED INTEREST mapping; integration-level evidence, not official native code manual. |
 | `;` | Journal, Other, Split. | Medium | Treat as integration behavior; official native meaning Unknown. |
 
 ### E.6.4 APX Sign-Dependent Transfer Translation
@@ -3339,3 +3339,69 @@ Additional transaction-specific points:
 | Candidate transaction fields | A live Axys catalog should inspect portfolio, transaction code/subtype, trade/settle/post/effective dates, symbol/type, quantity, price, gross/net/cash amounts, commission, fees, accrued interest, withholding, source/destination type and symbol, cost fields, Perf/CW, Mark to Market, currency, FX, external source ID, and comments. | Discovery guidance |
 | External-flow caution | Source/destination and special-security fields are observed integration labels, but official IMEX availability remains Unknown. Transaction-code-only interpretation remains unsafe for `li`, `lo`, `dp`, and `wd`. | Medium / Unknown boundary |
 | REP fallback | When IMEX does not expose enough transaction context to classify flows, report extraction or custom REP output should be considered for classification evidence. | Design guidance |
+
+## E.19 Transaction-Code Gap-Fill Addenda Incorporated 2026-07-02
+
+Sources:
+
+- `temp_axys_transaction_codes_pa_sa_ai_pd_addendum.md`.
+- `temp_axys_transaction_codes_other_types_addendum.md`.
+
+These addenda strengthen the practical transaction-code descriptions used
+by Chapter 05 and the transaction-semantics matrix. They do not change the
+evidence boundary: the strongest support remains third-party integration
+and conversion documentation, not official complete SS&C Advent native
+transaction-code manuals.
+
+### E.19.1 Fixed-Income and Principal Codes
+
+| Code | Strengthened interpretation | Confidence | Performance/audit boundary |
+|---|---|---:|---|
+| `pa` | Purchase accrued interest / buy-side accrued interest. | Medium | Fixed-income trade adjunct; validate accrued days, coupon, day count, settlement date, and total settlement. Not an external client cash flow. |
+| `sa` | Sale accrued interest / sell-side accrued interest. | Medium | Fixed-income trade adjunct; validate accrued days, coupon, day count, settlement date, and sale proceeds. Not an external client cash flow. |
+| `ai` | Negative interest or margin interest. | Medium | Financing, negative-interest, or margin-interest context. Do not describe as generic accrued interest. Not an external client cash flow. |
+| `pd` | Principal paydown / bond-security return-of-capital transaction. | Medium | Principal event; validate cash received, factor/principal reduction, cost-basis or amortization treatment, and zero-quantity cases. Not an external client cash flow. |
+
+The main research improvement is that ByAllAccounts Axys/APX default
+translation tables directly support `pa`, `sa`, `ai`, and `pd` mappings
+for the listed source concepts. Morningstar Axys conversion evidence adds
+support for treating principal paydowns as a reconciliation-sensitive
+conversion area because systems may represent principal factors, original
+principal, and zero-quantity paydown rows differently.
+
+### E.19.2 Other Code and Marker Clarifications
+
+| Code or marker | Strengthened interpretation | Practical caution |
+|---|---|---|
+| `by` | Buy / purchase security; may also appear as reinvestment buy leg or non-cash deposit pair. | Trade activity, not external cash flow. |
+| `sl` | Sell / sale of long security; positive closure may map here. | Trade activity, not external cash flow. |
+| `ss` | Short sale. | Requires short-account evidence before packaged-demo classification. |
+| `cs` | Cover short; negative closure may map here. | Keep uppercase `CS` cancellation evidence separate from economic cover-short treatment. |
+| `li` | Deliver in / transfer in / deposit / credit / positive movement. | External-flow candidate only when outside-party context proves capital entering the portfolio. |
+| `lo` | Deliver out / transfer out / withdrawal / debit / negative movement. | External-flow candidate only when outside-party context proves capital leaving the portfolio. |
+| `dv` | Dividend income; reinvestment income leg. | Link to `by` and `dvwash` when reinvested; do not treat as external flow. |
+| `in` | Interest / income, including positive interest and cash-security income. | Separate from `ai` negative-interest or margin-interest cases. |
+| `rc` | Return of capital. | Issuer/corporate-action or cost-basis event, not client contribution. Bond-security special cases may map to `pd`. |
+| `dp` | Fee, tax, service charge, investment expense, recordkeeping fee, cash-security buy, or context-dependent cash/security posting. | Usually not external flow; require special-security and source/destination context. |
+| `wd` | Cash-security sell / withdrawal-like cash-security movement. | Do not infer client withdrawal from the code name. |
+| `;` | Journal, Other, or Split marker. | Special marker requiring firm mapping or manual review. |
+| Uppercase code | Reversal/delete/cancel candidate for the lower-case code. | Classify reversal intent before economic treatment; native universality remains Unknown. |
+| `epus` | Fee/expense special-security type or conversion marker; management-fee-associated in conversion evidence. | Not a standalone transaction-code conclusion without local proof. |
+| `exus` | Expense special-security type or conversion marker; custody/service/expense-associated in integration evidence. | Not a standalone transaction-code conclusion without local proof. |
+| `dvwash` | Dividend-reinvestment wash symbol. | Reinvestment support context, not external flow or ordinary holding. |
+| `caus margin` | Margin cash/security context. | Supports `ai` margin-interest classification; separate financing expense from external flow. |
+
+### E.19.3 Implementation Classification Order
+
+The addenda reinforce the following audit-product classification order:
+
+1. Detect uppercase reversal/delete/cancel rows before normal economic
+   classification.
+2. Apply firm-specific overrides and local transaction-translation rules.
+3. Preserve security type, security symbol, source/destination type,
+   source/destination symbol, and special-security context.
+4. Use code family only after context: trade, transfer/external-flow
+   candidate, income, fixed-income accrual/financing, fee/cash-security,
+   corporate-action/principal, or placeholder/review.
+5. Use amount and quantity signs to determine direction.
+6. Assign classification confidence and route ambiguous rows to review.

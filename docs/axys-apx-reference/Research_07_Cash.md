@@ -267,15 +267,15 @@ The following codes appear in the inspected ByAllAccounts Axys transaction trans
 | `li` | Deposits, credits, direct deposits, transfers in, ATM positive, income positive. | Likely increases cash or moves value in. | High Confidence as observed |
 | `lo` | Withdrawals, checks, debits, payments, transfers out, ATM negative. | Likely decreases cash or moves value out. | High Confidence as observed |
 | `dp` | Cash security buy, fees, service charges, investment expense, non-cash security debit/tax. | Cash-impacting debit/payment-style code in examples. | High Confidence as observed |
-| `wd` | Cash security sell, cash sweep/withdrawal examples. | Cash-impacting withdrawal/sell-style code in examples. | High Confidence as observed |
+| `wd` | Cash-security sell and withdrawal-like cash-security movement examples. | Cash-impacting cash-security/sell-style code in examples; not automatically client withdrawal. | High Confidence as observed |
 | `by` | Buy; reinvested dividend buy leg. | Security purchase funded by cash. | High Confidence as observed |
 | `sl` | Sell; closure positive leg. | Security sale producing cash. | High Confidence as observed |
 | `dv` | Dividend and reinvested dividend leg. | Income/cash-related. | High Confidence as observed |
 | `in` | Income, interest, dividends on cash securities. | Income/cash-related. | High Confidence as observed |
-| `ai` | Interest negative; margin interest. | Accrued/margin-interest cash effect. | High Confidence as observed |
+| `ai` | Interest negative; margin interest. | Negative-interest or margin-interest cash effect. | High Confidence as observed |
 | `rc` | Return of capital. | Cash/security cash-impacting. | High Confidence as observed |
-| `pd` | Return of capital for bond security. | Cash/security cash-impacting. | High Confidence as observed |
-| `sa` | Sell accrued interest. | Income/cash-related. | High Confidence as observed |
+| `pd` | Return of capital for bond security / principal paydown. | Cash/security cash-impacting. | High Confidence as observed |
+| `sa` | Sale accrued interest / sell-side accrued interest. | Income/cash-related fixed-income trade adjunct. | High Confidence as observed |
 | `cs` | Cover short / closure negative leg. | Cash/security cash-impacting. | High Confidence as observed |
 | `ss` | Short sale. | Short/cash-related. | High Confidence as observed |
 
@@ -512,4 +512,3 @@ until those are supported by direct source material.
 This research is suitable as a starting file for `research/07-Cash.research.md`.
 
 It is not sufficient by itself to write a fully authoritative `docs/07-Cash.md` chapter with complete IMEX and REP field dictionaries. The strongest next evidence would be real Axys/APX IMEX exports, REP report samples, and vendor/manual excerpts specific to cash.
-

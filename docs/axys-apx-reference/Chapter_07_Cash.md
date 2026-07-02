@@ -152,7 +152,7 @@ The following table catalogs observed codes from supplied research. These are no
 | `ai` | Negative interest; margin interest. | Accrued/margin-interest cash effect. | Observed | Observed in transaction research | High Confidence as observed |
 | `rc` | Return of capital. | Cash/security cash-impacting. | Observed | Observed in transaction research | High Confidence as observed |
 | `pd` | Return of capital for bond security. | Cash/security cash-impacting. | Observed | Observed in transaction research | High Confidence as observed |
-| `sa` | Sell accrued interest. | Income/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
+| `sa` | Sale accrued interest / sell-side accrued interest. | Income/cash-related fixed-income trade adjunct. | Observed | Observed in transaction research | High Confidence as observed |
 | `cs` | Cover short / negative closure leg. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 | `ss` | Short sale. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 

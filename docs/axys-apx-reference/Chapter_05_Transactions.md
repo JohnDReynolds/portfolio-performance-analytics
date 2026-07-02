@@ -1414,6 +1414,9 @@ The strongest public transaction-code evidence in the supplied research
 comes from ByAllAccounts Custodial Integrator default translation tables
 and Morningstar Axys conversion notes. Those sources are useful for audit
 design, but they do not establish a complete native Axys/APX code manual.
+The July 2026 transaction-code addenda strengthened several practical
+descriptions, especially for fixed-income accrued-interest and principal
+paydown codes, while preserving the same evidence boundary.
 
 ### 8.2 Observed Transaction Code Matrix
 
@@ -1458,27 +1461,36 @@ design, but they do not establish a complete native Axys/APX code manual.
   `rc`        Return of capital          Unknown     Observed            Medium Requires vendor
                                                                                 confirmation.
 
-  `pd`        Principal paydown / bond   Unknown     Observed            Medium Bond-related.
-              return-of-capital case
+  `pd`        Principal paydown / bond   Unknown     Observed            Medium Bond-related;
+              return-of-capital case                                            supported by
+                                                                                return-of-capital
+                                                                                bond mapping and
+                                                                                conversion caveats.
 
-  `ai`        Accrued interest or margin Unknown     Observed            Medium Context-dependent.
-              interest
+  `ai`        Negative interest or       Unknown     Observed            Medium Narrower than
+              margin interest                                                   generic accrued
+                                                                                interest; context-
+                                                                                dependent.
 
-  `sa`        Sell accrued interest      Unknown     Observed            Medium Requires vendor
-                                                                                confirmation.
+  `sa`        Sell-side accrued          Unknown     Observed            Medium Fixed-income
+              interest                                                          trade adjunct;
+                                                                                integration-level
+                                                                                evidence.
 
-  `pa`        Purchase accrued interest  Unknown     Observed     Low to Medium Meaning requires
-              / accrued-interest-related                                        further verification.
-              buy-side case
+  `pa`        Purchase accrued interest  Unknown     Observed            Medium Fixed-income
+              / buy-side accrued                                                trade adjunct;
+              interest                                                          integration-level
+                                                                                evidence.
 
   `dp`        Debit / fee-related / tax  Unknown     Observed            Medium Multiple meanings;
               / service charge /                                                usually not an
               cash-security case                                                external flow without
                                                                                 additional evidence.
 
-  `wd`        Withdrawal / cash-security Unknown     Observed            Medium Context-dependent;
-              sell case                                                         not automatically a
-                                                                                client withdrawal.
+  `wd`        Cash-security sell /       Unknown     Observed            Medium Context-dependent;
+              withdrawal-like                                                   do not infer client
+              cash-security movement                                            withdrawal from
+                                                                                the code name.
 
   `;`         Journal / comment / other  Unknown     Observed            Medium Treat as observed
               / split in integration                                            integration behavior
@@ -1590,11 +1602,17 @@ design, but they do not establish a complete native Axys/APX code manual.
   Sell cash security  `wd`                            Medium Cash-security special
                                                              case.
 
-  Short               `ss`                            Medium Short sale.
+  Buy accrued         `pa`                            Medium Fixed-income
+  interest                                                   trade adjunct;
+                                                             not external
+                                                             flow.
 
-  Accrued interest on `sa`                            Medium Source table maps
-  sell                                                       accrued interest to
-                                                             `sa`.
+  Sell accrued        `sa`                            Medium Fixed-income
+  interest                                                   trade adjunct;
+                                                             not external
+                                                             flow.
+
+  Short               `ss`                            Medium Short sale.
 
   Service charge      `dp` with                       Medium Fee-like.
                       `exus custfee`
@@ -1620,7 +1638,8 @@ observed research. It is not an official Axys/APX code dictionary.
 | `lo` | Transfer / external-flow candidate | Often, not always | Candidate withdrawal or outgoing security transfer; separate fees, corrections, and internal journals. |
 | `by`, `sl`, `ss`, `cs` | Trading activity | No | Affects holdings, cash, realized gain/loss, and exposure; validate price, quantity, commission, and settlement cash. |
 | `dv`, `in` | Income | No | Affects income and cash unless reinvested or netted; validate expected dividend/coupon and pay-date treatment. |
-| `ai`, `pa`, `sa` | Accrual / interest adjunct | No | Validate accrued-interest, margin-interest, day-count, and settlement economics. |
+| `pa`, `sa` | Fixed-income trade adjunct | No | Validate accrued interest, settlement date, coupon schedule, day count, and total trade settlement. |
+| `ai` | Negative interest / margin interest / financing adjustment | No | Validate margin or negative-interest context, amount sign, margin cash/security markers, and financing-rate support. |
 | `dp`, `wd` | Cash, fee, expense, or cash-security movement | Usually no | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, or true movement. |
 | `rc`, `pd` | Corporate action / principal event | Usually no | Validate return-of-capital, paydown, cost-basis, factor, and amortization treatment. |
 | `;` | Journal, split, other, or placeholder | Usually no | Require firm mapping or manual review before performance treatment. |
@@ -1644,6 +1663,7 @@ for ambiguous transaction families.
 | `;` | Any | Any | Any | Any | Split, journal, other, or placeholder | Usually no | Route high-value items to manual review. |
 | `dv` / `by` | Real security | Real symbol or `dvwash` | `$ity` or equivalent | `$income` or wash symbol | Dividend reinvestment | No | Link income and buy legs to avoid double counting. |
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
+| `pa` / `sa` | Bond or fixed-income security | Real symbol | Client-specific | Client-specific | Buy-side or sell-side accrued interest | No | Validate accrued interest, day count, and settlement economics; do not classify as external flow. |
 | `rc` / `pd` | Real security or bond/MBS | Real symbol | Client-specific | Client-specific | Return of capital or principal paydown | No | Confirm cost-basis, factor, and amortization treatment. |
 
 ### 8.6 Observed Public Mapping Examples
@@ -1661,6 +1681,7 @@ appendix and are not universal Axys transaction-code rules.
 | Short / cover short | Security | `ss` / `cs` | Trade activity; validate short exposure and cash signs. |
 | Dividend / reinvestment | Income plus buy | `dv`, `by`, `dvwash` | Link paired legs and avoid double-counting income or wash cash. |
 | Interest / negative interest | Positive / negative | `in` / `ai` | Separate income from margin or financing expense. |
+| Accrued interest on buy/sell | Fixed-income trade adjunct | `pa` / `sa` | Part of bond trade settlement economics; not client external cash flow. |
 | Fee / service charge / expense | Fee context | `dp` with `epus`/`exus` symbols | Fee or expense, not client withdrawal unless firm policy proves otherwise. |
 | Cash-security buy/sell | Cash security | `dp` / `wd` | Cash-security handling; do not infer external cash flow from the code name. |
 | Return of capital / paydown | Normal / bond | `rc` / `pd` | Issuer/principal event, not client capital flow. |
@@ -1671,7 +1692,28 @@ Ambiguous `li`, `lo`, `dp`, `wd`, `;`, `epus`, and `exus` cases should
 fall into a "requires review" bucket until firm mapping or supporting
 source evidence confirms the audit classification.
 
-### 8.7 Cancellation and Reversal
+### 8.7 Fixed-Income Accrued-Interest and Principal Codes
+
+The July 2026 addendum strengthened but did not close the evidence for
+`pa`, `sa`, `ai`, and `pd`. ByAllAccounts Axys/APX default translation
+tables support the following practical interpretations:
+
+| Code | Better-supported meaning | Practical treatment | External flow? |
+|---|---|---|---:|
+| `pa` | Purchase accrued interest / buy-side accrued interest. | Fixed-income trade adjunct; validate accrued days, coupon, day count, settlement date, and total settlement. | No |
+| `sa` | Sale accrued interest / sell-side accrued interest. | Fixed-income trade adjunct; validate accrued days, coupon, day count, settlement date, and sale proceeds. | No |
+| `ai` | Negative interest or margin interest. | Financing, negative-interest, or income-adjustment context; require margin/security context and amount sign. | No |
+| `pd` | Principal paydown / bond-security return-of-capital transaction. | Principal event; validate cash received, principal/factor reduction, cost-basis/amortization treatment, and zero-quantity cases. | No |
+
+These are observed integration mappings, not official native code
+definitions. `pa` and `sa` should not be used as generic income codes
+without bond/accrual context. `ai` should not be described as generic
+accrued interest; the strongest public evidence supports negative
+interest and margin interest. `pd` should remain a principal-paydown or
+bond-return-of-capital candidate until security type, factor/principal
+movement, and local methodology are known.
+
+### 8.8 Cancellation and Reversal
 
   ------------------------------------------------------------------------------------------
   Statement                Axys             APX                     Confidence Notes
