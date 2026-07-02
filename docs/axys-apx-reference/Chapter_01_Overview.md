@@ -92,6 +92,20 @@ Each chapter is intended to be read in the same compact pattern:
 - Look for implementation cautions, Unknowns, and any cross-references to adjacent chapters.
 - Use the chapter as a starting point, then move to the linked chapters for the next step.
 
+## Chapters, Research Notes, And Appendices
+
+Use the chapter files as the reader-facing reference. The `Research_*.md` files
+preserve source-by-source evidence, search history, dated research updates, and
+open questions that would make the chapters too noisy. Appendices are
+implementation-facing cross-cutting aids, such as transaction semantics and demo
+extract availability.
+
+Dated research-update or addendum sections should not be read as competing
+chapters. They are provenance notes for evidence that has been folded into the
+chapter or should be folded into a later cleanup pass. If an addendum section
+becomes the clearest explanation of a topic, prefer merging that explanation
+into the relevant main-body section and leaving only a short provenance note.
+
 ## 1. Overview
 
 This chapter introduces the AXYS / APX Reference Repository and summarizes the factual scope of the supplied chapters. It is a repository orientation chapter, not a replacement for the detailed subject chapters.

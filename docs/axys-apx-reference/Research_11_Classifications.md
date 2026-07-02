@@ -739,7 +739,7 @@ caution, not a universal vendor rule.
 
 For APX, public report-guide snippets support a custom-classification /
 industry-group / sector equity-allocation report lead, but exact report name,
-fields, parameters, and source datasets remain Unknown. Classification tooling
+fields, parameters, and source-data inputs remain Unknown. Classification tooling
 should separate `classification_scheme`, `classification_value`,
 `security_classification_assignment`, `portfolio_grouping_assignment`, and
 `report_classification_output`. Audit rules should cover symbol/type joins,

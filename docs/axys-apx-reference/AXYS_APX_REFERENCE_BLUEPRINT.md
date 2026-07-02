@@ -113,12 +113,11 @@ Assume the reader is technically proficient.
     Chapter_09_Corporate_Actions.md
     Chapter_10_Performance.md
     Chapter_11_Classifications.md
-    Chapter_12_IMEX.md
-    Chapter_13_REP.md
+    Chapter_12_Imex.md
+    Chapter_13_Rep.md
     Chapter_14_Reports.md
     Chapter_15_Data_Dictionary.md
     Chapter_16_Glossary.md
-    Research_01_Overview.md
     Research_02_Axys_Architecture.md
     Research_03_APX_Architecture.md
     Research_04_Security_Master.md

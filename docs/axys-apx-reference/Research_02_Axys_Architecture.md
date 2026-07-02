@@ -545,8 +545,8 @@ Confidence: Medium. The diagram is a research synthesis, not a vendor architectu
 | `Chapter_08_Pricing.md` | `PRI` is a candidate price/factor file lead only. |
 | `Chapter_10_Performance.md` | `PRF` is a candidate performance-return file lead only. |
 | `Chapter_11_Classifications.md` | `GRP` is a candidate group/color-group file lead only. |
-| `Chapter_12_IMEX.md` | IMEX is the safer supported integration path; object/field catalog Unknown. |
-| `Chapter_13_REP.md` | `.REP`, `.RPW`, Replang, Report Writer checksum/manual editing quirks. |
+| `Chapter_12_Imex.md` | IMEX is the safer supported integration path; object/field catalog Unknown. |
+| `Chapter_13_Rep.md` | `.REP`, `.RPW`, Replang, Report Writer checksum/manual editing quirks. |
 | `Chapter_14_Reports.md` | `AMAN.REP`, Assets Under Management, Report Writer Pro, Packager/APX. |
 | `Chapter_15_Data_Dictionary.md` | Only a few tokens/fields supported; most field names Unknown. |
 
