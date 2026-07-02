@@ -489,7 +489,7 @@ This workflow is documented as a WealthTechs AIA/APX workflow. It is not asserte
 | Import logs | Advent IMEX Log and Advent IMEX History Log support troubleshooting imports and blotter issues. | Verified for AIA |
 | Account data | Account Blotter can add/update account demographic data. | Verified for AIA |
 | Initial transactions | AIA can create initial deliver-in transactions from positions when an account has no transactions. | Verified for AIA |
-| Transaction translation | IF/THEN-style logic can transform source transaction data; rules are not case-sensitive in the AIA guide. | Verified for AIA |
+| Transaction translation | IF/THEN-style logic can transform source-data transaction rows; rules are not case-sensitive in the AIA guide. This is an AIA translation-rule behavior, not a general instruction to compare native transaction codes or security identifiers case-insensitively. | Verified for AIA |
 | Special assignment tokens | Examples include `[*-1]`, `[TradeDate]`, and `[SettleDate]`. | Verified for AIA |
 | Vehicle filter | Can eliminate transactions, prices, and positions for specific vehicles from appearing in any APX blotter or import output. | Verified for AIA |
 | Delete all Positions | AIA Tools Menu includes Delete all Positions; guide says it should be done before posting current position files in APX. | Verified for AIA |

@@ -2663,12 +2663,12 @@ The Trade Blotter section should distinguish:
 
 ### D.10 WealthTechs AIA Transaction Translation Logic
 
-The WealthTechs Axys manual documents Transaction Translation (`TT`) logic in the AIA workflow. It states that TT allows `IF, THEN` programming logic against source transaction data, is not case-sensitive, and is overridden by other translations such as Vehicle, Account, or Broker. It also documents special assignment behavior such as forcing a number field negative and forcing trade-date or settlement-date field values.
+The WealthTechs Axys manual documents Transaction Translation (`TT`) logic in the AIA workflow. It states that TT allows `IF, THEN` programming logic against source-data transaction rows, is not case-sensitive inside that translation-rule context, and is overridden by other translations such as Vehicle, Account, or Broker. This does not establish a general rule for case-insensitive native transaction-code or security-identifier matching. It also documents special assignment behavior such as forcing a number field negative and forcing trade-date or settlement-date field values.
 
 | Feature | System | Confidence | Caveat |
 |---|---|---:|---|
 | Transaction Translation allows IF/THEN logic. | Axys AIA workflow | Medium | Third-party integration behavior. |
-| TT is not case-sensitive. | Axys AIA workflow | Medium | Third-party integration behavior. |
+| TT is not case-sensitive. | Axys AIA workflow | Medium | Third-party integration behavior; not a ppar native-code matching rule. |
 | TT can be overridden by Vehicle, Account, or Broker translations. | Axys AIA workflow | Medium | Third-party integration behavior. |
 | `[TradeDate]` and `[SettleDate]` can be used as assignment values. | Axys AIA workflow | Medium | Third-party integration behavior. |
 | AIA can delete Trade Blotter transactions that match transaction codes such as `BY`, `SL`, `SS`, `CS`. | Axys/APX AIA workflow | Medium | AIA behavior; native universality Unknown. |
@@ -3363,13 +3363,10 @@ Additional transaction-specific points:
 
 ### E.19 Transaction-Code Gap-Fill Addenda Incorporated 2026-07-02
 
-Sources:
-
-- `temp_axys_transaction_codes_pa_sa_ai_pd_addendum.md`.
-- `temp_axys_transaction_codes_other_types_addendum.md`.
-
-These addenda strengthen the practical transaction-code descriptions used
-by Chapter 05 and the transaction-semantics matrix. They do not change the
+This section integrates the July 2026 transaction-code gap-fill notes for
+fixed-income, principal, and other observed transaction-code families. Those
+notes strengthen the practical transaction-code descriptions used by Chapter 05
+and the transaction-semantics matrix. They do not change the
 evidence boundary: the strongest support remains third-party integration
 and conversion documentation, not official complete SS&C Advent native
 transaction-code manuals.

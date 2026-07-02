@@ -203,7 +203,7 @@ The best reviewed low-level Axys IMEX evidence comes from the ByAllAccounts Cust
 | WealthTechs APX guide lists or discusses AIA/APX blotters including Account Blotter, Initial Transaction Blotter, Trade Blotter, Position Blotter, Statement Blotter, Tax Lot Blotter, Pending Blotters, and Dividend Adjustment Blotter. | Verified for AIA | [S9], [S16] |
 | AIA Account Blotter imports account demographic data from custodians such as Account Number, Account Name, Account Type and may update existing account data and/or add new accounts to APX. | Verified for AIA | [S9] |
 | AIA Initial Transaction Blotter can be driven by a process setting to create initial deliver-in transactions from positions when the APX account has no transactions. | Verified for AIA | [S9] |
-| AIA Transaction Translation supports IF/THEN style logic assigned to source transaction data and is not case sensitive, according to the guide. | Verified for AIA | [S16] |
+| AIA Transaction Translation supports IF/THEN style logic assigned to source-data transaction rows and is not case sensitive, according to the guide. Treat that as AIA translation-rule behavior, not as a general ppar rule for case-insensitive transaction-code or security-identifier matching. | Verified for AIA | [S16] |
 | AIA Transaction Translation can use special assignment tokens such as `[*-1]`, `[TradeDate]`, and `[SettleDate]`. | Verified for AIA | [S16] |
 | An AIA example says transaction codes `BY`, `SL`, `SS`, and `CS` can be deleted from the Trade Blotter by a Transaction Translation rule. Treat these as example transaction codes in AIA/APX import context, not a complete APX transaction code dictionary. | Verified for AIA example | [S16] |
 | AIA Vehicle Filter can eliminate transactions, prices, and positions for specific vehicles from appearing in any APX blotter or import output. | Verified for AIA | [S16] |
@@ -458,7 +458,7 @@ Output Axys identifiers:
 
 ```text
 Transaction Translation:
-    IF source transaction data meets conditions
+    IF source-data transaction rows meet conditions
     THEN assign/delete/transform target blotter behavior
 
 Special assignment examples:
@@ -635,7 +635,7 @@ URL: `https://adventguru.com/category/portfolio-management-systems/apx/`
 [S15] Consultant tutorial, **How to Add Portfolio Code to Axys Reports**. Key reviewed lines: Axys reports written in Replang; AMAN.REP; example path `e:\axys34\rep`; copying reports before modification.  
 URL: `https://assets.ctfassets.net/xhy36q2d1lqu/77QC4aNbyhPo9FfmjRYNzc/d00a0d6601214601543e30e34f203626/PortfolioCodetoAxys.pdf`
 
-[S16] WealthTechs, **AIA User Manual for APX Users**. Key reviewed lines: Transaction Translation IF/THEN logic; not case sensitive; special assignment values; example deleting transaction codes; Vehicle Filter.  
+[S16] WealthTechs, **AIA User Manual for APX Users**. Key reviewed lines: Transaction Translation IF/THEN logic; not case sensitive within that translation-rule context; special assignment values; example deleting transaction codes; Vehicle Filter.
 URL: `https://www.wealthtechs.com/files/AIADocumentation/APX%20Guide%20-%20AIA%20User%20Manual%20For%20APX%20Users.pdf`
 
 ---
