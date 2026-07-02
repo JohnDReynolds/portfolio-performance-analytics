@@ -1218,6 +1218,22 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(resource_path=resource_path):
                 self.assertTrue((axys_demo_data / resource_path).is_file())
 
+    def test_public_demo_entrypoints_use_packaged_resources(self) -> None:
+        """Installed demo entrypoints read bundled resources, not repo paths."""
+        demo_modules = (
+            Path("ppar/demos/axys_analytics_demo.py"),
+            Path("ppar/demos/performance_comparison_portfolio_demo.py"),
+            Path("ppar/demos/performance_comparison_security_demo.py"),
+        )
+
+        for path in demo_modules:
+            text = path.read_text(encoding=util.ENCODING)
+            with self.subTest(path=path.as_posix()):
+                self.assertIn('files("ppar.demos.data") / "axys"', text)
+                self.assertIn("as_file(", text)
+                self.assertNotIn('Path("ppar/demos/data/axys")', text)
+                self.assertNotIn("tests/data/axys", text)
+
     def test_axys_portfolio_demo_uses_operational_mega_cap_data(self) -> None:
         """The user-facing comparison demo packages the promoted operational data."""
         axys_demo_data = files("ppar.demos.data") / "axys"
