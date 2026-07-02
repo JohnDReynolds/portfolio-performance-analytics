@@ -667,6 +667,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
+        self.assertIn("Do not promote a packaged `lo` row merely for symmetry", roadmap)
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
         self.assertIn("Code simplification watchlist", roadmap)
@@ -958,6 +959,59 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertLessEqual(
             set(matrix_yaml["ambiguous_external_flow_codes"]),
             imex_context_codes & rep_semantics_codes & code_only_codes,
+        )
+
+    def test_packaged_demo_transaction_coverage_triage_is_documented(self) -> None:
+        """Packaged transaction rows require a reviewer story, not symmetry."""
+        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+            encoding=util.ENCODING
+        )
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/transaction_semantics_matrix.yaml")
+        )
+        packaged_demo_rule_codes = set(
+            _load_yaml(Path("ppar/demos/data/axys/ppar_performance_comparison.yaml"))[
+                "transaction_rules"
+            ]
+        )
+        packaged_demo_data_codes = (
+            _transaction_codes_in_csv(
+                Path("ppar/demos/data/axys/axys_full_spec_a/transactions.csv")
+            )
+            | _transaction_codes_in_csv(
+                Path("ppar/demos/data/axys/axys_full_spec_b/transactions.csv")
+            )
+        )
+
+        self.assertIn(
+            "Phase 48: Packaged Demo Transaction Coverage Triage",
+            roadmap,
+        )
+        self.assertIn("No new transaction row was promoted", roadmap)
+        self.assertIn("`lo` row would be useful only if", roadmap)
+        self.assertIn("Synthetic or\nsurgical coverage remains test-only", roadmap)
+
+        self.assertIn("li", packaged_demo_rule_codes)
+        self.assertIn("lo", packaged_demo_rule_codes)
+        self.assertIn("li", packaged_demo_data_codes)
+        self.assertIn("wd", packaged_demo_data_codes)
+        self.assertIn("dp", packaged_demo_data_codes)
+        self.assertNotIn("lo", packaged_demo_data_codes)
+        self.assertEqual(
+            matrix_yaml["rows"]["li"]["coverage_status"],
+            "covered_packaged_demo",
+        )
+        self.assertEqual(
+            matrix_yaml["rows"]["lo"]["coverage_status"],
+            "covered_site_variant",
+        )
+        self.assertIn(
+            "site_variants/imex_context",
+            matrix_yaml["rows"]["lo"]["fixtures"],
+        )
+        self.assertIn(
+            "site_variants/rep_semantics",
+            matrix_yaml["rows"]["lo"]["fixtures"],
         )
 
     def test_review_only_action_fixture_is_documented(self) -> None:

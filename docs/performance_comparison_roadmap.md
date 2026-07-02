@@ -89,7 +89,7 @@ core Modified Dietz report cleanup.
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | Nonredundant external-flow variants; realistic `li` / `lo` transfer examples; real historical split only if the demo period supports it. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
+| Packaged demo candidate | Nonredundant external-flow variants; a realistic `lo` transfer example only if it adds a distinct reviewer story beyond the existing packaged `li`, `wd`, and `dp` cases; real historical split only if the demo period supports it. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
 | Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. |
 | Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
@@ -108,6 +108,13 @@ coverage in this order:
 
 Packaged demo rows should stay narrow enough to tell a coherent Modified Dietz
 story. Synthetic edge cases belong in test-only fixtures.
+
+Current triage: the packaged Axys demo already covers normal buys, sells,
+ordinary income, fixed-income income, contextual `li`, external `wd`, and
+fee-like `dp` rows. Do not promote a packaged `lo` row merely for symmetry. A
+packaged `lo` addition should wait until it can show a nonredundant outflow or
+transfer situation that changes the reviewer conversation more clearly than the
+existing site-variant fixtures.
 
 ### Longer-Term Deliverables
 
@@ -2247,6 +2254,30 @@ evidence justifies it, and documentation freshness guardrails.
 Transaction coverage, policy expansion, the richer APX demo, multi-currency
 modeling, broader extract discovery, and commercial licensing remain visible as
 the real forward backlog.
+
+### Phase 48: Packaged Demo Transaction Coverage Triage
+
+Status: complete for current packaged-demo promotion triage.
+
+The packaged Axys transaction set was reviewed against
+`transaction_semantics_matrix.yaml`, the site-variant fixtures, and the current
+transaction backlog. No new transaction row was promoted into the packaged demo
+in this pass.
+
+That is intentional. The packaged demo already includes a contextual external
+cash `li`, an external cash `wd`, a fee-like `dp`, ordinary `by` / `sl`
+trading rows, dividend income, and fixed-income income. Site-variant fixtures
+already cover the broader ambiguous-code behavior for `li`, `lo`, `dp`, and
+`wd`, including external-party and internal-transfer distinctions. A packaged
+`lo` row would be useful only if it adds a distinct reviewer story; adding it
+only to mirror the packaged `li` example would make the demo less realistic and
+more fixture-shaped.
+
+The active backlog now names that standard directly: promote additional
+transaction families to packaged data only when they are realistic,
+nonredundant, internally consistent across transactions, holdings, performance
+rows, YAML rules, report wording, and source-contract language. Synthetic or
+surgical coverage remains test-only.
 
 ## Guiding Principle
 
