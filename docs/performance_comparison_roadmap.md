@@ -77,6 +77,8 @@ Completed guardrails now cover:
   review examples;
 - portfolio and security report explanations intentionally use different
   transaction wording when the review level asks a different question;
+- the Axys Demo Freeze Decision Packet is mapped to concrete packaged-data,
+  YAML, source-contract, test, and generated-bundle evidence;
 - generated bundle vocabulary, package-resource entrypoints, and distribution
   package-data boundaries are validated.
 
@@ -2510,6 +2512,30 @@ packet as the seed.
 The packaged demo health script regenerated both report bundles during this
 audit. Portfolio and security `report.html` hashes remained unchanged, so this
 phase did not change user-facing report content.
+
+### Phase 63: Release Candidate Confidence Sweep
+
+Status: complete for current release-candidate confidence.
+
+The broad local release smoke passed after the freeze-packet audit work. The
+full test suite passed with 608 tests. The package build succeeded for both
+wheel and source distribution, and the build output confirmed packaged Axys
+demo CSV/YAML/README resources are included in the wheel.
+
+The packaged performance-comparison demo health script passed after rebuilding
+the portfolio and security report bundles, validating both bundles, checking
+the extract-availability appendix, and validating the packaged demo matrix. The
+comparison YAML also passed `validate_config` with ambiguous-flow enforcement
+enabled and observed transaction codes limited to `by`, `dp`, `dv`, `in`, `li`,
+`sl`, and `wd`.
+
+A stale-term sweep found only intentional historical roadmap references,
+negative regression assertions, and boundary language that rejects universal
+Axys assumptions. No runtime or user-facing wording change was needed.
+
+Portfolio and security `report.html` hashes were captured before and after the
+smoke. They remained unchanged, so this phase did not change user-facing report
+content.
 
 ## Guiding Principle
 

@@ -701,6 +701,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Documentation freshness", roadmap)
         self.assertIn("Axys demo freeze readiness", roadmap)
         self.assertIn("Axys Demo Freeze Decision Packet", roadmap)
+        self.assertIn("mapped to concrete packaged-data", roadmap)
         self.assertIn("versioned Axys preset seed", roadmap)
         self.assertIn("**Axys/APX blockers**", roadmap)
         self.assertIn(
@@ -796,6 +797,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("current freeze-packet auditability", roadmap)
         self.assertIn("A contains `by`, `dp`, `dv`, `in`, `sl`, and `wd`", roadmap)
         self.assertIn("Neither packaged snapshot contains `lo` or `;`", roadmap)
+        self.assertIn("Phase 63: Release Candidate Confidence Sweep", roadmap)
+        self.assertIn("current release-candidate confidence", roadmap)
+        self.assertIn("full test suite passed with 608 tests", roadmap)
+        self.assertIn("build succeeded for both", roadmap)
+        self.assertIn("observed transaction codes limited to", roadmap)
+        self.assertIn("stale-term sweep found only intentional", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
