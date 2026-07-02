@@ -635,6 +635,20 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     cash_external_flow_row[10],
                     "li: The external flow for CASH_USD changed by 2,500.00.",
                 )
+                cash_fee_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "CASH_USD"
+                    and str(row[1])[:10] == "2026-01-01"
+                    and str(row[2])[:10] == "2026-01-30"
+                    and str(row[3])[:10] == "2026-01-20"
+                )
+                self.assertEqual(
+                    cash_fee_row[10],
+                    "dp: The fee/expense for CASH_USD changed by 50.00.",
+                )
                 jpm_dividend_row = next(
                     row
                     for row in underlying_rows
@@ -645,7 +659,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     jpm_dividend_row[10],
-                    "dv: The transactions.amount for JPM changed by 117.07.",
+                    "dv: The income for JPM changed by 117.07.",
                 )
             finally:
                 workbook.close()

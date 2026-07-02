@@ -2827,6 +2827,18 @@ def _workbook_transaction_component_explanation(
         == TRANSACTION_CATEGORY_EXTERNAL_FLOW
     ):
         field_text = "external flow"
+    elif (
+        source_column == pc_cols.AMOUNT
+        and row.get(_pc_findings.TRANSACTION_CATEGORY)
+        == TRANSACTION_CATEGORY_FEE_EXPENSE
+    ):
+        field_text = "fee/expense"
+    elif (
+        source_column == pc_cols.AMOUNT
+        and row.get(_pc_findings.TRANSACTION_CATEGORY)
+        == TRANSACTION_CATEGORY_INCOME
+    ):
+        field_text = "income"
     return (
         f"{_workbook_transaction_code_prefix(row)}The {field_text}"
         f"{security_text} changed by "
