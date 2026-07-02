@@ -315,9 +315,9 @@ The supplied material verifies that Axys and APX import/export utilities partici
 | Import/export utility identified | `imex32.exe` | `apxix.exe` / `APXIX.exe` / `ApxIx` | Verified / naming relationship Unknown | Context differs by source. |
 | Security export to `sec.inf` | Yes | Yes | Verified in CI context | Complete layout Unknown. |
 | Security Type export to `type.inf` | Yes | Yes | Verified in CI context | Complete layout Unknown. |
-| Transaction import through import/export utility | Yes | Yes | Verified in CI context | Transaction chapter should provide details. |
-| Price import through import/export utility | Yes | Yes | Verified in CI context | Pricing chapter should provide details. |
-| Position import through import/export utility | Yes | Yes | Verified in CI context | Holdings chapter should provide details. |
+| Transaction import through import/export utility | Yes | Yes | Verified in CI context | See [Chapter_05_Transactions.md](Chapter_05_Transactions.md). |
+| Price import through import/export utility | Yes | Yes | Verified in CI context | See [Chapter_08_Pricing.md](Chapter_08_Pricing.md). |
+| Position import through import/export utility | Yes | Yes | Verified in CI context | See [Chapter_06_Holdings.md](Chapter_06_Holdings.md). |
 | Native security IMEX object name | Unknown | Unknown | Unknown | Not supplied. |
 | Native security type IMEX object name | Unknown | Unknown | Unknown | Not supplied. |
 | Required fields for security import/update | Unknown | Unknown | Unknown | Not supplied. |

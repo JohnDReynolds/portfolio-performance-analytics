@@ -734,4 +734,4 @@ The strongest supported material is:
 6. APX ACA evidence includes APX holdings handoff, ACA action records, review/download, APX Reorg Utility, and APX Trade Blotter.
 7. Many implementation-critical details remain Unknown: field layouts, transaction codes, IMEX object names, REP report names, ACA action IDs, final posting behavior, cost-basis/taxability storage, and performance impact.
 
-This chapter should therefore be treated as a disciplined reference boundary: it documents what is known, identifies where corporate actions touch adjacent data areas, and prevents unsupported Axys/APX behavior from being invented.
+Use this chapter as a disciplined reference boundary: it documents what is known, identifies where corporate actions touch adjacent data areas, and prevents unsupported Axys/APX behavior from being invented.

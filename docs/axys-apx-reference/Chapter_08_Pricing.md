@@ -232,7 +232,8 @@ The strongest APX pricing evidence is from WealthTechs AIA for APX. These settin
 
 ### 6.2 Candidate IMEX price documentation structure
 
-Until official IMEX material or production samples are supplied, the chapter should preserve this placeholder status:
+Until official IMEX material or production samples are supplied, the pricing IMEX
+structure remains a documentation target rather than a verified native schema:
 
 | Attribute | Current status | Needed evidence |
 |---|---|---|
