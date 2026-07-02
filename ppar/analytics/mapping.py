@@ -47,8 +47,8 @@ class Mapping:
                 dictionary, a pandas DataFrame, or a Polars DataFrame.
 
         Data Parameters:
-            Sample input data for mapping a ``Security`` classification to an
-            ``Economic Sector`` classification::
+            Sample source-data rows for mapping a ``Security`` classification
+            to an ``Economic Sector`` classification::
 
                 AAPL, IT
                 GOOG, CO

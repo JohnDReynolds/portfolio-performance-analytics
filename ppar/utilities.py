@@ -232,7 +232,7 @@ def load_datasource(
     """Load a two-column data source into a normalized Polars DataFrame.
 
     Args:
-        data_source: The source data. Supported inputs are a CSV file path, a
+        data_source: The source-data rows. Supported inputs are a CSV file path, a
             dictionary, a pandas DataFrame, or a Polars DataFrame.
         column_names: The two output column names to assign to the DataFrame.
         needed_items: The allowed values for the first output column. Rows with

@@ -83,7 +83,7 @@ def run_demo(periodicity: str) -> None:
     # Set the classification_name for another Attribution.
     classification_name = "Economic Sector"
 
-    # Get the classification data source.  Here is sample input data for the classification data
+    # Get the classification data source.  Here are sample source-data rows for the classification
     # source of an "Economic Sector" classification.  The unique identifier is in the first column,
     # and the name is in the second column.  There are no column headers.
     #     CO, Communication Services
@@ -99,7 +99,7 @@ def run_demo(periodicity: str) -> None:
 
     # Get a tuple of the mapping data sources (portfolio=0, benchmark=1).  They will provide
     # mappings from the classifications in the performance files (e.g. "Security") to the
-    # Attribution classification (e.g. "Economic Sector").  Here is sample input data for mapping
+    # Attribution classification (e.g. "Economic Sector").  Here are sample source-data rows for
     # the "Security" classification to the "Economic Sector" classification.  The unique identifier
     # of the "from" classification is in the first column, and the unique identifier of the "to"
     # classification is in the second column.  There are no column headers.

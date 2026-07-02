@@ -294,7 +294,7 @@ class AxysPortfolioLoader:  # pylint: disable=too-few-public-methods
             Reconciled portfolio output keyed by portfolio code.
 
         Raises:
-            PpaError: If input data cannot be loaded, common periods cannot be
+            PpaError: If source-data rows cannot be loaded, common periods cannot be
                 found, or security returns cannot be reconciled to portfolio
                 returns.
         """

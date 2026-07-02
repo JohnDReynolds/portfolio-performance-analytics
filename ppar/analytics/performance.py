@@ -28,7 +28,7 @@ class Performance:
         classification_name: Optional name of the classification represented
             by the performance data.
         classification_items: Optional classification identifier/name pairs
-            extracted from input data when a ``name`` column is present.
+            extracted from source-data rows when a ``name`` column is present.
         df: Alias for ``narrow_df`` retained for callers that access calculated
             performance rows directly.
         error_message_context: Context string included in validation errors.
@@ -337,7 +337,7 @@ class Performance:
         self.narrow_df = self.narrow_df.sort([cols.THRU_DATE, cols.IDENTIFIER])
 
     def _set_classification_items(self) -> None:
-        """Capture identifier/name pairs supplied with narrow input data."""
+        """Capture identifier/name pairs supplied with narrow source-data rows."""
         if cols.NAME not in self.narrow_df.columns:
             self.classification_items = pl.DataFrame()
             return
