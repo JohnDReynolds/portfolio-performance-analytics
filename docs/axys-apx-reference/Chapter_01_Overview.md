@@ -23,6 +23,32 @@ These rules should guide any implementation or further documentation work in thi
 - Do not assume performance is stored or recalculated without explicit evidence.
 - Do not normalize or merge data across Axys and APX without first validating the source context and confidence level.
 
+## Axys/APX blockers
+
+The current reference set is strong enough to support configurable
+source-data snapshots and Modified Dietz comparison logic. It is not yet strong
+enough to support broad Axys/APX-native automation or claims that ppar matches
+vendor methodology. The following gaps are the main blockers for major
+performance-comparison features:
+
+| Blocker | What it blocks | Where documented | Evidence needed |
+|---|---|---|---|
+| No verified performance extract dictionary. | Turnkey native `portperf` / `secperf` support and official performance-export recipes. | [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md), [Appendix_Demo_Extract_Availability.md](Appendix_Demo_Extract_Availability.md). | Axys/APX IMEX object catalog, performance export samples, report output, or vendor manual. |
+| Stored vs recalculated performance is Unknown. | Claims that a source-data change explains native Axys/APX recalculation behavior rather than only explaining the extracted report snapshots. | [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_14_Reports.md](Chapter_14_Reports.md). | Same-period report reruns, stored/exported values, report source, or vendor documentation. |
+| Security-performance footing is Unknown. | Automated security-to-portfolio rollups, contribution reconciliation, and classification-level attribution. | [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_11_Classifications.md](Chapter_11_Classifications.md). | Security performance report/export with weights, returns, contribution, cash rows, and portfolio footing. |
+| Transaction-code coverage is incomplete and context-dependent. | All-transaction-type classification, broad external-flow inference, fixed-income principal/accrual automation, return-of-capital treatment, and reversal/cancellation handling. | [Chapter_05_Transactions.md](Chapter_05_Transactions.md), [Appendix_Transaction_Semantics_Matrix.md](Appendix_Transaction_Semantics_Matrix.md). | Official code matrix, sanitized production code list, local mapping, source/destination context, special-security context, and controlled examples. |
+| IMEX object names and field lists are not authoritative. | A generic Axys/APX connector that tells users exactly which IMEX objects and fields to export. | [Chapter_12_Imex.md](Chapter_12_Imex.md), [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md). | Versioned IMEX manuals, live IMEX catalog, and sample Axys/APX exports. |
+| REP, SSRS, and report definitions are missing. | Standard report-extraction recipes and precise report-to-source-data reconciliation. | [Chapter_13_Rep.md](Chapter_13_Rep.md), [Chapter_14_Reports.md](Chapter_14_Reports.md), [Chapter_10_Performance.md](Chapter_10_Performance.md). | Axys `.REP` files, APX RDL/SSRS definitions, report catalogs, parameters, and sample outputs. |
+| Multi-currency, fixed-income, and corporate-action behavior remains under-evidenced. | Richer APX/Axys demos, FX attribution, principal paydown/accrual automation, splits, reorganizations, and other corporate-action performance treatment. | [Chapter_07_Cash.md](Chapter_07_Cash.md), [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_09_Corporate_Actions.md](Chapter_09_Corporate_Actions.md), [Chapter_10_Performance.md](Chapter_10_Performance.md). | Multi-currency reports/exports, FX examples, fixed-income reports, accrual/principal examples, and real corporate-action samples. |
+
+These blockers do not prevent the current product direction. A configurable
+performance-comparison workflow can still compare two source-data snapshots,
+apply explicit YAML semantics, calculate supported Modified Dietz explanations,
+and identify residual or review-only evidence. The blockers matter when moving
+from configurable source-data comparison toward vendor-specific extraction,
+automatic Axys/APX methodology claims, or richer feature families such as APX
+attribution, multi-currency, fixed-income automation, and corporate actions.
+
 ## Chapter cross-reference index
 Use this index to jump to the chapters that most directly connect to a topic:
 
