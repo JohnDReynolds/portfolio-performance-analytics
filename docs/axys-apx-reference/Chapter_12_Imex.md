@@ -265,6 +265,7 @@ These field labels are observed in integration or report evidence. They are not 
 | Custodian Account Number | AIA/APX account filter field; guide warns to use custodian account number, not APX Portfolio Code, when filtering a specific account. | Yes | Related | Unknown | Verified for AIA workflow |
 | APX Portfolio Code | APX portfolio identifier referenced as distinct from custodian account number. | Yes | Related | Unknown | Verified for AIA workflow |
 | SourceId | Price source field shown in APX AIA price context, not a security-master or transaction field. | Yes | Price context | Unknown | Verified, non-transaction context |
+| `imexhist.log` | AIA/APX import-export history log reference. | Yes | Related | Unknown | Verified for AIA context |
 
 ### 3.8 APX database/reporting alternatives
 
@@ -283,6 +284,8 @@ These field labels are observed in integration or report evidence. They are not 
 | APX v1.x–v4.x | AdventGuru states APX maintained IMEX functionality but eliminated fixed-format file generation; APX could export Axys v3 format. | Medium Confidence |
 | APX 15.2 / 16.1 / 16.2 / 17.1 | Salentica connector documentation lists these as supported versions for that connector. | Verified for connector |
 | Current/later APX | Exact IMEX objects, fields, logs, and version-specific behavior are not supplied. | Unknown |
+| APX CI prerequisites | APX BackOffice Utilities and APX DataPort are prerequisites in relevant CI workflows. | Verified for CI workflow |
+| APX authentication / logs | APX authentication can block `apxix.exe`; Apxix logs may be needed for diagnosis. | Verified for CI workflow |
 
 ---
 
@@ -646,6 +649,10 @@ This table intentionally combines known field labels and known unknowns. It is n
 | `imex32.exe` | Axys Import/Export executable. | Yes | No | Utility | No | Verified for CI |
 | `APXIX.exe` / `apxix.exe` | APX import/export executable/function in supplied APX research. | No | Yes | Utility | No | Verified for AIA/CI |
 | `ApxIx` | APX Import/Export utility terminology in CI research. | No | Yes | Utility label | No | Verified for CI terminology |
+| APX BackOffice Utilities | APX CI prerequisite in supplied workflow evidence. | No | Yes | Utility / prerequisite | No | Verified for CI workflow |
+| APX DataPort | APX CI prerequisite in supplied workflow evidence. | No | Yes | Utility / prerequisite | No | Verified for CI workflow |
+| Market Data Manager / Interactive Data | Adjacent APX reference-data path for prices, factors, security setup, fixed-income terms, index values, dividends/splits, exchange rates, and dividend-driven blotter postings. | No | Yes | Adjacent non-IMEX path | Maybe | Medium Confidence |
+| FinFolio `CLI`, `PRI`, `INF`, `SPLIT.INF`, `PRF`, and `GRP` | Migration-file leads from conversion evidence. | Yes | Maybe | Maybe | Maybe | Medium Confidence; not official object dictionary |
 | `REP32.exe` | Report extraction engine/client tool used by connector. | Yes | Yes | No | Yes | Verified for connector |
 | `topost.trn` | Axys Trade Blotter file. | Yes | No | Transaction import workflow | Unknown | Verified for CI |
 | `ptopost.trn` | Position file written by CI. | Yes | No | Position workflow | No | Verified for CI |
@@ -821,21 +828,3 @@ environment instead of hard-coding a universal schema:
 | Preserve original source field labels and row lineage. | Client installs, versions, and templates may differ. |
 | Maintain a versioned `imex_catalog`. | Public evidence does not prove one universal IMEX schema. |
 | Keep normalized product schemas separate from vendor schemas. | Normalized audit fields are product design, not proof of IMEX availability. |
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 IMEX addendum strengthens APX workflow evidence. APX CI uses
-`apxix.exe` to export `sec.inf` and `type.inf`, extract APX group portfolio
-codes, and import transactions, prices, positions, and position lots. APX
-BackOffice Utilities and APX DataPort are CI prerequisites in relevant workflows,
-and APX authentication can block `apxix.exe`; Apxix logs may be needed for
-diagnosis.
-
-AIA evidence verifies `APXIX.exe`, `imexhist.log`, APX SQL connection settings,
-APX `SourceId` price-source display behavior, and `.veh` to `sec.inf`-layout
-security import/update behavior. APX Market Data Manager / Interactive Data is
-an adjacent non-IMEX reference-data path for prices, factors, security setup,
-fixed-income terms, index values, dividends/splits, exchange rates, and
-dividend-driven trade-blotter postings. FinFolio `CLI`, `PRI`, `INF`,
-`SPLIT.INF`, `PRF`, and `GRP` are migration leads, not official object
-dictionaries.

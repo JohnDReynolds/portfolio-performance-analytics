@@ -110,6 +110,7 @@ The supplied research does not include a full Axys report catalog. The following
 | `aman.rep` | Axys | Lowercase spelling of AUM report file in research examples. | Verified for example | Case handling by filesystem/version Unknown. |
 | `_aumsect.rep` | Axys | User-created copy of `aman.rep` in an AUM-by-sector example. | Verified for example | Not a standard vendor report name. |
 | `CDIhold.rep` | Axys | WealthTechs-provided historical holdings calculation report in AIA/NBIN workflow. | Verified for workflow | Third-party workflow artifact. |
+| `Transaction Summary` customization lead | Axys | CSSI evidence includes a transaction summary customization lead using `$:tfile`. | Verified for example | Exact standard file/report name Unknown. |
 | `Reconciliation report` | Axys | Used in a Morningstar conversion process to compare Axys to custodian records as of last transaction date. | Verified for conversion workflow | Exact report name/file Unknown. |
 | `Position Reconciliation report` | Axys | Enhanced in Axys 3.8.7 according to supplied REP research. | Verified at named-report level | File name and fields Unknown. |
 | `Multicurrency reports` | Axys | Axys 3.8.7 included additional/improved multicurrency reports. | Verified at product release level | Exact report names Unknown. |
@@ -134,6 +135,7 @@ The supplied research does not include a full Axys report catalog. The following
 | Portfolio code customization | The supplied REP research supports adding portfolio code to the Axys AUM report using Replang customization. | Verified for example |
 | `$:fileo` | Replang variable used in the AUM example to display portfolio code. | Verified for example |
 | `#~8portmv` | Replang expression used in the AUM example to print portfolio market value. | Verified for example |
+| AUM by sector customization | CSSI evidence copies `aman.rep` to `_aumsect.rep`, uses sector-file values, and uses `$firmg` as an Other catch-all. | Verified for example |
 | Report menu path | Research mentions Axys Reports / Mgmt / Assets Under Management in an example. | Verified for example; version-specific |
 
 ### 3.5 Axys Report Categories — Current Evidence Status
@@ -165,6 +167,7 @@ The supplied research does not include a full Axys report catalog. The following
 | APX investment-management report guide | Public guide lists multiple report names and examples. | Verified | Applies to guide-covered reports. |
 | Report engine | Guide-covered APX investment-management reports are built on Microsoft SQL Server Reporting Services. | Verified | Exact RDL/dataset names not supplied. |
 | Custom reporting | APX supports flexible custom reporting, report packaging, and dashboards. | Verified | Product-level claim. |
+| Report operations | APX SSRS package drift, delivery exceptions, pre-cycle validation, hosted/cloud package updates, and portal delivery are operational cautions. | Medium Confidence | Operational/admin context; RDLs, datasets, formulas, and source equivalence remain Unknown. |
 | REP/Replang overlap | Connector and consultant evidence shows REP32/Replang can be used in some APX extraction/reporting workflows. | Verified for connector; Medium/High generally | Exact version boundaries Unknown. |
 | SQL/database access | APX users may have SQL/reporting access paths in consultant/integration evidence. | Medium Confidence | Exact public views, stored procedures, datasets Unknown. |
 
@@ -175,6 +178,10 @@ The following APX report names are supported by the supplied `Research_14_Report
 | Category | Report Name | Description / Visible Purpose | Confidence |
 |---|---|---|---:|
 | Business intelligence | Account Distribution | Segments business by AUM, revenue contribution, and client tenure. | Verified |
+| Business intelligence | AUM Distribution | Business-intelligence label/dimension from indexed APX Reports Guide evidence. | Verified label |
+| Business intelligence | Revenue Distribution | Business-intelligence label/dimension from indexed APX Reports Guide evidence. | Verified label |
+| Business intelligence | Effective Rate | Business-intelligence label/dimension from indexed APX Reports Guide evidence. | Verified label |
+| Business intelligence dimensions | Strategy / Product Line / Account Manager / Salesperson / Consultant / Custodian / Location / Tax Status | Business-intelligence dimensions from indexed APX Reports Guide evidence. | Verified labels |
 | Business intelligence | Account Characteristics | Account/client-characteristic reporting. Exact fields Unknown. | Verified name; details Unknown |
 | Business intelligence | Account Characteristics (By Custodian) | Account characteristics grouped by custodian. Exact fields Unknown. | Verified name; details Unknown |
 | Business intelligence | Asset Flows | Asset-flow reporting. Exact fields Unknown. | Verified name; details Unknown |
@@ -395,7 +402,7 @@ This section defines a repository documentation model for reports. It is not an 
 | System | Known Reports | Supported Behavior | Confidence | Unknowns |
 |---|---|---|---:|---|
 | Axys | `Portfolio Appraisal`; `CDIhold.rep` in AIA workflow | Holdings/assets point-in-time reporting; owner portfolio code can be added in supplied example. | Verified for examples | Full field list, source files, tax-lot behavior, report calculations. |
-| APX | `Portfolio Appraisal` | Shows holdings by tax lot or position according to supplied APX holdings research. | Medium Confidence | Full guide text, exact fields, report engine details, source tables. |
+| APX | `Portfolio Appraisal` | Shows holdings by tax lot or position according to supplied APX holdings research. | Verified for report concept | Full guide text, exact fields, report engine details, source tables. |
 
 ### 8.2 Transaction / Activity Reports
 
@@ -606,25 +613,3 @@ For **Axys**, the supplied material supports predefined reports, Report Writer P
 For **APX**, the supplied material provides stronger report-name evidence through the public APX report guide. Guide-covered APX investment reports use SSRS and include business intelligence, portfolio analytics, attribution, contribution, risk, holdings, transaction, and client-reporting report names. The supplied material does not provide APX RDL source, SQL datasets, stored procedures, exact parameter names, or database field mappings.
 
 For both systems, report outputs must be treated carefully. A report label is not automatically an IMEX field, REP variable, APX database column, or stored accounting value. Report-to-IMEX or report-to-database reconciliation requires matching report parameters, calculation method, date scope, portfolio scope, benchmark, currency, gross/net settings, and classification logic.
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 reports addendum strengthens Axys report examples and APX
-report-label coverage. CSSI evidence verifies Axys Portfolio Appraisal
-customization with `Portfolio Code`, `Management Mode`, and `$askport`; a
-Transaction Summary customization lead using `$:tfile`; and an AUM by Sector
-customization copying `aman.rep` to `_aumsect.rep`, using sector-file values and
-`$firmg` as an Other catch-all. These are report/customization examples, not
-native schemas or complete catalogs.
-
-APX indexed Reports Guide evidence strengthens business-intelligence labels and
-dimensions such as AUM Distribution, Revenue Distribution, Effective Rate,
-Strategy, Product Line, Account Manager, Salesperson, Consultant, Custodian,
-Location, and Tax Status. Attribution/contribution labels include Portfolio
-Return, Benchmark Return, Active Return, Allocation Effect, Selection Effect,
-Total Effect, Avg Wgt, Return, Contrib, Alloc, Select, Industry Sector, and
-Security. Contribution Detail is a flattened most-detailed-level view, and APX
-Portfolio Appraisal is strengthened as a holdings-by-tax-lot-or-position report
-lead. APX SSRS package drift, delivery exceptions, pre-cycle validation,
-hosted/cloud package updates, and portal delivery are operational cautions;
-RDLs, datasets, formulas, and source equivalence remain Unknown.

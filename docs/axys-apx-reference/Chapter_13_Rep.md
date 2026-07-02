@@ -164,6 +164,7 @@ Recommended documented pattern from the supplied Axys example:
 | Axys 3.8.7 | Added an enhanced Position Reconciliation report. | Verified |
 | Axys 3.8.7 | Expanded the generic date framework for reporting/automation flexibility. | Verified |
 | Axys 3.8.7 | Added or improved multicurrency reports. | Verified |
+| Axys 3.8.7.7 | PrimoAPI PDF printer is a lead for scripted PDF output workflows. | Medium Confidence |
 | Axys 3.7 to 3.8 | Consultant evidence says file conversion was required and some file formats changed. | Medium Confidence |
 | Axys RepLang keyword changes by version | Unknown. | Unknown |
 | Report differences between Axys 3.8.6 and 3.8.7 beyond vendor bullets | Unknown. | Unknown |
@@ -205,6 +206,7 @@ Recommended documented pattern from the supplied Axys example:
 | APX has dashboards and flexible custom reporting. | Verified | Vendor product capability evidence. |
 | APX users can use SQL Server-based reporting/data access options, including SSRS, according to consultant evidence. | Medium Confidence | Consultant evidence. |
 | APX data access/reporting options include Stored Accounting Functions, Public Views, SSRS, REST API, and related tools. | Medium Confidence | Consultant evidence. |
+| APX reporting should be treated as multi-path: Replang/compound reports, SQL Server, Stored Accounting Functions, Public Views, SSRS, REST API, dashboards, and report packaging may all be relevant depending on deployment. | Medium Confidence | Exact source dependencies vary by report/environment and remain Unknown. |
 | Microsoft SSRS is an on-premises platform for creating, deploying, and managing paginated reports. | Verified for SSRS generally | Not APX-specific implementation evidence. |
 | APX report guide search evidence suggests APX reports use Microsoft SQL Server Reporting Services and can be customized/branded. | Medium Confidence | Full guide was not supplied/read in the research. |
 | Exact APX SSRS report dataset names are known. | Unknown | Not supplied. |
@@ -434,6 +436,7 @@ Connector uploads/processes extracted data
 | Use plain text editors for RepLang. | Yes | Likely | Verified for Axys; Medium for APX | CSSI warns against Word/WordPerfect. |
 | Line-number-aware editor is useful. | Yes | Yes | Medium Confidence | AdventGuru notes Notepad lacks line numbers; modern editors help. |
 | Replang language support in modern editors may be limited. | Yes | Yes | Medium Confidence | AdventGuru notes Replang is not built into VS Code by default. |
+| REP32 automation can fail for environment-specific reasons such as elevation/permission issues or missing PrimoPDF for scripted PDF output. | Yes | Maybe | Medium Confidence | Treat as operational evidence, not a universal REP32 rule. |
 | Report Writer Pro generated reports may use `.RPW`; manually edited reports may use `.REP`. | Yes | Yes | Medium Confidence | Practitioner evidence. |
 | Manual edits can interfere with future Report Writer Pro editing because of checksum behavior. | Yes | Yes | Medium Confidence | Practitioner evidence from IMEX research. |
 | APX has more reporting paths than Axys. | N/A | Yes | Medium Confidence | APX SQL Server/Public Views/SSRS/REST options according to consultant evidence. |
@@ -615,20 +618,3 @@ The deep IMEX research clarifies the REP/IMEX split for extraction design.
 
 A report label or REP variable does not by itself establish underlying IMEX,
 database, transaction, or performance semantics.
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 REP addendum strengthens current practitioner evidence that
-Replang remains relevant for both Axys and APX. AdventGuru says Axys/APX users
-can still create reports through Report Writer Pro or direct Replang source
-edits; Axys has roughly 100 Replang keywords and current APX adds 100+ more.
-Exact keyword lists and compatibility rules remain Unknown.
-
-APX reporting should be treated as multi-path: Replang/compound reports, SQL
-Server, Stored Accounting Functions, Public Views, SSRS, REST API, dashboards,
-and report packaging may all be relevant depending on deployment. REP32
-automation has environment-specific Axys failure modes including
-elevation/permission failures, scripted PDF failures when PrimoPDF is missing,
-and a PrimoAPI PDF-printer lead for Axys 3.8.7.7. AdventGuru's PRF/PBF
-performance-history report lead is useful, but report filename, storage, and
-calculation behavior remain Unknown.
