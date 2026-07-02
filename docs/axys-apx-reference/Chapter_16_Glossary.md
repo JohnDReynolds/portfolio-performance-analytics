@@ -512,7 +512,9 @@ The entries in this section are candidate field-name concepts. They are not auth
 
 ## 17. References
 
-This chapter was prepared from the supplied repository blueprint and research files. The research files summarize vendor, integration, consultant, report-guide, and conversion evidence. The following supplied files were used as source material:
+This chapter is based on the supplied repository blueprint and research files.
+The research files summarize vendor, integration, consultant, report-guide, and
+conversion evidence. The following supplied files were used as source material:
 
 | Supplied File | Role in Chapter 16 |
 |---|---|

@@ -548,7 +548,7 @@ acct123,010101,010101,BY,csus,appl,100,caus,cash,10000
 
 ## 14. References
 
-This chapter was prepared from the supplied repository files only.
+This chapter is based on the supplied repository files only.
 
 | Reference | Supplied File | Use in This Chapter |
 |---|---|---|

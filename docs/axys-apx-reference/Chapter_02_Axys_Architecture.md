@@ -850,7 +850,7 @@ The following items remain unsupported by the supplied material and must be docu
 
 ## 17. References
 
-This chapter was produced from the supplied research and source material only.
+This chapter is based on the supplied research and source material only.
 
 | Source file | Used for |
 |---|---|

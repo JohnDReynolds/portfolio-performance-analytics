@@ -1089,7 +1089,7 @@ export sample.
 
 ## 18. References
 
-This chapter was prepared from the supplied repository blueprint and supplied research files only.
+This chapter is based on the supplied repository blueprint and supplied research files only.
 
 | Source Material | Use |
 |---|---|

@@ -111,9 +111,10 @@ a competing source of truth.
 
 Dated research-update or addendum sections should not be read as competing
 chapters. They are provenance notes for evidence that has been folded into the
-chapter or should be folded into the relevant main-body section. If an addendum section
-becomes the clearest explanation of a topic, prefer merging that explanation
-into the relevant main-body section and leaving only a short provenance note.
+chapter or should be folded into the relevant main-body section. If an
+addendum section becomes the clearest explanation of a topic, prefer merging
+that explanation into the relevant main-body section and leaving only a short
+provenance note.
 
 ## 1. Overview
 
@@ -802,7 +803,7 @@ This chapter is based on the following supplied repository material only.
 
 ## 16. Chapter Summary
 
-The supplied repository chapters are sufficient to create an overview chapter. They support a conservative technical framing:
+The supplied repository chapters support a conservative technical framing:
 
 - Axys is documented through proprietary-database positioning plus file-oriented, IMEX, REP, report, and integration evidence.
 - APX is documented as a centralized SQL-oriented platform with SSRS/reporting, IMEX, blotter, SQL/public view/stored accounting function, API, and connector evidence.
