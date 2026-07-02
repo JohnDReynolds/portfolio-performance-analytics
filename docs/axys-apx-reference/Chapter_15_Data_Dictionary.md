@@ -4,7 +4,7 @@
 **Chapter:** `Chapter_15_Data_Dictionary.md`
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 **Prepared:** 2026-06-29
-**Status:** Draft technical reference chapter based only on supplied research and source material
+**Status:** Technical reference chapter based only on supplied research and source material
 
 ---
 

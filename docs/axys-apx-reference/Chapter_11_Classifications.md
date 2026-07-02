@@ -606,7 +606,7 @@ For downstream tools that consume Axys/APX classifications, a minimum safe schem
 
 ## 12. References
 
-This chapter was drafted from the supplied research files and their referenced source material. The most relevant supplied research files were:
+This chapter is based on the supplied research files and their referenced source material. The most relevant supplied research files were:
 
 | Supplied research file | Use in this chapter |
 |---|---|

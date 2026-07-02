@@ -2,7 +2,7 @@
 
 **Repository:** AXYS / APX Reference Repository
 **Chapter:** `Chapter_03_APX_Architecture.md`
-**Status:** Draft technical reference chapter
+**Status:** Technical reference chapter based on supplied research and source material
 **Prepared:** 2026-06-29
 **Governing specification:** `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 

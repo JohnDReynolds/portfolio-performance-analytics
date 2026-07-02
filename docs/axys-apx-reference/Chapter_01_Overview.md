@@ -111,7 +111,7 @@ a competing source of truth.
 
 Dated research-update or addendum sections should not be read as competing
 chapters. They are provenance notes for evidence that has been folded into the
-chapter or should be folded into a later cleanup pass. If an addendum section
+chapter or should be folded into the relevant main-body section. If an addendum section
 becomes the clearest explanation of a topic, prefer merging that explanation
 into the relevant main-body section and leaving only a short provenance note.
 

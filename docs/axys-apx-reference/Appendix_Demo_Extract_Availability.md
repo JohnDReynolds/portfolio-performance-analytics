@@ -3,7 +3,7 @@
 Repository: AXYS / APX Reference Repository
 Scope: `ppar/demos/data/axys/axys_full_spec_a` and
 `ppar/demos/data/axys/axys_full_spec_b`
-Status: Draft confidence matrix generated from the packaged YAML contract.
+Status: Generated confidence matrix from the packaged YAML contract.
 
 <!-- GENERATED FROM ppar/demos/data/axys/demo_extract_availability.yaml. -->
 <!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->

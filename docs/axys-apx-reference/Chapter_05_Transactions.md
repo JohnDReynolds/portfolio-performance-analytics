@@ -1,7 +1,7 @@
 # Chapter 05 — Transactions
 
 > **Repository chapter:** `docs/axys-apx-reference/Chapter_05_Transactions.md`\
-> **Status:** Draft technical reference based only on supplied research
+> **Status:** Technical reference chapter based only on supplied research
 > material.\
 > **Evidence standard:** Facts are marked as Verified, High Confidence,
 > Medium Confidence, Low Confidence, or Unknown.\

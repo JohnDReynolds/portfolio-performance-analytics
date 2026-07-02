@@ -2,7 +2,7 @@
 
 Repository: AXYS / APX Reference Repository
 Chapter: `docs/axys-apx-reference/Chapter_08_Pricing.md`
-Status: Technical reference chapter drafted from supplied research only
+Status: Technical reference chapter based on supplied research only
 Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ---
