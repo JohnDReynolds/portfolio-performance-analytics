@@ -622,6 +622,31 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and str(row[2])[:10] == "2026-05-29"
                 )
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
+                cash_external_flow_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[4] == "transactions.amount"
+                    and row[5] == "CASH_USD"
+                    and str(row[1])[:10] == "2026-02-28"
+                    and str(row[2])[:10] == "2026-03-31"
+                    and str(row[3])[:10] == "2026-03-20"
+                )
+                self.assertEqual(
+                    cash_external_flow_row[10],
+                    "li: The external flow for CASH_USD changed by 2,500.00.",
+                )
+                jpm_dividend_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[4] == "transactions.amount"
+                    and row[5] == "JPM"
+                    and str(row[1])[:10] == "2026-04-01"
+                    and str(row[2])[:10] == "2026-04-30"
+                )
+                self.assertEqual(
+                    jpm_dividend_row[10],
+                    "dv: The transactions.amount for JPM changed by 117.07.",
+                )
             finally:
                 workbook.close()
 

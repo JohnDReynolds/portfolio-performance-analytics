@@ -2785,6 +2785,7 @@ def _workbook_transaction_component_explanation(
     """Return plain-language explanation for transaction component rows."""
     security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
     security_text = f" for {security_id}" if security_id else ""
+    field_text = f"transactions.{source_column}"
     if source_column == pc_cols.COMMISSION:
         change_value = _workbook_row_change_value(row)
         change_number = _number_or_none(change_value)
@@ -2820,8 +2821,14 @@ def _workbook_transaction_component_explanation(
             f"{_workbook_transaction_code_prefix(row)}Caused {transaction_amount} "
             f"to {change_verb}."
         )
+    if (
+        source_column == pc_cols.AMOUNT
+        and row.get(_pc_findings.TRANSACTION_CATEGORY)
+        == TRANSACTION_CATEGORY_EXTERNAL_FLOW
+    ):
+        field_text = "external flow"
     return (
-        f"{_workbook_transaction_code_prefix(row)}The {source_column}"
+        f"{_workbook_transaction_code_prefix(row)}The {field_text}"
         f"{security_text} changed by "
         f"{_workbook_change_amount_text(_workbook_row_change_value(row))}."
     )
