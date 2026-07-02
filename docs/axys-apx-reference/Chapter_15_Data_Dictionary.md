@@ -64,11 +64,17 @@ When field names or meanings conflict, use the following evidence order.
 
 ### 4.1 Standard Field Dictionary Format
 
-The governing blueprint defines the base format:
+Most dictionary tables use this base format:
 
-| Field | Description | Axys | APX | IMEX | REP | Confidence |
-|---|---|---:|---:|---:|---:|---|
-| Example | Example row only | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Column | Meaning |
+|---|---|
+| Field | Literal observed field, label, file, executable, REP expression, code, or token. |
+| Description | Meaning supported by the supplied research. |
+| Axys | Whether the supplied research supports Axys use/exposure. |
+| APX | Whether the supplied research supports APX use/exposure. |
+| IMEX | Whether the supplied research supports IMEX/import-export use. |
+| REP | Whether the supplied research supports REP/report use. |
+| Confidence | Evidence strength for the entry in the stated context. |
 
 ### 4.2 Expanded Format Used in This Chapter
 
