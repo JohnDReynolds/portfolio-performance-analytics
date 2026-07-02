@@ -50,7 +50,8 @@ Important boundary rules:
 | `Required evidence` | Minimum source evidence needed before ppar should assign the treatment. |
 | `IMEX confidence` | Confidence that a practical IMEX-style extract can provide enough fields for this treatment. |
 | `REP confidence` | Confidence that a REP/report/custom-report extract can provide enough fields for this treatment. |
-| `Coverage status` | Summary ppar demo/test status; the YAML companion lists specific fixtures. |
+| `Coverage status` | Primary ppar demo/test status bucket. It may summarize the strongest or most important coverage path rather than every fixture. |
+| `fixtures` | Machine-readable YAML list of packaged-demo or site-variant fixtures where the code is covered. Use this for exact coverage locations. |
 | `coverage_notes` | Machine-readable YAML rationale explaining the fixture coverage, backlog boundary, or context-only treatment. |
 
 ## Core Observed Code Matrix
