@@ -679,3 +679,22 @@ not close the field dictionary.
 
 Exact IMEX object names and field lists for classifications, indexes,
 composites, labels, and assignments remain Unknown.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 classifications addendum confirms that classification evidence is
+strongest through reporting, security-master dependencies, integration exports,
+and merger/reclassification workflows. Axys product material supports performance
+display by portfolios, asset classes, sectors, countries, and regions, while
+AdvisorEngine confirms `Asset Class` as an Axys export-context label.
+
+AdventGuru evidence strengthens `industry group` and `industry sector` as
+import/reference dependencies and warns that security-type or classification
+changes can affect historical performance or require performance-history
+regeneration. APX report-guide snippets support a custom-classification,
+industry-group, and sector allocation report lead, but exact report name, fields,
+and datasets remain Unknown. Downstream models should separate classification
+schemes, values, security assignments, portfolio groupings, and report outputs.
+Audit focus should include symbol/type joins, missing or invalid classifications,
+current-vs-historical drift, type/asset-class mismatch, report-vs-raw mismatch,
+and performance-history invalidation risk.

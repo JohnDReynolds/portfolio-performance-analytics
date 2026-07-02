@@ -615,3 +615,20 @@ The deep IMEX research clarifies the REP/IMEX split for extraction design.
 
 A report label or REP variable does not by itself establish underlying IMEX,
 database, transaction, or performance semantics.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 REP addendum strengthens current practitioner evidence that
+Replang remains relevant for both Axys and APX. AdventGuru says Axys/APX users
+can still create reports through Report Writer Pro or direct Replang source
+edits; Axys has roughly 100 Replang keywords and current APX adds 100+ more.
+Exact keyword lists and compatibility rules remain Unknown.
+
+APX reporting should be treated as multi-path: Replang/compound reports, SQL
+Server, Stored Accounting Functions, Public Views, SSRS, REST API, dashboards,
+and report packaging may all be relevant depending on deployment. REP32
+automation has environment-specific Axys failure modes including
+elevation/permission failures, scripted PDF failures when PrimoPDF is missing,
+and a PrimoAPI PDF-printer lead for Axys 3.8.7.7. AdventGuru's PRF/PBF
+performance-history report lead is useful, but report filename, storage, and
+calculation behavior remain Unknown.

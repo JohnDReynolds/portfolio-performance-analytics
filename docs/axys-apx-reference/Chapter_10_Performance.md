@@ -544,3 +544,23 @@ boundary area rather than a solved IMEX object dictionary.
 | Candidate live-discovery fields | Portfolio/security/classification/composite IDs, period dates, beginning/ending market value, return, contribution, external flow, income, fees, weights, benchmark, and currency fields. | Discovery guidance |
 | REP/report preference | Use REP/Replang/custom reports when reported performance must tie to user-visible Axys/APX output. | Design guidance |
 | Extraction metadata | Record source object/report, parameters, version, row lineage, and stored-vs-recalculated confidence. | Design guidance |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 performance addendum upgrades product-level capability evidence.
+Axys product material supports TWR and IRR, before/after management fees; blended
+benchmarks and component-index history; synthetic index comparison; performance
+by portfolio, asset class, sector, country, or region; composites; GIPS-related
+support; and multi-currency return components attributable to market prices
+versus currency-rate fluctuations. These are product capabilities, not formulas
+or storage proof.
+
+Morningstar adds Axys conversion-context report leads: Performance Summary,
+Performance by Account, Performance by Security, Portfolio Cash Flow, Portfolio
+Current Value, Unrealized Gain/Loss, and Realized Gain/Loss. Zacks adds
+third-party return-setting clues around Daily Calculation Combined Return/TWR and
+Whole Period Return/IRR. APX Index Data material supports benchmark/index data,
+sector/security-level index data, historical index data, and attribution by
+industry sector, and Performance Overview is an APX report-guide lead. Exact
+storage, IMEX objects, APX views/procedures, formulas, attribution fields, and
+stored-vs-recalculated behavior remain Unknown.

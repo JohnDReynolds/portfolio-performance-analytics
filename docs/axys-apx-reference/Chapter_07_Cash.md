@@ -461,3 +461,21 @@ The chapter is based only on the supplied research and source material. The supp
 | Multi-currency portfolio examples. | Document local/base cash, FX rates, Mark to Market, and currency behavior. |
 | Client implementation notes or consultant documentation. | Document production quirks and site-specific configuration. |
 | Axys/APX version-specific release notes. | Document version differences. |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 cash addendum strengthens the view that cash is usually observed
+through transaction, position, and price workflows rather than a verified
+standalone cash-balance object. Axys CI evidence adds `topost.trn`,
+`ptopost.trn`, `.pos`, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog`,
+`imex32.exe`, `pospos32.exe`, and `sipos30` as cash-adjacent
+integration/reconciliation artifacts.
+
+AIA cash-cleanup behavior is verified as integration-tool logic for Axys/APX,
+including cash-sweep and intra-account-journal pair rules (`dp>wd`, `li>lo`,
+`ti>to`, `si>so`, `tr>ts`), excluded symbols (`margin`, `short`, `dvwash`,
+`dvshrt`, `dvlong`, `cashrt`, `calong`, `income`), and APX Account Skip Logic.
+APX multi-currency evidence remains product-level only, and `Income Projection`
+is a cash-inflow report lead, not a cash-balance report. Native cash-balance
+storage, cash IMEX objects, cash report fields, settled/trade-date behavior,
+multi-currency cash fields, and native token definitions remain Unknown.

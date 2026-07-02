@@ -853,4 +853,20 @@ This chapter is based only on the supplied repository chapter and research mater
 | Salentica / Elements / Engage Data Broker documentation | REP32, standard reports/macros, RepLang scripting/macros, connector version support. | Connector-specific. |
 | AdventGuru Axys/APX integration and reporting articles | Security type handling cautions, security-master merge dependencies, public view limitations, APX reporting/database access options, Report Writer Pro/Replang usage. | Practitioner source; not official vendor schema. |
 | FinFolio Advent conversion page | Advent `INF` files used in conversion workflows to build target security master. | Conversion-vendor clue; Medium Confidence only. |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 security-master addendum reinforces that `sec.inf` and `type.inf`
+are verified CI-context export artifacts for both Axys and APX: Axys through
+`imex32.exe`, APX through `apxix.exe`. APX CI requires security type plus symbol
+for imported positions and transactions, and Axys CI duplicate-resolution
+evidence keeps symbol-only matching unsafe.
+
+AIA `.veh` files, CI security-translation files, AdvisorEngine XLS labels, and
+CRM connector fields remain integration/report artifacts, not native schemas.
+Morningstar conversion evidence suggests fixed-income and accrual-related fields
+may be present in selected Axys `sec.inf` exports, but field names remain
+Unknown. Complete `sec.inf`/`type.inf` layouts, official Security/Security Type
+IMEX object names, APX security public-view names, complete security-type
+dictionary, and formal native primary keys remain Unknown.
 | Advent / Thomson Reuters DataScope brief | General Advent ecosystem reference-data concepts. | Geneva-focused; not used for Axys/APX security-master behavior unless separately verified. |

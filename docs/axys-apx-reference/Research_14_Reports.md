@@ -620,3 +620,31 @@ The available material supports a useful but incomplete Chapter 14 research base
 **Axys report details remain largely Unknown** beyond the existence of predefined/customizable reporting and public consultant examples of custom report work.
 
 A complete technical reference chapter requires installed-system evidence: Axys report catalogs, APX SSRS/RDL definitions, REP/Replang source, report parameter screenshots, sample outputs, and matching IMEX extracts.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum strengthens Axys report examples and APX report-label
+coverage. CSSI evidence verifies an Axys Portfolio Appraisal Report Writer
+workflow with `Portfolio Code`, `Management Mode`, and `$askport`; an Axys
+Transaction Summary customization lead using `$:tfile`; and an AUM by Sector
+customization that copies `aman.rep` to `_aumsect.rep`, uses sector values that
+match the sector file, and uses `$firmg` as an Other catch-all. These are
+report/customization examples, not native schemas or complete report catalogs.
+
+APX indexed Reports Guide text strengthens business-intelligence report labels
+and dimensions, including Account Distribution, AUM Distribution, Revenue
+Distribution, Effective Rate, Strategy, Product Line, Account Manager,
+Salesperson, Consultant, Custodian, Location, and Tax Status. Attribution and
+contribution evidence adds report labels/sections such as Portfolio Return,
+Benchmark Return, Active Return, Allocation Effect, Selection Effect, Total
+Effect, Largest Weights, Top/Bottom Attribution Effects, Top/Bottom
+Contributors, Portfolio/Benchmark/Difference groups, Avg Wgt, Return, Contrib,
+Alloc, Select, Industry Sector, and Security.
+
+Contribution Detail is described as a flattened most-detailed-level view.
+APX Portfolio Appraisal is strengthened as a report behavior lead for holdings
+by individual tax lot or position. CSSI evidence adds APX SSRS package drift,
+delivery exceptions, pre-cycle validation, hosted/cloud package updates, and
+portal delivery as operational/report-production cautions. APX RDL names,
+datasets, stored procedures, report formulas, report-to-IMEX equivalence, and
+stored-versus-recalculated behavior remain Unknown.

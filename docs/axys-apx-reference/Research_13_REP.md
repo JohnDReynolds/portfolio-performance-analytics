@@ -512,3 +512,26 @@ Additional REP/IMEX boundary points:
 | Best-fit split | IMEX is the better starting point for security reference, security types, prices, transactions, and positions where object/export support exists; REP is often better for performance values, classification performance, and report-specific tie-outs. | Design guidance |
 | Required metadata | REP-derived extracts should record report file/name, version, parameters, layout, row lineage, and whether values are stored or recalculated. | Design guidance |
 | Boundary | A report label or REP variable does not by itself establish underlying transaction, performance, or IMEX field semantics. | Medium / boundary |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum strengthens current practitioner evidence that Replang
+remains relevant for both Axys and APX. AdventGuru evidence says Axys/APX users
+can still create reports with Report Writer Pro or direct Replang source edits;
+Axys Replang has roughly 100 keywords and current APX adds 100+ more. The
+exact keyword lists, compatibility rules, and report catalogs remain Unknown.
+
+APX reporting should remain explicitly multi-path: Replang/compound reports,
+SQL Server, Stored Accounting Functions, Public Views, SSRS, REST API,
+dashboards, and report packaging can all be relevant depending on deployment
+and support boundaries. CSSI and other practitioner evidence reinforces that
+APX SSRS/report-package operations can be complex and operationally fragile,
+but this does not expose RDL datasets, stored procedures, or schema.
+
+REP32 automation evidence adds environment-specific Axys failure modes:
+`rep32.exe` can fail under elevation/permission constraints, scripted PDF
+output can fail if PrimoPDF is missing, and Axys 3.8.7.7 support notes mention
+PrimoAPI as a default PDF-printer lead. AdventGuru also provides a
+performance-history report lead involving Net of Fees `(PRF)` and Gross of
+Fees `(PBF)` data; report filename, storage mechanics, and calculation behavior
+remain Unknown.

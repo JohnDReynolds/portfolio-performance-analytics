@@ -350,3 +350,22 @@ Additional holdings/position points:
 | Candidate position fields | Live discovery should inspect portfolio/account, as-of date, symbol/type/name, quantity/units, price, market value, accrued income, cost/book/tax cost, local/base currency, FX rate, stale flag, and custodian/account context. | Discovery guidance |
 | Candidate lot fields | Live discovery should inspect lot identifier, open/acquisition dates, quantity, cost, market value, tax-cost fields, currency, and source row lineage. | Discovery guidance |
 | Boundary | `ptopost.trn` and `.pos` evidence is integration-level position evidence; it does not establish native holdings storage mechanics or standard holdings report columns. | Unknown / boundary |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum strengthens holdings evidence in two areas. First,
+APX/Advent Portfolio Appraisal can be treated as a verified report concept for
+showing holdings by individual tax lot or position, with report-output concepts
+such as quantity, cost, market value, percent of portfolio, yield, and
+unrealized gain/loss. These remain report-output labels, not APX database,
+public-view, or IMEX field names.
+
+Second, Axys CI position behavior is more specific: CI writes positions to
+`\CI\exported\ptopost.trn` in CSV format; Position Post can create replacement
+`.pos` files for configured portfolios; lot-enabled output can contain lot data;
+cash/money-market or no-lot positions fall back to position data; and
+`imexPositionLots.log` may appear instead of `imexPositions.log`. This narrows
+one integration workflow but does not prove native Axys holdings storage
+mechanics. Canonical Axys/APX holdings IMEX object names, APX SQL/public-view
+names, complete Portfolio Appraisal columns, holdings date semantics, and
+cash/short/accrual/FX treatment remain Unknown.

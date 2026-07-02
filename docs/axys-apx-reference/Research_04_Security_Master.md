@@ -883,3 +883,20 @@ Additional security-master points to carry into Chapter 04:
 | Security translations diagnostic | `SECTRANSLATIONS_yyyymmdd.csv` exposes WebPortfolio identifiers, institution/account context, Axys Symbol, Type, Created, and Last Modified in CI context. | Verified for CI output |
 | Candidate live-discovery fields | A live IMEX catalog should inspect symbol, security type, names, ticker, CUSIP, ISIN, SEDOL, currency, price multiplier, factor, coupon, maturity, classifications, and user-defined fields. | Discovery guidance |
 | Critical caveat | These diagnostics and candidate fields do not prove an official universal Axys IMEX security-master schema. | Unknown / boundary |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The 2026-07-02 addendum reinforces the existing conservative posture. Axys
+`imex32.exe` and APX `apxix.exe` are verified in CI context as exporting
+Security (`sec.inf`) and Security Type (`type.inf`) data, and APX CI requires
+APX security type plus symbol for imported positions and transactions. Axys CI
+security translation can map external identifiers to Axys symbol/type and can
+encounter duplicate matches, so symbol-only joins remain unsafe.
+
+WealthTechs AIA `.veh` files and AdvisorEngine XLS labels remain
+integration/report artifacts, not native schemas. Morningstar conversion
+evidence suggests Axys `sec.inf` can carry user-defined names and
+accrued-interest-related fields when selected, but fixed-income field names
+remain Unknown. APX security public-view names, formal native primary keys,
+complete `sec.inf`/`type.inf` layouts, official Security/Security Type IMEX
+object names, and complete security-type dictionaries remain Unknown.

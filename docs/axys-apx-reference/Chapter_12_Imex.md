@@ -821,3 +821,21 @@ environment instead of hard-coding a universal schema:
 | Preserve original source field labels and row lineage. | Client installs, versions, and templates may differ. |
 | Maintain a versioned `imex_catalog`. | Public evidence does not prove one universal IMEX schema. |
 | Keep normalized product schemas separate from vendor schemas. | Normalized audit fields are product design, not proof of IMEX availability. |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 IMEX addendum strengthens APX workflow evidence. APX CI uses
+`apxix.exe` to export `sec.inf` and `type.inf`, extract APX group portfolio
+codes, and import transactions, prices, positions, and position lots. APX
+BackOffice Utilities and APX DataPort are CI prerequisites in relevant workflows,
+and APX authentication can block `apxix.exe`; Apxix logs may be needed for
+diagnosis.
+
+AIA evidence verifies `APXIX.exe`, `imexhist.log`, APX SQL connection settings,
+APX `SourceId` price-source display behavior, and `.veh` to `sec.inf`-layout
+security import/update behavior. APX Market Data Manager / Interactive Data is
+an adjacent non-IMEX reference-data path for prices, factors, security setup,
+fixed-income terms, index values, dividends/splits, exchange rates, and
+dividend-driven trade-blotter postings. FinFolio `CLI`, `PRI`, `INF`,
+`SPLIT.INF`, `PRF`, and `GRP` are migration leads, not official object
+dictionaries.

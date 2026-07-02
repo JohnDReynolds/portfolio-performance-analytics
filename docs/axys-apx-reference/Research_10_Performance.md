@@ -554,3 +554,32 @@ Additional performance-related points:
 | `portperf` / `secperf` status | The deep research reinforces that `portperf` and `secperf` should remain normalized/product-local names unless a live IMEX object, report output, or vendor manual confirms native names. | Unknown |
 | REP/report preference | Performance values often require user-visible tie-out; REP/Replang/custom reports may be more appropriate than IMEX when the exact reported value matters. | Design guidance |
 | Catalog requirement | Any product should record extraction mechanism, source report or IMEX object, source row, calculation/stored-value confidence, and version. | Design guidance |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum upgrades several performance capabilities to verified
+product-level evidence while preserving implementation Unknowns. Axys product
+material supports time-weighted and internal rates of return, before/after
+management fees; blended benchmarks and component-index history; synthetic
+index comparison; performance display by portfolio, asset class, sector,
+country, or region; composite-management reporting; GIPS-related support; and
+multi-currency return components attributable to market prices versus currency
+fluctuations. Exact report formulas, files, storage, and IMEX objects remain
+Unknown.
+
+Morningstar conversion evidence provides Axys reconciliation report leads:
+Performance Summary, Performance by Account, Performance by Security, Portfolio
+Cash Flow, Portfolio Current Value, Unrealized Gain/Loss, and Realized
+Gain/Loss. Zacks evidence adds third-party return-setting clues: Daily
+Calculation Combined Return as a TWR-style setting based on the Advent Axys
+Asset Reconciliation Report, and Whole Period Return as a cash-flow-weighted /
+IRR-style setting based on the Advent Axys Performance By Security Report.
+These are test-design clues, not official Axys formulas.
+
+APX index-data evidence supports loading benchmark/index data into APX for
+performance analysis/reporting, including sector-level and security-level index
+data, historical index data, and an Attribution by Industry Sector example. The
+APX Performance Overview report is an official report-guide lead for
+multi-period portfolio performance and benchmark comparison. APX performance
+tables/views/procedures, benchmark fields, attribution formulas, and
+stored-versus-recalculated behavior remain Unknown.

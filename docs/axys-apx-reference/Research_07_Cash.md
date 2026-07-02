@@ -512,3 +512,30 @@ until those are supported by direct source material.
 This research is suitable as a starting file for `research/07-Cash.research.md`.
 
 It is not sufficient by itself to write a fully authoritative `docs/07-Cash.md` chapter with complete IMEX and REP field dictionaries. The strongest next evidence would be real Axys/APX IMEX exports, REP report samples, and vendor/manual excerpts specific to cash.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum strengthens cash-relevant integration evidence but does
+not identify a native cash-balance schema. ByAllAccounts CI supports an Axys
+data flow where WebPortfolio data is merged with Axys security information and
+produces transaction, position, and price files imported through Axys
+Import/Export; cash activity is therefore best treated as part of
+transaction/position/price workflows unless a separate cash-balance object is
+provided.
+
+Additional verified integration artifacts include `topost.trn`, `ptopost.trn`,
+`.pos` replacement files, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog`,
+`imex32.exe`, `pospos32.exe`, and the Axys `sipos30` position-reconciliation
+report lead. WealthTechs AIA reinforces cash-sweep and intra-account cash
+journal cleanup as integration-tool behavior, including pair rules such as
+`dp>wd`, `li>lo`, `ti>to`, `si>so`, and `tr>ts`, excluded symbols such as
+`margin`, `short`, `dvwash`, `dvshrt`, `dvlong`, `cashrt`, `calong`, and
+`income`, and APX Account Skip Logic that can bypass global cleanup rules for
+specific accounts.
+
+APX multi-currency support remains product-level evidence only. The APX
+`Income Projection` report is a cash-inflow report lead, not a verified
+cash-balance report. Native cash-balance storage, cash IMEX objects, cash report
+field dictionaries, settled/trade-date cash behavior, multi-currency cash
+fields, and native definitions of `CAUS`, `caxx`, `awxx`, `$pty`, `$ity`,
+`$pth`, `cashrt`, and `calong` remain Unknown.

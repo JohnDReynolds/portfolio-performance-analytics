@@ -717,3 +717,32 @@ Additional classification points:
 | Security type distinction | Security Type Information (`type.inf`) is not the same as classification hierarchy; both may be needed to understand reporting behavior. | High Confidence |
 | REP comparison | Classification reports should be compared with IMEX exports because report-level rollups may differ from raw assignment fields. | Design guidance |
 | Boundary | Exact IMEX object names and field lists for classifications, indexes, composites, labels, and assignments remain Unknown. | Unknown |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum confirms that classification evidence remains strongest
+through reporting, security-master dependencies, integration exports, and
+merger/reclassification workflows. Axys product material verifies performance
+display by portfolios, asset classes, sectors, countries, and regions, plus
+benchmark and composite context. AdvisorEngine provides a verified Axys
+export-context `Asset Class` label in a field sequence with portfolio, security,
+type, symbol, market value, and quantity fields; it remains a report/export
+label, not a proven native field.
+
+AdventGuru merger/import evidence strengthens `industry group` and
+`industry sector` as configuration/reference dependencies: security-master
+imports can require valid industry group/sector definitions first. Consultant
+evidence also warns that reclassing a security type to another asset class or
+changing industry-sector definitions can affect historical performance and may
+require performance-history regeneration. Treat this as an implementation
+caution, not a universal vendor rule.
+
+For APX, public report-guide snippets support a custom-classification /
+industry-group / sector equity-allocation report lead, but exact report name,
+fields, parameters, and source datasets remain Unknown. Classification tooling
+should separate `classification_scheme`, `classification_value`,
+`security_classification_assignment`, `portfolio_grouping_assignment`, and
+`report_classification_output`. Audit rules should cover symbol/type joins,
+missing classifications, invalid lookup references, historical drift,
+security-type/asset-class mismatch, report-vs-raw mismatch, and
+performance-history invalidation risk.

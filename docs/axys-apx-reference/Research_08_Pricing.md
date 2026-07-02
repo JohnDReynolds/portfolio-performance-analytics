@@ -753,3 +753,30 @@ Additional pricing points:
 | Price preview fields | CI preview evidence includes Symbol, Price, Source, Price Date, and Price As-Of Date. | Verified for CI workflow |
 | Candidate price fields | Live discovery should inspect symbol, type, price date, price, price source, currency, factor, quote multiplier, and price-set/source provenance where available. | Discovery guidance |
 | Boundary | `.pri` workflow evidence does not prove the official native IMEX price object name or full price-file layout. | Unknown / boundary |
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum adds integration-control and version-specific pricing
+evidence. Current Axys CI release notes identify V3.19.001 bond-price
+calculation correction, V3.18.001 support for a six-character internal
+price-table source column, and V3.17.001 `cashDivCalculateQuantity` for
+cash-dividend calculated units. These are CI facts, not native Axys `.pri`
+schema facts.
+
+APX AIA pricing evidence is stronger: Price File Update Logic includes Update
+Existing & Add New, Add New, and Replace Entire File; Clean Price File can
+remove prices for securities held only in filtered accounts; Price Set Logic is
+used where APX price sets exist; custodian-specific price files and custodian
+trumping order can affect valuation; and APX AIA can use either a traditional
+Axys three-column set or an APX column set with additional fields. APX AIA also
+documents FX File Update Logic with Update Existing & Add New, Add New, and
+Replace Entire File.
+
+Interlisted security cleanup is verified for APX AIA/NBIN workflow: duplicate
+position/price rows may be produced and then removed so the retained price
+matches the actual held listing/currency. Add audit focus for interlisted
+duplicate price cleanup, FX replace risk, and CI price-source-width risk.
+Native Axys/APX price schemas, `.pri` layout, price keys, price-source
+hierarchy, APX price-set schema, APX price public views, standard price-report
+names, clean/dirty fixed-income pricing, primary-close handling, and FX-file
+layout remain Unknown.

@@ -778,3 +778,27 @@ The public record supports a resilient audit architecture:
 4. Avoid hard-coding one universal Axys IMEX schema.
 5. Normalize into product-owned schemas while preserving original source file,
    source row, original field names, extraction mechanism, and confidence.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 addendum materially strengthens APX IMEX workflow evidence.
+ByAllAccounts APX CI evidence verifies `apxix.exe` exporting `sec.inf` and
+`type.inf`, extracting APX group portfolio codes, and importing transactions,
+prices, positions, and position lots into APX blotters or price records. APX
+BackOffice Utilities and APX DataPort are CI prerequisites for relevant
+position workflows, and APX authentication can block `apxix.exe`; Apxix logs
+may be required for diagnosis.
+
+WealthTechs AIA verifies `APXIX.exe` writing to `imexhist.log`, APX SQL
+connection settings such as Data Base Server, Data Base Name, user/password,
+Windows Authentication, and Test Connection, `SourceId` display behavior in
+price imports, and `.veh` to `sec.inf`-layout security import/update behavior.
+These are environment/workflow facts, not APX schema definitions.
+
+APX Market Data Manager / Interactive Data RemotePlus is an adjacent non-IMEX
+reference-data path for prices/evaluations, factors, security setup,
+fixed-income terms, index values, dividends/splits, exchange rates, and
+trade-blotter posting from dividend downloads. FinFolio conversion evidence
+adds migration leads for `CLI`, `PRI`, `INF`, `SPLIT.INF`, `PRF`, and `GRP`,
+but those remain migration file-family leads rather than official object
+names or complete layouts.

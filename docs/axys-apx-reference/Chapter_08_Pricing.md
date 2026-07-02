@@ -586,3 +586,21 @@ native price schemas Unknown.
 
 These points do not prove the official IMEX price object name, `.pri` field
 layout, or APX price public-view schema.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 pricing addendum adds version-specific CI evidence and APX AIA
+controls. Axys CI release notes verify a V3.19.001 bond-price calculation
+correction, a V3.18.001 six-character internal price-table source-column
+enhancement, and V3.17.001 `cashDivCalculateQuantity`; these are CI facts, not
+native `.pri` layout evidence.
+
+APX AIA evidence verifies Price File Update Logic modes, Clean Price File, Price
+Set Logic, custodian-specific price files, custodian trumping order, custom
+price-file names, APX import-layout cautions, interlisted duplicate price
+cleanup, and FX File Update Logic with update/add/replace modes. Useful audit
+additions are interlisted duplicate cleanup, FX replace risk, and CI
+price-source-width risk. Native price schemas, `.pri` layouts, price keys, source
+hierarchy, APX price-set schema, price public views, standard price-report names,
+clean/dirty bond pricing, primary-close handling, and FX-file layout remain
+Unknown.

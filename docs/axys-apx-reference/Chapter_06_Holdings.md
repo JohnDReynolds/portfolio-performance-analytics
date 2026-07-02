@@ -530,3 +530,20 @@ only as IMEX-adjacent position evidence.
 
 This evidence does not establish native holdings storage mechanics or standard
 Portfolio Appraisal columns.
+
+## Deep Research Update Incorporated 2026-07-02
+
+The July 2026 holdings addendum upgrades APX Portfolio Appraisal to a verified
+report concept for holdings by individual tax lot or position, with report-output
+concepts such as quantity, cost, market value, percent of portfolio, yield, and
+unrealized gain/loss. These are report labels, not APX database or IMEX field
+names.
+
+Axys CI position handling is verified more specifically: CI writes positions to
+`\CI\exported\ptopost.trn`; Position Post can create replacement `.pos` files
+for configured portfolios; lot-enabled output may contain lot data; cash,
+money-market, or no-lot positions fall back to position data; and
+`imexPositionLots.log` may appear instead of `imexPositions.log`. Native holdings
+storage, canonical holdings IMEX object names, APX holdings SQL/public-view
+names, complete Portfolio Appraisal columns, and holdings date/cash/short/accrual
+and FX semantics remain Unknown.
