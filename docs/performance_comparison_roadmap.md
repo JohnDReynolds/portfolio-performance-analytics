@@ -72,7 +72,8 @@ Completed guardrails now cover:
   review examples;
 - portfolio and security report explanations intentionally use different
   transaction wording when the review level asks a different question;
-- generated bundle vocabulary and entrypoints are validated.
+- generated bundle vocabulary, package-resource entrypoints, and distribution
+  package-data boundaries are validated.
 
 ## Current Open Items
 
@@ -2301,6 +2302,50 @@ security-container oriented: `li` / `wd` rows use `external flow`, `dp` uses
 The design doc and workbook contract tests now pin this split so future wording
 cleanup does not flatten the two report families into one misleading sentence
 template.
+
+### Phase 50: Release-Candidate Drift Sweep
+
+Status: complete for current terminology drift and report-output stability.
+
+The release-candidate drift sweep checked generated bundles, durable docs, and
+reviewer-facing tests for stale report names, old browser-review wording,
+generic transaction amount explanations, and split source-data terminology.
+Only historical roadmap notes and negative regression assertions retained the
+old phrases. A small prose-only cleanup standardized remaining package comments
+and docstrings on `source-data` wording without changing report output.
+
+### Phase 51: Minimum Source Contract Release Pass
+
+Status: complete for pre-report source-contract guidance and hard-stop clarity.
+
+The packaged Axys README now tells users to run `validate_config` before local
+report-bundle generation. Required-file hard stops now name the normalized
+dataset and snapshot side that failed, so missing required inputs point to
+`files.<dataset>` and `snapshot a` / `snapshot b` instead of only a raw path.
+Regression coverage pins both the packaged README guidance and the clearer
+missing-file diagnostics.
+
+### Phase 52: Packaged Demo Distribution Audit
+
+Status: complete for installed-package demo-resource access.
+
+The wheel and source distribution were built and inspected. The wheel includes
+the packaged Axys CSV/YAML/README inputs and excludes `_demo_output`, tests,
+docs, scripts, and generation internals. The source distribution retains
+maintainer scripts as intended. A regression test now pins the public demo
+entrypoints to `importlib.resources` so installed demos continue reading
+bundled resources rather than checkout-relative paths or test data.
+
+### Phase 53: Release Readiness Final Sanity Sweep
+
+Status: complete for current release-candidate sanity checks.
+
+The public smoke path passed: `validate_config`, both packaged demo commands,
+and both generated-bundle validators. Generated portfolio and security
+`report.html` files were diffed against the phase baseline with no content
+changes. A stale-vocabulary sweep found only historical roadmap references and
+negative tests that intentionally reject old wording. Build residue from the
+distribution audit was removed from the checkout.
 
 ## Guiding Principle
 
