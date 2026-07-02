@@ -382,6 +382,28 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertNotIn("_demo_output", path.as_posix())
                 self.assertNotIn("operational_demo_data", path.as_posix())
 
+    def test_packaged_axys_yaml_documents_seed_readiness_boundaries(self) -> None:
+        """The packaged Axys YAML names preset-seed and guardrail boundaries."""
+        yaml_text = Path("ppar/demos/data/axys/ppar_performance_comparison.yaml").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "candidate seed for a future vendor preset",
+            "`vendor: axys`",
+            "not a hidden preset today",
+            "until the Axys demo completion gate is satisfied",
+            "Portfolio Modified Dietz uses holdings",
+            "Security Modified Dietz treats buys and sells",
+            'Rules for lo and ";" are retained',
+            "current packaged rows",
+            "The packaged demo does not currently include a lo",
+            "Reserved corporate-action/journal marker",
+            "Withdrawal is external only for the packaged CASH_USD",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, yaml_text)
+
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
         template_path = Path("docs/axys-apx-reference/templates/site_extract_contract.yaml")
@@ -747,6 +769,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 57: Axys Demo Finalization Gate", roadmap)
         self.assertIn("Axys demo completion gate", roadmap)
         self.assertIn("Vendor preset implementation remains blocked", roadmap)
+        self.assertIn("Phase 58: Axys Demo YAML Seed Readiness Audit", roadmap)
+        self.assertIn("candidate seed for a future `vendor: axys` preset", roadmap)
+        self.assertIn("reserved", roadmap)
+        self.assertIn("guardrail semantics for `lo` and `;`", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 

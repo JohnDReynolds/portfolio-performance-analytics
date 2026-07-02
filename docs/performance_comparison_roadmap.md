@@ -2411,6 +2411,20 @@ Vendor preset implementation remains blocked until that gate passes. The gate
 does not change runtime behavior; it defines the standard for deciding when the
 packaged Axys demo can become reusable default policy.
 
+### Phase 58: Axys Demo YAML Seed Readiness Audit
+
+Status: complete for the current YAML seed-readiness pass.
+
+The packaged Axys comparison YAML was reviewed as a future preset seed. The
+audit did not identify a data or runtime-rule change. The YAML now states that
+it is a candidate seed for a future `vendor: axys` preset, but not a hidden
+preset today. Comments also call out the portfolio/security Modified Dietz
+boundaries and separate current packaged transaction rows from reserved
+guardrail semantics for `lo` and `;`.
+
+The phase keeps vendor-preset implementation blocked. It only improves the
+readability and auditability of the existing explicit YAML policy.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

@@ -4,6 +4,10 @@
 # This Mega-Cap operational fixture demonstrates the default field-role model
 # plus explicit transaction semantics. Demo commands choose portfolio or
 # security report level at runtime.
+#
+# This file is a candidate seed for a future vendor preset such as
+# `vendor: axys`, but it is not a hidden preset today. Keep policy choices
+# explicit and auditable until the Axys demo completion gate is satisfied.
 
 comparison:
   name: Axys performance comparison demo
@@ -28,6 +32,8 @@ files:
   transactions: transactions.csv
 
 portfolio_return_reconstruction:
+  # Portfolio Modified Dietz uses holdings for beginning/ending value and only
+  # transactions classified as external_flow for dated external flows.
   method: modified_dietz
   beginning_value_source: holdings
   ending_value_source: holdings
@@ -44,6 +50,8 @@ portfolio_return_reconstruction:
   sign_convention: signed_amount
 
 security_return_reconstruction:
+  # Security Modified Dietz treats buys and sells as security-level flows. It
+  # does not turn those trades into portfolio-level external flows.
   method: modified_dietz
   beginning_value_source: holdings
   ending_value_source: holdings
@@ -61,6 +69,9 @@ security_return_reconstruction:
   sign_convention: signed_amount
 
 transaction_rules:
+  # Packaged transaction rows currently use by, sl, dv, in, fee-like dp,
+  # external-cash li, and external-cash wd. Rules for lo and ";" are retained
+  # as defensive guardrails/reserved semantics, not as current packaged rows.
   by:
     transaction_category: buy
     cash_flow_sign: negative
@@ -88,6 +99,8 @@ transaction_rules:
     cash_flow_sign: positive
     performance_flow_sign: performance
   li:
+    # Long-in is external only with reviewed external-party context; internal
+    # account movement remains neutral transfer.
     - when:
         source_destination_type: $pty
       transaction_category: external_flow
@@ -99,6 +112,9 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
   lo:
+    # Long-out is included so sites with reviewed context can use the same
+    # defensive rule shape. The packaged demo does not currently include a lo
+    # transaction story.
     - when:
         source_destination_type: $pty
       transaction_category: external_flow
@@ -110,10 +126,14 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
   ";":
+    # Reserved corporate-action/journal marker. User-facing split examples
+    # should wait for a real historical event and explicit policy.
     transaction_category: corporate_action
     cash_flow_sign: none
     performance_flow_sign: neutral
   wd:
+    # Withdrawal is external only for the packaged CASH_USD external-party case;
+    # sweep-like rows remain neutral transfer.
     - when:
         security_id: CASH_USD
         source_destination_type: $pty
