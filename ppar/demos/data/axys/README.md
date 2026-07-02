@@ -65,8 +65,8 @@ differences from identifiable input differences and other evidence:
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
-- Optional reconstruction diagnostics can add `Return Reconstruction Checks`,
-  `Security Return Checks`, and `Reconstruction Summary` sheets for
+- Optional reconstruction diagnostics can add `Reconstruction Summary`,
+  `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
 - Review-only supporting rows remain in the `Raw Audit Trail`. Transaction
   quantity, price, and commission rows may also appear on

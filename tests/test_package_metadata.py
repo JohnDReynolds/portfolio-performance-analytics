@@ -689,6 +689,11 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 44: Public API And Compatibility Shim Audit", roadmap)
         self.assertIn("package-root `ppar.performance_comparison` API", roadmap)
         self.assertIn("direct-submodule imports", roadmap)
+        self.assertIn("Phase 45: Documentation Freshness And Reader Path Sweep", roadmap)
+        self.assertIn("former", roadmap)
+        self.assertIn("`Other Data Differences` sheet", roadmap)
+        self.assertIn("canonical opt-in", roadmap)
+        self.assertIn("reconstruction diagnostic worksheet names", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -1049,10 +1054,39 @@ class TestPackageMetadata(unittest.TestCase):
             "prefer the package-root workflow helpers",
             "direct-submodule imports",
             "package-root exports",
+            "`Performance Differences`",
+            "`Performance Difference Causes`",
+            "`Raw Audit Trail`",
+            "`Reconstruction Summary`",
+            "`Return Reconstruction Checks`",
+            "`Security Return Checks`",
             "All demo commands print the generated artifact paths",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, guide)
+        self.assertNotIn("Other Data Differences", guide)
+        self.assertNotIn("Residual Evidence", guide)
+        self.assertNotIn("Return Reconstruction Summary", guide)
+
+    def test_axys_demo_readme_uses_current_report_sheet_names(self) -> None:
+        """The packaged Axys README names the current workbook review path."""
+        readme = Path("ppar/demos/data/axys/README.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "`Performance Differences` sheet",
+            "`Performance Difference Causes` sheet",
+            "`Raw Audit Trail` sheet",
+            "`Reconstruction Summary`",
+            "`Return Reconstruction Checks`",
+            "`Security Return Checks`",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, readme)
+        self.assertNotIn("Other Data Differences", readme)
+        self.assertNotIn("Residual Evidence", readme)
+        self.assertNotIn("Return Reconstruction Summary", readme)
 
     def test_design_notes_document_both_user_facing_comparison_demos(self) -> None:
         """Design docs keep portfolio and security demo paths in sync."""

@@ -2179,6 +2179,29 @@ The repository guide now tells Python integrations to prefer package-root
 workflow helpers for normal comparison/report use, while treating specialized
 policy and evidence-pack helpers as direct-submodule imports.
 
+### Phase 45: Documentation Freshness And Reader Path Sweep
+
+Status: complete for current durable documentation and packaged-demo README
+wording.
+
+The reader-path sweep removed stale durable-doc references to the former
+`Other Data Differences` sheet and aligned the normal workbook/report flow to
+the current default review path: `Performance Differences`, `Performance
+Difference Causes`, and `Raw Audit Trail`. Supplementary CSV diagnostics remain
+documented as audit and troubleshooting artifacts rather than first-stop review
+surfaces.
+
+The packaged Axys README and repository guide now use the canonical opt-in
+reconstruction diagnostic worksheet names: `Reconstruction Summary`, `Return
+Reconstruction Checks`, and `Security Return Checks`. The corresponding CSV
+artifact names remain `reconstruction_summary.csv`,
+`return_reconstruction_checks.csv`, and
+`security_return_reconstruction_checks.csv`.
+
+Metadata tests now reject the stale `Other Data Differences`, `Residual
+Evidence`, and `Return Reconstruction Summary` phrases in the durable reader
+path docs where those names would mislead new users.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

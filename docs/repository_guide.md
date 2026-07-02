@@ -264,12 +264,14 @@ The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
 Both portfolio and security workbooks start with the `Performance Differences`
-sheet. They then use the `Performance Difference Causes` sheet, `Other Data
-Differences` sheet, and `Raw Audit Trail` sheet. Explained amounts appear on
-`Performance Difference Causes` sheet rows when ppar has a defensible
-input-level explanation. The action sheets use an `Explanation` column written
-for reviewers; the raw audit sheet and bundle CSV artifacts keep lower-level
-fields for troubleshooting.
+sheet, then use `Performance Difference Causes` and `Raw Audit Trail` for the
+normal review flow. Explained amounts appear on `Performance Difference Causes`
+sheet rows when ppar has a defensible input-level explanation. The action
+sheets use an `Explanation` column written for reviewers; the raw audit sheet
+and bundle CSV artifacts keep lower-level fields for troubleshooting. Optional
+reconstruction diagnostics can add `Reconstruction Summary`,
+`Return Reconstruction Checks`, and `Security Return Checks` sheets, but normal
+demo output excludes them by default.
 
 ## Suggested Consolidation Rules
 
