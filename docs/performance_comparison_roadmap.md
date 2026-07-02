@@ -79,6 +79,8 @@ Completed guardrails now cover:
   transaction wording when the review level asks a different question;
 - the Axys Demo Freeze Decision Packet is mapped to concrete packaged-data,
   YAML, source-contract, test, and generated-bundle evidence;
+- the packaged Axys demo is accepted as the future `vendor: axys` preset seed,
+  while preset implementation remains future work;
 - generated bundle vocabulary, package-resource entrypoints, and distribution
   package-data boundaries are validated.
 
@@ -91,7 +93,6 @@ core Modified Dietz report cleanup.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Axys demo freeze readiness | Decide whether the current packaged Axys CSV/YAML/report story is final enough to freeze as the seed for a future `vendor: axys` preset. | A maintainer explicitly accepts the source contract's Axys Demo Freeze Decision Packet as the versioned Axys preset seed. |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
 | Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
 | Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
@@ -139,7 +140,7 @@ existing site-variant fixtures.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the current packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the packaged Axys demo/source contract, waits for the Axys demo completion gate, and still fails hard when required site-specific context is missing. |
+| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the accepted packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
 ## Axys Extract Contract Review Map
@@ -2536,6 +2537,26 @@ Axys assumptions. No runtime or user-facing wording change was needed.
 Portfolio and security `report.html` hashes were captured before and after the
 smoke. They remained unchanged, so this phase did not change user-facing report
 content.
+
+### Phase 64: Axys Demo Preset Seed Acceptance
+
+Status: complete for docs-only preset-seed acceptance.
+
+The Axys Demo Freeze Decision Packet is accepted as the versioned seed for a
+future `vendor: axys` preset. This changes the release posture from near-pass
+to accepted seed for the packaged Axys demo scope. It does not implement
+`vendor: axys`, does not add hidden runtime policy, and does not change the
+comparison YAML policy or packaged CSV data.
+
+The active release-hardening backlog no longer carries the freeze-readiness
+decision as an open item. The remaining vendor-preset work is now implementation
+work in Eventual Deliverables: expand the accepted seed into inspectable
+resolved YAML, preserve deterministic site overrides, and keep ambiguous-flow
+and complete-YAML safeguards in force.
+
+This phase was documentation-only. It did not require report regeneration or
+report-story edits, and the portfolio/security `report.html` hashes remained
+unchanged.
 
 ## Guiding Principle
 

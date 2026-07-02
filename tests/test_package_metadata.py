@@ -389,10 +389,10 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "candidate seed for a future vendor preset",
+            "accepted seed for a future vendor preset",
             "`vendor: axys`",
             "not a hidden preset today",
-            "until the Axys demo completion gate is satisfied",
+            "until vendor preset implementation exists",
             "Portfolio Modified Dietz uses holdings",
             "Security Modified Dietz treats buys and sells",
             'Rules for lo and ";" are retained',
@@ -695,13 +695,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Vendor YAML presets", roadmap)
         self.assertIn("`vendor: axys`", roadmap)
         self.assertIn("Overrides have deterministic precedence", roadmap)
-        self.assertIn("waits for the Axys demo completion gate", roadmap)
+        self.assertIn("accepted packaged Axys demo/source contract", roadmap)
         self.assertIn("Code simplification watchlist", roadmap)
         self.assertIn("Performance watchlist", roadmap)
         self.assertIn("Documentation freshness", roadmap)
-        self.assertIn("Axys demo freeze readiness", roadmap)
         self.assertIn("Axys Demo Freeze Decision Packet", roadmap)
         self.assertIn("mapped to concrete packaged-data", roadmap)
+        self.assertIn("accepted as the future `vendor: axys` preset seed", roadmap)
         self.assertIn("versioned Axys preset seed", roadmap)
         self.assertIn("**Axys/APX blockers**", roadmap)
         self.assertIn(
@@ -803,7 +803,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("build succeeded for both", roadmap)
         self.assertIn("observed transaction codes limited to", roadmap)
         self.assertIn("stale-term sweep found only intentional", roadmap)
+        self.assertIn("Phase 64: Axys Demo Preset Seed Acceptance", roadmap)
+        self.assertIn("docs-only preset-seed acceptance", roadmap)
+        self.assertIn("accepted seed for the packaged Axys demo scope", roadmap)
+        self.assertIn("does not add hidden runtime policy", roadmap)
+        self.assertIn("remaining vendor-preset work is now implementation", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
+        self.assertNotIn("| Axys demo freeze readiness |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
     def test_axys_apx_reference_documents_blockers(self) -> None:
@@ -1872,7 +1878,7 @@ class TestPackageMetadata(unittest.TestCase):
 
         for expected_text in [
             "## Axys Demo Completion Gate",
-            "future seed for an Axys vendor YAML",
+            "accepted future seed for an Axys vendor YAML",
             "preset",
             "complete enough to seed `vendor: axys`",
             "packaged CSV fields are limited",
@@ -1883,12 +1889,14 @@ class TestPackageMetadata(unittest.TestCase):
             "Unexplained",
             "ambiguous Axys-style `dp`, `li`, `lo`, and `wd`",
             "report HTML content is intentionally changed only",
-            "vendor presets remain design-only",
+            "Vendor presets still",
+            "remain design-only until implementation",
             "inspectable resolved YAML",
             "not universal Axys behavior",
             "## Axys Demo Freeze Decision Packet",
             "product decision",
-            "versioned `vendor: axys` semantics",
+            "accepted as the future",
+            "versioned preset semantics",
             "packaged transaction families",
             "guardrail-only YAML rules",
             "context-gated",

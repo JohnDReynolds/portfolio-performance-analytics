@@ -119,10 +119,9 @@ output. The packaged demo therefore exercises the conservative no-ID path.
 
 ## Axys Demo Completion Gate
 
-The packaged Axys demo is the likely future seed for an Axys vendor YAML
-preset, but it should not become a preset until this completion gate is met.
-The goal is to avoid turning an active demo into hidden default product policy
-too early.
+The packaged Axys demo is the accepted future seed for an Axys vendor YAML
+preset. The gate below records the standard used to freeze the demo without
+turning it into hidden runtime product policy too early.
 
 The demo can be considered complete enough to seed `vendor: axys` only when:
 
@@ -145,16 +144,17 @@ The demo can be considered complete enough to seed `vendor: axys` only when:
 - report HTML content is intentionally changed only when the reviewer story
   changes, and those changes are called out in phase summaries.
 
-Until this gate passes, vendor presets remain design-only. After it passes, a
-future preset must still expand to inspectable resolved YAML, preserve site
-overrides, and document that `vendor: axys` means "ppar's versioned Axys preset
-semantics," not universal Axys behavior.
+This gate has passed for the packaged Axys demo scope. Vendor presets still
+remain design-only until implementation. A future preset must expand to
+inspectable resolved YAML, preserve site overrides, and document that
+`vendor: axys` means "ppar's versioned Axys preset semantics," not universal
+Axys behavior.
 
 ## Axys Demo Freeze Decision Packet
 
-Freezing the packaged Axys demo as a future preset seed is a product decision,
-not just a validation result. A maintainer should freeze it only after accepting
-these boundaries as versioned `vendor: axys` semantics:
+Freezing the packaged Axys demo as a future preset seed was a product decision,
+not just a validation result. The packaged demo is accepted as the future
+`vendor: axys` seed with these boundaries as versioned preset semantics:
 
 - the packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`,
   external-cash `li`, and external-cash `wd`;
@@ -185,9 +185,9 @@ Freeze-packet evidence map:
 | Cost, settlement-date, and unsupported corporate-action differences remain review evidence. | The field-role contract classifies `holdings.cost` and `transactions.settle_date` as review evidence, while the transaction semantics matrix and demo matrix tests keep unsupported corporate actions outside additive Modified Dietz treatment. |
 | `vendor: axys` means ppar's versioned Axys preset semantics, not universal Axys behavior. | The source contract, roadmap, and vendor preset design docs use this boundary and keep preset implementation blocked until the demo is explicitly frozen. |
 
-If any of these boundaries feels wrong, the correct action is to update the
-packaged demo, source contract, YAML, and report story before implementing the
-preset.
+If any of these boundaries changes later, the correct action is to update the
+packaged demo, source contract, YAML, and report story before changing the
+preset semantics.
 
 ## Cash-Balance Policy
 

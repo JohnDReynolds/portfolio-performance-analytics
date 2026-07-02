@@ -5,9 +5,9 @@
 # plus explicit transaction semantics. Demo commands choose portfolio or
 # security report level at runtime.
 #
-# This file is a candidate seed for a future vendor preset such as
+# This file is the accepted seed for a future vendor preset such as
 # `vendor: axys`, but it is not a hidden preset today. Keep policy choices
-# explicit and auditable until the Axys demo completion gate is satisfied.
+# explicit and auditable until vendor preset implementation exists.
 
 comparison:
   name: Axys performance comparison demo
