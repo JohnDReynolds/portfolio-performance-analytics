@@ -89,7 +89,7 @@ core Modified Dietz report cleanup.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Axys demo freeze readiness | Decide whether the current packaged Axys CSV/YAML/report story is final enough to freeze as the seed for a future `vendor: axys` preset. | A maintainer explicitly accepts the current packaged transaction families, reserved guardrail-only YAML rules, fee/expense return-basis assumption, intentional Fully/Partly/Unexplained report examples, and no-ID transaction matching story as the versioned Axys preset seed. |
+| Axys demo freeze readiness | Decide whether the current packaged Axys CSV/YAML/report story is final enough to freeze as the seed for a future `vendor: axys` preset. | A maintainer explicitly accepts the source contract's Axys Demo Freeze Decision Packet as the versioned Axys preset seed. |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
 | Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
 | Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
@@ -2465,6 +2465,27 @@ remains near-pass, not preset implementation.
 
 This phase did not require report regeneration or report-story edits. Portfolio
 and security `report.html` hashes were checked and remained unchanged.
+
+### Phase 61: Freeze Decision Prep And Release Backlog Slimming
+
+Status: complete for freeze-decision prep.
+
+The demo source contract now has an Axys Demo Freeze Decision Packet. It turns
+the freeze choice into a concise acceptance checklist covering packaged
+transaction families, guardrail-only `lo` and `;` rules, context-gated
+ambiguous codes, conservative no-ID matching, the net-of-fees `dp` assumption,
+intentional Fully/Partly/Unexplained report examples, review-evidence fields,
+and the boundary that `vendor: axys` means ppar's versioned Axys preset
+semantics rather than universal Axys behavior.
+
+The active roadmap now points the freeze-readiness row to that packet instead
+of repeating the checklist inline. The remaining near-term decision is therefore
+clean: either accept the packet and freeze the demo as the preset seed later, or
+change the packaged demo/YAML/report story before implementing `vendor: axys`.
+
+This phase was documentation-only. It did not require report regeneration or
+report-story edits, and the portfolio/security `report.html` hashes remained
+unchanged.
 
 ## Guiding Principle
 

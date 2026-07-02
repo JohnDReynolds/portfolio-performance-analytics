@@ -150,6 +150,32 @@ future preset must still expand to inspectable resolved YAML, preserve site
 overrides, and document that `vendor: axys` means "ppar's versioned Axys preset
 semantics," not universal Axys behavior.
 
+## Axys Demo Freeze Decision Packet
+
+Freezing the packaged Axys demo as a future preset seed is a product decision,
+not just a validation result. A maintainer should freeze it only after accepting
+these boundaries as versioned `vendor: axys` semantics:
+
+- the packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`,
+  external-cash `li`, and external-cash `wd`;
+- `lo` and `;` remain guardrail-only YAML rules until a realistic packaged
+  story justifies promoting them;
+- ambiguous Axys-style `dp`, `li`, `lo`, and `wd` rows remain context-gated and
+  must not be classified from transaction code alone;
+- packaged transaction rows intentionally omit stable transaction identifiers
+  and exercise conservative no-ID matching;
+- the fee-like `dp` example assumes net-of-fees reported performance;
+- the portfolio and security reports intentionally include Fully Explained,
+  Partly Explained, and Unexplained examples;
+- cost, settlement-date, and unsupported corporate-action differences remain
+  review evidence unless a future explicit rule changes their treatment; and
+- `vendor: axys` must continue to mean ppar's versioned Axys preset semantics,
+  not a claim about universal Axys behavior.
+
+If any of these boundaries feels wrong, the correct action is to update the
+packaged demo, source contract, YAML, and report story before implementing the
+preset.
+
 ## Cash-Balance Policy
 
 `CASH_USD` is a normalized demo cash-balance holding. It should not be described

@@ -700,6 +700,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Performance watchlist", roadmap)
         self.assertIn("Documentation freshness", roadmap)
         self.assertIn("Axys demo freeze readiness", roadmap)
+        self.assertIn("Axys Demo Freeze Decision Packet", roadmap)
         self.assertIn("versioned Axys preset seed", roadmap)
         self.assertIn("**Axys/APX blockers**", roadmap)
         self.assertIn(
@@ -784,6 +785,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("current freeze-readiness framing", roadmap)
         self.assertIn("remaining step is a maintainer/product", roadmap)
         self.assertIn("near-pass, not preset implementation", roadmap)
+        self.assertIn(
+            "Phase 61: Freeze Decision Prep And Release Backlog Slimming",
+            roadmap,
+        )
+        self.assertIn("complete for freeze-decision prep", roadmap)
+        self.assertIn("concise acceptance checklist", roadmap)
+        self.assertIn("universal Axys behavior", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -1867,6 +1875,16 @@ class TestPackageMetadata(unittest.TestCase):
             "vendor presets remain design-only",
             "inspectable resolved YAML",
             "not universal Axys behavior",
+            "## Axys Demo Freeze Decision Packet",
+            "product decision",
+            "versioned `vendor: axys` semantics",
+            "packaged transaction families",
+            "guardrail-only YAML rules",
+            "context-gated",
+            "conservative no-ID matching",
+            "net-of-fees reported performance",
+            "review evidence",
+            "ppar's versioned Axys preset semantics",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, contract_doc)
