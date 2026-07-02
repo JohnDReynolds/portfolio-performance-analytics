@@ -11,7 +11,7 @@
 
 ## 1. Scope and Evidence Standard
 
-This file is research material for the future repository chapter on Axys/APX performance. It is not a performance-measurement textbook and does not attempt to explain portfolio performance theory except where needed to identify system behavior.
+This file is research material for the reader-facing performance chapter. It is not a performance-measurement textbook and does not attempt to explain portfolio performance theory except where needed to identify system behavior.
 
 The governing repository standard requires factual, implementation-oriented knowledge about Axys and APX, including architecture, accounting data, IMEX, REP, reports, file layouts, data fields, processing behavior, version differences, and quirks. It also requires important technical statements to be classified as **Verified**, **High Confidence**, **Medium Confidence**, or **Unknown**.
 
@@ -22,7 +22,7 @@ The governing repository standard requires factual, implementation-oriented know
 | Verified | Supported by vendor/public documentation, supplied repository source material, direct sample exports/reports, or explicit production evidence. |
 | High Confidence | Strongly consistent with public vendor/product material or common Axys/APX implementation practice, but exact local behavior still requires validation. |
 | Medium Confidence | Plausible and operationally useful, but not enough evidence to treat as system fact. |
-| Unknown | Not verified. Must not be used as a final chapter fact without additional source material. |
+| Unknown | Not verified. Must not be used as a Chapter 10 fact without additional source material. |
 
 ### Primary source limitations
 
@@ -58,7 +58,7 @@ Therefore, this research file intentionally preserves many Unknowns.
 | Exact APX SQL tables/views for stored or calculated performance are not verified from supplied material. | N/A | Unknown | Unknown | Requires APX schema docs, SQL view definitions, or exports. |
 | Exact IMEX object names for portfolio performance and security performance are not verified from supplied material. | Unknown | Unknown | Unknown | Candidate terms such as `portperf` and `secperf` require source validation. |
 | Exact REP report file names for portfolio/security performance are not verified from supplied material. | Unknown | Unknown | Unknown | Requires REP folder/report inventory or vendor report guide. |
-| Whether reports use stored monthly returns or recalculate over requested date ranges is not verified. | Unknown | Unknown | Unknown | This is a critical open question for the final chapter. |
+| Whether reports use stored monthly returns or recalculate over requested date ranges is not verified. | Unknown | Unknown | Unknown | This is a critical open question for Chapter 10. |
 
 ---
 
@@ -72,7 +72,7 @@ Therefore, this research file intentionally preserves many Unknowns.
 | Reporting | Axys provides an extensive library of predefined reports and supports report customization. | Verified | Public SS&C Advent Axys product material. |
 | Performance visibility | Axys marketing material states that it provides a clear picture of portfolios and their performance. | Verified for marketing claim | Does not verify calculation method or storage model. |
 | User base | Axys is used by asset managers, wealth managers, and family offices. | Verified for marketing claim | Public vendor material. |
-| Database architecture | Axys is described publicly as a turnkey solution and, in third-party material, as on-premise/proprietary-database oriented. | Medium Confidence | Requires Axys architecture chapter/source confirmation before final chapter use. |
+| Database architecture | Axys is described publicly as a turnkey solution and, in third-party material, as on-premise/proprietary-database oriented. | Medium Confidence | Requires Axys architecture chapter/source confirmation before Chapter 10 use. |
 
 ### 4.2 Axys performance processing areas to verify
 
@@ -91,7 +91,7 @@ Therefore, this research file intentionally preserves many Unknowns.
 
 ### 4.3 Candidate Axys performance data sources — unverified
 
-The following are candidate data sources or terms that may be relevant to Axys performance research. They are **not verified** by the supplied blueprint or public product material and must be confirmed before use in the final chapter.
+The following are candidate data sources or terms that may be relevant to Axys performance research. They are **not verified** by the supplied blueprint or public product material and must be confirmed before use in Chapter 10.
 
 | Candidate object / file / report term | Possible meaning | Confidence | Required validation |
 |---|---|---|---|
@@ -116,7 +116,7 @@ The following are candidate data sources or terms that may be relevant to Axys p
 | Performance analytics purpose | Public APX index data material states performance analytics help users understand sources of portfolio performance at sector or security level. | Verified for public marketing claim | Does not verify method, field names, or report implementation. |
 | Benchmark support | Public APX index data material states that benchmark/index data can be obtained and maintained for use in APX performance analytics. | Verified for public marketing claim | Does not verify benchmark table/schema. |
 | Reporting framework | APX public product brief states the APX reporting framework is built around Microsoft Reporting Services. | Verified for public marketing claim | Useful for REP/reporting chapter cross-reference. |
-| Data architecture | APX public/client material describes APX as SQL-based/open database architecture in at least one client case study. | Medium Confidence | Needs vendor technical documentation or APX architecture chapter confirmation before final chapter use. |
+| Data architecture | APX public/client material describes APX as SQL-based/open database architecture in at least one client case study. | Medium Confidence | Needs vendor technical documentation or APX architecture chapter confirmation before Chapter 10 use. |
 | Performance measurement app | SS&C 2020 product update describes APX as a core accounting, reporting, and performance measurement application. | Verified for public marketing claim | Does not verify internal processing details. |
 
 ### 5.2 APX performance processing areas to verify
@@ -168,7 +168,7 @@ No supplied IMEX catalog, IMEX export sample, or vendor IMEX reference was provi
 
 ### 6.3 Minimal IMEX information needed for a useful performance chapter
 
-The future chapter should not assert exact object names unless these are supplied. However, a performance chapter will need the following categories of IMEX evidence.
+Chapter 10 should not assert exact object names unless these are supplied. A performance chapter still needs the following categories of IMEX evidence.
 
 | Category | Minimum evidence needed | Why it matters |
 |---|---|---|
@@ -429,7 +429,7 @@ Needed evidence:
 
 ## 13. Unknowns Register
 
-These Unknowns should be preserved in the future chapter until verified.
+These Unknowns should be preserved in Chapter 10 until verified.
 
 | ID | Unknown | Why it matters | Evidence required |
 |---|---|---|---|
@@ -517,9 +517,9 @@ These are research leads, not exhaustive citations.
 
 ---
 
-## 17. Appendix — Research-to-Chapter Conversion Guidance
+## 17. Appendix — Research-to-Chapter Boundary Guidance
 
-When converting this research into `Chapter_10_Performance.md`:
+When using this research to maintain `Chapter_10_Performance.md`:
 
 1. Keep Axys and APX sections separate.
 2. Do not promote any candidate field, report, or object name to fact without evidence.

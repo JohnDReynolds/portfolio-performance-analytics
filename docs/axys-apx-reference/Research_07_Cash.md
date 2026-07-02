@@ -434,9 +434,9 @@ To convert this research into a strong technical chapter, the following material
 
 ---
 
-## 14. Draft Chapter Implications
+## 14. Chapter Framing Implications
 
-A future `docs/07-Cash.md` chapter should probably be structured as:
+The reader-facing cash chapter should be structured around:
 
 1. Overview
 2. Axys Cash

@@ -308,7 +308,7 @@ The following remain Unknown for APX:
 
 ### Candidate IMEX price object documentation requirements
 
-The future Chapter 08 should not invent native IMEX object names. It should document a placeholder structure like this until source material is obtained:
+Chapter 08 should not invent native IMEX object names. It should preserve a placeholder structure like this until source material is obtained:
 
 | Field / Attribute | Current status | Needed evidence |
 |---|---|---|
@@ -478,7 +478,7 @@ Performance / Reports
 
 ### Candidate audit rules
 
-These are research candidates for future Chapter 08 / Chapter 14. They are not Axys/APX-native rules unless source evidence is listed.
+These are research candidates for Chapter 08 and Chapter 14. They are not Axys/APX-native rules unless source evidence is listed.
 
 | Rule ID | Name | Description | Required inputs | Detection logic | Severity | Confidence |
 |---|---|---|---|---|---|---|
@@ -737,7 +737,7 @@ The strongest supported material is integration-layer evidence:
 - APX AIA documents price-file update modes, price-set logic, custodian-specific pricing, custodian trumping order, and custom price-file naming.
 - AdventGuru provides useful consultant evidence for `mergepri` and direct-file-access caution.
 
-The core unresolved gap remains the official native price field dictionary for Axys and APX. Until `.pri` samples, IMEX object definitions, APX public views, or official pricing manuals are available, future Chapter 08 should preserve exact field names, object names, report names, and native storage behavior as **Unknown**.
+The core unresolved gap remains the official native price field dictionary for Axys and APX. Until `.pri` samples, IMEX object definitions, APX public views, or official pricing manuals are available, Chapter 08 should preserve exact field names, object names, report names, and native storage behavior as **Unknown**.
 
 ## Deep IMEX Addendum Incorporated 2026-06-30
 

@@ -356,11 +356,11 @@ No version-specific Axys/APX corporate action behavior was verified from supplie
 
 ---
 
-## 14. Implementation Guidance for Future Chapter Author
+## 14. Implementation Guidance for Chapter Maintenance
 
 ### 14.1 What Can Be Stated Safely Now
 
-A future chapter can safely state:
+Chapter 09 can safely state:
 
 1. Axys data conversions commonly require `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf` files.
 2. `split.inf` is identified by third-party conversion documentation as the Axys securities splits file.
@@ -406,7 +406,7 @@ Do not state any of the following without additional evidence:
 
 ---
 
-## 16. Draft Chapter Skeleton Informed by Research
+## 16. Chapter Structure Informed by Research
 
 ```markdown
 # 09-Corporate-Actions

@@ -16,7 +16,7 @@
 | Existing chapter supplied | No |
 | Existing research supplied | No |
 | Overall completeness | Incomplete by design; factual field-level content cannot be derived from the blueprint alone |
-| Recommended next step | Add vendor documentation, IMEX object definitions, sample IMEX exports, REP report outputs, and existing repository research chapters before writing the final chapter |
+| Recommended next step | Add vendor documentation, IMEX object definitions, sample IMEX exports, REP report outputs, and subject research chapters before treating Chapter 15 as authoritative |
 
 **Research conclusion:** The supplied blueprint is sufficient to define the required standards, scope, chapter structure, confidence labels, and field-dictionary format. It is not sufficient to populate an authoritative Axys/APX data dictionary with actual field names, file names, report names, object names, or processing behavior.
 

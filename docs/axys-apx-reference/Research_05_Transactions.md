@@ -81,7 +81,7 @@ The weakest remaining areas are still:
 - Native posting-status model and state transitions.
 - Exact REP parameters and official transaction report specifications.
 
-The future Chapter 05 should therefore distinguish carefully between:
+The reader-facing Chapter 05 should therefore distinguish carefully between:
 
 1. General accounting principles.
 2. Observed Axys/APX behavior.
@@ -96,9 +96,9 @@ The future Chapter 05 should therefore distinguish carefully between:
 
 ### 2.1 Research Objective
 
-The purpose of this research package is to support a future Chapter 05 on portfolio accounting transactions. It is intended to collect and organize evidence, not to assert final vendor-specific behavior.
+The purpose of this research package is to support Chapter 05 on portfolio accounting transactions. It is intended to collect and organize evidence, not to assert final vendor-specific behavior.
 
-The future chapter should be based on this document but should not simply copy it. This document intentionally preserves research caveats, source confidence levels, contradictions, and open questions.
+The reader-facing chapter should be based on this document but should not simply copy it. This document intentionally preserves research caveats, source confidence levels, contradictions, and open questions.
 
 ### 2.2 Governing Rules Used in the Research
 
@@ -962,7 +962,7 @@ The later evidence hunt found additional Axys-specific details from the ByAllAcc
 | Folder label | `$pathtrn` | Axys user folder label for Trade Blotter location. | Medium | Third-party integration evidence. |
 | Behavior | Generated transactions appended to Trade Blotter | Existing transactions left unchanged. | Medium | Workflow-specific. |
 
-This evidence is strong enough to include in future Chapter 05 as observed Axys-oriented integration behavior, not as verified native storage documentation.
+This evidence is strong enough for Chapter 05 as observed Axys-oriented integration behavior, not as verified native storage documentation.
 
 ### 8.4 Axys IMEX Executable and Logs
 
@@ -2478,9 +2478,9 @@ This consolidated document integrates the following supplied materials:
 
 ---
 
-## Appendix C — Bottom Line for Future Chapter Drafting
+## Appendix C — Bottom Line for Chapter Framing
 
-The future Chapter 05 should be written from this research reference as a polished technical chapter. It should not reproduce every research caveat in-line, but it should retain the evidence discipline established here.
+Chapter 05 should remain a polished technical chapter derived from this research reference. It should not reproduce every research caveat in-line, but it should retain the evidence discipline established here.
 
 The most defensible framing is:
 
@@ -3190,7 +3190,7 @@ AdventGuru provides two separate pieces of consultant evidence about `didpost.au
 
 ### E.10 Updated Field Dictionary Additions
 
-These fields/labels should be added or promoted in the future Chapter 05 field dictionary.
+These fields/labels should be added or promoted in the Chapter 05 field dictionary when source evidence supports them.
 
 | Field / Label | Axys | APX | IMEX | REP | Confidence | Notes |
 |---|---|---|---|---|---:|---|
@@ -3274,7 +3274,7 @@ These fields/labels should be added or promoted in the future Chapter 05 field d
 
 ### E.14 Practical Implications for Chapter 05
 
-The future chapter should incorporate the following changes:
+Chapter 05 should preserve the following boundaries:
 
 1. **Do not describe the transaction code matrix as official.** It should remain an observed integration-code matrix.
 2. **Promote observed transaction fields** such as Transaction Type, Src/Dest Type, Src/Dest Symbol, Special Security Type/Symbol, Broker, Commission, Lot Location, Mark to Market, Perf/CW, and Withholding Tax where source evidence supports them.

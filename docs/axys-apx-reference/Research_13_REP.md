@@ -423,9 +423,9 @@ To improve `13-REP.md`, request any of the following:
 
 ---
 
-## 17. Draft Chapter Outline Suggested by Research
+## 17. Chapter Outline Suggested by Research
 
-The eventual `docs/13-REP.md` chapter could use this structure:
+Chapter 13 can use this structure:
 
 1. Overview
 2. REP, RepLang, Report Writer Pro, and REP32 Terminology

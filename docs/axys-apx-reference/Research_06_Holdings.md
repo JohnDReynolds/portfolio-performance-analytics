@@ -7,7 +7,7 @@ Governing spec: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 
 ## 1. Scope and Method
 
-This file collects source-backed research for the future repository chapter `06-Holdings.md`. It is not the final chapter. It is intended to preserve factual evidence, confidence classifications, useful report names, field names, processing behaviors, implementation quirks, and unresolved unknowns.
+This file collects source-backed research for the reader-facing holdings chapter. It is not the chapter itself. It is intended to preserve factual evidence, confidence classifications, useful report names, field names, processing behaviors, implementation quirks, and unresolved unknowns.
 
 The governing blueprint requires facts-first documentation, separate Axys and APX treatment, preference for vendor documentation / exports / REP reports / production observations / consultant documentation, and classification of important technical statements as Verified, High Confidence, Medium Confidence, or Unknown.
 
@@ -18,7 +18,7 @@ The governing blueprint requires facts-first documentation, separate Axys and AP
 | Verified | Directly supported by a cited source in the references section or by the uploaded blueprint. |
 | High Confidence | Strongly supported by one or more sources, but still not a complete vendor specification. |
 | Medium Confidence | Plausible and consistent with available sources, but source coverage is partial or indirect. |
-| Unknown | Not established by the available source material. Do not document as fact in the final chapter unless additional evidence is supplied. |
+| Unknown | Not established by the available source material. Do not document as fact in Chapter 06 unless additional evidence is supplied. |
 
 ## 2. Executive Summary
 
@@ -105,7 +105,7 @@ The governing blueprint requires facts-first documentation, separate Axys and AP
 
 | Statement | Classification | Evidence / Notes |
 |---|---:|---|
-| APX has a Portfolio Appraisal report. | Medium Confidence | Search result for the Advent Portfolio Exchange Reports Guide says “The Portfolio Appraisal shows your clients all holdings in an account by individual tax lot or position.” The PDF could not be fully opened through the browser tool; obtain `REP_APX.pdf` for verification before final chapter. |
+| APX has a Portfolio Appraisal report. | Medium Confidence | Search result for the Advent Portfolio Exchange Reports Guide says “The Portfolio Appraisal shows your clients all holdings in an account by individual tax lot or position.” The PDF could not be fully opened through the browser tool; obtain `REP_APX.pdf` for verification before promoting beyond Chapter 06's current caveat. |
 | APX Portfolio Appraisal can show holdings by individual tax lot or position. | Medium Confidence | Same APX reports guide search snippet. Needs full source capture for Verified classification. |
 | Public APX sample client reports may include a `PORTFOLIO APPRAISAL` section and report parameters including `STY:APX`. | Medium Confidence | Public client-report PDFs appear to show APX-source report output, but they are downstream presentations, not vendor docs. Treat only as examples if cited and inspected. |
 
@@ -158,7 +158,7 @@ The available source material does not provide a formal Axys IMEX object diction
 | Historical holdings export | Historical loading requires a report to calculate holdings in AIA Axys workflow. | Historical loading requires a report to calculate holdings in AIA APX workflow. | Verified for cited workflow |
 | Current-date extraction | Current-date data files can be read from Axys in AIA workflow. | Current-date data can be read from APX SQL in AIA workflow. | Verified for cited workflow |
 
-### IMEX unknowns to resolve before final chapter
+### IMEX Unknowns to Resolve Before Strengthening Chapter 06
 
 | Question | Status |
 |---|---:|
@@ -191,7 +191,7 @@ The available source material does not provide a formal Axys IMEX object diction
 
 ## 7. Field Dictionary Candidates
 
-These fields and labels are safe candidates to include in the final chapter only with appropriate source qualification.
+These fields and labels are safe candidates to include in Chapter 06 only with appropriate source qualification.
 
 | Field / Label | Description | Axys | APX | IMEX | REP | Confidence |
 |---|---|---:|---:|---:|---:|---:|
@@ -301,7 +301,7 @@ Classification: Verified for Custodial Integrator APX workflow.
 
 ## 12. Unknowns and Requested Source Material
 
-The following should remain Unknown in the final chapter unless additional documentation, sample exports, or production observations are supplied.
+The following should remain Unknown in Chapter 06 unless additional documentation, sample exports, or production observations are supplied.
 
 | Unknown | Why it matters | Best additional source |
 |---|---|---|
@@ -319,9 +319,9 @@ The following should remain Unknown in the final chapter unless additional docum
 | Whether `CDIhold.rep` is generic or WealthTechs-specific. | Avoid documenting third-party workflow as standard Axys/APX. | Report source or vendor notes. |
 | Whether REP syntax and variables differ between Axys and APX. | Needed for REP chapter cross-reference. | Axys/APX Replang manuals and sample `.rep` files. |
 
-## 13. Recommended Next Inputs Before Writing Final `06-Holdings.md`
+## 13. Recommended Next Inputs Before Strengthening Chapter 06
 
-To produce a stronger final chapter, collect any of the following:
+To strengthen the reader-facing holdings chapter, collect any of the following:
 
 1. Official Axys reports guide section for Portfolio Appraisal.
 2. Official APX reports guide (`REP_APX.pdf`) section for Portfolio Appraisal.
@@ -333,7 +333,7 @@ To produce a stronger final chapter, collect any of the following:
 8. Sample current-date and historical holdings extracts from Axys and APX.
 9. Any client-specific notes documenting how holdings are calculated relative to transactions, prices, splits, and accruals.
 
-Until those are available, the final chapter should heavily distinguish verified report behavior from unknown internal data-storage behavior.
+Until those are available, Chapter 06 should heavily distinguish verified report behavior from unknown internal data-storage behavior.
 
 ## 14. Deep IMEX Addendum Incorporated 2026-06-30
 

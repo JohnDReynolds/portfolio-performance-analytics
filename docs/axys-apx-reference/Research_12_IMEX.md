@@ -9,7 +9,7 @@
 
 ## 0. Scope and Method
 
-This file is research material for the future chapter `docs/12-IMEX.md`. It is not the chapter itself. It collects factual information, examples, implementation observations, source citations, and unknowns relating to Axys/APX IMEX and related extraction/import mechanisms.
+This file is research material for the reader-facing IMEX chapter. It is not the chapter itself. It collects factual information, examples, implementation observations, source citations, and unknowns relating to Axys/APX IMEX and related extraction/import mechanisms.
 
 The governing editorial rule is: **do not invent Axys or APX behavior**. Every technical statement below is classified as one of:
 
@@ -527,7 +527,7 @@ To turn this research into a stronger chapter, request any of the following if a
 
 ---
 
-## 15. Draft Chapter Structure Suggested From Research
+## 15. Chapter Structure Suggested From Research
 
 ```text
 # 12. IMEX

@@ -2,7 +2,7 @@
 
 Research notes for `Chapter_16_Glossary.md`.
 
-This file follows `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. It is intended as research support for a later repository chapter, not as the final chapter text.
+This file follows `AXYS_APX_REFERENCE_BLUEPRINT.md` Version 2.0. It is intended as research support for Chapter 16, not as the chapter text.
 
 ## Scope
 
@@ -26,7 +26,7 @@ This glossary research collects terms that are likely to appear across the Axys/
 | Verified | Directly supported by supplied repository instructions, public vendor material, public practitioner material, or named documentation. |
 | High Confidence | Strongly supported by public material and common Axys/APX usage, but not yet verified against vendor manuals or production exports. |
 | Medium Confidence | Plausible and consistent with observed Axys/APX terminology, but should be confirmed with vendor documentation, sample IMEX exports, REP source, or production data. |
-| Unknown | Not verified. Do not use as a factual statement in the final chapter without additional evidence. |
+| Unknown | Not verified. Do not use as a factual statement in Chapter 16 without additional evidence. |
 
 ## Source Base Used
 
@@ -379,7 +379,7 @@ These items should be explicitly marked Unknown in the chapter unless additional
 
 # 16. Proposed Glossary Structure for Chapter_16_Glossary.md
 
-Recommended final chapter organization:
+Recommended chapter organization:
 
 1. Overview and confidence legend
 2. Core product terms

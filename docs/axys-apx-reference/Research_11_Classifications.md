@@ -34,7 +34,7 @@ Every important technical statement is assigned one of:
 | Medium Confidence | Plausible and consistent with available sources, but needs confirmation from real IMEX output, REP source, vendor docs, or production observation. |
 | Unknown | Not sufficiently supported. Must not be implemented as fact without more evidence. |
 
-> Editorial note: This is a research file, not the final chapter. It intentionally preserves uncertainty.
+> Editorial note: This is a research file, not Chapter 11. It intentionally preserves uncertainty.
 
 ---
 
@@ -495,11 +495,11 @@ Research interpretation:
 
 ---
 
-## 11. Implementation Guidance for the Future Chapter
+## 11. Implementation Guidance for the Chapter
 
 ### 11.1 Suggested Chapter Framing
 
-The final chapter should avoid claiming that classifications are one single native object. Based on available evidence, the safest framing is:
+Chapter 11 should avoid claiming that classifications are one single native object. Based on available evidence, the safest framing is:
 
 1. Axys/APX classifications appear in multiple contexts:
    - security classifications
@@ -538,7 +538,7 @@ Use the standard chapter template:
 
 ### 11.3 Suggested Strong Claims for Chapter 11
 
-These can likely be used in the final chapter:
+These can likely be used in Chapter 11:
 
 | Claim | Confidence |
 |---|---|
@@ -680,7 +680,7 @@ Same as Test 1, but perform in APX test environment. If APX SQL tables are acces
 - AdventGuru Integration article/tag page: `https://adventguru.com/tag/integration/`
   - Supports: Axys version history, IMEX introduction, APX IMEX behavior, APX SQL/report extraction options, Replang/custom report export options, direct-file access warning.
 - APX Reports Guide PDF: `https://cdn.advent.com/cms/pdfs/reports/REP_APX.pdf`
-  - Supports: APX report capability for custom classification/industry group/sector based on public search snippet. Full reliable text extraction should be obtained for final chapter.
+  - Supports: APX report capability for custom classification/industry group/sector based on public search snippet. Full reliable text extraction should be obtained before promoting the claim in Chapter 11.
 - ByAllAccounts Custodial Integrator User Guide for Axys: `https://www.byallaccounts.net/Manuals/Custodial_Integrator/axys/CI_User_Guide.pdf`
   - Supports: Axys `sec.inf` and `type.inf`, Axys Symbol, Axys Security Type, security matching behavior, duplicate securities, reserved type prefixes, security translation file fields.
 - ByAllAccounts Custodial Integrator User Guide for APX: `https://www.byallaccounts.net/Manuals/Custodial_Integrator/apx/CI_User_Guide.pdf`

@@ -495,11 +495,11 @@ These are not verified defects. They are research targets that should be confirm
 
 ---
 
-## 14. Required Source Material for a Complete Chapter
+## 14. Required Source Material for a Stronger Chapter
 
 The current research is useful for a skeleton and for APX report-guide-derived report names, but it is not enough for a complete technical reference chapter with exact field dictionaries and processing rules.
 
-To complete `Chapter_14_Reports.md`, collect the following:
+To strengthen `Chapter_14_Reports.md`, collect the following:
 
 | Priority | Needed Material | Why Needed |
 |---:|---|---|
@@ -517,9 +517,9 @@ To complete `Chapter_14_Reports.md`, collect the following:
 
 ---
 
-## 15. Repository Chapter Outline Recommendation
+## 15. Repository Chapter Boundary Recommendation
 
-The final `Chapter_14_Reports.md` should be organized as:
+Chapter 14 should remain organized around:
 
 1. Overview
 2. Reporting Concepts
