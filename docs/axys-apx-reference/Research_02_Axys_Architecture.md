@@ -33,7 +33,7 @@ This file is research material, not a finished repository chapter.
 | Source ID | Source | Type | Relevance | Notes |
 |---|---|---|---|---|
 | S1 | `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0 | User-supplied repository specification | Governing editorial rules | Requires facts first, Axys/APX separation, confidence labels, Unknowns, tables, IMEX/REP/report detail where supported. |
-| S2 | SS&C Advent Axys product page, https://www.advent.com/solutions/axys/ | Vendor product page | Axys feature-level behavior | Supports Axys portfolio accounting, reporting, performance measurement, Report Writer Pro, security types, accounting options, grouping, GIPS-related statements. |
+| S2 | SS&C Advent Axys product page, https://www.advent.com/solutions/axys/ | Vendor product page | Axys feature-level behavior and storage positioning | Supports Axys portfolio accounting, reporting, performance measurement, Report Writer Pro, security types, accounting options, grouping, GIPS-related statements, and proprietary-database product positioning. |
 | S3 | SS&C Advent APX product page, https://www.advent.com/solutions/advent-portfolio-exchange/ | Vendor product page | APX contrast | Supports APX as integrated client relationship and portfolio management solution, single platform, centralized/scalable, standard reports, report packaging, cloud/local deployment statements. |
 | S4 | Advent Software 2007 SEC filing, https://www.sec.gov/Archives/edgar/data/1002225/000110465907025400/a07-7653_110ka.htm | Regulatory filing | Historical product descriptions | Supports historical descriptions of APX as SQL database/browser UI and Axys as portfolio management/reporting system with Report Writer Pro and multi-currency capabilities. |
 | S5 | Advent client story PDF, River Road / APX, https://cdn.advent.com/cms/pdfs/clients/CS_RR.pdf | Vendor client story | APX architecture and migration contrast | Supports APX SQL-based database platform, integrated accounting/reporting/CRM, Packager, migration from Axys. |
@@ -44,6 +44,7 @@ This file is research material, not a finished repository chapter.
 | S10 | Salentica Data Broker KB, https://engage.salentica.com/kb/article/247-data-broker-ss-c-advent-apx-axys/ | Integration vendor documentation | Deployment and integration context | Supports Axys/APX as on-prem/local-machine/VM/server systems in that integration context and PMS-to-CRM data extraction. |
 | S11 | Financial Advisor Magazine article, https://www.fa-mag.com/news/the-best-software-you-might-never-own-1513.html?issue=73 | Industry article | Historical Axys architecture commentary | Supports historical claim that Axys launched in 1993, used proprietary/flat-file database technology. Treat as secondary source. |
 | S12 | FinFolio Advent conversion page, https://www.finfolio.com/advent-apx-moxy-apx-conversions | Migration vendor page | File-name clues | Mentions CLI, PRI, INF, PRF, GRP files in Advent conversions. Treat as Medium Confidence unless confirmed against Axys manuals or production files. |
+| S13 | ByAllAccounts Custodial Integrator Axys User Guide, https://www.byallaccounts.net/Manuals/Custodial_Integrator/axys/CI_User_Guide.pdf | Integration vendor documentation | Axys workflow architecture | Supports a local intranet CI workflow that downloads WebPortfolio data, merges it with Axys security information, creates transaction/position/price files, and imports through the Axys Import/Export utility. |
 
 ---
 
@@ -52,11 +53,11 @@ This file is research material, not a finished repository chapter.
 | Topic | Axys | APX | Confidence |
 |---|---|---|---|
 | Product type | Portfolio accounting, portfolio management, performance measurement, and reporting system. | Integrated portfolio accounting, reporting, performance, and client relationship/prospect management platform. | Verified |
-| Primary architecture character | Public sources describe Axys as an older/proprietary or flat-file-based portfolio accounting/reporting platform. Vendor pages emphasize functionality, not storage internals. | Public vendor and SEC sources describe APX as a single SQL-based database platform with browser-based or enterprise access characteristics. | Axys: Medium Confidence; APX: Verified |
+| Primary architecture character | Public sources support Axys as a proprietary-database portfolio accounting/reporting platform that is file-oriented in practical integration and operations evidence. Vendor pages do not expose complete storage internals. | Public vendor and SEC sources describe APX as a single SQL-based database platform with browser-based or enterprise access characteristics. | Axys: High Confidence for combined characterization; APX: Verified |
 | Reporting architecture | Uses Report Writer Pro and Replang/REP-style reports. | Also uses Report Writer Pro/Replang/REP in at least some reporting workflows, while APX also supports broader reporting/packaging and SQL-based reporting options. | High Confidence |
 | IMEX role | Import/export mechanism used to move data in and out of Axys; supports CSV, tab, and fixed formats according to practitioner source. | IMEX functionality maintained in APX v1.x to v4.x per practitioner source, but fixed-format generation was reportedly eliminated. | High Confidence |
 | Direct file access | Practitioner source states Axys users may read/write data files directly if they know the format, but this is not best practice because formats changed across versions. | APX users may query SQL database or use SQL-based reporting/extraction tools. | Axys: Medium/High Confidence; APX: High Confidence |
-| Chapter implication | The Axys architecture chapter should focus on file-oriented application architecture, Report Writer/Replang, IMEX, version-specific file conversion risk, and local/on-prem deployment. | APX should be treated mainly as architectural contrast or cross-reference to Chapter 03, not as the main subject of Chapter 02. | Verified as repository-structure implication from S1 |
+| Chapter implication | The Axys architecture chapter should describe Axys as proprietary-database and file-oriented in practice, with Report Writer/Replang, IMEX, version-specific file conversion risk, and local/on-prem connector patterns. | APX should be treated mainly as architectural contrast or cross-reference to Chapter 03, not as the main subject of Chapter 02. | Verified as repository-structure implication from S1 |
 
 ---
 
@@ -80,7 +81,7 @@ This file is research material, not a finished repository chapter.
 
 | Statement | Classification | Evidence / Notes |
 |---|---:|---|
-| Axys is commonly characterized by public practitioner/industry sources as a proprietary, file-oriented, or flat-file-based system rather than a SQL-centered database application. | Medium Confidence | Supported by industry and practitioner commentary, but vendor technical manuals are needed for precise storage architecture. |
+| Axys should be described as proprietary-database and file-oriented in practice, not merely as a flat-file system. | High Confidence | SS&C product positioning supports proprietary-database wording; practitioner/integration evidence supports file-oriented operational handling. Complete physical internals remain Unknown. |
 | Axys v1.x reportedly maintained an open text file structure similar to earlier Advent Professional Portfolio behavior. | Medium Confidence | Practitioner source. Needs vendor manual or installed version confirmation. |
 | Axys v2.x reportedly introduced a binary file format. | Medium Confidence | Practitioner source. Needs vendor manual or installed version confirmation. |
 | Most firms reportedly moved eventually to Axys v3.x, and IMEX reduced concern about binary file formats by allowing supported import/export. | Medium Confidence | Practitioner source. Needs corroboration. |
@@ -104,7 +105,7 @@ This file is research material, not a finished repository chapter.
 
 | Item | Finding | Classification | Notes |
 |---|---|---:|---|
-| Overall storage architecture | Axys is widely described in secondary/practitioner sources as using proprietary/flat-file-style storage rather than open SQL tables. | Medium Confidence | Do not write a chapter sentence claiming exact physical layout without verification. |
+| Overall storage architecture | Axys is best described as proprietary-database and file-oriented in practical integration/operations evidence rather than as a simple flat-file system or a documented SQL database. | High Confidence for characterization; Unknown for internals | Do not write a chapter sentence claiming exact physical layout without verification. |
 | Axys v1.x | Reported to use an open text file structure. | Medium Confidence | Practitioner source only. |
 | Axys v2.x | Reported to introduce binary file format. | Medium Confidence | Practitioner source only. |
 | Axys v3.x | Reported to use IMEX to export/import CSV, tab, and fixed formats. | High Confidence | Practitioner source. |
@@ -437,11 +438,34 @@ This table is not a full Axys/APX field dictionary. It lists only fields/tokens 
 | Axys product role | State as Verified: portfolio accounting, reporting, performance measurement system. |
 | Axys reporting | State as Verified/High Confidence: Report Writer Pro and Replang/REP are central/custom reporting mechanisms. |
 | Axys IMEX | State as High Confidence: IMEX is a supported import/export path and should be preferred over direct file manipulation where possible. |
-| Axys storage | State cautiously: public/practitioner sources characterize Axys as proprietary/file-oriented; exact physical file architecture requires vendor or production evidence. |
+| Axys storage | State cautiously: vendor material supports proprietary-database positioning, while public/practitioner sources support file-oriented operational handling; exact physical file architecture requires vendor or production evidence. |
 | Version risk | State as High/Medium Confidence: direct native-file integrations are risky because file formats have changed across versions. |
 | APX contrast | State as Verified: APX is SQL-based, centralized, integrated platform in vendor/SEC historical sources. |
 
-### 16.2 What Should Be Marked Unknown in the Chapter
+### 16.2 Source-Surface and Lineage Rules
+
+Every architecture-based extract should identify the source surface that produced
+the value. Do not assume that an IMEX export, REP report, SSRS report, SQL view,
+REST API response, connector output, or direct native-file read is equivalent
+until reconciled.
+
+| Claim type | Evidence required |
+|---|---|
+| Report displays value | Report output or report guide. |
+| REP token computes value | REP source or Replang documentation. |
+| IMEX exports value | IMEX object/export sample. |
+| APX SQL stores value | Schema/table/view evidence. |
+| Axys native file stores value | File layout, sample, or vendor evidence. |
+| Value is books-and-records | Firm policy, vendor documentation, or controlled reconciliation. |
+| Value is calculated at runtime | Report/function documentation or controlled test. |
+
+Recommended extraction lineage fields include `system_name`, `system_version`,
+`deployment_type`, `source_surface`, `source_object_or_report`,
+`source_parameters`, `run_datetime`, `posting_state`, `price_source`,
+`classification_source`, `calculation_mode`, `lineage_confidence`,
+`raw_output_hash`, and `parser_version`.
+
+### 16.3 What Should Be Marked Unknown in the Chapter
 
 | Area | Required to Verify |
 |---|---|
@@ -547,6 +571,13 @@ Confidence: Medium. The diagram is a research synthesis, not a vendor architectu
 | U-AXYS-ARCH-013 | Exact relationship among portfolio code, account number, custodian account number, and file name. | High |
 | U-AXYS-ARCH-014 | Version-specific differences before/after Axys 3.8. | Medium |
 | U-AXYS-ARCH-015 | Whether `CLI`, `PRI`, `INF`, `PRF`, `GRP` are exact native files, export files, or migration shorthand in each version/context. | High |
+| U-AXYS-ARCH-016 | Whether current SS&C-hosted or managed Axys environments differ operationally from legacy on-prem Axys. | High |
+| U-AXYS-ARCH-017 | Whether `imex32.exe`, `pospos32.exe`, and `REP32.exe` can be run unattended in each client environment. | High |
+| U-AXYS-ARCH-018 | Whether IMEX imports are atomic by row, file, blotter, or batch. | High |
+| U-AXYS-ARCH-019 | Whether Axys has firm-level scheduler/batch mechanisms beyond Windows scheduling and third-party tooling. | Medium |
+| U-AXYS-ARCH-020 | Which log files prove successful completion of transaction, position, price, report, and performance processing. | High |
+| U-AXYS-ARCH-021 | Whether standard Axys reports and custom REP reports use the same calculation path for the same values. | High |
+| U-AXYS-ARCH-022 | Vendor support policy for direct native-file reads/writes in current Axys environments. | High |
 
 ---
 
@@ -555,7 +586,7 @@ Confidence: Medium. The diagram is a research synthesis, not a vendor architectu
 The available evidence supports a cautious architecture chapter centered on these facts:
 
 1. Axys is a portfolio accounting, performance measurement, and reporting system with Report Writer Pro and Replang/REP-based reporting.
-2. Axys should be treated as proprietary/file-oriented unless better vendor documentation proves a more precise architecture.
+2. Axys should be treated as proprietary-database in product positioning and file-oriented in practical integration/operations evidence unless better vendor documentation proves a more precise architecture.
 3. IMEX and report exports are the best-supported integration mechanisms identified from public evidence.
 4. Direct Axys native-file access is a known practitioner possibility but should be documented as risky and version-sensitive, not as a recommended default.
 5. APX is architecturally distinct: public vendor and SEC sources support that APX uses a SQL-based, centralized platform and broader integrated CRM/reporting/packaging architecture.

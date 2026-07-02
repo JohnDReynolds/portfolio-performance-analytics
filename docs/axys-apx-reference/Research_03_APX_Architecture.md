@@ -57,7 +57,7 @@ Per the repository blueprint, every important technical statement is classified 
 |---|---|---|---|
 | APX product role | APX is positioned as an integrated portfolio and client management solution combining portfolio accounting/reporting with relationship/client-management capabilities. | Verified | S2, S3 |
 | APX platform scope | APX is described as connecting front, middle, and back offices on a single platform. | Verified | S2 |
-| APX reporting framework | APX investment management reports are described as built on Microsoft SQL Server Reporting Services (SSRS). | Verified | S4, S9 |
+| APX reporting framework | APX investment management reports are described as built on Microsoft SQL Server Reporting Services (SSRS), making SSRS the best-supported APX standard investment-management reporting layer in public vendor evidence. | Verified | S4, S9 |
 | APX standard reports | Public APX report-guide text lists reports including Account Distribution, Attribution by Classification, Attribution Summary, Contribution reports, Risk Statistics, Portfolio Appraisal, Realized Gains and Losses, and Transaction Summary. | Verified | S4 |
 | APX report customization | APX reporting materials describe customizable reports, branding, charts/graphs, customized data elements, and inclusion of data from Advent suite components or external sources. | Verified | S3, S4 |
 | REP32 integration dependency | A third-party Advent connector requires Advent client tools, specifically REP32, and uses standard reports, macros, and RepLang scripting for extraction. | High Confidence | S5 |
@@ -66,7 +66,7 @@ Per the repository blueprint, every important technical statement is classified 
 | APX REST API | Practitioner documentation states recent APX versions include a RESTful API option not available when earlier IMEX-focused articles were written. | Medium Confidence | S7 |
 | APX-to-Axys export | Practitioner documentation says APX data can be exported via IMEX to Axys 3 format for items such as prices, portfolios, splits, security information, sectors, industries, asset classes, indexes, and composites. | Medium Confidence | S7 |
 | APX performance history export | Practitioner documentation says exporting APX performance history via IMEX for Axys import can be frustrating and version-dependent. | Medium Confidence | S7 |
-| APX database table names | No verified table names were available in the supplied blueprint or accessible public sources. | Unknown | Gap |
+| APX database table names | No verified table names, public-view definitions, stored accounting function signatures, report stored procedures, or calculation-engine internals were available in the supplied blueprint or accessible public sources. | Unknown | Gap |
 | APX exact IMEX object names | No authoritative IMEX object list was available in the supplied blueprint or accessible public sources. | Unknown | Gap |
 | APX internal accounting engine storage model | Public material identifies APX as a portfolio accounting/reporting product, but does not document internal storage tables or recalculation logic. | Unknown | Gap |
 
@@ -92,8 +92,17 @@ Per the repository blueprint, every important technical statement is classified 
 |---|---|---|---|
 | Enterprise platform | APX should be documented as more centralized and integrated than classic file-oriented Axys, but only at a high level unless supplied docs prove internals. | High Confidence | Yes, with caution. |
 | Reporting | APX reporting architecture should discuss SSRS in addition to legacy REP/REP32/RepLang integration. | Verified / High Confidence | Yes. |
-| Data access | APX exposes or supports multiple data-access paths: standard reports, macros/RepLang, IMEX, and possibly REST API in recent versions. | Medium Confidence | Yes, but split by confidence and source. |
+| Data access | APX exposes or supports multiple possible data-access paths: SSRS reports, standard reports, macros/RepLang, IMEX, SQL/public views/stored accounting functions, and possibly REST API in recent versions. | Medium Confidence | Yes, but split by confidence, deployment, license, and source. |
 | Internal storage | APX likely uses server/database-backed architecture, but exact table and stored-procedure internals are not verified here. | Unknown | Do not assert without source. |
+
+### 4.3 Database and Deployment Boundary
+
+APX should be described as centralized and SQL-oriented at the architecture
+level. Public material does not provide APX database names, table names, public
+view definitions, stored accounting function signatures, report stored
+procedures, or calculation-engine internals. Genesis-era references are useful
+as platform-positioning evidence only; they do not establish that a given APX
+installation has a different schema, API surface, report stack, or IMEX behavior.
 
 ---
 
@@ -135,7 +144,17 @@ Per the repository blueprint, every important technical statement is classified 
 | The connector is a 32-bit Windows application. | High Confidence | Salentica integration documentation. |
 | The exact APX report definitions used by the connector are not listed in available source text. | Unknown | Need connector package or report/macro files. |
 
-### 6.3 Known APX Report Names from Public Report Guide Text
+### 6.3 APX Report and Extraction Surface Boundary
+
+| Reporting / Extraction Surface | Evidence Status | Implementation Caution |
+|---|---:|---|
+| APX SSRS reports | Verified | Report names/labels are verified; datasets and stored procedures remain Unknown. |
+| APX report packaging/client delivery | Verified at product level | Package rules and delivery internals remain Unknown. |
+| REP32/Replang/macros | High Confidence for connector workflows | Not proven as the universal APX report engine. |
+| Direct SQL/public views/stored accounting functions | Medium Confidence practitioner evidence | Schema and supportability remain Unknown. |
+| REST API | Medium Confidence practitioner evidence for newer environments | Version, license, role, and coverage remain Unknown. |
+
+### 6.4 Known APX Report Names from Public Report Guide Text
 
 The following report names are supported by the APX Reports Guide text available in public search snippets. Use these names as report names, not as proof of internal data tables.
 
@@ -171,7 +190,7 @@ The following report names are supported by the APX Reports Guide text available
 | Transaction Summary | Client reporting / transaction listing | APX Reports Guide | Verified |
 | Disclaimer and Terms | Client reporting | APX Reports Guide | Verified |
 
-### 6.4 Report-Level Field Labels Seen in Public Report Text
+### 6.5 Report-Level Field Labels Seen in Public Report Text
 
 These are report output labels observed in the publicly available APX report-guide text. They should not be treated as APX database field names.
 
@@ -422,6 +441,20 @@ The following statements must not be asserted in the chapter unless future sourc
 | APX report labels are database fields. | Unknown / False as stated | Report labels should not be treated as schema fields without evidence. |
 | APX direct SQL querying is supported by SS&C for client integrations. | Unknown | Need vendor support statement or contract terms. |
 | APX Genesis-era architecture changes database layout. | Unknown | Public article identifies product/platform positioning only. |
+
+### 14.1 APX Architecture Unknowns Register
+
+| ID | Unknown | Priority | Why It Matters |
+|---|---|---:|---|
+| U-APX-ARCH-001 | Exact APX database names, table names, view names, stored accounting functions, and stored procedures. | High | Required for SQL extraction. |
+| U-APX-ARCH-002 | Which APX report datasets/stored procedures support each SSRS report. | High | Needed to reproduce report output or build custom reports. |
+| U-APX-ARCH-003 | Which APX values are stored versus calculated by reports/functions at runtime. | High | Critical for performance audit and repeatability. |
+| U-APX-ARCH-004 | Exact relationship between SSRS report output, APX public views, stored accounting functions, IMEX exports, and REP32 output. | High | Needed for reconciliation. |
+| U-APX-ARCH-005 | REST API availability by APX version, deployment, license, and security role. | High | Needed before recommending API extraction. |
+| U-APX-ARCH-006 | Direct SQL supportability under SS&C support contracts and hosted/cloud deployments. | High | Avoids unsupported integrations. |
+| U-APX-ARCH-007 | Whether APX cloud/hosted deployments permit REP32, IMEX, SQL, SSRS subscriptions, and REST access. | High | Deployment-specific architecture issue. |
+| U-APX-ARCH-008 | How APX report packaging, portal delivery, and report subscriptions are scheduled and audited. | Medium | Needed for client-reporting controls. |
+| U-APX-ARCH-009 | Whether APX Genesis-era installations materially change report/API/IMEX architecture. | Medium | Current product-direction risk. |
 
 ---
 

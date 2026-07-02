@@ -18,14 +18,14 @@ Source basis: supplied research files only
 
 This chapter documents the architecture of **SS&C Advent Axys** as supported by the supplied research material. APX is included only where it clarifies architectural contrast, migration behavior, IMEX behavior, REP behavior, or Axys/APX version differences.
 
-Axys should be treated as a portfolio accounting, performance, and reporting platform with a file-oriented operational character, a report-writing layer based on REP/Replang, and an import/export layer commonly referred to as IMEX.
+Axys should be treated as a portfolio accounting, performance, and reporting platform with proprietary-database product positioning, file-oriented operational evidence, a report-writing layer based on REP/Replang, and an import/export layer commonly referred to as IMEX.
 
 The strongest supplied evidence supports the following architectural framing.
 
 | Area | Axys finding | APX contrast | Confidence |
 |---|---|---|---:|
 | Product role | Portfolio accounting, portfolio management, performance measurement, reconciliation, and reporting system. | Integrated portfolio management, accounting, reporting, performance analytics, and client relationship platform. | Verified at product-capability level |
-| Data architecture | Public/practitioner sources characterize Axys as proprietary/file-oriented rather than SQL-centered. Exact physical storage internals are not fully documented in supplied material. | Vendor/public sources describe APX as SQL-based or centralized database-oriented. | Axys: Medium Confidence; APX: Verified / High Confidence |
+| Data architecture | Vendor material positions Axys as using a proprietary database, while public/practitioner sources show file-oriented operational handling. Exact physical storage internals are not fully documented in supplied material. | Vendor/public sources describe APX as SQL-based or centralized database-oriented. | Axys: High Confidence for combined characterization; APX: Verified / High Confidence |
 | Integration | IMEX, REP/report exports, Report Writer Pro, Replang reports, third-party connector workflows, and cautious direct-file handling. | SQL/public views/stored accounting functions/SSRS/REST may also exist in APX environments, in addition to IMEX and reports. | High Confidence for integration categories; details vary |
 | Reporting | REP/Replang and Report Writer Pro are central to Axys reporting. | APX has broader reporting architecture, including SSRS-style reporting paths and report packaging, while some Replang/REP usage remains supported by supplied practitioner sources. | Axys: Verified / High Confidence; APX: Medium / High Confidence |
 | Version risk | Direct Axys file integrations are risky because file formats may differ by version; Axys 3.7 to 3.8 file conversion is cited in supplied research. | APX IMEX retained functionality in cited APX v1.x through v4.x source, but fixed-format generation was reportedly removed. | Medium Confidence |
@@ -125,16 +125,31 @@ Axys reporting/output layer
 
 ## 4. Axys Data Architecture
 
-### 4.1 File-Oriented Character
+### 4.1 Proprietary-Database and File-Oriented Character
 
-The supplied research does not provide a full Axys vendor storage manual. It does support a conservative statement that Axys is commonly handled operationally as a proprietary, file-oriented system rather than a SQL-centered application.
+The supplied research does not provide a full Axys vendor storage manual. It does support a conservative statement that Axys is proprietary-database in product positioning and file-oriented in practical integration and operations evidence. "File-oriented" is therefore an integration/operations characterization, not a complete physical-storage specification.
 
 | Statement | Confidence | Implementation treatment |
 |---|---:|---|
-| Axys is characterized in supplied practitioner/industry research as a proprietary/file-oriented or flat-file-style platform. | Medium Confidence | Use as architecture framing, not as a full physical schema claim. |
+| Axys is positioned by vendor material as using a proprietary database. | Verified | Do not infer relational tables or public schema from this phrase. |
+| Axys is characterized in supplied practitioner/industry research as proprietary and file-oriented in practical workflows. | High Confidence | Use as architecture framing, not as a full physical schema claim. |
+| Axys should not be reduced to "simple flat files" without qualification. | High Confidence | Public integration evidence shows files, but not a complete open flat-file database specification. |
 | Axys is not verified by the supplied material as SQL-based. | Unknown / negative evidence | Do not design Axys extraction assuming SQL tables unless a specific client environment proves otherwise. |
 | Axys direct file reads/writes are possible in some practitioner contexts. | Medium Confidence | Treat as unsupported/high-risk unless verified for version and file. |
 | Axys file formats may change by version. | Medium / High Confidence | Prefer IMEX, REP, or vendor-supported exports over direct native file parsing. |
+
+### 4.1.1 Artifact-Class Boundary
+
+Do not collapse native data files, IMEX staging files, report source files,
+and conversion shorthand into one universal Axys file dictionary. Each artifact
+should carry its source context.
+
+| Artifact class | Examples | Treatment |
+|---|---|---|
+| Native / operational file evidence | `.cli`, `sec.inf`, `type.inf`, `.pri`, `split.inf` in conversion/integration contexts | High Confidence for presence in cited contexts; exact native layout Unknown. |
+| Interface / staging files | `topost.trn`, `ptopost.trn`, IMEX logs | Verified for specific integration workflows; not necessarily universal architecture. |
+| Report source/output files | `.REP`, `.RPW`, `AMAN.REP`, `CDIhold.rep` | Verified for report workflows; not database schemas. |
+| Migration shorthand / conversion leads | `CLI`, `PRI`, `INF`, `PRF`, `GRP` | Medium Confidence unless sample/source docs verify exact meaning. |
 
 ### 4.2 File and Folder Artifacts Observed in Supplied Research
 
@@ -446,7 +461,7 @@ This section is included to separate Axys from APX where the supplied research s
 
 | Dimension | Axys | APX | Confidence |
 |---|---|---|---:|
-| Core data architecture | Proprietary/file-oriented character in supplied practitioner research; exact internals unverified. | SQL-based / centralized database platform in vendor/public/historical research. | Axys: Medium; APX: Verified / High Confidence |
+| Core data architecture | Proprietary-database product positioning plus file-oriented practical integration evidence; exact internals unverified. | SQL-based / centralized database platform in vendor/public/historical research. | Axys: High for characterization; APX: Verified / High Confidence |
 | Primary integration surfaces | IMEX, Trade Blotter, REP/Replang, Report Writer Pro, report exports, direct file access with caution. | IMEX/APXIX, blotters, SQL/database access, public views, stored accounting functions, SSRS, REST API, report packaging, REP/Replang in some workflows. | High Confidence for categories; field details Unknown |
 | Reporting | REP/Replang is central. | SSRS/custom reporting and report packaging appear more prominent; Replang may still exist. | Axys: Verified; APX: Medium / High |
 | Files | `.cli`, `sec.inf`, `type.inf`, `.pri`, `split.inf`, `.REP`, `.RPW` appear in supplied Axys evidence. | APX may generate or consume Axys-compatible/interchange files in integration contexts; native SQL tables/views not identified. | High for Axys file evidence; APX native Unknown |
@@ -482,7 +497,28 @@ Where multiple options exist, the supplied research supports the following conse
 | 5 | Direct native file read | High risk because file formats can change and exact layouts are mostly Unknown. | Medium Confidence as caution |
 | 6 | Direct native file write | Highest risk; do not recommend without vendor documentation, backup, version testing, and production controls. | High Confidence as caution |
 
-### 10.2 Required Metadata for Any Axys Extract
+### 10.2 Source-Surface Model
+
+Every extracted field should record the surface it came from. Do not assume two
+surfaces are equivalent until reconciled by portfolio, security, date, currency,
+posting status, and report parameters.
+
+```text
+Business domain value
+    ↓
+Possible source surfaces
+    ├── Native files / proprietary database
+    ├── IMEX export/import
+    ├── Trade Blotter / blotters
+    ├── REP/Replang report source/output
+    ├── APX SSRS reports
+    ├── APX SQL/public views/stored accounting functions
+    ├── APX REST API
+    ├── Connector/macros/scripts
+    └── Conversion files
+```
+
+### 10.3 Required Metadata for Any Axys Extract
 
 Any Axys extract used for integration, audit, or research should record the following metadata.
 
@@ -498,8 +534,25 @@ Any Axys extract used for integration, audit, or research should record the foll
 | Field definitions | Export headers may not equal native field names. | High Confidence |
 | Error/log files | Required to prove successful import/export. | High Confidence |
 | Local customizations | Custom REP, labels, macros, translations, price logic, and security mappings can change output. | High Confidence |
+| Source surface | Distinguishes IMEX, REP, SSRS, SQL, API, native file, connector, or conversion file. | High Confidence |
+| Deployment type | Local, hosted, cloud-delivered, Genesis-era, or unknown deployment may change available surfaces. | High Confidence as caution |
+| Posting state | Pending/blotter/posted/final status affects reconciliation. | High Confidence |
+| Calculation mode | Stored, calculated, report-derived, or unknown values should not be conflated. | High Confidence |
+| Raw output hash and parser version | Needed to detect changed extracts and reproduce ingestion. | High Confidence |
 
-### 10.3 Axys vs APX Integration Boundary
+### 10.4 Claim-Type Evidence Boundary
+
+| Claim type | Evidence required |
+|---|---|
+| Report displays value | Report output or report guide. |
+| REP token computes value | REP source or Replang documentation. |
+| IMEX exports value | IMEX object/export sample. |
+| APX SQL stores value | Schema/table/view evidence. |
+| Axys native file stores value | File layout/sample/vendor evidence. |
+| Value is books-and-records | Firm policy, vendor documentation, or controlled reconciliation. |
+| Value is calculated at runtime | Report/function documentation or controlled test. |
+
+### 10.5 Axys vs APX Integration Boundary
 
 | Rule | Confidence | Notes |
 |---|---:|---|
@@ -540,6 +593,12 @@ Any Axys extract used for integration, audit, or research should record the foll
 | How do classification changes affect historical reports? | Required for performance and holdings history. |
 | How does Axys treat cash sweeps, income cash, margin cash, and short cash natively? | Required for cash reconciliation and performance. |
 | How do split corrections affect historical prices, holdings, and performance? | Required for corporate action audits. |
+| Do current SS&C-hosted or managed Axys environments differ operationally from legacy on-prem Axys? | Required for file access, REP, IMEX, backups, and automation design. |
+| Can `imex32.exe`, `pospos32.exe`, and `REP32.exe` run unattended in each client environment? | Required for production scheduling and monitoring. |
+| Are IMEX imports atomic by row, file, blotter, or batch? | Required for rollback, recovery, and audit. |
+| Does Axys have firm-level scheduler/batch mechanisms beyond Windows scheduling and third-party tooling? | Required for production runbooks. |
+| Do standard Axys reports and custom REP reports use the same calculation path for the same values? | Required for report reconciliation. |
+| What is the vendor support boundary for direct native-file reads/writes in current Axys environments? | Required before recommending direct-file integration. |
 
 ---
 

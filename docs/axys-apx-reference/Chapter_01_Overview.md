@@ -161,8 +161,8 @@ The repository is organized into subject chapters and matching research files. T
 | Chapter | Subject | Primary Purpose | Current Evidence Status |
 |---|---|---|---|
 | `Chapter_01_Overview.md` | Overview | Repository orientation and cross-chapter summary. | This chapter. |
-| `Chapter_02_Axys_Architecture.md` | Axys architecture | Axys architecture, file-oriented character, IMEX, REP, data-domain dependencies, version cautions. | Supplied. |
-| `Chapter_03_APX_Architecture.md` | APX architecture | APX platform role, SQL/SSRS/reporting architecture, IMEX, blotter concepts, APX-specific Unknowns. | Supplied. |
+| `Chapter_02_Axys_Architecture.md` | Axys architecture | Axys architecture, proprietary-database positioning, file-oriented operational evidence, IMEX, REP, data-domain dependencies, version cautions. | Supplied. |
+| `Chapter_03_APX_Architecture.md` | APX architecture | APX platform role, SQL-oriented/SSRS/reporting architecture, IMEX, blotter concepts, APX-specific Unknowns. | Supplied. |
 | `Chapter_04_Security_Master.md` | Security master | Security identity, symbol/type matching, `sec.inf`, `type.inf`, security translations. | Supplied. |
 | `Chapter_05_Transactions.md` | Transactions | Transaction role, blotters, observed transaction codes, external-flow classification, translation patterns, IMEX and report status. | Supplied. |
 | `Chapter_06_Holdings.md` | Holdings | Portfolio Appraisal, positions, `.pos`, holdings extraction, reconciliation, stored/calculated Unknowns. | Supplied. |
@@ -181,14 +181,14 @@ The repository is organized into subject chapters and matching research files. T
 
 ## 3. Axys Summary
 
-Axys is documented in the supplied chapters as a portfolio accounting, reporting, performance measurement, and reconciliation platform with a file-oriented operational character, a Report Writer / REP / RepLang reporting layer, and an import/export layer commonly referred to as IMEX.
+Axys is documented in the supplied chapters as a portfolio accounting, reporting, performance measurement, and reconciliation platform with proprietary-database product positioning, file-oriented operational evidence, a Report Writer / REP / RepLang reporting layer, and an import/export layer commonly referred to as IMEX.
 
 ### 3.1 Axys Product and Architecture Summary
 
 | Area | Axys Finding | Confidence | Notes |
 |---|---|---:|---|
 | Product role | Portfolio accounting, portfolio reporting, performance measurement, reconciliation, and related investment operations workflows. | Verified / High Confidence | Supported at product-capability and chapter-summary level. |
-| Data architecture | Commonly treated in supplied practitioner/integration evidence as proprietary/file-oriented rather than SQL-centered. | Medium Confidence | Exact physical storage internals remain Unknown. |
+| Data architecture | Vendor material supports proprietary-database positioning; practitioner/integration evidence supports file-oriented operational handling rather than SQL-centered access. | High Confidence for combined characterization | Exact physical storage internals remain Unknown. |
 | IMEX | Axys Import/Export utility is observed as `imex32.exe` in Custodial Integrator evidence. | Verified for CI workflow | Full IMEX object dictionary Unknown. |
 | REP / reporting | Axys reports are written in RepLang in supplied examples; `.REP` files and Report Writer Pro are supported. | Verified for examples | Full RepLang grammar and report catalog Unknown. |
 | Direct file access | Possible in some practitioner contexts but version-sensitive and high-risk. | Medium / High Confidence as caution | Prefer IMEX, REP, or controlled exports where possible. |
@@ -301,7 +301,7 @@ The supplied report chapter identifies APX report names. Report names are not da
 | Dimension | Axys | APX | Confidence |
 |---|---|---|---:|
 | Product orientation | Portfolio accounting/reporting/performance/reconciliation platform. | Integrated portfolio/accounting/reporting/performance/client-management platform. | Verified |
-| Architecture character | Proprietary/file-oriented operational character in supplied evidence. | Centralized / SQL-reporting-oriented platform in supplied evidence. | Axys Medium; APX High |
+| Architecture character | Proprietary-database product positioning plus file-oriented operational evidence. | Centralized / SQL-oriented and SSRS-reporting-oriented platform in supplied evidence. | Axys High for characterization; APX High |
 | Primary import/export layer | IMEX / Axys Import/Export utility; `imex32.exe` in CI context. | APX Import/Export / `APXIX.exe` / `ApxIx`; exact naming relationship Unknown. | Verified in contexts |
 | Primary report customization evidence | `.REP`, RepLang, Report Writer Pro, `AMAN.REP` example. | SSRS reports plus REP32/RepLang connector evidence and practitioner evidence. | Axys Verified; APX Mixed |
 | Native files observed | `.cli`, `sec.inf`, `type.inf`, `split.inf`, `.pri`, `.pos`, `.REP`. | APX may generate/use `sec.inf`, `type.inf`, `.pri`, `.cli`, `.REP`-style artifacts in workflows, but native SQL schema remains Unknown. | High for observed contexts |
@@ -777,8 +777,8 @@ This chapter is based on the following supplied repository material only.
 
 The supplied repository chapters are sufficient to create an overview chapter. They support a conservative technical framing:
 
-- Axys is documented primarily through file-oriented, IMEX, REP, report, and integration evidence.
-- APX is documented as a centralized platform with SSRS/reporting, IMEX, blotter, SQL/public view/stored accounting function, and connector evidence.
+- Axys is documented through proprietary-database positioning plus file-oriented, IMEX, REP, report, and integration evidence.
+- APX is documented as a centralized SQL-oriented platform with SSRS/reporting, IMEX, blotter, SQL/public view/stored accounting function, API, and connector evidence.
 - Security identity is best treated as symbol plus security type in integration contexts, but formal native primary keys remain Unknown.
 - Transactions, holdings, cash, prices, corporate actions, performance, and classifications are all documented at the workflow/report/artifact level, but many native schemas and official IMEX object names remain Unknown.
 - REP and reports are powerful extraction paths, but report labels must not be treated as native fields.
