@@ -2380,6 +2380,21 @@ Portfolio and security `report.html` hashes were captured before and after the
 verification pass. They did not change, so this phase did not alter generated
 report content. Build residue was removed after inspection.
 
+### Phase 56: Vendor Preset Design Spike
+
+Status: complete for design-only vendor preset framing.
+
+The design notes now define vendor presets as a future convenience layer that
+can support multiple vendors, with Axys as the first likely preset. A future
+keyword such as `vendor: axys` would expand to versioned preset semantics,
+then allow deterministic site YAML overrides. Preset resolution is documented
+as `engine defaults < vendor preset < site YAML overrides`.
+
+The design intentionally blocks implementation until the relevant packaged demo
+is stable enough to become a preset seed. Presets must remain inspectable,
+versioned, source-contract tied, and unable to bypass complete-YAML validation
+or ambiguous transaction-code safeguards.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

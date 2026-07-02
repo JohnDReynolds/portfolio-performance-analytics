@@ -737,6 +737,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("The full test suite passed with 605 tests", roadmap)
         self.assertIn("did not alter generated", roadmap)
         self.assertIn("report content", roadmap)
+        self.assertIn("Phase 56: Vendor Preset Design Spike", roadmap)
+        self.assertIn(
+            "engine defaults < vendor preset < site YAML overrides",
+            roadmap,
+        )
+        self.assertIn("blocks implementation until", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -763,6 +769,28 @@ class TestPackageMetadata(unittest.TestCase):
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, overview)
+
+    def test_vendor_preset_design_is_documented_without_runtime_commitment(self) -> None:
+        """Vendor presets stay design-only, auditable, and multi-vendor friendly."""
+        design = Path("docs/performance_comparison_design.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "### Vendor Preset Design",
+            "multiple vendors",
+            "vendor: axys",
+            "engine defaults < vendor preset < site YAML overrides",
+            "--print-resolved-config",
+            "Presets are design-only until",
+            "complete-YAML validation",
+            "ambiguous transaction-code safeguards",
+            "report bundle should record the preset name/version",
+            "implementing it should wait until",
+            "Axys demo semantics are final",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, design)
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""

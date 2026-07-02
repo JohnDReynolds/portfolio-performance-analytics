@@ -1119,6 +1119,75 @@ snapshots:
         portfolio_return: PORT_RETURN
 ```
 
+### Vendor Preset Design
+
+Vendor presets are a future convenience layer, not a replacement for explicit
+comparison YAML. The first likely preset is Axys, but the design should support
+multiple vendors and possibly site-specific presets over time.
+
+A preset keyword such as `vendor: axys` should mean "start with ppar's
+versioned Axys preset semantics" rather than "assume all Axys installations
+behave identically." The Axys preset should initially be derived from the
+packaged Axys demo YAML only after that demo is stable enough to be treated as
+a reusable starting point.
+
+Suggested shape:
+
+```yaml
+comparison:
+  name: May restatement review
+
+vendor: axys
+
+vendor_preset:
+  name: axys
+  version: packaged-demo-2026-07
+
+files:
+  portfolio_performance: portperf.csv
+  security_performance: secperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  # Site YAML can override or add rules after the preset is expanded.
+```
+
+Preset resolution should be deterministic:
+
+```text
+engine defaults < vendor preset < site YAML overrides
+```
+
+The resolved configuration must be inspectable. `validate_config` or a future
+CLI option such as `--print-resolved-config` should be able to show the
+effective YAML after preset expansion, including which rules came from the
+engine, the vendor preset, and the site YAML. This keeps the feature auditable
+and avoids hidden policy behavior.
+
+Preset design guardrails:
+
+- Presets are design-only until the relevant packaged demo is considered
+  complete and stable.
+- Presets must be versioned and tied to a documented source contract.
+- Presets must support multiple vendors without hard-coding Axys assumptions
+  into source-agnostic comparison logic.
+- Site YAML must be able to override, suppress, or extend preset rules with
+  deterministic precedence.
+- Presets must not bypass complete-YAML validation. Changed fields still need
+  additive, evidence-only, or suppression treatment after expansion.
+- Presets must not weaken ambiguous transaction-code safeguards. For Axys-style
+  `dp`, `li`, `lo`, and `wd` rows, required source/destination or
+  special-security context must still be present unless a site explicitly uses
+  a documented local extract contract.
+- The report bundle should record the preset name/version and whether site
+  overrides were applied, so reviewers know which policy layer produced the
+  resolved rules.
+
+This layer is intentionally later than the current Axys demo hardening. Building
+it too early would turn every demo YAML refinement into a preset compatibility
+question. Designing it now is useful; implementing it should wait until the
+Axys demo semantics are final enough to serve as a stable preset seed.
+
 ### Column Mapping Defaults
 
 The comparison YAML should use the same defaulting method for column mappings
