@@ -136,7 +136,7 @@ existing site-variant fixtures.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the current packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
+| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the current packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the packaged Axys demo/source contract, waits for the Axys demo completion gate, and still fails hard when required site-specific context is missing. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
 ## Axys Extract Contract Review Map
@@ -2394,6 +2394,22 @@ The design intentionally blocks implementation until the relevant packaged demo
 is stable enough to become a preset seed. Presets must remain inspectable,
 versioned, source-contract tied, and unable to bypass complete-YAML validation
 or ambiguous transaction-code safeguards.
+
+### Phase 57: Axys Demo Finalization Gate
+
+Status: complete for defining the preset prerequisite gate.
+
+The demo source contract now defines an Axys demo completion gate. This gate
+states when the packaged Axys CSV/YAML/report story is stable enough to seed a
+future `vendor: axys` preset. The gate covers realistic packaged fields, no
+leaked internal rebuild identifiers, stable YAML semantics, complete-YAML
+treatment, intentional Fully/Partly/Unexplained report examples, ambiguous-code
+context safeguards, package-resource validation, and report-content change
+discipline.
+
+Vendor preset implementation remains blocked until that gate passes. The gate
+does not change runtime behavior; it defines the standard for deciding when the
+packaged Axys demo can become reusable default policy.
 
 ## Guiding Principle
 

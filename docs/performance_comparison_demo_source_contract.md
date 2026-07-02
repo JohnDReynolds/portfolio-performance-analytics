@@ -117,6 +117,39 @@ path when a site can provide them, but the local Axys/APX research corpus does
 not prove a durable native transaction identifier as typical Axys REP/IMEX
 output. The packaged demo therefore exercises the conservative no-ID path.
 
+## Axys Demo Completion Gate
+
+The packaged Axys demo is the likely future seed for an Axys vendor YAML
+preset, but it should not become a preset until this completion gate is met.
+The goal is to avoid turning an active demo into hidden default product policy
+too early.
+
+The demo can be considered complete enough to seed `vendor: axys` only when:
+
+- packaged CSV fields are limited to mandatory product inputs, realistic
+  packaged-demo fields, and documented local-enrichment examples;
+- internal scenario/rebuild fields, including fixture transaction identifiers,
+  do not appear in user-facing packaged CSVs;
+- the comparison YAML has stable transaction semantics, field-impact methods,
+  return-reconstruction settings, and extract-contract behavior;
+- every visible changed source-data field in default reports has additive,
+  evidence-only, or suppression treatment after YAML validation;
+- the portfolio and security demos both include intentional Fully Explained,
+  Partly Explained, and Unexplained examples with reviewer-facing wording that
+  tells a coherent Modified Dietz story;
+- ambiguous Axys-style `dp`, `li`, `lo`, and `wd` handling still requires
+  reviewed context or a documented local extract contract;
+- current report bundles, manifests, review summaries, and package-resource
+  boundaries validate from a source checkout and installed-package style
+  resource path; and
+- report HTML content is intentionally changed only when the reviewer story
+  changes, and those changes are called out in phase summaries.
+
+Until this gate passes, vendor presets remain design-only. After it passes, a
+future preset must still expand to inspectable resolved YAML, preserve site
+overrides, and document that `vendor: axys` means "ppar's versioned Axys preset
+semantics," not universal Axys behavior.
+
 ## Cash-Balance Policy
 
 `CASH_USD` is a normalized demo cash-balance holding. It should not be described

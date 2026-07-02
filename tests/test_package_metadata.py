@@ -673,6 +673,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Vendor YAML presets", roadmap)
         self.assertIn("`vendor: axys`", roadmap)
         self.assertIn("Overrides have deterministic precedence", roadmap)
+        self.assertIn("waits for the Axys demo completion gate", roadmap)
         self.assertIn("Code simplification watchlist", roadmap)
         self.assertIn("Performance watchlist", roadmap)
         self.assertIn("Documentation freshness", roadmap)
@@ -743,6 +744,9 @@ class TestPackageMetadata(unittest.TestCase):
             roadmap,
         )
         self.assertIn("blocks implementation until", roadmap)
+        self.assertIn("Phase 57: Axys Demo Finalization Gate", roadmap)
+        self.assertIn("Axys demo completion gate", roadmap)
+        self.assertIn("Vendor preset implementation remains blocked", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -1803,6 +1807,32 @@ class TestPackageMetadata(unittest.TestCase):
         for term in expected_terms:
             with self.subTest(term=term):
                 self.assertIn(term, matrix)
+
+    def test_axys_demo_source_contract_documents_completion_gate(self) -> None:
+        """The source contract defines when Axys YAML can seed a vendor preset."""
+        contract_doc = Path("docs/performance_comparison_demo_source_contract.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "## Axys Demo Completion Gate",
+            "future seed for an Axys vendor YAML",
+            "preset",
+            "complete enough to seed `vendor: axys`",
+            "packaged CSV fields are limited",
+            "internal scenario/rebuild fields",
+            "stable transaction semantics",
+            "Fully Explained",
+            "Partly Explained",
+            "Unexplained",
+            "ambiguous Axys-style `dp`, `li`, `lo`, and `wd`",
+            "report HTML content is intentionally changed only",
+            "vendor presets remain design-only",
+            "inspectable resolved YAML",
+            "not universal Axys behavior",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, contract_doc)
 
     def test_minimum_source_data_contract_is_documented(self) -> None:
         """The source-data contract helper and user-facing docs stay aligned."""
