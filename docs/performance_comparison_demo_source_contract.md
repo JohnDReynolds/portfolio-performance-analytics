@@ -172,6 +172,19 @@ these boundaries as versioned `vendor: axys` semantics:
 - `vendor: axys` must continue to mean ppar's versioned Axys preset semantics,
   not a claim about universal Axys behavior.
 
+Freeze-packet evidence map:
+
+| Accepted boundary | Current evidence |
+| --- | --- |
+| Packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, and external-cash `wd`. | `axys_full_spec_a/transactions.csv`, `axys_full_spec_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, and demo data audit tests. |
+| `lo` and `;` remain guardrail-only YAML rules. | Packaged transaction CSVs contain no `lo` or `;` rows; the comparison YAML keeps both rules as defensive/reserved semantics; site-variant and matrix tests cover their non-packaged behavior. |
+| Ambiguous `dp`, `li`, `lo`, and `wd` rows remain context-gated. | Packaged transaction CSVs include source/destination and special-security context columns; the packaged extract contract requires those context fields; `validate_config` reports ambiguous-flow enforcement as enabled. |
+| Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
+| Fee-like `dp` assumes net-of-fees reported performance. | The comparison YAML and packaged README both state the net-of-fees assumption and warn that gross-of-fees performance needs a separate return-basis policy. |
+| Report examples intentionally include Fully Explained, Partly Explained, and Unexplained cases. | The packaged README describes the controlled restatement story; generated portfolio and security report bundles are rebuilt and validated by `scripts/check_performance_comparison_demo_health.py`. |
+| Cost, settlement-date, and unsupported corporate-action differences remain review evidence. | The field-role contract classifies `holdings.cost` and `transactions.settle_date` as review evidence, while the transaction semantics matrix and demo matrix tests keep unsupported corporate actions outside additive Modified Dietz treatment. |
+| `vendor: axys` means ppar's versioned Axys preset semantics, not universal Axys behavior. | The source contract, roadmap, and vendor preset design docs use this boundary and keep preset implementation blocked until the demo is explicitly frozen. |
+
 If any of these boundaries feels wrong, the correct action is to update the
 packaged demo, source contract, YAML, and report story before implementing the
 preset.

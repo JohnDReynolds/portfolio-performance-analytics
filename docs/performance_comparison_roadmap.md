@@ -2487,6 +2487,30 @@ This phase was documentation-only. It did not require report regeneration or
 report-story edits, and the portfolio/security `report.html` hashes remained
 unchanged.
 
+### Phase 62: Freeze Packet Acceptance Audit
+
+Status: complete for current freeze-packet auditability.
+
+The Axys Demo Freeze Decision Packet now includes an evidence map. Each accepted
+boundary points to concrete support in packaged transaction CSVs, the packaged
+README, comparison YAML comments, the field-role/source contract, extract
+contract validation, demo matrix tests, and generated report-bundle health
+checks.
+
+The spot audit confirmed that packaged transaction CSV headers omit
+`TRANSACTION_ID`, retain the context columns needed for ambiguous Axys-style
+codes, and include only the current packaged transaction-code families. Snapshot
+A contains `by`, `dp`, `dv`, `in`, `sl`, and `wd`; Snapshot B contains those
+plus `li`. Neither packaged snapshot contains `lo` or `;`.
+
+This phase did not freeze the demo or implement `vendor: axys`; it made the
+freeze packet auditable. The remaining decision is still whether to accept that
+packet as the seed.
+
+The packaged demo health script regenerated both report bundles during this
+audit. Portfolio and security `report.html` hashes remained unchanged, so this
+phase did not change user-facing report content.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

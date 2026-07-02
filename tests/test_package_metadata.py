@@ -792,6 +792,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("complete for freeze-decision prep", roadmap)
         self.assertIn("concise acceptance checklist", roadmap)
         self.assertIn("universal Axys behavior", roadmap)
+        self.assertIn("Phase 62: Freeze Packet Acceptance Audit", roadmap)
+        self.assertIn("current freeze-packet auditability", roadmap)
+        self.assertIn("A contains `by`, `dp`, `dv`, `in`, `sl`, and `wd`", roadmap)
+        self.assertIn("Neither packaged snapshot contains `lo` or `;`", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -1885,6 +1889,12 @@ class TestPackageMetadata(unittest.TestCase):
             "net-of-fees reported performance",
             "review evidence",
             "ppar's versioned Axys preset semantics",
+            "Freeze-packet evidence map",
+            "Current evidence",
+            "demo data audit tests",
+            "validate_config` reports ambiguous-flow enforcement as enabled",
+            "Packaged transaction CSV headers omit `TRANSACTION_ID`",
+            "generated portfolio and security report bundles",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, contract_doc)
