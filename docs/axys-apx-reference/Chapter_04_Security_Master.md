@@ -66,7 +66,7 @@ The supplied material supports a practical identity model used by integration wo
 | Type / Security Type | Yes | Yes | Product-specific security type used with symbol in CI matching and translation. | Verified | Integration/security matching context. |
 | Axys Symbol | Yes | No | CI target symbol for Axys security translation. | Verified | Axys CI translation file. |
 | APX Symbol | No | Yes | CI target symbol for APX security translation. | Verified | APX CI translation file. |
-| APX Security Type / APX Type | No | Yes | CI target APX security type. | Verified | APX CI translation file and examples. |
+| APX Security Type / APX Type | No | Yes | CI target APX security type; required with symbol for imported APX positions and transactions in CI. | Verified | APX CI translation file, examples, and import context. |
 | Ticker | Matching context | Matching context | External identifier used for security matching/translations. | Verified | WebPortfolio / CI context. |
 | CUSIP | Matching context | Matching context | External/security identifier used for matching and duplicate-resolution workflows. | Verified | WebPortfolio / CI / AIA context. |
 | Security Name / WP Name | Matching context | Matching context | External security name used in translation files. | Verified | CI context. |
@@ -242,6 +242,7 @@ The supplied research verifies that APX has centralized security information use
 | `sec.inf` | CI installation guide states `apxix.exe` exports Security (`sec.inf`) data from APX. | Verified in CI context | Complete field layout Unknown. |
 | `type.inf` | CI installation guide states `apxix.exe` exports Security Type (`type.inf`) data from APX. | Verified in CI context | Complete field layout Unknown. |
 | `.veh` file using `sec.inf` layout | WealthTechs AIA APX manual states AIA translates a `.veh` file to the layout of `sec.inf`. | Verified in AIA context | AIA artifact, not native field dictionary. |
+| Fixed-income / accrual-related `sec.inf` fields | Morningstar conversion evidence suggests selected Axys `sec.inf` exports may include such fields. | Medium Confidence | Conversion context only; exact field names and availability remain Unknown. |
 
 ### 4.4 APX Security Matching Behavior
 
@@ -360,6 +361,7 @@ The supplied material verifies that Axys and APX import/export utilities partici
 | Are the official IMEX object names known? | Unknown | Unknown | Not supplied. |
 | Are required import fields known? | Unknown | Unknown | Not supplied. |
 | Are the layouts identical between Axys and APX? | Unknown | Unknown | Not established. |
+| Are security-translation files, AIA `.veh` files, AdvisorEngine XLS labels, and CRM connector fields native security schemas? | No evidence | No evidence | Treat as integration/report artifacts unless separately verified. |
 
 ---
 
@@ -853,20 +855,4 @@ This chapter is based only on the supplied repository chapter and research mater
 | Salentica / Elements / Engage Data Broker documentation | REP32, standard reports/macros, RepLang scripting/macros, connector version support. | Connector-specific. |
 | AdventGuru Axys/APX integration and reporting articles | Security type handling cautions, security-master merge dependencies, public view limitations, APX reporting/database access options, Report Writer Pro/Replang usage. | Practitioner source; not official vendor schema. |
 | FinFolio Advent conversion page | Advent `INF` files used in conversion workflows to build target security master. | Conversion-vendor clue; Medium Confidence only. |
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 security-master addendum reinforces that `sec.inf` and `type.inf`
-are verified CI-context export artifacts for both Axys and APX: Axys through
-`imex32.exe`, APX through `apxix.exe`. APX CI requires security type plus symbol
-for imported positions and transactions, and Axys CI duplicate-resolution
-evidence keeps symbol-only matching unsafe.
-
-AIA `.veh` files, CI security-translation files, AdvisorEngine XLS labels, and
-CRM connector fields remain integration/report artifacts, not native schemas.
-Morningstar conversion evidence suggests fixed-income and accrual-related fields
-may be present in selected Axys `sec.inf` exports, but field names remain
-Unknown. Complete `sec.inf`/`type.inf` layouts, official Security/Security Type
-IMEX object names, APX security public-view names, complete security-type
-dictionary, and formal native primary keys remain Unknown.
 | Advent / Thomson Reuters DataScope brief | General Advent ecosystem reference-data concepts. | Geneva-focused; not used for Axys/APX security-master behavior unless separately verified. |

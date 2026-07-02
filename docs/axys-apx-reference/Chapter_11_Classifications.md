@@ -143,6 +143,7 @@ Do not treat the reserved-prefix rule as a universal Axys reporting, IMEX, REP, 
 | Direct parsing of Axys files is version-sensitive. | Verified from consultant source | AdventGuru research notes open text files in Axys v1.x, binary files in v2.x, IMEX in v3.x, and file conversion/format changes between Axys v3.7 and v3.8. |
 | Prefer IMEX, REP/report output, or controlled exports over direct raw-file parsing. | High Confidence | Based on file-format risk and repository evidence standards. |
 | Classification-dependent reports may be affected by metadata changes. | Unknown | Plausible but unverified; must be tested before documenting as behavior. |
+| Security-type, industry-group, or industry-sector changes may affect historical performance or require performance-history regeneration in some workflows. | Medium Confidence | AdventGuru evidence; treat as implementation caution, not a universal vendor rule. |
 | Classification joins should retain symbol, type, security name, and source/export context. | High Confidence | Prevents ambiguity from symbol/type duplicates and ticker/CUSIP variants. |
 
 ---
@@ -159,6 +160,7 @@ Do not treat the reserved-prefix rule as a universal Axys reporting, IMEX, REP, 
 | APX supports classification/allocation reporting beyond a single fixed sector hierarchy. | Medium Confidence | The phrase “any custom classification, industry group, or sector” implies flexibility, but details require the full APX Reports Guide. |
 | APX supports custom reporting, dashboards, standard reports, and performance analytics at product level. | Verified | Product material in supplied REP research supports this. |
 | APX has SQL/reporting options beyond IMEX. | Medium Confidence | AdventGuru research notes APX SQL Server, Public Views, Stored Accounting Functions, SSRS, REST API, and related reporting tools. |
+| APX classification evidence is strongest through reporting, security-master dependencies, integration exports, and merger/reclassification workflows. | High Confidence | Native classification storage remains Unknown. |
 
 ### 3.2 APX security identity versus classification
 
@@ -168,6 +170,7 @@ Do not treat the reserved-prefix rule as a universal Axys reporting, IMEX, REP, 
 | APX Security Type / Type | ByAllAccounts CI uses APX Security Type with symbol. | Required join key in integration context; not the same as custom classification/sector. | Verified for CI context |
 | `sec.inf` | CI uses APX Security Information from `sec.inf`; later research says APX CI uses `apxix.exe` to export Security (`sec.inf`) data. | Possible integration/security-reference file; classification fields not established. | Verified for CI context; native classification fields Unknown |
 | `type.inf` | CI uses APX Security Type Information from `type.inf`; later research says APX CI uses `apxix.exe` to export Security Type (`type.inf`) data. | Security type metadata source; not a classification dictionary unless proven. | Verified for CI context; classification mapping Unknown |
+| Industry group / industry sector | AdventGuru evidence identifies these as import/reference dependencies. | Lookup/reference dependency; exact native fields Unknown. | Medium Confidence |
 | Duplicate symbol/type situations | CI evidence describes duplicate/ambiguous APX security matching. | Classification joins based only on ticker/symbol can be wrong. | Verified for CI context |
 
 ### 3.3 APX security type examples
@@ -679,22 +682,3 @@ not close the field dictionary.
 
 Exact IMEX object names and field lists for classifications, indexes,
 composites, labels, and assignments remain Unknown.
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 classifications addendum confirms that classification evidence is
-strongest through reporting, security-master dependencies, integration exports,
-and merger/reclassification workflows. Axys product material supports performance
-display by portfolios, asset classes, sectors, countries, and regions, while
-AdvisorEngine confirms `Asset Class` as an Axys export-context label.
-
-AdventGuru evidence strengthens `industry group` and `industry sector` as
-import/reference dependencies and warns that security-type or classification
-changes can affect historical performance or require performance-history
-regeneration. APX report-guide snippets support a custom-classification,
-industry-group, and sector allocation report lead, but exact report name, fields,
-and datasets remain Unknown. Downstream models should separate classification
-schemes, values, security assignments, portfolio groupings, and report outputs.
-Audit focus should include symbol/type joins, missing or invalid classifications,
-current-vs-historical drift, type/asset-class mismatch, report-vs-raw mismatch,
-and performance-history invalidation risk.

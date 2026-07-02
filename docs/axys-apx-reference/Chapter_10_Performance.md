@@ -87,7 +87,9 @@ Performance in this chapter includes:
 | Product category | Axys is portfolio reporting and accounting software. | Verified |
 | Reporting | Axys provides predefined reports and report customization. | Verified |
 | Report Writer Pro | Axys supports Axys Report Writer Pro. | Verified |
-| Performance visibility | Axys product material states that Axys provides visibility into portfolio performance. | Verified for marketing/product claim |
+| Performance visibility | Axys product material supports TWR and IRR, before/after management fees, blended benchmarks, component-index history, synthetic index comparison, composites, GIPS-related support, and visibility into portfolio performance. | Verified for product capability |
+| Performance grouping | Axys product material supports performance display by portfolio, asset class, sector, country, or region. | Verified for product capability |
+| Multi-currency return components | Axys product material supports multi-currency return components attributable to market prices versus currency-rate fluctuations. | Verified for product capability |
 | REP / Replang | Supplied REP research supports that Axys reports are written in RepLang and that `.REP` files such as `AMAN.REP` can be copied and edited in a text editor. | Verified for cited report examples |
 | Report execution / extraction | A third-party connector uses Advent standard reports/macros, `REP32.exe`, the REP32 engine, RepLang scripting, and macros for Axys/APX extraction. | Verified for connector |
 
@@ -134,6 +136,8 @@ The following terms appear as candidate or user-recalled performance extract con
 | Benchmark/index support | APX index-data material supports benchmark/index data for APX performance analytics. | Verified for product capability |
 | Reporting framework | APX public material and supplied REP research support APX standard reports, custom reporting, dashboards, and SSRS/reporting paths. | Verified / High Confidence depending path |
 | Accounting/reporting/performance scope | SS&C product update material described APX as a core accounting, reporting, and performance measurement application. | Verified for product claim |
+| Index / benchmark data | APX Index Data material supports benchmark/index data, sector/security-level index data, historical index data, and attribution by industry sector. | Verified for product capability |
+| Performance Overview | Performance Overview is an APX report-guide lead. | Medium Confidence lead |
 | SQL/reporting access | Supplied REP/IMEX research records consultant evidence that APX users may use SQL Server, Public Views, Stored Accounting Functions, SSRS, REST API, and related tools. | Medium Confidence |
 
 ### 4.2 APX performance behavior not yet verified
@@ -278,6 +282,15 @@ This table is a research checklist. It is **not** a verified Axys/APX IMEX field
 | Performance analytics / attribution report | APX | Security/classification | Source of sector/security performance and attribution effects. |
 | Composite/GIPS report | APX | Composite | Composite support and calculation/storage behavior. |
 | SSRS/RDL performance reports | APX | Multiple | Dataset/stored procedure/view dependencies. |
+| Performance Summary | Axys | Portfolio/account | Morningstar conversion-context report lead; validate report source and fields before use. |
+| Performance by Account | Axys | Account | Morningstar conversion-context report lead; validate report source and fields before use. |
+| Performance by Security | Axys | Security | Morningstar conversion-context report lead; validate report source and footing before use. |
+| Portfolio Cash Flow | Axys | Portfolio/account | Morningstar conversion-context report lead; useful for flow reconciliation. |
+| Portfolio Current Value | Axys | Portfolio/account | Morningstar conversion-context report lead; useful for valuation reconciliation. |
+| Unrealized Gain/Loss | Axys | Portfolio/security | Morningstar conversion-context report lead; exact performance relationship Unknown. |
+| Realized Gain/Loss | Axys | Portfolio/security | Morningstar conversion-context report lead; exact performance relationship Unknown. |
+| Daily Calculation Combined Return/TWR | Axys / third-party conversion | Return setting | Zacks conversion-context clue; not an official Axys formula statement. |
+| Whole Period Return/IRR | Axys / third-party conversion | Return setting | Zacks conversion-context clue; not an official Axys formula statement. |
 
 ---
 
@@ -544,23 +557,3 @@ boundary area rather than a solved IMEX object dictionary.
 | Candidate live-discovery fields | Portfolio/security/classification/composite IDs, period dates, beginning/ending market value, return, contribution, external flow, income, fees, weights, benchmark, and currency fields. | Discovery guidance |
 | REP/report preference | Use REP/Replang/custom reports when reported performance must tie to user-visible Axys/APX output. | Design guidance |
 | Extraction metadata | Record source object/report, parameters, version, row lineage, and stored-vs-recalculated confidence. | Design guidance |
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 performance addendum upgrades product-level capability evidence.
-Axys product material supports TWR and IRR, before/after management fees; blended
-benchmarks and component-index history; synthetic index comparison; performance
-by portfolio, asset class, sector, country, or region; composites; GIPS-related
-support; and multi-currency return components attributable to market prices
-versus currency-rate fluctuations. These are product capabilities, not formulas
-or storage proof.
-
-Morningstar adds Axys conversion-context report leads: Performance Summary,
-Performance by Account, Performance by Security, Portfolio Cash Flow, Portfolio
-Current Value, Unrealized Gain/Loss, and Realized Gain/Loss. Zacks adds
-third-party return-setting clues around Daily Calculation Combined Return/TWR and
-Whole Period Return/IRR. APX Index Data material supports benchmark/index data,
-sector/security-level index data, historical index data, and attribution by
-industry sector, and Performance Overview is an APX report-guide lead. Exact
-storage, IMEX objects, APX views/procedures, formulas, attribution fields, and
-stored-vs-recalculated behavior remain Unknown.
