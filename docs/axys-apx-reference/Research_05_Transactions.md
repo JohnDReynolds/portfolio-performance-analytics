@@ -7,6 +7,27 @@
 
 ---
 
+## How to Read This Research File
+
+Use Sections 1 through 15 as the current synthesized transaction research. They
+contain the reader-facing executive summary, evidence rules, transaction model,
+observed code matrix, field dictionary, audit rules, contradictions, unknowns,
+and conclusions.
+
+Use Appendices A through C as consolidation and drafting metadata. Use
+Appendices D and E as provenance for independent research passes; they preserve
+source-by-source evidence and recommended changes that have largely been folded
+into the synthesized sections above. Use Section E.19 as provenance for the
+July 2026 transaction-code gap-fill addenda.
+
+If a future cleanup finds an appendix explanation that is clearer than the main
+body, prefer merging that explanation into Sections 1 through 15 and leaving the
+appendix as source provenance. Do not treat appendix wording as a competing
+normative statement when the synthesized sections already state the same point
+with confidence labels.
+
+---
+
 ## 1. Executive Summary
 
 This document consolidates the supplied Chapter 05 transaction research into one coherent research reference. The source material consisted of preliminary research notes, deep document mining, a source catalog, lifecycle notes, processing-pipeline notes, dependency analysis, field-dictionary drafts, code-matrix drafts, audit-rule drafts, known-unknowns tracking, and a later evidence-hunt addendum.
@@ -291,7 +312,7 @@ The conceptual lifecycle begins when an economic event occurs and ends when that
 ```text
 Economic Event
         ↓
-External Source
+External source-data
         ↓
 Data Translation
         ↓
@@ -322,7 +343,7 @@ Economic events occur outside Axys/APX and include purchases, sales, dividends, 
 
 **Confidence:** High.
 
-### 5.3 Stage 2 — External Source
+### 5.3 Stage 2 — External Source-Data
 
 Observed or expected sources include:
 
@@ -2475,14 +2496,14 @@ The most defensible framing is:
 
 ---
 
-# Appendix D — Independent Research Addendum
+## Appendix D — Independent Research Addendum
 
 > **Date added:** 2026-06-29  
 > **Purpose:** Independent web research pass requested by the user after the initial consolidated research package.  
 > **Method:** Targeted searches for public Axys/APX transaction documentation, IMEX transaction details, Trade Blotter layouts, REP/report evidence, and version-specific interface behavior.  
 > **Important limitation:** This addendum did not locate official complete Axys/APX transaction-code manuals, official complete IMEX transaction object definitions, or complete native Trade Blotter schemas. Newly discovered or re-confirmed information should therefore be treated as supplemental evidence, not replacement vendor documentation.
 
-## D.1 Independent Research Summary
+### D.1 Independent Research Summary
 
 The independent research pass found additional publicly accessible evidence, but it did **not** resolve the most important native-documentation gaps. The strongest newly confirmed facts are:
 
@@ -2496,7 +2517,7 @@ The independent research pass found additional publicly accessible evidence, but
 8. AdventGuru consultant evidence confirms that IMEX and Trade Blotter import are complementary, that direct Axys file access is risky across versions, that APX users may use SQL/reporting alternatives, and that APX v1.x through v4.x maintained IMEX while eliminating fixed-format file generation.
 9. AdventGuru APX-to-Axys conversion evidence adds an important Axys audit-trail claim: transactions going into Axys portfolios need to go through the Trade Blotter, and records posted through the Trade Blotter are stored in the `didpost.aud` audit-trail file. This is consultant evidence and should remain **Medium Confidence** until vendor documentation or production observation confirms it.
 
-## D.2 Search Results and Coverage
+### D.2 Search Results and Coverage
 
 | Research Target | Result | Evidence Quality | Status |
 |---|---|---:|---|
@@ -2509,7 +2530,7 @@ The independent research pass found additional publicly accessible evidence, but
 | Axys/APX current product capability confirmation | Public SS&C pages found. | High for broad capabilities; Low for field mechanics | Updated capability evidence. |
 | Version/interface notes | AdventGuru evidence found. | Medium | Updated interface/version evidence. |
 
-## D.3 Newly Confirmed or Strengthened Sources
+### D.3 Newly Confirmed or Strengthened Sources
 
 | ID | Source | Type | System | Newly Useful Evidence | Confidence |
 |---:|---|---|---|---|---:|
@@ -2523,7 +2544,7 @@ The independent research pass found additional publicly accessible evidence, but
 | SRC-018 | AdventGuru — Getting Data In and Out of Advent APX and Axys | Consultant article | Axys/APX | Confirms IMEX/interface/version points and warns against direct Axys file access due to version changes. | Medium |
 | SRC-019 | AdventGuru — There and Back Again: APX to Axys Conversion | Consultant article | Axys/APX | Confirms APX-exported CLI conversion into Axys `topost.trn`; states Axys transaction imports must go through Trade Blotter and that Trade Blotter posting stores records in `didpost.aud`. | Medium |
 
-## D.4 Axys Capability Evidence from Current SS&C Material
+### D.4 Axys Capability Evidence from Current SS&C Material
 
 SS&C's current Axys page supports the following capability statements:
 
@@ -2537,7 +2558,7 @@ SS&C's current Axys page supports the following capability statements:
 | Axys has integrated multicurrency capabilities. | High for capability | FX transaction storage Unknown. |
 | Axys has integrated corporate-actions processing. | High for capability | Corporate-action transaction generation Unknown. |
 
-### D.4.1 Research Impact
+#### D.4.1 Research Impact
 
 These vendor capability statements strengthen the chapter's broad Axys coverage, but they do **not** provide:
 
@@ -2548,7 +2569,7 @@ These vendor capability statements strengthen the chapter's broad Axys coverage,
 - audit-trail schema,
 - REP transaction field definitions.
 
-## D.5 APX Capability Evidence from Current SS&C Material
+### D.5 APX Capability Evidence from Current SS&C Material
 
 SS&C's current APX product material supports the following capability statements:
 
@@ -2561,15 +2582,15 @@ SS&C's current APX product material supports the following capability statements
 | APX includes multiple security layers and a patented audit trail according to SS&C product brief language. | Medium to High for capability | Exact audit trail data model Unknown. |
 | APX supports broad asset classes and settlement in any currency. | High for capability | Exact cross-currency transaction representation Unknown. |
 
-### D.5.1 Research Impact
+#### D.5.1 Research Impact
 
 These statements strengthen broad APX coverage and justify treating APX transaction data as part of a broader book-of-record/accounting/reporting platform. They do **not** resolve native database schema or transaction-code unknowns.
 
-## D.6 Axys and APX Transaction Translation Field Evidence
+### D.6 Axys and APX Transaction Translation Field Evidence
 
 The ByAllAccounts Axys and APX guides provide unusually specific transaction translation field names. These are still integration-guide fields, but they are sufficiently specific to include in Chapter 05 as observed integration fields.
 
-### D.6.1 Axys Observed Fields
+#### D.6.1 Axys Observed Fields
 
 | Field Name in Source | Meaning in Source | Confidence | Treatment |
 |---|---|---:|---|
@@ -2578,7 +2599,7 @@ The ByAllAccounts Axys and APX guides provide unusually specific transaction tra
 | Axys Transaction Src/Dest Symbol | Source/destination symbol, including use of default cash/income cash symbols. | Medium | Observed integration field. |
 | Axys Transaction Special Security Type / Symbol | Special security type/symbol used instead of a real security for some transactions, such as fees. | Medium | Observed integration field. |
 
-### D.6.2 APX Observed Fields
+#### D.6.2 APX Observed Fields
 
 | Field Name in Source | Meaning in Source | Confidence | Treatment |
 |---|---|---:|---|
@@ -2587,11 +2608,11 @@ The ByAllAccounts Axys and APX guides provide unusually specific transaction tra
 | APX Transaction Src/Dest Symbol | Source/destination symbol, including use of default cash/income cash symbols. | Medium | Observed integration field. |
 | APX Transaction Special Security Type / Symbol | Special security type/symbol used instead of a real security for some transactions, such as fees. | Medium | Observed integration field. |
 
-### D.6.3 Research Impact
+#### D.6.3 Research Impact
 
 The field dictionary should be updated so these names are no longer listed merely as conceptual candidate fields. They are observed field labels in third-party Axys/APX integration documentation. However, whether they exactly match all native IMEX names, database column names, REP names, or internal storage names remains **Unknown**.
 
-## D.7 Sign-Dependent Transfer Translation
+### D.7 Sign-Dependent Transfer Translation
 
 ByAllAccounts documents the same sign-dependent transfer principle for Axys and APX integration workflows:
 
@@ -2602,11 +2623,11 @@ ByAllAccounts documents the same sign-dependent transfer principle for Axys and 
 | APX | Positive security units | `li` | Medium | Transfer In in the ByAllAccounts default translation model. |
 | APX | Negative security units | `lo` | Medium | Transfer Out in the ByAllAccounts default translation model. |
 
-### D.7.1 Research Impact
+#### D.7.1 Research Impact
 
 This strengthens the existing interpretation rule: transaction code alone is insufficient. Quantity sign and source/destination context must be retained in any parser or audit design.
 
-## D.8 Special Security Type/Symbol for Fees
+### D.8 Special Security Type/Symbol for Fees
 
 ByAllAccounts documents use of special security type/symbol fields for fees in both Axys and APX integration workflows.
 
@@ -2615,11 +2636,11 @@ ByAllAccounts documents use of special security type/symbol fields for fees in b
 | Axys | `exus`, `epus` | `custfee`, `expense` | Medium | Integration-guide terminology. |
 | APX | `exus`, `epus` | `custfee`, `expense` | Medium | Integration-guide terminology. |
 
-### D.8.1 Research Impact
+#### D.8.1 Research Impact
 
 This independently supports the earlier Morningstar evidence that `epus` and `exus` are important in fee/expense classification. However, the exact native classification of `epus` and `exus` remains unresolved because sources use different terminology: Morningstar refers to transaction codes or labels, while ByAllAccounts refers to special security types.
 
-## D.9 WealthTechs AIA Trade Blotter Evidence
+### D.9 WealthTechs AIA Trade Blotter Evidence
 
 The WealthTechs APX manual provides explicit Trade Blotter configuration settings in the AIA workflow.
 
@@ -2632,7 +2653,7 @@ The WealthTechs APX manual provides explicit Trade Blotter configuration setting
 
 The same APX manual also distinguishes portfolio tabs or views for `Transactions` and `Statement Transactions` in its statement blotter discussion.
 
-### D.9.1 Research Impact
+#### D.9.1 Research Impact
 
 The Trade Blotter section should distinguish:
 
@@ -2640,7 +2661,7 @@ The Trade Blotter section should distinguish:
 2. AIA-generated blotter files/settings — **Medium Confidence**.
 3. Native APX internal blotter state transitions — **Unknown**.
 
-## D.10 WealthTechs AIA Transaction Translation Logic
+### D.10 WealthTechs AIA Transaction Translation Logic
 
 The WealthTechs Axys manual documents Transaction Translation (`TT`) logic in the AIA workflow. It states that TT allows `IF, THEN` programming logic against source transaction data, is not case-sensitive, and is overridden by other translations such as Vehicle, Account, or Broker. It also documents special assignment behavior such as forcing a number field negative and forcing trade-date or settlement-date field values.
 
@@ -2652,11 +2673,11 @@ The WealthTechs Axys manual documents Transaction Translation (`TT`) logic in th
 | `[TradeDate]` and `[SettleDate]` can be used as assignment values. | Axys AIA workflow | Medium | Third-party integration behavior. |
 | AIA can delete Trade Blotter transactions that match transaction codes such as `BY`, `SL`, `SS`, `CS`. | Axys/APX AIA workflow | Medium | AIA behavior; native universality Unknown. |
 
-### D.10.1 Research Impact
+#### D.10.1 Research Impact
 
 This adds useful detail to the processing-pipeline and audit sections. It also reinforces that transaction-processing order and transformations can be integration-layer behavior before native posting.
 
-## D.11 REP / Transaction Summary Report Evidence
+### D.11 REP / Transaction Summary Report Evidence
 
 The Advent/SSRS Wealth Management Reports sample confirms the Transaction Summary Report purpose and visible sample columns.
 
@@ -2669,11 +2690,11 @@ The Advent/SSRS Wealth Management Reports sample confirms the Transaction Summar
 
 The sample describes the Transaction Summary Report as displaying all account transactions maintained by Advent, giving an independent record apart from the custodian.
 
-### D.11.1 Research Impact
+#### D.11.1 Research Impact
 
 Chapter 05 can include these report sections and visible fields as observed report evidence. It should **not** infer that these are REP field names, database field names, IMEX field names, or all available report fields.
 
-## D.12 IMEX, Report, and Direct Access Evidence from AdventGuru
+### D.12 IMEX, Report, and Direct Access Evidence from AdventGuru
 
 AdventGuru provides useful historical/interface context:
 
@@ -2688,7 +2709,7 @@ AdventGuru provides useful historical/interface context:
 | Axys/APX users can use Excel export, Report Writer Pro, Replang reports, and ETL tools. | Axys/APX | Medium | Consultant evidence. |
 | APX v1.x through v4.x maintained IMEX functionality but eliminated fixed-format file generation. | APX | Medium | Consultant evidence. |
 
-### D.12.1 Research Impact
+#### D.12.1 Research Impact
 
 This strengthens the chapter's interface-layer distinction:
 
@@ -2698,7 +2719,7 @@ This strengthens the chapter's interface-layer distinction:
 4. Direct file access is possible in Axys but risky.
 5. APX has database/SQL/reporting alternatives that Axys does not have in the same way.
 
-## D.13 APX-to-Axys Conversion Evidence: `topost.trn` and `didpost.aud`
+### D.13 APX-to-Axys Conversion Evidence: `topost.trn` and `didpost.aud`
 
 AdventGuru's APX-to-Axys conversion article provides important transaction import and audit-trail evidence:
 
@@ -2711,7 +2732,7 @@ AdventGuru's APX-to-Axys conversion article provides important transaction impor
 | Records posted through the Trade Blotter are stored in the `didpost.aud` audit-trail file for recordkeeping. | Consultant evidence | Medium | High-value claim needing confirmation. |
 | Reconstructing tax lots to match original APX files can be difficult. | Consultant evidence | Medium | Consistent with earlier known unknowns. |
 
-### D.13.1 Research Impact
+#### D.13.1 Research Impact
 
 This is the most important independent addition. The existing research mentioned `topost.trn`, but this adds `didpost.aud` as an observed Axys audit-trail artifact associated with Trade Blotter posting.
 
@@ -2724,7 +2745,7 @@ Recommended treatment in Chapter 05:
 | All Axys transaction imports must always go through Trade Blotter. | Unknown / do not assert universally. |
 | `didpost.aud` contains complete transaction audit trail with all fields. | Unknown. |
 
-## D.14 Updated Transaction Field Dictionary Notes
+### D.14 Updated Transaction Field Dictionary Notes
 
 The following field names can be promoted from merely conceptual to **Observed in integration documentation**:
 
@@ -2741,7 +2762,7 @@ The following field names can be promoted from merely conceptual to **Observed i
 | Proceeds | Unknown | Observed in Transaction Summary Report Sales section | Unknown | Observed report label | Medium | Report sample only. |
 | Gain/Loss | Unknown | Observed in Transaction Summary Report Sales section | Unknown | Observed report label | Medium | Report sample only. |
 
-## D.15 Updated Observed Code Matrix Notes
+### D.15 Updated Observed Code Matrix Notes
 
 The independent pass strengthened the evidence for the following observed codes:
 
@@ -2755,7 +2776,7 @@ The independent pass strengthened the evidence for the following observed codes:
 | `pa` | Axys/APX integration | Accrued-interest or reinvested-dividend-related buy-like case. | Low to Medium | Meaning still ambiguous. |
 | `BY`, `SL`, `SS`, `CS` | Axys/APX AIA workflow | Uppercase codes used in deletion/cancellation or blotter-delete logic. | Medium | Do not assert universal native behavior. |
 
-## D.16 Updated Unknowns After Independent Research
+### D.16 Updated Unknowns After Independent Research
 
 The following remain unresolved after independent research:
 
@@ -2775,25 +2796,25 @@ The following remain unresolved after independent research:
 | TU-028 | Native reversal representation. | Only integration-level uppercase evidence found. | High |
 | TU-031 | Native retention model for deleted transactions. | `didpost.aud` claim found for Axys Trade Blotter posting; detailed retention model still unknown. | High |
 
-## D.17 Updated Research Conclusions
+### D.17 Updated Research Conclusions
 
-### D.17.1 Public Research Can Strengthen, But Not Fully Complete, Chapter 05
+#### D.17.1 Public Research Can Strengthen, But Not Fully Complete, Chapter 05
 
 Independent research strengthened several areas, especially public product capability support, ByAllAccounts field labels, AIA Trade Blotter settings, Transaction Summary Report columns, and the `didpost.aud` audit-trail artifact. However, public research did not locate the missing official manuals needed to eliminate major unknowns.
 
-### D.17.2 Integration Documentation Is the Best Public Transaction Evidence
+#### D.17.2 Integration Documentation Is the Best Public Transaction Evidence
 
 The most useful public transaction details continue to come from third-party integration documentation, especially ByAllAccounts and WealthTechs. These sources are sufficiently detailed for implementation-aware documentation but should remain labeled **Medium Confidence**.
 
-### D.17.3 Official Product Pages Are Useful for Capability Boundaries Only
+#### D.17.3 Official Product Pages Are Useful for Capability Boundaries Only
 
 Current SS&C product pages confirm that Axys/APX handle transactions, positions, reconciliation, performance, accounting, reporting, and audit/compliance workflows. They do not provide the implementation details required for field dictionaries, transaction code matrices, IMEX object definitions, or native storage schemas.
 
-### D.17.4 `didpost.aud` Should Be Added to the Axys Known-Artifacts List
+#### D.17.4 `didpost.aud` Should Be Added to the Axys Known-Artifacts List
 
 The `didpost.aud` file should be added as an observed Axys audit-trail artifact associated with Trade Blotter posting, but with **Medium Confidence** and a clear caveat that full content/layout/retention behavior remains **Unknown**.
 
-## D.18 Source URLs for Independent Research Addendum
+### D.18 Source URLs for Independent Research Addendum
 
 | Source ID | URL |
 |---|---|
@@ -2808,7 +2829,7 @@ The `didpost.aud` file should be added as an observed Axys audit-trail artifact 
 | SRC-018 | https://adventguru.com/2013/04/25/getting-data-in-and-out-of-advent-apx-and-axys/ |
 | SRC-019 | https://adventguru.com/2019/05/22/there-and-back-again/ |
 
-## D.19 Recommended Changes to Chapter 05 Based on Addendum
+### D.19 Recommended Changes to Chapter 05 Based on Addendum
 
 | Chapter Area | Recommended Update |
 |---|---|
@@ -2824,7 +2845,7 @@ The `didpost.aud` file should be added as an observed Axys audit-trail artifact 
 
 ---
 
-# Appendix E — Second Independent Research Pass
+## Appendix E — Second Independent Research Pass
 
 > **Date added:** 2026-06-29  
 > **Purpose:** Targeted public-source research pass to reduce the remaining Unknowns before drafting `Chapter_05_Transactions.md`.  
@@ -2832,7 +2853,7 @@ The `didpost.aud` file should be added as an observed Axys audit-trail artifact 
 > **Method:** Targeted searches and review of public SS&C Advent pages, Advent report PDFs, ByAllAccounts Custodial Integrator guides, WealthTechs AIA guides, and AdventGuru consultant articles.  
 > **Important limitation:** This pass still did **not** locate official complete Axys/APX transaction-code manuals, official IMEX transaction object definitions, complete native Trade Blotter layouts, native Axys transaction storage schemas, or native APX database transaction schemas. Those items remain **Unknown**.
 
-## E.1 Bottom Line
+### E.1 Bottom Line
 
 The second independent research pass found useful additional evidence, but it did **not** eliminate the largest documentation gaps.
 
@@ -2847,7 +2868,7 @@ The strongest incremental findings are:
 7. The Advent/SSRS Wealth Management Reports PDF gives stronger visible evidence for the Transaction Summary Report sections and fields: Purchases, Sales, Dividends, Contributions, and Withdrawals.
 8. The WealthTechs Axys AIA guide adds specific observed handling for withholding tax and original-face quantity options in an Axys integration workflow.
 
-## E.2 Research Targets and Outcomes
+### E.2 Research Targets and Outcomes
 
 | Target | Outcome | Confidence | Status |
 |---|---|---:|---|
@@ -2863,7 +2884,7 @@ The strongest incremental findings are:
 | APX SQL/native transaction schema | Not found publicly. | Unknown | Still unresolved. |
 | Native deleted-transaction retention model | Not found publicly. | Unknown | Still unresolved. |
 
-## E.3 Sources Reviewed in Second Pass
+### E.3 Sources Reviewed in Second Pass
 
 | ID | Source | Type | System | Useful Evidence | Confidence |
 |---:|---|---|---|---|---:|
@@ -2877,7 +2898,7 @@ The strongest incremental findings are:
 | SRC-027 | AdventGuru — Getting Data In and Out of Advent APX and Axys | Consultant article | Axys/APX | IMEX history, Axys v2.x binary file context, direct-file-access risk, APX SQL/export alternatives, APX fixed-format generation eliminated while IMEX remained. | Medium |
 | SRC-028 | Advent / SSRS Wealth Management Reports PDF | Vendor/report sample | APX / Advent reports | Transaction Summary Report visible sections and fields: Purchases, Sales, Dividends, Contributions, Withdrawals; report purpose statement. | Medium |
 
-## E.4 Source URLs
+### E.4 Source URLs
 
 | ID | URL |
 |---:|---|
@@ -2891,9 +2912,9 @@ The strongest incremental findings are:
 | SRC-027 | https://adventguru.com/2013/04/25/getting-data-in-and-out-of-advent-apx-and-axys/ |
 | SRC-028 | https://cdn.advent.com/cms/pdfs/reports/REP_SSRS.pdf |
 
-## E.5 Axys — Updated Evidence
+### E.5 Axys — Updated Evidence
 
-### E.5.1 Axys Capability Boundary
+#### E.5.1 Axys Capability Boundary
 
 SS&C's current Axys page supports the following capability statements. These are product capability statements, not field-level documentation.
 
@@ -2906,7 +2927,7 @@ SS&C's current Axys page supports the following capability statements. These are
 | Axys can track/report commissions by purpose or broker. | High for capability | Can be stated as product capability; native transaction fields Unknown. |
 | Axys supports integrated multicurrency and corporate-actions processing. | High for capability | Can be stated as product capability; FX/corporate-action transaction generation Unknown. |
 
-### E.5.2 Axys Trade Blotter and `topost.trn`
+#### E.5.2 Axys Trade Blotter and `topost.trn`
 
 The ByAllAccounts Axys guide strengthens the evidence for `topost.trn`.
 
@@ -2918,7 +2939,7 @@ The ByAllAccounts Axys guide strengthens the evidence for `topost.trn`.
 | Comment boundaries | Generated transaction blocks can be bounded by beginning and ending comment transactions containing the generation date. | Medium | Third-party integration evidence. |
 | Review/posting | Transactions are delivered to the designated Trade Blotter for review and posting to Axys. | Medium | Does not prove all native imports must use this path. |
 
-### E.5.3 Axys Executables, Folders, and Files
+#### E.5.3 Axys Executables, Folders, and Files
 
 | Artifact | Observed Role | Confidence | Caveat |
 |---|---|---:|---|
@@ -2931,7 +2952,7 @@ The ByAllAccounts Axys guide strengthens the evidence for `topost.trn`.
 | `$pathpri` | Axys price-file folder containing `*.pri`. | Medium | Pricing context. |
 | `$pathlog` | Folder where Axys Import/Export logs are written. | Medium | Log format Unknown. |
 
-### E.5.4 Axys Observed Transaction Translation Fields
+#### E.5.4 Axys Observed Transaction Translation Fields
 
 The ByAllAccounts Axys guide explicitly names these fields in its translation-table discussion.
 
@@ -2942,7 +2963,7 @@ The ByAllAccounts Axys guide explicitly names these fields in its translation-ta
 | Axys Transaction Src/Dest Symbol | Source/destination symbol; guide references default cash and income cash account fields. | Medium | Observed integration field; native IMEX/database/REP name Unknown. |
 | Axys Transaction Special Security Type / Symbol | Special security type/symbol used instead of the real security for some cases, such as fees. | Medium | Observed integration field; native IMEX/database/REP name Unknown. |
 
-### E.5.5 Axys Additional Observed Transaction-File Columns / Parameters
+#### E.5.5 Axys Additional Observed Transaction-File Columns / Parameters
 
 The ByAllAccounts Axys guide describes parameters that populate or affect columns in the Axys `topost.trn` transaction file. These are not complete layout documentation.
 
@@ -2956,14 +2977,14 @@ The ByAllAccounts Axys guide describes parameters that populate or affect column
 | Perf/CW column | `defperfcw` defines value for Perf/CW column of Axys `topost.trn`. | Medium | Exact meaning and native behavior Unknown. |
 | Currency code | `axyscur` defines Axys system currency for CI translation. | Medium | Configuration parameter, not necessarily transaction-file column. |
 
-### E.5.6 Axys Sign-Dependent Transfer Translation
+#### E.5.6 Axys Sign-Dependent Transfer Translation
 
 | Condition | Observed Translation | Confidence | Caveat |
 |---|---|---:|---|
 | Transfer of securities with negative units | `lo` | Medium | ByAllAccounts Axys integration evidence. |
 | Transfer of securities with positive units | `li` | Medium | ByAllAccounts Axys integration evidence. |
 
-### E.5.7 Axys Reversal / Cancellation
+#### E.5.7 Axys Reversal / Cancellation
 
 | Statement | Confidence | Caveat |
 |---|---:|---|
@@ -2972,7 +2993,7 @@ The ByAllAccounts Axys guide describes parameters that populate or affect column
 | If reversal fields do not match original transaction fields, Axys may generate a Trade Blotter error requiring resolution. | Medium | Integration evidence only. |
 | Universal native uppercase-cancellation behavior across all Axys versions/import paths remains Unknown. | Unknown | Requires vendor or production evidence. |
 
-### E.5.8 Axys Withholding Tax and Original Face Evidence
+#### E.5.8 Axys Withholding Tax and Original Face Evidence
 
 The WealthTechs Axys AIA guide adds integration-specific evidence for fixed-income and income-related transaction handling.
 
@@ -2986,9 +3007,9 @@ The WealthTechs Axys AIA guide adds integration-specific evidence for fixed-inco
 | Withholding tax field in transaction | AIA option adds a withholding tax field and deducts withholding from trade amount. | Medium | Integration-specific. |
 | Quantity decimal rounding | AIA default described as six decimals; option can force two decimal-place quantities. | Medium | Integration-specific. |
 
-## E.6 APX — Updated Evidence
+### E.6 APX — Updated Evidence
 
-### E.6.1 APX Capability Boundary
+#### E.6.1 APX Capability Boundary
 
 SS&C's current APX page supports these broad capability statements. These are not field-level specifications.
 
@@ -3000,7 +3021,7 @@ SS&C's current APX page supports these broad capability statements. These are no
 | APX provides multi-currency and multi-asset class coverage. | High for capability | Can be stated generally; transaction schema Unknown. |
 | APX can be deployed locally or cloud-delivered with or without outsourcing services. | High for deployment option | Not directly transaction-specific. |
 
-### E.6.2 APX Observed Transaction Translation Fields
+#### E.6.2 APX Observed Transaction Translation Fields
 
 The ByAllAccounts APX guide explicitly names these fields.
 
@@ -3011,7 +3032,7 @@ The ByAllAccounts APX guide explicitly names these fields.
 | APX Transaction Src/Dest Symbol | Source/destination symbol; guide references default cash and income cash account fields. | Medium | Observed integration field; native IMEX/database/REP name Unknown. |
 | APX Transaction Special Security Type / Symbol | Special security type/symbol used instead of a real security, for example fee handling. | Medium | Observed integration field; native IMEX/database/REP name Unknown. |
 
-### E.6.3 APX Observed Code Matrix — Stronger Public Evidence
+#### E.6.3 APX Observed Code Matrix — Stronger Public Evidence
 
 The ByAllAccounts APX default translation table provides the strongest public code evidence found in this pass. The following remains an observed integration translation matrix, not an official native APX code manual.
 
@@ -3034,14 +3055,14 @@ The ByAllAccounts APX default translation table provides the strongest public co
 | `sa` | Sale accrued interest / sell-side accrued interest. | Medium | SELL + ACCRUED INTEREST mapping; integration-level evidence, not official native code manual. |
 | `;` | Journal, Other, Split. | Medium | Treat as integration behavior; official native meaning Unknown. |
 
-### E.6.4 APX Sign-Dependent Transfer Translation
+#### E.6.4 APX Sign-Dependent Transfer Translation
 
 | Condition | Observed Translation | Confidence | Caveat |
 |---|---|---:|---|
 | Transfer of securities with negative units | `lo` | Medium | ByAllAccounts APX integration evidence. |
 | Transfer of securities with positive units | `li` | Medium | ByAllAccounts APX integration evidence. |
 
-### E.6.5 APX Reversal / Cancellation
+#### E.6.5 APX Reversal / Cancellation
 
 | Statement | Confidence | Caveat |
 |---|---:|---|
@@ -3050,7 +3071,7 @@ The ByAllAccounts APX default translation table provides the strongest public co
 | If reversal fields do not match original transaction fields, APX may generate a Trade Blotter error requiring resolution. | Medium | Integration evidence only. |
 | Universal native uppercase-cancellation behavior across all APX versions/import paths remains Unknown. | Unknown | Requires vendor or production evidence. |
 
-### E.6.6 APX Additional Observed Transaction Parameters
+#### E.6.6 APX Additional Observed Transaction Parameters
 
 The ByAllAccounts APX guide also describes parameters that resemble the Axys configuration names but apply to APX in this guide. These are integration configuration parameters, not native APX database fields.
 
@@ -3063,9 +3084,9 @@ The ByAllAccounts APX guide also describes parameters that resemble the Axys con
 | Default account identifier | Can use WebPortfolio account number, internal ID, or account name for untranslated accounts. | Medium | Integration behavior. |
 | Dividend quantity default | `defdivquan` can provide a quantity value for dividend transactions with no reported quantity. | Medium | Integration behavior. |
 
-## E.7 IMEX — Updated Evidence
+### E.7 IMEX — Updated Evidence
 
-### E.7.1 Confirmed / Strengthened
+#### E.7.1 Confirmed / Strengthened
 
 | Statement | System | Confidence | Caveat |
 |---|---|---:|---|
@@ -3077,7 +3098,7 @@ The ByAllAccounts APX guide also describes parameters that resemble the Axys con
 | AdventGuru says APX v1.x through v4.x retained IMEX functionality but eliminated fixed-format generation. | APX | Medium | Consultant evidence. |
 | AdventGuru says IMEX plus Trade Blotter import provides a practical path to move fundamental data in/out of Axys/APX. | Axys/APX | Medium | Consultant evidence. |
 
-### E.7.2 Still Unknown
+#### E.7.2 Still Unknown
 
 | Unknown | Priority | Notes |
 |---|---:|---|
@@ -3088,9 +3109,9 @@ The ByAllAccounts APX guide also describes parameters that resemble the Axys con
 | Official IMEX log schema / error codes | Medium | Only general log existence found. |
 | Whether APX IMEX transaction objects have fields identical to Axys Trade Blotter fields | High | Not verified. |
 
-## E.8 REP / Reports — Updated Evidence
+### E.8 REP / Reports — Updated Evidence
 
-### E.8.1 Transaction Summary Report
+#### E.8.1 Transaction Summary Report
 
 The Advent/SSRS Wealth Management Reports PDF provides visible Transaction Summary Report evidence. It should be treated as report-output evidence only, not REP source code, IMEX schema, or database schema.
 
@@ -3104,7 +3125,7 @@ The Advent/SSRS Wealth Management Reports PDF provides visible Transaction Summa
 
 The same report sample describes the Transaction Summary Report as displaying account transactions maintained by Advent and serving as an independent record apart from the custodian.
 
-### E.8.2 Report Menu / Category Evidence
+#### E.8.2 Report Menu / Category Evidence
 
 The visible report sample lists transaction display categories including:
 
@@ -3123,7 +3144,7 @@ The visible report sample lists transaction display categories including:
 
 **Confidence:** Medium. These are visible report-sample categories, not official transaction codes.
 
-### E.8.3 Still Unknown
+#### E.8.3 Still Unknown
 
 | Unknown | Priority | Notes |
 |---|---:|---|
@@ -3133,9 +3154,9 @@ The visible report sample lists transaction display categories including:
 | Whether report reads posted transactions, audit-trail data, calculated views, or database tables | High | Not found. |
 | Whether Axys has an equivalent standard transaction summary report and exact columns | Medium | Not confirmed by public evidence. |
 
-## E.9 Audit Trail — Updated Evidence
+### E.9 Audit Trail — Updated Evidence
 
-### E.9.1 `didpost.aud`
+#### E.9.1 `didpost.aud`
 
 AdventGuru provides two separate pieces of consultant evidence about `didpost.aud`.
 
@@ -3147,7 +3168,7 @@ AdventGuru provides two separate pieces of consultant evidence about `didpost.au
 | It may facilitate small- and large-scale removal of transactions posted in error. | Axys/APX | Medium | Operational claim; native controls Unknown. |
 | In the APX-to-Axys conversion article, records posted through the Trade Blotter are described as stored in `didpost.aud` for recordkeeping. | Axys | Medium | Conversion-specific article; universality Unknown. |
 
-### E.9.2 Axys 3.x Audit Trail Export Quirk
+#### E.9.2 Axys 3.x Audit Trail Export Quirk
 
 | Statement | System | Confidence | Caveat |
 |---|---|---:|---|
@@ -3156,7 +3177,7 @@ AdventGuru provides two separate pieces of consultant evidence about `didpost.au
 | The author preferred exported files but resorted to direct `AUD` file read/write only because export was unreliable. | Axys | Medium | Reinforces direct-file-access caution. |
 | Proactive management of very large `didpost.aud` files may include backups, exports, or periodic file rotation, but such processes are operationally risky. | Axys/APX | Medium | Consultant evidence; not vendor best-practice documentation. |
 
-### E.9.3 Audit Trail Unknowns
+#### E.9.3 Audit Trail Unknowns
 
 | Unknown | Priority |
 |---|---:|
@@ -3167,7 +3188,7 @@ AdventGuru provides two separate pieces of consultant evidence about `didpost.au
 | Whether `didpost.aud` stores original and corrected transaction versions | High |
 | Whether `didpost.aud` can be reliably exported in current Axys/APX versions | Medium |
 
-## E.10 Updated Field Dictionary Additions
+### E.10 Updated Field Dictionary Additions
 
 These fields/labels should be added or promoted in the future Chapter 05 field dictionary.
 
@@ -3190,7 +3211,7 @@ These fields/labels should be added or promoted in the future Chapter 05 field d
 | Ex-Date | Unknown | Observed in report output | Unknown | Observed | Medium | Transaction Summary Report Dividends. |
 | Pay-Date | Unknown | Observed in report output | Unknown | Observed | Medium | Transaction Summary Report Dividends. |
 
-## E.11 Updated Observed Artifacts Matrix
+### E.11 Updated Observed Artifacts Matrix
 
 | Artifact | System | Observed Role | Confidence | Caveat |
 |---|---|---|---:|---|
@@ -3204,7 +3225,7 @@ These fields/labels should be added or promoted in the future Chapter 05 field d
 | `*.cli` | Axys/APX conversion context | Portfolio/client files used in conversion and CI portfolio-code lookup. | Medium | Full native layout Unknown. |
 | `*.pri` | Axys | Price files used by CI for price merging/import. | Medium | Pricing context. |
 
-## E.12 Updated Known Quirks
+### E.12 Updated Known Quirks
 
 | Quirk | System | Confidence | Notes |
 |---|---|---:|---|
@@ -3220,9 +3241,9 @@ These fields/labels should be added or promoted in the future Chapter 05 field d
 | Withholding tax treatment can be implemented multiple ways in Axys AIA workflow. | Axys | Medium | Integration-specific. |
 | Original-face value can be written to quantity in Axys AIA workflow. | Axys | Medium | Integration-specific; especially relevant for fixed income. |
 
-## E.13 Updated Unknowns After Second Pass
+### E.13 Updated Unknowns After Second Pass
 
-### E.13.1 High-Priority Unknowns Still Open
+#### E.13.1 High-Priority Unknowns Still Open
 
 | ID | Unknown | Status |
 |---|---|---|
@@ -3240,7 +3261,7 @@ These fields/labels should be added or promoted in the future Chapter 05 field d
 | TU-028 | Native reversal representation. | Integration-level uppercase evidence found; native universality Unknown. |
 | TU-031 | Native retention model for deleted transactions. | `didpost.aud` evidence improved; detailed retention still Unknown. |
 
-### E.13.2 Unknowns That Were Reduced But Not Closed
+#### E.13.2 Unknowns That Were Reduced But Not Closed
 
 | Topic | What Improved | What Remains Unknown |
 |---|---|---|
@@ -3251,7 +3272,7 @@ These fields/labels should be added or promoted in the future Chapter 05 field d
 | REP report fields | Transaction Summary Report visible fields expanded. | REP implementation, report parameters, source of values. |
 | IMEX logs | Existence and review workflow strengthened. | Log schema, error codes, machine-readable fields. |
 
-## E.14 Practical Implications for Chapter 05
+### E.14 Practical Implications for Chapter 05
 
 The future chapter should incorporate the following changes:
 
@@ -3266,7 +3287,7 @@ The future chapter should incorporate the following changes:
 9. **Keep native Axys/APX storage schemas Unknown.** Public sources did not resolve these.
 10. **Separate product capabilities from mechanics.** SS&C product pages support broad capabilities, not field-level implementation details.
 
-## E.15 Minimum Additional Material Still Needed
+### E.15 Minimum Additional Material Still Needed
 
 Even after two independent research passes, the following would materially improve Chapter 05:
 
@@ -3283,7 +3304,7 @@ Even after two independent research passes, the following would materially impro
 | Official REP/Replang report definitions | Transaction report names, parameters, fields, source behavior. |
 | APX database schema or sanitized SQL extracts | Native APX transaction storage model. |
 
-## E.16 Recommended Confidence Changes
+### E.16 Recommended Confidence Changes
 
 | Topic | Prior Confidence | Updated Confidence | Reason |
 |---|---:|---:|---|
@@ -3297,7 +3318,7 @@ Even after two independent research passes, the following would materially impro
 | Official IMEX transaction objects | Unknown | Unknown | Still not found. |
 | REP Transaction Summary visible fields | Medium | Medium, stronger support | Advent report sample visibly lists sections/fields. |
 
-## E.17 Final Research Position After Second Pass
+### E.17 Final Research Position After Second Pass
 
 The available public evidence is now strong enough to write a useful, implementation-aware Chapter 05 technical reference, provided it maintains strict confidence labels.
 
@@ -3324,7 +3345,7 @@ The chapter cannot responsibly document without Unknown labels:
 - native audit-retention behavior,
 - REP/Replang source definitions.
 
-## E.18 Deep IMEX Addendum Incorporated 2026-06-30
+### E.18 Deep IMEX Addendum Incorporated 2026-06-30
 
 Source: `axys_imex_deep_research.md`.
 
@@ -3340,7 +3361,7 @@ Additional transaction-specific points:
 | External-flow caution | Source/destination and special-security fields are observed integration labels, but official IMEX availability remains Unknown. Transaction-code-only interpretation remains unsafe for `li`, `lo`, `dp`, and `wd`. | Medium / Unknown boundary |
 | REP fallback | When IMEX does not expose enough transaction context to classify flows, report extraction or custom REP output should be considered for classification evidence. | Design guidance |
 
-## E.19 Transaction-Code Gap-Fill Addenda Incorporated 2026-07-02
+### E.19 Transaction-Code Gap-Fill Addenda Incorporated 2026-07-02
 
 Sources:
 
@@ -3353,7 +3374,7 @@ evidence boundary: the strongest support remains third-party integration
 and conversion documentation, not official complete SS&C Advent native
 transaction-code manuals.
 
-### E.19.1 Fixed-Income and Principal Codes
+#### E.19.1 Fixed-Income and Principal Codes
 
 | Code | Strengthened interpretation | Confidence | Performance/audit boundary |
 |---|---|---:|---|
@@ -3369,7 +3390,7 @@ support for treating principal paydowns as a reconciliation-sensitive
 conversion area because systems may represent principal factors, original
 principal, and zero-quantity paydown rows differently.
 
-### E.19.2 Other Code and Marker Clarifications
+#### E.19.2 Other Code and Marker Clarifications
 
 | Code or marker | Strengthened interpretation | Practical caution |
 |---|---|---|
@@ -3391,7 +3412,7 @@ principal, and zero-quantity paydown rows differently.
 | `dvwash` | Dividend-reinvestment wash symbol. | Reinvestment support context, not external flow or ordinary holding. |
 | `caus margin` | Margin cash/security context. | Supports `ai` margin-interest classification; separate financing expense from external flow. |
 
-### E.19.3 Implementation Classification Order
+#### E.19.3 Implementation Classification Order
 
 The addenda reinforce the following audit-product classification order:
 
