@@ -1725,6 +1725,15 @@ Changed periods without any visible cause or promoted evidence row get a
 preserves the full finding-level detail, including context rows such as cost and
 reported-performance diagnostics that confirm reporting differences but are not
 root causes.
+The Explanation wording is intentionally report-level aware. Portfolio
+workbooks explain transaction rows by their portfolio-return role, so a `dp`,
+`dv`, or `in` transaction can be described as causing the cash-balance ending
+`holdings.market_value` row to move, while a portfolio `wd` row can include
+weighted external-flow language. Security workbooks explain transaction rows by
+the affected security return container, so the same transaction category family
+uses semantic labels such as `external flow`, `fee/expense`, or `income`.
+Those wording differences are not separate calculations; they reflect the
+different review question asked by the portfolio and security report families.
 Workbook-specific behavior is limited to spreadsheet
 ergonomics such as sheet names, frozen headers, filters, column widths, Excel
 number formats, and header comments that explain column meaning.

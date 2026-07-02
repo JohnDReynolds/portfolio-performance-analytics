@@ -714,6 +714,14 @@ class TestPackageMetadata(unittest.TestCase):
             roadmap,
         )
         self.assertIn("release-hardening watchlist", roadmap)
+        self.assertIn(
+            "Phase 49: Portfolio/Security Explanation Consistency Audit",
+            roadmap,
+        )
+        self.assertIn(
+            "portfolio-return role, while security reports explain",
+            roadmap,
+        )
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
@@ -1177,6 +1185,10 @@ class TestPackageMetadata(unittest.TestCase):
             "review_summary.json",
             "report_bundle_contract()",
             "not a new transaction-classification or accounting layer",
+            "Explanation wording is intentionally report-level aware",
+            "portfolio-return role",
+            "affected security return container",
+            "`external flow`, `fee/expense`, or `income`",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, design)

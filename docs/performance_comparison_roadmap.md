@@ -70,6 +70,8 @@ Completed guardrails now cover:
 - the packaged portfolio and security reports intentionally include Fully
   Explained, intentional `Partly Explained`, and intentional `Unexplained`
   review examples;
+- portfolio and security report explanations intentionally use different
+  transaction wording when the review level asks a different question;
 - generated bundle vocabulary and entrypoints are validated.
 
 ## Current Open Items
@@ -2278,6 +2280,27 @@ transaction families to packaged data only when they are realistic,
 nonredundant, internally consistent across transactions, holdings, performance
 rows, YAML rules, report wording, and source-contract language. Synthetic or
 surgical coverage remains test-only.
+
+### Phase 49: Portfolio/Security Explanation Consistency Audit
+
+Status: complete for current portfolio-vs-security explanation guardrails.
+
+The portfolio and security `Performance Difference Causes` sheets were reviewed
+for the transaction wording split that appears after semantic transaction labels
+were added. The difference is intentional: portfolio reports explain
+transaction rows by their portfolio-return role, while security reports explain
+transaction rows by the affected security return container.
+
+Portfolio report examples stay portfolio-input oriented: `dp`, `dv`, and `in`
+transaction rows may say they caused cash-balance ending
+`holdings.market_value` to move, and portfolio `wd` rows may show external-flow
+and weighted external-flow wording. Security report examples stay
+security-container oriented: `li` / `wd` rows use `external flow`, `dp` uses
+`fee/expense`, and `dv` / `in` use `income`.
+
+The design doc and workbook contract tests now pin this split so future wording
+cleanup does not flatten the two report families into one misleading sentence
+template.
 
 ## Guiding Principle
 

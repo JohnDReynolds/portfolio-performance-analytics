@@ -377,6 +377,45 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and str(row[2])[:10] == "2026-04-30"
                 )
                 self.assertEqual(str(jpm_dividend_row[3])[:10], "2026-04-06")
+                self.assertEqual(
+                    jpm_dividend_row[10],
+                    (
+                        "dv: Caused cash-balance ending holdings.market_value "
+                        "to increase by 117.07."
+                    ),
+                )
+                income_fee_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "CASH_USD"
+                    and str(row[1])[:10] == "2026-01-01"
+                    and str(row[2])[:10] == "2026-01-30"
+                )
+                self.assertEqual(
+                    income_fee_row[10],
+                    (
+                        "dp: Caused cash-balance ending holdings.market_value "
+                        "to decrease by 50.00."
+                    ),
+                )
+                alpha_withdrawal_row = next(
+                    row
+                    for row in underlying_rows
+                    if row[0] == "ALPHA"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "CASH_USD"
+                    and str(row[1])[:10] == "2026-01-01"
+                    and str(row[2])[:10] == "2026-01-30"
+                )
+                self.assertEqual(
+                    alpha_withdrawal_row[10],
+                    (
+                        "wd: External flow decreased by 1,500.00; weighted "
+                        "external flow decreased by 550.00."
+                    ),
+                )
                 transaction_component_guidance = [
                     str(row[10])
                     for row in underlying_rows
