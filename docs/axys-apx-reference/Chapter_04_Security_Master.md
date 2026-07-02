@@ -835,7 +835,7 @@ This chapter is based only on the supplied repository chapter and research mater
 
 | Source | Use |
 |---|---|
-| `Chapter_04_Security_Master.md` | Prior chapter draft used as source material, then reorganized and expanded. |
+| `Chapter_04_Security_Master.md` | Earlier chapter material reorganized and expanded into this reference. |
 | `Research_04_Security_Master.md` | Research notes, independent research addendum, and independent research update. |
 
 ### 16.3 Source Material Summarized in the Research Notes
