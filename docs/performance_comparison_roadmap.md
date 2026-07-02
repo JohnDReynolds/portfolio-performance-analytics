@@ -2425,6 +2425,25 @@ guardrail semantics for `lo` and `;`.
 The phase keeps vendor-preset implementation blocked. It only improves the
 readability and auditability of the existing explicit YAML policy.
 
+### Phase 59: Axys Demo Completion Gate Audit
+
+Status: complete for the current gate audit. Gate status: near-pass.
+
+The Axys demo completion gate was checked against current packaged files,
+generated review bundles, validation commands, and focused tests. The current
+state satisfies the auditable mechanical checks: packaged transaction CSVs do
+not expose fixture transaction identifiers, the explicit YAML validates with
+ambiguous-flow context safeguards, generated bundles validate, demo matrix
+coverage passes, and focused package/demo health tests pass.
+
+The gate is not declared fully passed until the Axys demo is intentionally
+frozen as a preset seed. Until then, `vendor: axys` remains design-only even
+though the current explicit YAML is close enough to serve as the candidate seed.
+
+The health check regenerated both report bundles during this audit. The
+portfolio and security `report.html` hashes were unchanged, so this phase did
+not change user-facing report content.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

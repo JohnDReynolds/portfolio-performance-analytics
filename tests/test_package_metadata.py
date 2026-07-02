@@ -773,6 +773,11 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("candidate seed for a future `vendor: axys` preset", roadmap)
         self.assertIn("reserved", roadmap)
         self.assertIn("guardrail semantics for `lo` and `;`", roadmap)
+        self.assertIn("Phase 59: Axys Demo Completion Gate Audit", roadmap)
+        self.assertIn("Gate status: near-pass", roadmap)
+        self.assertIn("not declared fully passed until", roadmap)
+        self.assertIn("frozen as a preset seed", roadmap)
+        self.assertIn("report.html` hashes were unchanged", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
