@@ -12,6 +12,8 @@ Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
 [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
 
+[axys-apx-blockers]: axys-apx-reference/Chapter_01_Overview.md#axysapx-blockers
+
 ## How To Read This Roadmap
 
 Start here when deciding what remains to do:
@@ -19,6 +21,9 @@ Start here when deciding what remains to do:
 - **Current Open Items** is the active backlog.
 - **Axys Extract Contract Review Map** shows the source-contract path that must
   stay aligned as demo fields or site-extract rules change.
+- **Axys/APX blockers** in [Chapter 01][axys-apx-blockers]
+  is the canonical summary of evidence gaps that block broader Axys/APX-native
+  automation.
 - **Implementation Phases** is historical implementation detail. Most phase
   notes are complete, superseded, or preserved as rationale rather than active
   work.
@@ -86,7 +91,7 @@ core Modified Dietz report cleanup.
 | --- | --- | --- |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
 | Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
-| Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, and optional diagnostics flow. | Metadata tests reject stale reader-path terms and preserve the normal review order. |
+| Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
 
 ### Transaction And Policy Backlog
 

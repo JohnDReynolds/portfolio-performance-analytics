@@ -673,6 +673,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Code simplification watchlist", roadmap)
         self.assertIn("Performance watchlist", roadmap)
         self.assertIn("Documentation freshness", roadmap)
+        self.assertIn("**Axys/APX blockers**", roadmap)
+        self.assertIn(
+            "axys-apx-reference/Chapter_01_Overview.md#axysapx-blockers",
+            roadmap,
+        )
+        self.assertIn("canonical Axys/APX blocker summary", roadmap)
         self.assertIn("Phase 38: Packaging Surface And Product Boundary Audit", roadmap)
         self.assertIn(
             "Phase 40: YAML Strictness And Misleading-Report Prevention",
@@ -724,6 +730,30 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
+
+    def test_axys_apx_reference_documents_blockers(self) -> None:
+        """The Axys/APX reference keeps a single blocker summary discoverable."""
+        overview = Path("docs/axys-apx-reference/Chapter_01_Overview.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "## Axys/APX blockers",
+            "No verified performance extract dictionary",
+            "Stored vs recalculated performance is Unknown",
+            "Security-performance footing is Unknown",
+            "Transaction-code coverage is incomplete and context-dependent",
+            "IMEX object names and field lists are not authoritative",
+            "REP, SSRS, and report definitions are missing",
+            (
+                "Multi-currency, fixed-income, and corporate-action behavior "
+                "remains under-evidenced"
+            ),
+            "configurable source-data comparison",
+            "vendor-specific extraction",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, overview)
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""
