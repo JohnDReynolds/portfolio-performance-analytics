@@ -585,7 +585,7 @@ The following items remain Unknown and should not be documented as facts until s
 | Complete standard report catalog | Unknown | Partially known | Provide installed report catalog or vendor report guide. |
 | Exact report file names | Unknown | Unknown | Provide REP/RDL/report source tree. |
 | Report parameter names | Unknown | Unknown | Provide report definitions, screenshots, or RDL/REP source. |
-| Report source-data | Unknown | Unknown | Inspect REP source, APX RDL datasets, APX SQL, public views, or stored accounting functions. |
+| Report source datasets and logic | Unknown | Unknown | Inspect REP source, APX RDL datasets, APX SQL, public views, or stored accounting functions. |
 | Stored vs recalculated performance behavior | Unknown | Unknown | Compare controlled report outputs with stored exports and reruns after input changes. |
 | Report-to-IMEX equivalence | Unknown | Unknown | Provide matched report output and IMEX extracts. |
 | Gross/net-of-fee handling | Unknown | Unknown | Provide report options/source and fee examples. |
