@@ -174,9 +174,9 @@ rows:
     required_evidence: [source_destination_type, source_destination_symbol, security_type, amount_or_quantity_signs]
     imex_confidence: medium_context_required
     rep_confidence: medium_high
-    coverage_status: covered_site_variant
-    fixtures: [site_variants/imex_context, site_variants/rep_semantics]
-    coverage_notes: Site-variant fixtures cover external-party outflow and internal-transfer cases; test-only rebuild coverage proves inserted external cash outflows adjust cash without adding a packaged lo story.
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers a contextual external cash deliver-out; site-variant fixtures cover external-party outflow and internal-transfer cases.
   dp:
     observed_meaning: Cash-security buy, tax, fee, recordkeeping, investment expense, service charge, debit-like case.
     ppar_categories: [fee_expense, transfer, unknown_pending_review]

@@ -3,6 +3,7 @@ axys_full_spec_b,adjust,ALPHA0203,,,,,,,,,,,,,,,0.0,0.0,-1500.0,0.0,Withdrawal c
 axys_full_spec_b,adjust,ALPHA0401,,,,,,,,,,,,,,,1.1372,0.15,-196.98,10.0,AAPL buy correction changes quantity price commission and amount.
 axys_full_spec_b,adjust,BALANCED0203,,,,,,,,,,,,,,,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
 axys_full_spec_b,insert,BALANCED0403,BALANCED,2026-03-20,2026-03-20,CASH_USD,li,caus,$pty,$cash,,,0.0,0.0,2500.0,0.0,0.0,0.0,0.0,0.0,Contribution restatement adds external cash inflow.
+axys_full_spec_b,insert,ALPHA0303,ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$pty,$cash,,,0.0,0.0,-2000.0,0.0,0.0,0.0,0.0,0.0,Deliver-out restatement adds external cash outflow.
 axys_full_spec_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
 axys_full_spec_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
 axys_full_spec_b,adjust,INCOME0603,,,,,,,,,,,,,,,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.

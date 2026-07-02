@@ -10,6 +10,9 @@ Snapshot B intentionally restates selected rows from the operational snapshot:
   transaction also has changed quantity, price, and commission fields. The
   amount is the modeled transaction input; the changed components remain
   supporting evidence.
+- `ALPHA`, February 2026: an inserted `lo` row on `CASH_USD` adds an external
+  cash deliver-out with external-party context, and the generated ending cash
+  holding, portfolio performance, and reconstruction diagnostics stay aligned.
 - `ALPHA`, May 2026: AAPL price and security-return changes plus a `CASH_USD`
   holding correction fully explain the portfolio-period performance difference.
 - `BALANCED`, January 2026: one MSFT `sl` transaction changes amount, quantity,

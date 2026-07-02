@@ -157,9 +157,9 @@ not just a validation result. The packaged demo is accepted as the future
 `vendor: axys` seed with these boundaries as versioned preset semantics:
 
 - the packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`,
-  external-cash `li`, and external-cash `wd`;
-- `lo` and `;` remain guardrail-only YAML rules until a realistic packaged
-  story justifies promoting them;
+  external-cash `li`, external-cash `lo`, and external-cash `wd`;
+- `;` remains a guardrail-only YAML rule until a realistic packaged story
+  justifies promoting it;
 - ambiguous Axys-style `dp`, `li`, `lo`, and `wd` rows remain context-gated and
   must not be classified from transaction code alone;
 - packaged transaction rows intentionally omit stable transaction identifiers
@@ -176,8 +176,8 @@ Freeze-packet evidence map:
 
 | Accepted boundary | Current evidence |
 | --- | --- |
-| Packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, and external-cash `wd`. | `axys_full_spec_a/transactions.csv`, `axys_full_spec_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, and demo data audit tests. |
-| `lo` and `;` remain guardrail-only YAML rules. | Packaged transaction CSVs contain no `lo` or `;` rows; the comparison YAML keeps both rules as defensive/reserved semantics; site-variant and matrix tests cover their non-packaged behavior. |
+| Packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `axys_full_spec_a/transactions.csv`, `axys_full_spec_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, and demo data audit tests. |
+| `;` remains a guardrail-only YAML rule. | Packaged transaction CSVs contain no `;` rows; the comparison YAML keeps the rule as defensive/reserved semantics; site-variant and matrix tests cover non-packaged corporate-action behavior. |
 | Ambiguous `dp`, `li`, `lo`, and `wd` rows remain context-gated. | Packaged transaction CSVs include source/destination and special-security context columns; the packaged extract contract requires those context fields; `validate_config` reports ambiguous-flow enforcement as enabled. |
 | Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
 | Fee-like `dp` assumes net-of-fees reported performance. | The comparison YAML and packaged README both state the net-of-fees assumption and warn that gross-of-fees performance needs a separate return-basis policy. |
@@ -261,12 +261,15 @@ match a reviewed conditional rule, or the source must provide reviewed
 category/sign semantics, before ppar treats an ambiguous Axys code as an
 external flow, transfer, fee/expense, or performance transaction.
 
-The packaged contribution is modeled as a new inserted transaction scenario,
-not as a numeric mutation of an unrelated existing transaction. It uses an
-Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
-`SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero quantity/price/commission, and
-explicit YAML semantics that classify it as an external capital inflow from
-that context.
+The packaged contribution and deliver-out examples are modeled as new inserted
+transaction scenarios, not as numeric mutations of unrelated existing
+transactions. The contribution uses an Axys-style `li` row on `CASH_USD` with
+`SRC_DEST_TYPE=$pty`, `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero
+quantity/price/commission, and explicit YAML semantics that classify it as an
+external capital inflow from that context. The deliver-out uses the same
+context standard with an Axys-style `lo` row and negative `AMOUNT`, so it proves
+the opposite external-flow direction without treating `lo` as safe by code
+alone.
 
 ## Fixed-Income Transaction Boundary
 

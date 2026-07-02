@@ -102,7 +102,7 @@ parked in Eventual Deliverables even though the Axys seed is accepted.
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | Nonredundant external-flow variants; a realistic `lo` transfer example only if it adds a distinct reviewer story beyond the existing packaged `li`, `wd`, and `dp` cases; real historical split only if the demo period supports it. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
+| Packaged demo candidate | Real historical split only if the demo period supports it; additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
 | Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. |
 | Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
@@ -123,11 +123,11 @@ Packaged demo rows should stay narrow enough to tell a coherent Modified Dietz
 story. Synthetic edge cases belong in test-only fixtures.
 
 Current triage: the packaged Axys demo already covers normal buys, sells,
-ordinary income, fixed-income income, contextual `li`, external `wd`, and
-fee-like `dp` rows. Do not promote a packaged `lo` row merely for symmetry. A
-packaged `lo` addition should wait until it can show a nonredundant outflow or
-transfer situation that changes the reviewer conversation more clearly than the
-existing site-variant fixtures.
+ordinary income, fixed-income income, contextual `li`, contextual `lo`,
+external `wd`, and fee-like `dp` rows. Do not add more packaged external-flow
+rows merely for symmetry. Additional rows should wait until they show a
+nonredundant outflow or transfer situation that changes the reviewer
+conversation more clearly than the existing packaged and site-variant fixtures.
 
 ### Longer-Term Deliverables
 
@@ -1012,8 +1012,8 @@ classify Axys transaction semantics safely.
 
 | Priority | Scenario family | Permanent home | Required evidence before implementation | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Additional contribution or withdrawal variants | Test-only first, packaged demo only when nonredundant | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | The packaged demo now includes one ordinary `li` contribution and one `wd` withdrawal. Add more only when the scenario teaches a new review behavior. |
-| 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures and the packaged `li` contribution prove the classification patterns. Add transfer examples to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
+| 1 | Additional contribution or withdrawal variants | Test-only first, packaged demo only when nonredundant | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | The packaged demo now includes one ordinary `li` contribution, one contextual `lo` deliver-out, and one `wd` withdrawal. Add more only when the scenario teaches a new review behavior. |
+| 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures and the packaged `li`/`lo` external-flow rows prove the classification patterns. Add transfer examples to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
 | 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
 | 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | Do not add a user-facing bond maturity until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
 | 5 | Return of capital (`rc`) | Test-only first | Security, amount sign, cost-basis/report treatment, whether return is performance income or review-only corporate-action evidence. | Needs explicit policy before it can explain performance. |
@@ -1057,12 +1057,13 @@ Implemented contribution recipe:
 - keep future external-flow rows out of packaged CSVs until the generated
   workbook has no unintended partly explained or unexplained period.
 
-Test-only rebuild guards now mirror this for both directions: inserted `li`
-cash rows prove external contributions increase cash, and inserted `lo` cash
-rows prove external deliver-out/withdrawal-style rows decrease cash when
-external-party context is present. The packaged demo keeps only the realistic
-`li` contribution and `wd` withdrawal examples until a separate `lo` user story
-adds reviewer value.
+Rebuild guards now mirror this for both directions: inserted `li` cash rows
+prove external contributions increase cash, and inserted `lo` cash rows prove
+external deliver-out/withdrawal-style rows decrease cash when external-party
+context is present. The packaged demo includes one realistic `li` contribution,
+one realistic `lo` deliver-out, and one `wd` withdrawal example; further
+variants should remain test-only until a separate user story adds reviewer
+value.
 
 `li`/`lo`, additional `dp`/`wd`, and synthetic corporate-action scenarios should
 remain test-only until they meet their own version of this gate. A real-world
@@ -2282,10 +2283,10 @@ That is intentional. The packaged demo already includes a contextual external
 cash `li`, an external cash `wd`, a fee-like `dp`, ordinary `by` / `sl`
 trading rows, dividend income, and fixed-income income. Site-variant fixtures
 already cover the broader ambiguous-code behavior for `li`, `lo`, `dp`, and
-`wd`, including external-party and internal-transfer distinctions. A packaged
-`lo` row would be useful only if it adds a distinct reviewer story; adding it
-only to mirror the packaged `li` example would make the demo less realistic and
-more fixture-shaped.
+`wd`, including external-party and internal-transfer distinctions. At this
+point, a packaged `lo` row would be useful only if it adds a distinct reviewer
+story; adding it only to mirror the packaged `li` example would make the demo
+less realistic and more fixture-shaped.
 
 The active backlog now names that standard directly: promote additional
 transaction families to packaged data only when they are realistic,
@@ -2476,11 +2477,11 @@ Status: complete for freeze-decision prep.
 
 The demo source contract now has an Axys Demo Freeze Decision Packet. It turns
 the freeze choice into a concise acceptance checklist covering packaged
-transaction families, guardrail-only `lo` and `;` rules, context-gated
-ambiguous codes, conservative no-ID matching, the net-of-fees `dp` assumption,
-intentional Fully/Partly/Unexplained report examples, review-evidence fields,
-and the boundary that `vendor: axys` means ppar's versioned Axys preset
-semantics rather than universal Axys behavior.
+transaction families, then-current guardrail-only `lo` and `;` rules,
+context-gated ambiguous codes, conservative no-ID matching, the net-of-fees
+`dp` assumption, intentional Fully/Partly/Unexplained report examples,
+review-evidence fields, and the boundary that `vendor: axys` means ppar's
+versioned Axys preset semantics rather than universal Axys behavior.
 
 The active roadmap now points the freeze-readiness row to that packet instead
 of repeating the checklist inline. The remaining near-term decision is therefore
@@ -2501,11 +2502,12 @@ README, comparison YAML comments, the field-role/source contract, extract
 contract validation, demo matrix tests, and generated report-bundle health
 checks.
 
-The spot audit confirmed that packaged transaction CSV headers omit
-`TRANSACTION_ID`, retain the context columns needed for ambiguous Axys-style
-codes, and include only the current packaged transaction-code families. Snapshot
-A contains `by`, `dp`, `dv`, `in`, `sl`, and `wd`; Snapshot B contains those
-plus `li`. Neither packaged snapshot contains `lo` or `;`.
+At that time, the spot audit confirmed that packaged transaction CSV headers
+omitted `TRANSACTION_ID`, retained the context columns needed for ambiguous
+Axys-style codes, and included only the then-current packaged transaction-code
+families. Snapshot A contained `by`, `dp`, `dv`, `in`, `sl`, and `wd`; Snapshot
+B contained those plus `li`. Neither packaged snapshot contained `lo` or `;`
+in that audit state.
 
 This phase did not freeze the demo or implement `vendor: axys`; it made the
 freeze packet auditable. The remaining decision is still whether to accept that
@@ -2528,8 +2530,8 @@ The packaged performance-comparison demo health script passed after rebuilding
 the portfolio and security report bundles, validating both bundles, checking
 the extract-availability appendix, and validating the packaged demo matrix. The
 comparison YAML also passed `validate_config` with ambiguous-flow enforcement
-enabled and observed transaction codes limited to `by`, `dp`, `dv`, `in`, `li`,
-`sl`, and `wd`.
+enabled and observed transaction codes then limited to `by`, `dp`, `dv`, `in`,
+`li`, `sl`, and `wd`.
 
 A stale-term sweep found only intentional historical roadmap references,
 negative regression assertions, and boundary language that rejects universal
@@ -2577,6 +2579,28 @@ the seed is accepted.
 This phase was documentation-only. It did not require report regeneration or
 report-story edits, and the portfolio/security `report.html` hashes remained
 unchanged.
+
+### Phase 66: Packaged `lo` Deliver-Out Scenario
+
+Status: complete for one packaged external-cash `lo` promotion.
+
+The packaged Axys demo now includes a single Snapshot B inserted `lo` row for
+`ALPHA` February 2026. The row uses `CASH_USD`, `$pty/$cash`
+source/destination context, a negative amount, zero quantity/price/commission,
+and same-day settlement. The scenario is intentionally framed as an external
+cash deliver-out, not as a generic withdrawal and not as evidence that `lo` is
+safe by code alone.
+
+The rebuild pipeline derives the matching lower `CASH_USD` ending holding,
+portfolio performance row, and reconstruction diagnostics from the scenario.
+The YAML rule remains conditional: `lo` is an external flow only when reviewed
+external-party context is present, while internal-transfer branches stay
+available for site/test fixtures.
+
+This phase changes the generated portfolio and security report content because
+the new fully explained ALPHA February period appears in the user-facing review
+surface. The packaged report bundles were regenerated and the new
+`report.html` hashes were captured during validation.
 
 ## Guiding Principle
 

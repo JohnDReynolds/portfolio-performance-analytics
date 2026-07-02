@@ -395,9 +395,9 @@ class TestPackageMetadata(unittest.TestCase):
             "until vendor preset implementation exists",
             "Portfolio Modified Dietz uses holdings",
             "Security Modified Dietz treats buys and sells",
-            'Rules for lo and ";" are retained',
-            "current packaged rows",
-            "The packaged demo does not currently include a lo",
+            "external-cash li, external-cash lo, and external-cash wd",
+            'Rules for ";"',
+            "Long-out is external only with reviewed external-party context",
             "Reserved corporate-action/journal marker",
             "Withdrawal is external only for the packaged CASH_USD",
         ]:
@@ -689,7 +689,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
-        self.assertIn("Do not promote a packaged `lo` row merely for symmetry", roadmap)
+        self.assertIn("Do not add more packaged external-flow\nrows merely for symmetry", roadmap)
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
         self.assertIn("Vendor YAML presets", roadmap)
@@ -797,13 +797,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("universal Axys behavior", roadmap)
         self.assertIn("Phase 62: Freeze Packet Acceptance Audit", roadmap)
         self.assertIn("current freeze-packet auditability", roadmap)
-        self.assertIn("A contains `by`, `dp`, `dv`, `in`, `sl`, and `wd`", roadmap)
-        self.assertIn("Neither packaged snapshot contains `lo` or `;`", roadmap)
+        self.assertIn("At that time, the spot audit confirmed", roadmap)
+        self.assertIn("Neither packaged snapshot contained `lo` or `;`", roadmap)
         self.assertIn("Phase 63: Release Candidate Confidence Sweep", roadmap)
         self.assertIn("current release-candidate confidence", roadmap)
         self.assertIn("full test suite passed with 608 tests", roadmap)
         self.assertIn("build succeeded for both", roadmap)
-        self.assertIn("observed transaction codes limited to", roadmap)
+        self.assertIn("observed transaction codes then limited to", roadmap)
         self.assertIn("stale-term sweep found only intentional", roadmap)
         self.assertIn("Phase 64: Axys Demo Preset Seed Acceptance", roadmap)
         self.assertIn("docs-only preset-seed acceptance", roadmap)
@@ -815,6 +815,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("should not drift back into `vendor: axys` implementation", roadmap)
         self.assertIn("richer APX", roadmap)
         self.assertIn("transaction-policy expansion", roadmap)
+        self.assertIn("Phase 66: Packaged `lo` Deliver-Out Scenario", roadmap)
+        self.assertIn("one packaged external-cash `lo` promotion", roadmap)
+        self.assertIn("external\ncash deliver-out", roadmap)
+        self.assertIn("changes the generated portfolio and security report content", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Axys demo freeze readiness |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
@@ -1139,6 +1143,7 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIn("No new transaction row was promoted", roadmap)
         self.assertIn("`lo` row would be useful only if", roadmap)
+        self.assertIn("Phase 66: Packaged `lo` Deliver-Out Scenario", roadmap)
         self.assertIn("Synthetic or\nsurgical coverage remains test-only", roadmap)
 
         self.assertIn("li", packaged_demo_rule_codes)
@@ -1146,14 +1151,18 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("li", packaged_demo_data_codes)
         self.assertIn("wd", packaged_demo_data_codes)
         self.assertIn("dp", packaged_demo_data_codes)
-        self.assertNotIn("lo", packaged_demo_data_codes)
+        self.assertIn("lo", packaged_demo_data_codes)
         self.assertEqual(
             matrix_yaml["rows"]["li"]["coverage_status"],
             "covered_packaged_demo",
         )
         self.assertEqual(
             matrix_yaml["rows"]["lo"]["coverage_status"],
-            "covered_site_variant",
+            "covered_packaged_demo",
+        )
+        self.assertIn(
+            "packaged_demo",
+            matrix_yaml["rows"]["lo"]["fixtures"],
         )
         self.assertIn(
             "site_variants/imex_context",
@@ -1907,7 +1916,7 @@ class TestPackageMetadata(unittest.TestCase):
             "accepted as the future",
             "versioned preset semantics",
             "packaged transaction families",
-            "guardrail-only YAML rules",
+            "guardrail-only YAML rule",
             "context-gated",
             "conservative no-ID matching",
             "net-of-fees reported performance",

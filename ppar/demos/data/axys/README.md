@@ -101,14 +101,15 @@ Data used:
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
 - YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `dp`, `li`,
-  `wd`, and `;`) to normalized categories such as `buy`, `sell`, `income`,
+  `lo`, `wd`, and `;`) to normalized categories such as `buy`, `sell`, `income`,
   `fee_expense`, `external_flow`, and `corporate_action`. Reviewer-facing
   explanations preserve the source code rather than uppercasing or replacing it
   with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
-  `by`, `sl`, `dv`, `in`, `dp`, `li`, and `wd`. The packaged `li` row is a
-  plain external cash contribution with external-party context. More ambiguous
-  `li`/`lo` transfer cases and synthetic corporate-action rows live in
+  `by`, `sl`, `dv`, `in`, `dp`, `li`, `lo`, and `wd`. The packaged `li` row is a
+  plain external cash contribution with external-party context, and the packaged
+  `lo` row is an external cash deliver-out with the same context standard. More
+  ambiguous `li`/`lo` transfer cases and synthetic corporate-action rows live in
   test-only fixtures until a realistic packaged story and evidence trail
   justify adding them here.
 - Packaged transaction rows omit `TRANSACTION_ID`. ppar supports stable
@@ -120,9 +121,9 @@ Data used:
 
   | Home | Transaction families |
   | --- | --- |
-  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, and external-cash `wd`. |
-  | YAML rules reserved for runtime guards | `lo` transfer/external-flow variants and `;` corporate-action rows. |
-  | Test-only fixtures | `lo` inserted cash-flow behavior, `li`/`lo` site variants, `dp`/`wd` site variants, and `dv` + `by` reinvestment guards. |
+  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
+  | YAML rules reserved for runtime guards | `;` corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
+  | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, and `dv` + `by` reinvestment guards. |
   | Evidence-blocked backlog | `ai`, `pa`, `sa`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and real-world corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
@@ -164,6 +165,7 @@ Expected workbook:
   - a fully explained ALPHA period with a changed buy transaction amount,
     changed AAPL holding quantity/market value, and related transaction
     quantity, price, and commission support rows;
+  - a fully explained ALPHA period with an external cash deliver-out;
   - a fully explained BALANCED period with a dividend transaction amount change;
   - a fully explained BALANCED period with an external cash contribution;
   - a fully explained INCOME period with a larger advisory-fee expense and

@@ -70,8 +70,9 @@ security_return_reconstruction:
 
 transaction_rules:
   # Packaged transaction rows currently use by, sl, dv, in, fee-like dp,
-  # external-cash li, and external-cash wd. Rules for lo and ";" are retained
-  # as defensive guardrails/reserved semantics, not as current packaged rows.
+  # external-cash li, external-cash lo, and external-cash wd. Rules for ";"
+  # are retained as defensive guardrails/reserved semantics, not as current
+  # packaged rows.
   by:
     transaction_category: buy
     cash_flow_sign: negative
@@ -112,9 +113,8 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
   lo:
-    # Long-out is included so sites with reviewed context can use the same
-    # defensive rule shape. The packaged demo does not currently include a lo
-    # transaction story.
+    # Long-out is external only with reviewed external-party context; internal
+    # account movement remains neutral transfer.
     - when:
         source_destination_type: $pty
       transaction_category: external_flow

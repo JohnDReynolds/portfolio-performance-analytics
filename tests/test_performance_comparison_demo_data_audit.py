@@ -69,8 +69,8 @@ _PACKAGED_RESTATEMENT_NOTES_PATH = (
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 )
-_PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "wd"}
-_TEST_ONLY_TRANSACTION_CODES = {"lo"}
+_PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "lo", "wd"}
+_TEST_ONLY_TRANSACTION_CODES: set[str] = set()
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 _PACKAGED_TRANSACTION_COLUMNS = [
     "PORT",
@@ -264,6 +264,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "Current transaction coverage by home",
             "Packaged demo rows",
             "`by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`",
+            "external-cash `lo`, and external-cash `wd`",
             "YAML rules reserved for runtime guards",
             "Test-only fixtures",
             "`dv` + `by` reinvestment guards",
@@ -283,6 +284,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "AAPL `by` transaction amount",
             "MSFT `sl` transaction",
             "inserted `li` row on `CASH_USD`",
+            "inserted `lo` row on `CASH_USD`",
             "JPM `dv` dividend amount",
             "fee-like `dp` transaction",
             "classified from special-security\n  context",
@@ -452,8 +454,20 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                         transaction_code="dp",
                     ),
                 }
+                if snapshot_key == "b":
+                    resolved_rows["ALPHA0303"] = _transaction_row(
+                        frame,
+                        portfolio="ALPHA",
+                        transaction_date="2026-02-17",
+                        security="CASH_USD",
+                        transaction_code="lo",
+                    )
 
-                self.assertEqual(set(resolved_rows), {"ALPHA0203", "INCOME0203"})
+                expected_rows = {"ALPHA0203", "INCOME0203"}
+                if snapshot_key == "b":
+                    expected_rows.add("ALPHA0303")
+
+                self.assertEqual(set(resolved_rows), expected_rows)
                 self.assertEqual(
                     _resolved_transaction_semantics(resolved_rows["ALPHA0203"]),
                     {
@@ -484,6 +498,23 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                         ),
                     },
                 )
+                if snapshot_key == "b":
+                    self.assertEqual(
+                        _resolved_transaction_semantics(resolved_rows["ALPHA0303"]),
+                        {
+                            pc_cols.TRANSACTION_CODE: "lo",
+                            pc_cols.TRANSACTION_CATEGORY: (
+                                TRANSACTION_CATEGORY_EXTERNAL_FLOW
+                            ),
+                            pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                            pc_cols.PERFORMANCE_FLOW_SIGN: (
+                                TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
+                            ),
+                            pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                                TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                            ),
+                        },
+                    )
 
     def test_packaged_demo_transaction_codes_stay_reviewer_realistic(self) -> None:
         """Packaged transaction rows avoid synthetic semantic edge cases."""
@@ -752,7 +783,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["axys_full_spec_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["axys_full_spec_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["axys_full_spec_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 7)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 8)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_scenarios_by_type"],
             {
@@ -761,11 +792,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "dv": 1,
                 "in": 1,
                 "li": 1,
+                "lo": 1,
                 "sl": 1,
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 9)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 10)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
             {
@@ -774,6 +806,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "dv": 1,
                 "in": 1,
                 "li": 1,
+                "lo": 1,
                 "sl": 2,
                 "wd": 1,
             },
@@ -857,7 +890,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 9)
+        self.assertEqual(len(adjustments), 10)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -928,6 +961,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             security="CASH_USD",
             holding_date="2026-03-31",
             deltas={"QTY": 2500.0, "MKT_VAL": 2500.0, "COST": 2500.0},
+        )
+        self._assert_adjustment(
+            by_scenario["ALPHA0303 lo transaction changes cash balance."],
+            portfolio="ALPHA",
+            security="CASH_USD",
+            holding_date="2026-02-27",
+            deltas={"QTY": -2000.0, "MKT_VAL": -2000.0, "COST": -2000.0},
         )
 
     def test_holding_scenario_file_requires_exact_columns(self) -> None:
