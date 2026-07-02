@@ -728,6 +728,12 @@ class TestPackageMetadata(unittest.TestCase):
             "portfolio-return role, while security reports explain",
             roadmap,
         )
+        self.assertIn("Phase 54: Axys/APX Blocker Alignment", roadmap)
+        self.assertIn("native performance extract dictionaries", roadmap)
+        self.assertIn("Phase 55: Release Candidate Reality Check", roadmap)
+        self.assertIn("The full test suite passed with 605 tests", roadmap)
+        self.assertIn("did not alter generated", roadmap)
+        self.assertIn("report content", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 

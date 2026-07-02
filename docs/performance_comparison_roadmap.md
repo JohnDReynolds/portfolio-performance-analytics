@@ -2352,6 +2352,33 @@ changes. A stale-vocabulary sweep found only historical roadmap references and
 negative tests that intentionally reject old wording. Build residue from the
 distribution audit was removed from the checkout.
 
+### Phase 54: Axys/APX Blocker Alignment
+
+Status: complete for current blocker navigation.
+
+The Axys/APX reference now has a single `Axys/APX blockers` section in
+`docs/axys-apx-reference/Chapter_01_Overview.md`. The roadmap points readers to
+that section as the canonical summary of evidence gaps that block broader
+Axys/APX-native automation, including native performance extract dictionaries,
+stored-versus-recalculated performance, security-performance footing,
+transaction-code coverage, IMEX object authority, REP/report definitions, and
+richer multi-currency, fixed-income, and corporate-action behavior.
+
+Metadata tests now keep that blocker section and the roadmap link discoverable.
+
+### Phase 55: Release Candidate Reality Check
+
+Status: complete for current release-candidate verification.
+
+The full test suite passed with 605 tests. The package build succeeded for both
+wheel and source distribution. The wheel and source distribution were inspected
+for packaged Axys demo resources; required CSV/YAML/README inputs were present,
+and `_demo_output` plus tests were absent from the source distribution.
+
+Portfolio and security `report.html` hashes were captured before and after the
+verification pass. They did not change, so this phase did not alter generated
+report content. Build residue was removed after inspection.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
