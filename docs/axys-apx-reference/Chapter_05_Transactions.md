@@ -204,6 +204,29 @@ meaning. Interpretation may depend on:
                           in observed workflows.
   ----------------------------------------------------------------------------
 
+### 1.4 Transaction Matching Boundary
+
+Transaction matching for audit and performance-comparison work should be
+conservative. A source transaction identifier, when present and trustworthy, is
+the preferred linkage between snapshots. Without that identifier, fallback
+matching should use only strict one-to-one evidence such as a single transaction
+on the same portfolio, trade date, security identifier, and transaction code in
+both snapshots. If more than one candidate exists on either side, or if the
+trade date, identifier, or code changed, the records should remain unmatched
+unless site-specific evidence proves the linkage.
+
+This boundary is intentional. Two identical transactions can legitimately occur
+on the same day, transactions can be added or deleted between snapshots, and a
+date change can alter weighted cash-flow treatment. Fuzzy matching may create a
+plausible story that is wrong. When a transaction cannot be matched, reports
+should show the Snapshot A and Snapshot B rows as unmatched while still
+explaining the Modified Dietz effect of the observed source-data changes.
+
+Observed AIA transaction-translation logic may be case-insensitive inside that
+integration workflow, but ppar should preserve native transaction-code and
+security-identifier case unless a site-specific mapping explicitly says
+otherwise.
+
 ------------------------------------------------------------------------
 
 ## 2. Axys

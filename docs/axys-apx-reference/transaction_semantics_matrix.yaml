@@ -33,6 +33,22 @@ ambiguous_external_flow_codes:
   - lo
   - dp
   - wd
+matching_rules:
+  preserve_native_case: true
+  source_transaction_id: preferred_when_present_and_trustworthy
+  strict_fallback_key:
+    - portfolio
+    - trade_date
+    - security_identifier
+    - transaction_code
+  strict_fallback_requires_unique_one_to_one: true
+  fuzzy_matching_allowed: false
+  unmatched_rows_remain_reportable: true
+  notes: >
+    If a row cannot be matched conservatively, keep Snapshot A and Snapshot B
+    rows unmatched. Added, deleted, duplicate same-day, and trade-date-moved
+    transactions can still explain Modified Dietz numerator or weighted-flow
+    effects without an inferred transaction linkage.
 rows:
   by:
     observed_meaning: Buy; reinvestment buy leg; non-cash deposit paired leg.

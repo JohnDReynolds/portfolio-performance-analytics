@@ -35,6 +35,10 @@ Important boundary rules:
 - `epus` and `exus` are observed fee/expense classification tokens, but sources
   disagree on whether they are transaction codes, labels, security types, or
   special-security terms.
+- Preserve native transaction-code and security-identifier case. Some observed
+  integration translation logic is case-insensitive, but ppar matching and
+  equality checks should not become case-insensitive unless an explicit site
+  mapping says so.
 
 ## Field Meanings
 
@@ -83,6 +87,24 @@ Important boundary rules:
 | `si` / `so` pair | Observed opposite cash-journal pair in cash research. | `unknown pending review` until supported by transaction-code evidence. | Local mapping, source/destination fields, matching pair evidence. | Not yet covered. | Mentioned as AIA pair logic; exact ppar treatment unresolved. |
 | `tr` / `ts` pair | Observed opposite cash-journal pair in cash research. | `unknown pending review` until supported by transaction-code evidence. | Local mapping, source/destination fields, matching pair evidence. | Not yet covered. | Mentioned as AIA pair logic; exact ppar treatment unresolved. |
 | `dv` + `by` reinvestment pair | Reinvested dividend represented as income plus buy. | Income leg is `performance`; buy leg is `performance`; avoid double-counting as external flow. | Pairing evidence such as dividend-wash symbol, dates, offsetting amounts, security, and local mapping. | Partially covered by a test-only reconstruction fixture. | Double-count guards are covered; full pair matching still needs dividend-wash context before packaged-demo inclusion. |
+
+## Snapshot Matching Boundary
+
+Performance-comparison reports should match transactions only when the evidence
+is strong enough to avoid invented linkage:
+
+1. Prefer a trustworthy source transaction identifier when one is available.
+2. Without an identifier, allow strict fallback matching only for a unique
+   one-to-one row on both sides using portfolio, trade date, security
+   identifier, and transaction code.
+3. Do not fuzzy-match transactions by amount, near date, partial description,
+   similar security, or best-score logic.
+4. If multiple same-day candidates exist, or if a transaction was added,
+   deleted, or moved to a different trade date, leave the rows unmatched unless
+   site-specific evidence proves linkage.
+5. Keep unmatched rows reportable. They can still explain Modified Dietz
+   numerator or weighted-flow effects without pretending that Snapshot A and
+   Snapshot B rows are the same transaction.
 
 ## External-Flow Decision Rules
 
