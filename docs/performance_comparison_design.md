@@ -1127,9 +1127,9 @@ multiple vendors and possibly site-specific presets over time.
 
 A preset keyword such as `vendor: axys` should mean "start with ppar's
 versioned Axys preset semantics" rather than "assume all Axys installations
-behave identically." The Axys preset should initially be derived from the
-packaged Axys demo YAML only after that demo is stable enough to be treated as
-a reusable starting point.
+behave identically." The Axys preset seed is now the accepted packaged Axys
+demo YAML semantics, but preset implementation is deliberately parked until the
+project chooses that lane.
 
 Suggested shape:
 
@@ -1166,8 +1166,7 @@ and avoids hidden policy behavior.
 
 Preset design guardrails:
 
-- Presets are design-only until the relevant packaged demo is considered
-  complete and stable.
+- Presets are design-only until explicit implementation work is approved.
 - Presets must be versioned and tied to a documented source contract.
 - Presets must support multiple vendors without hard-coding Axys assumptions
   into source-agnostic comparison logic.
@@ -1183,10 +1182,10 @@ Preset design guardrails:
   overrides were applied, so reviewers know which policy layer produced the
   resolved rules.
 
-This layer is intentionally later than the current Axys demo hardening. Building
-it too early would turn every demo YAML refinement into a preset compatibility
-question. Designing it now is useful; implementing it should wait until the
-Axys demo semantics are final enough to serve as a stable preset seed.
+This layer is intentionally later than the current Axys demo hardening. The
+Axys demo is accepted as the preset seed, but implementation should remain
+parked until the project deliberately chooses vendor-preset infrastructure as
+the next product lane.
 
 ### Column Mapping Defaults
 

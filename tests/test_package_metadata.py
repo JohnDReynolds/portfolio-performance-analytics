@@ -702,6 +702,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Axys Demo Freeze Decision Packet", roadmap)
         self.assertIn("mapped to concrete packaged-data", roadmap)
         self.assertIn("accepted as the future `vendor: axys` preset seed", roadmap)
+        self.assertIn("Vendor-preset infrastructure is deliberately", roadmap)
+        self.assertIn("parked in Eventual Deliverables", roadmap)
         self.assertIn("versioned Axys preset seed", roadmap)
         self.assertIn("**Axys/APX blockers**", roadmap)
         self.assertIn(
@@ -808,6 +810,11 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("accepted seed for the packaged Axys demo scope", roadmap)
         self.assertIn("does not add hidden runtime policy", roadmap)
         self.assertIn("remaining vendor-preset work is now implementation", roadmap)
+        self.assertIn("Phase 65: Post-Freeze Backlog Reorientation", roadmap)
+        self.assertIn("docs-only post-freeze reorientation", roadmap)
+        self.assertIn("should not drift back into `vendor: axys` implementation", roadmap)
+        self.assertIn("richer APX", roadmap)
+        self.assertIn("transaction-policy expansion", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Axys demo freeze readiness |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
@@ -848,12 +855,14 @@ class TestPackageMetadata(unittest.TestCase):
             "vendor: axys",
             "engine defaults < vendor preset < site YAML overrides",
             "--print-resolved-config",
-            "Presets are design-only until",
+            "preset implementation is deliberately parked",
+            "Presets are design-only until explicit implementation work is approved",
             "complete-YAML validation",
             "ambiguous transaction-code safeguards",
             "report bundle should record the preset name/version",
-            "implementing it should wait until",
-            "Axys demo semantics are final",
+            "accepted as the preset seed",
+            "vendor-preset infrastructure",
+            "the next product lane",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, design)

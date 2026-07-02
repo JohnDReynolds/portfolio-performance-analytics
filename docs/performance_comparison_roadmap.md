@@ -87,7 +87,8 @@ Completed guardrails now cover:
 ## Current Open Items
 
 The remaining work is backlog expansion and targeted release hardening, not
-core Modified Dietz report cleanup.
+core Modified Dietz report cleanup. Vendor-preset infrastructure is deliberately
+parked in Eventual Deliverables even though the Axys seed is accepted.
 
 ### Near-Term Release Hardening
 
@@ -2553,6 +2554,25 @@ decision as an open item. The remaining vendor-preset work is now implementation
 work in Eventual Deliverables: expand the accepted seed into inspectable
 resolved YAML, preserve deterministic site overrides, and keep ambiguous-flow
 and complete-YAML safeguards in force.
+
+This phase was documentation-only. It did not require report regeneration or
+report-story edits, and the portfolio/security `report.html` hashes remained
+unchanged.
+
+### Phase 65: Post-Freeze Backlog Reorientation
+
+Status: complete for docs-only post-freeze reorientation.
+
+The roadmap and design notes now separate two ideas that should not be blurred:
+the packaged Axys demo is accepted as the future `vendor: axys` preset seed,
+but vendor-preset infrastructure is deliberately parked in Eventual
+Deliverables until the project explicitly chooses that product lane.
+
+The current open work should not drift back into `vendor: axys` implementation
+by accident. The practical next lanes are non-preset backlog work: richer APX
+demo design, transaction-policy expansion, cautious code simplification, or
+documentation freshness. Preset implementation remains future work even though
+the seed is accepted.
 
 This phase was documentation-only. It did not require report regeneration or
 report-story edits, and the portfolio/security `report.html` hashes remained
