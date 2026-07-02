@@ -28,7 +28,12 @@ Cash activity is best interpreted as a transaction-classification problem rather
 | IMEX cash interface | Exact Axys/APX IMEX object names and field names for cash balances or cash activity. | Unknown |
 | REP/report cash interface | Exact Axys/APX REP or standard report names for cash balances, cash activity, cash reconciliation, or multi-currency cash. | Unknown |
 
-The supplied research supports cash-related transaction and integration behavior more strongly than native cash-balance storage behavior. Therefore, this chapter documents observed transaction/interface behavior and preserves cash-balance storage, report, and IMEX object details as Unknown unless directly supported.
+The supplied research supports cash-related transaction and integration behavior
+more strongly than native cash-balance storage behavior. Cash is usually observed
+through transaction, position, and price workflows rather than through a verified
+standalone cash-balance object. Therefore, this chapter documents observed
+transaction/interface behavior and preserves cash-balance storage, report, and
+IMEX object details as Unknown unless directly supported.
 
 ---
 
@@ -239,6 +244,7 @@ Implementation note: because cash balances may be derived, reported, stored, or 
 |---|---:|---:|---:|---|
 | IMEX is relevant to moving data in and out of Axys/APX. | Yes | Yes | High Confidence | Supported by supplied IMEX research and AdventGuru-derived research. |
 | Cash-related data needed for external products may be obtainable through transaction, holding/position, and cash-activity feeds. | Yes | Yes | Medium Confidence | Inference from custodian data and integration manuals; not an IMEX manual. |
+| Axys CI cash-adjacent artifacts include `topost.trn`, `ptopost.trn`, `.pos`, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog`, `imex32.exe`, `pospos32.exe`, and `sipos30`. | Yes | No | Verified for CI workflow | These are integration/reconciliation artifacts, not proof of a native cash-balance object. |
 | A standard IMEX cash-balance object name is not verified. | Unknown | Unknown | Unknown | No verified object named `cash`, `cashbal`, `cash_balance`, or equivalent in supplied material. |
 | Exact cash-related IMEX column names are not verified. | Unknown | Unknown | Unknown | Need IMEX documentation or sample exports. |
 | Whether beginning cash, ending cash, settled cash, trade-date cash, or multi-currency cash balances are distinct IMEX objects is not verified. | Unknown | Unknown | Unknown | Need IMEX documentation or sample exports. |
@@ -461,21 +467,3 @@ The chapter is based only on the supplied research and source material. The supp
 | Multi-currency portfolio examples. | Document local/base cash, FX rates, Mark to Market, and currency behavior. |
 | Client implementation notes or consultant documentation. | Document production quirks and site-specific configuration. |
 | Axys/APX version-specific release notes. | Document version differences. |
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 cash addendum strengthens the view that cash is usually observed
-through transaction, position, and price workflows rather than a verified
-standalone cash-balance object. Axys CI evidence adds `topost.trn`,
-`ptopost.trn`, `.pos`, `$pathcli`, `$pathinf`, `$pathpri`, `$pathlog`,
-`imex32.exe`, `pospos32.exe`, and `sipos30` as cash-adjacent
-integration/reconciliation artifacts.
-
-AIA cash-cleanup behavior is verified as integration-tool logic for Axys/APX,
-including cash-sweep and intra-account-journal pair rules (`dp>wd`, `li>lo`,
-`ti>to`, `si>so`, `tr>ts`), excluded symbols (`margin`, `short`, `dvwash`,
-`dvshrt`, `dvlong`, `cashrt`, `calong`, `income`), and APX Account Skip Logic.
-APX multi-currency evidence remains product-level only, and `Income Projection`
-is a cash-inflow report lead, not a cash-balance report. Native cash-balance
-storage, cash IMEX objects, cash report fields, settled/trade-date behavior,
-multi-currency cash fields, and native token definitions remain Unknown.

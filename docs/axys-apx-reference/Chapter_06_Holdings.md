@@ -145,8 +145,9 @@ The supplied material identifies several Axys files that are relevant to holding
 
 | Statement | Confidence | Notes |
 |---|---:|---|
-| APX has a Portfolio Appraisal report. | Medium Confidence | Based on APX reports guide search-result evidence; full guide was not supplied or verified in the research. |
-| APX Portfolio Appraisal can show holdings by individual tax lot or position. | Medium Confidence | Same limitation: full APX reports guide is needed before treating as Verified. |
+| APX has a Portfolio Appraisal report. | Verified for report concept | Report output is not proof of database, public-view, or IMEX field names. |
+| APX Portfolio Appraisal can show holdings by individual tax lot or position. | Verified for report concept | Report output is not proof of lot-storage mechanics. |
+| APX Portfolio Appraisal output can include quantity, cost, market value, percent of portfolio, yield, and unrealized gain/loss concepts. | Verified for report concept | Treat these as report labels until exact datasets and fields are supplied. |
 | Public APX sample client reports may include a `PORTFOLIO APPRAISAL` section and report parameters such as `STY:APX`. | Medium Confidence | Downstream client-report evidence only; do not treat as a vendor report specification. |
 | Standard APX Portfolio Appraisal default columns are Unknown. | Unknown | No complete APX report output or guide section supplied. |
 | APX group behavior for Portfolio Appraisal is Unknown. | Unknown | No APX-specific evidence comparable to the Axys CSSI group example. |
@@ -221,10 +222,13 @@ The supplied material does not provide a formal Axys or APX IMEX object dictiona
 | Artifact | Axys | APX | Description | Confidence |
 |---|---:|---:|---|---:|
 | `.pos` | Yes | Yes in source-file workflow | Position files created or manipulated in AIA / reconciliation workflows. | Verified for workflows |
+| `ptopost.trn` | Yes | No | CI writes positions to `\CI\exported\ptopost.trn` in CSV format. | Verified for CI workflow |
 | `.pri` | Yes | Yes in source-file workflow | Price files; relevant to valuation and duplicate interlisted security handling. | Verified for workflows |
+| `pospos32.exe` | Yes | No | Axys Position Post utility can create replacement `.pos` files for configured portfolios. | Verified for CI workflow |
 | `apxix.exe` | No | Yes | APX Import/Export utility executable in Custodial Integrator workflow. | Verified |
 | APX output folder | No | Yes | Folder used to transfer data to and from APX in CI workflow; should not contain spaces. | Verified |
 | APX log folder | No | Yes | Folder where APX Import/Export logs are used/displayed in CI workflow. | Verified |
+| `imexPositionLots.log` | Yes | Yes in CI context | Position-lot import log can appear when lots are enabled and available. | Verified for CI workflow |
 | `CDIhold.rep` | Yes | Yes | Report-mediated historical holdings calculation in AIA workflow. | Verified for workflow |
 
 ### 4.3 IMEX unknowns
@@ -530,20 +534,3 @@ only as IMEX-adjacent position evidence.
 
 This evidence does not establish native holdings storage mechanics or standard
 Portfolio Appraisal columns.
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 holdings addendum upgrades APX Portfolio Appraisal to a verified
-report concept for holdings by individual tax lot or position, with report-output
-concepts such as quantity, cost, market value, percent of portfolio, yield, and
-unrealized gain/loss. These are report labels, not APX database or IMEX field
-names.
-
-Axys CI position handling is verified more specifically: CI writes positions to
-`\CI\exported\ptopost.trn`; Position Post can create replacement `.pos` files
-for configured portfolios; lot-enabled output may contain lot data; cash,
-money-market, or no-lot positions fall back to position data; and
-`imexPositionLots.log` may appear instead of `imexPositions.log`. Native holdings
-storage, canonical holdings IMEX object names, APX holdings SQL/public-view
-names, complete Portfolio Appraisal columns, and holdings date/cash/short/accrual
-and FX semantics remain Unknown.

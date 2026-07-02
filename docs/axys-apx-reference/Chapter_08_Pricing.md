@@ -384,6 +384,9 @@ Performance / Reports
 
 | System | Version / context | Pricing-related statement | Confidence | Caveat |
 |---|---|---|---:|---|
+| CI for Axys | V3.19.001 release note | Bond-price calculation correction noted in CI release evidence. | Verified for CI release | Not native Axys release note. |
+| CI for Axys | V3.18.001 release note | Internal price-table source column expanded to six characters. | Verified for CI release | CI/internal table behavior; native `.pri` layout not proven. |
+| CI for Axys | V3.17.001 release note | `cashDivCalculateQuantity` appears in CI release evidence. | Verified for CI release | Dividend/calculation setting context; pricing impact should be validated before use. |
 | CI for Axys | V3.11.001 release note | Corrected case where current calculated price was incorrectly exported to Missing Price file instead of Price file when third-party security price and holding price were unavailable/stale. | Verified for CI release | Not native Axys release note. |
 | CI for Axys | V3.4 release note | Bond calculated prices were truncating last two decimals; corrected to output up to configured maximum decimal digits. | Verified for CI release | Not native Axys release note. |
 | CI for Axys | V3.4 release note | Default calculated-price decimal precision is four; technical support can configure greater precision. | Verified for CI release | CI setting. |
@@ -406,6 +409,9 @@ Performance / Reports
 | Replace entire price file | APX AIA | AIA option deletes existing prices and replaces them with import file prices. | Verified for AIA | High-risk control; require backup/review. |
 | Remove filtered-account prices | APX AIA | Prices for securities held only in filtered accounts may be omitted. | Verified for AIA | Missing prices may be intentional but must be traceable. |
 | Same security priced differently by custodian | APX AIA | AIA option permits custodian-specific price files. | Verified for AIA | Valuation/reporting may differ by custodian/source. |
+| Interlisted duplicate cleanup | APX AIA | AIA can remove unnecessary duplicate holdings and prices for interlisted-security workflows. | Verified for AIA | Requires holdings/pricing context; not a native APX rule. |
+| FX replace risk | APX AIA | FX File Update Logic includes update/add/replace-style modes in AIA evidence. | Verified for AIA | Exact FX-file layout and native APX behavior remain Unknown. |
+| Price-source-width risk | Axys CI | Six-character source-column enhancement means source truncation should be version-aware. | Verified for CI release | CI/internal table behavior; native `.pri` source-width Unknown. |
 | Direct file access risk | Axys | Consultant evidence warns Axys file formats can change across versions. | Medium | Prefer IMEX/REP; version-control file readers. |
 
 ---
@@ -586,21 +592,3 @@ native price schemas Unknown.
 
 These points do not prove the official IMEX price object name, `.pri` field
 layout, or APX price public-view schema.
-
-## Deep Research Update Incorporated 2026-07-02
-
-The July 2026 pricing addendum adds version-specific CI evidence and APX AIA
-controls. Axys CI release notes verify a V3.19.001 bond-price calculation
-correction, a V3.18.001 six-character internal price-table source-column
-enhancement, and V3.17.001 `cashDivCalculateQuantity`; these are CI facts, not
-native `.pri` layout evidence.
-
-APX AIA evidence verifies Price File Update Logic modes, Clean Price File, Price
-Set Logic, custodian-specific price files, custodian trumping order, custom
-price-file names, APX import-layout cautions, interlisted duplicate price
-cleanup, and FX File Update Logic with update/add/replace modes. Useful audit
-additions are interlisted duplicate cleanup, FX replace risk, and CI
-price-source-width risk. Native price schemas, `.pri` layouts, price keys, source
-hierarchy, APX price-set schema, price public views, standard price-report names,
-clean/dirty bond pricing, primary-close handling, and FX-file layout remain
-Unknown.
