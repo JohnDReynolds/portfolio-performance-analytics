@@ -330,7 +330,12 @@ The glossary follows the repository rule that unsupported Axys or APX behavior m
 
 ## 12. Field Name Glossary / Research Targets
 
-The entries in this section are candidate field-name concepts. They are not authoritative Axys/APX native field names unless explicitly marked as observed. Use them as a research checklist when reviewing IMEX exports, REP source, report output, APX SQL/public views, or production samples.
+The entries in this section are candidate field-name concepts. They are not
+authoritative Axys/APX native field names. Even when a label is observed, use
+[Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) for its source
+context, native-vs-label caveat, and confidence. Use this section as a research
+checklist when reviewing IMEX exports, REP source, report output, APX SQL/public
+views, or production samples.
 
 | Candidate Field / Label | Definition | Axys | APX | Interface / Report Context | Confidence |
 |---|---|---|---|---|---|
