@@ -99,7 +99,7 @@ The supplied research supports the following high-level entities. Exact native f
 | Holdings / positions | Supported through Portfolio Appraisal, position files, `.pos`, and reports. | Supported through Portfolio Appraisal, Position Blotter, SQL/current-date extraction in AIA workflow, and reports. | Native storage model remains Unknown. | Verified at entity level |
 | Cash | Represented through transaction activity and cash-like symbols/tokens in integrations. | Represented through transaction activity and cash-like symbols/tokens in integrations. | Native cash balance objects and report names remain Unknown. | High Confidence for integration tokens; native fields Unknown |
 | Prices | `*.pri`, `$pathpri`, `imexPrices.log`, calculated price behavior appear in research. | AIA price-file update logic, price set logic, and `SourceId` appear in research. | Native price schema remains Unknown. | Verified for workflow artifacts; native fields Unknown |
-| Corporate actions | `split.inf` is supported for Axys split evidence; dividends/reorgs likely transaction-driven but not fully verified. | ACA for APX sends holdings to ACA, runs APX Reorg Utility, posts to APX Trade Blotter. | Exact corporate-action field dictionary Unknown. | Axys split file High Confidence; APX ACA workflow Verified |
+| Corporate actions | `split.inf` is supported for Axys split evidence; ACA for Axys receives active holdings, produces reports/Automation Results email, and can process simple/mandatory events to Trade Blotter. | ACA for APX sends holdings to ACA, runs APX Reorg Utility, posts to APX Trade Blotter. | Exact corporate-action field dictionary Unknown. | Axys split file High Confidence; Axys/APX ACA workflows Verified |
 | Performance | Product-level capability supported; APX reports expose portfolio/benchmark/attribution labels; `PRF` appears as a performance-return migration lead. | Product-level capability supported; APX reports expose performance/attribution/contribution labels. | Exact IMEX objects such as `portperf`/`secperf` remain unverified. | Product-level Verified; field-level mixed; `PRF` Medium Confidence |
 | Classifications | Axys supports grouping/reporting by asset class, sector, country, region, etc.; `GRP` appears as a group/color-group migration lead. | APX report guide supports custom classification, industry group, sector in report context. | Native classification storage remains Unknown. | Report/category support Verified; native fields Unknown; `GRP` Medium Confidence |
 | IMEX | Axys Import/Export utility observed as `imex32.exe`; imports transaction, position, and price files in CI workflow. | APX import/export observed as `APXIX.exe` / `ApxIx` / IMEX logs in integration contexts. | Exact object list and field dictionary Unknown. | Verified for utilities/workflows; object fields Unknown |
@@ -202,7 +202,8 @@ The supplied research supports the following high-level entities. Exact native f
 | `Statement Transactions` | APX portfolio tab for statement transactions in AIA workflow. | No | Yes | No | UI/report context | Verified in AIA workflow |
 | `Transactions` | APX portfolio tab for posted trade-blotter transactions in AIA workflow. | Unknown | Yes | No | UI/report context | Verified in AIA workflow |
 | `APX Reorg Utility` | APX utility run in Advent Corporate Actions workflow before transactions post to Trade Blotter. | No | Yes | Unknown | No | Verified for ACA/APX workflow |
-| `Automation Results` | Email summary after scripted ACA processing. | No | Yes | Unknown | No | Verified for ACA/APX workflow |
+| `Axys ACA Trade Blotter processing` | ACA-for-Axys workflow where simple/mandatory events can process to the Axys Trade Blotter. | Yes | N/A | Unknown | Unknown | Verified for workflow; fields Unknown |
+| `Automation Results` | Email summary after scripted ACA processing. | Yes | Yes | Unknown | No | Verified for ACA workflow; fields Unknown |
 | `$pathCDI` | Custom label mapped to a network path for AIA holdings extract workflow. | Yes | Yes | Workflow setting | Report output destination | Verified for AIA workflow |
 | `Holdings Extract Folder (h.CDI)` | AIA setting mapped to holdings extract output folder. | Yes | Yes | Workflow setting | Report output destination | Verified for AIA workflow |
 | `cdirecon` | Typical holdings extract group in AIA workflow. | Unknown | Yes | Workflow setting | REP/report | Verified as typical, not mandatory |
@@ -884,7 +885,7 @@ These labels are valid report-output evidence. They do not establish formula def
 | `li` / `lo` interpretation can depend on settings in Axys conversion evidence. | Yes | Unknown | Medium Confidence | Transaction code alone is not enough. |
 | `epus` and `exus` terminology conflicts across sources. | Yes | Yes | Medium Confidence | Do not classify them definitively without vendor docs. |
 | Price source and price set may matter, especially in APX AIA pricing workflows. | Unknown | Yes | Verified for AIA workflow | Price fields should include source/set when available. |
-| APX ACA-generated transactions post to APX Trade Blotter, but final accounting post lifecycle is Unknown. | No | Yes | Verified workflow; lifecycle Unknown | Corporate-action fields need blotter status/source fields if available. |
+| ACA-generated transactions can reach Trade Blotter workflows, but final accounting post lifecycle and source/origin fields are Unknown. | Yes | Yes | Verified workflow; lifecycle Unknown | Corporate-action fields need blotter status/source fields if available. |
 
 ---
 
@@ -1094,7 +1095,7 @@ This chapter was prepared from the supplied repository blueprint and supplied re
 | `Research_06_Holdings.md` | Portfolio Appraisal fields, holdings/positions, position/lot blotters, holdings extract reports |
 | `Research_07_Cash.md` | Cash tokens, cash sweeps, cash-like source/destination symbols, cash transaction behavior |
 | `Research_08_Pricing.md` | Price files, price logs, price source/sets, calculated prices, APX price-file update logic |
-| `Research_09_Corporate_Actions.md` | `split.inf`, ACA for APX, Reorg Utility, corporate-action field unknowns |
+| `Research_09_Corporate_Actions.md` | `split.inf`, ACA for Axys/APX, Reorg Utility, corporate-action field unknowns |
 | `Research_10_Performance.md` | Performance field candidates, product-level performance capability, performance Unknowns |
 | `Research_11_Classifications.md` | Classification fields/categories, asset class/sector/industry group, custom classification |
 | `Research_12_IMEX.md` | IMEX utilities, logs, file/folder labels, Data Broker/REP32 extraction, native object unknowns |

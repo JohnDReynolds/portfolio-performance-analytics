@@ -363,7 +363,7 @@ These are **report output labels**, not verified APX database fields.
 | Transaction import/review | APX integration evidence uses Trade Blotter and other blotters. | High Confidence | Workflow-specific evidence; native state model Unknown. |
 | Position reconciliation | APX CI/AIA research references Position Blotter and position reconciliation workflows. | High Confidence | Exact APX native reconciliation model Unknown. |
 | Security matching | APX CI requires APX symbol/type resolution and may require translation. | Verified for CI | Native APX security constraints Unknown. |
-| Corporate actions | ACA for APX sends APX holdings to ACA, cross-references actions, runs APX Reorg Utility, and posts transactions to APX Trade Blotter. | Verified for ACA workflow | Final transaction fields/codes Unknown. |
+| Corporate actions | ACA for APX sends APX holdings to ACA, cross-references actions, runs APX Reorg Utility, and posts transactions to APX Trade Blotter; ACA also has a separate Axys workflow documented in Chapter 09. | Verified for ACA workflow | Final transaction fields/codes Unknown. |
 | Price import/update | APX AIA pricing settings include update/add/replace, price set logic, and custodian-specific pricing options. | Verified for AIA workflow | Native price schema Unknown. |
 
 ### 9.2 Blotter Concepts in APX Integration Evidence

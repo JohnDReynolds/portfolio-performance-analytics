@@ -182,7 +182,7 @@ The supplied research supports these architectural domains at the product or int
 | Holdings/positions | Supported. Portfolio Appraisal, POS files, position blotters, `.pos` workflow are observed. | Reports, integration | High Confidence | Stored-vs-calculated model Unknown. |
 | Prices | Supported. `.pri`, price imports, price logs are observed. | Integration, conversion | High Confidence | Complete price file layout Unknown. |
 | Cash | Supported through transactions, cash/security tokens, sweep examples. | Integration, product | High Confidence for cash activity; Unknown for cash-balance store | Exact cash balance objects Unknown. |
-| Corporate actions | Splits supported through `split.inf`; APX ACA workflow exists separately. | Conversion, vendor APX brief | Axys split evidence High Confidence; broader corporate actions Unknown | Exact processing model Unknown. |
+| Corporate actions | Splits supported through `split.inf`; ACA-for-Axys workflow also exists at vendor workflow level. | Conversion, vendor ACA brief | Axys split evidence High Confidence; Axys ACA workflow Verified; fields Unknown | Exact processing model Unknown. |
 | Performance | Supported at product level. | Product, reports | Verified at capability level | Stored-vs-recalculated behavior Unknown. |
 | Classifications/groups | Supported in reports/grouping. | Product, reports, integration | Verified at capability level | Exact storage/historical behavior Unknown. |
 | REP reports | Supported. | Report examples | Verified for Axys | Full report catalog Unknown. |
@@ -523,7 +523,7 @@ Any Axys extract used for integration, audit, or research should record the foll
 | Position import | CI can generate position files and use Position Post in Axys. | APX CI imports positions into Position Blotter and lots into Lot Blotter when enabled. | Verified for workflows |
 | Price import | CI imports price files to Axys and logs errors. | APX AIA has price file update logic and price set logic. | Verified for workflows |
 | Historical holdings | AIA historical holdings load can require `CDIhold.rep`; current-date extraction may differ. | APX AIA current-date data can be read from SQL; historical load requires report. | Verified for AIA workflow |
-| Corporate actions | Axys split file `split.inf` exists in conversion evidence. | APX ACA workflow posts reorg transactions to Trade Blotter via Reorg Utility. | Axys High Confidence for split file; APX Verified workflow |
+| Corporate actions | Axys split file `split.inf` exists in conversion evidence; ACA-for-Axys can process simple/mandatory events to Trade Blotter. | APX ACA workflow posts reorg transactions to Trade Blotter via Reorg Utility. | Axys High Confidence for split file; Axys/APX ACA Verified workflow |
 | Performance calculation | Axys supports performance reporting at product level. | APX supports performance analytics at product level. | Verified at capability level; mechanics Unknown |
 
 ### 11.2 Critical Unknown Processing Behaviors

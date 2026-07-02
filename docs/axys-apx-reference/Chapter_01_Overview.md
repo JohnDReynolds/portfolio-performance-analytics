@@ -168,7 +168,7 @@ The repository is organized into subject chapters and matching research files. T
 | `Chapter_06_Holdings.md` | Holdings | Portfolio Appraisal, positions, `.pos`, holdings extraction, reconciliation, stored/calculated Unknowns. | Supplied. |
 | `Chapter_07_Cash.md` | Cash | Cash activity, sweep/journal logic, cash-like symbols, cash-balance Unknowns. | Supplied. |
 | `Chapter_08_Pricing.md` | Pricing | `.pri` files, price import, missing/stale/calculated price behavior, APX price-set workflow evidence. | Supplied. |
-| `Chapter_09_Corporate_Actions.md` | Corporate actions | Axys `split.inf`, APX ACA/Reorg Utility workflow, dividends/reorg Unknowns. | Supplied. |
+| `Chapter_09_Corporate_Actions.md` | Corporate actions | Axys `split.inf`, Axys ACA workflow, APX ACA/Reorg Utility workflow, dividends/reorg Unknowns. | Supplied. |
 | `Chapter_10_Performance.md` | Performance | Performance capability, report labels, APX attribution/contribution evidence, storage/recalculation Unknowns. | Supplied. |
 | `Chapter_11_Classifications.md` | Classifications | Security type versus classification, asset class/sector/country/region/custom classification evidence. | Supplied. |
 | `Chapter_12_Imex.md` | IMEX | Import/export utilities, workflow artifacts, logs, object/field dictionary status. | Supplied. |
@@ -228,7 +228,7 @@ The following artifacts are observed in supplied chapters. They are not a comple
 | Holdings/positions | Portfolio Appraisal, `.pos`, `ptopost.trn`, `CDIhold.rep`, reconciliation workflows. | Stored-versus-calculated model Unknown. | Verified for reports/workflows |
 | Cash | Cash activity through transactions and cash-like tokens. | Cash-balance storage Unknown. | High Confidence for transaction tokens; native balances Unknown |
 | Prices | `*.pri`, price import logs, calculated/missing/stale price workflow evidence. | Full `.pri` layout and native price model Unknown. | Verified for workflow artifacts |
-| Corporate actions | `split.inf`; reinvestment and paydown conversion evidence. | Broader dividend/reorg storage Unknown. | High Confidence for split artifact |
+| Corporate actions | `split.inf`; ACA active-holdings/report/email/Trade Blotter workflow; reinvestment and paydown conversion evidence. | Broader dividend/reorg storage and ACA output fields Unknown. | High Confidence for split artifact; ACA workflow Verified |
 | Performance | Product-level capability and report capability. | Stored-vs-recalculated behavior Unknown. | Verified capability; implementation Unknown |
 | Classifications | Asset class/sector/country/region reporting capability and export labels. | Classification storage and history Unknown. | Verified at reporting/category level |
 
@@ -290,7 +290,7 @@ The supplied report chapter identifies APX report names. Report names are not da
 | Holdings/positions | Portfolio Appraisal, Position Blotter, current-date APX SQL extraction in AIA workflow, `CDIhold.rep`. | Native table/view names Unknown. | Verified for workflows |
 | Cash | Cash-like tokens and sweep/journal integration logic. | Cash-balance model Unknown. | High Confidence for workflow tokens; native balances Unknown |
 | Prices | AIA price-file update logic, price-set logic, custodian-specific pricing, `SourceId`. | Native price schema Unknown. | Verified for AIA workflow |
-| Corporate actions | ACA Server, APX Reorg Utility, Trade Blotter postings. | Reorg output fields and final lifecycle Unknown. | Verified workflow; field-level Unknown |
+| Corporate actions | ACA Server, APX Reorg Utility, Trade Blotter postings. | Reorg output fields, source IDs, and final lifecycle Unknown. | Verified workflow; field-level Unknown |
 | Performance | Product-level performance analytics; APX attribution/contribution report labels. | Stored-vs-recalculated behavior Unknown. | Verified capability and report labels |
 | Classifications | APX report evidence for custom classification, industry group, sector; attribution/contribution reports. | Storage/history Unknown. | Verified at report/category level |
 
@@ -307,7 +307,7 @@ The supplied report chapter identifies APX report names. Report names are not da
 | Native files observed | `.cli`, `sec.inf`, `type.inf`, `split.inf`, `.pri`, `.pos`, `.REP`. | APX may generate/use `sec.inf`, `type.inf`, `.pri`, `.cli`, `.REP`-style artifacts in workflows, but native SQL schema remains Unknown. | High for observed contexts |
 | SQL access | Not verified as Axys architecture. | Public Views, Stored Accounting Functions, SQL/SSRS, and REST mentioned in practitioner evidence. | APX Medium Confidence |
 | Blotters | `topost.trn` Trade Blotter evidence; position workflows via `ptopost.trn` / Position Post. | Trade, position, lot/tax lot, statement, account, initial transaction, and other blotter concepts. | Verified in workflows |
-| Corporate actions | `split.inf` is the strongest Axys-specific corporate-action artifact. | ACA/APX workflow with ACA Server, APX Reorg Utility, APX Trade Blotter postings. | Verified / High Confidence |
+| Corporate actions | `split.inf` plus ACA-for-Axys workflow with active-holdings script, reports/email, and Trade Blotter processing. | ACA/APX workflow with ACA Server, APX Reorg Utility, APX Trade Blotter postings. | Verified workflow / High Confidence |
 | Performance implementation | Product-level capability; stored/recalculated behavior Unknown. | Product/report-level capability; stored/recalculated behavior Unknown. | Capability Verified; implementation Unknown |
 | Classification history | Unknown. | Unknown. | Unknown |
 
@@ -429,7 +429,7 @@ Portfolio / Account / Client
 | Holdings/positions | Portfolio Appraisal, `.pos`, `CDIhold.rep`, Position Post. | Portfolio Appraisal, Position Blotter, current-date SQL extraction in AIA workflow, `CDIhold.rep`. | Verified in reports/workflows; storage Unknown |
 | Cash | Transaction/cash-like token evidence. | Transaction/cash-like token evidence. | High Confidence for tokens; cash-balance storage Unknown |
 | Prices | `*.pri`, `imexPrices.log`, calculated/missing/stale price workflow. | AIA price update logic, price sets, custodian pricing, `SourceId`. | Verified for workflows; native schema Unknown |
-| Corporate actions | `split.inf`; conversion evidence for reinvestments/paydowns. | ACA Server, APX Reorg Utility, Trade Blotter postings. | Axys split High; APX ACA Verified |
+| Corporate actions | `split.inf`; Axys ACA workflow; conversion evidence for reinvestments/paydowns. | ACA Server, APX Reorg Utility, Trade Blotter postings. | Axys split High; Axys/APX ACA Verified |
 | Performance | Product-level capability; exact objects Unknown. | Product/report capability; attribution/contribution report labels. | Capability Verified; implementation Unknown |
 | Classifications | Asset class/sector/country/region reporting categories and export labels. | Custom classification/industry group/sector report categories. | Report-level Verified; storage Unknown |
 | Reports | REP/Replang examples and predefined/custom reports. | SSRS-based guide reports plus REP32 connector evidence. | Verified / High Confidence |
@@ -744,7 +744,7 @@ The following Unknowns recur across chapters and should be carried forward until
 | Security/classification history behavior | Required for historical attribution and classification reporting. | Classification extracts across dates, report tests, schema/docs. |
 | REP field dictionary and grammar | Required for robust custom report coding. | RepLang documentation or report source library. |
 | APX SSRS report datasets and stored procedures | Required for APX report-to-data reconciliation. | RDL files, SSRS catalog, stored procedure/view documentation. |
-| APX ACA/Reorg Utility output fields | Required for corporate-action audit. | ACA/APX download samples, Trade Blotter exports, Reorg Utility docs. |
+| ACA/Reorg Utility output fields | Required for corporate-action audit. | Axys/APX ACA download samples, Trade Blotter exports, Reorg Utility docs. |
 
 ---
 
@@ -762,7 +762,7 @@ This chapter is based on the following supplied repository material only.
 | `Chapter_06_Holdings.md` | Holdings/positions, Portfolio Appraisal, `.pos`, `CDIhold.rep`, reconciliation behavior. |
 | `Chapter_07_Cash.md` | Cash activity, cash-like tokens, sweeps, journals, cash-balance Unknowns. |
 | `Chapter_08_Pricing.md` | Pricing, `.pri`, missing/stale/calculated price evidence, APX price-set workflow. |
-| `Chapter_09_Corporate_Actions.md` | Axys `split.inf`, APX ACA/Reorg Utility workflow, corporate-action Unknowns. |
+| `Chapter_09_Corporate_Actions.md` | Axys `split.inf`, Axys ACA workflow, APX ACA/Reorg Utility workflow, corporate-action Unknowns. |
 | `Chapter_10_Performance.md` | Performance capability, APX attribution/contribution labels, stored/recalculated Unknowns. |
 | `Chapter_11_Classifications.md` | Classification concepts, security type separation, asset class/sector/country/region/custom classification evidence. |
 | `Chapter_12_Imex.md` | IMEX utilities, logs, workflow artifacts, object/field dictionary status. |
