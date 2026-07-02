@@ -694,6 +694,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("`Other Data Differences` sheet", roadmap)
         self.assertIn("canonical opt-in", roadmap)
         self.assertIn("reconstruction diagnostic worksheet names", roadmap)
+        self.assertIn(
+            "Phase 46: Optional Reconstruction Diagnostics UX Audit",
+            roadmap,
+        )
+        self.assertIn("default reviewer path first", roadmap)
+        self.assertIn("Manifest review entrypoints", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 

@@ -278,8 +278,9 @@ def write_report_bundle_manifest(
         active_findings: Findings table after suppressed rows are excluded.
         title: Report title.
         top_evidence_limit: Maximum number of evidence rows shown per period.
-        include_reconstruction_diagnostics: Whether interim reconstruction
-            diagnostics are included in the bundle.
+        include_reconstruction_diagnostics: Whether optional return
+            reconstruction diagnostic sections and CSV artifacts are included in
+            the bundle.
         comparison_path: Optional comparison YAML path used to generate the
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.

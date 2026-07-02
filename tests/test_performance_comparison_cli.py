@@ -57,6 +57,15 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 self.assertIn(expected_description, result.stdout)
                 self.assertIn("-h, --help", result.stdout)
                 self.assertEqual(result.stderr, "")
+                if module_name == _BUNDLE_MODULE:
+                    self.assertIn(
+                        "--include-reconstruction-diagnostics",
+                        result.stdout,
+                    )
+                    self.assertIn("Reconstruction Summary", result.stdout)
+                    self.assertIn("Return", result.stdout)
+                    self.assertIn("Reconstruction Checks", result.stdout)
+                    self.assertIn("Security Return Checks", result.stdout)
 
     def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
         """Report CLI modules reject surprising negative evidence-row limits."""

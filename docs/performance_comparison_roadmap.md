@@ -2202,6 +2202,27 @@ Metadata tests now reject the stale `Other Data Differences`, `Residual
 Evidence`, and `Return Reconstruction Summary` phrases in the durable reader
 path docs where those names would mislead new users.
 
+### Phase 46: Optional Reconstruction Diagnostics UX Audit
+
+Status: complete for opt-in reconstruction diagnostics ordering and help text.
+
+An opt-in bundle generated with `--include-reconstruction-diagnostics` and
+`--include-workbook` now keeps the default reviewer path first in both
+`report.xlsx` and `report.html`: `Performance Differences`, `Performance
+Difference Causes`, and `Raw Audit Trail`. Optional diagnostics follow that
+normal path as `Reconstruction Summary`, `Return Reconstruction Checks`, and
+`Security Return Checks`.
+
+The CLI help for `--include-reconstruction-diagnostics` now names those
+optional worksheet/report sections and states that matching CSV artifacts are
+included. Manifest review entrypoints continue to expose the CSV artifact names:
+`reconstruction_summary.csv`, `return_reconstruction_checks.csv`, and
+`security_return_reconstruction_checks.csv`.
+
+The temporary opt-in bundle validated successfully, and tests now pin the
+workbook sheet order, HTML section order, manifest reconstruction entrypoints,
+and CLI help wording.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

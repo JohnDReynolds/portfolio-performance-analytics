@@ -368,8 +368,10 @@ def write_performance_comparison_report_bundle(
             the XLSX workbook can name the exact YAML file to update for
             missing attribution setup.
         comparison_level: Primary performance-result level for presentation.
-        include_reconstruction_diagnostics: Whether to include interim
-            reconstruction diagnostic workbook sheets and CSV artifacts.
+        include_reconstruction_diagnostics: Whether to add the optional
+            ``Reconstruction Summary``, ``Return Reconstruction Checks``, and
+            ``Security Return Checks`` workbook/report sections plus matching
+            CSV artifacts.
 
     Returns:
         Mapping from bundle artifact name to normalized written path.

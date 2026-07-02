@@ -297,7 +297,6 @@ def performance_comparison_review_workbook_sheets(
     )
     return (
         primary_sheet,
-        *diagnostic_sheets,
         *_shared_detail_sheets(
             findings,
             active_findings,
@@ -305,6 +304,7 @@ def performance_comparison_review_workbook_sheets(
             comparison_level=comparison_level,
             reconstruction_cache=reconstruction_cache,
         ),
+        *diagnostic_sheets,
     )
 
 

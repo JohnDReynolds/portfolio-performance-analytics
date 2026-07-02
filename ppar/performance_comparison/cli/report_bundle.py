@@ -102,8 +102,8 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--include-reconstruction-diagnostics",
         action="store_true",
         help=(
-            "Include interim reconstruction diagnostic sheets and CSV artifacts "
-            "in addition to the primary review outputs."
+            "Add optional Reconstruction Summary, Return Reconstruction Checks, "
+            "and Security Return Checks sheets plus matching CSV artifacts."
         ),
     )
     parser.add_argument(

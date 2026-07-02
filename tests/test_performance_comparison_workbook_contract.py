@@ -29,11 +29,11 @@ _EXPECTED_PORTFOLIO_SHEETS = [
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
 _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
+    _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
     _pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
     _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
-    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
 ]
 _COMMON_LEFT_HEADERS = [
     "Portfolio",
@@ -688,6 +688,14 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertTrue(
                 manifest["options"]["include_reconstruction_diagnostics"]
             )
+            self.assertEqual(
+                manifest["review_entrypoints"]["return_reconstruction"],
+                [
+                    "reconstruction_summary.csv",
+                    "return_reconstruction_checks.csv",
+                    "security_return_reconstruction_checks.csv",
+                ],
+            )
 
             workbook = openpyxl.load_workbook(
                 paths["review_workbook"],
@@ -698,3 +706,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(workbook.sheetnames, _EXPECTED_DIAGNOSTIC_SHEETS)
             finally:
                 workbook.close()
+
+            html_report = paths["html_report"].read_text(encoding="utf-8")
+            self.assertLess(
+                html_report.index(
+                    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
+                ),
+                html_report.index(_pc_review_model.RECONSTRUCTION_SUMMARY_SHEET),
+            )
+            self.assertLess(
+                html_report.index(_pc_review_model.RAW_AUDIT_TRAIL_SHEET),
+                html_report.index(_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET),
+            )
