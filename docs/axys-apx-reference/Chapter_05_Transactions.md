@@ -1663,7 +1663,7 @@ observed research. It is not an official Axys/APX code dictionary.
 | `dv`, `in` | Income | No | Affects income and cash unless reinvested or netted; validate expected dividend/coupon and pay-date treatment. |
 | `pa`, `sa` | Fixed-income trade adjunct | No | Validate accrued interest, settlement date, coupon schedule, day count, and total trade settlement. |
 | `ai` | Negative interest / margin interest / financing adjustment | No | Validate margin or negative-interest context, amount sign, margin cash/security markers, and financing-rate support. |
-| `dp`, `wd` | Cash, fee, expense, or cash-security movement | Usually no | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, or true movement. |
+| `dp`, `wd` | Cash, fee, expense, external-flow, or cash-security movement | Context-dependent | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, internal movement, or true external movement. |
 | `rc`, `pd` | Corporate action / principal event | Usually no | Validate return-of-capital, paydown, cost-basis, factor, and amortization treatment. |
 | `;` | Journal, split, other, or placeholder | Usually no | Require firm mapping or manual review before performance treatment. |
 | Uppercase code, e.g. `BY` | Reversal / deletion | Depends on original | Link to the original transaction and reverse original economics rather than treating it as independent activity. |
@@ -1682,7 +1682,7 @@ for ambiguous transaction families.
 | `li` | Cash or non-cash | Client-specific | `$pty` or equivalent | `$cash` or equivalent | Contribution, security transfer in, correction, or other | Confirm | Identify cash versus in-kind transfer. |
 | `lo` | Cash or non-cash | Client-specific | `$pty` or equivalent | `$cash` or equivalent | Withdrawal, security transfer out, correction, or other | Confirm | Separate client withdrawal from fees and journals. |
 | `dp` | `epus`, `exus`, cash, or other | Fee/tax/cash symbol | Client-specific | Client-specific | Fee, expense, tax, cash-security buy, or other | Usually no | Confirm gross/net performance treatment. |
-| `wd` | Cash or cash-like | Cash-security symbol | Client-specific | Client-specific | Cash-security sell, sweep, withdrawal-like event, or other | Usually no | Do not infer client withdrawal from name alone. |
+| `wd` | Cash or cash-like | Cash-security symbol | Client-specific | Client-specific | Cash-security sell, sweep, withdrawal-like event, or other | Confirm | Do not infer client withdrawal from name alone; require context before treating it as an external flow. |
 | `;` | Any | Any | Any | Any | Split, journal, other, or placeholder | Usually no | Route high-value items to manual review. |
 | `dv` / `by` | Real security | Real symbol or `dvwash` | `$ity` or equivalent | `$income` or wash symbol | Dividend reinvestment | No | Link income and buy legs to avoid double counting. |
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
