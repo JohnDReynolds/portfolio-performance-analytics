@@ -89,6 +89,7 @@ core Modified Dietz report cleanup.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
+| Axys demo freeze readiness | Decide whether the current packaged Axys CSV/YAML/report story is final enough to freeze as the seed for a future `vendor: axys` preset. | A maintainer explicitly accepts the current packaged transaction families, reserved guardrail-only YAML rules, fee/expense return-basis assumption, intentional Fully/Partly/Unexplained report examples, and no-ID transaction matching story as the versioned Axys preset seed. |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
 | Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
 | Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
@@ -2443,6 +2444,27 @@ though the current explicit YAML is close enough to serve as the candidate seed.
 The health check regenerated both report bundles during this audit. The
 portfolio and security `report.html` hashes were unchanged, so this phase did
 not change user-facing report content.
+
+### Phase 60: Axys Demo Freeze Readiness Sweep
+
+Status: complete for current freeze-readiness framing.
+
+The packaged Axys README, comparison YAML, source contract, roadmap, and
+generated report-story boundary were reviewed as a potential future
+`vendor: axys` preset seed. No runtime rule or packaged data change was needed:
+the current material already separates packaged rows from guardrail-only YAML
+rules, keeps ambiguous Axys-style transaction codes context-gated, preserves
+the fee/expense return-basis caveat, and keeps the richer APX and broader
+transaction backlog outside the packaged Axys demo.
+
+The active backlog now names the remaining freeze decision directly. The
+mechanical checks are green, but the remaining step is a maintainer/product
+decision: explicitly accept the current packaged CSV/YAML/report story as the
+versioned Axys preset seed. Until that decision is made, the correct state
+remains near-pass, not preset implementation.
+
+This phase did not require report regeneration or report-story edits. Portfolio
+and security `report.html` hashes were checked and remained unchanged.
 
 ## Guiding Principle
 

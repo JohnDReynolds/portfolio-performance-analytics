@@ -699,6 +699,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Code simplification watchlist", roadmap)
         self.assertIn("Performance watchlist", roadmap)
         self.assertIn("Documentation freshness", roadmap)
+        self.assertIn("Axys demo freeze readiness", roadmap)
+        self.assertIn("versioned Axys preset seed", roadmap)
         self.assertIn("**Axys/APX blockers**", roadmap)
         self.assertIn(
             "axys-apx-reference/Chapter_01_Overview.md#axysapx-blockers",
@@ -778,6 +780,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("not declared fully passed until", roadmap)
         self.assertIn("frozen as a preset seed", roadmap)
         self.assertIn("report.html` hashes were unchanged", roadmap)
+        self.assertIn("Phase 60: Axys Demo Freeze Readiness Sweep", roadmap)
+        self.assertIn("current freeze-readiness framing", roadmap)
+        self.assertIn("remaining step is a maintainer/product", roadmap)
+        self.assertIn("near-pass, not preset implementation", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
