@@ -136,6 +136,7 @@ existing site-variant fixtures.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
+| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the current packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
 ## Axys Extract Contract Review Map
