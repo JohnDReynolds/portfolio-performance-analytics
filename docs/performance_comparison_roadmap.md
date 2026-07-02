@@ -53,6 +53,14 @@ Completed guardrails now cover:
 - report-bundle artifacts are classified as first-stop review surfaces,
   reviewer handoff metadata, audit/export backbone, supplementary diagnostics,
   or opt-in reconstruction diagnostics;
+- default report/workbook review order starts with `Performance Differences`,
+  `Performance Difference Causes`, and `Raw Audit Trail`; optional
+  reconstruction diagnostics stay opt-in and secondary;
+- durable reader-path docs use current sheet names and reject stale
+  `Other Data Differences` / `Residual Evidence` language;
+- the package-root `ppar.performance_comparison` API boundary is documented:
+  workflow/report helpers stay root-exported while specialized policy and
+  evidence-pack helpers remain direct-submodule imports;
 - production performance-comparison code has no Pandas dependency in its core
   path; large source-data reads, joins, grouping, and validation remain in
   Polars, with row iteration concentrated in presentation and diagnostic
@@ -66,16 +74,18 @@ Completed guardrails now cover:
 
 ## Current Open Items
 
-The remaining work is backlog expansion and release hardening, not core
-Modified Dietz report cleanup.
+The remaining work is backlog expansion and targeted release hardening, not
+core Modified Dietz report cleanup.
 
-### Near-Term Deliverables
+### Near-Term Release Hardening
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Code cleanup | Remove old dead code, obsolete legacy paths, and unnecessary backward-compatibility shims. | Public behavior stays covered; deleted paths have no package/API/test dependency. |
-| Speed bottleneck sweep | Identify major runtime bottlenecks and 80/20 execution-speed wins. | Profiling or targeted timing identifies the top bottlenecks; near-term fixes are separated from longer refactors. |
-| Simplification sweep | Identify 80/20 refactors that reduce complexity without changing report behavior. | Candidate refactors are ranked by risk and payoff; only high-confidence simplifications move into implementation. |
+| Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
+| Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
+| Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, and optional diagnostics flow. | Metadata tests reject stale reader-path terms and preserve the normal review order. |
+
+### Transaction And Policy Backlog
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
@@ -2222,6 +2232,21 @@ included. Manifest review entrypoints continue to expose the CSV artifact names:
 The temporary opt-in bundle validated successfully, and tests now pin the
 workbook sheet order, HTML section order, manifest reconstruction entrypoints,
 and CLI help wording.
+
+### Phase 47: Roadmap Pruning And Release Backlog Reconciliation
+
+Status: complete for current open-item reconciliation after Phases 41-46.
+
+The top-level roadmap now treats artifact taxonomy, the first measured speed
+bottleneck, API-boundary clarification, reader-path freshness, and optional
+reconstruction diagnostics UX as completed release guardrails rather than active
+blockers. The active near-term section is now a release-hardening watchlist:
+small behavior-preserving code simplifications, future profiling only when new
+evidence justifies it, and documentation freshness guardrails.
+
+Transaction coverage, policy expansion, the richer APX demo, multi-currency
+modeling, broader extract discovery, and commercial licensing remain visible as
+the real forward backlog.
 
 ## Guiding Principle
 

@@ -638,7 +638,8 @@ class TestPackageMetadata(unittest.TestCase):
             "## How To Read This Roadmap",
             "## Current Status",
             "## Current Open Items",
-            "### Near-Term Deliverables",
+            "### Near-Term Release Hardening",
+            "### Transaction And Policy Backlog",
             "### Transaction Coverage Expansion",
             "### Longer-Term Deliverables",
             "## Axys Extract Contract Review Map",
@@ -660,10 +661,17 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("excludes source-checkout generation internals", roadmap)
         self.assertIn("minimum source-data contract is documented", roadmap)
         self.assertIn("required datasets and required normalized columns", roadmap)
+        self.assertIn("default report/workbook review order starts", roadmap)
+        self.assertIn("optional", roadmap)
+        self.assertIn("reconstruction diagnostics stay opt-in", roadmap)
+        self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
+        self.assertIn("Code simplification watchlist", roadmap)
+        self.assertIn("Performance watchlist", roadmap)
+        self.assertIn("Documentation freshness", roadmap)
         self.assertIn("Phase 38: Packaging Surface And Product Boundary Audit", roadmap)
         self.assertIn(
             "Phase 40: YAML Strictness And Misleading-Report Prevention",
@@ -700,6 +708,11 @@ class TestPackageMetadata(unittest.TestCase):
         )
         self.assertIn("default reviewer path first", roadmap)
         self.assertIn("Manifest review entrypoints", roadmap)
+        self.assertIn(
+            "Phase 47: Roadmap Pruning And Release Backlog Reconciliation",
+            roadmap,
+        )
+        self.assertIn("release-hardening watchlist", roadmap)
         self.assertNotIn("| Report bundle cleanup |", roadmap)
         self.assertNotIn("| Polars execution audit |", roadmap)
 
