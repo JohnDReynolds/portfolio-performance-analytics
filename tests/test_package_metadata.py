@@ -404,6 +404,35 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
 
+    def test_packaged_axys_quick_start_documents_onboarding_path(self) -> None:
+        """The packaged Axys quick start stays action-oriented for site onboarding."""
+        quick_start = Path("ppar/demos/data/axys/QUICK_START.md").read_text(
+            encoding=util.ENCODING
+        )
+        readme = Path("ppar/demos/data/axys/README.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        for expected_text in [
+            "Axys/APX Performance Comparison Quick Start",
+            "axys_performance_comparison.yaml",
+            "Step 1: Confirm The Source Files",
+            "Step 2: Start From The Vanilla Axys YAML",
+            "Step 3: Validate Before Generating Reports",
+            "Step 5: Generate The First Portfolio Report",
+            "Step 6: Generate The First Security Report",
+            "Success criterion",
+            "comparison level",
+            "validate_config",
+            "report_bundle",
+            "--include-workbook",
+            "cost-basis handling best-efforts",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, quick_start)
+
+        self.assertIn("QUICK_START.md", readme)
+
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
         template_path = Path("docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml")
@@ -1430,6 +1459,7 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.demos.data") / "axys"
         expected_resources = (
             "README.md",
+            "QUICK_START.md",
             "axys_column_mappings.yaml",
             "axys_analytics.yaml",
             "axys_performance_comparison.yaml",

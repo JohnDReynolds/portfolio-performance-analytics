@@ -3,6 +3,11 @@
 The packaged Axys demo data contains only user-facing demo inputs. Test-only
 performance comparison scenarios live under `tests/data/axys`.
 
+Start with [QUICK_START.md](QUICK_START.md) when onboarding an Axys/APX
+performance-comparison site. That file gives the ordered setup path: confirm
+source files, copy the vanilla Axys YAML, validate, generate portfolio and
+security reports, then iterate local overrides.
+
 ## Comparison YAML
 
 There is one packaged Axys comparison YAML file. The portfolio and security demo

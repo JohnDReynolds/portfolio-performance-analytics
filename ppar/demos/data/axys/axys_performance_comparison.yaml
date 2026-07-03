@@ -8,11 +8,23 @@
 # This file is the accepted seed for a future vendor preset such as
 # `vendor: axys`, but it is not a hidden preset today. Keep policy choices
 # explicit and auditable until vendor preset implementation exists.
+#
+# Site onboarding: copy this file, change the snapshot paths and schema mapping
+# first, run validate_config, then adjust transaction rules one code at a time.
+# Leave ambiguous Axys/APX codes conservative until the site extract supplies
+# source/destination, special-security, REP, or reviewed local evidence.
 
 comparison:
   name: Axys performance comparison demo
+  # report_bundle uses comparison.level to choose the primary review level.
+  # Use portfolio for the main portfolio-period review, or copy the YAML and
+  # set this to security for a security-period review.
+  level: portfolio
 
 snapshots:
+  # For a site setup, point these paths at the two local extract directories you
+  # want to compare. Keep the paths relative to this YAML when possible so the
+  # starter kit can move as a directory.
   a:
     label: axys_full_spec_a
     path: axys_full_spec_a
@@ -26,6 +38,8 @@ snapshots:
     schema: axys_column_mappings.yaml
 
 files:
+  # Rename these only if the site extract files use different filenames. Column
+  # names belong in the schema mapping, not here.
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
@@ -69,6 +83,9 @@ security_return_reconstruction:
   sign_convention: signed_amount
 
 transaction_rules:
+  # Start with these vanilla rules. Add site overrides only after validate_config
+  # shows an observed code that needs treatment and the source data proves how
+  # that code affects Modified Dietz inputs.
   # Packaged transaction rows currently use by, sl, dv, in, fee-like dp,
   # external-cash li, external-cash lo, external-cash wd, and fixed-income
   # accrued-interest adjunct pa/sa. Rules for ";" are retained as defensive

@@ -2885,6 +2885,25 @@ package-resource checks, repository docs, and validation instructions reference
 the Axys-specific packaged filename. The future `vendor: axys` preset remains
 design-only and parked in Eventual Deliverables.
 
+### Phase 77: Axys/APX Quick Start Starter Kit
+
+Status: complete for the first-client-segment onboarding path.
+
+The packaged Axys demo now has `QUICK_START.md` as the front door for Axys/APX
+performance-comparison onboarding. The quick start is intentionally procedural:
+confirm source files, copy the vanilla Axys YAML, validate before report
+generation, keep core transaction types conservative, generate portfolio and
+security report bundles, review the workbook in order, and iterate local
+overrides one at a time.
+
+The packaged demo README points new users to that quick start before the longer
+demo reference material. The sample YAML now includes practical comments about
+the first site edits: change snapshot paths and schema mapping, keep filenames
+separate from column mapping, run `validate_config`, and avoid guessing at
+ambiguous Axys/APX transaction codes without site evidence. This phase did not
+change report logic, transaction semantics, or the future `vendor: axys`
+implementation boundary.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
