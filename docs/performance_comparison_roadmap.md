@@ -2807,6 +2807,25 @@ cash-balance input language as other performance cash transactions.
 This phase changed generated report content. The final portfolio/security
 `report.html` hashes are captured in the phase summary.
 
+### Phase 72: Post-`pa` / `sa` Report Clarity Sweep
+
+Status: complete for the fixed-income report-reader boundary after the packaged
+`pa`/`sa` promotion.
+
+The report artifacts were reviewed for the INCOME/TNOTE5Y February period. The
+important reader boundary is now pinned in both docs and tests:
+
+- paired `by`/`pa` and `sl`/`sa` rows explain cash/performance input movement;
+- `transactions.quantity`, `transactions.price`, and `holdings.quantity` remain
+  supporting rows for the paired trade story;
+- `holdings.accrued` remains a separate holding input driven by quantity/terms,
+  not by direct `pa`/`sa` causality; and
+- cost remains raw audit context, not a Modified Dietz explanation target.
+
+The packaged Axys README now describes the fixed-income story in those terms,
+and the workbook contract test asserts that `pa`/`sa` guidance does not leak
+onto the `holdings.accrued` row.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

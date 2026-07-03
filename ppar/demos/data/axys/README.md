@@ -181,9 +181,11 @@ Expected workbook:
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Raw Audit Trail`;
   - a partly explained INCOME period where paired TNOTE5Y `by`/`pa` and
-    `sl`/`sa` accrued-interest settlement rows, quantity-driven holding value
-    changes, and TNOTE5Y cost-only audit evidence are visible, while incomplete
-    or overlapping estimates still require reviewer triage;
+    `sl`/`sa` fixed-income trade/accrued-interest settlement rows affect the
+    cash/performance inputs, while separate quantity-driven holding value and
+    accrued-value rows remain visible as holding inputs. TNOTE5Y cost-only audit
+    evidence stays in the raw trail, and incomplete or overlapping estimates
+    still require reviewer triage;
   - an ALPHA external-withdrawal restatement visible in the return
     reconstruction check.
 

@@ -488,6 +488,48 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ),
                     income_tnote_quantity_guidance,
                 )
+                income_tnote_amount_guidance = {
+                    str(row[10])
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "TNOTE5Y"
+                    and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-27"
+                }
+                self.assertIn(
+                    (
+                        "pa: Caused cash-balance ending holdings.market_value "
+                        "to decrease by 42.50."
+                    ),
+                    income_tnote_amount_guidance,
+                )
+                self.assertIn(
+                    (
+                        "sa: Caused cash-balance ending holdings.market_value "
+                        "to increase by 37.25."
+                    ),
+                    income_tnote_amount_guidance,
+                )
+                income_tnote_accrued_guidance = {
+                    str(row[10])
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "holdings.accrued"
+                    and row[5] == "TNOTE5Y"
+                    and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-27"
+                }
+                self.assertEqual(
+                    income_tnote_accrued_guidance,
+                    {"TNOTE5Y ending holdings.accrued increased by 0.02."},
+                )
+                self.assertFalse(
+                    any(
+                        guidance.startswith(("pa:", "sa:"))
+                        for guidance in income_tnote_accrued_guidance
+                    )
+                )
                 self.assertFalse(
                     any(
                         guidance.startswith(("BY:", "SL:", "DV:", "DP:", "IN:", "WD:"))
