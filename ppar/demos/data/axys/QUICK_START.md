@@ -13,6 +13,21 @@ Keep these files together while onboarding a site:
 - `demo_extract_availability.yaml`: packaged-demo extract guardrails.
 - `axys_full_spec_a/` and `axys_full_spec_b/`: sample Snapshot A/B CSV files.
 
+Do not copy only the YAML unless you also edit its relative paths. The sample
+YAML expects the schema file and Snapshot A/B folders to live beside it.
+
+Recommended starter layout:
+
+```text
+axys_site_start/
+  axys_site_start.yaml
+  axys_column_mappings.yaml
+  demo_extract_availability.yaml
+  axys_full_spec_a/
+  axys_full_spec_b/
+  _site_output/
+```
+
 ## Step 1: Confirm The Source Files
 
 Purpose: prove that the site can provide the core files needed for Modified
@@ -36,11 +51,21 @@ rules from scratch.
 Do this:
 
 ```bash
-cp ppar/demos/data/axys/axys_performance_comparison.yaml ./axys_site_start.yaml
+mkdir -p axys_site_start
+cp ppar/demos/data/axys/axys_performance_comparison.yaml \
+  axys_site_start/axys_site_start.yaml
+cp ppar/demos/data/axys/axys_column_mappings.yaml \
+  axys_site_start/axys_column_mappings.yaml
+cp ppar/demos/data/axys/demo_extract_availability.yaml \
+  axys_site_start/demo_extract_availability.yaml
+cp -R ppar/demos/data/axys/axys_full_spec_a axys_site_start/axys_full_spec_a
+cp -R ppar/demos/data/axys/axys_full_spec_b axys_site_start/axys_full_spec_b
 ```
 
-Then edit only the snapshot paths and any column-mapping references needed for
-your local extracts.
+For a real site, replace `axys_full_spec_a/` and `axys_full_spec_b/` with the
+site's Snapshot A/B folders, or edit `snapshots.a.path` and `snapshots.b.path`
+to match the site's folder names. Edit the schema reference only if the local
+column-mapping file has a different name.
 
 Success criterion: the copied YAML still names all four core datasets and points
 to your local Snapshot A and Snapshot B directories. Keep the comparison level
@@ -55,7 +80,7 @@ Do this:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ./axys_site_start.yaml
+  ./axys_site_start/axys_site_start.yaml
 ```
 
 Success criterion: validation passes with no missing required datasets, no
@@ -88,13 +113,14 @@ Do this:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ./axys_site_start.yaml \
-  ./_site_output/performance_comparison_portfolio \
+  ./axys_site_start/axys_site_start.yaml \
+  ./axys_site_start/_site_output/performance_comparison_portfolio \
   --include-workbook
 ```
 
 Success criterion: `report.xlsx`, `report.html`, `manifest.json`, and support
-CSVs are created in `./_site_output/performance_comparison_portfolio`.
+CSVs are created in
+`./axys_site_start/_site_output/performance_comparison_portfolio`.
 
 ## Step 6: Generate The First Security Report
 
@@ -106,7 +132,7 @@ Do this:
 Copy the portfolio YAML and change only the comparison level:
 
 ```bash
-cp ./axys_site_start.yaml ./axys_site_security.yaml
+cp ./axys_site_start/axys_site_start.yaml ./axys_site_start/axys_site_security.yaml
 ```
 
 ```yaml
@@ -119,13 +145,14 @@ Then generate the security bundle:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ./axys_site_security.yaml \
-  ./_site_output/performance_comparison_security \
+  ./axys_site_start/axys_site_security.yaml \
+  ./axys_site_start/_site_output/performance_comparison_security \
   --include-workbook
 ```
 
 Success criterion: `report.xlsx`, `report.html`, `manifest.json`, and support
-CSVs are created in `./_site_output/performance_comparison_security`.
+CSVs are created in
+`./axys_site_start/_site_output/performance_comparison_security`.
 
 ## Step 7: Review In This Order
 

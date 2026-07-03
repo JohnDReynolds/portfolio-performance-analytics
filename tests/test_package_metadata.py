@@ -416,6 +416,11 @@ class TestPackageMetadata(unittest.TestCase):
         for expected_text in [
             "Axys/APX Performance Comparison Quick Start",
             "axys_performance_comparison.yaml",
+            "Do not copy only the YAML",
+            "Recommended starter layout",
+            "axys_site_start/",
+            "snapshots.a.path",
+            "snapshots.b.path",
             "Step 1: Confirm The Source Files",
             "Step 2: Start From The Vanilla Axys YAML",
             "Step 3: Validate Before Generating Reports",

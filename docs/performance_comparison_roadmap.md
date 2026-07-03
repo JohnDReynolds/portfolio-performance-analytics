@@ -2904,6 +2904,22 @@ ambiguous Axys/APX transaction codes without site evidence. This phase did not
 change report logic, transaction semantics, or the future `vendor: axys`
 implementation boundary.
 
+### Phase 78: Quick Start Literal Dry Run And Starter Layout Fix
+
+Status: complete for quick-start path validation.
+
+The quick start was dry-run in a temporary onboarding directory. Copying only
+`axys_performance_comparison.yaml` failed as expected because the YAML uses
+relative paths to the schema and Snapshot A/B folders. Copying the starter files
+together passed `validate_config` and generated both portfolio and security
+report bundles with `report.xlsx`, `report.html`, `manifest.json`, and support
+CSVs.
+
+The quick start now makes the starter layout explicit: keep the YAML, column
+mapping, extract guardrail file, and Snapshot A/B folders together, or edit the
+YAML paths before validation. The security-report path now uses a copied YAML
+with `comparison.level: security`, matching the real `report_bundle` CLI.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
