@@ -409,9 +409,9 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
 
-    def test_packaged_axys_quick_start_documents_onboarding_path(self) -> None:
-        """The packaged Axys quick start stays action-oriented for site onboarding."""
-        quick_start = Path("ppar/demos/data/axys/QUICK_START.md").read_text(
+    def test_packaged_axys_setup_documents_onboarding_path(self) -> None:
+        """The packaged Axys setup stays action-oriented for site onboarding."""
+        setup_doc = Path("ppar/demos/data/axys/SETUP.md").read_text(
             encoding=util.ENCODING
         )
         readme = Path("ppar/demos/data/axys/README.md").read_text(
@@ -419,18 +419,19 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "PPAR Performance Comparison Quick Start",
-            "ppar quickstart ./my_site_extracts",
-            "ppar-performance-comparison-quickstart ./my_site_extracts",
+            "PPAR Performance Comparison Setup",
+            "ppar setup ./my_site_extracts",
+            "ppar report ./my_site_extracts",
+            "ppar report ./my_site_extracts --report security",
+            "ppar report ./my_site_extracts --report both",
             "my_site_extracts/",
             "snapshot_a/",
             "snapshot_b/",
             "created for you",
-            "Run the same command again",
             "ppar.yaml",
             "output/",
             "portfolio/report.xlsx",
-            "security/report.xlsx",
+            "Optional: Security-Level Review",
             "Review In This Order",
             "Iterate Carefully",
             "--overwrite",
@@ -438,17 +439,18 @@ class TestPackageMetadata(unittest.TestCase):
             "explanations do not depend on cost",
         ]:
             with self.subTest(expected_text=expected_text):
-                self.assertIn(expected_text, quick_start)
+                self.assertIn(expected_text, setup_doc)
 
-        self.assertIn("QUICK_START.md", readme)
+        self.assertIn("SETUP.md", readme)
 
-    def test_repository_readme_points_axys_users_to_quick_start(self) -> None:
-        """The top-level performance-comparison path starts with the quick start."""
+    def test_repository_readme_points_axys_users_to_setup(self) -> None:
+        """The top-level performance-comparison path starts with setup."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("Axys/APX Quick Start", readme)
-        self.assertIn("ppar/demos/data/axys/QUICK_START.md", readme)
-        self.assertIn("ppar quickstart ./my_site_extracts", readme)
+        self.assertIn("Axys/APX Setup", readme)
+        self.assertIn("ppar/demos/data/axys/SETUP.md", readme)
+        self.assertIn("ppar setup ./my_site_extracts", readme)
+        self.assertIn("ppar report ./my_site_extracts", readme)
         self.assertIn("ppar.yaml", readme)
         self.assertIn("shortest path", readme)
 
@@ -1385,8 +1387,11 @@ class TestPackageMetadata(unittest.TestCase):
                 "ppar": "ppar.cli:main",
                 "ppar-analytics-demo": "ppar.demos.analytics_demo:main",
                 "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
-                "ppar-performance-comparison-quickstart": (
-                    "ppar.performance_comparison.cli.quickstart:main"
+                "ppar-performance-comparison-setup": (
+                    "ppar.performance_comparison.cli.setup:main"
+                ),
+                "ppar-performance-comparison-report": (
+                    "ppar.performance_comparison.cli.site_report:main"
                 ),
                 "ppar-performance-comparison-portfolio-demo": (
                     "ppar.demos.performance_comparison_portfolio_demo:main"
@@ -1482,7 +1487,7 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.demos.data") / "axys"
         expected_resources = (
             "README.md",
-            "QUICK_START.md",
+            "SETUP.md",
             "axys_column_mappings.yaml",
             "axys_analytics.yaml",
             "axys_performance_comparison.yaml",

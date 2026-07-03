@@ -6,7 +6,8 @@ from __future__ import annotations
 import argparse
 
 # Project imports
-from ppar.performance_comparison.cli import quickstart as _quickstart
+from ppar.performance_comparison.cli import setup as _setup
+from ppar.performance_comparison.cli import site_report as _site_report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -19,8 +20,10 @@ def main(argv: list[str] | None = None) -> int:
         Process exit code from the selected subcommand.
     """
     args, remaining_args = _argument_parser().parse_known_args(argv)
-    if args.command == "quickstart":
-        return _quickstart.main(remaining_args)
+    if args.command == "setup":
+        return _setup.main(remaining_args)
+    if args.command == "report":
+        return _site_report.main(remaining_args)
     raise AssertionError(f"Unsupported command: {args.command}")
 
 
@@ -32,8 +35,12 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser(
-        "quickstart",
-        help="Create ppar.yaml and reports from a folder with snapshot_a/snapshot_b.",
+        "setup",
+        help="Create ppar.yaml and starter folders for a site.",
+    )
+    subparsers.add_parser(
+        "report",
+        help="Write report bundles from a configured site.",
     )
     return parser
 

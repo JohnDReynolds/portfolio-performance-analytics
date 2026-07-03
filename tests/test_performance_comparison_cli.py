@@ -24,7 +24,8 @@ _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
 _VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
 _VALIDATE_DEMO_MATRIX_MODULE = "ppar.performance_comparison.cli.validate_demo_matrix"
-_QUICKSTART_MODULE = "ppar.performance_comparison.cli.quickstart"
+_SETUP_MODULE = "ppar.performance_comparison.cli.setup"
+_SITE_REPORT_MODULE = "ppar.performance_comparison.cli.site_report"
 _PPAR_MODULE = "ppar.cli"
 
 
@@ -34,8 +35,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
     def test_report_cli_modules_expose_help(self) -> None:
         """Report CLI modules expose consistent command-line help."""
         module_expectations = {
-            _QUICKSTART_MODULE: (
-                "Create ppar.yaml and report bundles"
+            _SETUP_MODULE: (
+                "Create a ppar.yaml setup"
+            ),
+            _SITE_REPORT_MODULE: (
+                "Write performance-comparison report bundles"
             ),
             _BUNDLE_MODULE: (
                 "Write a performance comparison review artifact bundle."
@@ -72,12 +76,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertIn("Return", result.stdout)
                     self.assertIn("Reconstruction Checks", result.stdout)
                     self.assertIn("Security Return Checks", result.stdout)
-                if module_name == _QUICKSTART_MODULE:
-                    self.assertIn("--reports", result.stdout)
+                if module_name == _SETUP_MODULE:
                     self.assertIn("--overwrite", result.stdout)
+                if module_name == _SITE_REPORT_MODULE:
+                    self.assertIn("--report", result.stdout)
 
-    def test_top_level_ppar_cli_exposes_quickstart_help(self) -> None:
-        """The product command presents quickstart as the first setup path."""
+    def test_top_level_ppar_cli_exposes_setup_and_report_help(self) -> None:
+        """The product command separates setup from report generation."""
         result = subprocess.run(
             _module_command(_PPAR_MODULE, "--help"),
             check=True,
@@ -85,21 +90,20 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("quickstart", result.stdout)
+        self.assertIn("setup", result.stdout)
+        self.assertIn("report", result.stdout)
         self.assertIn("PPAR command-line tools", result.stdout)
         self.assertEqual(result.stderr, "")
 
-    def test_quickstart_writes_one_yaml_config(self) -> None:
-        """Quickstart creates ppar.yaml without a separate schema file."""
+    def test_setup_writes_one_yaml_config(self) -> None:
+        """Setup creates ppar.yaml without a separate schema file."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = _copy_site_snapshots(Path(directory))
 
             result = subprocess.run(
                 _module_command(
-                    _QUICKSTART_MODULE,
+                    _SETUP_MODULE,
                     str(site_directory),
-                    "--reports",
-                    "none",
                 ),
                 check=True,
                 capture_output=True,
@@ -108,21 +112,23 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
             config_path = site_directory / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-            self.assertIn("PPAR quickstart complete", result.stdout)
+            self.assertIn("PPAR setup complete", result.stdout)
+            self.assertIn("Portfolio setup validated", result.stdout)
             self.assertEqual(config["snapshots"]["a"]["path"], "snapshot_a")
             self.assertEqual(config["snapshots"]["b"]["path"], "snapshot_b")
             self.assertNotIn("schema", config["snapshots"]["a"])
             self.assertNotIn("schema", config["snapshots"]["b"])
+            self.assertNotIn("security_return_reconstruction", config)
             self.assertFalse((site_directory / "column_mappings.yaml").exists())
 
-    def test_quickstart_creates_missing_site_skeleton(self) -> None:
-        """Quickstart creates starter folders before source files are ready."""
+    def test_setup_creates_missing_site_skeleton(self) -> None:
+        """Setup creates starter folders and config before source files are ready."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_site_extracts"
 
             result = subprocess.run(
                 _module_command(
-                    _QUICKSTART_MODULE,
+                    _SETUP_MODULE,
                     str(site_directory),
                 ),
                 check=True,
@@ -130,25 +136,30 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("PPAR quickstart folders are ready", result.stdout)
+            self.assertIn("PPAR setup complete", result.stdout)
             self.assertIn("snapshot_a/portperf.csv", result.stdout)
             self.assertIn("snapshot_b/transactions.csv", result.stdout)
+            self.assertNotIn("secperf.csv", result.stdout)
             self.assertTrue((site_directory / "snapshot_a").is_dir())
             self.assertTrue((site_directory / "snapshot_b").is_dir())
-            self.assertFalse((site_directory / "ppar.yaml").exists())
+            self.assertTrue((site_directory / "ppar.yaml").exists())
             self.assertFalse((site_directory / "output").exists())
 
-    def test_quickstart_writes_portfolio_report(self) -> None:
-        """Quickstart can validate and write a portfolio workbook."""
+    def test_site_report_writes_portfolio_report_by_default(self) -> None:
+        """The production report command writes a portfolio workbook by default."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = _copy_site_snapshots(Path(directory))
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
 
             result = subprocess.run(
                 _module_command(
-                    _QUICKSTART_MODULE,
+                    _SITE_REPORT_MODULE,
                     str(site_directory),
-                    "--reports",
-                    "portfolio",
                 ),
                 check=True,
                 capture_output=True,
@@ -163,6 +174,78 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue(
                 (site_directory / "output" / "portfolio" / "report.html").exists()
             )
+            self.assertFalse((site_directory / "output" / "security").exists())
+
+    def test_portfolio_setup_and_report_do_not_require_security_performance(self) -> None:
+        """Portfolio setup and default reports do not require secperf.csv."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = _copy_site_snapshots(Path(directory))
+            (site_directory / "snapshot_a" / "secperf.csv").unlink()
+            (site_directory / "snapshot_b" / "secperf.csv").unlink()
+
+            setup_result = subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            report_result = subprocess.run(
+                _module_command(_SITE_REPORT_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            security_result = subprocess.run(
+                _module_command(
+                    _SITE_REPORT_MODULE,
+                    str(site_directory),
+                    "--report",
+                    "security",
+                ),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Portfolio setup validated", setup_result.stdout)
+            self.assertIn("Portfolio report:", report_result.stdout)
+            self.assertTrue(
+                (site_directory / "output" / "portfolio" / "report.xlsx").exists()
+            )
+            self.assertEqual(security_result.returncode, 1)
+            self.assertIn("security_performance", security_result.stderr)
+
+    def test_site_report_writes_security_report_when_requested(self) -> None:
+        """The production report command supports security as an opt-in report."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = _copy_site_snapshots(Path(directory))
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            result = subprocess.run(
+                _module_command(
+                    _SITE_REPORT_MODULE,
+                    str(site_directory),
+                    "--report",
+                    "security",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Security report:", result.stdout)
+            self.assertTrue(
+                (site_directory / "output" / "security" / "report.xlsx").exists()
+            )
+            self.assertTrue(
+                (site_directory / "output" / "security" / "report.html").exists()
+            )
+            self.assertFalse((site_directory / "output" / "portfolio").exists())
 
     def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
         """Report CLI modules reject surprising negative evidence-row limits."""
@@ -530,7 +613,7 @@ def _absolute_restatement_configuration() -> dict[str, object]:
 
 
 def _copy_site_snapshots(directory: Path) -> Path:
-    """Copy packaged demo snapshots into a quickstart-style site folder."""
+    """Copy packaged demo snapshots into a setup-style site folder."""
     site_directory = directory / "my_site_extracts"
     shutil.copytree(
         _PACKAGED_AXYS_DATA_PATH / "axys_full_spec_a",

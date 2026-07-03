@@ -3,10 +3,10 @@
 The packaged Axys demo data contains only user-facing demo inputs. Test-only
 performance comparison scenarios live under `tests/data/axys`.
 
-Start with [QUICK_START.md](QUICK_START.md) when onboarding an Axys/APX
-performance-comparison site. That file gives the one-folder setup path: put
-source extracts in `snapshot_a` and `snapshot_b`, run `ppar quickstart`, open
-the generated reports, then iterate local overrides in `ppar.yaml`.
+Start with [SETUP.md](SETUP.md) when onboarding an Axys/APX
+performance-comparison site. That file separates one-time setup from normal
+report generation: create `snapshot_a` and `snapshot_b`, run `ppar setup`,
+validate portfolio setup, then use `ppar report` for repeatable report packages.
 
 ## Comparison YAML
 
@@ -24,16 +24,17 @@ fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
 [Demo Extract Availability](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
-For a local site, prefer the quickstart command:
+For a local site, start with setup:
 
 ```bash
-ppar quickstart ./my_site_extracts
+ppar setup ./my_site_extracts
 ```
 
 The command creates `ppar.yaml`, validates the minimum required datasets,
 required normalized columns, transaction semantics, extract-contract guardrails,
-and complete YAML treatment for changed source-data fields, then writes
-portfolio and security report bundles.
+and complete YAML treatment for changed source-data fields once the portfolio
+source files are present. Use `ppar report ./my_site_extracts` to write the
+portfolio report bundle after setup is validated.
 The same validation is available directly through
 `ppar.performance_comparison.cli.validate_config` when maintainers need to
 check a YAML file without writing reports.

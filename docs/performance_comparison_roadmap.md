@@ -2885,18 +2885,18 @@ package-resource checks, repository docs, and validation instructions reference
 the Axys-specific packaged filename. The future `vendor: axys` preset remains
 design-only and parked in Eventual Deliverables.
 
-### Phase 77: Axys/APX Quick Start Starter Kit
+### Phase 77: Axys/APX Setup Starter Kit
 
 Status: complete for the first-client-segment onboarding path.
 
-The packaged Axys demo now has `QUICK_START.md` as the front door for Axys/APX
-performance-comparison onboarding. The quick start is intentionally procedural:
+The packaged Axys demo now has `SETUP.md` as the front door for Axys/APX
+performance-comparison onboarding. The setup guide is intentionally procedural:
 confirm source files, copy the vanilla Axys YAML, validate before report
 generation, keep core transaction types conservative, generate portfolio and
 security report bundles, review the workbook in order, and iterate local
 overrides one at a time.
 
-The packaged demo README points new users to that quick start before the longer
+The packaged demo README points new users to that setup guide before the longer
 demo reference material. The sample YAML now includes practical comments about
 the first site edits: change snapshot paths and schema mapping, keep filenames
 separate from column mapping, run `validate_config`, and avoid guessing at
@@ -2904,18 +2904,18 @@ ambiguous Axys/APX transaction codes without site evidence. This phase did not
 change report logic, transaction semantics, or the future `vendor: axys`
 implementation boundary.
 
-### Phase 78: Quick Start Literal Dry Run And Starter Layout Fix
+### Phase 78: Setup Literal Dry Run And Starter Layout Fix
 
-Status: complete for quick-start path validation.
+Status: complete for setup path validation.
 
-The quick start was dry-run in a temporary onboarding directory. Copying only
+The setup guide was dry-run in a temporary onboarding directory. Copying only
 `axys_performance_comparison.yaml` failed as expected because the YAML uses
 relative paths to the schema and Snapshot A/B folders. Copying the starter files
 together passed `validate_config` and generated both portfolio and security
 report bundles with `report.xlsx`, `report.html`, `manifest.json`, and support
 CSVs.
 
-The quick start now makes the starter layout explicit: keep the YAML, column
+The setup guide now makes the starter layout explicit: keep the YAML, column
 mapping, extract guardrail file, and Snapshot A/B folders together, or edit the
 YAML paths before validation. The security-report path now uses a copied YAML
 with `comparison.level: security`, matching the real `report_bundle` CLI.
@@ -2924,7 +2924,7 @@ with `comparison.level: security`, matching the real `report_bundle` CLI.
 
 Status: complete for the current starter-kit reader path.
 
-The Axys/APX quick start now has a first-run edit map that tells onboarding
+The Axys/APX setup guide now has a first-run edit map that tells onboarding
 users which copied files to edit first and which sections to leave alone for
 the first report. It reinforces that the starter kit is a working copy, that
 Snapshot A/B paths and column mappings are the first safe edits, and that native
@@ -2937,39 +2937,41 @@ the common operational story covers core transaction families, while richer
 examples such as fixed-income `pa`/`sa` should stay unchanged until local bond
 context and site evidence justify overrides.
 
-### Phase 80: Axys Quick Start Simplification
+### Phase 80: Axys Setup Simplification
 
 Status: complete for the current onboarding front door.
 
-The Axys/APX quick start was compressed into a shorter setup path: copy the
+The Axys/APX setup guide was compressed into a shorter setup path: copy the
 starter kit, replace demo extracts, validate, generate portfolio and security
 reports, review in order, and iterate carefully. The simplified guide keeps the
 same working commands and starter layout, but removes the repeated purpose and
 success-criterion prose so new users see the operational path first.
 
 The top-level README now points Axys/APX performance-comparison users to the
-quick start before the longer packaged-demo reference. This phase did not
+setup guide before the longer packaged-demo reference. This phase did not
 change demo data, transaction rules, report logic, or the future `vendor: axys`
 boundary.
 
-### Phase 81: One-Folder, One-YAML Quickstart
+### Phase 81: One-Folder Setup And Production Report Commands
 
 Status: complete for the first user-facing command surface.
 
-The onboarding path now has a product-style command:
+The onboarding path now separates one-time setup from repeatable report
+generation:
 
 ```bash
-ppar quickstart ./my_site_extracts
+ppar setup ./my_site_extracts
+ppar report ./my_site_extracts
 ```
 
-The command expects a single site folder containing `snapshot_a` and
-`snapshot_b`, creates or reuses `ppar.yaml`, validates the source extracts, and
-writes portfolio/security report bundles under `output/`. The direct console
-script `ppar-performance-comparison-quickstart` is also available for users who
-prefer an explicit command name.
+Setup expects a single site folder containing `snapshot_a` and `snapshot_b`,
+creates or reuses `ppar.yaml`, and validates the portfolio source extracts when
+they are present. The production report command writes portfolio reports under
+`output/portfolio` by default and supports `--report security` or
+`--report both` after `secperf.csv` is added.
 
 This phase deliberately did not restructure the packaged Axys demo YAML files.
-The packaged demo can keep its internal split, while quickstart generates the
+The packaged demo can keep its internal split, while setup generates the
 friendlier one-file surface that a new installed-package user sees first.
 
 ## Guiding Principle
