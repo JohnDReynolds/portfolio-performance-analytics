@@ -7,3 +7,7 @@ axys_full_spec_b,insert,ALPHA0303,ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$
 axys_full_spec_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
 axys_full_spec_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
 axys_full_spec_b,adjust,INCOME0603,,,,,,,,,,,,,,,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.
+axys_full_spec_b,insert,INCOME0303,INCOME,2026-02-10,2026-02-10,TNOTE5Y,by,fius,$cash,CASH_USD,,,5.0,98.8,-494.0,0.0,0.0,0.0,0.0,0.0,TNOTE5Y bond purchase leg paired with purchase accrued interest.
+axys_full_spec_b,insert,INCOME0304,INCOME,2026-02-10,2026-02-10,TNOTE5Y,pa,fius,$income,$cash,,,0.0,0.0,-42.5,0.0,0.0,0.0,0.0,0.0,TNOTE5Y purchase accrued interest settlement.
+axys_full_spec_b,insert,INCOME0305,INCOME,2026-02-20,2026-02-20,TNOTE5Y,sl,fius,$cash,CASH_USD,,,3.0,98.8,296.4,0.0,0.0,0.0,0.0,0.0,TNOTE5Y bond sale leg paired with sale accrued interest.
+axys_full_spec_b,insert,INCOME0306,INCOME,2026-02-20,2026-02-20,TNOTE5Y,sa,fius,$income,$cash,,,0.0,0.0,37.25,0.0,0.0,0.0,0.0,0.0,TNOTE5Y sale accrued interest settlement.

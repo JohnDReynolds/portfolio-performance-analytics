@@ -352,6 +352,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Caused cash-balance" in str(row[10])
                         or "Caused transactions.amount" in str(row[10])
                         or "transactions.amount to" in str(row[10])
+                        or "holdings.quantity to" in str(row[10])
                         or "ending holdings." in str(row[10])
                         or "beginning holdings." in str(row[10])
                         for row in underlying_rows
@@ -463,6 +464,29 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         )
                         for guidance in transaction_component_guidance
                     )
+                )
+                income_tnote_quantity_guidance = {
+                    str(row[10])
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.quantity"
+                    and row[5] == "TNOTE5Y"
+                    and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-27"
+                }
+                self.assertIn(
+                    (
+                        "by: Caused TNOTE5Y transactions.amount to increase "
+                        "and TNOTE5Y holdings.quantity to increase."
+                    ),
+                    income_tnote_quantity_guidance,
+                )
+                self.assertIn(
+                    (
+                        "sl: Caused TNOTE5Y transactions.amount to increase "
+                        "and TNOTE5Y holdings.quantity to decrease."
+                    ),
+                    income_tnote_quantity_guidance,
                 )
                 self.assertFalse(
                     any(

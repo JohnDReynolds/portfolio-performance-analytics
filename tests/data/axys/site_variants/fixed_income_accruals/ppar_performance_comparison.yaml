@@ -1,0 +1,30 @@
+comparison:
+  name: Axys site variant with fixed-income accrued-interest rules
+
+snapshots:
+  a:
+    label: fixed_income_accruals_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: fixed_income_accruals_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  pa:
+    - when:
+        security_type: bond
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
+  sa:
+    - when:
+        security_type: bond
+      transaction_category: income
+      cash_flow_sign: positive
+      performance_flow_sign: performance

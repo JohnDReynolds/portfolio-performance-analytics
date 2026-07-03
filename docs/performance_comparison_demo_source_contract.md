@@ -156,8 +156,9 @@ Freezing the packaged Axys demo as a future preset seed was a product decision,
 not just a validation result. The packaged demo is accepted as the future
 `vendor: axys` seed with these boundaries as versioned preset semantics:
 
-- the packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`,
-  external-cash `li`, external-cash `lo`, and external-cash `wd`;
+- the packaged transaction families are `by`, `sl`, `dv`, `in`,
+  fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`,
+  external-cash `lo`, and external-cash `wd`;
 - `;` remains a guardrail-only YAML rule until a realistic packaged story
   justifies promoting it;
 - ambiguous Axys-style `dp`, `li`, `lo`, and `wd` rows remain context-gated and
@@ -176,7 +177,7 @@ Freeze-packet evidence map:
 
 | Accepted boundary | Current evidence |
 | --- | --- |
-| Packaged transaction families are `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `axys_full_spec_a/transactions.csv`, `axys_full_spec_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, and demo data audit tests. |
+| Packaged transaction families are `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `axys_full_spec_a/transactions.csv`, `axys_full_spec_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, fixed-income boundary helpers, and demo data audit tests. |
 | `;` remains a guardrail-only YAML rule. | Packaged transaction CSVs contain no `;` rows; the comparison YAML keeps the rule as defensive/reserved semantics; site-variant and matrix tests cover non-packaged corporate-action behavior. |
 | Ambiguous `dp`, `li`, `lo`, and `wd` rows remain context-gated. | Packaged transaction CSVs include source/destination and special-security context columns; the packaged extract contract requires those context fields; `validate_config` reports ambiguous-flow enforcement as enabled. |
 | Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
@@ -225,6 +226,8 @@ The source transaction code and the normalized transaction category are distinct
 | `sl` | `sell` | Security sale. |
 | `dv` | `income` | Dividend or dividend-like income. |
 | `in` | `income` | Interest or income-like receipt. |
+| `pa` | `fee_expense` | Purchase accrued interest when fixed-income context confirms the packaged paired-trade case. |
+| `sa` | `income` | Sale accrued interest when fixed-income context confirms the packaged paired-trade case. |
 | `dp` | `fee_expense` | Fee-like debit when special-security context confirms the packaged demo fee case. |
 | `li` | `external_flow` or `transfer` | Defensive rule for Axys-style long-in examples; external party context is required before treating it as an external flow. |
 | `lo` | `external_flow` or `transfer` | Defensive rule for Axys-style long-out examples; external party context is required before treating it as an external flow. |
@@ -273,12 +276,15 @@ alone.
 
 ## Fixed-Income Transaction Boundary
 
-The packaged demo currently uses two proved fixed-income Modified Dietz inputs:
+The packaged demo currently uses three proved fixed-income Modified Dietz input
+families:
 
 - `in` transaction rows for ordinary bond or cash interest that is treated as
   performance income; and
 - `holdings.accrued` changes as valuation/performance evidence when the
-  comparison YAML includes accrued interest as a return input.
+  comparison YAML includes accrued interest as a return input; and
+- context-gated `pa`/`sa` transaction rows as fixed-income accrued-interest
+  adjuncts paired with TNOTE5Y buy/sell transactions.
 
 That boundary is deliberate. Modified Dietz needs beginning value, ending
 value, and dated external cash flows. It does not need ppar to rebuild an
@@ -286,18 +292,19 @@ amortization/accretion engine, bond principal schedule, yield calculation, or
 tax-lot ledger before ordinary interest and configured accrued value can be
 used as formula inputs.
 
-The packaged demo deliberately does not use `ai`, `pa`, `sa`, or `pd` rows yet.
-Those codes need more than the Axys short code before ppar can classify them:
-bond/accrual context, cash offset, amount sign, principal or quantity movement,
-and local mapping or REP/report evidence. Until those fixtures exist, `ai`,
-`pa`, and `sa` remain accrued-interest backlog cases, and `pd` remains a
-principal-paydown boundary case rather than ordinary income.
+The packaged `pa`/`sa` rows are deliberately narrower than code-only semantics.
+They are accepted only because one scenario source derives the accrued-interest
+transaction rows, cash movement, quantity-driven holding value/accrual rows,
+`secperf.csv`, `portperf.csv`, and reviewer-facing report output together. The
+rebuild path keeps these rows outside portfolio external-flow weighting, and
+the YAML rules require fixed-income context before classifying them.
 
-This is a data-quality guard, not a claim that those Axys transaction types are
-unsupported forever. They should enter test-only data first. A packaged example
-should wait until holdings, accrued interest, cash, security performance,
-portfolio performance, and reviewer-facing report output all derive from one
-coherent fixed-income story.
+The packaged demo still does not use `ai` or `pd` rows. Those codes need more
+than the Axys short code before ppar can classify them: margin or bond/principal
+context, cash movement, amount sign, and local mapping or REP/report evidence.
+Test-only candidate override profiles cover explicit Modified Dietz treatments
+for `ai`, `pa`, `sa`, and `pd`, but only `pa`/`sa` have been promoted into the
+packaged demo, and only for the paired fixed-income accrued-interest story.
 
 The default runtime guard uses
 `ppar/demos/data/axys/demo_extract_availability.yaml`. A site comparison YAML

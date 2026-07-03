@@ -103,8 +103,8 @@ parked in Eventual Deliverables even though the Axys seed is accepted.
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
 | Packaged demo candidate | Real historical split only if the demo period supports it; additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
-| Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. |
-| Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
+| Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
+| Evidence-blocked backlog | Mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
 
 ### Transaction Coverage Expansion
@@ -123,11 +123,12 @@ Packaged demo rows should stay narrow enough to tell a coherent Modified Dietz
 story. Synthetic edge cases belong in test-only fixtures.
 
 Current triage: the packaged Axys demo already covers normal buys, sells,
-ordinary income, fixed-income income, contextual `li`, contextual `lo`,
-external `wd`, and fee-like `dp` rows. Do not add more packaged external-flow
-rows merely for symmetry. Additional rows should wait until they show a
-nonredundant outflow or transfer situation that changes the reviewer
-conversation more clearly than the existing packaged and site-variant fixtures.
+ordinary income, fixed-income income, fixed-income `pa`/`sa` accrued-interest
+adjuncts with paired trade context, contextual `li`, contextual `lo`, external
+`wd`, and fee-like `dp` rows. Do not add more packaged external-flow rows merely
+for symmetry. Additional rows should wait until they show a nonredundant
+outflow or transfer situation that changes the reviewer conversation more
+clearly than the existing packaged and site-variant fixtures.
 
 ### Longer-Term Deliverables
 
@@ -142,6 +143,8 @@ conversation more clearly than the existing packaged and site-variant fixtures.
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the accepted packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
+| Axys YAML seed rename | Consider renaming `ppar_performance_comparison.yaml` to `axys_performance_comparison.yaml` once the Axys demo is stable enough for a clean compatibility sweep. The current name is product-generic, while the file now acts as the Axys packaged-demo and future preset seed. | All code, docs, tests, package-resource checks, demo commands, README instructions, and generated-bundle metadata reference the new name consistently. If a compatibility alias is kept temporarily, it is documented, tested, and has an explicit removal plan. |
+| Tested site override profiles | Create user-friendly, tested candidate override profiles for Axys/APX transaction families that are plausible but not safe enough for the core `vendor: axys` preset. Candidate profiles may include fixed-income accrued interest, margin or negative interest, principal paydown, return of capital, short sale/cover short, and cash-journal patterns. | Each profile has sample source rows, YAML rules, expected normalized semantics, confidence labels, required evidence, and tests. Documentation clearly separates conservative preset defaults from copy/adapt override examples, warns that candidate profiles require site confirmation, and helps onboarding users choose profiles when unmapped transaction codes appear. |
 | Ledger double-entry demo | Consider a separate demo for a ledger-style double-entry debit/credit system. Keep it outside the current Axys Modified Dietz demo unless it clearly improves source-data validation, accounting-system integration, or reviewer understanding. | The demo has its own source contract, fixture data, YAML, and tests. It demonstrates balanced debit/credit postings, account-level footing, and mapping from ledger activity into the performance-comparison inputs without implying that ppar reconstructs a full accounting ledger by default. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
@@ -1016,8 +1019,8 @@ classify Axys transaction semantics safely.
 | 1 | Additional contribution or withdrawal variants | Test-only first, packaged demo only when nonredundant | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | The packaged demo now includes one ordinary `li` contribution, one contextual `lo` deliver-out, and one `wd` withdrawal. Add more only when the scenario teaches a new review behavior. |
 | 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures and the packaged `li`/`lo` external-flow rows prove the classification patterns. Add transfer examples to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
 | 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
-| 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | Do not add a user-facing bond maturity until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
-| 5 | Return of capital (`rc`) | Test-only first | Security, amount sign, cost-basis/report treatment, whether return is performance income or review-only corporate-action evidence. | Needs explicit policy before it can explain performance. |
+| 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. Keep `ai` and `pd` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
+| 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | Test-only site variants cover explicit performance-income treatments for `rc` and `pd`. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
 | 6 | Real-world split / corporate action evidence | Packaged demo only when the demo period/security supports a real historical event | Actual historical date/security, split ratio, quantity and price treatment, security master/report evidence, and a policy for whether it is explanatory or review-only. | User-facing demo splits must not be fictional future events. Synthetic corporate-action fixtures belong in clearly labeled test-only data. |
 | 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys convention. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
@@ -1104,10 +1107,12 @@ Before adding a reinvestment fixture, require:
 
 #### Phase 8C: Fixed-Income Transaction Boundary Gate
 
-Status: documented packaged-data guard. The packaged demo currently supports
+Status: partial test-only coverage. The packaged demo currently supports
 ordinary `in` interest rows and `holdings.accrued` as proved fixed-income
-performance inputs. It intentionally excludes `ai`, `pa`, `sa`, and `pd`
-transaction rows until test-only fixtures prove their treatment.
+performance inputs. Test-only site variants now prove explicit YAML
+classification for margin-style `ai` and bond-context `pa`/`sa`, while
+packaged-demo use remains blocked pending a coherent holdings, cash, accrual,
+and performance scenario.
 
 Before adding accrued-interest or principal-paydown transaction examples,
 require:
@@ -1127,9 +1132,9 @@ require:
   a direct formula input, supporting accounting evidence, or a blocked
   classification that needs REP/report context.
 
-The first implementation should be test-only. A packaged fixed-income
-transaction example should wait until the scenario is realistic enough that a
-reviewer can understand why the row belongs in the public demo.
+The first implementation should be test-only unless the scenario is realistic
+enough that formula inputs, holdings/accrued, cash, security performance, and
+portfolio performance all derive together.
 
 For any additional examples:
 
@@ -1226,10 +1231,11 @@ Priority examples:
 - synthetic corporate-action examples that prove expected review-only or
   blocked-classification behavior.
 
-Evidence-blocked families such as `ai`, `pa`, `sa`, `pd`, `ss`, `cs`, `rc`,
-mergers, spin-offs, and ticker changes should remain backlog until source
-context identifies the Modified Dietz formula role or confirms that the row is
-review-only evidence.
+Evidence-blocked families such as `ai`, `pd`, `ss`, `cs`, `rc`, mergers,
+spin-offs, and ticker changes should remain backlog until source context
+identifies the Modified Dietz formula role or confirms that the row is
+review-only evidence. Local `pa`/`sa` variants still need site confirmation,
+but the packaged demo now includes one narrow paired fixed-income example.
 
 #### Phase 9D: Manifest Validation And Extract Context Summary
 
@@ -1425,14 +1431,17 @@ instead of drifting into bond accounting.
 
 #### Phase 10A: Fixed-Income Formula Boundary
 
-Status: complete for the current ordinary-interest/accrued boundary.
+Status: complete for the current ordinary-interest, accrued-value, and
+accrued-interest adjunct boundary.
 
 The supported fixed-income formula inputs are intentionally narrow:
 
 - ordinary `in` interest transaction amounts that are classified as
-  performance income; and
+  performance income;
 - configured `holdings.accrued` changes that feed beginning/end market value
-  or security-level performance evidence.
+  or security-level performance evidence; and
+- paired purchase/sale accrued-interest adjunct amounts when fixed-income
+  context and paired trade rows support the `pa`/`sa` treatment.
 
 The following remain outside the return-reconstruction layer:
 
@@ -1454,7 +1463,9 @@ The packaged demo audit now pins the proved fixed-income story:
 - `INCOME0603` remains an ordinary `in` transaction on `TNOTE2Y`;
 - the row resolves as performance income;
 - the packaged snapshots include positive `TNOTE2Y` `holdings.accrued` values;
-- `ai`, `pa`, `sa`, and `pd` do not appear in packaged transaction files.
+- paired `pa`/`sa` rows appear only as TNOTE5Y accrued-interest adjuncts with
+  fixed-income trade context; and
+- `ai` and `pd` do not appear in packaged transaction files.
 
 This proves the current public fixture without adding new synthetic bond
 accounting behavior.
@@ -1466,7 +1477,9 @@ Status: complete for the current code-level boundary.
 The transaction boundary helper treats:
 
 - `in` as safe ordinary interest;
-- `ai`, `pa`, `sa`, and `pd` as backlog codes;
+- `pa`/`sa` as accrued-interest adjuncts when fixed-income context supports
+  them;
+- `ai` and `pd` as backlog codes;
 - all other codes as outside this fixed-income boundary helper.
 
 The backlog codes remain `unknown` by code alone. They need source context,
@@ -2273,21 +2286,23 @@ the real forward backlog.
 
 ### Phase 48: Packaged Demo Transaction Coverage Triage
 
-Status: complete for current packaged-demo promotion triage.
+Status: complete for packaged-demo promotion triage; later superseded in part
+by packaged `lo` and `pa`/`sa` promotions.
 
 The packaged Axys transaction set was reviewed against
 `contracts/transaction_semantics_matrix.yaml`, the site-variant fixtures, and the current
 transaction backlog. No new transaction row was promoted into the packaged demo
-in this pass.
+in this pass; later phases promoted `lo` and a narrow paired `pa`/`sa` story
+after stronger scenario support existed.
 
 That is intentional. The packaged demo already includes a contextual external
 cash `li`, an external cash `wd`, a fee-like `dp`, ordinary `by` / `sl`
 trading rows, dividend income, and fixed-income income. Site-variant fixtures
 already cover the broader ambiguous-code behavior for `li`, `lo`, `dp`, and
 `wd`, including external-party and internal-transfer distinctions. At this
-point, a packaged `lo` row would be useful only if it adds a distinct reviewer
-story; adding it only to mirror the packaged `li` example would make the demo
-less realistic and more fixture-shaped.
+point, a packaged `lo` row was useful only if it added a distinct reviewer
+story; a later phase added one contextual deliver-out example with that
+standard.
 
 The active backlog now names that standard directly: promote additional
 transaction families to packaged data only when they are realistic,
@@ -2603,6 +2618,195 @@ the new fully explained ALPHA February period appears in the user-facing review
 surface. The packaged report bundles were regenerated and the new
 `report.html` hashes were captured during validation.
 
+### Phase 67: Axys Demo Candidate Promotion Scout
+
+Status: complete for docs-only promotion decision; superseded by the Phase 71
+`pa`/`sa` packaged-demo promotion.
+
+The first post-freeze candidate-promotion scout reviewed the new test-only site
+variants for `pa`/`sa`, `ai`, `rc`, `pd`, and `ss`/`cs`. The result is
+deliberately conservative: no additional transaction type should be promoted
+into the packaged Axys demo yet.
+
+At the time, `pa` and `sa` were the strongest future candidates because a bond
+accrued-interest purchase/sale story was realistic and directly relevant to
+Modified Dietz performance review. Phase 71 later promoted them only after the
+packaged demo could derive the transaction rows, cash movement,
+quantity-driven holding/accrual rows, `secperf.csv`, `portperf.csv`, and report
+comments from one coherent scenario intent.
+
+`ai`, `rc`, `pd`, and `ss`/`cs` remain onboarding override examples rather than
+packaged defaults. Their current value is to prove tested YAML shapes for sites
+that can supply local evidence. Cost basis, principal, factor, amortization,
+margin, and short-account details remain best-efforts demo-construction context
+unless a future return formula explicitly uses those fields. The Modified Dietz
+product boundary remains beginning value, ending value, dated external flows,
+and configured income/fee performance rows.
+
+This phase was documentation-only. It did not require report regeneration or
+report-story edits, and the portfolio/security `report.html` hashes remained
+unchanged.
+
+### Phase 68: `pa` / `sa` Demo Promotion Design Packet
+
+Status: complete for docs-only implementation blueprint; implemented by Phase
+71.
+
+The `pa`/`sa` accrued-interest research was strong enough to design a
+packaged-demo promotion, but not to implement it casually. The promotion needed
+to be a coherent fixed-income scenario, not a pair of copied transaction rows.
+
+Recommended scenario:
+
+- Portfolio/security/month: use the existing `INCOME` portfolio and `TNOTE5Y`
+  or `TNOTE2Y` in one late-period month, preferably May 2026, where the demo
+  already has fixed-income activity and report readers can compare it with the
+  ordinary `in` interest row.
+- Snapshot shape: Snapshot A should represent the control case without the
+  accrued-interest trade adjunct; Snapshot B should add or change a paired bond
+  trade plus matching accrued-interest rows.
+- Transaction rows: include a principal `by`/`sl` row paired with `pa`/`sa`
+  on the same trade/settlement date. Do not add standalone `pa`/`sa` rows
+  without a principal trade context.
+- YAML rules: classify `pa` and `sa` only through explicit bond/fixed-income
+  context. They must not become code-only defaults and must not become
+  portfolio external flows.
+- Demo-construction rows: derive cash movement, holdings quantity/market value,
+  holdings accrued-interest, `secperf.csv`, and `portperf.csv` from one
+  scenario intent. Cost basis, amortization, and tax-lot details stay
+  best-efforts demo-construction context unless a future formula surface uses
+  them.
+- Report story: explain that the difference comes from fixed-income
+  accrued-interest settlement associated with the bond trade. The reviewer
+  should see that the rows affect performance/income timing or security-level
+  return reconstruction, but are not Modified Dietz external contributions or
+  withdrawals.
+
+Acceptance checklist before implementation:
+
+- The scenario generator or source rows can produce transactions, holdings,
+  accrued-interest values, security performance, and portfolio performance
+  consistently.
+- Portfolio-level Modified Dietz excludes `pa`/`sa` from external-flow
+  weighting.
+- Security-level Modified Dietz either treats the rows as configured
+  income/fee performance rows or leaves them as review evidence, according to
+  explicit YAML.
+- Report explanations use accrued-interest language, not generic
+  `transactions.amount` language, when the row is classified as an
+  accrued-interest settlement.
+- Raw audit trail and performance-cause rows make the paired principal and
+  accrued-interest relationship visible enough that a reviewer does not need
+  bond-accounting knowledge to start.
+- Tests prove code-only `pa`/`sa` remain unknown or blocked, while explicit
+  bond-context YAML classifies the packaged scenario deterministically.
+
+Do not promote `pa`/`sa` in the packaged Axys demo until the above can be met
+without weakening the current "do not rebuild an accounting system" boundary.
+
+This phase was documentation-only. It did not require report regeneration or
+report-story edits, and the portfolio/security `report.html` hashes remained
+unchanged.
+
+### Phase 69: `pa` / `sa` Implementation Feasibility Probe
+
+Status: complete for docs-only feasibility decision.
+
+The packaged demo rebuild path can support a `pa`/`sa` promotion, but not as a
+manual CSV edit. The current machinery is intentionally scenario-table driven:
+
+- `performance_comparison_transaction_scenarios.csv` derives Snapshot B
+  `transactions.csv` from Snapshot A plus explicit transaction scenarios.
+- `performance_comparison_holding_scenarios.csv` supplies explicit holding
+  adjustments that are not safely inferable from simple transaction deltas.
+- `rebuild_performance_comparison_demo_data.py` derives `holdings.csv`,
+  `secperf.csv`, and `portperf.csv` and audits the checked-in packaged files
+  against the scenario sources.
+
+That is the right home for `pa`/`sa`, but the current rules do not yet have a
+fixed-income accrued-interest adjunct concept. They know:
+
+- `by`/`sl` as security-level trade flows;
+- `dv`/`in`/fee-like `dp` as income/expense rows;
+- `li`/`lo`/`wd` as contextual external-flow/cash-balance cases; and
+- explicit holding scenarios such as accrual corrections and cost-only
+  corrections.
+
+Promoting `pa`/`sa` cleanly therefore needs a small generator-side extension:
+
+- add a fixed-income accrued-interest scenario type or transaction-effect
+  branch for `pa`/`sa`;
+- keep `pa`/`sa` out of portfolio external-flow weighting;
+- include `pa`/`sa` in security/portfolio income or review evidence only
+  through explicit YAML semantics;
+- derive any cash-balance and `ACCRUED` holding movement from scenario intent;
+- update scenario coverage expectations and audit tests so the new rows are
+  intentional, not accidental backlog leakage; and
+- keep code-only `pa`/`sa` test fixtures blocked or unknown.
+
+Feasibility decision: implementation is reasonable after this small fixed-income
+adjunct abstraction exists. Do not promote `pa`/`sa` by hand-editing packaged
+CSV files. The next implementation phase should first teach the rebuild/audit
+path how to express accrued-interest adjuncts, then add the paired bond trade
+story.
+
+This phase was documentation-only. It did not require report regeneration or
+report-story edits, and the portfolio/security `report.html` hashes remained
+unchanged.
+
+### Phase 70: `pa` / `sa` Rebuild Abstraction Slice
+
+Status: complete for tested rebuild-path support; superseded by the packaged
+demo promotion in Phase 71.
+
+The operational rebuild path now has an explicit fixed-income accrued-interest
+adjunct mechanism for `pa` and `sa`. The support is intentionally narrow:
+
+- `pa`/`sa` are included in the rebuild script's income-code set for derived
+  security/portfolio performance when the comparison YAML classifies them as
+  performance income/expense.
+- `pa`/`sa` transaction scenarios can derive cash-balance adjustments.
+- `pa`/`sa` transaction scenarios do not derive `holdings.accrued` adjustments;
+  accrued holdings are quantity/terms driven in the demo rebuild path.
+- Portfolio external-flow weighting still ignores `pa`/`sa`.
+- The packaged Axys demo contains one narrow paired TNOTE5Y `pa`/`sa` story.
+
+A focused audit test builds temporary inserted `pa` and `sa` scenario rows and
+verifies the derived cash impacts without treating accrued-interest settlement
+amounts as direct holding-accrual changes.
+
+Phase 71 used this abstraction to add the coherent paired bond trade story,
+update scenario coverage expectations, update YAML rules, rebuild the packaged
+data, and regenerate portfolio/security reports. Phase 70 itself changed code
+and tests but did not change packaged demo data or regenerate reports; the
+portfolio/security `report.html` hashes remained unchanged until Phase 71.
+
+### Phase 71: `pa` / `sa` Packaged Demo Promotion
+
+Status: complete for one narrow fixed-income accrued-interest packaged story.
+
+The packaged Axys demo now includes paired TNOTE5Y `by`/`pa` and `sl`/`sa`
+rows in Snapshot B. The rows are deliberately scoped:
+
+- `pa` is purchase accrued interest and resolves as fee/expense only with
+  fixed-income context;
+- `sa` is sale accrued interest and resolves as income only with fixed-income
+  context;
+- both rows stay outside portfolio external-flow weighting;
+- the rebuild path derives matching cash-balance, security-performance, and
+  portfolio-performance effects while leaving accrued holdings to quantity/terms
+  logic; and
+- code-only `pa`/`sa` remains unsafe outside the packaged paired-trade story or
+  a reviewed site override profile.
+
+The source contract, transaction semantics matrix, packaged README, readiness
+checklist, Axys/APX reference notes, fixed-income boundary registry, and tests
+now reflect this boundary. Report wording uses the same Modified Dietz
+cash-balance input language as other performance cash transactions.
+
+This phase changed generated report content. The final portfolio/security
+`report.html` hashes are captured in the phase summary.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
@@ -2638,5 +2842,5 @@ Near-term backlog by home:
 | Home | Transaction families | Exit criteria |
 | --- | --- | --- |
 | Packaged demo candidate | nonredundant external-flow variants; possibly realistic `li`/`lo` transfer examples; real historical split when the demo period supports it | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
-| Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. |
-| Evidence-blocked backlog | `ss`, `cs`, `ai`, `pa`, `sa`, `rc`, `pd`, mergers, spin-offs, ticker changes | Axys/REP/report evidence identifies required fields and ppar treatment well enough to avoid code-only classification. |
+| Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
+| Evidence-blocked backlog | Mergers, spin-offs, ticker changes | Axys/REP/report evidence identifies required fields and ppar treatment well enough to avoid code-only classification. |

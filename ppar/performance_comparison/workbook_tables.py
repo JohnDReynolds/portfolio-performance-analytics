@@ -2817,6 +2817,19 @@ def _workbook_transaction_component_explanation(
             if security_id
             else "transactions.amount"
         )
+        if source_column == pc_cols.QUANTITY:
+            quantity_effect = _workbook_transaction_quantity_holding_effect(row)
+            if quantity_effect:
+                holdings_quantity = (
+                    f"{security_id} holdings.quantity"
+                    if security_id
+                    else "holdings.quantity"
+                )
+                return (
+                    f"{_workbook_transaction_code_prefix(row)}Caused "
+                    f"{transaction_amount} to {change_verb} and "
+                    f"{holdings_quantity} to {quantity_effect}."
+                )
         return (
             f"{_workbook_transaction_code_prefix(row)}Caused {transaction_amount} "
             f"to {change_verb}."
@@ -2844,6 +2857,21 @@ def _workbook_transaction_component_explanation(
         f"{security_text} changed by "
         f"{_workbook_change_amount_text(_workbook_row_change_value(row))}."
     )
+
+
+def _workbook_transaction_quantity_holding_effect(
+    row: Mapping[str, object],
+) -> str:
+    """Return buy/sell holding quantity direction for a transaction quantity row."""
+    change_number = _number_or_none(_workbook_row_change_value(row))
+    if change_number is None:
+        return ""
+    transaction_category = row.get(_pc_findings.TRANSACTION_CATEGORY)
+    if transaction_category == TRANSACTION_CATEGORY_BUY:
+        return "decrease" if change_number < 0 else "increase"
+    if transaction_category == TRANSACTION_CATEGORY_SELL:
+        return "increase" if change_number < 0 else "decrease"
+    return ""
 
 
 def _workbook_transaction_code_prefix(row: Mapping[str, object]) -> str:

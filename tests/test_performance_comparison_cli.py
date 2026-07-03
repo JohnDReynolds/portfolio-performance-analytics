@@ -284,7 +284,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Cash impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: none", result.stdout)
         self.assertIn("Security master impact methods: none", result.stdout)
-        self.assertIn("Transaction rules configured: 9", result.stdout)
+        self.assertIn("Transaction rules configured: 11", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Extract contract: packaged:", result.stdout)
@@ -298,7 +298,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Report-bundle source context:", result.stdout)
         self.assertIn("transaction semantics summary", result.stdout)
         self.assertIn(
-            "Transaction codes observed: by, dp, dv, in, li, sl, wd",
+            "Transaction codes observed: by, dp, dv, in, li, lo, pa, sa, sl, wd",
             result.stdout,
         )
         self.assertIn("Transaction codes without YAML rules: none", result.stdout)
@@ -396,7 +396,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Code-only failure guard", result.stdout)
         self.assertIn("Reviewed local opt-out", result.stdout)
         self.assertIn("Review-only action quarantine", result.stdout)
-        self.assertIn("Capital-return and short-side backlog gates", result.stdout)
+        self.assertIn("Capital-return and short-side candidate gates", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def _write_bundle(self, output_directory: Path) -> None:

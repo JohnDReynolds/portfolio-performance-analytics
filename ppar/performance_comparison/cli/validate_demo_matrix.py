@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
             "Demo matrix coverage includes ambiguous-flow context variants, "
             "code-only guard, reviewed local opt-out checks, and "
             "review-only action quarantine, plus capital-return and short-side "
-            "backlog gates."
+            "candidate gates."
         )
         for check in checks:
             print(f"- {check.name}: {check.detail}")
@@ -763,21 +763,21 @@ def _check_review_only_action_quarantine(site_directory: Path) -> _ScenarioCheck
 
 
 def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
-    """Return whether high-risk transaction families remain explicit backlog gates."""
+    """Return whether high-risk transaction families remain test-only candidates."""
     matrix = yaml.safe_load(_TRANSACTION_SEMANTICS_MATRIX_PATH.read_text())
     rows = matrix["rows"]
     expected = {
         code: (
-            "capital-return policy required",
-            "REP/report semantics",
+            "Test-only site variant",
+            "Code-only treatment remains unknown",
         )
         for code in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES
     }
     expected.update(
         {
             code: (
-                "short-side evidence required",
-                "amount and quantity signs",
+                "Test-only site variant",
+                "Code-only treatment remains unknown",
             )
             for code in SHORT_SIDE_BACKLOG_TRANSACTION_CODES
         }
@@ -787,7 +787,7 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
     for code, required_fragments in sorted(expected.items()):
         row = rows[code]
         coverage_notes = str(row["coverage_notes"])
-        if row["coverage_status"] != "backlog":
+        if row["coverage_status"] != "partial":
             failures.append(f"{code} status={row['coverage_status']}")
         missing_fragments = [
             fragment
@@ -796,19 +796,19 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
         ]
         if missing_fragments:
             failures.append(f"{code} missing {', '.join(missing_fragments)}")
-        if row["fixtures"]:
-            failures.append(f"{code} has fixture(s): {row['fixtures']}")
+        if not row["fixtures"]:
+            failures.append(f"{code} missing test-only fixture")
 
     if failures:
         return _ScenarioCheck(
-            "Capital-return and short-side backlog gates",
+            "Capital-return and short-side candidate gates",
             False,
             "; ".join(failures),
         )
     return _ScenarioCheck(
-        "Capital-return and short-side backlog gates",
+        "Capital-return and short-side candidate gates",
         True,
-        "rc/pd and ss/cs remain backlog until policy and evidence are present",
+        "rc/pd and ss/cs remain test-only until site policy and evidence are present",
     )
 
 

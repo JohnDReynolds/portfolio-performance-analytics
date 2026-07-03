@@ -809,18 +809,58 @@ class PerformanceComparison:
                 tuple(row[column] for column in key_columns)
             ),
         )
-        return [
+        findings: list[Finding] = []
+        for row in rows:
+            findings.extend(
+                self._transaction_presence_findings_for_row(
+                    row,
+                    code,
+                    message,
+                    transaction_match_status,
+                    snapshot_side,
+                    portfolio_periods,
+                    return_denominators,
+                )
+            )
+        return findings
+
+    def _transaction_presence_findings_for_row(
+        self,
+        row: Mapping[str, object],
+        code: str,
+        message: str,
+        transaction_match_status: TransactionMatchStatus,
+        snapshot_side: str,
+        portfolio_periods: pl.DataFrame | None,
+        return_denominators: Mapping[tuple[object, object, object], float] | None,
+    ) -> list[Finding]:
+        """Return dated transaction add/drop findings from one source row."""
+        amount_finding = self._transaction_presence_finding(
+            row,
+            code,
+            message,
+            transaction_match_status,
+            snapshot_side,
+            portfolio_periods,
+            return_denominators,
+            pc_cols.AMOUNT,
+        )
+        component_findings = [
             self._transaction_presence_finding(
                 row,
-                code,
+                _TRANSACTION_COMPARE_COLUMNS[column],
                 message,
                 transaction_match_status,
                 snapshot_side,
                 portfolio_periods,
                 return_denominators,
+                column,
             )
-            for row in rows
+            for column in (pc_cols.QUANTITY, pc_cols.PRICE, pc_cols.COMMISSION)
+            if self._transaction_presence_field_delta(row.get(column), snapshot_side)
+            not in (None, 0.0)
         ]
+        return [amount_finding, *component_findings]
 
     def _transaction_presence_finding(
         self,
@@ -831,18 +871,19 @@ class PerformanceComparison:
         snapshot_side: str,
         portfolio_periods: pl.DataFrame | None,
         return_denominators: Mapping[tuple[object, object, object], float] | None,
+        source_column: str,
     ) -> Finding:
-        """Return a dated transaction add/drop finding from a source row."""
+        """Return a dated transaction add/drop finding for one source field."""
         from_date, thru_date = period_context_for_dated_evidence(
             row,
             pc_cols.TRANSACTIONS,
             portfolio_periods,
         )
         portfolio_id = row.get(pc_cols.PORTFOLIO_ID)
-        amount = row.get(pc_cols.AMOUNT)
-        amount_delta = self._transaction_presence_amount_delta(amount, snapshot_side)
-        snapshot_a_value = amount if snapshot_side == "a" else None
-        snapshot_b_value = amount if snapshot_side == "b" else None
+        source_value = row.get(source_column)
+        delta = self._transaction_presence_field_delta(source_value, snapshot_side)
+        snapshot_a_value = source_value if snapshot_side == "a" else None
+        snapshot_b_value = source_value if snapshot_side == "b" else None
         return_denominator = self._return_denominator(
             row,
             pc_cols.TRANSACTIONS,
@@ -851,25 +892,29 @@ class PerformanceComparison:
             thru_date,
             return_denominators,
         )
-        impact_policy = self._impact_policy(pc_cols.TRANSACTIONS, pc_cols.AMOUNT)
+        impact_policy = self._impact_policy(pc_cols.TRANSACTIONS, source_column)
         transaction_impact_policy = self._transaction_impact_policy(
             row,
             pc_cols.TRANSACTIONS,
-            pc_cols.AMOUNT,
+            source_column,
         )
         return Finding(
             code=code,
             severity=SEVERITY_INFORMATIONAL,
             confidence=CONFIDENCE_HIGH,
             dataset=pc_cols.TRANSACTIONS,
-            evidence_role=self._evidence_role(code, pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
+            evidence_role=self._evidence_role(
+                code,
+                pc_cols.TRANSACTIONS,
+                source_column,
+            ),
             portfolio_id=portfolio_id,
             security_id=row.get(pc_cols.SECURITY_ID),
             from_date=from_date,
             thru_date=thru_date,
             input_date=self._input_date(row, pc_cols.TRANSACTIONS),
             source_file=self._source_file(pc_cols.TRANSACTIONS),
-            source_column=pc_cols.AMOUNT,
+            source_column=source_column,
             transaction_code=self._transaction_code(row, pc_cols.TRANSACTIONS),
             transaction_category=self._transaction_category(row, pc_cols.TRANSACTIONS),
             cash_flow_sign=self._transaction_cash_flow_sign(row, pc_cols.TRANSACTIONS),
@@ -887,7 +932,7 @@ class PerformanceComparison:
             transaction_impact_diagnostic=self._transaction_impact_diagnostic(
                 row,
                 pc_cols.TRANSACTIONS,
-                pc_cols.AMOUNT,
+                source_column,
                 portfolio_id,
                 from_date,
                 thru_date,
@@ -897,30 +942,30 @@ class PerformanceComparison:
                 self._transaction_impact_diagnostic_estimate(
                     row,
                     pc_cols.TRANSACTIONS,
-                    pc_cols.AMOUNT,
+                    source_column,
                     portfolio_id,
                     from_date,
                     thru_date,
                     return_denominator,
-                    amount_delta,
+                    delta,
                 )
             ),
             snapshot_a_value=snapshot_a_value,
             snapshot_b_value=snapshot_b_value,
-            delta_b_minus_a=amount_delta,
+            delta_b_minus_a=delta,
             return_denominator=return_denominator,
             message=message,
         )
 
     @staticmethod
-    def _transaction_presence_amount_delta(
-        amount: object,
+    def _transaction_presence_field_delta(
+        value: object,
         snapshot_side: str,
     ) -> float | None:
-        """Return B-minus-A amount delta for a transaction presence finding."""
-        if isinstance(amount, bool) or not isinstance(amount, (int, float)):
+        """Return B-minus-A field delta for a transaction presence finding."""
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
             return None
-        amount_float = float(amount)
+        amount_float = float(value)
         if snapshot_side == "a":
             return -amount_float
         if snapshot_side == "b":

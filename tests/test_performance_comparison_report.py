@@ -303,6 +303,7 @@ def _assert_workbook_explained_row_actions(
                 or "Helped explain" in str(required_setup)
                 or "Caused transactions.amount" in str(required_setup)
                 or "transactions.amount to" in str(required_setup)
+                or "holdings.quantity to" in str(required_setup)
                 or "Caused cash-balance" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
@@ -943,7 +944,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             rules_transaction_quantity["review_guidance"][0],
-            "BUY: Caused AAPL transactions.amount to increase.",
+            (
+                "BUY: Caused AAPL transactions.amount to increase and "
+                "AAPL holdings.quantity to increase."
+            ),
         )
         self.assertEqual(
             rules_transaction_price["review_guidance"][0],

@@ -2593,3 +2593,37 @@ transaction extracts without closing the official-schema unknowns.
 | REP fallback | If IMEX cannot expose enough context to classify external flows, use REP/report/custom extraction as a candidate source of classification evidence. | Design guidance |
 
 Transaction code alone should not be used as a universal external-flow rule.
+
+## 17. `pa` / `sa` Accrued-Interest Promotion Boundary
+
+The 2026-07-03 accrued-interest research strengthens the practical
+interpretation of `pa` and `sa`:
+
+| Code | Strongest supported meaning | Product boundary |
+|---|---|---|
+| `pa` | BUY accrued interest / purchase accrued interest. | Fixed-income trade-settlement adjunct; not an investor external flow. |
+| `sa` | SELL accrued interest / sale accrued interest. | Fixed-income trade-settlement adjunct; not an investor external flow. |
+
+The evidence is still integration-level rather than a complete official native
+Axys/APX code manual. It supports a narrow packaged demonstration when paired
+trade, cash, holdings/accrued, and performance rows all move together, but it
+does not support classifying `pa` or `sa` from code alone. The same evidence
+path supports configurable transaction translation, so site-specific YAML or a
+future vendor preset must still require fixed-income context and auditable
+source-data support.
+
+Safe `pa`/`sa` treatment should verify:
+
+- fixed-income security type or equivalent bond context;
+- paired principal transaction, such as `by`/`pa` or `sl`/`sa`;
+- trade date and settlement date alignment;
+- amount sign and settlement economics;
+- accrued-interest, income, cash, or source/destination markers when available;
+- holdings/accrued-interest movement; and
+- security-performance and portfolio-performance treatment.
+
+The packaged Axys demo promotes `pa`/`sa` only in that coherent paired
+fixed-income scenario: accrued-interest transaction rows, cash movement,
+holdings/accrued-interest rows, `secperf.csv`, `portperf.csv`, and
+reviewer-facing report comments are derived together. That is a demo-quality
+gate, not a claim that `pa`/`sa` are universal code-only Axys defaults.

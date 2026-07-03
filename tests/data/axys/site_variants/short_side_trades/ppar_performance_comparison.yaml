@@ -1,0 +1,30 @@
+comparison:
+  name: Axys site variant with short-side trade rules
+
+snapshots:
+  a:
+    label: short_side_trades_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: short_side_trades_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  ss:
+    - when:
+        security_type: short
+      transaction_category: sell
+      cash_flow_sign: positive
+      performance_flow_sign: performance
+  cs:
+    - when:
+        security_type: short
+      transaction_category: buy
+      cash_flow_sign: negative
+      performance_flow_sign: performance

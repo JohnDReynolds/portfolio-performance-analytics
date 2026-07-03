@@ -3423,3 +3423,39 @@ The addenda reinforce the following audit-product classification order:
    corporate-action/principal, or placeholder/review.
 5. Use amount and quantity signs to determine direction.
 6. Assign classification confidence and route ambiguous rows to review.
+
+### E.20 Deep `pa`/`sa` Accrued-Interest Research Incorporated 2026-07-03
+
+Source: temporary `pa`/`sa` accrued-interest research note supplied on
+2026-07-03 and folded into this evidence archive.
+
+The July 2026 `pa`/`sa` research strengthens the fixed-income accrued-interest
+interpretation and supports a narrow packaged-demo scenario when paired trade,
+cash, quantity-driven holding/accrual rows, and performance rows all move
+together. Its central conclusion is:
+
+| Topic | Evidence synthesis | Confidence |
+|---|---|---:|
+| Default meaning | Public integration evidence supports `pa` for BUY accrued interest and `sa` for SELL accrued interest in Axys/APX Custodial Integrator-style workflows. | Medium |
+| Configurability | The same evidence path supports customizable transaction translation, so `pa` and `sa` are not safe as code-only rules. | High Confidence as a design caution |
+| External-flow treatment | `pa`/`sa` are fixed-income trade-settlement adjuncts, not investor contributions or withdrawals. | High Confidence as product boundary |
+| Portfolio/security performance | The rows may affect accrued-income timing, cash settlement, income attribution, or contribution, but public evidence does not verify native holdings, security-performance, or portfolio-performance rows. | Unknown / Medium concept |
+| Packaged-demo readiness | `pa`/`sa` are acceptable in the packaged demo only when one coherent scenario ties transactions, cash, quantity-driven holding/accrual rows, `secperf.csv`, `portperf.csv`, and reviewer-facing explanations together. Code-only treatment remains unsafe. | Ready only for the paired fixed-income demo scenario |
+
+The recommended audit-product classification remains context-driven:
+
+1. Verify the security is fixed income.
+2. Detect a paired principal transaction, such as `by`/`pa` or `sl`/`sa`.
+3. Verify trade and settlement dates.
+4. Preserve source/destination and income/cash markers when available.
+5. Verify amount sign and settlement economics.
+6. Classify the row as accrued-interest settlement, not external flow.
+
+The research explicitly leaves the following items unresolved:
+
+- native Axys/APX bond transaction examples;
+- IMEX/REP field names for accrued-interest examples;
+- holdings before/after examples;
+- security-performance and portfolio-performance rows;
+- stored versus recalculated performance treatment; and
+- sanitized production examples.

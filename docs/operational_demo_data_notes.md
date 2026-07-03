@@ -103,8 +103,9 @@ data. Snapshot B introduces controlled changes that produce:
   differences;
 - one partly explained ALPHA period with a changed transaction amount plus
   review-only transaction quantity, price, and commission clues;
-- one unexplained INCOME period with an explicit `no_underlying_causes_found`
-  diagnostic row;
+- one partly explained INCOME fixed-income period with paired TNOTE5Y
+  `by`/`pa` and `sl`/`sa` rows, quantity-driven holding value/accrual evidence,
+  and reviewer triage for incomplete or overlapping estimates;
 - related holding-component examples where quantity rows sit beside selected
   market-value rows and cost remains in the `Raw Audit Trail`;
 - matching security-level examples for AAPL and TNOTE2Y;

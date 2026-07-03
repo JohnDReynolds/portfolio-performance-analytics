@@ -69,7 +69,18 @@ _PACKAGED_RESTATEMENT_NOTES_PATH = (
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 )
-_PACKAGED_DEMO_TRANSACTION_CODES = {"by", "sl", "dv", "in", "dp", "li", "lo", "wd"}
+_PACKAGED_DEMO_TRANSACTION_CODES = {
+    "by",
+    "sl",
+    "dv",
+    "in",
+    "dp",
+    "li",
+    "lo",
+    "pa",
+    "sa",
+    "wd",
+}
 _TEST_ONLY_TRANSACTION_CODES: set[str] = set()
 _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES = {";"}
 _PACKAGED_TRANSACTION_COLUMNS = [
@@ -263,15 +274,15 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         for expected_text in [
             "Current transaction coverage by home",
             "Packaged demo rows",
-            "`by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`",
+            "`by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`",
             "external-cash `lo`, and external-cash `wd`",
             "YAML rules reserved for runtime guards",
             "Test-only fixtures",
             "`dv` + `by` reinvestment guards",
             "Evidence-blocked backlog",
-            "`ai`, `pa`, `sa`, `pd`",
+            "`ai`, `pd`, `ss`, `cs`, `rc`",
             "ordinary TNOTE2Y\n  interest uses an `in` transaction row",
-            "does not infer accrued-interest or\n  principal-paydown treatment",
+            "TNOTE5Y `pa`/`sa` rows are packaged only with paired",
         ]:
             self.assertIn(expected_text, text)
 
@@ -558,6 +569,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 self.assertTrue(
                     observed_codes.isdisjoint(FIXED_INCOME_BACKLOG_TRANSACTION_CODES)
                 )
+                if snapshot_key == "b":
+                    self.assertIn("pa", observed_codes)
+                    self.assertIn("sa", observed_codes)
 
                 fixed_income_interest = transactions.loc[
                     (transactions["PORT"] == "INCOME")
@@ -605,6 +619,42 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     resolved_row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
                     {"mixed", "yaml_rule"},
                 )
+
+                if snapshot_key == "b":
+                    frame = TransactionsLoader(specification).load(snapshot_key)
+                    assert frame is not None
+                    for code, transaction_date, category, cash_sign in (
+                        (
+                            "pa",
+                            "2026-02-10",
+                            "fee_expense",
+                            TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                        ),
+                        ("sa", "2026-02-20", "income", "positive"),
+                    ):
+                        accrued_row = _transaction_row(
+                            frame,
+                            portfolio="INCOME",
+                            transaction_date=transaction_date,
+                            security="TNOTE5Y",
+                            transaction_code=code,
+                        )
+                        self.assertEqual(
+                            fixed_income_transaction_boundary(code),
+                            "accrued_interest_adjunct",
+                        )
+                        self.assertEqual(
+                            accrued_row[pc_cols.TRANSACTION_CATEGORY],
+                            category,
+                        )
+                        self.assertEqual(
+                            accrued_row[pc_cols.CASH_FLOW_SIGN],
+                            cash_sign,
+                        )
+                        self.assertEqual(
+                            accrued_row[pc_cols.PERFORMANCE_FLOW_SIGN],
+                            TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE,
+                        )
 
     def test_packaged_demo_wd_uses_contextual_external_flow_rule(self) -> None:
         """Packaged Axys wd rows classify external flow from context, not code alone."""
@@ -783,23 +833,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["axys_full_spec_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["axys_full_spec_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["axys_full_spec_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 8)
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 12)
         self.assertEqual(
             snapshots["axys_full_spec_b"]["transaction_scenarios_by_type"],
-            {
-                "by": 1,
-                "dp": 1,
-                "dv": 1,
-                "in": 1,
-                "li": 1,
-                "lo": 1,
-                "sl": 1,
-                "wd": 1,
-            },
-        )
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 10)
-        self.assertEqual(
-            snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 2,
                 "dp": 1,
@@ -807,7 +843,25 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "in": 1,
                 "li": 1,
                 "lo": 1,
+                "pa": 1,
+                "sa": 1,
                 "sl": 2,
+                "wd": 1,
+            },
+        )
+        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 16)
+        self.assertEqual(
+            snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
+            {
+                "by": 4,
+                "dp": 1,
+                "dv": 1,
+                "in": 1,
+                "li": 1,
+                "lo": 1,
+                "pa": 1,
+                "sa": 1,
+                "sl": 4,
                 "wd": 1,
             },
         )
@@ -890,7 +944,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 10)
+        self.assertEqual(len(adjustments), 16)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -926,6 +980,58 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             security="CASH_USD",
             holding_date="2026-05-29",
             deltas={"QTY": 80.0, "MKT_VAL": 80.0, "COST": 80.0},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0303 by transaction changes ending holding."],
+            portfolio="INCOME",
+            security="TNOTE5Y",
+            holding_date="2026-02-27",
+            deltas={
+                "QTY": 5.0,
+                "MKT_VAL": 494.0,
+                "COST": 494.0,
+                "ACCRUED": 5.0 * 4.56 / 485.83,
+            },
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0303 by transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-02-27",
+            deltas={"QTY": -494.0, "MKT_VAL": -494.0, "COST": -494.0},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0304 pa transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-02-27",
+            deltas={"QTY": -42.5, "MKT_VAL": -42.5, "COST": -42.5},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0305 sl transaction changes ending holding."],
+            portfolio="INCOME",
+            security="TNOTE5Y",
+            holding_date="2026-02-27",
+            deltas={
+                "QTY": -3.0,
+                "MKT_VAL": -296.4,
+                "COST": -291.953975670502,
+                "ACCRUED": -3.0 * 4.56 / 485.83,
+            },
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0305 sl transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-02-27",
+            deltas={"QTY": 296.4, "MKT_VAL": 296.4, "COST": 296.4},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0306 sa transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-02-27",
+            deltas={"QTY": 37.25, "MKT_VAL": 37.25, "COST": 37.25},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0401 by transaction changes ending holding."],
@@ -1144,6 +1250,96 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             deltas={"QTY": -900.0, "MKT_VAL": -900.0, "COST": -900.0},
         )
 
+    def test_transaction_scenarios_can_insert_accrued_interest_adjuncts(self) -> None:
+        """Explicit pa/sa rows can drive cash settlement scenarios."""
+        rebuild_module = _load_rebuild_module()
+        axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
+        base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
+        base_transactions = rebuild_module._read_packaged_transactions(
+            axys_directory / "axys_full_spec_a" / "transactions.csv"
+        )
+        periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")
+        scenario_rows = []
+        for transaction_id, transaction_code, amount, scenario in (
+            ("INCOME0604", "pa", -42.5, "Test-only purchase accrued interest."),
+            ("INCOME0605", "sa", 37.25, "Test-only sale accrued interest."),
+        ):
+            row = {
+                column: ""
+                for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
+            }
+            row.update(
+                {
+                    "snapshot": "axys_full_spec_b",
+                    "action": "insert",
+                    "TRANSACTION_ID": transaction_id,
+                    "PORT": "INCOME",
+                    "TRANSACTION_DATE": "2026-05-15",
+                    "SETTLE_DATE": "2026-05-15",
+                    "SEC": "TNOTE5Y",
+                    "TRAN": transaction_code,
+                    "SEC_TYPE": "fius",
+                    "SRC_DEST_TYPE": "$income",
+                    "SRC_DEST_SYMBOL": "$cash",
+                    "QTY": 0,
+                    "PRICE": 0,
+                    "AMOUNT": amount,
+                    "COMMISSION": 0,
+                    "QTY_delta": 0,
+                    "PRICE_delta": 0,
+                    "AMOUNT_delta": 0,
+                    "COMMISSION_delta": 0,
+                    "scenario": scenario,
+                }
+            )
+            scenario_rows.append(row)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "transaction_scenarios.csv"
+            pd.DataFrame(
+                scenario_rows,
+                columns=rebuild_module._TRANSACTION_SCENARIO_COLUMNS,
+            ).to_csv(
+                path,
+                index=False,
+            )
+            scenarios = rebuild_module._load_transaction_scenarios(path)
+
+        rebuilt_transactions = rebuild_module._rebuild_transactions(
+            "axys_full_spec_b",
+            current_transactions=base_transactions,
+            base_transactions=base_transactions,
+            transaction_scenarios=scenarios,
+        )
+        inserted = rebuilt_transactions[
+            rebuilt_transactions["TRANSACTION_ID"].isin(["INCOME0604", "INCOME0605"])
+        ].sort_values("TRANSACTION_ID")
+        self.assertEqual(inserted["TRAN"].to_list(), ["pa", "sa"])
+        self.assertEqual(inserted["AMOUNT"].astype(float).to_list(), [-42.5, 37.25])
+
+        adjustments = rebuild_module._transaction_derived_holding_adjustments(
+            "axys_full_spec_b",
+            base_holdings=base_holdings,
+            base_transactions=base_transactions,
+            current_transactions=rebuilt_transactions,
+            periods=periods,
+        )
+        by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
+        self._assert_adjustment(
+            by_scenario["INCOME0604 pa transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-05-29",
+            deltas={"QTY": -42.5, "MKT_VAL": -42.5, "COST": -42.5},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0605 sa transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-05-29",
+            deltas={"QTY": 37.25, "MKT_VAL": 37.25, "COST": 37.25},
+        )
+
     def _assert_adjustment(
         self,
         adjustment,
@@ -1159,8 +1355,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(adjustment.holding_date, holding_date)
         for column, expected_delta in deltas.items():
             self.assertAlmostEqual(adjustment.deltas[column], expected_delta, places=6)
-        self.assertEqual(adjustment.deltas["PRICE"], 0.0)
-        self.assertEqual(adjustment.deltas["ACCRUED"], 0.0)
+        for column in {"QTY", "PRICE", "MKT_VAL", "COST", "ACCRUED"} - set(deltas):
+            self.assertEqual(adjustment.deltas[column], 0.0)
 
 
 if __name__ == "__main__":

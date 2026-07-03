@@ -395,7 +395,7 @@ class TestPackageMetadata(unittest.TestCase):
             "until vendor preset implementation exists",
             "Portfolio Modified Dietz uses holdings",
             "Security Modified Dietz treats buys and sells",
-            "external-cash li, external-cash lo, and external-cash wd",
+            "external-cash li, external-cash lo, external-cash wd",
             'Rules for ";"',
             "Long-out is external only with reviewed external-party context",
             "Reserved corporate-action/journal marker",
@@ -516,12 +516,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 8C: Fixed-Income Transaction Boundary Gate", roadmap)
         self.assertIn("ordinary `in` interest rows", roadmap)
         self.assertIn("`holdings.accrued`", roadmap)
-        self.assertIn("`ai`, `pa`, `sa`, and `pd`", roadmap)
+        self.assertIn("`ai` and `pd`", roadmap)
         self.assertIn("local mapping or\n  REP/report semantics", roadmap)
         self.assertIn("quantity or principal\n  exposure", roadmap)
         self.assertIn("before it is treated as performance income", roadmap)
         self.assertIn(
-            "two proved fixed-income Modified Dietz inputs",
+            "three proved fixed-income Modified Dietz input\nfamilies",
             source_contract,
         )
         self.assertIn("amortization/accretion engine", source_contract)
@@ -537,6 +537,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 10A: Fixed-Income Formula Boundary", roadmap)
         self.assertIn("ordinary `in` interest transaction amounts", roadmap)
         self.assertIn("configured `holdings.accrued` changes", roadmap)
+        self.assertIn(
+            "paired purchase/sale accrued-interest adjunct amounts",
+            roadmap,
+        )
         self.assertIn("amortization/accretion engines", roadmap)
         self.assertIn("bond principal schedule reconstruction", roadmap)
         self.assertIn("Phase 10B: Test-Only Ordinary Interest + Accrued Audit", roadmap)
@@ -570,7 +574,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("review-only action quarantine", roadmap)
 
     def test_return_capital_and_short_backlog_phase_is_documented(self) -> None:
-        """The roadmap and matrix keep high-risk backlog gates explicit."""
+        """The roadmap and matrix keep high-risk code-only gates explicit."""
         roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
             encoding=util.ENCODING
         )
@@ -594,12 +598,54 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 12D: Matrix + Validator Reporting", roadmap)
         self.assertIn("`Capital-return and short-side backlog\ngates`", roadmap)
 
-        for code in ("rc", "pd", "ss", "cs"):
+        partial_fixture_expectations = {
+            "rc": ["site_variants/rc_return_of_capital"],
+            "pd": ["site_variants/pd_principal_paydown"],
+            "ss": ["site_variants/short_side_trades"],
+            "cs": ["site_variants/short_side_trades"],
+        }
+        for code, expected_fixtures in partial_fixture_expectations.items():
             with self.subTest(code=code):
                 row = matrix_yaml["rows"][code]
-                self.assertEqual(row["coverage_status"], "backlog")
-                self.assertEqual(row["fixtures"], [])
-                self.assertIn("Backlog gate:", row["coverage_notes"])
+                self.assertEqual(row["coverage_status"], "partial")
+                self.assertEqual(row["fixtures"], expected_fixtures)
+                self.assertIn("Code-only treatment remains unknown", row["coverage_notes"])
+
+    def test_candidate_override_profiles_are_documented_as_test_only(self) -> None:
+        """Candidate override profiles remain explicit onboarding examples."""
+        checklist = Path("docs/site_extract_readiness_checklist.md").read_text(
+            encoding=util.ENCODING
+        )
+        fixture_readme = Path("tests/data/axys/site_variants/README.md").read_text(
+            encoding=util.ENCODING
+        )
+        matrix_yaml = _load_yaml(
+            Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
+        )
+        expected_profiles = {
+            "ai": "site_variants/ai_margin_interest",
+            "pa": "site_variants/fixed_income_accruals",
+            "sa": "site_variants/fixed_income_accruals",
+            "rc": "site_variants/rc_return_of_capital",
+            "pd": "site_variants/pd_principal_paydown",
+            "ss": "site_variants/short_side_trades",
+            "cs": "site_variants/short_side_trades",
+        }
+
+        self.assertIn("These profiles are not universal Axys rules", checklist)
+        self.assertIn("Code-only rows still stay\n`unknown`", checklist)
+        self.assertIn("not native Axys schemas", fixture_readme)
+        self.assertIn("not promote the transaction code", fixture_readme)
+        self.assertIn("best-efforts demo-construction context", fixture_readme)
+
+        for code, fixture in expected_profiles.items():
+            profile_name = fixture.removeprefix("site_variants/")
+            with self.subTest(code=code):
+                row = matrix_yaml["rows"][code]
+                self.assertEqual(row["coverage_status"], "partial")
+                self.assertIn(fixture, row["fixtures"])
+                self.assertIn(profile_name, checklist)
+                self.assertIn(profile_name, fixture_readme)
 
     def test_matrix_consolidation_phase_is_documented(self) -> None:
         """The roadmap documents the release-readiness consolidation phase."""
@@ -691,7 +737,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
-        self.assertIn("Do not add more packaged external-flow\nrows merely for symmetry", roadmap)
+        self.assertIn("Do not add more packaged external-flow", roadmap)
+        self.assertIn("merely\nfor symmetry", roadmap)
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
         self.assertIn("Vendor YAML presets", roadmap)
@@ -1032,6 +1079,14 @@ class TestPackageMetadata(unittest.TestCase):
             "ambiguous_context_required",
             transaction_boundary_groups("wd"),
         )
+        self.assertIn(
+            "fixed_income_accrued_interest",
+            transaction_boundary_groups("pa"),
+        )
+        self.assertIn(
+            "fixed_income_accrued_interest",
+            transaction_boundary_groups("sa"),
+        )
         self.assertIn("review_only_test", transaction_boundary_groups(";"))
         self.assertIn("context_only", transaction_boundary_groups("exus"))
         self.assertIn("standalone_backlog", transaction_boundary_groups("epus"))
@@ -1046,6 +1101,7 @@ class TestPackageMetadata(unittest.TestCase):
             {
                 "packaged_formula",
                 "fixed_income_safe",
+                "fixed_income_accrued_interest",
                 "ambiguous_context_required",
                 "review_only_test",
                 "context_only",
@@ -1144,8 +1200,9 @@ class TestPackageMetadata(unittest.TestCase):
             roadmap,
         )
         self.assertIn("No new transaction row was promoted", roadmap)
-        self.assertIn("`lo` row would be useful only if", roadmap)
+        self.assertIn("later phases promoted `lo` and a narrow paired `pa`/`sa`", roadmap)
         self.assertIn("Phase 66: Packaged `lo` Deliver-Out Scenario", roadmap)
+        self.assertIn("Phase 71: `pa` / `sa` Packaged Demo Promotion", roadmap)
         self.assertIn("Synthetic or\nsurgical coverage remains test-only", roadmap)
 
         self.assertIn("li", packaged_demo_rule_codes)
@@ -1154,6 +1211,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("wd", packaged_demo_data_codes)
         self.assertIn("dp", packaged_demo_data_codes)
         self.assertIn("lo", packaged_demo_data_codes)
+        self.assertIn("pa", packaged_demo_data_codes)
+        self.assertIn("sa", packaged_demo_data_codes)
         self.assertEqual(
             matrix_yaml["rows"]["li"]["coverage_status"],
             "covered_packaged_demo",
@@ -1173,6 +1232,18 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn(
             "site_variants/rep_semantics",
             matrix_yaml["rows"]["lo"]["fixtures"],
+        )
+        self.assertEqual(
+            matrix_yaml["rows"]["pa"]["coverage_status"],
+            "partial",
+        )
+        self.assertIn(
+            "packaged_demo",
+            matrix_yaml["rows"]["pa"]["fixtures"],
+        )
+        self.assertIn(
+            "packaged_demo",
+            matrix_yaml["rows"]["sa"]["fixtures"],
         )
 
     def test_review_only_action_fixture_is_documented(self) -> None:

@@ -1,0 +1,25 @@
+comparison:
+  name: Axys site variant with return-of-capital rules
+
+snapshots:
+  a:
+    label: rc_return_of_capital_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: rc_return_of_capital_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  rc:
+    - when:
+        security_type: equity
+        special_security_type: return_of_capital
+      transaction_category: income
+      cash_flow_sign: positive
+      performance_flow_sign: performance

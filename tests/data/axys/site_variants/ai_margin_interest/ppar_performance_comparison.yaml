@@ -1,0 +1,24 @@
+comparison:
+  name: Axys site variant with margin-interest rules
+
+snapshots:
+  a:
+    label: ai_margin_interest_a
+    path: snapshot_a
+    vendor: axys
+  b:
+    label: ai_margin_interest_b
+    path: snapshot_b
+    vendor: axys
+
+files:
+  portfolio_performance: portperf.csv
+  transactions: transactions.csv
+
+transaction_rules:
+  ai:
+    - when:
+        security_type: margin
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance

@@ -27,6 +27,7 @@ from ppar.performance_comparison.backlog_gates import (
 from ppar.performance_comparison.config_validation import validate_config
 from ppar.performance_comparison.extract_contract import validate_extract_contract
 from ppar.performance_comparison.fixed_income import (
+    FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES,
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     FIXED_INCOME_FORMULA_INPUTS,
     FIXED_INCOME_OUT_OF_SCOPE,
@@ -42,6 +43,7 @@ from ppar.performance_comparison.transactions import (
     TRANSACTION_CATEGORY_EXTERNAL_FLOW,
     TRANSACTION_CATEGORY_FEE_EXPENSE,
     TRANSACTION_CATEGORY_INCOME,
+    TRANSACTION_CATEGORY_SELL,
     TRANSACTION_CATEGORY_TRANSFER,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL,
     TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
@@ -312,6 +314,13 @@ class TestTransactionsLoader(unittest.TestCase):
     def test_fixed_income_transaction_boundary_is_modified_dietz_scoped(self) -> None:
         """Fixed-income helper names safe formula inputs and blocked backlog codes."""
         self.assertEqual(fixed_income_transaction_boundary("in"), "safe_income")
+        for code in FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES:
+            with self.subTest(code=code):
+                self.assertEqual(
+                    fixed_income_transaction_boundary(code),
+                    "accrued_interest_adjunct",
+                )
+                self.assertEqual(transaction_category_from_code(code), "unknown")
         for code in FIXED_INCOME_BACKLOG_TRANSACTION_CODES:
             with self.subTest(code=code):
                 self.assertEqual(fixed_income_transaction_boundary(code), "backlog")
@@ -924,6 +933,225 @@ class TestTransactionsLoader(unittest.TestCase):
                 row[pc_cols.PERFORMANCE_FLOW_SIGN],
             )
         self.assertEqual(actual_rows, expected_rows)
+
+    def test_site_variant_fixed_income_accruals_use_explicit_rules(self) -> None:
+        """Fixed-income accrued-interest codes stay YAML-scoped, not built-in."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "fixed_income_accruals"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(transaction_category_from_code("pa"), "unknown")
+        self.assertEqual(transaction_category_from_code("sa"), "unknown")
+        self.assertEqual(
+            frame.sort(pc_cols.TRANSACTION_CODE)
+            .select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            )
+            .to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "pa",
+                    pc_cols.SECURITY_TYPE: "bond",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "sa",
+                    pc_cols.SECURITY_TYPE: "bond",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+            ],
+        )
+
+    def test_site_variant_ai_margin_interest_uses_explicit_rules(self) -> None:
+        """Margin-style ``ai`` rows stay YAML-scoped, not built-in."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "ai_margin_interest"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(transaction_category_from_code("ai"), "unknown")
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "ai",
+                    pc_cols.SECURITY_TYPE: "margin",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_FEE_EXPENSE,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+            ],
+        )
+
+    def test_site_variant_rc_return_of_capital_uses_explicit_rules(self) -> None:
+        """Return-of-capital rows stay YAML-scoped for Modified Dietz treatment."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "rc_return_of_capital"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(transaction_category_from_code("rc"), "unknown")
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.SECURITY_TYPE,
+                pc_cols.SPECIAL_SECURITY_TYPE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "rc",
+                    pc_cols.SECURITY_TYPE: "equity",
+                    pc_cols.SPECIAL_SECURITY_TYPE: "return_of_capital",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+            ],
+        )
+
+    def test_site_variant_pd_principal_paydown_uses_explicit_rules(self) -> None:
+        """Principal-paydown rows stay YAML-scoped for Modified Dietz treatment."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "pd_principal_paydown"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(transaction_category_from_code("pd"), "unknown")
+        self.assertEqual(
+            frame.select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.SECURITY_TYPE,
+                pc_cols.SPECIAL_SECURITY_TYPE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            ).to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "pd",
+                    pc_cols.SECURITY_TYPE: "bond",
+                    pc_cols.SPECIAL_SECURITY_TYPE: "principal_paydown",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_INCOME,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+            ],
+        )
+
+    def test_site_variant_short_side_trades_use_explicit_rules(self) -> None:
+        """Short-side rows stay YAML-scoped and lowercase-code specific."""
+        specification = PerformanceComparisonSpecification(
+            _SITE_VARIANT_FIXTURES_PATH
+            / "short_side_trades"
+            / "ppar_performance_comparison.yaml"
+        )
+
+        frame = TransactionsLoader(specification).load("a")
+        assert frame is not None
+
+        self.assertEqual(transaction_category_from_code("ss"), "unknown")
+        self.assertEqual(transaction_category_from_code("cs"), "unknown")
+        self.assertEqual(
+            frame.sort(pc_cols.TRANSACTION_CODE, descending=True)
+            .select(
+                pc_cols.TRANSACTION_CODE,
+                pc_cols.SECURITY_TYPE,
+                pc_cols.TRANSACTION_CATEGORY,
+                pc_cols.CASH_FLOW_SIGN,
+                pc_cols.PERFORMANCE_FLOW_SIGN,
+                pc_cols.TRANSACTION_SEMANTICS_SOURCE,
+            )
+            .to_dicts(),
+            [
+                {
+                    pc_cols.TRANSACTION_CODE: "ss",
+                    pc_cols.SECURITY_TYPE: "short",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_SELL,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+                {
+                    pc_cols.TRANSACTION_CODE: "cs",
+                    pc_cols.SECURITY_TYPE: "short",
+                    pc_cols.TRANSACTION_CATEGORY: TRANSACTION_CATEGORY_BUY,
+                    pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
+                    pc_cols.PERFORMANCE_FLOW_SIGN: (
+                        TRANSACTION_PERFORMANCE_FLOW_SIGN_PERFORMANCE
+                    ),
+                    pc_cols.TRANSACTION_SEMANTICS_SOURCE: (
+                        TRANSACTION_SEMANTICS_SOURCE_YAML_RULE
+                    ),
+                },
+            ],
+        )
 
     def test_site_variant_rep_semantics_can_supply_ambiguous_flow_context(self) -> None:
         """REP/report semantics can be the reviewed context for ambiguous codes."""

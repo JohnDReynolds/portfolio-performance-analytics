@@ -80,9 +80,9 @@ rows:
     required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
     imex_confidence: low_medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: "Backlog gate: short-side evidence required before classification. Needs short security type, cash/margin/short-account symbols, amount and quantity signs, and local mapping or REP/report semantics."
+    coverage_status: partial
+    fixtures: [site_variants/short_side_trades]
+    coverage_notes: "Test-only site variant covers a Modified Dietz performance-sell treatment through explicit short-security YAML context. Code-only treatment remains unknown, and packaged-demo use still needs a coherent short-account scenario."
   cs:
     observed_meaning: Cover short.
     ppar_categories: [buy, unknown_pending_review]
@@ -91,9 +91,9 @@ rows:
     required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
     imex_confidence: low_medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: "Backlog gate: short-side evidence required before classification. Needs short security type, cash/margin/short-account symbols, amount and quantity signs, and local mapping or REP/report semantics; uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
+    coverage_status: partial
+    fixtures: [site_variants/short_side_trades]
+    coverage_notes: "Test-only site variant covers a Modified Dietz performance-buy treatment through explicit short-security YAML context. Code-only treatment remains unknown, and uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
   dv:
     observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
     ppar_categories: [income]
@@ -124,53 +124,53 @@ rows:
     required_evidence: [security_type, margin_symbols, amount_sign, local_mapping]
     imex_confidence: medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: Backlog pending fixture evidence that distinguishes margin/negative-interest and fee-expense treatment; packaged demo uses holdings.accrued plus in interest, not ai.
+    coverage_status: partial
+    fixtures: [site_variants/ai_margin_interest]
+    coverage_notes: Test-only site variant covers margin-style negative-interest treatment through explicit YAML rules. Code-only treatment remains unknown, and packaged-demo use still needs local mapping or REP/report evidence.
   sa:
     observed_meaning: Sale accrued interest or sell-side accrued interest.
     ppar_categories: [income, fee_expense]
-    cash_flow_signs: [context_dependent]
+    cash_flow_signs: [positive, context_dependent]
     performance_flow_signs: [performance, unknown]
     required_evidence: [bond_or_accrual_context, accrued_interest_amount, settlement_date, local_mapping]
     imex_confidence: medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: Backlog pending sell-accrued-interest fixture with bond/accrual context, cash offset, settlement economics, and local mapping or REP/report semantics.
+    coverage_status: partial
+    fixtures: [packaged_demo, site_variants/fixed_income_accruals]
+    coverage_notes: Packaged demo includes sale accrued interest only with explicit fixed-income context and paired bond-trade scenario support; code-only treatment remains unknown.
   pa:
     observed_meaning: Purchase accrued interest or buy-side accrued interest.
     ppar_categories: [fee_expense, income]
-    cash_flow_signs: [context_dependent]
+    cash_flow_signs: [negative, context_dependent]
     performance_flow_signs: [performance, unknown]
     required_evidence: [bond_or_accrual_context, accrued_interest_amount, settlement_date, local_mapping]
     imex_confidence: medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: Backlog pending purchase-accrued-interest fixture with bond/accrual context, cash offset, settlement economics, and local mapping or REP/report semantics.
+    coverage_status: partial
+    fixtures: [packaged_demo, site_variants/fixed_income_accruals]
+    coverage_notes: Packaged demo includes purchase accrued interest only with explicit fixed-income context and paired bond-trade scenario support; code-only treatment remains unknown.
   rc:
     observed_meaning: Return of capital.
     ppar_categories: [income, corporate_action]
     cash_flow_signs: [positive]
     performance_flow_signs: [performance, review_only]
-    required_evidence: [code, security, amount_sign, cost_basis_or_report_treatment]
+    required_evidence: [code, security, amount_sign, local_mapping_or_report_treatment]
     imex_confidence: low_medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: "Backlog gate: capital-return policy required before classification. Needs security identity, amount sign, cost-basis or report treatment, and local mapping or REP/report semantics before choosing performance income, corporate-action evidence, or review-only evidence."
+    coverage_status: partial
+    fixtures: [site_variants/rc_return_of_capital]
+    coverage_notes: "Test-only site variant covers a Modified Dietz performance-income treatment through explicit return-of-capital YAML context. Code-only treatment remains unknown. Cost-basis handling is best-efforts demo-construction context, not required for this performance classification."
   pd:
     observed_meaning: Principal paydown or bond-security return-of-capital transaction.
     ppar_categories: [income, corporate_action]
     cash_flow_signs: [positive]
     performance_flow_signs: [performance, review_only]
-    required_evidence: [bond_security_type, principal_paydown_context, factor_or_principal_reduction, cash_movement]
+    required_evidence: [bond_security_type, principal_paydown_context, cash_movement, local_mapping_or_report_treatment]
     imex_confidence: medium
     rep_confidence: medium
-    coverage_status: backlog
-    fixtures: []
-    coverage_notes: "Backlog gate: capital-return policy required before classification. Needs bond security type, principal-paydown context, cash movement, principal/factor reduction, cost-basis or amortization treatment, and local mapping or REP/report semantics before choosing income, corporate-action evidence, or review-only evidence."
+    coverage_status: partial
+    fixtures: [site_variants/pd_principal_paydown]
+    coverage_notes: "Test-only site variant covers a Modified Dietz performance-income treatment through explicit principal-paydown YAML context. Code-only treatment remains unknown. Principal, cost-basis, and amortization handling are best-efforts demo-construction context, not required for this performance classification."
   li:
     observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
     ppar_categories: [external_flow, transfer]

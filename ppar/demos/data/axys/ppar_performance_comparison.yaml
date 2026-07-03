@@ -70,9 +70,9 @@ security_return_reconstruction:
 
 transaction_rules:
   # Packaged transaction rows currently use by, sl, dv, in, fee-like dp,
-  # external-cash li, external-cash lo, and external-cash wd. Rules for ";"
-  # are retained as defensive guardrails/reserved semantics, not as current
-  # packaged rows.
+  # external-cash li, external-cash lo, external-cash wd, and fixed-income
+  # accrued-interest adjunct pa/sa. Rules for ";" are retained as defensive
+  # guardrails/reserved semantics, not as current packaged rows.
   by:
     transaction_category: buy
     cash_flow_sign: negative
@@ -99,6 +99,22 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+  pa:
+    # Purchase accrued interest is a fixed-income trade adjunct, not an
+    # investor external flow. It is packaged only with explicit bond context.
+    - when:
+        security_type: fius
+      transaction_category: fee_expense
+      cash_flow_sign: negative
+      performance_flow_sign: performance
+  sa:
+    # Sale accrued interest is a fixed-income trade adjunct, not an investor
+    # external flow. It is packaged only with explicit bond context.
+    - when:
+        security_type: fius
+      transaction_category: income
+      cash_flow_sign: positive
+      performance_flow_sign: performance
   li:
     # Long-in is external only with reviewed external-party context; internal
     # account movement remains neutral transfer.

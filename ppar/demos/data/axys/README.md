@@ -100,18 +100,20 @@ Data used:
   cash/fixed-income sleeves.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
-- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `dp`, `li`,
-  `lo`, `wd`, and `;`) to normalized categories such as `buy`, `sell`, `income`,
-  `fee_expense`, `external_flow`, and `corporate_action`. Reviewer-facing
-  explanations preserve the source code rather than uppercasing or replacing it
-  with the category.
+- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `pa`, `sa`,
+  `dp`, `li`, `lo`, `wd`, and `;`) to normalized categories such as `buy`,
+  `sell`, `income`, `fee_expense`, `external_flow`, and `corporate_action`.
+  Reviewer-facing explanations preserve the source code rather than uppercasing
+  or replacing it with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
-  `by`, `sl`, `dv`, `in`, `dp`, `li`, `lo`, and `wd`. The packaged `li` row is a
-  plain external cash contribution with external-party context, and the packaged
-  `lo` row is an external cash deliver-out with the same context standard. More
-  ambiguous `li`/`lo` transfer cases and synthetic corporate-action rows live in
-  test-only fixtures until a realistic packaged story and evidence trail
-  justify adding them here.
+  `by`, `sl`, `dv`, `in`, `pa`, `sa`, `dp`, `li`, `lo`, and `wd`. The packaged
+  `pa` and `sa` rows appear only as fixed-income accrued-interest adjuncts
+  paired with TNOTE5Y buy/sell rows. The packaged `li` row is a plain external
+  cash contribution with external-party context, and the packaged `lo` row is an
+  external cash deliver-out with the same context standard. More ambiguous
+  `li`/`lo` transfer cases and synthetic corporate-action rows live in test-only
+  fixtures until a realistic packaged story and evidence trail justify adding
+  them here.
 - Packaged transaction rows omit `TRANSACTION_ID`. ppar supports stable
   transaction IDs when a local extract provides them, but the packaged Axys
   demo uses the more realistic conservative no-ID path by default. Internal
@@ -121,15 +123,16 @@ Data used:
 
   | Home | Transaction families |
   | --- | --- |
-  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
+  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
   | YAML rules reserved for runtime guards | `;` corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
-  | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, and `dv` + `by` reinvestment guards. |
-  | Evidence-blocked backlog | `ai`, `pa`, `sa`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and real-world corporate actions until source evidence and accounting policy are strong enough. |
+  | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, `pa`/`sa` local-override examples, and `dv` + `by` reinvestment guards. |
+  | Evidence-blocked backlog | `ai`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and real-world corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
-  interest uses an `in` transaction row, and accrued-interest restatement uses
-  `holdings.accrued`. The packaged demo does not infer accrued-interest or
-  principal-paydown treatment from `ai`, `pa`, `sa`, or `pd` transaction codes.
+  interest uses an `in` transaction row, accrued-interest restatement uses
+  `holdings.accrued`, and TNOTE5Y `pa`/`sa` rows are packaged only with paired
+  fixed-income trade context. The packaged demo does not infer accrued-interest,
+  margin-interest, or principal-paydown treatment from code alone.
 - Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
   sufficient only when transaction rows include source/destination and
   special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,
@@ -177,9 +180,10 @@ Expected workbook:
   - a fully explained INCOME period with the same AAPL price correction plus
     TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
     evidence, and TNOTE2Y cost in the `Raw Audit Trail`;
-  - an unexplained INCOME period where a TNOTE5Y cost-only correction is useful
-    review evidence but no supported Modified Dietz input explains the
-    reported portfolio and TNOTE5Y security return differences;
+  - a partly explained INCOME period where paired TNOTE5Y `by`/`pa` and
+    `sl`/`sa` accrued-interest settlement rows, quantity-driven holding value
+    changes, and TNOTE5Y cost-only audit evidence are visible, while incomplete
+    or overlapping estimates still require reviewer triage;
   - an ALPHA external-withdrawal restatement visible in the return
     reconstruction check.
 
@@ -279,9 +283,11 @@ Current public YAML targets are intentionally narrow:
 - `transaction_rules`: classifies transaction codes for amount attribution.
   Ambiguous Axys-style `li`, `lo`, `dp`, and `wd` examples require matching
   transaction-context fields before they are treated as external flows or
-  fee/expense rows. Fixed-income backlog codes such as `ai`, `pa`, `sa`, and
-  `pd` require test-only fixture proof plus local mapping or REP/report
-  evidence before they should become user-facing demo transactions.
+  fee/expense rows. Fixed-income `pa`/`sa` accrued-interest adjuncts require
+  fixed-income context and paired-trade support in the packaged demo. Remaining
+  fixed-income backlog codes such as `ai` and `pd` require test-only fixture
+  proof plus local mapping or REP/report evidence before they should become
+  user-facing demo transactions.
 - `transaction_amount_delta_over_return_denominator`: default amount-impact
   method used after `transaction_rules` mark a transaction code as
   performance-affecting.

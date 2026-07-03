@@ -182,12 +182,14 @@ _INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"): 0.004,
 }
 _SECURITY_FLOW_CODES: Final = {"by", "sl"}
-_INCOME_CODES: Final = {"dv", "in", "dp"}
+_ACCRUED_INTEREST_ADJUNCT_CODES: Final = {"pa", "sa"}
+_INCOME_CODES: Final = {"dv", "in", "dp", *_ACCRUED_INTEREST_ADJUNCT_CODES}
 _AMBIGUOUS_EXTERNAL_FLOW_CODES: Final = {"li", "lo", "wd"}
 _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
     ";",
     "by",
     "sl",
+    *_ACCRUED_INTEREST_ADJUNCT_CODES,
     "li",
     "lo",
     "wd",
@@ -199,23 +201,27 @@ _CASH_SECURITY_ID: Final = "CASH_USD"
 _EXPECTED_SCENARIO_COVERAGE: Final = {
     "axys_full_spec_b": {
         "transaction_scenarios_by_type": {
-            "by": 1,
-            "dp": 1,
-            "dv": 1,
-            "in": 1,
-            "li": 1,
-            "lo": 1,
-            "sl": 1,
-            "wd": 1,
-        },
-        "transaction_derived_holdings_by_type": {
             "by": 2,
             "dp": 1,
             "dv": 1,
             "in": 1,
             "li": 1,
             "lo": 1,
+            "pa": 1,
+            "sa": 1,
             "sl": 2,
+            "wd": 1,
+        },
+        "transaction_derived_holdings_by_type": {
+            "by": 4,
+            "dp": 1,
+            "dv": 1,
+            "in": 1,
+            "li": 1,
+            "lo": 1,
+            "pa": 1,
+            "sa": 1,
+            "sl": 4,
             "wd": 1,
         },
         "holding_scenarios_by_type": {
@@ -826,8 +832,10 @@ def _transaction_derived_holding_adjustments(
         These rules intentionally cover only simple demo scenarios. They are not
         a full accounting engine. Buy/sell rows update the traded security and
         the cash balance. Cash-like income, fee, deposit, and withdrawal rows
-        update only the cash balance. Corporate-action quantity corrections
-        update only the affected security holding.
+        update only the cash balance. Fixed-income accrued-interest adjuncts
+        update cash without changing principal quantity or accrued holdings.
+        Corporate-action quantity corrections update only the affected security
+        holding.
     """
     if snapshot_name == _BASE_SNAPSHOT_DIRECTORY:
         return ()
@@ -897,6 +905,19 @@ def _transaction_derived_holding_adjustments(
                     holding_date=holding_date,
                     quantity_delta=float(row.QTY_delta),
                     scenario=f"{row.TRANSACTION_ID} ; transaction changes ending holding.",
+                )
+            )
+        elif transaction_code in _ACCRUED_INTEREST_ADJUNCT_CODES:
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=(
+                        f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                        "changes cash balance."
+                    ),
                 )
             )
         elif _is_cash_balance_transaction(row):
@@ -1076,11 +1097,14 @@ def _security_trade_adjustment(
     price = float(rows.iloc[0]["PRICE"])
     quantity = float(rows.iloc[0]["QTY"])
     cost = float(rows.iloc[0]["COST"])
+    accrued = float(rows.iloc[0]["ACCRUED"])
     cost_per_share = cost / quantity if quantity else 0.0
+    accrued_per_share = accrued / quantity if quantity else 0.0
     market_value_delta = quantity_delta * price
     cost_delta = market_value_delta
     if transaction_code == "sl":
         cost_delta = quantity_delta * cost_per_share
+    accrued_delta = quantity_delta * accrued_per_share
     return HoldingScenarioAdjustment(
         snapshot=snapshot,
         portfolio=portfolio,
@@ -1092,7 +1116,7 @@ def _security_trade_adjustment(
             "PRICE": 0.0,
             "MKT_VAL": market_value_delta,
             "COST": cost_delta,
-            "ACCRUED": 0.0,
+            "ACCRUED": accrued_delta,
         },
         scenario=scenario,
     )

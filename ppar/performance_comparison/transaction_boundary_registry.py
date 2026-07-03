@@ -10,6 +10,7 @@ from ppar.performance_comparison.backlog_gates import (
     SHORT_SIDE_BACKLOG_TRANSACTION_CODES,
 )
 from ppar.performance_comparison.fixed_income import (
+    FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES,
     FIXED_INCOME_BACKLOG_TRANSACTION_CODES,
     FIXED_INCOME_SAFE_TRANSACTION_CODES,
 )
@@ -29,6 +30,9 @@ TRANSACTION_BOUNDARY_REGISTRY: Final[MappingProxyType[str, frozenset[str]]] = (
         {
             "packaged_formula": PACKAGED_FORMULA_TRANSACTION_CODES,
             "fixed_income_safe": FIXED_INCOME_SAFE_TRANSACTION_CODES,
+            "fixed_income_accrued_interest": (
+                FIXED_INCOME_ACCRUED_INTEREST_TRANSACTION_CODES
+            ),
             "ambiguous_context_required": (
                 AMBIGUOUS_CONTEXT_REQUIRED_TRANSACTION_CODES
             ),
