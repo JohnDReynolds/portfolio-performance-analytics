@@ -13,6 +13,13 @@
 # first, run validate_config, then adjust transaction rules one code at a time.
 # Leave ambiguous Axys/APX codes conservative until the site extract supplies
 # source/destination, special-security, REP, or reviewed local evidence.
+#
+# First-run edit map:
+# - Edit snapshots.*.path when local Snapshot A/B folders have different names.
+# - Edit files.* only when local extracts use different filenames.
+# - Edit axys_column_mappings.yaml when local extracts use different headers.
+# - Leave transaction rules and impact methods alone until validation or
+#   reviewed site evidence proves a site-specific override is needed.
 
 comparison:
   name: Axys performance comparison demo
@@ -90,6 +97,11 @@ transaction_rules:
   # external-cash li, external-cash lo, external-cash wd, and fixed-income
   # accrued-interest adjunct pa/sa. Rules for ";" are retained as defensive
   # guardrails/reserved semantics, not as current packaged rows.
+  #
+  # Marketing demo vs onboarding base: by/sl/dv/in/dp/li/lo/wd are the common
+  # operational story. The pa/sa rules are included because the packaged demo
+  # now has a narrow fixed-income trade/accrued-interest story, but local sites
+  # should still confirm bond context before relying on those codes.
   by:
     transaction_category: buy
     cash_flow_sign: negative

@@ -2920,6 +2920,23 @@ mapping, extract guardrail file, and Snapshot A/B folders together, or edit the
 YAML paths before validation. The security-report path now uses a copied YAML
 with `comparison.level: security`, matching the real `report_bundle` CLI.
 
+### Phase 79: Axys Onboarding Kit Consolidation
+
+Status: complete for the current starter-kit reader path.
+
+The Axys/APX quick start now has a first-run edit map that tells onboarding
+users which copied files to edit first and which sections to leave alone for
+the first report. It reinforces that the starter kit is a working copy, that
+Snapshot A/B paths and column mappings are the first safe edits, and that native
+transaction codes and security identifiers remain case-sensitive.
+
+The packaged Axys YAML now carries the same boundary in comments: edit snapshot
+paths, filenames, and column mappings before changing transaction rules or
+impact methods. It also names the marketing-demo versus onboarding-base split:
+the common operational story covers core transaction families, while richer
+examples such as fixed-income `pa`/`sa` should stay unchanged until local bond
+context and site evidence justify overrides.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

@@ -28,6 +28,18 @@ axys_site_start/
   _site_output/
 ```
 
+Use the starter kit as a working copy, not as a library reference. Edit the
+copied files in `axys_site_start/`; leave the packaged files unchanged.
+
+## What To Edit First
+
+| File | Edit first | Usually leave alone at first |
+| --- | --- | --- |
+| `axys_site_start.yaml` | `snapshots.a.path`, `snapshots.b.path`, `comparison.level`, and filenames under `files:` if your extracts use different names. | Transaction rules, impact methods, reconstruction settings, and tolerances. |
+| `axys_column_mappings.yaml` | Column names when your local extracts use different headers. | Normalized field names unless the product input contract changes. |
+| `demo_extract_availability.yaml` | Do not edit for a first run. | Keep as a packaged-demo guardrail; local production contracts can be documented later. |
+| Snapshot folders | Replace the demo CSVs with the site's Snapshot A/B extracts. | Keep native transaction codes and security identifiers case-sensitive. |
+
 ## Step 1: Confirm The Source Files
 
 Purpose: prove that the site can provide the core files needed for Modified
@@ -70,6 +82,12 @@ column-mapping file has a different name.
 Success criterion: the copied YAML still names all four core datasets and points
 to your local Snapshot A and Snapshot B directories. Keep the comparison level
 set to `portfolio` for the first report.
+
+Vanilla means the smallest conservative Axys/APX path that can produce a
+Modified Dietz comparison. The packaged demo also includes a few richer,
+reviewer-facing examples such as fixed-income `pa`/`sa` accrued-interest
+adjuncts and external-cash `li`/`lo` rows. Keep those rules unchanged until the
+site has evidence that its extracts use the same codes differently.
 
 ## Step 3: Validate Before Generating Reports
 
