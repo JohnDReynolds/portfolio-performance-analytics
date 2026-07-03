@@ -422,32 +422,35 @@ class TestPackageMetadata(unittest.TestCase):
             "Axys/APX Performance Comparison Quick Start",
             "axys_performance_comparison.yaml",
             "Do not copy only the YAML",
-            "Recommended starter layout",
+            "Starter Kit",
             "axys_site_start/",
-            "What To Edit First",
-            "Usually leave alone at first",
-            "Use the starter kit as a working copy",
-            "Vanilla means the smallest conservative Axys/APX path",
-            "richer",
-            "reviewer-facing examples",
+            "Copy The Starter Kit",
+            "Replace The Demo Extracts",
+            "Generate The Portfolio Report",
+            "Generate The Security Report",
+            "Review In This Order",
+            "Iterate Carefully",
             "snapshots.a.path",
             "snapshots.b.path",
-            "Step 1: Confirm The Source Files",
-            "Step 2: Start From The Vanilla Axys YAML",
-            "Step 3: Validate Before Generating Reports",
-            "Step 5: Generate The First Portfolio Report",
-            "Step 6: Generate The First Security Report",
-            "Success criterion",
-            "comparison level",
+            "comparison.level",
             "validate_config",
             "report_bundle",
             "--include-workbook",
-            "cost-basis handling best-efforts",
+            "Cost-basis handling is best-efforts",
+            "explanations do not depend on cost",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, quick_start)
 
         self.assertIn("QUICK_START.md", readme)
+
+    def test_repository_readme_points_axys_users_to_quick_start(self) -> None:
+        """The top-level performance-comparison path starts with the quick start."""
+        readme = Path("README.md").read_text(encoding=util.ENCODING)
+
+        self.assertIn("Axys/APX Quick Start", readme)
+        self.assertIn("ppar/demos/data/axys/QUICK_START.md", readme)
+        self.assertIn("shortest path", readme)
 
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""

@@ -2937,6 +2937,21 @@ the common operational story covers core transaction families, while richer
 examples such as fixed-income `pa`/`sa` should stay unchanged until local bond
 context and site evidence justify overrides.
 
+### Phase 80: Axys Quick Start Simplification
+
+Status: complete for the current onboarding front door.
+
+The Axys/APX quick start was compressed into a shorter setup path: copy the
+starter kit, replace demo extracts, validate, generate portfolio and security
+reports, review in order, and iterate carefully. The simplified guide keeps the
+same working commands and starter layout, but removes the repeated purpose and
+success-criterion prose so new users see the operational path first.
+
+The top-level README now points Axys/APX performance-comparison users to the
+quick start before the longer packaged-demo reference. This phase did not
+change demo data, transaction rules, report logic, or the future `vendor: axys`
+boundary.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

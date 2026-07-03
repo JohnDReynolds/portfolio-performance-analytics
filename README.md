@@ -200,6 +200,9 @@ Minimum source-data contract:
 
 Use these entry points:
 
+- [Axys/APX Quick Start](ppar/demos/data/axys/QUICK_START.md): shortest path
+  for copying the starter kit, validating source extracts, and generating the
+  first portfolio/security reports.
 - [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): recommended
   workbook demo command, packaged YAML fixtures, data used, and expected XLSX
   output.
