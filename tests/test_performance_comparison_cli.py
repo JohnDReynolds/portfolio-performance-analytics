@@ -115,6 +115,29 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("schema", config["snapshots"]["b"])
             self.assertFalse((site_directory / "column_mappings.yaml").exists())
 
+    def test_quickstart_creates_missing_site_skeleton(self) -> None:
+        """Quickstart creates starter folders before source files are ready."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_site_extracts"
+
+            result = subprocess.run(
+                _module_command(
+                    _QUICKSTART_MODULE,
+                    str(site_directory),
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("PPAR quickstart folders are ready", result.stdout)
+            self.assertIn("snapshot_a/portperf.csv", result.stdout)
+            self.assertIn("snapshot_b/transactions.csv", result.stdout)
+            self.assertTrue((site_directory / "snapshot_a").is_dir())
+            self.assertTrue((site_directory / "snapshot_b").is_dir())
+            self.assertFalse((site_directory / "ppar.yaml").exists())
+            self.assertFalse((site_directory / "output").exists())
+
     def test_quickstart_writes_portfolio_report(self) -> None:
         """Quickstart can validate and write a portfolio workbook."""
         with tempfile.TemporaryDirectory() as directory:

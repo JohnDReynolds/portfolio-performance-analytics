@@ -31,6 +31,9 @@ From a terminal:
 ppar quickstart ./my_site_extracts
 ```
 
+If `my_site_extracts`, `snapshot_a`, or `snapshot_b` do not exist yet, they are
+created for you. Add the CSV files. Run the same command again.
+
 The direct command is also available:
 
 ```bash

@@ -31,6 +31,12 @@ _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
 _OUTPUT_DIR: Final[str] = "output"
 _PACKAGED_AXYS_RESOURCE: Final[str] = "ppar.demos.data.axys"
 _PACKAGED_COMPARISON_YAML: Final[str] = "axys_performance_comparison.yaml"
+_EXPECTED_SNAPSHOT_FILES: Final[tuple[str, ...]] = (
+    "portperf.csv",
+    "secperf.csv",
+    "holdings.csv",
+    "transactions.csv",
+)
 _REPORT_CHOICES: Final[tuple[str, ...]] = (
     "both",
     PORTFOLIO_COMPARISON_LEVEL,
@@ -46,8 +52,9 @@ def main(argv: list[str] | None = None) -> int:
         argv: Optional command-line arguments excluding the executable name.
 
     Returns:
-        Process exit code. ``0`` indicates that the starter config was valid
-        and requested report bundles were written.
+        Process exit code. ``0`` indicates that either starter folders were
+        created or the starter config was valid and requested report bundles
+        were written.
     """
     args = _argument_parser().parse_args(argv)
     try:
@@ -79,13 +86,14 @@ def run_quickstart(
         overwrite: Whether to replace an existing ``ppar.yaml``.
 
     Returns:
-        Paths for the site folder, config file, and any generated report
-        bundles.
+        Paths and status labels for the site folder, config file, and any
+        generated report bundles. When snapshot files are not present yet, the
+        result contains setup guidance instead of report paths.
 
     Raises:
-        PpaError: If the site folder or expected snapshot folders are missing,
-            if ``ppar.yaml`` cannot be written, or if validation/report
-            generation fails.
+        PpaError: If the site path is an existing non-directory, if
+            ``ppar.yaml`` cannot be written, or if validation/report generation
+            fails.
     """
     if reports not in _REPORT_CHOICES:
         raise PpaError(
@@ -94,7 +102,15 @@ def run_quickstart(
         )
 
     site_path = Path(site_directory).expanduser()
-    _validate_site_layout(site_path)
+    setup_status = _ensure_site_layout(site_path)
+    missing_files = _missing_snapshot_files(site_path)
+    if missing_files:
+        return {
+            "site_directory": site_path,
+            "setup_status": setup_status,
+            "missing_files": "\n".join(missing_files),
+        }
+
     config_path = site_path / _CONFIG_FILE_NAME
     config_status = _ensure_config(config_path, overwrite=overwrite)
 
@@ -147,26 +163,41 @@ def _argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _validate_site_layout(site_path: Path) -> None:
-    """Raise unless the site folder has the expected snapshot directories."""
-    if not site_path.exists() or not site_path.is_dir():
+def _ensure_site_layout(site_path: Path) -> str:
+    """Create missing site/snapshot folders and return a status label."""
+    if site_path.exists() and not site_path.is_dir():
         raise PpaError(
-            (
-                f"{site_path} is not a directory. Create one folder containing "
-                f"{_SNAPSHOT_A_DIR} and {_SNAPSHOT_B_DIR}."
-            ),
+            f"{site_path} exists but is not a directory.",
             802,
         )
+
+    created: list[Path] = []
+    if not site_path.exists():
+        site_path.mkdir(parents=True)
+        created.append(site_path)
+
     for snapshot_dir in (_SNAPSHOT_A_DIR, _SNAPSHOT_B_DIR):
         path = site_path / snapshot_dir
-        if not path.exists() or not path.is_dir():
+        if path.exists() and not path.is_dir():
             raise PpaError(
-                (
-                    f"Missing {path}. Expected layout: site_folder/"
-                    f"{_SNAPSHOT_A_DIR} and site_folder/{_SNAPSHOT_B_DIR}."
-                ),
+                f"{path} exists but is not a directory.",
                 802,
             )
+        if not path.exists():
+            path.mkdir()
+            created.append(path)
+    return "created" if created else "existing"
+
+
+def _missing_snapshot_files(site_path: Path) -> list[str]:
+    """Return user-facing labels for expected files not present yet."""
+    missing_files: list[str] = []
+    for snapshot_dir in (_SNAPSHOT_A_DIR, _SNAPSHOT_B_DIR):
+        snapshot_path = site_path / snapshot_dir
+        for file_name in _EXPECTED_SNAPSHOT_FILES:
+            if not (snapshot_path / file_name).exists():
+                missing_files.append(f"{snapshot_dir}/{file_name}")
+    return missing_files
 
 
 def _ensure_config(config_path: Path, *, overwrite: bool) -> str:
@@ -246,6 +277,13 @@ def _write_report_bundle(
 
 def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
+    if "missing_files" in result:
+        print("PPAR quickstart folders are ready")
+        print(f"Site folder: {result['site_directory']}")
+        print("Next step: add these source files, then run quickstart again:")
+        print(result["missing_files"])
+        return
+
     print("PPAR quickstart complete")
     print(f"Site folder: {result['site_directory']}")
     print(f"Config: {result['config_path']} ({result['config_status']})")

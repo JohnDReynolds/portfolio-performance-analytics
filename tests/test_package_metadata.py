@@ -425,6 +425,8 @@ class TestPackageMetadata(unittest.TestCase):
             "my_site_extracts/",
             "snapshot_a/",
             "snapshot_b/",
+            "created for you",
+            "Run the same command again",
             "ppar.yaml",
             "output/",
             "portfolio/report.xlsx",
