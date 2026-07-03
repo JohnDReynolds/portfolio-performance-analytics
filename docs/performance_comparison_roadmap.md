@@ -2843,6 +2843,24 @@ Those notes still correctly describe what was observed at that time, but now
 explicitly point forward to the later `lo` and `pa`/`sa` promotions so readers
 do not mistake old spot-audit code lists for the current packaged demo surface.
 
+### Phase 74: Axys Packaged Demo Release Candidate Sweep
+
+Status: complete for the post-promotion release-candidate smoke.
+
+The full local test suite passed with 615 tests and 515 subtests after the
+packaged `lo` and fixed-income `pa`/`sa` promotions. The package build
+completed for both source distribution and wheel.
+
+Archive inspection confirmed that the wheel and source distribution include the
+packaged Axys README, comparison YAML, Snapshot A/B transaction CSVs, and
+Snapshot B restatement notes. The same inspection confirmed that `_demo_output`
+and `tests/data` are absent from both archives.
+
+The packaged performance-comparison demo health script passed after checking
+demo rebuild drift, extract availability rendering, portfolio/security bundle
+generation, bundle validation, and demo-matrix validation. The phase did not
+change generated report content.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
