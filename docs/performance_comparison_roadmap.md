@@ -2952,6 +2952,26 @@ quick start before the longer packaged-demo reference. This phase did not
 change demo data, transaction rules, report logic, or the future `vendor: axys`
 boundary.
 
+### Phase 81: One-Folder, One-YAML Quickstart
+
+Status: complete for the first user-facing command surface.
+
+The onboarding path now has a product-style command:
+
+```bash
+ppar quickstart ./my_site_extracts
+```
+
+The command expects a single site folder containing `snapshot_a` and
+`snapshot_b`, creates or reuses `ppar.yaml`, validates the source extracts, and
+writes portfolio/security report bundles under `output/`. The direct console
+script `ppar-performance-comparison-quickstart` is also available for users who
+prefer an explicit command name.
+
+This phase deliberately did not restructure the packaged Axys demo YAML files.
+The packaged demo can keep its internal split, while quickstart generates the
+friendlier one-file surface that a new installed-package user sees first.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

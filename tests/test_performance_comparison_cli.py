@@ -3,6 +3,7 @@
 # Python imports
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,8 @@ _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
 _VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
 _VALIDATE_DEMO_MATRIX_MODULE = "ppar.performance_comparison.cli.validate_demo_matrix"
+_QUICKSTART_MODULE = "ppar.performance_comparison.cli.quickstart"
+_PPAR_MODULE = "ppar.cli"
 
 
 class TestPerformanceComparisonCli(unittest.TestCase):
@@ -31,6 +34,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
     def test_report_cli_modules_expose_help(self) -> None:
         """Report CLI modules expose consistent command-line help."""
         module_expectations = {
+            _QUICKSTART_MODULE: (
+                "Create ppar.yaml and report bundles"
+            ),
             _BUNDLE_MODULE: (
                 "Write a performance comparison review artifact bundle."
             ),
@@ -66,6 +72,74 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertIn("Return", result.stdout)
                     self.assertIn("Reconstruction Checks", result.stdout)
                     self.assertIn("Security Return Checks", result.stdout)
+                if module_name == _QUICKSTART_MODULE:
+                    self.assertIn("--reports", result.stdout)
+                    self.assertIn("--overwrite", result.stdout)
+
+    def test_top_level_ppar_cli_exposes_quickstart_help(self) -> None:
+        """The product command presents quickstart as the first setup path."""
+        result = subprocess.run(
+            _module_command(_PPAR_MODULE, "--help"),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("quickstart", result.stdout)
+        self.assertIn("PPAR command-line tools", result.stdout)
+        self.assertEqual(result.stderr, "")
+
+    def test_quickstart_writes_one_yaml_config(self) -> None:
+        """Quickstart creates ppar.yaml without a separate schema file."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = _copy_site_snapshots(Path(directory))
+
+            result = subprocess.run(
+                _module_command(
+                    _QUICKSTART_MODULE,
+                    str(site_directory),
+                    "--reports",
+                    "none",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            config_path = site_directory / "ppar.yaml"
+            config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            self.assertIn("PPAR quickstart complete", result.stdout)
+            self.assertEqual(config["snapshots"]["a"]["path"], "snapshot_a")
+            self.assertEqual(config["snapshots"]["b"]["path"], "snapshot_b")
+            self.assertNotIn("schema", config["snapshots"]["a"])
+            self.assertNotIn("schema", config["snapshots"]["b"])
+            self.assertFalse((site_directory / "column_mappings.yaml").exists())
+
+    def test_quickstart_writes_portfolio_report(self) -> None:
+        """Quickstart can validate and write a portfolio workbook."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = _copy_site_snapshots(Path(directory))
+
+            result = subprocess.run(
+                _module_command(
+                    _QUICKSTART_MODULE,
+                    str(site_directory),
+                    "--reports",
+                    "portfolio",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Portfolio report:", result.stdout)
+            self.assertTrue((site_directory / "ppar.yaml").exists())
+            self.assertTrue(
+                (site_directory / "output" / "portfolio" / "report.xlsx").exists()
+            )
+            self.assertTrue(
+                (site_directory / "output" / "portfolio" / "report.html").exists()
+            )
 
     def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
         """Report CLI modules reject surprising negative evidence-row limits."""
@@ -430,6 +504,20 @@ def _absolute_restatement_configuration() -> dict[str, object]:
         schema_path
     )
     return configuration
+
+
+def _copy_site_snapshots(directory: Path) -> Path:
+    """Copy packaged demo snapshots into a quickstart-style site folder."""
+    site_directory = directory / "my_site_extracts"
+    shutil.copytree(
+        _PACKAGED_AXYS_DATA_PATH / "axys_full_spec_a",
+        site_directory / "snapshot_a",
+    )
+    shutil.copytree(
+        _PACKAGED_AXYS_DATA_PATH / "axys_full_spec_b",
+        site_directory / "snapshot_b",
+    )
+    return site_directory
 
 
 def _module_command(module_name: str, *args: str) -> list[str]:

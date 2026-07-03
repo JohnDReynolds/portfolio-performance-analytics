@@ -419,23 +419,19 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "Axys/APX Performance Comparison Quick Start",
-            "axys_performance_comparison.yaml",
-            "Do not copy only the YAML",
-            "Starter Kit",
-            "axys_site_start/",
-            "Copy The Starter Kit",
-            "Replace The Demo Extracts",
-            "Generate The Portfolio Report",
-            "Generate The Security Report",
+            "PPAR Performance Comparison Quick Start",
+            "ppar quickstart ./my_site_extracts",
+            "ppar-performance-comparison-quickstart ./my_site_extracts",
+            "my_site_extracts/",
+            "snapshot_a/",
+            "snapshot_b/",
+            "ppar.yaml",
+            "output/",
+            "portfolio/report.xlsx",
+            "security/report.xlsx",
             "Review In This Order",
             "Iterate Carefully",
-            "snapshots.a.path",
-            "snapshots.b.path",
-            "comparison.level",
-            "validate_config",
-            "report_bundle",
-            "--include-workbook",
+            "--overwrite",
             "Cost-basis handling is best-efforts",
             "explanations do not depend on cost",
         ]:
@@ -450,6 +446,8 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertIn("Axys/APX Quick Start", readme)
         self.assertIn("ppar/demos/data/axys/QUICK_START.md", readme)
+        self.assertIn("ppar quickstart ./my_site_extracts", readme)
+        self.assertIn("ppar.yaml", readme)
         self.assertIn("shortest path", readme)
 
     def test_site_extract_contract_template_is_documented(self) -> None:
@@ -1382,8 +1380,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertEqual(
             pyproject["project"]["scripts"],
             {
+                "ppar": "ppar.cli:main",
                 "ppar-analytics-demo": "ppar.demos.analytics_demo:main",
                 "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
+                "ppar-performance-comparison-quickstart": (
+                    "ppar.performance_comparison.cli.quickstart:main"
+                ),
                 "ppar-performance-comparison-portfolio-demo": (
                     "ppar.demos.performance_comparison_portfolio_demo:main"
                 ),

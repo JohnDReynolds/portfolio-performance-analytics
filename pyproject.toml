@@ -70,8 +70,10 @@ dev = [
 
 [project.scripts]
 # Console entry points installed with the package.
+ppar = "ppar.cli:main"
 ppar-analytics-demo = "ppar.demos.analytics_demo:main"
 ppar-axys-analytics-demo = "ppar.demos.axys_analytics_demo:main"
+ppar-performance-comparison-quickstart = "ppar.performance_comparison.cli.quickstart:main"
 ppar-performance-comparison-portfolio-demo = "ppar.demos.performance_comparison_portfolio_demo:main"
 ppar-performance-comparison-security-demo = "ppar.demos.performance_comparison_security_demo:main"
 
