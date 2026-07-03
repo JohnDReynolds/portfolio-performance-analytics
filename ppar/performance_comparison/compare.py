@@ -63,7 +63,6 @@ from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.period_linking import (
     period_context_for_dated_evidence,
     portfolio_periods_from_snapshots,
-    security_periods_from_snapshots,
 )
 from ppar.performance_comparison.policies import (
     _EVIDENCE_ONLY_METHOD,
@@ -1706,14 +1705,6 @@ class PerformanceComparison:
             self._portfolio_loader.load("a"),
             self._portfolio_loader.load("b"),
         )
-
-    def _security_periods(self) -> pl.DataFrame | None:
-        """Return security period rows from both snapshots for evidence linking."""
-        snapshot_a = self._security_loader.load("a")
-        snapshot_b = self._security_loader.load("b")
-        if snapshot_a is None or snapshot_b is None:
-            return None
-        return security_periods_from_snapshots(snapshot_a, snapshot_b)
 
     def _security_period_return_weights(
         self,
