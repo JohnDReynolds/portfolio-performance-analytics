@@ -50,7 +50,7 @@ def compare_snapshots(
     """Compare two configured snapshots and return a findings table.
 
     Args:
-        specification_path: Path to a ``ppar_performance_comparison.yaml`` file.
+        specification_path: Path to a performance comparison YAML file.
         include_suppressed: Whether to include findings marked suppressed by
             configured suppression rules.
         require_causal_attribution: Whether changed portfolio periods must have

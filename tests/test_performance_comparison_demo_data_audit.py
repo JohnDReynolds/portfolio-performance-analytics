@@ -56,7 +56,7 @@ _PACKAGED_COMPARISON_PATH = (
     / "demos"
     / "data"
     / "axys"
-    / "ppar_performance_comparison.yaml"
+    / "axys_performance_comparison.yaml"
 )
 _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"

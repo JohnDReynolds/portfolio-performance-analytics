@@ -35,7 +35,7 @@ from ppar.performance_comparison.return_reconstruction import (
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison.yaml"
+    "ppar/demos/data/axys/axys_performance_comparison.yaml"
 )
 _BASELINE_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison.yaml"

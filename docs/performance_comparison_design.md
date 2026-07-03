@@ -986,7 +986,7 @@ configuration serve different purposes and should have distinct names:
 
 - `axys_column_mappings.yaml`: Describes how Axys source columns map to
   normalized internal column names for reusable Axys datasets.
-- `ppar_performance_comparison.yaml`: Describes which snapshots and files to
+- `performance_comparison.yaml`: Describes which snapshots and files to
   compare, plus comparison tolerances, materiality, and suppressions.
 
 A comparison probably needs one YAML file for the comparison run, not a separate
@@ -1020,7 +1020,7 @@ or anywhere else convenient.
 Path resolution should be predictable:
 
 1. Absolute paths are accepted as-is.
-2. Relative paths in `ppar_performance_comparison.yaml` resolve relative to
+2. Relative paths in `performance_comparison.yaml` resolve relative to
    that comparison YAML file.
 3. Snapshot data files resolve relative to the configured snapshot directory.
 4. Relative paths inside a referenced schema YAML, such as
@@ -1030,7 +1030,7 @@ A suggested project layout is:
 
 ```text
 comparisons/
-  ppar_performance_comparison.yaml
+  performance_comparison.yaml
   axys_column_mappings.yaml
 
 snapshots/
@@ -1195,8 +1195,8 @@ column names.
 
 Column mappings should resolve in this order:
 
-1. Snapshot-specific mapping in `ppar_performance_comparison.yaml`.
-2. Shared comparison-level mapping in `ppar_performance_comparison.yaml`.
+1. Snapshot-specific mapping in `performance_comparison.yaml`.
+2. Shared comparison-level mapping in `performance_comparison.yaml`.
 3. Referenced vendor schema file, such as `axys_column_mappings.yaml`.
 4. Built-in default aliases.
 5. Error when the column is missing or ambiguous.
@@ -1839,7 +1839,7 @@ validation fixtures. The user-facing paths are:
 The remaining YAML files are scenario-coverage fixtures for tests and
 validators:
 
-- `ppar_performance_comparison.yaml`: Clean baseline.
+- `performance_comparison.yaml`: Clean baseline.
 - `ppar_performance_comparison_restatement.yaml`: Controlled single
   restatement with missing transaction setup.
 - `ppar_performance_comparison_restatement_transaction_rules.yaml`: Same data

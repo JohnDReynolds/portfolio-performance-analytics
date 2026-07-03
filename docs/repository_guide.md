@@ -89,12 +89,12 @@ places:
 - `tests/data/axys/` is for synthetic Axys snapshots, test-only comparison YAML
   files, and validation matrix fixtures.
 
-The packaged Axys YAML files are limited to user-facing workflows. Broader
-scenario coverage lives under `tests/data/axys`.
+The packaged Axys YAML file is limited to user-facing marketing and onboarding
+workflows. Broader scenario coverage lives under `tests/data/axys`.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
-| Workbook demos | `ppar_performance_comparison.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Shared portfolio/security demo spec. The demo command selects the primary review level. |
+| Workbook demos | `axys_performance_comparison.yaml` | `axys_full_spec_a` | `axys_full_spec_b` | Shared portfolio/security demo spec. The demo command selects the primary review level. |
 
 For the recommended XLSX workbook command and expected output, use
 [`ppar/demos/data/axys/README.md`](../ppar/demos/data/axys/README.md).
@@ -146,7 +146,7 @@ packaged scenario-matrix validation.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axys/ppar_performance_comparison.yaml \
+  ppar/demos/data/axys/axys_performance_comparison.yaml \
   _demo_output/custom_portfolio \
   --include-workbook \
   --require-causal-attribution
@@ -192,7 +192,7 @@ Use this after generating report/workbook output.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demos/data/axys/ppar_performance_comparison.yaml
+  ppar/demos/data/axys/axys_performance_comparison.yaml
 ```
 
 Use this before report generation when you are editing YAML.

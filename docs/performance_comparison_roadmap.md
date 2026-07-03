@@ -143,7 +143,6 @@ clearly than the existing packaged and site-variant fixtures.
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the accepted packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
-| Axys YAML seed rename | Consider renaming `ppar_performance_comparison.yaml` to `axys_performance_comparison.yaml` once the Axys demo is stable enough for a clean compatibility sweep. The current name is product-generic, while the file now acts as the Axys packaged-demo and future preset seed. | All code, docs, tests, package-resource checks, demo commands, README instructions, and generated-bundle metadata reference the new name consistently. If a compatibility alias is kept temporarily, it is documented, tested, and has an explicit removal plan. |
 | Tested site override profiles | Create user-friendly, tested candidate override profiles for Axys/APX transaction families that are plausible but not safe enough for the core `vendor: axys` preset. Candidate profiles may include fixed-income accrued interest, margin or negative interest, principal paydown, return of capital, short sale/cover short, and cash-journal patterns. | Each profile has sample source rows, YAML rules, expected normalized semantics, confidence labels, required evidence, and tests. Documentation clearly separates conservative preset defaults from copy/adapt override examples, warns that candidate profiles require site confirmation, and helps onboarding users choose profiles when unmapped transaction codes appear. |
 | Ledger double-entry demo | Consider a separate demo for a ledger-style double-entry debit/credit system. Keep it outside the current Axys Modified Dietz demo unless it clearly improves source-data validation, accounting-system integration, or reviewer understanding. | The demo has its own source contract, fixture data, YAML, and tests. It demonstrates balanced debit/credit postings, account-level footing, and mapping from ledger activity into the performance-comparison inputs without implying that ppar reconstructs a full accounting ledger by default. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
@@ -2860,6 +2859,31 @@ The packaged performance-comparison demo health script passed after checking
 demo rebuild drift, extract availability rendering, portfolio/security bundle
 generation, bundle validation, and demo-matrix validation. The phase did not
 change generated report content.
+
+### Phase 75: Low-Risk Cleanup And Dead-Code Scout
+
+Status: complete for one safe private-helper cleanup.
+
+The cleanup scout removed an unused private security-period helper from the
+comparison engine after confirming the active report-linking path no longer
+called it. Focused period-linking and report tests passed, demo health passed,
+and generated report content did not change.
+
+### Phase 76: Axys Packaged Demo Naming And Onboarding Polish
+
+Status: complete for the packaged Axys YAML rename and reader-path polish.
+
+The packaged user-facing Axys comparison YAML is now named
+`axys_performance_comparison.yaml`. Test-only validation and site-variant
+fixtures keep their generic `ppar_performance_comparison.yaml` names because
+they are fixture specifications, not packaged onboarding artifacts.
+
+The packaged demo README now states the two intended purposes explicitly:
+marketing review of the generated workbook/HTML output, and onboarding support
+for configuring a new Axys-style site. Demo entrypoints, rebuild tooling,
+package-resource checks, repository docs, and validation instructions reference
+the Axys-specific packaged filename. The future `vendor: axys` preset remains
+design-only and parked in Eventual Deliverables.
 
 ## Guiding Principle
 

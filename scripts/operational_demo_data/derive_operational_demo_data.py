@@ -447,7 +447,7 @@ def write_outputs(
             path = snapshot_directory / f"{name}.csv"
             frame.to_csv(path, index=False)
             paths[f"{snapshot_name}_{name}"] = str(path)
-    comparison_yaml_path = output_directory / "ppar_performance_comparison.yaml"
+    comparison_yaml_path = output_directory / "axys_performance_comparison.yaml"
     comparison_yaml_path.write_text(_comparison_yaml(), encoding="utf-8")
     paths["comparison_yaml"] = str(comparison_yaml_path)
     return paths

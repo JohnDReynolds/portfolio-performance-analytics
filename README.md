@@ -180,7 +180,7 @@ YAML configurations where visible differences are intentionally review-only or
 not additively estimated.
 
 The packaged portfolio and security demos share one YAML file:
-`ppar/demos/data/axys/ppar_performance_comparison.yaml`. It maps native
+`ppar/demos/data/axys/axys_performance_comparison.yaml`. It maps native
 lower-case transaction codes such as `by`, `sl`, `dv`, `in`, `dp`, `wd`, and
 `;` to normalized transaction categories used by the comparison logic.
 

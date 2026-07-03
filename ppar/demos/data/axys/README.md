@@ -5,9 +5,11 @@ performance comparison scenarios live under `tests/data/axys`.
 
 ## Comparison YAML
 
-There is one packaged comparison YAML file. The portfolio and security demo
+There is one packaged Axys comparison YAML file. The portfolio and security demo
 commands use the same operational Mega-Cap source snapshots and choose the
-primary review level at runtime.
+primary review level at runtime. The demo is meant to serve two user-facing
+purposes: a concise marketing example of the review output, and an onboarding
+example for configuring a new Axys-style site.
 
 The packaged CSV files follow the
 [Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
@@ -24,12 +26,12 @@ source-data fields:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demos/data/axys/ppar_performance_comparison.yaml
+  ppar/demos/data/axys/axys_performance_comparison.yaml
 ```
 
 | Role | YAML |
 | --- | --- |
-| Workbook demos | `ppar_performance_comparison.yaml` |
+| Workbook demos | `axys_performance_comparison.yaml` |
 
 ## Recommended User-Facing Demo
 

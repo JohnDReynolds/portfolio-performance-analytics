@@ -15,7 +15,7 @@ _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/ppar_performance_comparison.yaml"
+    "ppar/demos/data/axys/axys_performance_comparison.yaml"
 )
 _PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")

@@ -384,7 +384,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_axys_yaml_documents_seed_readiness_boundaries(self) -> None:
         """The packaged Axys YAML names preset-seed and guardrail boundaries."""
-        yaml_text = Path("ppar/demos/data/axys/ppar_performance_comparison.yaml").read_text(
+        yaml_text = Path("ppar/demos/data/axys/axys_performance_comparison.yaml").read_text(
             encoding=util.ENCODING
         )
 
@@ -1121,7 +1121,7 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml = _load_yaml(
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
-        demo_yaml = _load_yaml(Path("ppar/demos/data/axys/ppar_performance_comparison.yaml"))
+        demo_yaml = _load_yaml(Path("ppar/demos/data/axys/axys_performance_comparison.yaml"))
 
         matrix_codes = set(matrix_yaml["rows"])
         demo_codes = set(demo_yaml["transaction_rules"])
@@ -1134,7 +1134,7 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_codes = set(
-            _load_yaml(Path("ppar/demos/data/axys/ppar_performance_comparison.yaml"))[
+            _load_yaml(Path("ppar/demos/data/axys/axys_performance_comparison.yaml"))[
                 "transaction_rules"
             ]
         )
@@ -1186,7 +1186,7 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_rule_codes = set(
-            _load_yaml(Path("ppar/demos/data/axys/ppar_performance_comparison.yaml"))[
+            _load_yaml(Path("ppar/demos/data/axys/axys_performance_comparison.yaml"))[
                 "transaction_rules"
             ]
         )
@@ -1432,7 +1432,7 @@ class TestPackageMetadata(unittest.TestCase):
             "README.md",
             "axys_column_mappings.yaml",
             "axys_analytics.yaml",
-            "ppar_performance_comparison.yaml",
+            "axys_performance_comparison.yaml",
             "axys_analytics/portperf.csv",
             "axys_analytics/secperf.csv",
             "axys_analytics/sec_ref.csv",
@@ -1713,7 +1713,7 @@ class TestPackageMetadata(unittest.TestCase):
             amount_delta,
             places=2,
         )
-        comparison_path = Path(str(axys_demo_data / "ppar_performance_comparison.yaml"))
+        comparison_path = Path(str(axys_demo_data / "axys_performance_comparison.yaml"))
         checks = _reconstruction_rows_by_key(
             portfolio_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "from_date", "thru_date"),
@@ -1785,7 +1785,7 @@ class TestPackageMetadata(unittest.TestCase):
     ) -> None:
         """Portfolio demo performance rows match configured reconstruction rules."""
         axys_demo_data = files("ppar.demos.data") / "axys"
-        comparison_path = Path(str(axys_demo_data / "ppar_performance_comparison.yaml"))
+        comparison_path = Path(str(axys_demo_data / "axys_performance_comparison.yaml"))
         checks = _reconstruction_rows_by_key(
             portfolio_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "from_date", "thru_date"),
@@ -1873,7 +1873,7 @@ class TestPackageMetadata(unittest.TestCase):
             snapshot_b / "secperf.csv",
             ("PORTFOLIO_CODE", "SECURITY_ID", "FROM_DATE", "THRU_DATE"),
         )
-        comparison_path = Path(str(axys_demo_data / "ppar_performance_comparison.yaml"))
+        comparison_path = Path(str(axys_demo_data / "axys_performance_comparison.yaml"))
         checks = _reconstruction_rows_by_key(
             security_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "security_id", "from_date", "thru_date"),

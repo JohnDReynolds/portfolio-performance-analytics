@@ -116,7 +116,7 @@ The current generator writes:
 
 - `axys_a/`: baseline operational Axys-style snapshot;
 - `axys_b/`: restated snapshot with controlled changes;
-- `ppar_performance_comparison.yaml`.
+- `axys_performance_comparison.yaml`.
 
 The generated YAML files validate and run through `compare_snapshots`. The
 portfolio demo intentionally does not use strict causal-attribution mode because

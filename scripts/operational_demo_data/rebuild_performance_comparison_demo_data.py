@@ -48,7 +48,7 @@ from ppar.performance_comparison.workbook_tables import (
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_AXYS_DIRECTORY: Final = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
 _DEFAULT_COMPARISON_PATH: Final = (
-    _DEFAULT_AXYS_DIRECTORY / "ppar_performance_comparison.yaml"
+    _DEFAULT_AXYS_DIRECTORY / "axys_performance_comparison.yaml"
 )
 _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_holding_scenarios.csv"

@@ -336,7 +336,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "comparison_path",
         type=Path,
-        help="Path to a ppar_performance_comparison.yaml file.",
+        help="Path to a performance comparison YAML file.",
     )
     parser.add_argument(
         "--allow-incomplete-yaml",

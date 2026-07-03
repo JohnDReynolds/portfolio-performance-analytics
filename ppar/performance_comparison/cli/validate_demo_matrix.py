@@ -54,7 +54,8 @@ _RESTATEMENT_TRANSACTION_RULES_YAML = (
     "ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
-_DEMO_YAML = "ppar_performance_comparison.yaml"
+_PACKAGED_DEMO_YAML = "axys_performance_comparison.yaml"
+_SITE_VARIANT_YAML = "ppar_performance_comparison.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
 _SUPPRESSED_YAML = "ppar_performance_comparison_suppressed.yaml"
@@ -142,12 +143,12 @@ def _validate_demo_matrix(
     )
     multi_findings = compare_snapshots(scenario_directory / _MULTI_YAML)
     portfolio_findings = compare_snapshots(
-        demo_directory / _DEMO_YAML,
+        demo_directory / _PACKAGED_DEMO_YAML,
         require_causal_attribution=True,
         comparison_level="portfolio",
     )
     security_findings = compare_snapshots(
-        demo_directory / _DEMO_YAML,
+        demo_directory / _PACKAGED_DEMO_YAML,
         comparison_level="security",
     )
     modified_dietz_findings = compare_snapshots(
@@ -679,7 +680,7 @@ def _check_ambiguous_flow_context_variants(site_directory: Path) -> _ScenarioChe
 def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
     """Return whether code-only ambiguous rows still fail before classification."""
     specification = PerformanceComparisonSpecification(
-        site_directory / "imex_code_only" / _DEMO_YAML
+        site_directory / "imex_code_only" / _SITE_VARIANT_YAML
     )
     try:
         TransactionsLoader(specification).load("a")
@@ -708,7 +709,7 @@ def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
 
 def _check_reviewed_local_opt_out(site_directory: Path) -> _ScenarioCheck:
     """Return whether the reviewed local opt-out boundary remains explicit."""
-    yaml_path = site_directory / "local_opt_out" / _DEMO_YAML
+    yaml_path = site_directory / "local_opt_out" / _SITE_VARIANT_YAML
     summary = validate_config(yaml_path, require_complete_yaml_setup=False)
     if summary["enforce_ambiguous_axys_flows"] is not False:
         return _ScenarioCheck(
@@ -815,7 +816,7 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
 def _site_variant_transactions(site_directory: Path, variant_name: str) -> pl.DataFrame:
     """Return snapshot A transactions for one site-variant fixture."""
     specification = PerformanceComparisonSpecification(
-        site_directory / variant_name / _DEMO_YAML
+        site_directory / variant_name / _SITE_VARIANT_YAML
     )
     frame = TransactionsLoader(specification).load("a")
     if frame is None:
