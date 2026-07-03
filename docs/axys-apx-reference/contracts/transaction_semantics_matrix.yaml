@@ -1,0 +1,281 @@
+# Machine-readable companion to transaction_semantics_matrix.md.
+# This is an implementation contract for ppar demo/test coverage, not an
+# official Axys/APX transaction-code dictionary.
+version: 1
+source_document: transaction_semantics_matrix.md
+coverage_statuses:
+  covered_packaged_demo: Covered by packaged demo data and tests.
+  covered_site_variant: Covered by site-variant fixtures and tests.
+  covered_context_only: Covered as context for another transaction code.
+  backlog: Documented backlog; no dedicated fixture yet.
+  partial: Partially documented or tested, but not fully covered.
+required_matrix_codes:
+  - by
+  - sl
+  - ss
+  - cs
+  - dv
+  - in
+  - ai
+  - sa
+  - pa
+  - rc
+  - pd
+  - li
+  - lo
+  - dp
+  - wd
+  - ";"
+  - epus
+  - exus
+ambiguous_external_flow_codes:
+  - li
+  - lo
+  - dp
+  - wd
+matching_rules:
+  preserve_native_case: true
+  source_transaction_id: preferred_when_present_and_trustworthy
+  strict_fallback_key:
+    - portfolio
+    - trade_date
+    - security_identifier
+    - transaction_code
+  strict_fallback_requires_unique_one_to_one: true
+  fuzzy_matching_allowed: false
+  unmatched_rows_remain_reportable: true
+  notes: >
+    If a row cannot be matched conservatively, keep Snapshot A and Snapshot B
+    rows unmatched. Added, deleted, duplicate same-day, and trade-date-moved
+    transactions can still explain Modified Dietz numerator or weighted-flow
+    effects without an inferred transaction linkage.
+rows:
+  by:
+    observed_meaning: Buy; reinvestment buy leg; non-cash deposit paired leg.
+    ppar_categories: [buy]
+    cash_flow_signs: [negative]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security, amount_or_quantity_signs]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes normal buy rows; reinvestment-pair coverage remains backlog under pair_patterns.dv_by_reinvestment.
+  sl:
+    observed_meaning: Sell; positive closure leg.
+    ppar_categories: [sell]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security, amount_or_quantity_signs]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes normal sell rows with cash proceeds and security quantity changes.
+  ss:
+    observed_meaning: Short sale.
+    ppar_categories: [sell, unknown_pending_review]
+    cash_flow_signs: [positive, context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: "Backlog gate: short-side evidence required before classification. Needs short security type, cash/margin/short-account symbols, amount and quantity signs, and local mapping or REP/report semantics."
+  cs:
+    observed_meaning: Cover short.
+    ppar_categories: [buy, unknown_pending_review]
+    cash_flow_signs: [negative, context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: "Backlog gate: short-side evidence required before classification. Needs short security type, cash/margin/short-account symbols, amount and quantity signs, and local mapping or REP/report semantics; uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
+  dv:
+    observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
+    ppar_categories: [income]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security_or_income_context, amount_sign]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes ordinary dividend income rows; paired dividend-reinvestment coverage remains backlog under pair_patterns.dv_by_reinvestment.
+  in:
+    observed_meaning: Income, interest, cash-security dividend/income.
+    ppar_categories: [income]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance]
+    required_evidence: [code, security_type, amount_sign]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo]
+    coverage_notes: Packaged demo includes fixed-income/cash income rows used as performance income.
+  ai:
+    observed_meaning: Negative interest or margin interest.
+    ppar_categories: [fee_expense, income]
+    cash_flow_signs: [negative, context_dependent]
+    performance_flow_signs: [performance]
+    required_evidence: [security_type, margin_symbols, amount_sign, local_mapping]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: Backlog pending fixture evidence that distinguishes margin/negative-interest and fee-expense treatment; packaged demo uses holdings.accrued plus in interest, not ai.
+  sa:
+    observed_meaning: Sale accrued interest or sell-side accrued interest.
+    ppar_categories: [income, fee_expense]
+    cash_flow_signs: [context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [bond_or_accrual_context, accrued_interest_amount, settlement_date, local_mapping]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: Backlog pending sell-accrued-interest fixture with bond/accrual context, cash offset, settlement economics, and local mapping or REP/report semantics.
+  pa:
+    observed_meaning: Purchase accrued interest or buy-side accrued interest.
+    ppar_categories: [fee_expense, income]
+    cash_flow_signs: [context_dependent]
+    performance_flow_signs: [performance, unknown]
+    required_evidence: [bond_or_accrual_context, accrued_interest_amount, settlement_date, local_mapping]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: Backlog pending purchase-accrued-interest fixture with bond/accrual context, cash offset, settlement economics, and local mapping or REP/report semantics.
+  rc:
+    observed_meaning: Return of capital.
+    ppar_categories: [income, corporate_action]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance, review_only]
+    required_evidence: [code, security, amount_sign, cost_basis_or_report_treatment]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: "Backlog gate: capital-return policy required before classification. Needs security identity, amount sign, cost-basis or report treatment, and local mapping or REP/report semantics before choosing performance income, corporate-action evidence, or review-only evidence."
+  pd:
+    observed_meaning: Principal paydown or bond-security return-of-capital transaction.
+    ppar_categories: [income, corporate_action]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance, review_only]
+    required_evidence: [bond_security_type, principal_paydown_context, factor_or_principal_reduction, cash_movement]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: "Backlog gate: capital-return policy required before classification. Needs bond security type, principal-paydown context, cash movement, principal/factor reduction, cost-basis or amortization treatment, and local mapping or REP/report semantics before choosing income, corporate-action evidence, or review-only evidence."
+  li:
+    observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
+    ppar_categories: [external_flow, transfer]
+    cash_flow_signs: [positive, none]
+    performance_flow_signs: [external, neutral]
+    required_evidence: [source_destination_type, source_destination_symbol, security_type, amount_or_quantity_signs]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers a contextual external cash contribution; site-variant fixtures cover external-party inflow and internal-transfer cases.
+  lo:
+    observed_meaning: Deliver out, transfer out, debit, withdrawal, negative movement.
+    ppar_categories: [external_flow, transfer]
+    cash_flow_signs: [negative, none]
+    performance_flow_signs: [external, neutral]
+    required_evidence: [source_destination_type, source_destination_symbol, security_type, amount_or_quantity_signs]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_packaged_demo
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers a contextual external cash deliver-out; site-variant fixtures cover external-party outflow and internal-transfer cases.
+  dp:
+    observed_meaning: Cash-security buy, tax, fee, recordkeeping, investment expense, service charge, debit-like case.
+    ppar_categories: [fee_expense, transfer, unknown_pending_review]
+    cash_flow_signs: [negative, none]
+    performance_flow_signs: [performance, neutral, unknown]
+    required_evidence: [special_security_type, special_security_symbol, source_destination_context, fee_tax_sweep_symbols]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_site_variant
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers fee-like dp; site-variant fixtures cover fee and transfer/sweep behavior plus REP/source semantics.
+  wd:
+    observed_meaning: Cash-security sell or withdrawal-like cash-security movement.
+    ppar_categories: [external_flow, transfer, sell]
+    cash_flow_signs: [negative, none]
+    performance_flow_signs: [external, neutral, performance, unknown]
+    required_evidence: [cash_security, source_destination_type, source_destination_symbol, amount_sign]
+    imex_confidence: medium_context_required
+    rep_confidence: medium_high
+    coverage_status: covered_site_variant
+    fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
+    coverage_notes: Packaged demo covers external cash withdrawal; site-variant fixtures cover external and transfer/sweep behavior plus REP/source semantics.
+  ";":
+    observed_meaning: Journal, Other, Split marker in integration tables.
+    ppar_categories: [corporate_action, unknown_pending_review]
+    cash_flow_signs: [none, context_dependent]
+    performance_flow_signs: [neutral, review_only, unknown]
+    required_evidence: [corporate_action_or_report_context, split_details, local_mapping]
+    imex_confidence: low
+    rep_confidence: medium
+    coverage_status: covered_site_variant
+    fixtures: [site_variants/review_only_actions]
+    coverage_notes: Test-only review-only action fixture proves synthetic corporate-action markers can stay neutral; real-world split support remains backlog for packaged demos.
+  epus:
+    observed_meaning: Management fee or fee-related token in conversion evidence.
+    ppar_categories: [fee_expense]
+    cash_flow_signs: [negative]
+    performance_flow_signs: [performance]
+    required_evidence: [token_role, fee_symbol, local_mapping]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: backlog
+    fixtures: []
+    coverage_notes: Backlog pending evidence that epus appears as a standalone transaction code rather than a fee token, label, or special-security context.
+  exus:
+    observed_meaning: Expense or fee-related token in conversion and special-security evidence.
+    ppar_categories: [fee_expense]
+    cash_flow_signs: [negative]
+    performance_flow_signs: [performance]
+    required_evidence: [token_role, fee_symbol, local_mapping]
+    imex_confidence: low_medium
+    rep_confidence: medium
+    coverage_status: covered_context_only
+    fixtures: [packaged_demo, site_variants/imex_context]
+    coverage_notes: Covered only as special-security context for dp fee examples; standalone transaction-code treatment remains unproven.
+pair_patterns:
+  dp_wd:
+    codes: [dp, wd]
+    ppar_treatment: transfer_neutral_when_context_proves_internal_sweep
+    coverage_status: covered_site_variant
+    coverage_notes: IMEX-context fixture covers sweep/transfer rows; broader pairing/reversal matching remains future work.
+  li_lo:
+    codes: [li, lo]
+    ppar_treatment: transfer_neutral_unless_external_party_context_proves_external_flow
+    coverage_status: covered_site_variant
+    coverage_notes: IMEX-context fixture covers external-party and internal-account cases for both codes; demo-data audit tests also prove inserted cash li/lo rows drive cash impacts only when context proves external movement.
+  ti_to:
+    codes: [ti, to]
+    ppar_treatment: unknown_pending_review
+    coverage_status: backlog
+    coverage_notes: Backlog pending transaction-code evidence and local mapping for this cash-journal pair family.
+  si_so:
+    codes: [si, so]
+    ppar_treatment: unknown_pending_review
+    coverage_status: backlog
+    coverage_notes: Backlog pending transaction-code evidence and local mapping for this cash-journal pair family.
+  tr_ts:
+    codes: [tr, ts]
+    ppar_treatment: unknown_pending_review
+    coverage_status: backlog
+    coverage_notes: Backlog pending transaction-code evidence and local mapping for this cash-journal pair family.
+  dv_by_reinvestment:
+    codes: [dv, by]
+    ppar_treatment: performance_pair_avoid_external_flow_double_count
+    coverage_status: partial
+    coverage_notes: Test-only reconstruction fixture proves dv/by rows do not become portfolio external flows and do not double-count security income; full pair matching still needs dividend-wash context, matched dates, security, and offsetting amounts.

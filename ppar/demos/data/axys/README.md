@@ -15,7 +15,7 @@ They are normalized demo extracts, not official Axys/APX native schemas.
 The source contract separates mandatory product inputs, realistic packaged-demo
 fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
-[Demo Extract Availability](../../../../docs/axys-apx-reference/Appendix_Demo_Extract_Availability.md).
+[Demo Extract Availability](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
 Before generating a local report bundle, run the comparison YAML validator. It
 checks the minimum required datasets, required normalized columns, transaction
@@ -204,7 +204,7 @@ the consolidated maintenance script:
 ```
 
 That script is not part of the installed-package demo workflow. It runs the
-rebuild drift audit, extract-availability appendix check, portfolio/security
+rebuild drift audit, extract-availability contract check, portfolio/security
 bundle generation, bundle validation, and packaged scenario matrix validation.
 
 ## YAML Policy Decision Guide
@@ -274,7 +274,7 @@ Current public YAML targets are intentionally narrow:
   used by runtime guards. The default packaged contract enforces context-field
   presence before ambiguous Axys `li`, `lo`, `dp`, or `wd` rows can be
   classified by YAML rules. Use
-  `docs/axys-apx-reference/templates/site_extract_contract.yaml` as a starter
+  `docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml` as a starter
   when a real site needs a local contract.
 - `transaction_rules`: classifies transaction codes for amount attribution.
   Ambiguous Axys-style `li`, `lo`, `dp`, and `wd` examples require matching

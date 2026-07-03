@@ -397,8 +397,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 self.assertIn("report-dependent", metadata["comments"])
                 self.assertIn("Report-style label", metadata["name_notes"])
 
-    def test_packaged_demo_extract_availability_appendix_is_current(self) -> None:
-        """The human-readable appendix is rendered from the YAML contract."""
+    def test_packaged_demo_extract_availability_contract_is_current(self) -> None:
+        """The human-readable contract is rendered from the YAML contract."""
         renderer = _load_extract_availability_renderer()
 
         self.assertEqual(renderer.main(["--check"]), 0)

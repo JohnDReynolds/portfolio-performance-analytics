@@ -42,7 +42,11 @@ _DEFAULT_SITE_VARIANTS_DIRECTORY = (
     _REPO_ROOT / "tests" / "data" / "axys" / "site_variants"
 )
 _TRANSACTION_SEMANTICS_MATRIX_PATH = (
-    _REPO_ROOT / "docs" / "axys-apx-reference" / "transaction_semantics_matrix.yaml"
+    _REPO_ROOT
+    / "docs"
+    / "axys-apx-reference"
+    / "contracts"
+    / "transaction_semantics_matrix.yaml"
 )
 _BASELINE_YAML = "ppar_performance_comparison.yaml"
 _RESTATEMENT_YAML = "ppar_performance_comparison_restatement.yaml"

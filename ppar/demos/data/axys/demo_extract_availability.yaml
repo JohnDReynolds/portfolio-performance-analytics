@@ -1,6 +1,6 @@
 # Machine-readable extraction-confidence contract for the packaged Axys demo
 # CSV fields. Keep this aligned with docs/axys-apx-reference/
-# Appendix_Demo_Extract_Availability.md.
+# contracts/demo_extract_availability.md.
 version: 1
 scope:
   snapshots:

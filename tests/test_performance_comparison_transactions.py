@@ -64,13 +64,13 @@ from ppar.performance_comparison.transactions import (
 
 _BASELINE_COMPARISON_PATH = Path("tests/data/axys/validation/ppar_performance_comparison.yaml")
 _SITE_EXTRACT_CONTRACT_TEMPLATE_PATH = Path(
-    "docs/axys-apx-reference/templates/site_extract_contract.yaml"
+    "docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml"
 )
 _SITE_EXTRACT_CONTRACT_IMEX_TEMPLATE_PATH = Path(
-    "docs/axys-apx-reference/templates/site_extract_contract_imex_context.yaml"
+    "docs/axys-apx-reference/contracts/templates/site_extract_contract_imex_context.yaml"
 )
 _SITE_EXTRACT_CONTRACT_REP_TEMPLATE_PATH = Path(
-    "docs/axys-apx-reference/templates/site_extract_contract_rep_semantics.yaml"
+    "docs/axys-apx-reference/contracts/templates/site_extract_contract_rep_semantics.yaml"
 )
 _SITE_VARIANT_FIXTURES_PATH = Path("tests/data/axys/site_variants")
 

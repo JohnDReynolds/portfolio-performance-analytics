@@ -12,7 +12,7 @@ Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
 [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
 
-[axys-apx-blockers]: axys-apx-reference/Chapter_01_Overview.md#axysapx-blockers
+[axys-apx-blockers]: axys-apx-reference/reference/Chapter_01_Overview.md#axysapx-blockers
 
 ## How To Read This Roadmap
 
@@ -142,6 +142,7 @@ conversation more clearly than the existing packaged and site-variant fixtures.
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the accepted packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
+| Ledger double-entry demo | Consider a separate demo for a ledger-style double-entry debit/credit system. Keep it outside the current Axys Modified Dietz demo unless it clearly improves source-data validation, accounting-system integration, or reviewer understanding. | The demo has its own source contract, fixture data, YAML, and tests. It demonstrates balanced debit/credit postings, account-level footing, and mapping from ledger activity into the performance-comparison inputs without implying that ppar reconstructs a full accounting ledger by default. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
 ## Axys Extract Contract Review Map
@@ -151,14 +152,14 @@ The Axys extract guardrails now have a single review path:
 ```text
 ppar/demos/data/axys/demo_extract_availability.yaml
   -> scripts/render_demo_extract_availability.py
-  -> docs/axys-apx-reference/Appendix_Demo_Extract_Availability.md
+  -> docs/axys-apx-reference/contracts/demo_extract_availability.md
   -> ppar/performance_comparison/extract_contract.py
   -> ppar/performance_comparison/transactions.py
 ```
 
 The YAML contract records IMEX/REP availability confidence, candidate source
 names, source strategy, and blocking context requirements. The renderer keeps
-the human appendix current. Runtime validation uses the same contract, or a
+the human-readable contract current. Runtime validation uses the same contract, or a
 site-specific `extract_contract.path`, to prevent ambiguous Axys `dp`, `li`,
 `lo`, and `wd` transaction codes from being classified from transaction code
 alone when required context is absent.
@@ -728,9 +729,9 @@ raw audit evidence.
 
 Useful Axys/APX transaction references:
 
-- [`Chapter_05_Transactions.md`](axys-apx-reference/Chapter_05_Transactions.md):
+- [`Chapter_05_Transactions.md`](axys-apx-reference/reference/Chapter_05_Transactions.md):
   draft transaction reference with evidence boundaries and confidence levels.
-- [`Research_05_Transactions.md`](axys-apx-reference/Research_05_Transactions.md):
+- [`Research_05_Transactions.md`](axys-apx-reference/evidence/Research_05_Transactions.md):
   consolidated research reference for transaction workflows, code evidence,
   dependencies, audit rules, contradictions, and known unknowns.
 
@@ -830,7 +831,7 @@ Implemented guardrail:
   define `datasets.transactions.csv.columns`, use supported transaction column
   aliases, and provide boolean `requires_context_for_semantics` and
   `blocking_if_missing` flags.
-- `docs/axys-apx-reference/templates/site_extract_contract.yaml` is the starter
+- `docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml` is the starter
   template for site-specific contracts.
 - packaged demo-data audit tests now assert that the user-facing `wd` withdrawal
   rows resolve as external flows and the fee-like `dp` rows resolve as
@@ -862,11 +863,11 @@ Ongoing coverage requirement:
   Each observed or documented Axys transaction type should have an explicit
   expected classification, even when the expected outcome is `transfer`,
   `corporate_action`, `unknown pending review`, or review-only evidence.
-- [`axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md`](axys-apx-reference/Appendix_Transaction_Semantics_Matrix.md)
+- [`axys-apx-reference/contracts/transaction_semantics_matrix.md`](axys-apx-reference/contracts/transaction_semantics_matrix.md)
   is the implementation-facing seed matrix for that coverage. Future fixtures
   should either satisfy a row in that matrix or update the matrix with the new
   evidence and expected treatment.
-- `docs/axys-apx-reference/transaction_semantics_matrix.yaml` is the
+- `docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml` is the
   machine-readable coverage contract. Coverage is complete only when every row
   has a non-backlog fixture or an explicit documented reason to remain
   review-only/unknown.
@@ -1633,7 +1634,7 @@ contract rather than only a demo smoke test.
 Status: complete for the current docs and matrix tests.
 
 Tests now cross-check the boundary registry against
-`transaction_semantics_matrix.yaml`, the roadmap phase claims, and the
+`contracts/transaction_semantics_matrix.yaml`, the roadmap phase claims, and the
 site-variant fixtures. The goal is to prevent docs from claiming coverage that
 the matrix or fixtures do not support.
 
@@ -2275,7 +2276,7 @@ the real forward backlog.
 Status: complete for current packaged-demo promotion triage.
 
 The packaged Axys transaction set was reviewed against
-`transaction_semantics_matrix.yaml`, the site-variant fixtures, and the current
+`contracts/transaction_semantics_matrix.yaml`, the site-variant fixtures, and the current
 transaction backlog. No new transaction row was promoted into the packaged demo
 in this pass.
 
@@ -2364,7 +2365,7 @@ distribution audit was removed from the checkout.
 Status: complete for current blocker navigation.
 
 The Axys/APX reference now has a single `Axys/APX blockers` section in
-`docs/axys-apx-reference/Chapter_01_Overview.md`. The roadmap points readers to
+`docs/axys-apx-reference/reference/Chapter_01_Overview.md`. The roadmap points readers to
 that section as the canonical summary of evidence gaps that block broader
 Axys/APX-native automation, including native performance extract dictionaries,
 stored-versus-recalculated performance, security-performance footing,
@@ -2528,7 +2529,7 @@ demo CSV/YAML/README resources are included in the wheel.
 
 The packaged performance-comparison demo health script passed after rebuilding
 the portfolio and security report bundles, validating both bundles, checking
-the extract-availability appendix, and validating the packaged demo matrix. The
+the extract-availability contract, and validating the packaged demo matrix. The
 comparison YAML also passed `validate_config` with ambiguous-flow enforcement
 enabled and observed transaction codes then limited to `by`, `dp`, `dv`, `in`,
 `li`, `sl`, and `wd`.

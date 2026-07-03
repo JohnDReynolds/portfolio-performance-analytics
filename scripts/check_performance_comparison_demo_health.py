@@ -75,7 +75,7 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--skip-extract-availability",
         action="store_true",
-        help="Skip checking the rendered Axys demo extract-availability appendix.",
+        help="Skip checking the rendered Axys demo extract-availability contract.",
     )
     parser.add_argument(
         "--skip-bundles",

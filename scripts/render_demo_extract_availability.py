@@ -1,4 +1,4 @@
-"""Render the packaged Axys demo extract-availability appendix from YAML."""
+"""Render the packaged Axys demo extract-availability contract from YAML."""
 
 from __future__ import annotations
 
@@ -14,11 +14,12 @@ _REPO_ROOT: Final = Path(__file__).resolve().parents[1]
 _DEFAULT_CONTRACT_PATH: Final = (
     _REPO_ROOT / "ppar" / "demos" / "data" / "axys" / "demo_extract_availability.yaml"
 )
-_DEFAULT_APPENDIX_PATH: Final = (
+_DEFAULT_OUTPUT_PATH: Final = (
     _REPO_ROOT
     / "docs"
     / "axys-apx-reference"
-    / "Appendix_Demo_Extract_Availability.md"
+    / "contracts"
+    / "demo_extract_availability.md"
 )
 _DATASET_LABELS: Final[dict[str, str]] = {
     "holdings.csv": "holdings",
@@ -87,27 +88,27 @@ _LOCAL_VALIDATION_STEPS: Final[tuple[str, ...]] = (
     "values, or export-calculated values.",
 )
 _RELATED_REFERENCES: Final[tuple[str, ...]] = (
-    "[Chapter_05_Transactions.md](Chapter_05_Transactions.md)",
-    "[Chapter_06_Holdings.md](Chapter_06_Holdings.md)",
-    "[Chapter_10_Performance.md](Chapter_10_Performance.md)",
-    "[Chapter_12_Imex.md](Chapter_12_Imex.md)",
-    "[Chapter_13_Rep.md](Chapter_13_Rep.md)",
-    "[Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md)",
-    "[../axys_common_core_export.md](../axys_common_core_export.md)",
-    "[../performance_comparison_demo_source_contract.md]"
-    "(../performance_comparison_demo_source_contract.md)",
+    "[Chapter_05_Transactions.md](../reference/Chapter_05_Transactions.md)",
+    "[Chapter_06_Holdings.md](../reference/Chapter_06_Holdings.md)",
+    "[Chapter_10_Performance.md](../reference/Chapter_10_Performance.md)",
+    "[Chapter_12_Imex.md](../reference/Chapter_12_Imex.md)",
+    "[Chapter_13_Rep.md](../reference/Chapter_13_Rep.md)",
+    "[Chapter_15_Data_Dictionary.md](../reference/Chapter_15_Data_Dictionary.md)",
+    "[axys_common_core_export.md](../../axys_common_core_export.md)",
+    "[performance_comparison_demo_source_contract.md]"
+    "(../../performance_comparison_demo_source_contract.md)",
 )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the appendix renderer.
+    """Run the contract renderer.
 
     Args:
         argv: Optional command-line arguments. Defaults to ``sys.argv`` when
             omitted by ``argparse``.
 
     Returns:
-        Process-style exit code. ``0`` means the appendix was written or already
+        Process-style exit code. ``0`` means the contract was written or already
         current. ``1`` means ``--check`` found stale output.
     """
     args = _parse_args(argv)
@@ -127,10 +128,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def render_markdown(contract: Mapping[str, Any]) -> str:
-    """Return rendered appendix markdown from the YAML contract."""
+    """Return rendered contract markdown from the YAML contract."""
     datasets = _mapping(contract, "datasets")
     lines = [
-        "# Appendix - Demo Extract Availability",
+        "# Demo Extract Availability Contract",
         "",
         "Repository: AXYS / APX Reference Repository",
         "Scope: `ppar/demos/data/axys/axys_full_spec_a` and",
@@ -144,14 +145,14 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "",
         "## Purpose",
         "",
-        "This appendix estimates how likely each packaged Axys demo dataset and "
+        "This contract estimates how likely each packaged Axys demo dataset and "
         "column is to be obtainable from an Axys installation through IMEX "
         "and/or REP-style report extracts.",
         "",
         "The machine-readable source of truth is "
         "`ppar/demos/data/axys/demo_extract_availability.yaml`. Tests verify "
         "that the YAML covers every packaged full-spec Axys demo CSV header and "
-        "that this appendix is current.",
+        "that this contract is current.",
         "",
         "The packaged demo files are normalized demo extracts. They are not "
         "official Axys schemas, not universal IMEX profiles, and not claims that "
@@ -411,13 +412,13 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=_DEFAULT_APPENDIX_PATH,
-        help="Path to the rendered markdown appendix.",
+        default=_DEFAULT_OUTPUT_PATH,
+        help="Path to the rendered markdown contract.",
     )
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Fail if the rendered appendix differs from the current file.",
+        help="Fail if the rendered contract differs from the current file.",
     )
     return parser.parse_args(argv)
 

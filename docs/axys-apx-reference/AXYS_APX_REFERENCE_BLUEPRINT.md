@@ -101,38 +101,61 @@ Assume the reader is technically proficient.
 
 # 4. Repository Structure
 
+The repository uses role-oriented files. Reader-facing chapters live under
+`reference/` for the normal reader path. Research notes live under `evidence/`
+so they remain available as provenance without competing with the chapters.
+
+| File group | Role | Source-of-truth boundary |
+|---|---|---|
+| `README.md` | Folder navigation hub. | Explains the reader path and file roles. |
+| `reference/Chapter_*.md` | Reader-facing reference. | Supported conclusions, Unknowns, implementation cautions, and cross-topic navigation. |
+| `evidence/Research_*.md` | Evidence archive. | Source notes, dated research history, provenance, and unresolved details. |
+| `contracts/*.md` | Implementation aid. | Cross-cutting contracts, generated summaries, and demo/test guidance. |
+| `contracts/*.yaml` | Machine-readable contract. | Structured validation and implementation inputs. |
+| `contracts/templates/*.yaml` | Site contract examples. | Site-level source-data contract shapes; not guaranteed vendor schemas. |
+
+If a chapter and contract conflict, treat that as a cleanup issue. Contracts
+should summarize or operationalize chapter conclusions, not compete with them.
+If a research file contains the clearest explanation of a topic, fold that
+explanation into the relevant chapter and leave the research file as provenance.
+
 ```text
-    Chapter_01_Overview.md
-    Chapter_02_Axys_Architecture.md
-    Chapter_03_APX_Architecture.md
-    Chapter_04_Security_Master.md
-    Chapter_05_Transactions.md
-    Chapter_06_Holdings.md
-    Chapter_07_Cash.md
-    Chapter_08_Pricing.md
-    Chapter_09_Corporate_Actions.md
-    Chapter_10_Performance.md
-    Chapter_11_Classifications.md
-    Chapter_12_Imex.md
-    Chapter_13_Rep.md
-    Chapter_14_Reports.md
-    Chapter_15_Data_Dictionary.md
-    Chapter_16_Glossary.md
-    Research_02_Axys_Architecture.md
-    Research_03_APX_Architecture.md
-    Research_04_Security_Master.md
-    Research_05_Transactions.md
-    Research_06_Holdings.md
-    Research_07_Cash.md
-    Research_08_Pricing.md
-    Research_09_Corporate_Actions.md
-    Research_10_Performance.md
-    Research_11_Classifications.md
-    Research_12_IMEX.md
-    Research_13_REP.md
-    Research_14_Reports.md
-    Research_15_Data_Dictionary.md
-    Research_16_Glossary.md
+    README.md
+    reference/Chapter_01_Overview.md
+    reference/Chapter_02_Axys_Architecture.md
+    reference/Chapter_03_APX_Architecture.md
+    reference/Chapter_04_Security_Master.md
+    reference/Chapter_05_Transactions.md
+    reference/Chapter_06_Holdings.md
+    reference/Chapter_07_Cash.md
+    reference/Chapter_08_Pricing.md
+    reference/Chapter_09_Corporate_Actions.md
+    reference/Chapter_10_Performance.md
+    reference/Chapter_11_Classifications.md
+    reference/Chapter_12_Imex.md
+    reference/Chapter_13_Rep.md
+    reference/Chapter_14_Reports.md
+    reference/Chapter_15_Data_Dictionary.md
+    reference/Chapter_16_Glossary.md
+    evidence/Research_02_Axys_Architecture.md
+    evidence/Research_03_APX_Architecture.md
+    evidence/Research_04_Security_Master.md
+    evidence/Research_05_Transactions.md
+    evidence/Research_06_Holdings.md
+    evidence/Research_07_Cash.md
+    evidence/Research_08_Pricing.md
+    evidence/Research_09_Corporate_Actions.md
+    evidence/Research_10_Performance.md
+    evidence/Research_11_Classifications.md
+    evidence/Research_12_IMEX.md
+    evidence/Research_13_REP.md
+    evidence/Research_14_Reports.md
+    evidence/Research_15_Data_Dictionary.md
+    evidence/Research_16_Glossary.md
+    contracts/demo_extract_availability.md
+    contracts/transaction_semantics_matrix.md
+    contracts/transaction_semantics_matrix.yaml
+    contracts/templates/
 ```
 
 ---
@@ -200,20 +223,25 @@ using only this repository.
 
 ---
 
-# Appendix A – Standard ChatGPT Prompts
+# Appendix A - Standard ChatGPT Prompts
 
 ## Prompt 1 – Research
 
-Use this example prompt to create research notes for chapter 05-Transactions.md:
+Use this example prompt to create or refresh evidence notes for a reference
+chapter:
 
 ```text
 Please read the attached AXYS_APX_REFERENCE_BLUEPRINT.md before doing anything else.
 
 Treat it as the governing specification for this repository.
 
-Create extensive research that will be everything necesary for the following chapter:
+Create extensive evidence notes for the following reference chapter:
 
-Research_16_Glossary.md
+reference/Chapter_05_Transactions.md
+
+Save the resulting evidence file as:
+
+evidence/Research_05_Transactions.md
 
 The goal is to collect factual information about Axys and APX.
 
@@ -242,7 +270,7 @@ Never invent unsupported behavior.
 
 I know this is a big long task, so take your time.  Stop and ask me questions if you need to.
 
-Produce a single downloadable Markdown research file suitable for the research folder.
+Produce a single downloadable Markdown evidence file suitable for the evidence folder.
 ```
 
 ---
@@ -253,10 +281,10 @@ Upload:
 
 - this Blueprint
 - the existing chapter (if any)
-- relevant research notes
+- relevant evidence notes
 - relevant sample exports or reports
 
-Use this example prompt to create chapter 05-Transactions.md:
+Use this example prompt to create or refresh a reader-facing chapter:
 
 ```text
 Please read the attached AXYS_APX_REFERENCE_BLUEPRINT.md before doing anything else.
@@ -265,9 +293,9 @@ Treat it as the governing specification for this repository.
 
 Write or expand the following repository chapter:
 
-Chapter_16_Glossary.md
+reference/Chapter_05_Transactions.md
 
-Use only the supplied research and source material.  If you feel that the supplied material is not sufficient, and you could do much better with additional resource material, then stop and tell me specifically what you need.  Do NOT give me a document and then turn right around and tell me that you can give me a better one.  Stop and ask me questions if you need to in order to produce a better document.  Conversely, if I uploaded an existing document that you think is generally sufficient, then just stop and tell me that you have no further edits.
+Use only the supplied evidence and source material.  If you feel that the supplied material is not sufficient, and you could do much better with additional resource material, then stop and tell me specifically what you need.  Do NOT give me a document and then turn right around and tell me that you can give me a better one.  Stop and ask me questions if you need to in order to produce a better document.  Conversely, if I uploaded an existing document that you think is generally sufficient, then just stop and tell me that you have no further edits.
 
 Write as a technical reference manual.
 
@@ -295,13 +323,16 @@ Produce a single downloadable Markdown file only.
 
 ---
 
-# Appendix B – Repository Workflow
+# Appendix B - Repository Workflow
 
 For each chapter:
 
 1. Research the topic.
-2. Save the research in the `research` folder.
-3. Write or expand the repository chapter using the research.
-4. Update the chapter as additional verified information becomes available.
+2. Save the evidence notes in `evidence/Research_*.md`.
+3. Write or expand the reader-facing chapter in `reference/Chapter_*.md` using
+   the evidence.
+4. Update the relevant `contracts/` file only when the chapter conclusion has
+   an implementation-facing demo, validation, or test implication.
+5. Update the chapter as additional verified information becomes available.
 
 The repository should evolve by accumulating verified knowledge, not by rewriting theory.

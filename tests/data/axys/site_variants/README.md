@@ -14,5 +14,5 @@ transaction codes whose performance treatment cannot be trusted from code alone.
 
 The `imex_context` and `rep_semantics` contract files intentionally match the
 documented onboarding profiles in
-`docs/axys-apx-reference/templates/site_extract_contract_imex_context.yaml` and
-`docs/axys-apx-reference/templates/site_extract_contract_rep_semantics.yaml`.
+`docs/axys-apx-reference/contracts/templates/site_extract_contract_imex_context.yaml` and
+`docs/axys-apx-reference/contracts/templates/site_extract_contract_rep_semantics.yaml`.
