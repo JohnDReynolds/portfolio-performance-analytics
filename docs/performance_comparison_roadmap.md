@@ -2523,7 +2523,8 @@ omitted `TRANSACTION_ID`, retained the context columns needed for ambiguous
 Axys-style codes, and included only the then-current packaged transaction-code
 families. Snapshot A contained `by`, `dp`, `dv`, `in`, `sl`, and `wd`; Snapshot
 B contained those plus `li`. Neither packaged snapshot contained `lo` or `;`
-in that audit state.
+in that audit state. This is historical context only: later phases promoted
+packaged `lo` and fixed-income `pa`/`sa` rows, while `;` remains guardrail-only.
 
 This phase did not freeze the demo or implement `vendor: axys`; it made the
 freeze packet auditable. The remaining decision is still whether to accept that
@@ -2547,7 +2548,8 @@ the portfolio and security report bundles, validating both bundles, checking
 the extract-availability contract, and validating the packaged demo matrix. The
 comparison YAML also passed `validate_config` with ambiguous-flow enforcement
 enabled and observed transaction codes then limited to `by`, `dp`, `dv`, `in`,
-`li`, `sl`, and `wd`.
+`li`, `sl`, and `wd`. Later phases expanded the packaged observed-code set to
+include `lo`, `pa`, and `sa`.
 
 A stale-term sweep found only intentional historical roadmap references,
 negative regression assertions, and boundary language that rejects universal
@@ -2825,6 +2827,21 @@ important reader boundary is now pinned in both docs and tests:
 The packaged Axys README now describes the fixed-income story in those terms,
 and the workbook contract test asserts that `pa`/`sa` guidance does not leak
 onto the `holdings.accrued` row.
+
+### Phase 73: Axys Demo Freeze Re-Audit
+
+Status: complete for post-`lo` and post-`pa`/`sa` freeze-packet alignment.
+
+The Axys Demo Freeze Decision Packet was rechecked after the packaged `lo` and
+fixed-income `pa`/`sa` promotions. The source contract already reflected the
+current accepted future `vendor: axys` seed: packaged families are `by`, `sl`,
+`dv`, `in`, fixed-income `pa`/`sa`, fee-like `dp`, external-cash `li`,
+external-cash `lo`, and external-cash `wd`; `;` remains guardrail-only.
+
+The cleanup was limited to historical roadmap notes from earlier freeze audits.
+Those notes still correctly describe what was observed at that time, but now
+explicitly point forward to the later `lo` and `pa`/`sa` promotions so readers
+do not mistake old spot-audit code lists for the current packaged demo surface.
 
 ## Guiding Principle
 
