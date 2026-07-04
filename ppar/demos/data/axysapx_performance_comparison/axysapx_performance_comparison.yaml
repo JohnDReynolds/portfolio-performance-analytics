@@ -9,15 +9,16 @@
 # `vendor: axys`, but it is not a hidden preset today. Keep policy choices
 # explicit and auditable until vendor preset implementation exists.
 #
-# Site onboarding: copy this file, change the snapshot paths and schema mapping
-# first, run validate_config, then adjust transaction rules one code at a time.
+# Site onboarding: setup copies this file to performance_comparison/ppar.yaml.
+# Start by replacing CSV files in snapshot_a and snapshot_b. Edit this YAML only
+# after the portfolio report runs or validation tells you exactly what is missing.
 # Leave ambiguous Axys/APX codes conservative until the site extract supplies
 # source/destination, special-security, REP, or reviewed local evidence.
 #
 # First-run edit map:
-# - Edit snapshots.*.path when local Snapshot A/B folders have different names.
+# - Edit snapshots.*.path only if you rename snapshot_a or snapshot_b.
 # - Edit files.* only when local extracts use different filenames.
-# - Edit axysapx_column_mappings.yaml when local extracts use different headers.
+# - Add inline column mappings only when local extracts use different headers.
 # - Leave transaction rules and impact methods alone until validation or
 #   reviewed site evidence proves a site-specific override is needed.
 

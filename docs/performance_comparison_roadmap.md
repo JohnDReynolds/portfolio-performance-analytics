@@ -2952,25 +2952,22 @@ boundary.
 
 ### Phase 81: One-Folder Setup And Production Report Commands
 
-Status: complete for the first user-facing command surface.
+Status: superseded by the Axys/APX workspace setup path.
 
 The onboarding path now separates one-time setup from repeatable report
 generation:
 
 ```bash
-ppar setup ./my_site_extracts
-ppar report ./my_site_extracts
+ppar setup ./my_ppar_data
+ppar analytics ./my_ppar_data/analytics
+ppar performance_comparison ./my_ppar_data/performance_comparison
 ```
 
-Setup expects a single site folder containing `snapshot_a` and `snapshot_b`,
-creates or reuses `ppar.yaml`, and validates the portfolio source extracts when
-they are present. The production report command writes portfolio reports under
-`output/portfolio` by default and supports `--report security` or
-`--report both` after `secperf.csv` is added.
-
-This phase deliberately did not restructure the packaged Axys/APX demo YAML files.
-The packaged demo can keep its internal split, while setup generates the
-friendlier one-file surface that a new installed-package user sees first.
+Setup creates separate `analytics` and `performance_comparison` folders, each
+with one user-facing `ppar.yaml`. The production performance-comparison command
+writes portfolio and security reports by default when required source files are
+available, and supports `--report portfolio`, `--report security`, or
+`--report both` for explicit selection. `ppar perfcomp` is the short alias.
 
 ## Guiding Principle
 

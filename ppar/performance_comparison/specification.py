@@ -632,14 +632,15 @@ class PerformanceComparisonSpecification:
     def _required_file_names(self) -> frozenset[str]:
         """Return source file names required by comparison level and formulas."""
         required_names = {self._required_performance_file_name()}
-        if (
-            self.portfolio_return_reconstruction is not None
-            or self.security_return_reconstruction is not None
-        ):
+        if self._active_return_reconstruction_configured():
             required_names.update({"holdings", "transactions"})
-        if self.security_return_reconstruction is not None:
-            required_names.add(_SECURITY_PERFORMANCE_KEY)
         return frozenset(required_names)
+
+    def _active_return_reconstruction_configured(self) -> bool:
+        """Return whether the active comparison level has reconstruction enabled."""
+        if self.comparison_level == SECURITY_COMPARISON_LEVEL:
+            return self.security_return_reconstruction is not None
+        return self.portfolio_return_reconstruction is not None
 
     @staticmethod
     def _snapshot_file_path(
@@ -669,9 +670,8 @@ class PerformanceComparisonSpecification:
 
     def _validate_reconstruction_files(self) -> None:
         """Raise if opted-in return reconstruction lacks required source files."""
-        if self.portfolio_return_reconstruction is None:
-            if self.security_return_reconstruction is None:
-                return
+        if not self._active_return_reconstruction_configured():
+            return
         for file_name in ("holdings", "transactions"):
             if file_name not in self.files:
                 raise PpaError(
@@ -680,17 +680,6 @@ class PerformanceComparisonSpecification:
                     ),
                     504,
                 )
-        if (
-            self.security_return_reconstruction is not None
-            and _SECURITY_PERFORMANCE_KEY not in self.files
-        ):
-            raise PpaError(
-                self._error_message(
-                    "security_return_reconstruction requires "
-                    f"files.{_SECURITY_PERFORMANCE_KEY}."
-                ),
-                504,
-            )
 
     def _error_message(self, message: str) -> str:
         """Return an error message with comparison specification context."""

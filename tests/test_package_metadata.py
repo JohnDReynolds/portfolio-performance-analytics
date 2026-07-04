@@ -417,24 +417,18 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "PPAR Performance Comparison Setup",
-            "ppar setup ./my_site_extracts",
-            "ppar report ./my_site_extracts",
-            "ppar report ./my_site_extracts --report security",
-            "ppar report ./my_site_extracts --report both",
-            "my_site_extracts/",
-            "snapshot_a/",
-            "snapshot_b/",
-            "created for you",
-            "ppar.yaml",
-            "output/",
-            "portfolio/report.xlsx",
-            "Optional: Security-Level Review",
-            "Review In This Order",
-            "Iterate Carefully",
+            "PPAR Axys/APX Setup",
+            "ppar setup ./my_ppar_data",
+            "ppar setup --guide",
+            "ppar analytics ./my_ppar_data/analytics",
+            "ppar performance_comparison ./my_ppar_data/performance_comparison",
+            "ppar perfcomp",
+            "my_ppar_data/",
+            "analytics/",
+            "performance_comparison/",
+            "README.md",
+            "Customizing",
             "--overwrite",
-            "Cost-basis handling is best-efforts",
-            "explanations do not depend on cost",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, setup_doc)
@@ -445,10 +439,15 @@ class TestPackageMetadata(unittest.TestCase):
         """The top-level performance-comparison path starts with setup."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("Axys/APX Setup", readme)
+        self.assertIn("PPAR Axys/APX Setup", readme)
         self.assertIn("ppar/demos/data/axysapx_performance_comparison/SETUP.md", readme)
-        self.assertIn("ppar setup ./my_site_extracts", readme)
-        self.assertIn("ppar report ./my_site_extracts", readme)
+        self.assertIn("ppar setup ./my_ppar_data", readme)
+        self.assertIn("ppar setup --guide", readme)
+        self.assertIn("ppar analytics ./my_ppar_data/analytics", readme)
+        self.assertIn(
+            "ppar performance_comparison ./my_ppar_data/performance_comparison",
+            readme,
+        )
         self.assertIn("ppar.yaml", readme)
         self.assertIn("shortest path", readme)
 
@@ -1383,20 +1382,6 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject["project"]["scripts"],
             {
                 "ppar": "ppar.cli:main",
-                "ppar-generic-analytics-demo": "ppar.demos.generic_analytics_demo:main",
-                "ppar-axysapx-analytics-demo": "ppar.demos.axysapx_analytics_demo:main",
-                "ppar-performance-comparison-setup": (
-                    "ppar.performance_comparison.cli.setup:main"
-                ),
-                "ppar-performance-comparison-report": (
-                    "ppar.performance_comparison.cli.site_report:main"
-                ),
-                "ppar-performance-comparison-portfolio-demo": (
-                    "ppar.demos.axysapx_performance_comparison_portfolio_demo:main"
-                ),
-                "ppar-performance-comparison-security-demo": (
-                    "ppar.demos.axysapx_performance_comparison_security_demo:main"
-                ),
             },
         )
 
@@ -1424,7 +1409,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
-            "All demo commands print the generated artifact paths",
+            "All demo smoke modules print the generated artifact paths",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, guide)

@@ -49,13 +49,13 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def run_report(site_directory: Path, *, report: str = PORTFOLIO_COMPARISON_LEVEL) -> dict[str, Path]:
+def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Path | str]:
     """Write one or more report bundles for a configured site folder.
 
     Args:
         site_directory: Folder containing ``ppar.yaml``.
         report: Report family to generate: ``"portfolio"``, ``"security"``,
-            or ``"both"``.
+            or ``"both"``. Defaults to ``"both"``.
 
     Returns:
         Paths for the site folder, config file, and generated workbooks.
@@ -88,11 +88,18 @@ def run_report(site_directory: Path, *, report: str = PORTFOLIO_COMPARISON_LEVEL
             comparison_level=PORTFOLIO_COMPARISON_LEVEL,
         )
     if report in ("both", SECURITY_COMPARISON_LEVEL):
-        result["security_report"] = _write_report_bundle(
-            config_path,
-            site_path / _OUTPUT_DIR / SECURITY_COMPARISON_LEVEL,
-            comparison_level=SECURITY_COMPARISON_LEVEL,
-        )
+        try:
+            result["security_report"] = _write_report_bundle(
+                config_path,
+                site_path / _OUTPUT_DIR / SECURITY_COMPARISON_LEVEL,
+                comparison_level=SECURITY_COMPARISON_LEVEL,
+            )
+        except PpaError as error:
+            if report == SECURITY_COMPARISON_LEVEL or not _is_missing_security_data(error):
+                raise
+            result["security_status"] = (
+                "skipped because files.security_performance is not available"
+            )
     return result
 
 
@@ -109,8 +116,8 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--report",
         choices=_REPORT_CHOICES,
-        default=PORTFOLIO_COMPARISON_LEVEL,
-        help="Report family to generate. Defaults to portfolio.",
+        default="both",
+        help="Report family to generate. Defaults to both.",
     )
     return parser
 
@@ -145,15 +152,26 @@ def _write_report_bundle(
     return workbook
 
 
-def _print_success(result: dict[str, Path]) -> None:
+def _is_missing_security_data(error: PpaError) -> bool:
+    """Return whether a security report failed because secperf is absent."""
+    message = str(error)
+    return (
+        "files.security_performance" in message
+        and ("is required" in message or "is missing" in message)
+    )
+
+
+def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
-    print("PPAR report complete")
+    print("PPAR performance comparison complete")
     print(f"Site folder: {result['site_directory']}")
     print(f"Config: {result['config_path']}")
     if "portfolio_report" in result:
         print(f"Portfolio report: {result['portfolio_report']}")
     if "security_report" in result:
         print(f"Security report: {result['security_report']}")
+    if "security_status" in result:
+        print(f"Security report: {result['security_status']}")
 
 
 if __name__ == "__main__":

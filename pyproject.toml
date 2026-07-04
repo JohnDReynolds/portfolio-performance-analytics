@@ -71,12 +71,6 @@ dev = [
 [project.scripts]
 # Console entry points installed with the package.
 ppar = "ppar.cli:main"
-ppar-generic-analytics-demo = "ppar.demos.generic_analytics_demo:main"
-ppar-axysapx-analytics-demo = "ppar.demos.axysapx_analytics_demo:main"
-ppar-performance-comparison-setup = "ppar.performance_comparison.cli.setup:main"
-ppar-performance-comparison-report = "ppar.performance_comparison.cli.site_report:main"
-ppar-performance-comparison-portfolio-demo = "ppar.demos.axysapx_performance_comparison_portfolio_demo:main"
-ppar-performance-comparison-security-demo = "ppar.demos.axysapx_performance_comparison_security_demo:main"
 
 [tool.mypy]
 python_version = "3.12"
@@ -150,7 +144,6 @@ ppar = [
     "demos/data/axysapx_performance_comparison/*.yaml",
     "demos/data/axysapx_performance_comparison/*.md",
     "demos/data/axysapx_performance_comparison/*/*.csv",
-    "demos/data/axysapx_performance_comparison/*/*.md",
 ]
 
 [project.urls]

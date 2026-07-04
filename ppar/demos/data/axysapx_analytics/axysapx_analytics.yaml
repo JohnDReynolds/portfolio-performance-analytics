@@ -1,19 +1,56 @@
-# =========================
-# PPAR Axys/APX Analytics Demo Configuration
-# =========================
-# This configuration reads Axys/APX-shaped exports derived from the same canonical
-# Mega-Cap analytics demo data used by ppar.demos.generic_analytics_demo.
+# ==============================
+# PPAR Axys/APX Analytics Starter
+# ==============================
+# This file is copied to your setup folder as analytics/ppar.yaml.
+# Keep the CSV files beside this YAML unless you intentionally change the paths
+# below. The default command is:
+#
+#   ppar analytics ./my_ppar_data/analytics
+#
+# First site setup:
+# 1. Replace portperf.csv and secperf.csv with IMEX/export CSVs from your site.
+# 2. Keep the same headers when possible. If your headers differ, add column
+#    mappings under portfolio_performance_columns and security_performance_columns.
+# 3. Change analytics.portfolio and analytics.benchmark to real portfolio codes.
+# 4. Run ppar analytics again and review the output folder.
+
+analytics:
+  # Portfolio and benchmark are Axys/APX account codes found in portperf.csv.
+  # Use command-line overrides only for one-off runs:
+  #   ppar analytics ./my_ppar_data/analytics --portfolio MYPORT --benchmark MYBENCH
+  portfolio: MEGA_ALPHA
+  benchmark: MEGA_BENCH
+
+  # monthly, quarterly, and yearly are accepted. The short forms m, q, and y
+  # also work on the command line.
+  frequency: quarterly
+
+  # Output is relative to the analytics folder unless you pass --output.
+  output_directory: output
 
 defaults:
+  # These dates limit the performance history loaded from the CSV files.
   from_date: 2021-06-01
   thru_date: 2026-05-29
+
+  # This classification is used for the sector attribution HTML and chart files.
+  # It must exist under mappings below.
   classification: Economic Sector
 
+# Required IMEX/export-style CSVs for the starter analytics workflow.
+# portperf.csv should contain portfolio-level returns for the portfolio and
+# benchmark. secperf.csv should contain security-level returns, weights,
+# contribution, and classification columns. The packaged starter uses secperf.csv
+# as the security master because it already contains the display fields needed
+# for the demo.
 portfolio_performance_path: portperf.csv
 security_performance_path: secperf.csv
 security_master_path: secperf.csv
 
 mappings:
+  # Each mapping names the source columns in secperf.csv that classify a
+  # security. Add or remove mappings to match the classifications you want to
+  # report. The value before the colon is the user-facing classification name.
   Economic Sector:
     classification_column: SECTOR_CODE
     display_name_column: SECTOR_DESC

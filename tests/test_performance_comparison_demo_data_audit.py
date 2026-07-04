@@ -65,9 +65,6 @@ _PACKAGED_AXYS_DIRECTORY = (
     _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
 )
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
-_PACKAGED_RESTATEMENT_NOTES_PATH = (
-    _PACKAGED_AXYS_DIRECTORY / "snapshot_b" / "RESTATEMENT_NOTES.md"
-)
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 )
@@ -288,23 +285,32 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         ]:
             self.assertIn(expected_text, text)
 
-    def test_packaged_demo_restatement_notes_match_current_story(self) -> None:
-        """Snapshot-B notes keep reviewer-facing scenario descriptions current."""
-        text = _PACKAGED_RESTATEMENT_NOTES_PATH.read_text(encoding="utf-8")
+    def test_packaged_demo_readme_matches_current_restatement_story(self) -> None:
+        """The main packaged README keeps scenario descriptions current."""
+        text = _PACKAGED_AXYS_README_PATH.read_text(encoding="utf-8")
 
         for expected_text in [
-            "`wd` external-withdrawal amount",
+            "The controlled restatement includes",
+            "`wd` external-withdrawal amount restatement",
             "AAPL `by` transaction amount",
             "MSFT `sl` transaction",
             "inserted `li` row on `CASH_USD`",
             "inserted `lo` row on `CASH_USD`",
             "JPM `dv` dividend amount",
             "fee-like `dp` transaction",
-            "classified from special-security\n  context",
+            "classified from special-security context",
             "TNOTE2Y `in` interest",
             "TNOTE5Y cost-only correction",
         ]:
             self.assertIn(expected_text, text)
+
+    def test_packaged_snapshot_folders_do_not_include_local_readmes(self) -> None:
+        """Setup snapshots stay focused on source CSV files."""
+        for snapshot_name in ("snapshot_a", "snapshot_b"):
+            with self.subTest(snapshot_name=snapshot_name):
+                self.assertFalse(
+                    (_PACKAGED_AXYS_DIRECTORY / snapshot_name / "README.md").exists()
+                )
 
     def test_packaged_demo_extract_availability_covers_current_headers(self) -> None:
         """Every packaged Axys/APX demo CSV field has extraction-confidence metadata."""

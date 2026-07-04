@@ -26,6 +26,7 @@ _VALIDATE_CONFIG_MODULE = "ppar.performance_comparison.cli.validate_config"
 _VALIDATE_DEMO_MATRIX_MODULE = "ppar.performance_comparison.cli.validate_demo_matrix"
 _SETUP_MODULE = "ppar.performance_comparison.cli.setup"
 _SITE_REPORT_MODULE = "ppar.performance_comparison.cli.site_report"
+_ANALYTICS_MODULE = "ppar.analytics.cli"
 _PPAR_MODULE = "ppar.cli"
 
 
@@ -36,7 +37,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         """Report CLI modules expose consistent command-line help."""
         module_expectations = {
             _SETUP_MODULE: (
-                "Create a ppar.yaml setup"
+                "Create an Axys/APX starter workspace"
+            ),
+            _ANALYTICS_MODULE: (
+                "Write Axys/APX analytics reports"
             ),
             _SITE_REPORT_MODULE: (
                 "Write performance-comparison report bundles"
@@ -78,11 +82,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertIn("Security Return Checks", result.stdout)
                 if module_name == _SETUP_MODULE:
                     self.assertIn("--overwrite", result.stdout)
+                    self.assertIn("--guide", result.stdout)
                 if module_name == _SITE_REPORT_MODULE:
                     self.assertIn("--report", result.stdout)
 
-    def test_top_level_ppar_cli_exposes_setup_and_report_help(self) -> None:
-        """The product command separates setup from report generation."""
+    def test_top_level_ppar_cli_exposes_setup_analytics_and_comparison_help(self) -> None:
+        """The product command separates setup from production report generation."""
         result = subprocess.run(
             _module_command(_PPAR_MODULE, "--help"),
             check=True,
@@ -90,15 +95,32 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             text=True,
         )
 
+        self.assertIn("analytics", result.stdout)
         self.assertIn("setup", result.stdout)
-        self.assertIn("report", result.stdout)
+        self.assertIn("performance_comparison", result.stdout)
+        self.assertIn("perfcomp", result.stdout)
+        self.assertNotIn("{analytics,setup,report", result.stdout)
         self.assertIn("PPAR command-line tools", result.stdout)
         self.assertEqual(result.stderr, "")
 
+    def test_setup_guide_prints_without_creating_files(self) -> None:
+        """Installed users can print setup guidance without knowing package paths."""
+        result = subprocess.run(
+            _module_command(_SETUP_MODULE, "--guide"),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("PPAR Axys/APX Setup", result.stdout)
+        self.assertIn("ppar setup ./my_ppar_data", result.stdout)
+        self.assertIn("ppar performance_comparison ./my_ppar_data", result.stdout)
+        self.assertEqual(result.stderr, "")
+
     def test_setup_writes_one_yaml_config(self) -> None:
-        """Setup creates ppar.yaml without a separate schema file."""
+        """Setup creates one user-facing YAML per starter workflow."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = _copy_site_snapshots(Path(directory))
+            site_directory = Path(directory) / "my_ppar_data"
 
             result = subprocess.run(
                 _module_command(
@@ -110,21 +132,30 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            config_path = site_directory / "ppar.yaml"
+            analytics_path = site_directory / "analytics"
+            comparison_path = site_directory / "performance_comparison"
+            config_path = comparison_path / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-            self.assertIn("PPAR setup complete", result.stdout)
-            self.assertIn("Portfolio setup validated", result.stdout)
+            self.assertIn("PPAR setup complete in:", result.stdout)
+            self.assertIn("Performance comparison run command:", result.stdout)
+            self.assertIn("Local README:", result.stdout)
+            self.assertTrue((site_directory / "README.md").exists())
+            self.assertTrue((analytics_path / "ppar.yaml").exists())
+            self.assertTrue((analytics_path / "portperf.csv").exists())
+            self.assertTrue((analytics_path / "secperf.csv").exists())
             self.assertEqual(config["snapshots"]["a"]["path"], "snapshot_a")
             self.assertEqual(config["snapshots"]["b"]["path"], "snapshot_b")
             self.assertNotIn("schema", config["snapshots"]["a"])
             self.assertNotIn("schema", config["snapshots"]["b"])
-            self.assertNotIn("security_return_reconstruction", config)
-            self.assertFalse((site_directory / "column_mappings.yaml").exists())
+            self.assertIn("security_return_reconstruction", config)
+            self.assertFalse(
+                (comparison_path / "axysapx_column_mappings.yaml").exists()
+            )
 
-    def test_setup_creates_missing_site_skeleton(self) -> None:
-        """Setup creates starter folders and config before source files are ready."""
+    def test_setup_creates_starter_workspace(self) -> None:
+        """Setup creates analytics and performance-comparison starter folders."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = Path(directory) / "my_site_extracts"
+            site_directory = Path(directory) / "my_ppar_data"
 
             result = subprocess.run(
                 _module_command(
@@ -136,30 +167,39 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("PPAR setup complete", result.stdout)
-            self.assertIn("snapshot_a/portperf.csv", result.stdout)
-            self.assertIn("snapshot_b/transactions.csv", result.stdout)
+            self.assertIn("PPAR setup complete in:", result.stdout)
+            self.assertIn("Analytics folder:", result.stdout)
+            self.assertIn("Performance comparison folder:", result.stdout)
             self.assertNotIn("secperf.csv", result.stdout)
-            self.assertTrue((site_directory / "snapshot_a").is_dir())
-            self.assertTrue((site_directory / "snapshot_b").is_dir())
-            self.assertTrue((site_directory / "ppar.yaml").exists())
+            self.assertTrue((site_directory / "analytics").is_dir())
+            self.assertTrue(
+                (site_directory / "performance_comparison" / "snapshot_a").is_dir()
+            )
+            self.assertTrue(
+                (site_directory / "performance_comparison" / "snapshot_b").is_dir()
+            )
+            self.assertTrue((site_directory / "analytics" / "ppar.yaml").exists())
+            self.assertTrue(
+                (site_directory / "performance_comparison" / "ppar.yaml").exists()
+            )
             self.assertFalse((site_directory / "output").exists())
 
-    def test_site_report_writes_portfolio_report_by_default(self) -> None:
-        """The production report command writes a portfolio workbook by default."""
+    def test_site_report_writes_both_reports_by_default(self) -> None:
+        """The production comparison command writes both workbooks by default."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = _copy_site_snapshots(Path(directory))
+            site_directory = Path(directory) / "my_ppar_data"
             subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
+            comparison_directory = site_directory / "performance_comparison"
 
             result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(site_directory),
+                    str(comparison_directory),
                 ),
                 check=True,
                 capture_output=True,
@@ -167,30 +207,51 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn("Portfolio report:", result.stdout)
-            self.assertTrue((site_directory / "ppar.yaml").exists())
+            self.assertIn("Security report:", result.stdout)
+            self.assertTrue((comparison_directory / "ppar.yaml").exists())
             self.assertTrue(
-                (site_directory / "output" / "portfolio" / "report.xlsx").exists()
+                (
+                    comparison_directory / "output" / "portfolio" / "report.xlsx"
+                ).exists()
             )
             self.assertTrue(
-                (site_directory / "output" / "portfolio" / "report.html").exists()
+                (
+                    comparison_directory / "output" / "portfolio" / "report.html"
+                ).exists()
             )
-            self.assertFalse((site_directory / "output" / "security").exists())
+            self.assertTrue(
+                (
+                    comparison_directory / "output" / "security" / "report.xlsx"
+                ).exists()
+            )
 
-    def test_portfolio_setup_and_report_do_not_require_security_performance(self) -> None:
-        """Portfolio setup and default reports do not require secperf.csv."""
+    def test_portfolio_reports_skip_unavailable_security_performance(self) -> None:
+        """Portfolio reports run without secperf; default output skips security."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = _copy_site_snapshots(Path(directory))
-            (site_directory / "snapshot_a" / "secperf.csv").unlink()
-            (site_directory / "snapshot_b" / "secperf.csv").unlink()
-
+            site_directory = Path(directory) / "my_ppar_data"
             setup_result = subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            report_result = subprocess.run(
-                _module_command(_SITE_REPORT_MODULE, str(site_directory)),
+            comparison_directory = site_directory / "performance_comparison"
+            (comparison_directory / "snapshot_a" / "secperf.csv").unlink()
+            (comparison_directory / "snapshot_b" / "secperf.csv").unlink()
+
+            portfolio_result = subprocess.run(
+                _module_command(
+                    _SITE_REPORT_MODULE,
+                    str(comparison_directory),
+                    "--report",
+                    "portfolio",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            default_result = subprocess.run(
+                _module_command(_SITE_REPORT_MODULE, str(comparison_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -198,7 +259,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             security_result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(site_directory),
+                    str(comparison_directory),
                     "--report",
                     "security",
                 ),
@@ -207,29 +268,34 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("Portfolio setup validated", setup_result.stdout)
-            self.assertIn("Portfolio report:", report_result.stdout)
+            self.assertIn("PPAR setup complete in:", setup_result.stdout)
+            self.assertIn("Portfolio report:", portfolio_result.stdout)
             self.assertTrue(
-                (site_directory / "output" / "portfolio" / "report.xlsx").exists()
+                (
+                    comparison_directory / "output" / "portfolio" / "report.xlsx"
+                ).exists()
             )
+            self.assertIn("Portfolio report:", default_result.stdout)
+            self.assertIn("Security report: skipped", default_result.stdout)
             self.assertEqual(security_result.returncode, 1)
             self.assertIn("security_performance", security_result.stderr)
 
     def test_site_report_writes_security_report_when_requested(self) -> None:
         """The production report command supports security as an opt-in report."""
         with tempfile.TemporaryDirectory() as directory:
-            site_directory = _copy_site_snapshots(Path(directory))
+            site_directory = Path(directory) / "my_ppar_data"
             subprocess.run(
                 _module_command(_SETUP_MODULE, str(site_directory)),
                 check=True,
                 capture_output=True,
                 text=True,
             )
+            comparison_directory = site_directory / "performance_comparison"
 
             result = subprocess.run(
                 _module_command(
                     _SITE_REPORT_MODULE,
-                    str(site_directory),
+                    str(comparison_directory),
                     "--report",
                     "security",
                 ),
@@ -240,12 +306,84 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
             self.assertIn("Security report:", result.stdout)
             self.assertTrue(
-                (site_directory / "output" / "security" / "report.xlsx").exists()
+                (
+                    comparison_directory / "output" / "security" / "report.xlsx"
+                ).exists()
             )
             self.assertTrue(
-                (site_directory / "output" / "security" / "report.html").exists()
+                (
+                    comparison_directory / "output" / "security" / "report.html"
+                ).exists()
             )
-            self.assertFalse((site_directory / "output" / "portfolio").exists())
+            self.assertFalse((comparison_directory / "output" / "portfolio").exists())
+
+    def test_top_level_performance_comparison_aliases_write_reports(self) -> None:
+        """The top-level long command and alias both dispatch to comparison reports."""
+        with tempfile.TemporaryDirectory() as directory:
+            for command_name in ("performance_comparison", "perfcomp"):
+                with self.subTest(command_name=command_name):
+                    site_directory = Path(directory) / command_name / "my_ppar_data"
+                    subprocess.run(
+                        _module_command(_PPAR_MODULE, "setup", str(site_directory)),
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                    comparison_directory = site_directory / "performance_comparison"
+
+                    result = subprocess.run(
+                        _module_command(
+                            _PPAR_MODULE,
+                            command_name,
+                            str(comparison_directory),
+                            "--report",
+                            "portfolio",
+                        ),
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    self.assertIn("Portfolio report:", result.stdout)
+                    self.assertTrue(
+                        (
+                            comparison_directory
+                            / "output"
+                            / "portfolio"
+                            / "report.xlsx"
+                        ).exists()
+                    )
+
+    def test_analytics_cli_writes_site_outputs(self) -> None:
+        """The production analytics command writes output from setup data."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            analytics_directory = site_directory / "analytics"
+
+            result = subprocess.run(
+                _module_command(_ANALYTICS_MODULE, str(analytics_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Analytics output:", result.stdout)
+            self.assertTrue(
+                (analytics_directory / "output" / "risk_statistics.html").exists()
+            )
+            self.assertTrue(
+                (
+                    analytics_directory
+                    / "output"
+                    / "sector_overall_attribution.html"
+                ).exists()
+            )
 
     def test_report_cli_modules_reject_negative_top_evidence_limit(self) -> None:
         """Report CLI modules reject surprising negative evidence-row limits."""

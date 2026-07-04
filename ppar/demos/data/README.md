@@ -1,13 +1,22 @@
 # Packaged Demo Data
 
-This directory contains CSV inputs used by the user-facing demo commands.
+This directory contains CSV inputs used by packaged demos and setup templates.
+The public onboarding path starts with the Axys/APX workspace created by
+`ppar setup ./my_ppar_data`.
 
-## Mega-Cap Analytics Data
+## Axys/APX Starter Data
+
+- `axysapx_analytics/`: starter analytics CSVs and YAML copied into
+  `my_ppar_data/analytics`.
+- `axysapx_performance_comparison/`: starter performance-comparison snapshots
+  and YAML copied into `my_ppar_data/performance_comparison`.
+
+## Generic Analytics Data
 
 The Mega-Cap analytics files are generated from historical holdings of the
 iShares S&P 100 ETF as a public, reproducible proxy for a U.S. mega-cap
-benchmark. The user-facing name is "Mega-Cap"; OEF is only the source
-provenance.
+benchmark. This dataset remains available for maintainers and generic analytics
+examples, but the first target-market onboarding path is Axys/APX.
 
 Files:
 
@@ -27,11 +36,11 @@ returns as its cash-return proxy.
 
 ## Refresh Notes
 
-The packaged CSVs are the source of truth for `ppar-generic-analytics-demo`,
+The packaged CSVs are the source of truth for the generic analytics demo module,
 `README.md`, and the README images under `docs/images/readme/`. Refresh helpers
 live under `scripts/generic_analytics_demo_data/`; generated files under
-`_demo_output/generic_analytics_data_generation/` are cache/provenance output, not
-packaged demo inputs.
+`_demo_output/generic_analytics_data_generation/` are cache/provenance output,
+not packaged demo inputs.
 
 When regenerating this dataset, follow
 [`docs/analytics_demo_refresh.md`](../../../docs/analytics_demo_refresh.md).

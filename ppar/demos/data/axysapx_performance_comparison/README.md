@@ -4,9 +4,10 @@ The packaged Axys/APX demo data contains only user-facing demo inputs. Test-only
 performance comparison scenarios live under `tests/data/axys`.
 
 Start with [SETUP.md](SETUP.md) when onboarding an Axys/APX
-performance-comparison site. That file separates one-time setup from normal
-report generation: create `snapshot_a` and `snapshot_b`, run `ppar setup`,
-validate portfolio setup, then use `ppar report` for repeatable report packages.
+site. That file separates one-time setup from normal report generation: run
+`ppar setup`, review the copied analytics and performance-comparison folders,
+then use `ppar analytics` and `ppar performance_comparison` for repeatable
+output packages.
 
 ## Comparison YAML
 
@@ -27,14 +28,17 @@ For field-by-field IMEX and REP availability confidence, see
 For a local site, start with setup:
 
 ```bash
-ppar setup ./my_site_extracts
+ppar setup ./my_ppar_data
 ```
 
-The command creates `ppar.yaml`, validates the minimum required datasets,
-required normalized columns, transaction semantics, extract-contract guardrails,
-and complete YAML treatment for changed source-data fields once the portfolio
-source files are present. Use `ppar report ./my_site_extracts` to write the
-portfolio report bundle after setup is validated.
+The command creates `analytics/ppar.yaml` and
+`performance_comparison/ppar.yaml`, copies starter CSV files, and validates the
+portfolio performance-comparison starter. Validation checks the minimum required datasets,
+required normalized columns, and complete YAML treatment for changed source-data
+fields before report bundles are written. Use
+`ppar analytics ./my_ppar_data/analytics` for analytics output and
+`ppar performance_comparison ./my_ppar_data/performance_comparison` for
+performance-comparison bundles.
 The same validation is available directly through
 `ppar.performance_comparison.cli.validate_config` when maintainers need to
 check a YAML file without writing reports.
@@ -104,7 +108,7 @@ Data used:
 - Snapshot A: `snapshot_a`
 - Snapshot B: `snapshot_b`
 - Files: Axys/APX-style portfolio performance, security performance,
-  transactions, holdings, and security reference data.
+  transactions, and holdings.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and
   `TNOTE5Y`. `ALPHA` is the closest match to the Mega-Cap Alpha analytics
@@ -177,29 +181,36 @@ Expected workbook:
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
     `CASH_USD` holding changes;
-  - a fully explained ALPHA period with a changed buy transaction amount,
+  - an ALPHA `wd` external-withdrawal amount restatement visible in the return
+    reconstruction check;
+  - a fully explained ALPHA period with a changed AAPL `by` transaction amount,
     changed AAPL holding quantity/market value, and related transaction
     quantity, price, and commission support rows;
-  - a fully explained ALPHA period with an external cash deliver-out;
-  - a fully explained BALANCED period with a dividend transaction amount change;
-  - a fully explained BALANCED period with an external cash contribution;
-  - a fully explained INCOME period with a larger advisory-fee expense and
-    matching lower `CASH_USD` ending value;
+  - a fully explained ALPHA period with an inserted `lo` row on `CASH_USD` for
+    an external cash deliver-out;
+  - a fully explained BALANCED period with a changed MSFT `sl` transaction
+    amount and related quantity, price, and commission support rows;
+  - a fully explained BALANCED period with a JPM `dv` dividend amount change;
+  - a fully explained BALANCED period with an inserted `li` row on `CASH_USD`
+    for an external cash contribution;
+  - a fully explained INCOME period with a larger fee-like `dp` transaction,
+    classified from special-security context, and matching lower `CASH_USD`
+    ending value;
   - a partly explained BALANCED period where the same AAPL price correction and
     standalone MSFT holding market-value correction explain part of the
     reported portfolio and MSFT security return differences, leaving an
     intentional residual for reviewer triage;
   - a fully explained INCOME period with the same AAPL price correction plus
-    TNOTE2Y market-value and accrued-interest changes, related TNOTE2Y quantity
-    evidence, and TNOTE2Y cost in the `Raw Audit Trail`;
+    TNOTE2Y `in` interest, market-value and accrued-interest changes, related
+    TNOTE2Y quantity evidence, and TNOTE2Y cost in the `Raw Audit Trail`;
   - a partly explained INCOME period where paired TNOTE5Y `by`/`pa` and
     `sl`/`sa` fixed-income trade/accrued-interest settlement rows affect the
     cash/performance inputs, while separate quantity-driven holding value and
     accrued-value rows remain visible as holding inputs. TNOTE5Y cost-only audit
     evidence stays in the raw trail, and incomplete or overlapping estimates
     still require reviewer triage;
-  - an ALPHA external-withdrawal restatement visible in the return
-    reconstruction check.
+  - a TNOTE5Y cost-only correction that stays in the raw audit trail rather
+    than explaining performance by itself.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and transaction semantics explicit while still
@@ -239,7 +250,7 @@ The workbook uses a small field-role model:
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. |
 | `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Raw Audit Trail` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | holding cost, FX rates, security reference data, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |
+| `context` | holding cost, FX rates, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

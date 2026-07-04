@@ -1,120 +1,36 @@
-# PPAR Performance Comparison Setup
+# PPAR Axys/APX Setup
 
-Use setup once to create the local site folder and starter `ppar.yaml`.
-After setup is working, use `ppar report` whenever you need a report package.
-
-## 1. Run Setup
-
-From a terminal:
+Run setup once to create a local starter workspace:
 
 ```bash
-ppar setup ./my_site_extracts
+ppar setup ./my_ppar_data
 ```
 
-If `my_site_extracts`, `snapshot_a`, or `snapshot_b` do not exist yet, they are
-created for you.
+After installation, this guide is also available in the terminal:
 
-## 2. Add Portfolio Source Files
+```bash
+ppar setup --guide
+```
 
-Put the portfolio source files in `snapshot_a` and `snapshot_b`:
+Setup copies starter files into:
 
 ```text
-my_site_extracts/
-  ppar.yaml
-  snapshot_a/
-    portperf.csv
-    holdings.csv
-    transactions.csv
-  snapshot_b/
-    portperf.csv
-    holdings.csv
-    transactions.csv
+my_ppar_data/
+  README.md
+  analytics/
+  performance_comparison/
 ```
 
-Keep native transaction codes and security identifiers case-sensitive.
-
-## 3. Validate Setup
-
-Run setup again:
+The setup command prints the run commands for the copied folders:
 
 ```bash
-ppar setup ./my_site_extracts
+ppar analytics ./my_ppar_data/analytics
+ppar performance_comparison ./my_ppar_data/performance_comparison
 ```
 
-When setup says `Portfolio setup validated`, the site is ready for portfolio
-reporting.
+`ppar perfcomp` is a shorter alias for `ppar performance_comparison`.
 
-## 4. Run Reports
+Open `my_ppar_data/README.md`, section `Customizing`, when you are ready to
+replace the starter CSV files with your own Axys/APX IMEX or export data.
 
-Create the standard portfolio report package:
-
-```bash
-ppar report ./my_site_extracts
-```
-
-Output:
-
-```text
-my_site_extracts/
-  output/
-    portfolio/report.xlsx
-    portfolio/report.html
-```
-
-Review In This Order:
-
-1. `Performance Differences`
-2. `Performance Difference Causes`
-3. `Raw Audit Trail`
-4. `manifest.json`
-
-Stay focused on Modified Dietz inputs: beginning value, ending value, and dated
-flows.
-
-## 5. Iterate Carefully
-
-Edit `ppar.yaml` only after the first portfolio report runs.
-
-Start with the packaged rules for `by`, `sl`, `dv`, `in`, `dp`, `li`, `lo`,
-`wd`, and fixed-income `pa`/`sa`. Add local overrides only when the site extract
-proves the treatment through source/destination, special-security, REP, or
-reviewed local evidence.
-
-Run `ppar report ./my_site_extracts` after each change. Existing `ppar.yaml` is
-reused unless you pass `--overwrite` to `ppar setup`.
-
-Cost-basis handling is best-efforts for demo construction; Modified Dietz
-explanations do not depend on cost.
-
-## Optional: Security-Level Review
-
-After portfolio reporting is working, add `secperf.csv` to both snapshots:
-
-```text
-my_site_extracts/
-  snapshot_a/
-    secperf.csv
-  snapshot_b/
-    secperf.csv
-```
-
-Then run:
-
-```bash
-ppar report ./my_site_extracts --report security
-```
-
-Or regenerate both report packages:
-
-```bash
-ppar report ./my_site_extracts --report both
-```
-
-## Packaged Demo Commands
-
-Use these when you want the shipped sample exactly as-is:
-
-```bash
-ppar-performance-comparison-portfolio-demo
-ppar-performance-comparison-security-demo
-```
+Existing files are kept unless you pass `--overwrite`.

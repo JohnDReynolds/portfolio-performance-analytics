@@ -110,9 +110,9 @@ from_date,thru_date,identifier,weight,return,name
 Wide performance files with per-identifier columns such as `AAPL.ret` and
 `AAPL.wgt` are not supported.
 
-For sample source-data files, please refer to the ``ppar-generic-analytics-demo``
-command and the ppar/demos/data directory. Once the source-data has been
-provided, then the analytics may be requested using different calculation
+For sample source-data files, please refer to the packaged files under
+`ppar/demos/data`. Once the source-data has been provided, then the analytics
+may be requested using different calculation
 parameters, time-periods, and frequencies:
 1. Daily (or for whatever data frequency is provided).
 2. Monthly
@@ -120,8 +120,8 @@ parameters, time-periods, and frequencies:
 4. Yearly
 
 Typically, a user will develop their own "data source" functions that provide
-the data in one of the above formats. The ``ppar-generic-analytics-demo`` command uses
-sample data source functions.
+the data in one of the above formats. The packaged demo modules use sample data
+source functions.
 
 ---
 
@@ -147,18 +147,18 @@ pip install ppar
 ---
 
 ## Usage
-Run the bundled demos from an installed environment:
+For an Axys/APX site, start by creating a local PPAR workspace:
 
 ```bash
-ppar-generic-analytics-demo
-ppar-axysapx-analytics-demo
-ppar-performance-comparison-portfolio-demo
-ppar-performance-comparison-security-demo
+ppar setup ./my_ppar_data
+ppar analytics ./my_ppar_data/analytics
+ppar performance_comparison ./my_ppar_data/performance_comparison
 ```
 
-The analytics demo commands default to quarterly reporting. Pass `--frequency monthly`,
-`--frequency quarterly`, or `--frequency yearly` to change the reporting
-frequency; the short forms `m`, `q`, and `y` are also accepted.
+See [PPAR Axys/APX Setup](ppar/demos/data/axysapx_performance_comparison/SETUP.md)
+for the starter folder layout, copied `ppar.yaml` files, required CSV files, and
+the first YAML edits. After installation, `ppar setup --guide` prints the same
+short setup guide in the terminal.
 
 ---
 
@@ -199,12 +199,12 @@ Minimum source-data contract:
 
 Use these entry points:
 
-- [Axys/APX Setup](ppar/demos/data/axysapx_performance_comparison/SETUP.md): shortest path for running
-  `ppar setup ./my_site_extracts`, creating `ppar.yaml`, validating portfolio
-  setup, and then using `ppar report ./my_site_extracts` for report packages.
-- [Packaged Axys/APX Demo Matrix](ppar/demos/data/axysapx_performance_comparison/README.md): recommended
-  workbook demo command, packaged YAML fixtures, data used, and expected XLSX
-  output.
+- [PPAR Axys/APX Setup](ppar/demos/data/axysapx_performance_comparison/SETUP.md): shortest path for running
+  `ppar setup ./my_ppar_data`, then using `ppar analytics
+  ./my_ppar_data/analytics` and `ppar performance_comparison
+  ./my_ppar_data/performance_comparison`.
+- [Packaged Axys/APX Demo Matrix](ppar/demos/data/axysapx_performance_comparison/README.md): packaged
+  YAML fixtures, data used, maintainer smoke modules, and expected XLSX output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
   validators, generated outputs, and common workflows.
 - [Performance Comparison Roadmap](docs/performance_comparison_roadmap.md):
@@ -219,7 +219,7 @@ Use these entry points:
 - [Axys/APX Common-Core Export Reference](docs/axys_common_core_export.md): starter
   Axys/APX export template and field-reference tables.
 
-Source-checkout smoke test:
+Source-checkout smoke test for maintainers:
 
 ```bash
 ./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_portfolio_demo
@@ -232,15 +232,14 @@ For the full packaged performance-comparison demo guardrail pass, run:
 ./.venv/bin/python scripts/check_performance_comparison_demo_health.py
 ```
 
-Generated demo artifacts live under `_demo_output/generic_analytics`,
-`_demo_output/axysapx_analytics`, `_demo_output/performance_comparison_portfolio`,
-and `_demo_output/performance_comparison_security`. The core analytics demo and
-the Axys/APX analytics demo use the same Mega-Cap Alpha portfolio and benchmark;
-the Axys/APX demo reads the data through Axys/APX-shaped exports before handing the
-same analytics object shape to the shared renderer. Both analytics demos use
-quarterly reporting and write tables and charts. All demos write files and
-print the review paths instead of opening browser windows automatically. The
-performance comparison demos write both `report.xlsx` and `report.html`; open
+Generated Axys/APX artifacts live under `_demo_output/axysapx_analytics`,
+`_demo_output/performance_comparison_portfolio`, and
+`_demo_output/performance_comparison_security`. The Axys/APX analytics demo uses
+the Mega-Cap Alpha portfolio and benchmark through Axys/APX-shaped exports before
+handing the same analytics object shape to the shared renderer. Demo commands
+write files and print review paths instead of opening browser windows
+automatically. The performance comparison demos write both `report.xlsx` and
+`report.html`; open
 `report.xlsx` when present, use `report.html` for browser review, and keep the
 CSV artifacts for diagnostics and audit traceability.
 

@@ -174,7 +174,7 @@ Run the full test suite:
 Before committing, check:
 
 - README story matches regenerated image titles and values.
-- `ppar-generic-analytics-demo` uses the same packaged files.
+- The generic analytics demo module uses the same packaged files.
 - `scripts/render_readme_images.py` uses the same packaged files.
 - `ppar/demos/data/README.md` documents source provenance and any date
   substitutions.

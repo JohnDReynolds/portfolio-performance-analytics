@@ -64,10 +64,16 @@ Implemented output helpers:
 
 User-facing entry point:
 
-- `ppar-performance-comparison-portfolio-demo` and `ppar-performance-comparison-security-demo`: installed demo commands.
+- `ppar setup`: creates an Axys/APX starter workspace.
+- `ppar performance_comparison`: writes portfolio and security comparison report
+  bundles from a configured workspace.
 
 Developer/internal helper modules:
 
+- `ppar.demos.axysapx_performance_comparison_portfolio_demo`: source-checkout
+  smoke module for the portfolio-level packaged fixture.
+- `ppar.demos.axysapx_performance_comparison_security_demo`: source-checkout
+  smoke module for the security-level packaged fixture.
 - `ppar.performance_comparison.cli.report_bundle`: source-checkout command
   for writing a report bundle from a comparison YAML file.
 
@@ -1994,7 +2000,7 @@ The public command and demo surface is implemented for the current checkpoint.
 
 - Add stable public entry points.
 - Add sample comparison fixture directories.
-- Add installed demo command and source-checkout report/bundle commands.
+- Add public setup/report commands and source-checkout report/bundle commands.
 - Document configuration and finding codes.
 
 ## Long-Term Dataset Watchlist
