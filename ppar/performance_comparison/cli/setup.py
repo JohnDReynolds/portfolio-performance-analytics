@@ -421,36 +421,21 @@ def _combined_status(directory_status: str, config_status: str) -> str:
 
 def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
-    print(f"PPAR setup complete in: {result['site_directory']}")
-    print(f"Local README: {result['readme_path']} ({result['readme_status']})")
+    print(f"PPAR setup complete: {result['site_directory']}")
     print()
-    print(
-        "Analytics folder: "
-        f"{result['analytics_directory']} ({result['analytics_status']})"
-    )
-    print(f"Analytics config: {result['analytics_config_path']}")
-    print(f"Analytics run command: ppar analytics {result['analytics_directory']}")
+    print("To run Analytics:")
+    print(f"  ppar analytics {result['analytics_directory']}")
     print()
-    print(
-        "Performance comparison folder: "
-        f"{result['comparison_directory']} ({result['comparison_status']})"
-    )
-    print(f"Performance comparison config: {result['comparison_config_path']}")
-    print(
-        "Performance comparison run command: "
-        f"ppar performance_comparison {result['comparison_directory']}"
-    )
+    print("To run Performance Comparison:")
+    print(f"  ppar performance_comparison {result['comparison_directory']}")
     print()
     if "missing_files" in result:
         print("Next step: add these portfolio source files, then run setup again:")
         print(result["missing_files"])
         return
 
-    print(
-        "Open "
-        f"{result['site_directory'] / 'README.md'} "
-        '(section "Customizing") to customize with your own data.'
-    )
+    print("To customize with your own data:")
+    print(f"  Open {result['site_directory'] / 'README.md'}")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
-from typing import Final
+from typing import Any, Final
 
 # Project imports
 from ppar.errors import PpaError
@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Path | str]:
+def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Any]:
     """Write one or more report bundles for a configured site folder.
 
     Args:
@@ -58,7 +58,7 @@ def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Path 
             or ``"both"``. Defaults to ``"both"``.
 
     Returns:
-        Paths for the site folder, config file, and generated workbooks.
+        Paths for the site folder, config file, and generated review artifacts.
 
     Raises:
         PpaError: If the site folder/config file is missing, the report family
@@ -77,23 +77,26 @@ def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Path 
     if not config_path.exists():
         raise PpaError(f"{config_path} is missing. Run setup first.", 802)
 
-    result: dict[str, Path] = {
+    result: dict[str, Any] = {
         "site_directory": site_path,
         "config_path": config_path,
+        "review_paths": [],
     }
     if report in ("both", PORTFOLIO_COMPARISON_LEVEL):
-        result["portfolio_report"] = _write_report_bundle(
+        result["portfolio_report_paths"] = _write_report_bundle(
             config_path,
             site_path / _OUTPUT_DIR / PORTFOLIO_COMPARISON_LEVEL,
             comparison_level=PORTFOLIO_COMPARISON_LEVEL,
         )
+        result["review_paths"].extend(result["portfolio_report_paths"])
     if report in ("both", SECURITY_COMPARISON_LEVEL):
         try:
-            result["security_report"] = _write_report_bundle(
+            result["security_report_paths"] = _write_report_bundle(
                 config_path,
                 site_path / _OUTPUT_DIR / SECURITY_COMPARISON_LEVEL,
                 comparison_level=SECURITY_COMPARISON_LEVEL,
             )
+            result["review_paths"].extend(result["security_report_paths"])
         except PpaError as error:
             if report == SECURITY_COMPARISON_LEVEL or not _is_missing_security_data(error):
                 raise
@@ -127,8 +130,8 @@ def _write_report_bundle(
     output_directory: Path,
     *,
     comparison_level: str,
-) -> Path:
-    """Write one report bundle and return the workbook path."""
+) -> list[Path]:
+    """Write one report bundle and return the primary review artifact paths."""
     findings = compare_snapshots(
         config_path,
         comparison_level=comparison_level,
@@ -149,7 +152,10 @@ def _write_report_bundle(
     workbook = paths.get("review_workbook")
     if workbook is None:
         raise PpaError(f"Report bundle did not write report.xlsx in {output_directory}.", 999)
-    return workbook
+    html_report = paths.get("html_report")
+    if html_report is None:
+        raise PpaError(f"Report bundle did not write report.html in {output_directory}.", 999)
+    return [workbook, html_report]
 
 
 def _is_missing_security_data(error: PpaError) -> bool:
@@ -161,17 +167,14 @@ def _is_missing_security_data(error: PpaError) -> bool:
     )
 
 
-def _print_success(result: dict[str, Path | str]) -> None:
+def _print_success(result: dict[str, Any]) -> None:
     """Print a concise user handoff."""
-    print("PPAR performance comparison complete")
-    print(f"Site folder: {result['site_directory']}")
-    print(f"Config: {result['config_path']}")
-    if "portfolio_report" in result:
-        print(f"Portfolio report: {result['portfolio_report']}")
-    if "security_report" in result:
-        print(f"Security report: {result['security_report']}")
+    print("Open these files to review performance_comparison output:")
+    for path in result["review_paths"]:
+        print(f"  {path}")
     if "security_status" in result:
-        print(f"Security report: {result['security_status']}")
+        print()
+        print("Security output skipped because files.security_performance is not available.")
 
 
 if __name__ == "__main__":

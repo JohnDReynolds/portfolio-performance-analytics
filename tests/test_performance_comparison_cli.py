@@ -2,6 +2,7 @@
 
 # Python imports
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -136,9 +137,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             comparison_path = site_directory / "performance_comparison"
             config_path = comparison_path / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-            self.assertIn("PPAR setup complete in:", result.stdout)
-            self.assertIn("Performance comparison run command:", result.stdout)
-            self.assertIn("Local README:", result.stdout)
+            self.assertIn("PPAR setup complete:", result.stdout)
+            self.assertIn("To run Analytics:", result.stdout)
+            self.assertIn("To run Performance Comparison:", result.stdout)
+            self.assertIn("To customize with your own data:", result.stdout)
+            self.assertNotIn("(created)", result.stdout)
+            self.assertNotIn("(written)", result.stdout)
             self.assertTrue((site_directory / "README.md").exists())
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
@@ -167,9 +171,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("PPAR setup complete in:", result.stdout)
-            self.assertIn("Analytics folder:", result.stdout)
-            self.assertIn("Performance comparison folder:", result.stdout)
+            self.assertIn("PPAR setup complete:", result.stdout)
+            self.assertIn("ppar analytics", result.stdout)
+            self.assertIn("ppar performance_comparison", result.stdout)
             self.assertNotIn("secperf.csv", result.stdout)
             self.assertTrue((site_directory / "analytics").is_dir())
             self.assertTrue(
@@ -206,8 +210,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("Portfolio report:", result.stdout)
-            self.assertIn("Security report:", result.stdout)
+            self.assertIn(
+                "Open these files to review performance_comparison output:",
+                result.stdout,
+            )
+            self.assertIn("output/portfolio/report.xlsx", result.stdout)
+            self.assertIn("output/portfolio/report.html", result.stdout)
+            self.assertIn("output/security/report.xlsx", result.stdout)
+            self.assertIn("output/security/report.html", result.stdout)
             self.assertTrue((comparison_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (
@@ -268,15 +278,18 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("PPAR setup complete in:", setup_result.stdout)
-            self.assertIn("Portfolio report:", portfolio_result.stdout)
+            self.assertIn("PPAR setup complete:", setup_result.stdout)
+            self.assertIn("output/portfolio/report.xlsx", portfolio_result.stdout)
             self.assertTrue(
                 (
                     comparison_directory / "output" / "portfolio" / "report.xlsx"
                 ).exists()
             )
-            self.assertIn("Portfolio report:", default_result.stdout)
-            self.assertIn("Security report: skipped", default_result.stdout)
+            self.assertIn("output/portfolio/report.xlsx", default_result.stdout)
+            self.assertIn(
+                "Security output skipped because files.security_performance is not available.",
+                default_result.stdout,
+            )
             self.assertEqual(security_result.returncode, 1)
             self.assertIn("security_performance", security_result.stderr)
 
@@ -304,7 +317,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("Security report:", result.stdout)
+            self.assertIn(
+                "Open these files to review performance_comparison output:",
+                result.stdout,
+            )
+            self.assertIn("output/security/report.xlsx", result.stdout)
+            self.assertIn("output/security/report.html", result.stdout)
             self.assertTrue(
                 (
                     comparison_directory / "output" / "security" / "report.xlsx"
@@ -344,7 +362,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                         text=True,
                     )
 
-                    self.assertIn("Portfolio report:", result.stdout)
+                    self.assertIn(
+                        "Open these files to review performance_comparison output:",
+                        result.stdout,
+                    )
+                    self.assertIn("output/portfolio/report.xlsx", result.stdout)
                     self.assertTrue(
                         (
                             comparison_directory
@@ -373,7 +395,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
 
-            self.assertIn("Analytics output:", result.stdout)
+            self.assertIn("Open these files to review analytics output:", result.stdout)
+            self.assertIn("risk_statistics.html", result.stdout)
+            self.assertNotIn("Using quarterly reporting.", result.stdout)
+            self.assertNotIn("Time:", result.stdout)
+            self.assertNotIn("Analytics output:", result.stdout)
             self.assertTrue(
                 (analytics_directory / "output" / "risk_statistics.html").exists()
             )
@@ -382,6 +408,37 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     analytics_directory
                     / "output"
                     / "sector_overall_attribution.html"
+                ).exists()
+            )
+
+    def test_analytics_cli_resolves_relative_site_directory_once(self) -> None:
+        """Analytics source paths stay config-relative when the site path is relative."""
+        with tempfile.TemporaryDirectory(prefix="ppar_relative_site_") as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            relative_site_directory = Path(os.path.relpath(site_directory, Path.cwd()))
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(relative_site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            analytics_directory = relative_site_directory / "analytics"
+
+            result = subprocess.run(
+                _module_command(_ANALYTICS_MODULE, str(analytics_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Open these files to review analytics output:", result.stdout)
+            self.assertNotIn("analytics/../", result.stderr)
+            self.assertTrue(
+                (
+                    site_directory
+                    / "analytics"
+                    / "output"
+                    / "risk_statistics.html"
                 ).exists()
             )
 

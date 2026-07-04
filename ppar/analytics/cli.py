@@ -7,7 +7,6 @@ import argparse
 import os
 from pathlib import Path
 import sys
-import time
 from typing import Any, Final
 
 # Third-party imports
@@ -34,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
-        output_directory = run_analytics(
+        run_analytics(
             args.site_directory,
             portfolio_code=args.portfolio,
             benchmark_code=args.benchmark,
@@ -45,7 +44,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Analytics failed: {error}", file=sys.stderr)
         return 1
 
-    print(f"Analytics output: {output_directory}")
     return 0
 
 
@@ -73,9 +71,8 @@ def run_analytics(
         PpaError: If required settings are missing or source data cannot be read.
         ValueError: If the reporting frequency cannot be interpreted.
     """
-    time_start = time.perf_counter()
     site_path = Path(site_directory).expanduser()
-    config_path = site_path / _CONFIG_FILE_NAME
+    config_path = (site_path / _CONFIG_FILE_NAME).resolve()
     config_values = _load_config_values(config_path)
     analytics_settings = _analytics_settings(config_values)
 
@@ -106,7 +103,6 @@ def run_analytics(
     from ppar.axys import AxysData
     from ppar.demos.analytics_demo_outputs import (
         demo_frequency_from_string,
-        frequency_display_name,
         write_analytics_demo_outputs,
     )
 
@@ -121,12 +117,10 @@ def run_analytics(
         sector_classification_name=classification_name,
     )
 
-    print(f"Using {frequency_display_name(selected_frequency)} reporting.")
     if written_paths:
         print("Open these files to review analytics output:")
         for path in written_paths:
-            print(f"- {path.resolve()}")
-    print("Time:", time.perf_counter() - time_start)
+            print(f"  {path}")
     return selected_output
 
 
@@ -204,6 +198,7 @@ def _classification_name(config_values: dict[str, Any]) -> str:
     if not isinstance(value, str) or not value:
         raise PpaError("defaults.classification must be a string.", 504)
     return value
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
