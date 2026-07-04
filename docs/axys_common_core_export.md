@@ -1,14 +1,14 @@
-# Axys Common-Core Export Reference
+# Axys/APX Common-Core Export Reference
 
-This note sketches a common-core Axys export shape for analytics and
-performance-comparison demos. It is a starter reference, not a generic Axys
+This note sketches a common-core Axys/APX export shape for analytics and
+performance-comparison demos. It is a starter reference, not a generic Axys/APX
 implementation contract.
 
 See [Performance Comparison Design Notes](performance_comparison_design.md) for
 the broader comparison model, implemented checkpoint, YAML semantics, and report
 bundle workflow that can consume these normalized export shapes.
 
-Axys installations vary by site. Treat the IMEX profile names, dataset names,
+Axys/APX installations vary by site. Treat the IMEX profile names, dataset names,
 field mnemonics, date syntax, and portfolio-list syntax below as placeholders
 that must be adapted to the local installation. Some firms may export these
 datasets through REP/Replang reports instead of IMEX profiles.
@@ -17,8 +17,8 @@ datasets through REP/Replang reports instead of IMEX profiles.
 
 ```bat
 REM ============================================================
-REM Axys common-core IMEX export script - TEMPLATE ONLY
-REM Not guaranteed generic across Axys installations.
+REM Axys/APX common-core IMEX export script - TEMPLATE ONLY
+REM Not guaranteed generic across Axys/APX installations.
 REM Variances:
 REM   1. IMEX profile names are site-specific.
 REM   2. Dataset/file aliases may differ.
@@ -65,14 +65,14 @@ REM Often derivable from holdings if cash is represented as security rows.
 
 ## Starter Field Reference
 
-These tables describe likely Axys source fields and common aliases for the
+These tables describe likely Axys/APX source fields and common aliases for the
 normalized datasets used by ppar. They are intentionally conservative reference
-notes. A local `axys_column_mappings.yaml` file remains authoritative when a
+notes. A local `axysapx_column_mappings.yaml` file remains authoritative when a
 site uses different field names.
 
 ### Portfolio Performance
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | `portperf` | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | `portperf` | `DATE` | `period_end_date` | `AS_OF_DATE`, `PERIOD_END` | High |
@@ -85,7 +85,7 @@ site uses different field names.
 
 ### Security Performance
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | `secperf` | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | `secperf` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
@@ -100,7 +100,7 @@ site uses different field names.
 
 ### Security Master
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | `sec-ref` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
 | `sec-ref` | `DESC` | `security_description` | `DESCRIPTION`, `NAME`, `SEC_DESC` | High |
@@ -115,7 +115,7 @@ site uses different field names.
 
 ### Transactions
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | transactions | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | transactions | `DATE` | `trade_date` | `TRADE_DATE`, `TRD_DATE` | High |
@@ -130,7 +130,7 @@ site uses different field names.
 
 ### Holdings And Holdings
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | holdings / holdings | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | holdings / holdings | `DATE` | `as_of_date` | `AS_OF_DATE`, `HOLDING_DATE` | High |
@@ -144,7 +144,7 @@ site uses different field names.
 
 ### FX Rates
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | FX / currency | `DATE` | `fx_rate_date` | `AS_OF_DATE`, `RATE_DATE` | High |
 | FX / currency | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `FROM_CCY` | High |
@@ -153,7 +153,7 @@ site uses different field names.
 
 ### Cash
 
-| Axys Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
 | --- | --- | --- | --- | --- |
 | cash | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | cash | `DATE` | `as_of_date` | `AS_OF_DATE`, `BALANCE_DATE` | High |

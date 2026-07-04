@@ -1,4 +1,4 @@
-# Machine-readable extraction-confidence contract for the packaged Axys demo
+# Machine-readable extraction-confidence contract for the packaged Axys/APX demo
 # CSV fields. Keep this aligned with docs/axys-apx-reference/
 # contracts/demo_extract_availability.md.
 version: 1
@@ -10,7 +10,7 @@ scope:
     Every packaged comparison demo CSV column must have an explicit
     IMEX/REP availability confidence decision.
 confidence_labels:
-  high: Strongly likely to be obtainable from a typical Axys environment.
+  high: Strongly likely to be obtainable from a typical Axys/APX environment.
   medium_high: Between medium and high; likely available, but still report/profile dependent.
   medium: Plausible, but site configuration, report choice, or export profile must be validated.
   medium_unknown: Between medium and unknown; evidence mentions the area, but not the exact object/field.
@@ -679,7 +679,7 @@ datasets:
         normalized_meaning: Security contribution to return.
         imex_confidence: low_medium
         rep_confidence: medium_high
-        comments: Contribution reports are supported, but exact Axys security-contribution export requires validation.
+        comments: Contribution reports are supported, but exact Axys/APX security-contribution export requires validation.
         basis: Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX
           performance object/field.
         open_questions:
@@ -819,8 +819,8 @@ datasets:
         normalized_meaning: Security type for transaction security.
         imex_confidence: medium
         rep_confidence: low_medium
-        comments: Central to Axys security resolution; transaction-row availability depends on export/report design.
-        basis: Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
+        comments: Central to Axys/APX security resolution; transaction-row availability depends on export/report design.
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
           for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
@@ -836,14 +836,14 @@ datasets:
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
           use REP, a custom report, or another local source.
       SRC_DEST_TYPE:
         normalized_meaning: Source/destination type for ambiguous flows.
         imex_confidence: medium
         rep_confidence: low_medium
         comments: Observed transaction translation/integration field, not guaranteed in every posted export.
-        basis: Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
           for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
@@ -854,20 +854,20 @@ datasets:
         candidate_report_labels:
         - Source/Destination Type
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys naming is not established by the local
+        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
           corpus.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
           use REP, a custom report, or another local source.
       SRC_DEST_SYMBOL:
         normalized_meaning: Source/destination symbol for ambiguous flows.
         imex_confidence: medium
         rep_confidence: low_medium
         comments: Observed transaction translation/integration field, not guaranteed in every posted export.
-        basis: Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
           for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
@@ -878,20 +878,20 @@ datasets:
         candidate_report_labels:
         - Source/Destination Symbol
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys naming is not established by the local
+        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
           corpus.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
           use REP, a custom report, or another local source.
       SPECIAL_SEC_TYPE:
         normalized_meaning: Special security type for fee or special handling.
         imex_confidence: medium
         rep_confidence: low
         comments: Supported in integration evidence; standard report exposure is uncertain.
-        basis: Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
           for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
@@ -902,20 +902,20 @@ datasets:
         candidate_report_labels:
         - Special Security Type
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys naming is not established by the local
+        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
           corpus.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
           use REP, a custom report, or another local source.
       SPECIAL_SEC_SYMBOL:
         normalized_meaning: Special security symbol for fee or special handling.
         imex_confidence: medium
         rep_confidence: low
         comments: Supported in integration evidence; standard report exposure is uncertain.
-        basis: Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
+        basis: Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required
           for ambiguous external-flow handling.
         open_questions:
         - Confirm whether local IMEX exposes this context on posted transaction exports.
@@ -926,13 +926,13 @@ datasets:
         candidate_report_labels:
         - Special Security Symbol
         name_confidence: normalized_demo_only
-        name_notes: Normalized demo header retained for ppar consistency; native Axys naming is not established by the local
+        name_notes: Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local
           corpus.
         preferred_source: local_discovery_required
         fallback_source: rep_preferred
         requires_context_for_semantics: true
         blocking_if_missing: true
-        source_strategy_notes: Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and
+        source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
           use REP, a custom report, or another local source.
       QTY:
         normalized_meaning: Transaction quantity.
@@ -1026,10 +1026,10 @@ datasets:
         source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
           sign-convention validation.
 name_confidence_labels:
-  inferred_alias: Likely field/report aliases for the underlying value, but not proven as official native Axys names by the
+  inferred_alias: Likely field/report aliases for the underlying value, but not proven as official native Axys/APX names by the
     local corpus.
   report_label_inferred: Likely report labels or report-style aliases; structured IMEX names still need local confirmation.
-  normalized_demo_only: A normalized demo-system name. Do not treat it as a native Axys or REP label.
+  normalized_demo_only: A normalized demo-system name. Do not treat it as a native Axys/APX or REP label.
 source_strategy_labels:
   imex_preferred: Use IMEX first when the local profile exposes the field.
   rep_preferred: Use REP/report output first because report-tie behavior matters.

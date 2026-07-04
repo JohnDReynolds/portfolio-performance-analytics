@@ -151,7 +151,7 @@ Run the bundled demos from an installed environment:
 
 ```bash
 ppar-generic-analytics-demo
-ppar-axys-analytics-demo
+ppar-axysapx-analytics-demo
 ppar-performance-comparison-portfolio-demo
 ppar-performance-comparison-security-demo
 ```
@@ -179,7 +179,7 @@ YAML configurations where visible differences are intentionally review-only or
 not additively estimated.
 
 The packaged portfolio and security demos share one YAML file:
-`ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml`. It maps native
+`ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml`. It maps native
 lower-case transaction codes such as `by`, `sl`, `dv`, `in`, `dp`, `wd`, and
 `;` to normalized transaction categories used by the comparison logic.
 
@@ -199,10 +199,10 @@ Minimum source-data contract:
 
 Use these entry points:
 
-- [Axys/APX Setup](ppar/demos/data/axys_performance_comparison/SETUP.md): shortest path for running
+- [Axys/APX Setup](ppar/demos/data/axysapx_performance_comparison/SETUP.md): shortest path for running
   `ppar setup ./my_site_extracts`, creating `ppar.yaml`, validating portfolio
   setup, and then using `ppar report ./my_site_extracts` for report packages.
-- [Packaged Axys Demo Matrix](ppar/demos/data/axys_performance_comparison/README.md): recommended
+- [Packaged Axys/APX Demo Matrix](ppar/demos/data/axysapx_performance_comparison/README.md): recommended
   workbook demo command, packaged YAML fixtures, data used, and expected XLSX
   output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
@@ -216,14 +216,14 @@ Use these entry points:
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
   internal model, YAML vocabulary, attribution setup, and report/workbook
   design rationale.
-- [Axys Common-Core Export Reference](docs/axys_common_core_export.md): starter
-  Axys export template and field-reference tables.
+- [Axys/APX Common-Core Export Reference](docs/axys_common_core_export.md): starter
+  Axys/APX export template and field-reference tables.
 
 Source-checkout smoke test:
 
 ```bash
-./.venv/bin/python -m ppar.demos.axys_performance_comparison_portfolio_demo
-./.venv/bin/python -m ppar.demos.axys_performance_comparison_security_demo
+./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_portfolio_demo
+./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_security_demo
 ```
 
 For the full packaged performance-comparison demo guardrail pass, run:
@@ -233,10 +233,10 @@ For the full packaged performance-comparison demo guardrail pass, run:
 ```
 
 Generated demo artifacts live under `_demo_output/generic_analytics`,
-`_demo_output/axys_analytics`, `_demo_output/performance_comparison_portfolio`,
+`_demo_output/axysapx_analytics`, `_demo_output/performance_comparison_portfolio`,
 and `_demo_output/performance_comparison_security`. The core analytics demo and
-the Axys analytics demo use the same Mega-Cap Alpha portfolio and benchmark;
-the Axys demo reads the data through Axys-shaped exports before handing the
+the Axys/APX analytics demo use the same Mega-Cap Alpha portfolio and benchmark;
+the Axys/APX demo reads the data through Axys/APX-shaped exports before handing the
 same analytics object shape to the shared renderer. Both analytics demos use
 quarterly reporting and write tables and charts. All demos write files and
 print the review paths instead of opening browser windows automatically. The

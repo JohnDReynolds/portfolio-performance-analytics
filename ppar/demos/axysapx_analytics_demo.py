@@ -1,4 +1,4 @@
-"""Demonstrate Axys-backed analytics and attribution output."""
+"""Demonstrate Axys/APX-backed analytics and attribution output."""
 
 # Python imports
 import os
@@ -6,7 +6,7 @@ from importlib.resources import as_file, files
 from pathlib import Path
 import time
 
-_OUTPUT_DIRECTORY = Path("_demo_output") / "axys_analytics"
+_OUTPUT_DIRECTORY = Path("_demo_output") / "axysapx_analytics"
 os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
 
@@ -24,20 +24,20 @@ _BENCHMARK_CODE = "MEGA_BENCH"
 
 
 def main() -> None:
-    """Run the Axys analytics demonstration with optional frequency selection.
+    """Run the Axys/APX analytics demonstration with optional frequency selection.
 
     Raises:
-        PpaError: If Axys source validation, reconciliation, or analytics
+        PpaError: If Axys/APX source validation, reconciliation, or analytics
             calculations fail.
     """
     time_start = time.perf_counter()
     frequency = parse_demo_frequency_argument(
-        description="Run the bundled Axys analytics demo.",
+        description="Run the bundled Axys/APX analytics demo.",
     )
     print(f"Using {frequency_display_name(frequency)} reporting.")
 
-    with as_file(files("ppar.demos.data") / "axys_analytics") as axys_data_root:
-        axys_data = AxysData(axys_data_root / "axys_analytics.yaml")
+    with as_file(files("ppar.demos.data") / "axysapx_analytics") as axys_data_root:
+        axys_data = AxysData(axys_data_root / "axysapx_analytics.yaml")
         portfolio = axys_data.get_portfolio(_PORTFOLIO_CODE)
         benchmark = axys_data.get_portfolio(_BENCHMARK_CODE)
         analytics = portfolio.to_analytics(

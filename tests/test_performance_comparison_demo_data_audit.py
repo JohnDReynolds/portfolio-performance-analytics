@@ -55,14 +55,14 @@ _PACKAGED_COMPARISON_PATH = (
     / "ppar"
     / "demos"
     / "data"
-    / "axys_performance_comparison"
-    / "axys_performance_comparison.yaml"
+    / "axysapx_performance_comparison"
+    / "axysapx_performance_comparison.yaml"
 )
 _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 )
 _PACKAGED_AXYS_DIRECTORY = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axys_performance_comparison"
+    _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
 )
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
 _PACKAGED_RESTATEMENT_NOTES_PATH = (
@@ -307,7 +307,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             self.assertIn(expected_text, text)
 
     def test_packaged_demo_extract_availability_covers_current_headers(self) -> None:
-        """Every packaged Axys demo CSV field has extraction-confidence metadata."""
+        """Every packaged Axys/APX demo CSV field has extraction-confidence metadata."""
         availability = yaml.safe_load(
             _DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8")
         )
@@ -423,7 +423,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(summary["transaction_codes_without_yaml_rules"], "none")
 
     def test_packaged_demo_transaction_rules_cover_ambiguous_axys_codes(self) -> None:
-        """Packaged demo YAML covers observed and ambiguous Axys source codes."""
+        """Packaged demo YAML covers observed and ambiguous Axys/APX source codes."""
         observed_codes: set[str] = set()
         for snapshot_directory in ("snapshot_a", "snapshot_b"):
             transactions = pd.read_csv(

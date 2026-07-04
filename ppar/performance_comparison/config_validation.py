@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Transaction files checked: {summary['transaction_files_checked']}")
     print(f"Extract contract: {summary['extract_contract']}")
     print(
-        "Enforce ambiguous Axys flows: "
+        "Enforce ambiguous Axys/APX flows: "
         f"{summary['enforce_ambiguous_axys_flows']}"
     )
     print(

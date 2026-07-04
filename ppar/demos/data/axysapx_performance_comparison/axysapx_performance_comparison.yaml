@@ -1,5 +1,5 @@
 # =========================
-# Axys Performance Comparison Demo Configuration
+# Axys/APX Performance Comparison Demo Configuration
 # =========================
 # This Mega-Cap operational fixture demonstrates the default field-role model
 # plus explicit transaction semantics. Demo commands choose portfolio or
@@ -17,12 +17,12 @@
 # First-run edit map:
 # - Edit snapshots.*.path when local Snapshot A/B folders have different names.
 # - Edit files.* only when local extracts use different filenames.
-# - Edit axys_column_mappings.yaml when local extracts use different headers.
+# - Edit axysapx_column_mappings.yaml when local extracts use different headers.
 # - Leave transaction rules and impact methods alone until validation or
 #   reviewed site evidence proves a site-specific override is needed.
 
 comparison:
-  name: Axys performance comparison demo
+  name: Axys/APX performance comparison demo
   # report_bundle uses comparison.level to choose the primary review level.
   # Use portfolio for the main portfolio-period review, or copy the YAML and
   # set this to security for a security-period review.
@@ -36,13 +36,13 @@ snapshots:
     label: snapshot_a
     path: snapshot_a
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: axysapx_column_mappings.yaml
 
   b:
     label: snapshot_b
     path: snapshot_b
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: axysapx_column_mappings.yaml
 
 files:
   # Rename these only if the site extract files use different filenames. Column

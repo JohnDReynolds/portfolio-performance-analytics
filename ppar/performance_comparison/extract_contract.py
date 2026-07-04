@@ -1,4 +1,4 @@
-"""Validate source extracts against the packaged Axys extract contract."""
+"""Validate source extracts against the packaged Axys/APX extract contract."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from ppar.performance_comparison import schema as pc_cols
 import ppar.utilities as util
 
 _CONTRACT_RESOURCE: Final[str] = "ppar.demos.data"
-_CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axys_performance_comparison"
+_CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axysapx_performance_comparison"
 _CONTRACT_FILE_NAME: Final[str] = "demo_extract_availability.yaml"
 _AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = frozenset({"DP", "LI", "LO", "WD"})
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
@@ -35,7 +35,7 @@ class ExtractContractSettings:
 
     Attributes:
         path: Filesystem path for a local contract, or packaged resource label.
-        enforce_ambiguous_axys_flows: Whether ambiguous Axys transaction codes
+        enforce_ambiguous_axys_flows: Whether ambiguous Axys/APX transaction codes
             require source/destination and special-security context fields.
         contract: Parsed extract-contract YAML.
     """
@@ -57,7 +57,7 @@ def validate_extract_contract(
         contract: Parsed extract-contract YAML.
         contract_label: User-facing contract path or resource label for errors.
         require_ambiguous_flow_context: Whether the transaction contract must
-            define at least one blocking context field for ambiguous Axys flow
+            define at least one blocking context field for ambiguous Axys/APX flow
             semantics.
 
     Raises:
@@ -102,7 +102,7 @@ def validate_extract_contract(
             (
                 f"{contract_label}: transactions.csv must define at least one "
                 "column with requires_context_for_semantics: true and "
-                "blocking_if_missing: true when ambiguous Axys flow enforcement "
+                "blocking_if_missing: true when ambiguous Axys/APX flow enforcement "
                 "is enabled."
             ),
             504,
@@ -123,7 +123,7 @@ def extract_contract_settings(
 
     Returns:
         Resolved extract-contract settings. When the YAML omits
-        ``extract_contract``, the packaged Axys demo contract is used with
+        ``extract_contract``, the packaged Axys/APX demo contract is used with
         ambiguous-flow enforcement enabled.
 
     Raises:
@@ -207,7 +207,7 @@ def validate_transaction_extract_contract(
         specification_values: Parsed comparison YAML settings.
 
     Raises:
-        PpaError: If ambiguous Axys transaction codes are present and the
+        PpaError: If ambiguous Axys/APX transaction codes are present and the
             transaction extract does not include the context fields marked as
             required by the packaged Axys availability contract.
 
@@ -239,7 +239,7 @@ def validate_transaction_extract_contract(
     raise PpaError(
         (
             f"{specification_path}: transactions file {path} contains ambiguous "
-            f"Axys transaction codes {', '.join(ambiguous_codes)} but is missing "
+            f"Axys/APX transaction codes {', '.join(ambiguous_codes)} but is missing "
             f"required transaction semantics/context fields {missing_columns}. "
             "IMEX transaction code alone is not enough to classify external "
             "flows for dp/li/lo/wd rows. Use an IMEX profile that exposes "
@@ -283,7 +283,7 @@ def extract_contract_summary(
 
 
 def _observed_ambiguous_codes(frame: pl.DataFrame) -> list[str]:
-    """Return ambiguous Axys transaction codes observed in a frame."""
+    """Return ambiguous Axys/APX transaction codes observed in a frame."""
     observed: set[str] = set()
     for value in frame.get_column(pc_cols.TRANSACTION_CODE):
         code = _normalized_transaction_code(value)
@@ -311,7 +311,7 @@ def _transaction_semantics_context_columns(contract: Mapping[str, Any]) -> froze
 
 @cache
 def _load_packaged_extract_contract() -> dict[str, Any]:
-    """Load the packaged Axys demo extract availability contract."""
+    """Load the packaged Axys/APX demo extract availability contract."""
     contract_path = files(_CONTRACT_RESOURCE).joinpath(
         _CONTRACT_RESOURCE_DIRECTORY,
         _CONTRACT_FILE_NAME,

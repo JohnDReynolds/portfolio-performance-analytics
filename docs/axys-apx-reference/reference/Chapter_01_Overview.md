@@ -106,7 +106,7 @@ history, dated research updates, and open questions that would make the
 chapters too noisy. Contracts are implementation-facing cross-cutting aids:
 
 - [contracts/transaction_semantics_matrix.md](../contracts/transaction_semantics_matrix.md) is the human-readable transaction classification contract for demo and test work. Its machine-readable companion is [contracts/transaction_semantics_matrix.yaml](../contracts/transaction_semantics_matrix.yaml).
-- [contracts/demo_extract_availability.md](../contracts/demo_extract_availability.md) is a generated view of packaged-demo extract availability. Its machine-readable source is `ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`.
+- [contracts/demo_extract_availability.md](../contracts/demo_extract_availability.md) is a generated view of packaged-demo extract availability. Its machine-readable source is `ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`.
 
 Contracts should summarize or operationalize chapter conclusions. If an
 contract conflicts with a chapter, treat that as a cleanup issue rather than as

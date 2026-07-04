@@ -54,17 +54,17 @@ The packaged demo keeps four field groups separate:
   performance, such as period dates, beginning/ending market value, return,
   holdings value, and transaction amount when transaction rules classify the
   row.
-- **Realistic packaged-demo fields**: Axys-style or report-style fields that
+- **Realistic packaged-demo fields**: Axys/APX-style or report-style fields that
   are defensible in the local research corpus and useful for the packaged
   review story, such as transaction dates, security identifiers, transaction
   codes, quantity, price, commission, cost, accrued interest, and portfolio or
   security performance values.
 - **Optional local-enrichment fields**: fields ppar can use when a client site
-  can provide them, but that the packaged demo does not assume as typical Axys
+  can provide them, but that the packaged demo does not assume as typical Axys/APX
   output. Stable transaction IDs are the main example.
 - **Internal scenario/rebuild fields**: deterministic fixture handles used by
   demo-generation scripts. These may include `TRANSACTION_ID`, but they must
-  not leak into the user-facing packaged Axys transaction CSVs.
+  not leak into the user-facing packaged Axys/APX transaction CSVs.
 
 ## Minimum Source-Data Contract
 
@@ -101,22 +101,22 @@ flow-category, income-category, return-basis, and sign-convention YAML fields.
 | `holdings.market_value` | Performance input for beginning and ending value. |
 | `holdings.accrued` | Performance input when configured as a valuation/accrual amount. |
 | `transactions.amount` | Performance input for external flows, security-level buy/sell flows, income, fee, and expense examples when YAML classifies the transaction code and any required transaction context. |
-| `transactions.security_type`, `transactions.source_destination_type`, `transactions.source_destination_symbol`, `transactions.special_security_type`, `transactions.special_security_symbol` | Context used by conditional YAML transaction rules. These fields help classify ambiguous Axys-style transaction codes; they are not themselves performance-cause fields. |
+| `transactions.security_type`, `transactions.source_destination_type`, `transactions.source_destination_symbol`, `transactions.special_security_type`, `transactions.special_security_symbol` | Context used by conditional YAML transaction rules. These fields help classify ambiguous Axys/APX-style transaction codes; they are not themselves performance-cause fields. |
 | `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
 | `transactions.quantity`, `transactions.price`, `transactions.commission` | Supporting inputs for changed `transactions.amount`; not a formula for `transactions.amount`. |
 | `holdings.cost` | Review evidence. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
 | `portperf.gain_loss`, `secperf.gain_loss` | Reported performance-extract context. These fields are defensible as report-style gain/loss components, but the local corpus does not prove native Axys/APX IMEX performance object names or calculation basis. They must not be described as recomputed tax-lot or accounting-ledger values. |
 | `transactions.settle_date` | Review evidence unless a future explicit settlement-date rule makes it performance-relevant. |
 
-The packaged Axys demo deliberately omits `transactions.transaction_id`.
+The packaged Axys/APX demo deliberately omits `transactions.transaction_id`.
 Stable transaction IDs are supported by ppar and remain the strongest matching
 path when a site can provide them, but the local Axys/APX research corpus does
-not prove a durable native transaction identifier as typical Axys REP/IMEX
+not prove a durable native transaction identifier as typical Axys/APX REP/IMEX
 output. The packaged demo therefore exercises the conservative no-ID path.
 
-## Axys Demo Completion Gate
+## Axys/APX Demo Completion Gate
 
-The packaged Axys demo is the accepted future seed for an Axys vendor YAML
+The packaged Axys/APX demo is the accepted future seed for an Axys/APX vendor YAML
 preset. The gate below records the standard used to freeze the demo without
 turning it into hidden runtime product policy too early.
 
@@ -133,7 +133,7 @@ The demo can be considered complete enough to seed `vendor: axys` only when:
 - the portfolio and security demos both include intentional Fully Explained,
   Partly Explained, and Unexplained examples with reviewer-facing wording that
   tells a coherent Modified Dietz story;
-- ambiguous Axys-style `dp`, `li`, `lo`, and `wd` handling still requires
+- ambiguous Axys/APX-style `dp`, `li`, `lo`, and `wd` handling still requires
   reviewed context or a documented local extract contract;
 - current report bundles, manifests, review summaries, and package-resource
   boundaries validate from a source checkout and installed-package style
@@ -141,15 +141,15 @@ The demo can be considered complete enough to seed `vendor: axys` only when:
 - report HTML content is intentionally changed only when the reviewer story
   changes, and those changes are called out in phase summaries.
 
-This gate has passed for the packaged Axys demo scope. Vendor presets still
+This gate has passed for the packaged Axys/APX demo scope. Vendor presets still
 remain design-only until implementation. A future preset must expand to
 inspectable resolved YAML, preserve site overrides, and document that
-`vendor: axys` means "ppar's versioned Axys preset semantics," not universal
-Axys behavior.
+`vendor: axys` means "ppar's versioned Axys/APX preset semantics," not universal
+Axys/APX behavior.
 
-## Axys Demo Freeze Decision Packet
+## Axys/APX Demo Freeze Decision Packet
 
-Freezing the packaged Axys demo as a future preset seed was a product decision,
+Freezing the packaged Axys/APX demo as a future preset seed was a product decision,
 not just a validation result. The packaged demo is accepted as the future
 `vendor: axys` seed with these boundaries as versioned preset semantics:
 
@@ -158,7 +158,7 @@ not just a validation result. The packaged demo is accepted as the future
   external-cash `lo`, and external-cash `wd`;
 - `;` remains a guardrail-only YAML rule until a realistic packaged story
   justifies promoting it;
-- ambiguous Axys-style `dp`, `li`, `lo`, and `wd` rows remain context-gated and
+- ambiguous Axys/APX-style `dp`, `li`, `lo`, and `wd` rows remain context-gated and
   must not be classified from transaction code alone;
 - packaged transaction rows intentionally omit stable transaction identifiers
   and exercise conservative no-ID matching;
@@ -167,21 +167,21 @@ not just a validation result. The packaged demo is accepted as the future
   Partly Explained, and Unexplained examples;
 - cost, settlement-date, and unsupported corporate-action differences remain
   review evidence unless a future explicit rule changes their treatment; and
-- `vendor: axys` must continue to mean ppar's versioned Axys preset semantics,
-  not a claim about universal Axys behavior.
+- `vendor: axys` must continue to mean ppar's versioned Axys/APX preset semantics,
+  not a claim about universal Axys/APX behavior.
 
 Freeze-packet evidence map:
 
 | Accepted boundary | Current evidence |
 | --- | --- |
-| Packaged transaction families are `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `snapshot_a/transactions.csv`, `snapshot_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, fixed-income boundary helpers, and demo data audit tests. |
+| Packaged transaction families are `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `snapshot_a/transactions.csv`, `snapshot_b/transactions.csv`, packaged Axys/APX README coverage table, comparison YAML transaction-rule comments, fixed-income boundary helpers, and demo data audit tests. |
 | `;` remains a guardrail-only YAML rule. | Packaged transaction CSVs contain no `;` rows; the comparison YAML keeps the rule as defensive/reserved semantics; site-variant and matrix tests cover non-packaged corporate-action behavior. |
 | Ambiguous `dp`, `li`, `lo`, and `wd` rows remain context-gated. | Packaged transaction CSVs include source/destination and special-security context columns; the packaged extract contract requires those context fields; `validate_config` reports ambiguous-flow enforcement as enabled. |
 | Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
 | Fee-like `dp` assumes net-of-fees reported performance. | The comparison YAML and packaged README both state the net-of-fees assumption and warn that gross-of-fees performance needs a separate return-basis policy. |
 | Report examples intentionally include Fully Explained, Partly Explained, and Unexplained cases. | The packaged README describes the controlled restatement story; generated portfolio and security report bundles are rebuilt and validated by `scripts/check_performance_comparison_demo_health.py`. |
 | Cost, settlement-date, and unsupported corporate-action differences remain review evidence. | The field-role contract classifies `holdings.cost` and `transactions.settle_date` as review evidence, while the transaction semantics matrix and demo matrix tests keep unsupported corporate actions outside additive Modified Dietz treatment. |
-| `vendor: axys` means ppar's versioned Axys preset semantics, not universal Axys behavior. | The source contract, roadmap, and vendor preset design docs use this boundary and keep preset implementation blocked until the demo is explicitly frozen. |
+| `vendor: axys` means ppar's versioned Axys/APX preset semantics, not universal Axys/APX behavior. | The source contract, roadmap, and vendor preset design docs use this boundary and keep preset implementation blocked until the demo is explicitly frozen. |
 
 If any of these boundaries changes later, the correct action is to update the
 packaged demo, source contract, YAML, and report story before changing the
@@ -226,8 +226,8 @@ The source transaction code and the normalized transaction category are distinct
 | `pa` | `fee_expense` | Purchase accrued interest when fixed-income context confirms the packaged paired-trade case. |
 | `sa` | `income` | Sale accrued interest when fixed-income context confirms the packaged paired-trade case. |
 | `dp` | `fee_expense` | Fee-like debit when special-security context confirms the packaged demo fee case. |
-| `li` | `external_flow` or `transfer` | Defensive rule for Axys-style long-in examples; external party context is required before treating it as an external flow. |
-| `lo` | `external_flow` or `transfer` | Defensive rule for Axys-style long-out examples; external party context is required before treating it as an external flow. |
+| `li` | `external_flow` or `transfer` | Defensive rule for Axys/APX-style long-in examples; external party context is required before treating it as an external flow. |
+| `lo` | `external_flow` or `transfer` | Defensive rule for Axys/APX-style long-out examples; external party context is required before treating it as an external flow. |
 | `wd` | `external_flow` or `transfer` | External withdrawal only when cash security and source/destination context confirm the packaged demo cash-withdrawal case. |
 | `;` | `corporate_action` | Reserved for future split/journal/other-style evidence; user-facing split examples should use real historical corporate actions. |
 
@@ -248,7 +248,7 @@ withdrawals where the evidence is strong enough for demo purposes. Code alone is
 not treated as a complete accounting system. YAML supplies the role ppar is
 allowed to use for performance comparison.
 
-Ambiguous Axys-style codes are deliberately stricter. The packaged demo does
+Ambiguous Axys/APX-style codes are deliberately stricter. The packaged demo does
 not infer external-flow treatment from `li`, `lo`, `dp`, or `wd` by code alone.
 If an IMEX export omits the source/destination or special-security fields needed
 to match the YAML rule, the transaction loader stops before applying broad YAML
@@ -258,16 +258,16 @@ context.
 
 Having the context columns is necessary but not sufficient. The row values must
 match a reviewed conditional rule, or the source must provide reviewed
-category/sign semantics, before ppar treats an ambiguous Axys code as an
+category/sign semantics, before ppar treats an ambiguous Axys/APX code as an
 external flow, transfer, fee/expense, or performance transaction.
 
 The packaged contribution and deliver-out examples are modeled as new inserted
 transaction scenarios, not as numeric mutations of unrelated existing
-transactions. The contribution uses an Axys-style `li` row on `CASH_USD` with
+transactions. The contribution uses an Axys/APX-style `li` row on `CASH_USD` with
 `SRC_DEST_TYPE=$pty`, `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero
 quantity/price/commission, and explicit YAML semantics that classify it as an
 external capital inflow from that context. The deliver-out uses the same
-context standard with an Axys-style `lo` row and negative `AMOUNT`, so it proves
+context standard with an Axys/APX-style `lo` row and negative `AMOUNT`, so it proves
 the opposite external-flow direction without treating `lo` as safe by code
 alone.
 
@@ -297,14 +297,14 @@ rebuild path keeps these rows outside portfolio external-flow weighting, and
 the YAML rules require fixed-income context before classifying them.
 
 The packaged demo still does not use `ai` or `pd` rows. Those codes need more
-than the Axys short code before ppar can classify them: margin or bond/principal
+than the Axys/APX short code before ppar can classify them: margin or bond/principal
 context, cash movement, amount sign, and local mapping or REP/report evidence.
 Test-only candidate override profiles cover explicit Modified Dietz treatments
 for `ai`, `pa`, `sa`, and `pd`, but only `pa`/`sa` have been promoted into the
 packaged demo, and only for the paired fixed-income accrued-interest story.
 
 The default runtime guard uses
-`ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`. A site comparison YAML
+`ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`. A site comparison YAML
 can point to a local contract when its validated IMEX/REP extract layout differs:
 
 ```yaml
@@ -339,7 +339,7 @@ column must have both flags set to `true`.
 
 ## Site Extract Contract Setup
 
-For a real Axys site, start by validating which extract shape is available:
+For a real Axys/APX site, start by validating which extract shape is available:
 
 | Site extract shape | Contract/test expectation |
 | --- | --- |
@@ -349,7 +349,7 @@ For a real Axys site, start by validating which extract shape is available:
 
 Use this onboarding sequence:
 
-1. Ask the Axys administrator or report owner for a transaction extract column
+1. Ask the Axys/APX administrator or report owner for a transaction extract column
    list, including source/destination, special-security, and report-semantic
    fields when available.
 2. Compare that list to the template profiles:
@@ -366,7 +366,7 @@ Use this onboarding sequence:
    REP/report semantics, or another reviewed source is available.
 
 The small fixtures in `tests/data/axys/site_variants/` pin these shapes. New
-demo data and tests should grow from those fixtures until all documented Axys
+demo data and tests should grow from those fixtures until all documented Axys/APX
 transaction types have explicit expected treatment, including external-flow,
 non-external transfer, sweep, fee/expense, income, corporate-action,
 correction/cancellation, and review-only cases.

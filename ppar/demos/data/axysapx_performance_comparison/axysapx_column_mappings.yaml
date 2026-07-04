@@ -1,17 +1,17 @@
 # =========================
-# PPAR Axys Configuration
+# PPAR Axys/APX Configuration
 # =========================
-# This file tells PPAR where to find your Axys exports and how to interpret
+# This file tells PPAR where to find your Axys/APX exports and how to interpret
 # the columns in those files.
 #
 # General Rules:
 # - File paths may be absolute or relative to this file.
 # - In many cases, only the three file paths below are required.
-# - PPAR can infer common Axys/IMEX column names for performance and security
+# - PPAR can infer common Axys/APX IMEX column names for performance and security
 #   master exports.
 # - Add optional column sections only when your export uses names PPAR cannot
 #   infer.
-# - Fields ending in "_column" contain Axys export column names.
+# - Fields ending in "_column" contain Axys/APX export column names.
 # - Unknown fields are rejected so spelling mistakes fail loudly.
 
 
@@ -34,11 +34,11 @@ defaults:
 # =========================
 # Portfolio Performance Export
 # =========================
-# Path to the Axys portfolio-level performance export.
+# Path to the Axys/APX portfolio-level performance export.
 portfolio_performance_path: snapshot_a/portperf.csv
 
 # Optional: Portfolio Performance Column Overrides
-# Usually this section can be omitted. Add it only if your Axys export uses
+# Usually this section can be omitted. Add it only if your Axys/APX export uses
 # column names PPAR cannot infer.
 #
 # portfolio_performance_columns:
@@ -48,10 +48,10 @@ portfolio_performance_path: snapshot_a/portperf.csv
 #   # Last date in the portfolio performance period.
 #   thru_date: THRU_DATE
 #
-#   # Axys account code.
+#   # Axys/APX account code.
 #   portfolio_code: PORTFOLIO_CODE
 #
-#   # Axys account name.
+#   # Axys/APX account name.
 #   portfolio_name: PORTFOLIO_NAME
 #
 #   # Portfolio return for the period.
@@ -61,11 +61,11 @@ portfolio_performance_path: snapshot_a/portperf.csv
 # =========================
 # Security Performance Export
 # =========================
-# Path to the Axys security-level performance export.
+# Path to the Axys/APX security-level performance export.
 security_performance_path: snapshot_a/secperf.csv
 
 # Optional: Security Performance Column Overrides
-# Usually this section can be omitted. Add it only if your Axys export uses
+# Usually this section can be omitted. Add it only if your Axys/APX export uses
 # column names PPAR cannot infer.
 #
 # security_performance_columns:
@@ -78,7 +78,7 @@ security_performance_path: snapshot_a/secperf.csv
 #   # Security identifier used in the security performance rows.
 #   identifier: SECURITY_ID
 #
-#   # Axys account code.
+#   # Axys/APX account code.
 #   portfolio_code: PORTFOLIO_CODE
 #
 #   # Security return for the period.

@@ -19,7 +19,7 @@ Historical demo-generation notes remain in
 Start here when deciding what remains to do:
 
 - **Current Open Items** is the active backlog.
-- **Axys Extract Contract Review Map** shows the source-contract path that must
+- **Axys/APX Extract Contract Review Map** shows the source-contract path that must
   stay aligned as demo fields or site-extract rules change.
 - **Axys/APX blockers** in [Chapter 01][axys-apx-blockers]
   is the canonical summary of evidence gaps that block broader Axys/APX-native
@@ -33,7 +33,7 @@ Start here when deciding what remains to do:
 ## Current Status
 
 The current performance-comparison bundle is release-candidate quality for the
-packaged Axys demo scope. The portfolio and security demos generate `report.xlsx`,
+packaged Axys/APX demo scope. The portfolio and security demos generate `report.xlsx`,
 `report.html`, review-summary metadata, manifests, and CSV audit artifacts. The
 generated reports focus on Modified Dietz evidence, source-data differences,
 review-only context, and conservative transaction row identity.
@@ -46,9 +46,9 @@ Completed guardrails now cover:
   required datasets and required normalized columns;
 - default YAML validation hard-stops before report generation when changed
   fields lack additive, evidence-only, or suppression treatment;
-- packaged Axys transaction extracts omit `TRANSACTION_ID`;
+- packaged Axys/APX transaction extracts omit `TRANSACTION_ID`;
 - no-ID transaction matching is conservative and case-sensitive;
-- ambiguous Axys-style `dp`, `li`, `lo`, and `wd` codes require source/destination
+- ambiguous Axys/APX-style `dp`, `li`, `lo`, and `wd` codes require source/destination
   or special-security context before classification;
 - cost, settlement-date, and unsupported corporate-action rows remain review
   evidence unless an explicit future rule changes their treatment;
@@ -77,9 +77,9 @@ Completed guardrails now cover:
   review examples;
 - portfolio and security report explanations intentionally use different
   transaction wording when the review level asks a different question;
-- the Axys Demo Freeze Decision Packet is mapped to concrete packaged-data,
+- the Axys/APX Demo Freeze Decision Packet is mapped to concrete packaged-data,
   YAML, source-contract, test, and generated-bundle evidence;
-- the packaged Axys demo is accepted as the future `vendor: axys` preset seed,
+- the packaged Axys/APX demo is accepted as the future `vendor: axys` preset seed,
   while preset implementation remains future work;
 - generated bundle vocabulary, package-resource entrypoints, and distribution
   package-data boundaries are validated.
@@ -88,7 +88,7 @@ Completed guardrails now cover:
 
 The remaining work is backlog expansion and targeted release hardening, not
 core Modified Dietz report cleanup. Vendor-preset infrastructure is deliberately
-parked in Eventual Deliverables even though the Axys seed is accepted.
+parked in Eventual Deliverables even though the Axys/APX seed is accepted.
 
 ### Near-Term Release Hardening
 
@@ -102,14 +102,14 @@ parked in Eventual Deliverables even though the Axys seed is accepted.
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | Real historical split only if the demo period supports it; additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys behavior. |
+| Packaged demo candidate | Real historical split only if the demo period supports it; additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys/APX behavior. |
 | Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
 | Evidence-blocked backlog | Mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
 
 ### Transaction Coverage Expansion
 
-Do not add "all transaction types" directly to the packaged Axys demo. Expand
+Do not add "all transaction types" directly to the packaged Axys/APX demo. Expand
 coverage in this order:
 
 1. Add or update the transaction semantics matrix with the evidence needed for
@@ -122,7 +122,7 @@ coverage in this order:
 Packaged demo rows should stay narrow enough to tell a coherent Modified Dietz
 story. Synthetic edge cases belong in test-only fixtures.
 
-Current triage: the packaged Axys demo already covers normal buys, sells,
+Current triage: the packaged Axys/APX demo already covers normal buys, sells,
 ordinary income, fixed-income income, fixed-income `pa`/`sa` accrued-interest
 adjuncts with paired trade context, contextual `li`, contextual `lo`, external
 `wd`, and fee-like `dp` rows. Do not add more packaged external-flow rows merely
@@ -134,25 +134,25 @@ clearly than the existing packaged and site-variant fixtures.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
+| Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys/APX demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
 | Multi-currency model | Add multi-currency source-data examples only when cash-account mapping, FX rates, reporting currency, and Modified Dietz treatment are explicit. | Reports distinguish FX/rate effects from cash-flow and valuation effects without implying vendor methodology that is not evidenced. |
-| Broader extract discovery | Review `docs/axys-apx-reference` for APX/Axys fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
+| Broader extract discovery | Review `docs/axys-apx-reference` for Axys/APX fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
 
 ### Eventual Deliverables
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys behavior; it is versioned, tied to the accepted packaged Axys demo/source contract, and still fails hard when required site-specific context is missing. |
+| Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys/APX demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys/APX behavior; it is versioned, tied to the accepted packaged Axys/APX demo/source contract, and still fails hard when required site-specific context is missing. |
 | Tested site override profiles | Create user-friendly, tested candidate override profiles for Axys/APX transaction families that are plausible but not safe enough for the core `vendor: axys` preset. Candidate profiles may include fixed-income accrued interest, margin or negative interest, principal paydown, return of capital, short sale/cover short, and cash-journal patterns. | Each profile has sample source rows, YAML rules, expected normalized semantics, confidence labels, required evidence, and tests. Documentation clearly separates conservative preset defaults from copy/adapt override examples, warns that candidate profiles require site confirmation, and helps onboarding users choose profiles when unmapped transaction codes appear. |
 | Ledger double-entry demo | Consider a separate demo for a ledger-style double-entry debit/credit system. Keep it outside the current Axys Modified Dietz demo unless it clearly improves source-data validation, accounting-system integration, or reviewer understanding. | The demo has its own source contract, fixture data, YAML, and tests. It demonstrates balanced debit/credit postings, account-level footing, and mapping from ledger activity into the performance-comparison inputs without implying that ppar reconstructs a full accounting ledger by default. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
-## Axys Extract Contract Review Map
+## Axys/APX Extract Contract Review Map
 
-The Axys extract guardrails now have a single review path:
+The Axys/APX extract guardrails now have a single review path:
 
 ```text
-ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml
+ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml
   -> scripts/render_demo_extract_availability.py
   -> docs/axys-apx-reference/contracts/demo_extract_availability.md
   -> ppar/performance_comparison/extract_contract.py
@@ -162,7 +162,7 @@ ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml
 The YAML contract records IMEX/REP availability confidence, candidate source
 names, source strategy, and blocking context requirements. The renderer keeps
 the human-readable contract current. Runtime validation uses the same contract, or a
-site-specific `extract_contract.path`, to prevent ambiguous Axys `dp`, `li`,
+site-specific `extract_contract.path`, to prevent ambiguous Axys/APX `dp`, `li`,
 `lo`, and `wd` transaction codes from being classified from transaction code
 alone when required context is absent.
 
@@ -788,9 +788,9 @@ Hard-fail rules:
 - an unknown transaction code appears in performance-relevant data;
 - a performance-relevant source field changes without a configured
   interpretation;
-- ambiguous Axys `dp`, `li`, `lo`, or `wd` transaction codes appear in an
+- ambiguous Axys/APX `dp`, `li`, `lo`, or `wd` transaction codes appear in an
   extract that lacks the transaction context fields required by the packaged
-  Axys extract contract;
+  Axys/APX extract contract;
 - generated transactions, holdings, `secperf.csv`, or `portperf.csv` drift from
   their scenario-derived values;
 - expected scenario coverage disappears unexpectedly;
@@ -804,7 +804,7 @@ Implemented guardrail:
   sign/flow impact-policy validation: known transaction codes with incomplete
   return-impact policy still flow through the existing review workflow instead
   of changing report behavior.
-- Axys IMEX transaction codes `li`, `lo`, `dp`, and `wd` are not safe
+- Axys/APX IMEX transaction codes `li`, `lo`, `dp`, and `wd` are not safe
   external-flow indicators by code alone. The packaged demo now uses
   conditional YAML `transaction_rules` with normalized IMEX context fields such
   as `security_type`, `source_destination_type`,
@@ -815,7 +815,7 @@ Implemented guardrail:
   context confirms the fee case; `li`/`lo` rules distinguish external party
   flows from internal transfer cases. If an IMEX export cannot provide the
   context fields marked as required by
-  `ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`, the transaction loader
+  `ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`, the transaction loader
   fails before YAML rules classify the rows. The next design step for that site
   is to consider a REP/report extract, custom report, or other local-discovery
   source that carries enough classification evidence.
@@ -860,9 +860,9 @@ observed transaction code must be explicitly defined in its YAML
 
 Ongoing coverage requirement:
 
-- Tests and packaged demo data must continue expanding toward complete Axys
+- Tests and packaged demo data must continue expanding toward complete Axys/APX
   transaction-type coverage, not just the currently performance-relevant rows.
-  Each observed or documented Axys transaction type should have an explicit
+  Each observed or documented Axys/APX transaction type should have an explicit
   expected classification, even when the expected outcome is `transfer`,
   `corporate_action`, `unknown pending review`, or review-only evidence.
 - [`axys-apx-reference/contracts/transaction_semantics_matrix.md`](axys-apx-reference/contracts/transaction_semantics_matrix.md)
@@ -1009,7 +1009,7 @@ Current packaged demo coverage includes realistic examples of:
 - accrual change
 
 Next expansion should be ordered by realism and by the evidence needed to
-classify Axys transaction semantics safely.
+classify Axys/APX transaction semantics safely.
 
 | Priority | Scenario family | Permanent home | Required evidence before implementation | Notes |
 | --- | --- | --- | --- | --- |
@@ -1019,7 +1019,7 @@ classify Axys transaction semantics safely.
 | 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. Keep `ai` and `pd` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
 | 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | Test-only site variants cover explicit performance-income treatments for `rc` and `pd`. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
 | 6 | Real-world split / corporate action evidence | Packaged demo only when the demo period/security supports a real historical event | Actual historical date/security, split ratio, quantity and price treatment, report evidence, and a policy for whether it is explanatory or review-only. | User-facing demo splits must not be fictional future events. Synthetic corporate-action fixtures belong in clearly labeled test-only data. |
-| 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys convention. |
+| 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys/APX convention. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
 
 #### Phase 8A: Realistic Transaction Expansion Gate
@@ -1030,7 +1030,7 @@ the withdrawal example. Before adding any additional external-flow variant to
 
 - scenario intent: which portfolio, period, cash security, and reviewer-facing
   business story the contribution represents;
-- source evidence: the Axys-style transaction code, amount sign,
+- source evidence: the Axys/APX-style transaction code, amount sign,
   source/destination type, source/destination symbol, and any REP/report
   semantic fields needed to prove it is an external capital inflow;
 - YAML semantics: the `transaction_rules` entry classifies the row from
@@ -1050,7 +1050,7 @@ Implemented contribution recipe:
 
 - add the contribution as an inserted transaction scenario, not by mutating an
   unrelated base transaction row;
-- use an Axys-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
+- use an Axys/APX-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
   `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero quantity/price/commission,
   and same-day settlement unless site evidence says otherwise;
 - let the rebuild script derive snapshot B `transactions.csv`, ending cash
@@ -1320,7 +1320,7 @@ site extract-contract template.
 Status: complete for the current `li`/`lo`/`dp`/`wd` matrix.
 
 The test-only `imex_context` site variant now explicitly proves the ambiguous
-Axys flow matrix for `li`, `lo`, `dp`, and `wd`:
+Axys/APX flow matrix for `li`, `lo`, `dp`, and `wd`:
 
 - `li` external contribution and neutral transfer;
 - `lo` external withdrawal/deliver-out and neutral transfer;
@@ -1413,7 +1413,7 @@ Phase 9 is now a release-ready evidence-pack baseline:
 - bundle manifests are navigable, validated, and source-aware;
 - site extract readiness is documented for IMEX, REP/report fallback, code-only
   failure, and reviewed local opt-out paths;
-- ambiguous Axys `li`, `lo`, `dp`, and `wd` semantics have test-only context,
+- ambiguous Axys/APX `li`, `lo`, `dp`, and `wd` semantics have test-only context,
   failure, and opt-out fixtures;
 - `validate_config` and `validate_demo_matrix` expose the evidence-pack story
   in CLI output.
@@ -1961,17 +1961,17 @@ confidence, interpretation, and review notes visible in `report.xlsx` and
 calculations. Phase 28 later demoted that standalone section back to audit
 support.
 
-### Phase 27: No-ID Packaged Axys Demo
+### Phase 27: No-ID Packaged Axys/APX Demo
 
 Status: complete for packaged demo source realism.
 
-The user-facing Axys demo transaction CSVs now omit `TRANSACTION_ID` because
+The user-facing Axys/APX demo transaction CSVs now omit `TRANSACTION_ID` because
 the local Axys/APX research corpus does not prove a durable native transaction
 identifier as typical REP/IMEX output. Stable transaction IDs remain supported
 and test-covered when a local extract provides them, but the packaged demo now
 exercises the conservative no-ID matching path by default. Source/destination
 and special-security context remains in the packaged transaction rows where it
-is needed to classify ambiguous Axys-style codes safely.
+is needed to classify ambiguous Axys/APX-style codes safely.
 
 ### Phase 28: Demote Transaction Match Diagnostics
 
@@ -2000,7 +2000,7 @@ transaction row-identity audit support rather than a main review stop.
 
 Status: complete for packaged demo field-boundary guardrails.
 
-The packaged Axys demo now has an explicit field-boundary taxonomy separating
+The packaged Axys/APX demo now has an explicit field-boundary taxonomy separating
 mandatory product inputs, realistic packaged-demo fields, optional
 local-enrichment fields, and internal scenario/rebuild fields. Regression
 coverage pins the user-facing transaction header, confirms packaged
@@ -2026,7 +2026,7 @@ entrypoints aligned after the transaction-match diagnostics demotion.
 
 Status: complete for public handoff consistency.
 
-The public README and packaged Axys README now use the same handoff language as
+The public README and packaged Axys/APX README now use the same handoff language as
 generated bundles: open `report.xlsx` when present, use `report.html` for
 browser review, and keep CSV artifacts for diagnostics and audit traceability.
 Regression coverage pins that wording so the older "same review model in a
@@ -2047,7 +2047,7 @@ rather than a user-facing transaction-linkage claim.
 
 ### Phase 34: Demo Source-Contract Final Hardening
 
-Status: complete for packaged Axys field defensibility.
+Status: complete for packaged Axys/APX field defensibility.
 
 The demo source contract now explicitly treats `portperf.gain_loss` and
 `secperf.gain_loss` as report-style performance-extract context, not native
@@ -2055,7 +2055,7 @@ Axys/APX IMEX object claims or recomputed accounting-ledger values. Audit
 coverage pins that boundary in `demo_extract_availability.yaml`, confirms
 packaged transaction extracts still omit `TRANSACTION_ID`, and keeps
 source/destination and special-security context fields required for ambiguous
-Axys-style transaction classification.
+Axys/APX-style transaction classification.
 
 ### Phase 35: Final Release Candidate Audit
 
@@ -2094,12 +2094,12 @@ release-candidate cleanup.
 
 Status: complete for package/product boundary guardrails.
 
-The packaged Axys demo boundary is now test-covered as a wheel/package-data
-surface: demo resources under `ppar/demos/data/axys_performance_comparison` stay limited to CSV, YAML,
+The packaged Axys/APX demo boundary is now test-covered as a wheel/package-data
+surface: demo resources under `ppar/demos/data/axysapx_performance_comparison` stay limited to CSV, YAML,
 and Markdown product inputs/notes, and package-data globs do not expose
 generated report output, source-checkout scripts, test fixtures, or
 demo-generation internals. Source distributions may still include maintainer
-scripts, but the repository guide and packaged Axys README now label those as
+scripts, but the repository guide and packaged Axys/APX README now label those as
 source-checkout maintenance workflows rather than installed-package demo
 entrypoints.
 
@@ -2234,7 +2234,7 @@ Difference Causes`, and `Raw Audit Trail`. Supplementary CSV diagnostics remain
 documented as audit and troubleshooting artifacts rather than first-stop review
 surfaces.
 
-The packaged Axys README and repository guide now use the canonical opt-in
+The packaged Axys/APX README and repository guide now use the canonical opt-in
 reconstruction diagnostic worksheet names: `Reconstruction Summary`, `Return
 Reconstruction Checks`, and `Security Return Checks`. The corresponding CSV
 artifact names remain `reconstruction_summary.csv`,
@@ -2286,7 +2286,7 @@ the real forward backlog.
 Status: complete for packaged-demo promotion triage; later superseded in part
 by packaged `lo` and `pa`/`sa` promotions.
 
-The packaged Axys transaction set was reviewed against
+The packaged Axys/APX transaction set was reviewed against
 `contracts/transaction_semantics_matrix.yaml`, the site-variant fixtures, and the current
 transaction backlog. No new transaction row was promoted into the packaged demo
 in this pass; later phases promoted `lo` and a narrow paired `pa`/`sa` story
@@ -2343,7 +2343,7 @@ and docstrings on `source-data` wording without changing report output.
 
 Status: complete for pre-report source-contract guidance and hard-stop clarity.
 
-The packaged Axys README now tells users to run `validate_config` before local
+The packaged Axys/APX README now tells users to run `validate_config` before local
 report-bundle generation. Required-file hard stops now name the normalized
 dataset and snapshot side that failed, so missing required inputs point to
 `files.<dataset>` and `snapshot a` / `snapshot b` instead of only a raw path.
@@ -2355,7 +2355,7 @@ missing-file diagnostics.
 Status: complete for installed-package demo-resource access.
 
 The wheel and source distribution were built and inspected. The wheel includes
-the packaged Axys CSV/YAML/README inputs and excludes `_demo_output`, tests,
+the packaged Axys/APX CSV/YAML/README inputs and excludes `_demo_output`, tests,
 docs, scripts, and generation internals. The source distribution retains
 maintainer scripts as intended. A regression test now pins the public demo
 entrypoints to `importlib.resources` so installed demos continue reading
@@ -2392,7 +2392,7 @@ Status: complete for current release-candidate verification.
 
 The full test suite passed with 605 tests. The package build succeeded for both
 wheel and source distribution. The wheel and source distribution were inspected
-for packaged Axys demo resources; required CSV/YAML/README inputs were present,
+for packaged Axys/APX demo resources; required CSV/YAML/README inputs were present,
 and `_demo_output` plus tests were absent from the source distribution.
 
 Portfolio and security `report.html` hashes were captured before and after the
@@ -2414,12 +2414,12 @@ is stable enough to become a preset seed. Presets must remain inspectable,
 versioned, source-contract tied, and unable to bypass complete-YAML validation
 or ambiguous transaction-code safeguards.
 
-### Phase 57: Axys Demo Finalization Gate
+### Phase 57: Axys/APX Demo Finalization Gate
 
 Status: complete for defining the preset prerequisite gate.
 
-The demo source contract now defines an Axys demo completion gate. This gate
-states when the packaged Axys CSV/YAML/report story is stable enough to seed a
+The demo source contract now defines an Axys/APX demo completion gate. This gate
+states when the packaged Axys/APX CSV/YAML/report story is stable enough to seed a
 future `vendor: axys` preset. The gate covers realistic packaged fields, no
 leaked internal rebuild identifiers, stable YAML semantics, complete-YAML
 treatment, intentional Fully/Partly/Unexplained report examples, ambiguous-code
@@ -2428,13 +2428,13 @@ discipline.
 
 Vendor preset implementation remains blocked until that gate passes. The gate
 does not change runtime behavior; it defines the standard for deciding when the
-packaged Axys demo can become reusable default policy.
+packaged Axys/APX demo can become reusable default policy.
 
-### Phase 58: Axys Demo YAML Seed Readiness Audit
+### Phase 58: Axys/APX Demo YAML Seed Readiness Audit
 
 Status: complete for the current YAML seed-readiness pass.
 
-The packaged Axys comparison YAML was reviewed as a future preset seed. The
+The packaged Axys/APX comparison YAML was reviewed as a future preset seed. The
 audit did not identify a data or runtime-rule change. The YAML now states that
 it is a candidate seed for a future `vendor: axys` preset, but not a hidden
 preset today. Comments also call out the portfolio/security Modified Dietz
@@ -2444,18 +2444,18 @@ guardrail semantics for `lo` and `;`.
 The phase keeps vendor-preset implementation blocked. It only improves the
 readability and auditability of the existing explicit YAML policy.
 
-### Phase 59: Axys Demo Completion Gate Audit
+### Phase 59: Axys/APX Demo Completion Gate Audit
 
 Status: complete for the current gate audit. Gate status: near-pass.
 
-The Axys demo completion gate was checked against current packaged files,
+The Axys/APX demo completion gate was checked against current packaged files,
 generated review bundles, validation commands, and focused tests. The current
 state satisfies the auditable mechanical checks: packaged transaction CSVs do
 not expose fixture transaction identifiers, the explicit YAML validates with
 ambiguous-flow context safeguards, generated bundles validate, demo matrix
 coverage passes, and focused package/demo health tests pass.
 
-The gate is not declared fully passed until the Axys demo is intentionally
+The gate is not declared fully passed until the Axys/APX demo is intentionally
 frozen as a preset seed. Until then, `vendor: axys` remains design-only even
 though the current explicit YAML is close enough to serve as the candidate seed.
 
@@ -2463,22 +2463,22 @@ The health check regenerated both report bundles during this audit. The
 portfolio and security `report.html` hashes were unchanged, so this phase did
 not change user-facing report content.
 
-### Phase 60: Axys Demo Freeze Readiness Sweep
+### Phase 60: Axys/APX Demo Freeze Readiness Sweep
 
 Status: complete for current freeze-readiness framing.
 
-The packaged Axys README, comparison YAML, source contract, roadmap, and
+The packaged Axys/APX README, comparison YAML, source contract, roadmap, and
 generated report-story boundary were reviewed as a potential future
 `vendor: axys` preset seed. No runtime rule or packaged data change was needed:
 the current material already separates packaged rows from guardrail-only YAML
-rules, keeps ambiguous Axys-style transaction codes context-gated, preserves
+rules, keeps ambiguous Axys/APX-style transaction codes context-gated, preserves
 the fee/expense return-basis caveat, and keeps the richer APX and broader
-transaction backlog outside the packaged Axys demo.
+transaction backlog outside the packaged Axys/APX demo.
 
 The active backlog now names the remaining freeze decision directly. The
 mechanical checks are green, but the remaining step is a maintainer/product
 decision: explicitly accept the current packaged CSV/YAML/report story as the
-versioned Axys preset seed. Until that decision is made, the correct state
+versioned Axys/APX preset seed. Until that decision is made, the correct state
 remains near-pass, not preset implementation.
 
 This phase did not require report regeneration or report-story edits. Portfolio
@@ -2488,13 +2488,13 @@ and security `report.html` hashes were checked and remained unchanged.
 
 Status: complete for freeze-decision prep.
 
-The demo source contract now has an Axys Demo Freeze Decision Packet. It turns
+The demo source contract now has an Axys/APX Demo Freeze Decision Packet. It turns
 the freeze choice into a concise acceptance checklist covering packaged
 transaction families, then-current guardrail-only `lo` and `;` rules,
 context-gated ambiguous codes, conservative no-ID matching, the net-of-fees
 `dp` assumption, intentional Fully/Partly/Unexplained report examples,
 review-evidence fields, and the boundary that `vendor: axys` means ppar's
-versioned Axys preset semantics rather than universal Axys behavior.
+versioned Axys/APX preset semantics rather than universal Axys/APX behavior.
 
 The active roadmap now points the freeze-readiness row to that packet instead
 of repeating the checklist inline. The remaining near-term decision is therefore
@@ -2509,7 +2509,7 @@ unchanged.
 
 Status: complete for current freeze-packet auditability.
 
-The Axys Demo Freeze Decision Packet now includes an evidence map. Each accepted
+The Axys/APX Demo Freeze Decision Packet now includes an evidence map. Each accepted
 boundary points to concrete support in packaged transaction CSVs, the packaged
 README, comparison YAML comments, the field-role/source contract, extract
 contract validation, demo matrix tests, and generated report-bundle health
@@ -2517,7 +2517,7 @@ checks.
 
 At that time, the spot audit confirmed that packaged transaction CSV headers
 omitted `TRANSACTION_ID`, retained the context columns needed for ambiguous
-Axys-style codes, and included only the then-current packaged transaction-code
+Axys/APX-style codes, and included only the then-current packaged transaction-code
 families. Snapshot A contained `by`, `dp`, `dv`, `in`, `sl`, and `wd`; Snapshot
 B contained those plus `li`. Neither packaged snapshot contained `lo` or `;`
 in that audit state. This is historical context only: later phases promoted
@@ -2550,19 +2550,19 @@ include `lo`, `pa`, and `sa`.
 
 A stale-term sweep found only intentional historical roadmap references,
 negative regression assertions, and boundary language that rejects universal
-Axys assumptions. No runtime or user-facing wording change was needed.
+Axys/APX assumptions. No runtime or user-facing wording change was needed.
 
 Portfolio and security `report.html` hashes were captured before and after the
 smoke. They remained unchanged, so this phase did not change user-facing report
 content.
 
-### Phase 64: Axys Demo Preset Seed Acceptance
+### Phase 64: Axys/APX Demo Preset Seed Acceptance
 
 Status: complete for docs-only preset-seed acceptance.
 
-The Axys Demo Freeze Decision Packet is accepted as the versioned seed for a
+The Axys/APX Demo Freeze Decision Packet is accepted as the versioned seed for a
 future `vendor: axys` preset. This changes the release posture from near-pass
-to accepted seed for the packaged Axys demo scope. It does not implement
+to accepted seed for the packaged Axys/APX demo scope. It does not implement
 `vendor: axys`, does not add hidden runtime policy, and does not change the
 comparison YAML policy or packaged CSV data.
 
@@ -2581,7 +2581,7 @@ unchanged.
 Status: complete for docs-only post-freeze reorientation.
 
 The roadmap and design notes now separate two ideas that should not be blurred:
-the packaged Axys demo is accepted as the future `vendor: axys` preset seed,
+the packaged Axys/APX demo is accepted as the future `vendor: axys` preset seed,
 but vendor-preset infrastructure is deliberately parked in Eventual
 Deliverables until the project explicitly chooses that product lane.
 
@@ -2599,7 +2599,7 @@ unchanged.
 
 Status: complete for one packaged external-cash `lo` promotion.
 
-The packaged Axys demo now includes a single Snapshot B inserted `lo` row for
+The packaged Axys/APX demo now includes a single Snapshot B inserted `lo` row for
 `ALPHA` February 2026. The row uses `CASH_USD`, `$pty/$cash`
 source/destination context, a negative amount, zero quantity/price/commission,
 and same-day settlement. The scenario is intentionally framed as an external
@@ -2617,7 +2617,7 @@ the new fully explained ALPHA February period appears in the user-facing review
 surface. The packaged report bundles were regenerated and the new
 `report.html` hashes were captured during validation.
 
-### Phase 67: Axys Demo Candidate Promotion Scout
+### Phase 67: Axys/APX Demo Candidate Promotion Scout
 
 Status: complete for docs-only promotion decision; superseded by the Phase 71
 `pa`/`sa` packaged-demo promotion.
@@ -2625,7 +2625,7 @@ Status: complete for docs-only promotion decision; superseded by the Phase 71
 The first post-freeze candidate-promotion scout reviewed the new test-only site
 variants for `pa`/`sa`, `ai`, `rc`, `pd`, and `ss`/`cs`. The result is
 deliberately conservative: no additional transaction type should be promoted
-into the packaged Axys demo yet.
+into the packaged Axys/APX demo yet.
 
 At the time, `pa` and `sa` were the strongest future candidates because a bond
 accrued-interest purchase/sale story was realistic and directly relevant to
@@ -2700,7 +2700,7 @@ Acceptance checklist before implementation:
 - Tests prove code-only `pa`/`sa` remain unknown or blocked, while explicit
   bond-context YAML classifies the packaged scenario deterministically.
 
-Do not promote `pa`/`sa` in the packaged Axys demo until the above can be met
+Do not promote `pa`/`sa` in the packaged Axys/APX demo until the above can be met
 without weakening the current "do not rebuild an accounting system" boundary.
 
 This phase was documentation-only. It did not require report regeneration or
@@ -2768,7 +2768,7 @@ adjunct mechanism for `pa` and `sa`. The support is intentionally narrow:
 - `pa`/`sa` transaction scenarios do not derive `holdings.accrued` adjustments;
   accrued holdings are quantity/terms driven in the demo rebuild path.
 - Portfolio external-flow weighting still ignores `pa`/`sa`.
-- The packaged Axys demo contains one narrow paired TNOTE5Y `pa`/`sa` story.
+- The packaged Axys/APX demo contains one narrow paired TNOTE5Y `pa`/`sa` story.
 
 A focused audit test builds temporary inserted `pa` and `sa` scenario rows and
 verifies the derived cash impacts without treating accrued-interest settlement
@@ -2784,7 +2784,7 @@ portfolio/security `report.html` hashes remained unchanged until Phase 71.
 
 Status: complete for one narrow fixed-income accrued-interest packaged story.
 
-The packaged Axys demo now includes paired TNOTE5Y `by`/`pa` and `sl`/`sa`
+The packaged Axys/APX demo now includes paired TNOTE5Y `by`/`pa` and `sl`/`sa`
 rows in Snapshot B. The rows are deliberately scoped:
 
 - `pa` is purchase accrued interest and resolves as fee/expense only with
@@ -2821,15 +2821,15 @@ important reader boundary is now pinned in both docs and tests:
   not by direct `pa`/`sa` causality; and
 - cost remains raw audit context, not a Modified Dietz explanation target.
 
-The packaged Axys README now describes the fixed-income story in those terms,
+The packaged Axys/APX README now describes the fixed-income story in those terms,
 and the workbook contract test asserts that `pa`/`sa` guidance does not leak
 onto the `holdings.accrued` row.
 
-### Phase 73: Axys Demo Freeze Re-Audit
+### Phase 73: Axys/APX Demo Freeze Re-Audit
 
 Status: complete for post-`lo` and post-`pa`/`sa` freeze-packet alignment.
 
-The Axys Demo Freeze Decision Packet was rechecked after the packaged `lo` and
+The Axys/APX Demo Freeze Decision Packet was rechecked after the packaged `lo` and
 fixed-income `pa`/`sa` promotions. The source contract already reflected the
 current accepted future `vendor: axys` seed: packaged families are `by`, `sl`,
 `dv`, `in`, fixed-income `pa`/`sa`, fee-like `dp`, external-cash `li`,
@@ -2840,7 +2840,7 @@ Those notes still correctly describe what was observed at that time, but now
 explicitly point forward to the later `lo` and `pa`/`sa` promotions so readers
 do not mistake old spot-audit code lists for the current packaged demo surface.
 
-### Phase 74: Axys Packaged Demo Release Candidate Sweep
+### Phase 74: Axys/APX Packaged Demo Release Candidate Sweep
 
 Status: complete for the post-promotion release-candidate smoke.
 
@@ -2849,7 +2849,7 @@ packaged `lo` and fixed-income `pa`/`sa` promotions. The package build
 completed for both source distribution and wheel.
 
 Archive inspection confirmed that the wheel and source distribution include the
-packaged Axys README, comparison YAML, Snapshot A/B transaction CSVs, and
+packaged Axys/APX README, comparison YAML, Snapshot A/B transaction CSVs, and
 Snapshot B restatement notes. The same inspection confirmed that `_demo_output`
 and `tests/data` are absent from both archives.
 
@@ -2867,29 +2867,29 @@ comparison engine after confirming the active report-linking path no longer
 called it. Focused period-linking and report tests passed, demo health passed,
 and generated report content did not change.
 
-### Phase 76: Axys Packaged Demo Naming And Onboarding Polish
+### Phase 76: Axys/APX Packaged Demo Naming And Onboarding Polish
 
-Status: complete for the packaged Axys YAML rename and reader-path polish.
+Status: complete for the packaged Axys/APX YAML rename and reader-path polish.
 
-The packaged user-facing Axys comparison YAML is now named
-`axys_performance_comparison.yaml`. Test-only validation and site-variant
+The packaged user-facing Axys/APX comparison YAML is now named
+`axysapx_performance_comparison.yaml`. Test-only validation and site-variant
 fixtures keep their generic `ppar_performance_comparison.yaml` names because
 they are fixture specifications, not packaged onboarding artifacts.
 
 The packaged demo README now states the two intended purposes explicitly:
 marketing review of the generated workbook/HTML output, and onboarding support
-for configuring a new Axys-style site. Demo entrypoints, rebuild tooling,
+for configuring a new Axys/APX-style site. Demo entrypoints, rebuild tooling,
 package-resource checks, repository docs, and validation instructions reference
-the Axys-specific packaged filename. The future `vendor: axys` preset remains
+the Axys/APX-specific packaged filename. The future `vendor: axys` preset remains
 design-only and parked in Eventual Deliverables.
 
 ### Phase 77: Axys/APX Setup Starter Kit
 
 Status: complete for the first-client-segment onboarding path.
 
-The packaged Axys demo now has `SETUP.md` as the front door for Axys/APX
+The packaged Axys/APX demo now has `SETUP.md` as the front door for Axys/APX
 performance-comparison onboarding. The setup guide is intentionally procedural:
-confirm source files, copy the vanilla Axys YAML, validate before report
+confirm source files, copy the vanilla Axys/APX YAML, validate before report
 generation, keep core transaction types conservative, generate portfolio and
 security report bundles, review the workbook in order, and iterate local
 overrides one at a time.
@@ -2907,7 +2907,7 @@ implementation boundary.
 Status: complete for setup path validation.
 
 The setup guide was dry-run in a temporary onboarding directory. Copying only
-`axys_performance_comparison.yaml` failed as expected because the YAML uses
+`axysapx_performance_comparison.yaml` failed as expected because the YAML uses
 relative paths to the schema and Snapshot A/B folders. Copying the starter files
 together passed `validate_config` and generated both portfolio and security
 report bundles with `report.xlsx`, `report.html`, `manifest.json`, and support
@@ -2918,7 +2918,7 @@ mapping, extract guardrail file, and Snapshot A/B folders together, or edit the
 YAML paths before validation. The security-report path now uses a copied YAML
 with `comparison.level: security`, matching the real `report_bundle` CLI.
 
-### Phase 79: Axys Onboarding Kit Consolidation
+### Phase 79: Axys/APX Onboarding Kit Consolidation
 
 Status: complete for the current starter-kit reader path.
 
@@ -2928,14 +2928,14 @@ the first report. It reinforces that the starter kit is a working copy, that
 Snapshot A/B paths and column mappings are the first safe edits, and that native
 transaction codes and security identifiers remain case-sensitive.
 
-The packaged Axys YAML now carries the same boundary in comments: edit snapshot
+The packaged Axys/APX YAML now carries the same boundary in comments: edit snapshot
 paths, filenames, and column mappings before changing transaction rules or
 impact methods. It also names the marketing-demo versus onboarding-base split:
 the common operational story covers core transaction families, while richer
 examples such as fixed-income `pa`/`sa` should stay unchanged until local bond
 context and site evidence justify overrides.
 
-### Phase 80: Axys Setup Simplification
+### Phase 80: Axys/APX Setup Simplification
 
 Status: complete for the current onboarding front door.
 
@@ -2968,7 +2968,7 @@ they are present. The production report command writes portfolio reports under
 `output/portfolio` by default and supports `--report security` or
 `--report both` after `secperf.csv` is added.
 
-This phase deliberately did not restructure the packaged Axys demo YAML files.
+This phase deliberately did not restructure the packaged Axys/APX demo YAML files.
 The packaged demo can keep its internal split, while setup generates the
 friendlier one-file surface that a new installed-package user sees first.
 
@@ -2997,7 +2997,7 @@ Use Phase 8 as the implementation order. This backlog is the policy boundary:
 - Packaged demo additions should be realistic, internally consistent, and
   understandable to a reviewer without knowing the fixture harness.
 - Test-only fixtures should absorb synthetic edge cases, code-only failure
-  cases, local-policy gaps, and ambiguous Axys semantics that need surgical
+  cases, local-policy gaps, and ambiguous Axys/APX semantics that need surgical
   proof.
 - Evidence-blocked cases should stay backlog until IMEX context, REP/report
   semantics, or real source samples justify a classification.

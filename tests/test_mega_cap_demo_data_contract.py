@@ -27,7 +27,7 @@ _BENCHMARK_PATH = f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Benchmark.csv"
 _SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
 _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
-_AXYS_ANALYTICS_YAML = Path("ppar/demos/data/axys_analytics/axys_analytics.yaml").resolve()
+_AXYS_ANALYTICS_YAML = Path("ppar/demos/data/axysapx_analytics/axysapx_analytics.yaml").resolve()
 
 
 class TestMegaCapDemoDataContract(unittest.TestCase):
@@ -119,7 +119,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertGreater(len(sector_attribution), 0)
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
 
-    def test_axys_analytics_fixture_matches_canonical_performance(self) -> None:
+    def test_axysapx_analytics_fixture_matches_canonical_performance(self) -> None:
         """Axys analytics demo data is a lossless wrapper around Mega-Cap data."""
         axys_data = AxysData(_AXYS_ANALYTICS_YAML)
         axys_portfolio = axys_data.get_portfolio("MEGA_ALPHA")

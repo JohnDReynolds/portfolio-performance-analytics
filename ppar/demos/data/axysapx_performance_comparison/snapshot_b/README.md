@@ -1,4 +1,4 @@
-# Axys Full-Spec Snapshot B
+# Axys/APX Snapshot B
 
 This snapshot restates `snapshot_a` with controlled operational changes
 used by the portfolio and security performance-comparison demos.

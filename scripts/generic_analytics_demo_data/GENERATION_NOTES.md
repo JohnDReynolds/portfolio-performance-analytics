@@ -101,7 +101,7 @@ Refresh README images and Features text only after the new output is accepted.
 
 ## Phase 4: Derive Axys-Style Analytics Data
 
-Use the same generated source universe to create Axys-style exports for the
+Use the same generated source universe to create Axys/APX-style exports for the
 Axys analytics demo.
 
 Likely files:
@@ -110,8 +110,8 @@ Likely files:
 - `secperf.csv`;
 - classification or lookup data if useful.
 
-The goal is for `ppar-axys-analytics-demo` to tell the same broad portfolio vs.
-benchmark story as `ppar-generic-analytics-demo`, but through Axys-style source files.
+The goal is for `ppar-axysapx-analytics-demo` to tell the same broad portfolio vs.
+benchmark story as `ppar-generic-analytics-demo`, but through Axys/APX-style source files.
 
 ## Phase 5: Derive Performance Comparison Snapshots
 

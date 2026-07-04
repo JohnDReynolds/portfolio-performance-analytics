@@ -1394,7 +1394,7 @@ class TestTransactionsLoader(unittest.TestCase):
             TransactionsLoader(specification).load("a")
 
         message = str(context.exception)
-        self.assertIn("ambiguous Axys transaction codes DP, LI, LO, WD", message)
+        self.assertIn("ambiguous Axys/APX transaction codes DP, LI, LO, WD", message)
         self.assertIn("IMEX transaction code alone is not enough", message)
         self.assertIn("REP/report extract", message)
 
@@ -1618,7 +1618,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 TransactionsLoader(specification).load("a")
 
             message = str(context.exception)
-            self.assertIn("ambiguous Axys transaction codes WD", message)
+            self.assertIn("ambiguous Axys/APX transaction codes WD", message)
             self.assertIn("IMEX transaction code alone is not enough", message)
             self.assertIn("REP/report extract", message)
 
@@ -1787,7 +1787,7 @@ class TestTransactionsLoader(unittest.TestCase):
             )
 
     def test_extract_contract_can_disable_ambiguous_flow_enforcement(self) -> None:
-        """A config can intentionally disable ambiguous Axys flow enforcement."""
+        """A config can intentionally disable ambiguous Axys/APX flow enforcement."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             configuration = _minimal_specification(directory)

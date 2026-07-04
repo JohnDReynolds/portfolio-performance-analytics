@@ -1,7 +1,7 @@
 # =========================
-# PPAR Axys Analytics Demo Configuration
+# PPAR Axys/APX Analytics Demo Configuration
 # =========================
-# This configuration reads Axys-shaped exports derived from the same canonical
+# This configuration reads Axys/APX-shaped exports derived from the same canonical
 # Mega-Cap analytics demo data used by ppar.demos.generic_analytics_demo.
 
 defaults:

@@ -1,6 +1,6 @@
 """Derive small operational demo data from the Mega-Cap analytics demo.
 
-The generated data is a prototype source for future Axys and performance
+The generated data is a prototype source for future Axys/APX and performance
 comparison demos. It intentionally writes only under ``_demo_output`` and does
 not replace packaged demo inputs.
 """
@@ -33,8 +33,8 @@ _AXYS_SCHEMA_PATH: Final = (
     / "ppar"
     / "demos"
     / "data"
-    / "axys_performance_comparison"
-    / "axys_column_mappings.yaml"
+    / "axysapx_performance_comparison"
+    / "axysapx_column_mappings.yaml"
 )
 _PORTFOLIOS: Final = (
     ("ALPHA", "Mega-Cap Alpha", 1.00, 0.04),
@@ -217,7 +217,7 @@ def select_equity_identifiers(source: pd.DataFrame, equity_count: int) -> list[s
 
 
 def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Return Axys-style CSV frames from compact performance rows."""
+    """Return Axys/APX-style CSV frames from compact performance rows."""
     sec_ref = _security_master(performance)
     secperf = _security_performance(performance)
     portperf = _portfolio_performance(performance)
@@ -236,7 +236,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     """Return a controlled snapshot B with reviewable source-data differences.
 
     Args:
-        axys: Snapshot A Axys-style frames from :func:`build_axys_exports`.
+        axys: Snapshot A Axys/APX-style frames from :func:`build_axys_exports`.
 
     Returns:
         Snapshot B frames with small deterministic restatements across holdings,
@@ -448,7 +448,7 @@ def write_outputs(
     source_path = output_directory / "source_performance.csv"
     performance.to_csv(source_path, index=False)
     paths["source_performance"] = str(source_path)
-    schema_path = output_directory / "axys_column_mappings.yaml"
+    schema_path = output_directory / "axysapx_column_mappings.yaml"
     schema_path.write_text(_AXYS_SCHEMA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
     paths["axys_schema"] = str(schema_path)
     for snapshot_name, frames in (("axys_a", snapshot_a), ("axys_b", snapshot_b)):
@@ -458,7 +458,7 @@ def write_outputs(
             path = snapshot_directory / f"{name}.csv"
             frame.to_csv(path, index=False)
             paths[f"{snapshot_name}_{name}"] = str(path)
-    comparison_yaml_path = output_directory / "axys_performance_comparison.yaml"
+    comparison_yaml_path = output_directory / "axysapx_performance_comparison.yaml"
     comparison_yaml_path.write_text(_comparison_yaml(), encoding="utf-8")
     paths["comparison_yaml"] = str(comparison_yaml_path)
     return paths
@@ -1146,13 +1146,13 @@ snapshots:
     label: operational_axys_a
     path: axys_a
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: axysapx_column_mappings.yaml
 
   b:
     label: operational_axys_b
     path: axys_b
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: axysapx_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv

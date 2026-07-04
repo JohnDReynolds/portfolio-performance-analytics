@@ -18,9 +18,9 @@ The feature will compare two snapshot directories. Each snapshot contains
 vendor exports such as portfolio performance, security performance, FX rates,
 transactions, holdings, and cash.
 
-This should not be treated as an Axys-only feature. The comparison engine
+This should not be treated as an Axys/APX-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
-live in small normalization adapters, with Axys as the first likely adapter.
+live in small normalization adapters, with Axys/APX as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
 portfolio performance, security performance, holdings, cash, FX rates, and
@@ -120,8 +120,8 @@ Current report vocabulary:
   guardrails.
 - `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
   command for validating packaged scenario coverage.
-- [Axys Common-Core Export Reference](axys_common_core_export.md): starter
-  export shape for Axys-oriented source-data.
+- [Axys/APX Common-Core Export Reference](axys_common_core_export.md): starter
+  export shape for Axys/APX-oriented source-data.
 
 This checkpoint is still a comparison and evidence organization layer. It is
 not yet a causal attribution engine or a full return calculator. The report
@@ -201,7 +201,7 @@ The feature should have three layers:
 3. Comparison: A source-agnostic engine compares normalized datasets and emits
    findings.
 
-The comparison engine should not know whether the source system was Axys,
+The comparison engine should not know whether the source system was Axys/APX,
 FactSet, Bloomberg PORT, custodian files, or another vendor. It should compare
 standard datasets with standard column names and let adapters handle source
 schema details.
@@ -956,24 +956,25 @@ values to uppercase at the boundary.
 
 ## Configuration
 
-The existing Axys column mapping configuration and the new comparison
+The existing Axys/APX column mapping configuration and the new comparison
 configuration serve different purposes and should have distinct names:
 
-- `axys_column_mappings.yaml`: Describes how Axys source columns map to
-  normalized internal column names for reusable Axys datasets.
+- `axysapx_column_mappings.yaml`: Describes how Axys/APX source columns map to
+  normalized internal column names for reusable Axys/APX datasets.
 - `performance_comparison.yaml`: Describes which snapshots and files to
   compare, plus comparison tolerances, materiality, and suppressions.
 
 A comparison probably needs one YAML file for the comparison run, not a separate
 YAML file inside each snapshot. The comparison YAML can point at both snapshot
 directories, define shared rules, and optionally reference vendor schema files
-such as `axys_column_mappings.yaml`.
+such as `axysapx_column_mappings.yaml`.
 
 The performance comparison feature has its own normalization/default alias
-layer. Referencing `axys_column_mappings.yaml` is a reuse mechanism for shared
-Axys datasets, not a requirement that performance comparison become Axys-only.
+layer. Referencing `axysapx_column_mappings.yaml` is a reuse mechanism for shared
+Axys/APX datasets, not a requirement that performance comparison become
+Axys/APX-only.
 Comparison-only datasets such as FX rates, transactions, holdings,
-and cash can use performance-comparison mappings even when the referenced Axys
+and cash can use performance-comparison mappings even when the referenced Axys/APX
 mapping file does not define them.
 
 The comparison YAML should keep vendor-specific parameters minimal. Prefer
@@ -981,8 +982,8 @@ shared, source-agnostic sections for files, tolerances, materiality, and
 suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
-See [Axys Common-Core Export Reference](axys_common_core_export.md) for an
-operational Axys export template and starter field-reference tables. Those
+See [Axys/APX Common-Core Export Reference](axys_common_core_export.md) for an
+operational Axys/APX export template and starter field-reference tables. Those
 tables are guidance only; explicit local schema mappings remain authoritative.
 
 ### YAML Locations And Path Resolution
@@ -999,14 +1000,14 @@ Path resolution should be predictable:
    that comparison YAML file.
 3. Snapshot data files resolve relative to the configured snapshot directory.
 4. Relative paths inside a referenced schema YAML, such as
-   `axys_column_mappings.yaml`, resolve relative to that schema YAML file.
+   `axysapx_column_mappings.yaml`, resolve relative to that schema YAML file.
 
 A suggested project layout is:
 
 ```text
 comparisons/
   performance_comparison.yaml
-  axys_column_mappings.yaml
+  axysapx_column_mappings.yaml
 
 snapshots/
   2026-05-01/
@@ -1029,13 +1030,13 @@ snapshots:
     label: run_2026_05_01
     path: snapshots/2026-05-01
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: axysapx_column_mappings.yaml
 
   b:
     label: run_2026_05_15
     path: snapshots/2026-05-15
     vendor: axys
-    schema: axys_column_mappings.yaml
+    schema: axysapx_column_mappings.yaml
 
 files:
   portfolio_performance: portperf.csv
@@ -1094,12 +1095,12 @@ snapshots:
 ### Vendor Preset Design
 
 Vendor presets are a future convenience layer, not a replacement for explicit
-comparison YAML. The first likely preset is Axys, but the design should support
+comparison YAML. The first likely preset is Axys/APX, but the design should support
 multiple vendors and possibly site-specific presets over time.
 
 A preset keyword such as `vendor: axys` should mean "start with ppar's
-versioned Axys preset semantics" rather than "assume all Axys installations
-behave identically." The Axys preset seed is now the accepted packaged Axys
+versioned Axys/APX preset semantics" rather than "assume all Axys/APX installations
+behave identically." The Axys/APX preset seed is now the accepted packaged Axys/APX
 demo YAML semantics, but preset implementation is deliberately parked until the
 project chooses that lane.
 
@@ -1140,13 +1141,13 @@ Preset design guardrails:
 
 - Presets are design-only until explicit implementation work is approved.
 - Presets must be versioned and tied to a documented source contract.
-- Presets must support multiple vendors without hard-coding Axys assumptions
+- Presets must support multiple vendors without hard-coding Axys/APX assumptions
   into source-agnostic comparison logic.
 - Site YAML must be able to override, suppress, or extend preset rules with
   deterministic precedence.
 - Presets must not bypass complete-YAML validation. Changed fields still need
   additive, evidence-only, or suppression treatment after expansion.
-- Presets must not weaken ambiguous transaction-code safeguards. For Axys-style
+- Presets must not weaken ambiguous transaction-code safeguards. For Axys/APX-style
   `dp`, `li`, `lo`, and `wd` rows, required source/destination or
   special-security context must still be present unless a site explicitly uses
   a documented local extract contract.
@@ -1154,22 +1155,22 @@ Preset design guardrails:
   overrides were applied, so reviewers know which policy layer produced the
   resolved rules.
 
-This layer is intentionally later than the current Axys demo hardening. The
-Axys demo is accepted as the preset seed, but implementation should remain
+This layer is intentionally later than the current Axys/APX demo hardening. The
+Axys/APX demo is accepted as the preset seed, but implementation should remain
 parked until the project deliberately chooses vendor-preset infrastructure as
 the next product lane.
 
 ### Column Mapping Defaults
 
 The comparison YAML should use the same defaulting method for column mappings
-that the existing Axys YAML uses. Users should not need to specify obvious
+that the existing Axys/APX YAML uses. Users should not need to specify obvious
 column names.
 
 Column mappings should resolve in this order:
 
 1. Snapshot-specific mapping in `performance_comparison.yaml`.
 2. Shared comparison-level mapping in `performance_comparison.yaml`.
-3. Referenced vendor schema file, such as `axys_column_mappings.yaml`.
+3. Referenced vendor schema file, such as `axysapx_column_mappings.yaml`.
 4. Built-in default aliases.
 5. Error when the column is missing or ambiguous.
 
@@ -1186,10 +1187,10 @@ aliases remain the fallback for columns not mapped in the schema file.
 
 Comparison-only datasets such as FX rates, transactions, holdings,
 and cash currently use the performance-comparison alias/default layer. They do
-not require entries in `axys_column_mappings.yaml`.
+not require entries in `axysapx_column_mappings.yaml`.
 
 Inline snapshot-specific schema mappings remain a future step. The current
-test fixtures use one referenced Axys column-mapping file plus
+test fixtures use one referenced Axys/APX column-mapping file plus
 performance-comparison defaults.
 
 ## Suppression And Filtering
@@ -1662,7 +1663,7 @@ The bundle contains the HTML report, raw findings, current report helper tables
 as CSV files, a short `README.md`, a compact `review_summary.json`, and a JSON
 manifest with options, counts, artifact names, and row counts. This makes
 reviewer handoffs reproducible without coupling the comparison engine to a
-future Axys-specific presentation layer.
+future Axys/APX-specific presentation layer.
 
 Use `report_bundle_contract()` when code or review automation needs to inspect
 the generated-bundle handoff shape. The helper returns the required artifact
@@ -1786,13 +1787,13 @@ next steps. Period-level bundle tables carry a stable `review_key` where
 possible, and `needs_review_summary.csv` includes `review_detail_artifacts` to
 name the CSVs most relevant to each changed period.
 
-The packaged Axys fixtures intentionally separate user-facing demos from
+The packaged Axys/APX fixtures intentionally separate user-facing demos from
 validation fixtures. The user-facing paths are:
 
-- `ppar.demos.axys_performance_comparison_portfolio_demo`: portfolio strict-attribution
+- `ppar.demos.axysapx_performance_comparison_portfolio_demo`: portfolio strict-attribution
   demo writing `_demo_output/performance_comparison_portfolio` with `report.xlsx`,
   `report.html`, CSV artifacts, and a manifest.
-- `ppar.demos.axys_performance_comparison_security_demo`: security-period review demo
+- `ppar.demos.axysapx_performance_comparison_security_demo`: security-period review demo
   writing `_demo_output/performance_comparison_security` with `report.xlsx`,
   `report.html`, CSV artifacts, and a manifest.
 
@@ -1815,7 +1816,7 @@ validators:
 - `ppar_performance_comparison_suppressed.yaml`: Active-vs-suppressed finding
   behavior and audit visibility.
 
-The compact demo scenario matrix lives in `ppar/demos/data/axys_performance_comparison/README.md`.
+The compact demo scenario matrix lives in `ppar/demos/data/axysapx_performance_comparison/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which
 scenarios are intentionally planned rather than covered. It also tracks the
 goal that every supported public YAML impact method should have at least one
@@ -2041,7 +2042,7 @@ transaction quantity, price, and commission.
 6. When contribution ranking exists, when should an unexplained residual be
    emitted?
 7. How much of the existing `ppar.axys` inference code should be shared with
-   future vendor adapters, and how much should remain Axys-specific?
+   future vendor adapters, and how much should remain Axys/APX-specific?
 8. Which additional supporting-file columns, if any, provide enough explanatory
    value to justify expanding the current normalized comparison surface?
 

@@ -38,7 +38,7 @@ Snapshot B intentionally restates selected rows from the operational snapshot:
 - `INCOME`, May 2026: paired TNOTE5Y `by`/`pa` and `sl`/`sa` rows demonstrate
   purchase and sale accrued-interest settlement adjuncts. The `pa`/`sa` rows are
   fixed-income settlement activity with paired trade context, not external
-  capital flows or code-only universal Axys defaults.
+  capital flows or code-only universal Axys/APX defaults.
 - `INCOME`, April 2026: a TNOTE5Y cost-only correction remains review evidence
   and does not explain performance by itself. Snapshot B also includes an
   intentional reported-return residual so the packaged reports show a realistic

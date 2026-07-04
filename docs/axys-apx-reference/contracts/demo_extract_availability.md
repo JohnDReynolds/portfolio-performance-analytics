@@ -1,22 +1,22 @@
 # Demo Extract Availability Contract
 
 Repository: AXYS / APX Reference Repository
-Scope: `ppar/demos/data/axys_performance_comparison/snapshot_a` and
-`ppar/demos/data/axys_performance_comparison/snapshot_b`
+Scope: `ppar/demos/data/axysapx_performance_comparison/snapshot_a` and
+`ppar/demos/data/axysapx_performance_comparison/snapshot_b`
 Status: Draft confidence matrix generated from the packaged YAML contract.
 
-<!-- GENERATED FROM ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml. -->
+<!-- GENERATED FROM ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml. -->
 <!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->
 
 ---
 
 ## Purpose
 
-This contract estimates how likely each packaged Axys demo dataset and column is to be obtainable from an Axys installation through IMEX and/or REP-style report extracts.
+This contract estimates how likely each packaged Axys/APX demo dataset and column is to be obtainable from an Axys/APX installation through IMEX and/or REP-style report extracts.
 
-The machine-readable source of truth is `ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`. Tests verify that the YAML covers every packaged comparison demo CSV header and that this contract is current.
+The machine-readable source of truth is `ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`. Tests verify that the YAML covers every packaged comparison demo CSV header and that this contract is current.
 
-The packaged demo files are normalized demo extracts. They are not official Axys schemas, not universal IMEX profiles, and not claims that every Axys site can export every field with these exact names.
+The packaged demo files are normalized demo extracts. They are not official Axys/APX schemas, not universal IMEX profiles, and not claims that every Axys/APX site can export every field with these exact names.
 
 The two packaged snapshots currently use the same file layouts:
 
@@ -29,7 +29,7 @@ The two packaged snapshots currently use the same file layouts:
 
 | Label | Meaning |
 |---|---|
-| High | Strongly likely to be obtainable from a typical Axys environment. |
+| High | Strongly likely to be obtainable from a typical Axys/APX environment. |
 | Medium / High | Between medium and high; likely available, but still report/profile dependent. |
 | Medium | Plausible, but site configuration, report choice, or export profile must be validated. |
 | Medium / Unknown | Between medium and unknown; evidence mentions the area, but not the exact object/field. |
@@ -41,8 +41,8 @@ The two packaged snapshots currently use the same file layouts:
 
 The confidence ratings below rely on these local reference conclusions:
 
-- `Chapter_12_Imex.md` establishes IMEX / Import-Export as an Axys import/export mechanism, but says the complete native object and field dictionaries are not available in the supplied source material.
-- `Chapter_12_Imex.md` documents Axys CI import workflows for transactions, positions, prices, security information, Trade Blotter context, and selected transaction translation fields.
+- `Chapter_12_Imex.md` establishes IMEX / Import-Export as an Axys/APX import/export mechanism, but says the complete native object and field dictionaries are not available in the supplied source material.
+- `Chapter_12_Imex.md` documents Axys/APX CI import workflows for transactions, positions, prices, security information, Trade Blotter context, and selected transaction translation fields.
 - `Chapter_13_Rep.md` establishes REP / RepLang / REP32 as a report-driven extraction path and distinguishes it from IMEX.
 - `Chapter_10_Performance.md` says `portperf` and `secperf` should be treated as normalized/local names unless a live IMEX object, report output, or vendor manual confirms native names.
 - `docs/axys_common_core_export.md` is a starter reference only. It proposes common field aliases but does not override the more conservative chapter confidence boundaries.
@@ -51,9 +51,9 @@ The confidence ratings below rely on these local reference conclusions:
 
 Use this matrix as an implementation planning aid:
 
-- **IMEX confidence** asks whether the value is likely obtainable from a structured Axys IMEX-style export or adjacent import/export workflow.
+- **IMEX confidence** asks whether the value is likely obtainable from a structured Axys/APX IMEX-style export or adjacent import/export workflow.
 - **REP confidence** asks whether the value is likely obtainable from a standard or custom REP/Replang report extract.
-- A high confidence rating does not mean the exact demo column name exists in Axys. It means the underlying value is likely available.
+- A high confidence rating does not mean the exact demo column name exists in Axys/APX. It means the underlying value is likely available.
 - Performance fields are rated more conservatively for IMEX because the local reference corpus does not contain an official performance IMEX object dictionary.
 - Transaction source/destination and special-security fields are rated as integration-context fields. The corpus supports them in transaction translation workflows, but not as guaranteed columns in every posted-transaction export.
 
@@ -103,7 +103,7 @@ Use this matrix as an implementation planning aid:
 | security performance | `BEGIN_WEIGHT` | Beginning portfolio weight. | Low / Medium | Medium | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Likely reportable in performance/attribution reports, but not proven as an IMEX field. |
 | security performance | `BEGIN_MV` | Beginning market value for security row. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether values come from security performance, appraisal, or custom REP output. | Likely reportable; exact IMEX field remains unproven. |
 | security performance | `SEC_RETURN` | Security return. | Medium / Unknown | High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Performance-history IMEX fields are not established; REP is preferred for report-tie values. |
-| security performance | `CONTRIBUTION` | Security contribution to return. | Low / Medium | Medium / High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Contribution reports are supported, but exact Axys security-contribution export requires validation. |
+| security performance | `CONTRIBUTION` | Security contribution to return. | Low / Medium | Medium / High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Contribution reports are supported, but exact Axys/APX security-contribution export requires validation. |
 
 
 ### `transactions.csv`
@@ -115,11 +115,11 @@ Use this matrix as an implementation planning aid:
 | transactions | `SETTLE_DATE` | Settlement or pay date. | Medium | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Settle date appears in report-output evidence; IMEX availability is profile-dependent. |
 | transactions | `SEC` | Security identifier. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Core transaction/security field. |
 | transactions | `TRAN` | Transaction code or type. | Medium | Medium | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Transaction type/code is supported in translation/import evidence; report exposure depends on layout. |
-| transactions | `SEC_TYPE` | Security type for transaction security. | Medium | Low / Medium | Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Central to Axys security resolution; transaction-row availability depends on export/report design. |
-| transactions | `SRC_DEST_TYPE` | Source/destination type for ambiguous flows. | Medium | Low / Medium | Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Observed transaction translation/integration field, not guaranteed in every posted export. |
-| transactions | `SRC_DEST_SYMBOL` | Source/destination symbol for ambiguous flows. | Medium | Low / Medium | Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Observed transaction translation/integration field, not guaranteed in every posted export. |
-| transactions | `SPECIAL_SEC_TYPE` | Special security type for fee or special handling. | Medium | Low | Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Supported in integration evidence; standard report exposure is uncertain. |
-| transactions | `SPECIAL_SEC_SYMBOL` | Special security symbol for fee or special handling. | Medium | Low | Observed CI/Axys transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Supported in integration evidence; standard report exposure is uncertain. |
+| transactions | `SEC_TYPE` | Security type for transaction security. | Medium | Low / Medium | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Central to Axys/APX security resolution; transaction-row availability depends on export/report design. |
+| transactions | `SRC_DEST_TYPE` | Source/destination type for ambiguous flows. | Medium | Low / Medium | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Observed transaction translation/integration field, not guaranteed in every posted export. |
+| transactions | `SRC_DEST_SYMBOL` | Source/destination symbol for ambiguous flows. | Medium | Low / Medium | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Observed transaction translation/integration field, not guaranteed in every posted export. |
+| transactions | `SPECIAL_SEC_TYPE` | Special security type for fee or special handling. | Medium | Low | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Supported in integration evidence; standard report exposure is uncertain. |
+| transactions | `SPECIAL_SEC_SYMBOL` | Special security symbol for fee or special handling. | Medium | Low | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Supported in integration evidence; standard report exposure is uncertain. |
 | transactions | `QTY` | Transaction quantity. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Quantity appears in transaction and report evidence. |
 | transactions | `PRICE` | Transaction price. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Price appears in transaction and report evidence. |
 | transactions | `AMOUNT` | Net amount, proceeds, or cash amount. | High | Medium / High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Core transaction amount is likely available, though report labels can vary. |
@@ -128,17 +128,17 @@ Use this matrix as an implementation planning aid:
 
 ## Candidate Name Mapping
 
-These names are candidate aliases for local discovery. They are not assertions that the packaged demo headers are official Axys IMEX or REP names.
+These names are candidate aliases for local discovery. They are not assertions that the packaged demo headers are official Axys/APX IMEX or REP names.
 
 | Label | Meaning |
 |---|---|
-| Inferred Alias | Likely field/report aliases for the underlying value, but not proven as official native Axys names by the local corpus. |
+| Inferred Alias | Likely field/report aliases for the underlying value, but not proven as official native Axys/APX names by the local corpus. |
 | Report Label Inferred | Likely report labels or report-style aliases; structured IMEX names still need local confirmation. |
-| Normalized Demo Only | A normalized demo-system name. Do not treat it as a native Axys or REP label. |
+| Normalized Demo Only | A normalized demo-system name. Do not treat it as a native Axys/APX or REP label. |
 
 ### `holdings.csv` Name Candidates
 
-| Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
 |---|---|---|---|---|---|
 | holdings | `PORT` | PORT, Portfolio, Portfolio Code, Account | Portfolio, Account | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `SEC` | SEC, Security, Symbol, Security ID | Security, Symbol, Security ID | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
@@ -152,7 +152,7 @@ These names are candidate aliases for local discovery. They are not assertions t
 
 ### `portperf.csv` Name Candidates
 
-| Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
 |---|---|---|---|---|---|
 | portfolio performance | `END_MV` | Ending Market Value, End Market Value | Ending Market Value, End MV | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `FLOW` | External Flow, Flow, Net Flow | Flow, External Flow, Net Contributions/Withdrawals | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
@@ -168,7 +168,7 @@ These names are candidate aliases for local discovery. They are not assertions t
 
 ### `secperf.csv` Name Candidates
 
-| Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
 |---|---|---|---|---|---|
 | security performance | `END_MV` | Ending Market Value, End Market Value | Ending Market Value, End MV | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | security performance | `INCOME` | Income | Income | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
@@ -185,7 +185,7 @@ These names are candidate aliases for local discovery. They are not assertions t
 
 ### `transactions.csv` Name Candidates
 
-| Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
 |---|---|---|---|---|---|
 | transactions | `PORT` | PORT, Portfolio, Account | Portfolio, Account | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `TRANSACTION_DATE` | Trade Date, Transaction Date | Trade Date, Transaction Date | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
@@ -193,10 +193,10 @@ These names are candidate aliases for local discovery. They are not assertions t
 | transactions | `SEC` | SEC, Security, Symbol, Security ID | Security, Symbol, Security ID | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `TRAN` | Transaction Code, Tran, Transaction Type | Transaction Code, Transaction Type | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `SEC_TYPE` | Security Type, Sec Type | Security Type | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-| transactions | `SRC_DEST_TYPE` | Source/Destination Type, Src Dest Type | Source/Destination Type | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys naming is not established by the local corpus. |
-| transactions | `SRC_DEST_SYMBOL` | Source/Destination Symbol, Src Dest Symbol | Source/Destination Symbol | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys naming is not established by the local corpus. |
-| transactions | `SPECIAL_SEC_TYPE` | Special Security Type, Special Sec Type | Special Security Type | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys naming is not established by the local corpus. |
-| transactions | `SPECIAL_SEC_SYMBOL` | Special Security Symbol, Special Sec Symbol | Special Security Symbol | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys naming is not established by the local corpus. |
+| transactions | `SRC_DEST_TYPE` | Source/Destination Type, Src Dest Type | Source/Destination Type | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
+| transactions | `SRC_DEST_SYMBOL` | Source/Destination Symbol, Src Dest Symbol | Source/Destination Symbol | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
+| transactions | `SPECIAL_SEC_TYPE` | Special Security Type, Special Sec Type | Special Security Type | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
+| transactions | `SPECIAL_SEC_SYMBOL` | Special Security Symbol, Special Sec Symbol | Special Security Symbol | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
 | transactions | `QTY` | QTY, Quantity, Shares, Units | Quantity, Shares, Units | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `PRICE` | PRICE, Price | Price | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `AMOUNT` | Amount, Net Amount, Cash Amount | Amount, Net Amount, Cash Amount | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
@@ -271,11 +271,11 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | transactions | `SETTLE_DATE` | IMEX then REP cross-check | REP preferred | No | No | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `SEC` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `TRAN` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SRC_DEST_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SRC_DEST_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SPECIAL_SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SPECIAL_SEC_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SRC_DEST_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SRC_DEST_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SPECIAL_SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SPECIAL_SEC_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
 | transactions | `QTY` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `PRICE` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `AMOUNT` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |

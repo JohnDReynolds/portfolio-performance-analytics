@@ -75,7 +75,7 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--skip-extract-availability",
         action="store_true",
-        help="Skip checking the rendered Axys demo extract-availability contract.",
+        help="Skip checking the rendered Axys/APX demo extract-availability contract.",
     )
     parser.add_argument(
         "--skip-bundles",
@@ -121,8 +121,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if not args.skip_bundles:
-        _run([_VENV_PYTHON, "-m", "ppar.demos.axys_performance_comparison_portfolio_demo"])
-        _run([_VENV_PYTHON, "-m", "ppar.demos.axys_performance_comparison_security_demo"])
+        _run([_VENV_PYTHON, "-m", "ppar.demos.axysapx_performance_comparison_portfolio_demo"])
+        _run([_VENV_PYTHON, "-m", "ppar.demos.axysapx_performance_comparison_security_demo"])
         _run(
             [
                 _VENV_PYTHON,

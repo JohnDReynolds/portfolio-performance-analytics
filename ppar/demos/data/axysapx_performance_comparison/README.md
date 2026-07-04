@@ -1,6 +1,6 @@
-# Axys Demo Data
+# Axys/APX Demo Data
 
-The packaged Axys demo data contains only user-facing demo inputs. Test-only
+The packaged Axys/APX demo data contains only user-facing demo inputs. Test-only
 performance comparison scenarios live under `tests/data/axys`.
 
 Start with [SETUP.md](SETUP.md) when onboarding an Axys/APX
@@ -10,11 +10,11 @@ validate portfolio setup, then use `ppar report` for repeatable report packages.
 
 ## Comparison YAML
 
-There is one packaged Axys comparison YAML file. The portfolio and security demo
+There is one packaged Axys/APX comparison YAML file. The portfolio and security demo
 commands use the same operational Mega-Cap source snapshots and choose the
 primary review level at runtime. The demo is meant to serve two user-facing
 purposes: a concise marketing example of the review output, and an onboarding
-example for configuring a new Axys-style site.
+example for configuring a new Axys/APX-style site.
 
 The packaged CSV files follow the
 [Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
@@ -41,7 +41,7 @@ check a YAML file without writing reports.
 
 | Role | YAML |
 | --- | --- |
-| Workbook demos | `axys_performance_comparison.yaml` |
+| Workbook demos | `axysapx_performance_comparison.yaml` |
 
 ## Recommended User-Facing Demo
 
@@ -49,7 +49,7 @@ Run the packaged portfolio demo when you want the portfolio-period reviewer-faci
 example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.axys_performance_comparison_portfolio_demo
+./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_portfolio_demo
 ```
 
 Output:
@@ -63,7 +63,7 @@ Run the packaged security demo when you want the security-period reviewer-facing
 example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.axys_performance_comparison_security_demo
+./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_security_demo
 ```
 
 Output:
@@ -103,7 +103,7 @@ Data used:
 
 - Snapshot A: `snapshot_a`
 - Snapshot B: `snapshot_b`
-- Files: Axys-style portfolio performance, security performance,
+- Files: Axys/APX-style portfolio performance, security performance,
   transactions, holdings, and security reference data.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and
@@ -127,10 +127,10 @@ Data used:
   fixtures until a realistic packaged story and evidence trail justify adding
   them here.
 - Packaged transaction rows omit `TRANSACTION_ID`. ppar supports stable
-  transaction IDs when a local extract provides them, but the packaged Axys
+  transaction IDs when a local extract provides them, but the packaged Axys/APX
   demo uses the more realistic conservative no-ID path by default. Internal
   scenario/rebuild files may still use deterministic transaction IDs as fixture
-  handles; those IDs are not packaged as user-facing Axys transaction fields.
+  handles; those IDs are not packaged as user-facing Axys/APX transaction fields.
 - Current transaction coverage by home:
 
   | Home | Transaction families |
@@ -290,12 +290,12 @@ Current public YAML targets are intentionally narrow:
 
 - `extract_contract`: selects the packaged or site-specific extract contract
   used by runtime guards. The default packaged contract enforces context-field
-  presence before ambiguous Axys `li`, `lo`, `dp`, or `wd` rows can be
+  presence before ambiguous Axys/APX `li`, `lo`, `dp`, or `wd` rows can be
   classified by YAML rules. Use
   `docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml` as a starter
   when a real site needs a local contract.
 - `transaction_rules`: classifies transaction codes for amount attribution.
-  Ambiguous Axys-style `li`, `lo`, `dp`, and `wd` examples require matching
+  Ambiguous Axys/APX-style `li`, `lo`, `dp`, and `wd` examples require matching
   transaction-context fields before they are treated as external flows or
   fee/expense rows. Fixed-income `pa`/`sa` accrued-interest adjuncts require
   fixed-income context and paired-trade support in the packaged demo. Remaining

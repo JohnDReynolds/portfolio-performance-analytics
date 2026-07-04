@@ -1,7 +1,7 @@
 """Load Axys sources for use by the analytics facade.
 
 This module provides the public ``AxysData`` facade for experimental Axys
-source loading. See ``ppar.demos.axys_analytics_demo`` for a working example.
+source loading. See ``ppar.demos.axysapx_analytics_demo`` for a working example.
 """
 
 from __future__ import annotations

@@ -36,7 +36,7 @@ from ppar.performance_comparison.workbook_tables import (
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_DEMO_DIRECTORY = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axys_performance_comparison"
+    _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
 )
 _DEFAULT_SCENARIO_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "validation"
 _DEFAULT_SNAPSHOT_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "snapshots"
@@ -56,7 +56,7 @@ _RESTATEMENT_TRANSACTION_RULES_YAML = (
     "ppar_performance_comparison_restatement_transaction_rules.yaml"
 )
 _MULTI_YAML = "ppar_performance_comparison_multi_restatement.yaml"
-_PACKAGED_DEMO_YAML = "axys_performance_comparison.yaml"
+_PACKAGED_DEMO_YAML = "axysapx_performance_comparison.yaml"
 _SITE_VARIANT_YAML = "ppar_performance_comparison.yaml"
 _MODIFIED_DIETZ_YAML = "ppar_performance_comparison_modified_dietz.yaml"
 _POLICY_GAP_YAML = "ppar_performance_comparison_policy_gap_demo.yaml"
@@ -216,7 +216,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--demo-directory",
         type=Path,
         default=_DEFAULT_DEMO_DIRECTORY,
-        help="Directory containing packaged user-facing Axys demo data.",
+        help="Directory containing packaged user-facing Axys/APX demo data.",
     )
     parser.add_argument(
         "--snapshot-directory",
@@ -689,7 +689,7 @@ def _check_code_only_failure_guard(site_directory: Path) -> _ScenarioCheck:
     except PpaError as error:
         message = str(error)
         if (
-            "ambiguous Axys transaction codes DP, LI, LO, WD" in message
+            "ambiguous Axys/APX transaction codes DP, LI, LO, WD" in message
             and "IMEX transaction code alone is not enough" in message
         ):
             return _ScenarioCheck(

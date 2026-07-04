@@ -1,10 +1,10 @@
-# Axys Full-Spec Snapshot A
+# Axys/APX Snapshot A
 
 This packaged snapshot is paired with `snapshot_b` for the
 performance-comparison portfolio and security demos.
 
 The data is derived from the Mega-Cap Alpha analytics demo and reshaped into
-Axys-style operational files. It includes three compact portfolios:
+Axys/APX-style operational files. It includes three compact portfolios:
 
 - `ALPHA`: closest to the Mega-Cap Alpha analytics portfolio.
 - `BALANCED`: a less equity-sensitive version with a larger cash/fixed-income sleeve.

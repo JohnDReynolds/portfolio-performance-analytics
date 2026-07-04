@@ -16,9 +16,9 @@ _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml"
+    "ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
 )
-_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys_performance_comparison")
+_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axysapx_performance_comparison")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
 _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
@@ -467,7 +467,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Extract contract: packaged:", result.stdout)
-        self.assertIn("Enforce ambiguous Axys flows: True", result.stdout)
+        self.assertIn("Enforce ambiguous Axys/APX flows: True", result.stdout)
         self.assertIn(
             "Required transaction context columns: security_type, "
             "source_destination_symbol, source_destination_type, "
@@ -601,7 +601,7 @@ def _absolute_restatement_configuration() -> dict[str, object]:
     configuration["snapshots"]["b"]["path"] = str(
         fixture_directory / "axys_b_restatement"
     )
-    schema_path = _PACKAGED_AXYS_DATA_PATH.resolve() / "axys_column_mappings.yaml"
+    schema_path = _PACKAGED_AXYS_DATA_PATH.resolve() / "axysapx_column_mappings.yaml"
     configuration["snapshots"]["a"]["schema"] = str(
         schema_path
     )

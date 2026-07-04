@@ -1,4 +1,4 @@
-"""Derive Axys-shaped analytics demo files from canonical Mega-Cap CSVs."""
+"""Derive Axys/APX-shaped analytics demo files from canonical Mega-Cap CSVs."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ _GENERIC_ANALYTICS_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "generic_analy
 _PERFORMANCE_DIR = _GENERIC_ANALYTICS_DIR / "performance"
 _CLASSIFICATION_DIR = _GENERIC_ANALYTICS_DIR / "classifications"
 _MAPPING_DIR = _GENERIC_ANALYTICS_DIR / "mappings"
-_OUTPUT_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "axys_analytics"
+_OUTPUT_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_analytics"
 _PORTFOLIOS = {
     "MEGA_ALPHA": {
         "file_name": "Mega-Cap Alpha Portfolio.csv",
@@ -28,15 +28,15 @@ _PORTFOLIOS = {
 
 
 def main() -> None:
-    """Write Axys-shaped analytics demo files into the packaged demo tree."""
-    output_paths = write_axys_analytics_demo_data(_OUTPUT_DIR)
-    print("Axys analytics demo files written:")
+    """Write Axys/APX-shaped analytics demo files into the packaged demo tree."""
+    output_paths = write_axysapx_analytics_demo_data(_OUTPUT_DIR)
+    print("Axys/APX analytics demo files written:")
     for path in output_paths:
         print(f"- {path}")
 
 
-def write_axys_analytics_demo_data(output_directory: Path) -> list[Path]:
-    """Write Axys-shaped analytics demo files.
+def write_axysapx_analytics_demo_data(output_directory: Path) -> list[Path]:
+    """Write Axys/APX-shaped analytics demo files.
 
     Args:
         output_directory: Directory that will receive the generated CSV files.
@@ -71,7 +71,7 @@ def _read_performance(file_name: str) -> pd.DataFrame:
 
 
 def _security_reference(performance_by_portfolio: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Return an Axys-style security reference file."""
+    """Return an Axys/APX-style security reference file."""
     security_names = pd.read_csv(
         _CLASSIFICATION_DIR / "Security.csv",
         header=None,
@@ -133,7 +133,7 @@ def _security_reference(performance_by_portfolio: dict[str, pd.DataFrame]) -> pd
 def _portfolio_performance(
     performance_by_portfolio: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
-    """Return Axys-style portfolio performance rows."""
+    """Return Axys/APX-style portfolio performance rows."""
     frames: list[pd.DataFrame] = []
     for portfolio_code, performance in performance_by_portfolio.items():
         portfolio_name = _PORTFOLIOS[portfolio_code]["portfolio_name"]
@@ -161,7 +161,7 @@ def _security_performance(
     performance_by_portfolio: dict[str, pd.DataFrame],
     security_reference: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Return Axys-style security performance rows."""
+    """Return Axys/APX-style security performance rows."""
     frames: list[pd.DataFrame] = []
     reference_columns = [
         "SECURITY_ID",

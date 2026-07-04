@@ -1,4 +1,4 @@
-"""Render the packaged Axys demo extract-availability contract from YAML."""
+"""Render the packaged Axys/APX demo extract-availability contract from YAML."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ _DEFAULT_CONTRACT_PATH: Final = (
     / "ppar"
     / "demos"
     / "data"
-    / "axys_performance_comparison"
+    / "axysapx_performance_comparison"
     / "demo_extract_availability.yaml"
 )
 _DEFAULT_OUTPUT_PATH: Final = (
@@ -139,29 +139,29 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "# Demo Extract Availability Contract",
         "",
         "Repository: AXYS / APX Reference Repository",
-        "Scope: `ppar/demos/data/axys_performance_comparison/snapshot_a` and",
-        "`ppar/demos/data/axys_performance_comparison/snapshot_b`",
+        "Scope: `ppar/demos/data/axysapx_performance_comparison/snapshot_a` and",
+        "`ppar/demos/data/axysapx_performance_comparison/snapshot_b`",
         "Status: Draft confidence matrix generated from the packaged YAML contract.",
         "",
-        "<!-- GENERATED FROM ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml. -->",
+        "<!-- GENERATED FROM ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml. -->",
         "<!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->",
         "",
         "---",
         "",
         "## Purpose",
         "",
-        "This contract estimates how likely each packaged Axys demo dataset and "
-        "column is to be obtainable from an Axys installation through IMEX "
+        "This contract estimates how likely each packaged Axys/APX demo dataset and "
+        "column is to be obtainable from an Axys/APX installation through IMEX "
         "and/or REP-style report extracts.",
         "",
         "The machine-readable source of truth is "
-        "`ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`. Tests verify "
+        "`ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`. Tests verify "
         "that the YAML covers every packaged comparison demo CSV header and "
         "that this contract is current.",
         "",
         "The packaged demo files are normalized demo extracts. They are not "
-        "official Axys schemas, not universal IMEX profiles, and not claims that "
-        "every Axys site can export every field with these exact names.",
+        "official Axys/APX schemas, not universal IMEX profiles, and not claims "
+        "that every Axys/APX site can export every field with these exact names.",
         "",
         "The two packaged snapshots currently use the same file layouts:",
         "",
@@ -182,11 +182,11 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
             "",
             "The confidence ratings below rely on these local reference conclusions:",
             "",
-            "- `Chapter_12_Imex.md` establishes IMEX / Import-Export as an Axys "
+            "- `Chapter_12_Imex.md` establishes IMEX / Import-Export as an Axys/APX "
             "import/export mechanism, but says the complete native object and "
             "field dictionaries are not available in the supplied source "
             "material.",
-            "- `Chapter_12_Imex.md` documents Axys CI import workflows for "
+            "- `Chapter_12_Imex.md` documents Axys/APX CI import workflows for "
             "transactions, positions, prices, security information, Trade "
             "Blotter context, and selected transaction translation fields.",
             "- `Chapter_13_Rep.md` establishes REP / RepLang / REP32 as a "
@@ -203,12 +203,12 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
             "Use this matrix as an implementation planning aid:",
             "",
             "- **IMEX confidence** asks whether the value is likely obtainable "
-            "from a structured Axys IMEX-style export or adjacent import/export "
+            "from a structured Axys/APX IMEX-style export or adjacent import/export "
             "workflow.",
             "- **REP confidence** asks whether the value is likely obtainable "
             "from a standard or custom REP/Replang report extract.",
             "- A high confidence rating does not mean the exact demo column name "
-            "exists in Axys. It means the underlying value is likely available.",
+            "exists in Axys/APX. It means the underlying value is likely available.",
             "- Performance fields are rated more conservatively for IMEX because "
             "the local reference corpus does not contain an official performance "
             "IMEX object dictionary.",
@@ -292,7 +292,7 @@ def _name_mapping_section(
         "## Candidate Name Mapping",
         "",
         "These names are candidate aliases for local discovery. They are not "
-        "assertions that the packaged demo headers are official Axys IMEX or "
+        "assertions that the packaged demo headers are official Axys/APX IMEX or "
         "REP names.",
         "",
         "| Label | Meaning |",
@@ -320,7 +320,7 @@ def _name_mapping_table(dataset_name: str, columns: Mapping[str, Any]) -> list[s
     lines = [
         f"### `{dataset_name}` Name Candidates",
         "",
-        "| Dataset | Demo column | Candidate Axys/export names | "
+        "| Dataset | Demo column | Candidate Axys/APX export names | "
         "Candidate report labels | Name confidence | Notes |",
         "|---|---|---|---|---|---|",
     ]

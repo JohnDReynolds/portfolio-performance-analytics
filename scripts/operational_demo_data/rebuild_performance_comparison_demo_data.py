@@ -47,10 +47,10 @@ from ppar.performance_comparison.workbook_tables import (
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_AXYS_DIRECTORY: Final = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axys_performance_comparison"
+    _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
 )
 _DEFAULT_COMPARISON_PATH: Final = (
-    _DEFAULT_AXYS_DIRECTORY / "axys_performance_comparison.yaml"
+    _DEFAULT_AXYS_DIRECTORY / "axysapx_performance_comparison.yaml"
 )
 _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_holding_scenarios.csv"
@@ -380,7 +380,7 @@ def audit_demo_data(
     """Return packaged demo-data audit issues.
 
     Args:
-        axys_directory: Directory containing the packaged Axys snapshots.
+        axys_directory: Directory containing the packaged Axys/APX snapshots.
         comparison_path: Portfolio comparison YAML used for visible residual
             guardrails.
 
@@ -689,8 +689,8 @@ def _transaction_scenario_type_counts(
 def _read_packaged_transactions(path: Path) -> pd.DataFrame:
     """Return packaged transactions with internal scenario IDs restored.
 
-    The user-facing Axys demo intentionally omits ``TRANSACTION_ID`` because a
-    durable native transaction identifier is not proven as typical Axys output.
+    The user-facing Axys/APX demo intentionally omits ``TRANSACTION_ID`` because a
+    durable native transaction identifier is not proven as typical Axys/APX output.
     The rebuild scenario CSV still uses deterministic IDs as internal fixture
     handles so the demo derivation remains auditable.
     """
@@ -811,7 +811,7 @@ def _rebuild_transactions(
 
 
 def _rounded_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
-    """Return transactions rounded to the packaged Axys fixture precision."""
+    """Return transactions rounded to the packaged Axys/APX fixture precision."""
     rounded = transactions.copy()
     rounded["QTY"] = rounded["QTY"].astype(float).round(4)
     rounded["PRICE"] = rounded["PRICE"].astype(float).round(4)
@@ -1394,7 +1394,7 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
 
 
 def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
-    """Return holdings rounded to the packaged Axys fixture precision."""
+    """Return holdings rounded to the packaged Axys/APX fixture precision."""
     rounded = holdings.copy()
     rounded["QTY"] = rounded["QTY"].astype(float).round(4)
     rounded["PRICE"] = rounded["PRICE"].astype(float).round(4)
@@ -1746,7 +1746,7 @@ def _is_portfolio_external_flow(
     row: object,
     reconstruction: PortfolioReturnReconstruction,
 ) -> bool:
-    """Return whether one raw Axys demo transaction is a portfolio external flow."""
+    """Return whether one raw Axys/APX demo transaction is a portfolio external flow."""
     transaction_code = _row_string(row, "TRAN").lower()
     if transaction_code in set(reconstruction.flow_categories):
         return True
