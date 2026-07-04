@@ -121,8 +121,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if not args.skip_bundles:
-        _run([_VENV_PYTHON, "-m", "ppar.demos.performance_comparison_portfolio_demo"])
-        _run([_VENV_PYTHON, "-m", "ppar.demos.performance_comparison_security_demo"])
+        _run([_VENV_PYTHON, "-m", "ppar.demos.axys_performance_comparison_portfolio_demo"])
+        _run([_VENV_PYTHON, "-m", "ppar.demos.axys_performance_comparison_security_demo"])
         _run(
             [
                 _VENV_PYTHON,

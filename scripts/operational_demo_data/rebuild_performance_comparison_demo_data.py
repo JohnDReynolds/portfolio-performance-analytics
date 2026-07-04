@@ -46,7 +46,9 @@ from ppar.performance_comparison.workbook_tables import (
 
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
-_DEFAULT_AXYS_DIRECTORY: Final = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
+_DEFAULT_AXYS_DIRECTORY: Final = (
+    _REPO_ROOT / "ppar" / "demos" / "data" / "axys_performance_comparison"
+)
 _DEFAULT_COMPARISON_PATH: Final = (
     _DEFAULT_AXYS_DIRECTORY / "axys_performance_comparison.yaml"
 )
@@ -56,8 +58,8 @@ _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
 _DEFAULT_TRANSACTION_SCENARIOS_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_transaction_scenarios.csv"
 )
-_SNAPSHOT_DIRECTORIES: Final = ("axys_full_spec_a", "axys_full_spec_b")
-_BASE_SNAPSHOT_DIRECTORY: Final = "axys_full_spec_a"
+_SNAPSHOT_DIRECTORIES: Final = ("snapshot_a", "snapshot_b")
+_BASE_SNAPSHOT_DIRECTORY: Final = "snapshot_a"
 _PERIOD_KEY: Final = ["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"]
 _SECURITY_PERIOD_KEY: Final = [*_PERIOD_KEY, "SECURITY_ID"]
 _PORTPERF_COLUMNS: Final = [
@@ -199,7 +201,7 @@ _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
 }
 _CASH_SECURITY_ID: Final = "CASH_USD"
 _EXPECTED_SCENARIO_COVERAGE: Final = {
-    "axys_full_spec_b": {
+    "snapshot_b": {
         "transaction_scenarios_by_type": {
             "by": 2,
             "dp": 1,
@@ -242,7 +244,7 @@ class AuditIssue:
     Attributes:
         check: Name of the consistency check that failed.
         detail: Human-readable explanation of the issue.
-        snapshot: Snapshot label such as ``axys_full_spec_a`` when applicable.
+        snapshot: Snapshot label such as ``snapshot_a`` when applicable.
         portfolio: Portfolio code for the affected row.
         from_date: Period start date, if applicable.
         thru_date: Period end date, if applicable.
@@ -447,8 +449,8 @@ def rebuild_demo_performance_files(
     """Return audit summary, optionally rewriting derived performance files.
 
     Args:
-        axys_directory: Directory containing ``axys_full_spec_a`` and
-            ``axys_full_spec_b``.
+        axys_directory: Directory containing ``snapshot_a`` and
+            ``snapshot_b``.
         comparison_path: Shared comparison YAML with reconstruction rules.
         holding_scenarios_path: CSV containing intentional holding adjustments.
         transaction_scenarios_path: CSV containing intentional transaction
@@ -1997,7 +1999,7 @@ def _parse_args() -> argparse.Namespace:
         "--axys-directory",
         type=Path,
         default=_DEFAULT_AXYS_DIRECTORY,
-        help="Directory containing axys_full_spec_a and axys_full_spec_b.",
+        help="Directory containing snapshot_a and snapshot_b.",
     )
     parser.add_argument(
         "--comparison-path",

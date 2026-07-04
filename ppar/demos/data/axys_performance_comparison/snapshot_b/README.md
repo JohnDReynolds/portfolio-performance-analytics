@@ -1,6 +1,6 @@
 # Axys Full-Spec Snapshot B
 
-This snapshot restates `axys_full_spec_a` with controlled operational changes
+This snapshot restates `snapshot_a` with controlled operational changes
 used by the portfolio and security performance-comparison demos.
 
 The restatement keeps the same ALPHA, BALANCED, and INCOME portfolio/period

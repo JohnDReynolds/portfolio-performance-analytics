@@ -75,8 +75,8 @@ class TestSourceLoader(unittest.TestCase):
                 [0.01],
             )
 
-    def test_schema_mapping_supports_security_sections(self) -> None:
-        """Referenced schema mappings support security performance and master."""
+    def test_schema_mapping_supports_security_performance_section(self) -> None:
+        """Referenced schema mappings support security performance overrides."""
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             schema_path = directory / "axys_column_mappings.yaml"
@@ -86,11 +86,7 @@ class TestSourceLoader(unittest.TestCase):
                         "security_performance_columns": {
                             "identifier": "CUSTOM_SEC",
                             "return": "CUSTOM_RETURN",
-                        },
-                        "security_master_columns": {
-                            "identifier_column": "CUSTOM_ID",
-                            "name_column": "CUSTOM_NAME",
-                        },
+                        }
                     }
                 ),
                 encoding="utf-8",
@@ -109,12 +105,6 @@ class TestSourceLoader(unittest.TestCase):
                 snapshot,
                 directory / "comparison.yaml",
             )
-            security_master_aliases = source_loader.aliases_with_schema_overrides(
-                pc_cols.SECURITY_MASTER,
-                aliases.SECURITY_MASTER_OPTIONAL_ALIASES,
-                snapshot,
-                directory / "comparison.yaml",
-            )
 
             self.assertEqual(
                 security_performance_aliases[pc_cols.SECURITY_ID],
@@ -123,10 +113,6 @@ class TestSourceLoader(unittest.TestCase):
             self.assertEqual(
                 security_performance_aliases[pc_cols.SECURITY_RETURN],
                 ("CUSTOM_RETURN",),
-            )
-            self.assertEqual(
-                security_master_aliases[pc_cols.SECURITY_NAME],
-                ("CUSTOM_NAME",),
             )
 
     def test_read_mapped_csv_raises_error_502_for_missing_required_column(self) -> None:

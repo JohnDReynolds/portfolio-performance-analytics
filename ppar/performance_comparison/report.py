@@ -1167,8 +1167,6 @@ def _context_use(finding: Mapping[str, object]) -> str:
         return "cost-basis review context; not a performance input"
     if dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.COMMISSION:
         return "commission and fee review context; not modeled without explicit policy"
-    if dataset == pc_cols.SECURITY_MASTER:
-        return "security-reference review context"
     return "review context"
 
 

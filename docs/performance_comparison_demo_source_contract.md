@@ -45,7 +45,6 @@ those details as verified Axys/APX facts.
 | `holdings.csv` | Normalized point-in-time holdings and valuation extract. | Native Axys/APX holding storage is Unknown. This file represents the demo value source used for beginning and ending holdings. |
 | `portperf.csv` | Reported portfolio-period performance target used for comparison. | `portperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 | `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
-| `security_master.csv` | Normalized security-reference context. | Security-reference changes are context unless a future supported rule makes a field performance-relevant. |
 
 ## Field Boundary Taxonomy
 
@@ -79,7 +78,6 @@ the target performance dataset:
 | `security_performance` | `comparison.level` is `security`, or `security_return_reconstruction` is configured. | `portfolio_id`, `security_id`, `from_date`, `thru_date`, `security_return` |
 | `holdings` | Portfolio or security return reconstruction is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date` |
 | `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
-| `security_master` | Security-reference context or security-master rules are used. | `security_id` |
 | `cash` | Cash rows are used as source-data evidence. | `portfolio_id`, `cash_date` |
 | `fx_rates` | FX-rate rows are used as source-data evidence. | `from_currency`, `to_currency`, `rate_date`, `fx_rate` |
 
@@ -109,7 +107,6 @@ flow-category, income-category, return-basis, and sign-convention YAML fields.
 | `holdings.cost` | Review evidence. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
 | `portperf.gain_loss`, `secperf.gain_loss` | Reported performance-extract context. These fields are defensible as report-style gain/loss components, but the local corpus does not prove native Axys/APX IMEX performance object names or calculation basis. They must not be described as recomputed tax-lot or accounting-ledger values. |
 | `transactions.settle_date` | Review evidence unless a future explicit settlement-date rule makes it performance-relevant. |
-| security-reference fields | Review evidence or suppressed context unless explicitly supported by a future rule. |
 
 The packaged Axys demo deliberately omits `transactions.transaction_id`.
 Stable transaction IDs are supported by ppar and remain the strongest matching
@@ -177,7 +174,7 @@ Freeze-packet evidence map:
 
 | Accepted boundary | Current evidence |
 | --- | --- |
-| Packaged transaction families are `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `axys_full_spec_a/transactions.csv`, `axys_full_spec_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, fixed-income boundary helpers, and demo data audit tests. |
+| Packaged transaction families are `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `snapshot_a/transactions.csv`, `snapshot_b/transactions.csv`, packaged Axys README coverage table, comparison YAML transaction-rule comments, fixed-income boundary helpers, and demo data audit tests. |
 | `;` remains a guardrail-only YAML rule. | Packaged transaction CSVs contain no `;` rows; the comparison YAML keeps the rule as defensive/reserved semantics; site-variant and matrix tests cover non-packaged corporate-action behavior. |
 | Ambiguous `dp`, `li`, `lo`, and `wd` rows remain context-gated. | Packaged transaction CSVs include source/destination and special-security context columns; the packaged extract contract requires those context fields; `validate_config` reports ambiguous-flow enforcement as enabled. |
 | Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
@@ -307,7 +304,7 @@ for `ai`, `pa`, `sa`, and `pd`, but only `pa`/`sa` have been promoted into the
 packaged demo, and only for the paired fixed-income accrued-interest story.
 
 The default runtime guard uses
-`ppar/demos/data/axys/demo_extract_availability.yaml`. A site comparison YAML
+`ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`. A site comparison YAML
 can point to a local contract when its validated IMEX/REP extract layout differs:
 
 ```yaml

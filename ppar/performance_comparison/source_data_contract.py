@@ -75,12 +75,6 @@ _SOURCE_DATA_CONTRACT: Final[tuple[SourceDataDatasetContract, ...]] = (
         ),
     ),
     SourceDataDatasetContract(
-        name=pc_cols.SECURITY_MASTER,
-        required_columns=pc_cols.SECURITY_MASTER_REQUIRED_COLUMNS,
-        optional_columns=pc_cols.SECURITY_MASTER_OPTIONAL_COLUMNS,
-        required_when="security-reference context or security-master rules are used",
-    ),
-    SourceDataDatasetContract(
         name=pc_cols.CASH,
         required_columns=pc_cols.CASH_REQUIRED_COLUMNS,
         optional_columns=pc_cols.CASH_OPTIONAL_COLUMNS,

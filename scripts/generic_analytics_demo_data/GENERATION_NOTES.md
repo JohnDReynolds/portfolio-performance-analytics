@@ -4,13 +4,13 @@ These notes record how the current Mega-Cap analytics demo data was created.
 They are retained as generation/process notes, not as the active roadmap.
 Performance-comparison forward work is tracked centrally in
 `docs/performance_comparison_roadmap.md`. Reusable refresh helpers live in
-`scripts/analytics_demo_data/`; generated outputs and caches live in
-`_demo_output/analytics_data_generation/`.
+`scripts/generic_analytics_demo_data/`; generated outputs and caches live in
+`_demo_output/generic_analytics_data_generation/`.
 
 ## Objective
 
 Create a believable, simple, reproducible large-cap demo data set that can
-eventually replace the current `ppar-analytics-demo` files and become the
+eventually replace the current `ppar-generic-analytics-demo` files and become the
 source universe for related Axys analytics and performance comparison demos.
 
 The demo should tell a story similar to the current README Features section:
@@ -46,17 +46,17 @@ portfolio performance rows, and writes new CSV files under distinct names.
 Current maintained script:
 
 ```text
-scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py
+scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
 ```
 
 Candidate generated files:
 
 ```text
-_demo_output/analytics_data_generation/generated_oef_files/performance/Generated OEF Alpha Portfolio.csv
-_demo_output/analytics_data_generation/generated_oef_files/performance/Generated OEF Benchmark.csv
-_demo_output/analytics_data_generation/generated_oef_files/classifications/Generated OEF Security.csv
-_demo_output/analytics_data_generation/generated_oef_files/classifications/Generated OEF Economic Sector.csv
-_demo_output/analytics_data_generation/generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
+_demo_output/generic_analytics_data_generation/generated_oef_files/performance/Generated OEF Alpha Portfolio.csv
+_demo_output/generic_analytics_data_generation/generated_oef_files/performance/Generated OEF Benchmark.csv
+_demo_output/generic_analytics_data_generation/generated_oef_files/classifications/Generated OEF Security.csv
+_demo_output/generic_analytics_data_generation/generated_oef_files/classifications/Generated OEF Economic Sector.csv
+_demo_output/generic_analytics_data_generation/generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
 ```
 
 The script should also print summary metrics:
@@ -89,8 +89,8 @@ Minimum checks:
 
 ## Phase 3: Switch The Analytics Demo
 
-After manual review, update `ppar/demos/analytics_demo.py` to use the generated
-files as the main data source.
+After manual review, update `ppar/demos/generic_analytics_demo.py` to use the
+generated files as the main data source.
 
 Possible follow-up choices:
 
@@ -108,11 +108,10 @@ Likely files:
 
 - `portperf.csv`;
 - `secperf.csv`;
-- `sec_ref.csv`;
 - classification or lookup data if useful.
 
 The goal is for `ppar-axys-analytics-demo` to tell the same broad portfolio vs.
-benchmark story as `ppar-analytics-demo`, but through Axys-style source files.
+benchmark story as `ppar-generic-analytics-demo`, but through Axys-style source files.
 
 ## Phase 5: Derive Performance Comparison Snapshots
 

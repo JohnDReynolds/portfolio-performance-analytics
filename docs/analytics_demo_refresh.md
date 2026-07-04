@@ -31,24 +31,24 @@ the README images are rendered quarterly to keep date-heavy charts readable.
 Use the maintained data-refresh helper for candidate generation:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py
+./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
 ```
 
 Useful options:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py \
+./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py \
   --years 5 \
   --alpha-tilt 0.8
 ```
 
 Notes:
 
-- The generator lives under `scripts/analytics_demo_data/` because it is a
+- The generator lives under `scripts/generic_analytics_demo_data/` because it is a
   maintained refresh/provenance tool, not a package runtime API.
 - It may require network access, `requests`, and local `yfinance`.
 - It writes generated files under
-  `_demo_output/analytics_data_generation/generated_oef_files/`.
+  `_demo_output/generic_analytics_data_generation/generated_oef_files/`.
 - Keep monthly continuity non-negotiable. If a market holiday falls on month
   end, use a nearby available business-day holdings snapshot and document it.
 - Do not promote equal-weight benchmark data. The benchmark should remain
@@ -70,7 +70,7 @@ Before promotion, inspect at least:
 Run or update the candidate validation helper if it still exists:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/validate_generated_analytics_demo_data.py
+./.venv/bin/python scripts/generic_analytics_demo_data/validate_generated_analytics_demo_data.py
 ```
 
 ### 3. Promote Packaged CSVs
@@ -80,19 +80,19 @@ stable user-facing `Mega-Cap` names:
 
 ```text
 generated_oef_files/performance/Generated OEF Alpha Portfolio.csv
-  -> ppar/demos/data/performance/Mega-Cap Alpha Portfolio.csv
+  -> ppar/demos/data/generic_analytics/performance/Mega-Cap Alpha Portfolio.csv
 
 generated_oef_files/performance/Generated OEF Benchmark.csv
-  -> ppar/demos/data/performance/Mega-Cap Benchmark.csv
+  -> ppar/demos/data/generic_analytics/performance/Mega-Cap Benchmark.csv
 
 generated_oef_files/classifications/Generated OEF Security.csv
-  -> ppar/demos/data/classifications/Security.csv
+  -> ppar/demos/data/generic_analytics/classifications/Security.csv
 
 generated_oef_files/classifications/Generated OEF Economic Sector.csv
-  -> ppar/demos/data/classifications/Economic Sector.csv
+  -> ppar/demos/data/generic_analytics/classifications/Economic Sector.csv
 
 generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
-  -> ppar/demos/data/mappings/Security--to--Economic Sector.csv
+  -> ppar/demos/data/generic_analytics/mappings/Security--to--Economic Sector.csv
 ```
 
 After promotion, update:
@@ -114,10 +114,10 @@ Run the demo-data contract and package metadata tests:
 Then run the analytics demo:
 
 ```bash
-printf 'm\n' | ./.venv/bin/python -m ppar.demos.analytics_demo
+printf 'm\n' | ./.venv/bin/python -m ppar.demos.generic_analytics_demo
 ```
 
-Review output under `_demo_output/analytics/`.
+Review output under `_demo_output/generic_analytics/`.
 
 ### 5. Update README Story
 
@@ -174,7 +174,7 @@ Run the full test suite:
 Before committing, check:
 
 - README story matches regenerated image titles and values.
-- `ppar-analytics-demo` uses the same packaged files.
+- `ppar-generic-analytics-demo` uses the same packaged files.
 - `scripts/render_readme_images.py` uses the same packaged files.
 - `ppar/demos/data/README.md` documents source provenance and any date
   substitutions.
@@ -182,9 +182,9 @@ Before committing, check:
 
 ## Refresh Helper Location
 
-Reusable refresh helpers live in `scripts/analytics_demo_data/`. Generated
+Reusable refresh helpers live in `scripts/generic_analytics_demo_data/`. Generated
 candidate CSVs, downloaded holdings, price caches, and audit output stay under
-`_demo_output/analytics_data_generation/` and should not be packaged as demo
+`_demo_output/generic_analytics_data_generation/` and should not be packaged as demo
 inputs until explicitly promoted.
 
 Avoid adding new package runtime dependencies solely for data refresh unless

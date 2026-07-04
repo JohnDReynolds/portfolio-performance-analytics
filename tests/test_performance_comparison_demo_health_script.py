@@ -49,13 +49,13 @@ class TestPerformanceComparisonDemoHealthScript(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                "ppar.demos.performance_comparison_portfolio_demo" in text
+                "ppar.demos.axys_performance_comparison_portfolio_demo" in text
                 for text in command_texts
             )
         )
         self.assertTrue(
             any(
-                "ppar.demos.performance_comparison_security_demo" in text
+                "ppar.demos.axys_performance_comparison_security_demo" in text
                 for text in command_texts
             )
         )

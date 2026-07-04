@@ -12,7 +12,7 @@ os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
 
 # Project imports
 from ppar.axys import AxysData
-from ppar.demos.analytics_outputs import (
+from ppar.demos.analytics_demo_outputs import (
     frequency_display_name,
     parse_demo_frequency_argument,
     print_analytics_demo_handoff,
@@ -36,7 +36,7 @@ def main() -> None:
     )
     print(f"Using {frequency_display_name(frequency)} reporting.")
 
-    with as_file(files("ppar.demos.data") / "axys") as axys_data_root:
+    with as_file(files("ppar.demos.data") / "axys_analytics") as axys_data_root:
         axys_data = AxysData(axys_data_root / "axys_analytics.yaml")
         portfolio = axys_data.get_portfolio(_PORTFOLIO_CODE)
         benchmark = axys_data.get_portfolio(_BENCHMARK_CODE)

@@ -10,7 +10,7 @@ The packaged-demo source boundary is defined in
 [`performance_comparison_demo_source_contract.md`](performance_comparison_demo_source_contract.md).
 Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
-[`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
+[`../scripts/generic_analytics_demo_data/GENERATION_NOTES.md`](../scripts/generic_analytics_demo_data/GENERATION_NOTES.md).
 
 [axys-apx-blockers]: axys-apx-reference/reference/Chapter_01_Overview.md#axysapx-blockers
 
@@ -152,7 +152,7 @@ clearly than the existing packaged and site-variant fixtures.
 The Axys extract guardrails now have a single review path:
 
 ```text
-ppar/demos/data/axys/demo_extract_availability.yaml
+ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml
   -> scripts/render_demo_extract_availability.py
   -> docs/axys-apx-reference/contracts/demo_extract_availability.md
   -> ppar/performance_comparison/extract_contract.py
@@ -815,7 +815,7 @@ Implemented guardrail:
   context confirms the fee case; `li`/`lo` rules distinguish external party
   flows from internal transfer cases. If an IMEX export cannot provide the
   context fields marked as required by
-  `ppar/demos/data/axys/demo_extract_availability.yaml`, the transaction loader
+  `ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`, the transaction loader
   fails before YAML rules classify the rows. The next design step for that site
   is to consider a REP/report extract, custom report, or other local-discovery
   source that carries enough classification evidence.
@@ -905,9 +905,7 @@ source contract:
 
 - `Performance Difference Causes` only contains approved demo source fields;
 - holdings `cost` stays in `Raw Audit Trail`;
-- configured holdings `accrued` changes remain performance-cause rows;
-- security-reference fields do not appear as performance causes or demo context
-  evidence.
+- configured holdings `accrued` changes remain performance-cause rows.
 
 The Axys/APX transaction references should be used to choose careful terminology
 and conservative interpretation rules. The package should adopt only the rules
@@ -929,7 +927,7 @@ transaction type:
 - `by` increases the traded security holding and reduces cash;
 - `sl` reduces the traded security holding and increases cash;
 - split/corporate-action evidence is intentionally absent from the current
-  user-facing full-spec demo until it can use a real-world split in a period
+  user-facing packaged comparison demo until it can use a real-world split in a period
   designed for that corporate action.
 
 Suggested source-of-truth inputs:
@@ -1020,7 +1018,7 @@ classify Axys transaction semantics safely.
 | 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
 | 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. Keep `ai` and `pd` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
 | 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | Test-only site variants cover explicit performance-income treatments for `rc` and `pd`. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
-| 6 | Real-world split / corporate action evidence | Packaged demo only when the demo period/security supports a real historical event | Actual historical date/security, split ratio, quantity and price treatment, security master/report evidence, and a policy for whether it is explanatory or review-only. | User-facing demo splits must not be fictional future events. Synthetic corporate-action fixtures belong in clearly labeled test-only data. |
+| 6 | Real-world split / corporate action evidence | Packaged demo only when the demo period/security supports a real historical event | Actual historical date/security, split ratio, quantity and price treatment, report evidence, and a policy for whether it is explanatory or review-only. | User-facing demo splits must not be fictional future events. Synthetic corporate-action fixtures belong in clearly labeled test-only data. |
 | 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys convention. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
 
@@ -1028,7 +1026,7 @@ classify Axys transaction semantics safely.
 
 The packaged-demo contribution scenario passes the same end-to-end standard as
 the withdrawal example. Before adding any additional external-flow variant to
-`axys_full_spec_a` or `axys_full_spec_b`, document and verify:
+`snapshot_a` or `snapshot_b`, document and verify:
 
 - scenario intent: which portfolio, period, cash security, and reviewer-facing
   business story the contribution represents;
@@ -1158,7 +1156,7 @@ Demo-data notes:
 - Current operational demo generation history lives in
   [`operational_demo_data_notes.md`](operational_demo_data_notes.md).
 - Current analytics demo data generation history lives in
-  [`../scripts/analytics_demo_data/GENERATION_NOTES.md`](../scripts/analytics_demo_data/GENERATION_NOTES.md).
+  [`../scripts/generic_analytics_demo_data/GENERATION_NOTES.md`](../scripts/generic_analytics_demo_data/GENERATION_NOTES.md).
 - Those files are historical/process notes; this file is the active roadmap.
 
 ### Phase 9: Evidence-Pack Hardening And Reviewer Readiness
@@ -2097,7 +2095,7 @@ release-candidate cleanup.
 Status: complete for package/product boundary guardrails.
 
 The packaged Axys demo boundary is now test-covered as a wheel/package-data
-surface: demo resources under `ppar/demos/data/axys` stay limited to CSV, YAML,
+surface: demo resources under `ppar/demos/data/axys_performance_comparison` stay limited to CSV, YAML,
 and Markdown product inputs/notes, and package-data globs do not expose
 generated report output, source-checkout scripts, test fixtures, or
 demo-generation internals. Source distributions may still include maintainer
@@ -2112,7 +2110,7 @@ Status: complete for core source-data contract guardrails.
 The minimum source-data contract is now documented in the demo source contract
 and backed by `ppar.performance_comparison.source_data_contract`. The contract
 names the required normalized columns for portfolio performance, security
-performance, holdings, transactions, security master, cash, and FX-rate
+performance, holdings, transactions, cash, and FX-rate
 datasets, plus the workflow condition that makes each dataset mandatory.
 `validate_config` now prints the resolved minimum required datasets and required
 source-data columns for the selected comparison. Return reconstruction also

@@ -24,7 +24,6 @@ ColumnAliases: TypeAlias = dict[str, tuple[str, ...]]
 _SCHEMA_COLUMN_SECTIONS = {
     pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance_columns",
     pc_cols.SECURITY_PERFORMANCE: "security_performance_columns",
-    pc_cols.SECURITY_MASTER: "security_master_columns",
 }
 _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
     pc_cols.PORTFOLIO_PERFORMANCE: {
@@ -47,13 +46,6 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
         "security_return": pc_cols.SECURITY_RETURN,
         "weight": pc_cols.WEIGHT,
         "contribution": pc_cols.CONTRIBUTION,
-    },
-    pc_cols.SECURITY_MASTER: {
-        "identifier_column": pc_cols.SECURITY_ID,
-        "identifier": pc_cols.SECURITY_ID,
-        "security_id": pc_cols.SECURITY_ID,
-        "name_column": pc_cols.SECURITY_NAME,
-        "security_name": pc_cols.SECURITY_NAME,
     },
 }
 

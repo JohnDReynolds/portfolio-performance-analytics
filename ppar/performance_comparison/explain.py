@@ -100,7 +100,6 @@ FX_RATE_FINDING_COUNT = "fx_rate_finding_count"
 TRANSACTION_FINDING_COUNT = "transaction_finding_count"
 HOLDING_FINDING_COUNT = "holding_finding_count"
 CASH_FINDING_COUNT = "cash_finding_count"
-REFERENCE_FINDING_COUNT = "reference_finding_count"
 HAS_SUPPRESSED_FINDINGS = "has_suppressed_findings"
 PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     PORTFOLIO_ID,
@@ -116,7 +115,6 @@ PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     TRANSACTION_FINDING_COUNT,
     HOLDING_FINDING_COUNT,
     CASH_FINDING_COUNT,
-    REFERENCE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
 )
 PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS = (
@@ -140,7 +138,6 @@ SECURITY_PERIOD_SUMMARY_COLUMNS = (
     CONTEXT_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
     HOLDING_FINDING_COUNT,
-    REFERENCE_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
 )
 SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS = (
@@ -459,10 +456,6 @@ def portfolio_period_summary(
                 ),
                 HOLDING_FINDING_COUNT: _dataset_count(related_active, pc_cols.HOLDINGS),
                 CASH_FINDING_COUNT: _dataset_count(related_active, pc_cols.CASH),
-                REFERENCE_FINDING_COUNT: _dataset_count(
-                    related_active,
-                    pc_cols.SECURITY_MASTER,
-                ),
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
@@ -559,10 +552,6 @@ def security_period_summary(
                     pc_cols.TRANSACTIONS,
                 ),
                 HOLDING_FINDING_COUNT: _dataset_count(related_active, pc_cols.HOLDINGS),
-                REFERENCE_FINDING_COUNT: _dataset_count(
-                    related_active,
-                    pc_cols.SECURITY_MASTER,
-                ),
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
@@ -1385,11 +1374,6 @@ def _evidence_breakdown_rows(
                 pc_cols.SECURITY_PERFORMANCE,
             ),
         ),
-        (
-            CONTEXT,
-            pc_cols.SECURITY_MASTER,
-            _role_dataset_count(related_findings, CONTEXT, pc_cols.SECURITY_MASTER),
-        ),
     ]
 
     rows: list[dict[str, object]] = []
@@ -1447,11 +1431,6 @@ def _security_evidence_breakdown_rows(
             RELATED_OUTPUT,
             pc_cols.SECURITY_PERFORMANCE,
             _dataset_count(related_output_findings, pc_cols.SECURITY_PERFORMANCE),
-        ),
-        (
-            CONTEXT,
-            pc_cols.SECURITY_MASTER,
-            _role_dataset_count(related_findings, CONTEXT, pc_cols.SECURITY_MASTER),
         ),
     ]
 
@@ -2184,7 +2163,6 @@ def _root_cause_area(row: dict[str, object]) -> str:
         pc_cols.FX_RATES: ROOT_CAUSE_FX_RATE,
         pc_cols.CASH: ROOT_CAUSE_CASH,
         pc_cols.PORTFOLIO_PERFORMANCE: ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
-        pc_cols.SECURITY_MASTER: ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
     }
     dataset = row[DATASET]
     if not isinstance(dataset, str):
@@ -3097,7 +3075,6 @@ def _dataset_priority_score(dataset: str) -> int:
         pc_cols.CASH: 30,
         pc_cols.FX_RATES: 25,
         pc_cols.SECURITY_PERFORMANCE: 10,
-        pc_cols.SECURITY_MASTER: 0,
     }.get(dataset, 0)
 
 
@@ -3142,7 +3119,6 @@ def _empty_portfolio_period_summary() -> pl.DataFrame:
             TRANSACTION_FINDING_COUNT: pl.UInt32,
             HOLDING_FINDING_COUNT: pl.UInt32,
             CASH_FINDING_COUNT: pl.UInt32,
-            REFERENCE_FINDING_COUNT: pl.UInt32,
             HAS_SUPPRESSED_FINDINGS: pl.Boolean,
         }
     )
@@ -3178,7 +3154,6 @@ def _empty_security_period_summary() -> pl.DataFrame:
             CONTEXT_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
             HOLDING_FINDING_COUNT: pl.UInt32,
-            REFERENCE_FINDING_COUNT: pl.UInt32,
             HAS_SUPPRESSED_FINDINGS: pl.Boolean,
         }
     )

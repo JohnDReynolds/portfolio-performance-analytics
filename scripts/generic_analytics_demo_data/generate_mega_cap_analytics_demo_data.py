@@ -19,7 +19,7 @@ except ImportError as error:  # pragma: no cover - local generation convenience.
     raise SystemExit("yfinance is required in the local .venv for this probe.") from error
 
 
-WORKSPACE: Final = Path("_demo_output") / "analytics_data_generation"
+WORKSPACE: Final = Path("_demo_output") / "generic_analytics_data_generation"
 DEFAULT_CACHE_DIRECTORY: Final = WORKSPACE / "cache" / "oef"
 DEFAULT_OUTPUT_DIRECTORY: Final = WORKSPACE / "generated_oef_files"
 OEF_PRODUCT_DATA_URL: Final = (

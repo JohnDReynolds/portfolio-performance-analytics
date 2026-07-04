@@ -33,14 +33,14 @@ snapshots:
   # want to compare. Keep the paths relative to this YAML when possible so the
   # starter kit can move as a directory.
   a:
-    label: axys_full_spec_a
-    path: axys_full_spec_a
+    label: snapshot_a
+    path: snapshot_a
     vendor: axys
     schema: axys_column_mappings.yaml
 
   b:
-    label: axys_full_spec_b
-    path: axys_full_spec_b
+    label: snapshot_b
+    path: snapshot_b
     vendor: axys
     schema: axys_column_mappings.yaml
 

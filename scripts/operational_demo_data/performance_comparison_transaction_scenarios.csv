@@ -1,13 +1,13 @@
 snapshot,action,TRANSACTION_ID,PORT,TRANSACTION_DATE,SETTLE_DATE,SEC,TRAN,SEC_TYPE,SRC_DEST_TYPE,SRC_DEST_SYMBOL,SPECIAL_SEC_TYPE,SPECIAL_SEC_SYMBOL,QTY,PRICE,AMOUNT,COMMISSION,QTY_delta,PRICE_delta,AMOUNT_delta,COMMISSION_delta,scenario
-axys_full_spec_b,adjust,ALPHA0203,,,,,,,,,,,,,,,0.0,0.0,-1500.0,0.0,Withdrawal correction increases external cash outflow.
-axys_full_spec_b,adjust,ALPHA0401,,,,,,,,,,,,,,,1.1372,0.15,-196.98,10.0,AAPL buy correction changes quantity price commission and amount.
-axys_full_spec_b,adjust,BALANCED0203,,,,,,,,,,,,,,,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
-axys_full_spec_b,insert,BALANCED0403,BALANCED,2026-03-20,2026-03-20,CASH_USD,li,caus,$pty,$cash,,,0.0,0.0,2500.0,0.0,0.0,0.0,0.0,0.0,Contribution restatement adds external cash inflow.
-axys_full_spec_b,insert,ALPHA0303,ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$pty,$cash,,,0.0,0.0,-2000.0,0.0,0.0,0.0,0.0,0.0,Deliver-out restatement adds external cash outflow.
-axys_full_spec_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
-axys_full_spec_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
-axys_full_spec_b,adjust,INCOME0603,,,,,,,,,,,,,,,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.
-axys_full_spec_b,insert,INCOME0303,INCOME,2026-02-10,2026-02-10,TNOTE5Y,by,fius,$cash,CASH_USD,,,5.0,98.8,-494.0,0.0,0.0,0.0,0.0,0.0,TNOTE5Y bond purchase leg paired with purchase accrued interest.
-axys_full_spec_b,insert,INCOME0304,INCOME,2026-02-10,2026-02-10,TNOTE5Y,pa,fius,$income,$cash,,,0.0,0.0,-42.5,0.0,0.0,0.0,0.0,0.0,TNOTE5Y purchase accrued interest settlement.
-axys_full_spec_b,insert,INCOME0305,INCOME,2026-02-20,2026-02-20,TNOTE5Y,sl,fius,$cash,CASH_USD,,,3.0,98.8,296.4,0.0,0.0,0.0,0.0,0.0,TNOTE5Y bond sale leg paired with sale accrued interest.
-axys_full_spec_b,insert,INCOME0306,INCOME,2026-02-20,2026-02-20,TNOTE5Y,sa,fius,$income,$cash,,,0.0,0.0,37.25,0.0,0.0,0.0,0.0,0.0,TNOTE5Y sale accrued interest settlement.
+snapshot_b,adjust,ALPHA0203,,,,,,,,,,,,,,,0.0,0.0,-1500.0,0.0,Withdrawal correction increases external cash outflow.
+snapshot_b,adjust,ALPHA0401,,,,,,,,,,,,,,,1.1372,0.15,-196.98,10.0,AAPL buy correction changes quantity price commission and amount.
+snapshot_b,adjust,BALANCED0203,,,,,,,,,,,,,,,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
+snapshot_b,insert,BALANCED0403,BALANCED,2026-03-20,2026-03-20,CASH_USD,li,caus,$pty,$cash,,,0.0,0.0,2500.0,0.0,0.0,0.0,0.0,0.0,Contribution restatement adds external cash inflow.
+snapshot_b,insert,ALPHA0303,ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$pty,$cash,,,0.0,0.0,-2000.0,0.0,0.0,0.0,0.0,0.0,Deliver-out restatement adds external cash outflow.
+snapshot_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
+snapshot_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.
+snapshot_b,adjust,INCOME0603,,,,,,,,,,,,,,,0.0,0.0,80.0,0.0,TNOTE2Y interest correction increases cash income.
+snapshot_b,insert,INCOME0303,INCOME,2026-02-10,2026-02-10,TNOTE5Y,by,fius,$cash,CASH_USD,,,5.0,98.8,-494.0,0.0,0.0,0.0,0.0,0.0,TNOTE5Y bond purchase leg paired with purchase accrued interest.
+snapshot_b,insert,INCOME0304,INCOME,2026-02-10,2026-02-10,TNOTE5Y,pa,fius,$income,$cash,,,0.0,0.0,-42.5,0.0,0.0,0.0,0.0,0.0,TNOTE5Y purchase accrued interest settlement.
+snapshot_b,insert,INCOME0305,INCOME,2026-02-20,2026-02-20,TNOTE5Y,sl,fius,$cash,CASH_USD,,,3.0,98.8,296.4,0.0,0.0,0.0,0.0,0.0,TNOTE5Y bond sale leg paired with sale accrued interest.
+snapshot_b,insert,INCOME0306,INCOME,2026-02-20,2026-02-20,TNOTE5Y,sa,fius,$income,$cash,,,0.0,0.0,37.25,0.0,0.0,0.0,0.0,0.0,TNOTE5Y sale accrued interest settlement.

@@ -37,7 +37,6 @@ from ppar.performance_comparison.methods import (
     ContributionImpactMethod,
     FxRateImpactMethod,
     HoldingImpactMethod,
-    SecurityMasterImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison import (
@@ -88,7 +87,6 @@ from ppar.performance_comparison import (
     HoldingsLoader,
     REPORT_BUNDLE_REQUIRED_ARTIFACTS,
     RELATED_OUTPUT,
-    SecurityMasterLoader,
     SecurityPerformanceLoader,
     SuppressionRule,
     TARGET_OUTPUT,
@@ -293,7 +291,7 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_demo_review_guidance_matches_current_bundle_shape(self) -> None:
         """Public docs describe report files as review surfaces and CSVs as audit aids."""
         root_readme = Path("README.md").read_text(encoding=util.ENCODING)
-        axys_readme = Path("ppar/demos/data/axys/README.md").read_text(
+        axys_readme = Path("ppar/demos/data/axys_performance_comparison/README.md").read_text(
             encoding=util.ENCODING
         )
         normalized_root_readme = " ".join(root_readme.split())
@@ -371,7 +369,7 @@ class TestPackageMetadata(unittest.TestCase):
         allowed_suffixes = {".csv", ".md", ".yaml"}
         axys_demo_files = [
             path
-            for path in Path("ppar/demos/data/axys").rglob("*")
+            for path in Path("ppar/demos/data/axys_performance_comparison").rglob("*")
             if path.is_file()
         ]
 
@@ -384,7 +382,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_axys_yaml_documents_seed_readiness_boundaries(self) -> None:
         """The packaged Axys YAML names preset-seed and guardrail boundaries."""
-        yaml_text = Path("ppar/demos/data/axys/axys_performance_comparison.yaml").read_text(
+        yaml_text = Path("ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml").read_text(
             encoding=util.ENCODING
         )
 
@@ -411,10 +409,10 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_axys_setup_documents_onboarding_path(self) -> None:
         """The packaged Axys setup stays action-oriented for site onboarding."""
-        setup_doc = Path("ppar/demos/data/axys/SETUP.md").read_text(
+        setup_doc = Path("ppar/demos/data/axys_performance_comparison/SETUP.md").read_text(
             encoding=util.ENCODING
         )
-        readme = Path("ppar/demos/data/axys/README.md").read_text(
+        readme = Path("ppar/demos/data/axys_performance_comparison/README.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -448,7 +446,7 @@ class TestPackageMetadata(unittest.TestCase):
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
         self.assertIn("Axys/APX Setup", readme)
-        self.assertIn("ppar/demos/data/axys/SETUP.md", readme)
+        self.assertIn("ppar/demos/data/axys_performance_comparison/SETUP.md", readme)
         self.assertIn("ppar setup ./my_site_extracts", readme)
         self.assertIn("ppar report ./my_site_extracts", readme)
         self.assertIn("ppar.yaml", readme)
@@ -458,7 +456,7 @@ class TestPackageMetadata(unittest.TestCase):
         """The site extract-contract starter template remains linked from docs."""
         template_path = Path("docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml")
         source_contract = Path("docs/performance_comparison_demo_source_contract.md")
-        demo_readme = Path("ppar/demos/data/axys/README.md")
+        demo_readme = Path("ppar/demos/data/axys_performance_comparison/README.md")
 
         self.assertTrue(template_path.exists())
         self.assertIn(
@@ -1171,7 +1169,7 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml = _load_yaml(
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
-        demo_yaml = _load_yaml(Path("ppar/demos/data/axys/axys_performance_comparison.yaml"))
+        demo_yaml = _load_yaml(Path("ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml"))
 
         matrix_codes = set(matrix_yaml["rows"])
         demo_codes = set(demo_yaml["transaction_rules"])
@@ -1184,7 +1182,7 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_codes = set(
-            _load_yaml(Path("ppar/demos/data/axys/axys_performance_comparison.yaml"))[
+            _load_yaml(Path("ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml"))[
                 "transaction_rules"
             ]
         )
@@ -1236,16 +1234,16 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_rule_codes = set(
-            _load_yaml(Path("ppar/demos/data/axys/axys_performance_comparison.yaml"))[
+            _load_yaml(Path("ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml"))[
                 "transaction_rules"
             ]
         )
         packaged_demo_data_codes = (
             _transaction_codes_in_csv(
-                Path("ppar/demos/data/axys/axys_full_spec_a/transactions.csv")
+                Path("ppar/demos/data/axys_performance_comparison/snapshot_a/transactions.csv")
             )
             | _transaction_codes_in_csv(
-                Path("ppar/demos/data/axys/axys_full_spec_b/transactions.csv")
+                Path("ppar/demos/data/axys_performance_comparison/snapshot_b/transactions.csv")
             )
         )
 
@@ -1385,7 +1383,7 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject["project"]["scripts"],
             {
                 "ppar": "ppar.cli:main",
-                "ppar-analytics-demo": "ppar.demos.analytics_demo:main",
+                "ppar-generic-analytics-demo": "ppar.demos.generic_analytics_demo:main",
                 "ppar-axys-analytics-demo": "ppar.demos.axys_analytics_demo:main",
                 "ppar-performance-comparison-setup": (
                     "ppar.performance_comparison.cli.setup:main"
@@ -1394,10 +1392,10 @@ class TestPackageMetadata(unittest.TestCase):
                     "ppar.performance_comparison.cli.site_report:main"
                 ),
                 "ppar-performance-comparison-portfolio-demo": (
-                    "ppar.demos.performance_comparison_portfolio_demo:main"
+                    "ppar.demos.axys_performance_comparison_portfolio_demo:main"
                 ),
                 "ppar-performance-comparison-security-demo": (
-                    "ppar.demos.performance_comparison_security_demo:main"
+                    "ppar.demos.axys_performance_comparison_security_demo:main"
                 ),
             },
         )
@@ -1407,8 +1405,8 @@ class TestPackageMetadata(unittest.TestCase):
         guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
 
         for expected_text in [
-            "ppar.demos.performance_comparison_portfolio_demo",
-            "ppar.demos.performance_comparison_security_demo",
+            "ppar.demos.axys_performance_comparison_portfolio_demo",
+            "ppar.demos.axys_performance_comparison_security_demo",
             "ppar.performance_comparison.cli.validate_bundle",
             "ppar.performance_comparison.cli.validate_config",
             "ppar.performance_comparison.cli.validate_demo_matrix",
@@ -1436,7 +1434,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_readme_uses_current_report_sheet_names(self) -> None:
         """The packaged Axys README names the current workbook review path."""
-        readme = Path("ppar/demos/data/axys/README.md").read_text(
+        readme = Path("ppar/demos/data/axys_performance_comparison/README.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -1465,8 +1463,8 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "ppar.demos.performance_comparison_portfolio_demo",
-            "ppar.demos.performance_comparison_security_demo",
+            "ppar.demos.axys_performance_comparison_portfolio_demo",
+            "ppar.demos.axys_performance_comparison_security_demo",
             "_demo_output/performance_comparison_portfolio",
             "_demo_output/performance_comparison_security",
             "report.xlsx",
@@ -1484,57 +1482,57 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_resources_are_packaged(self) -> None:
         """The Axys demos use packaged resources instead of test fixtures."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
+        demo_data = files("ppar.demos.data")
+        axys_analytics_data = demo_data / "axys_analytics"
+        axys_demo_data = demo_data / "axys_performance_comparison"
         expected_resources = (
             "README.md",
             "SETUP.md",
             "axys_column_mappings.yaml",
-            "axys_analytics.yaml",
             "axys_performance_comparison.yaml",
-            "axys_analytics/portperf.csv",
-            "axys_analytics/secperf.csv",
-            "axys_analytics/sec_ref.csv",
-            "axys_full_spec_a/portperf.csv",
-            "axys_full_spec_a/sec_ref.csv",
-            "axys_full_spec_b/transactions.csv",
-            "axys_full_spec_b/sec_ref.csv",
+            "snapshot_a/portperf.csv",
+            "snapshot_b/transactions.csv",
         )
 
         for resource_path in expected_resources:
             with self.subTest(resource_path=resource_path):
                 self.assertTrue((axys_demo_data / resource_path).is_file())
+        for resource_path in (
+            "axys_analytics.yaml",
+            "portperf.csv",
+            "secperf.csv",
+        ):
+            with self.subTest(resource_path=f"axys_analytics/{resource_path}"):
+                self.assertTrue((axys_analytics_data / resource_path).is_file())
 
     def test_public_demo_entrypoints_use_packaged_resources(self) -> None:
         """Installed demo entrypoints read bundled resources, not repo paths."""
         demo_modules = (
             Path("ppar/demos/axys_analytics_demo.py"),
-            Path("ppar/demos/performance_comparison_portfolio_demo.py"),
-            Path("ppar/demos/performance_comparison_security_demo.py"),
+            Path("ppar/demos/axys_performance_comparison_portfolio_demo.py"),
+            Path("ppar/demos/axys_performance_comparison_security_demo.py"),
         )
 
         for path in demo_modules:
             text = path.read_text(encoding=util.ENCODING)
             with self.subTest(path=path.as_posix()):
-                self.assertIn('files("ppar.demos.data") / "axys"', text)
+                self.assertIn('files("ppar.demos.data")', text)
                 self.assertIn("as_file(", text)
-                self.assertNotIn('Path("ppar/demos/data/axys")', text)
+                self.assertNotIn('Path("ppar/demos/data/axys_performance_comparison")', text)
                 self.assertNotIn("tests/data/axys", text)
 
     def test_axys_portfolio_demo_uses_operational_mega_cap_data(self) -> None:
         """The user-facing comparison demo packages the promoted operational data."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
         holdings_path = Path(
-            str(axys_demo_data / "axys_full_spec_a" / "holdings.csv")
+            str(axys_demo_data / "snapshot_a" / "holdings.csv")
         )
-        portperf_path = Path(str(axys_demo_data / "axys_full_spec_a" / "portperf.csv"))
-        sec_ref_path = Path(str(axys_demo_data / "axys_full_spec_a" / "sec_ref.csv"))
+        portperf_path = Path(str(axys_demo_data / "snapshot_a" / "portperf.csv"))
 
         with portperf_path.open(encoding=util.ENCODING, newline="") as file:
             portfolio_codes = {row["PORTFOLIO_CODE"] for row in csv.DictReader(file)}
         with holdings_path.open(encoding=util.ENCODING, newline="") as file:
             holding_ids = {row["SEC"] for row in csv.DictReader(file)}
-        with sec_ref_path.open(encoding=util.ENCODING, newline="") as file:
-            security_ids = {row["SECURITY_ID"] for row in csv.DictReader(file)}
 
         self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
         self.assertIn("AAPL", holding_ids)
@@ -1543,13 +1541,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("TBILL13W", holding_ids)
         self.assertIn("TNOTE2Y", holding_ids)
         self.assertIn("TNOTE5Y", holding_ids)
-        self.assertTrue(holding_ids.issubset(security_ids))
 
     def test_axys_demo_changed_transactions_have_matching_holdings(self) -> None:
         """Material transaction demo changes have matching month-end holdings evidence."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
-        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
+        snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
 
         transactions_a = _demo_transactions_by_natural_key(snapshot_a)
         transactions_b = _demo_transactions_by_natural_key(snapshot_b)
@@ -1610,8 +1607,8 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_buy_transaction_amounts_include_commission(self) -> None:
         """Packaged buy rows use a stable signed cash-amount convention."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot=snapshot_name):
                 snapshot = Path(str(axys_demo_data / snapshot_name))
                 with (snapshot / "transactions.csv").open(
@@ -1634,9 +1631,9 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_fee_transactions_reduce_cash_and_income(self) -> None:
         """Packaged fee changes reduce ending cash and cash security income."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
-        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
+        snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("INCOME", "2026-01-20", "CASH_USD", "dp")
         cash_holding_key = ("INCOME", "CASH_USD", "2026-01-30")
         cash_performance_key = (
@@ -1687,10 +1684,10 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
     def test_axys_demo_omits_synthetic_future_splits(self) -> None:
-        """Packaged full-spec demo avoids fictional future split transactions."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
-        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        """Packaged comparison demo avoids fictional future split transactions."""
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
+        snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
 
         transactions_a = _demo_transactions_by_natural_key(snapshot_a)
         transactions_b = _demo_transactions_by_natural_key(snapshot_b)
@@ -1705,9 +1702,9 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_withdrawal_changes_cash_and_flow_return(self) -> None:
         """Packaged withdrawal changes cash, flow, and reconstructed return."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
-        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
+        snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         transaction_key = ("ALPHA", "2026-01-20", "CASH_USD", "wd")
         cash_holding_key = ("ALPHA", "CASH_USD", "2026-01-30")
         cash_performance_key = (
@@ -1793,8 +1790,8 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_security_performance_reconciles_to_holdings(self) -> None:
         """Security performance demo rows stay consistent with holdings."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot=snapshot_name):
                 snapshot = Path(str(axys_demo_data / snapshot_name))
                 holdings = _csv_rows_by_key(
@@ -1842,13 +1839,13 @@ class TestPackageMetadata(unittest.TestCase):
         self,
     ) -> None:
         """Portfolio demo performance rows match configured reconstruction rules."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
         comparison_path = Path(str(axys_demo_data / "axys_performance_comparison.yaml"))
         checks = _reconstruction_rows_by_key(
             portfolio_return_reconstruction_checks(comparison_path),
             ("portfolio_id", "from_date", "thru_date"),
         )
-        for snapshot_name in ("axys_full_spec_a", "axys_full_spec_b"):
+        for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot=snapshot_name):
                 snapshot = Path(str(axys_demo_data / snapshot_name))
                 portperf = _csv_rows_by_key(
@@ -1912,9 +1909,9 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_security_return_deltas_match_reconstruction(self) -> None:
         """Security demo return deltas match configured reconstruction rules."""
-        axys_demo_data = files("ppar.demos.data") / "axys"
-        snapshot_a = Path(str(axys_demo_data / "axys_full_spec_a"))
-        snapshot_b = Path(str(axys_demo_data / "axys_full_spec_b"))
+        axys_demo_data = files("ppar.demos.data") / "axys_performance_comparison"
+        snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
+        snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
         holdings_a = _csv_rows_by_key(
             snapshot_a / "holdings.csv",
             ("PORT", "SEC", "HOLDING_DATE"),
@@ -2007,7 +2004,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_axys_demo_readme_documents_field_role_model(self) -> None:
         """The packaged Axys demo README describes the user-facing role model."""
-        matrix = Path("ppar/demos/data/axys/README.md").read_text(encoding=util.ENCODING)
+        matrix = Path("ppar/demos/data/axys_performance_comparison/README.md").read_text(encoding=util.ENCODING)
         expected_terms = {
             "performance_input",
             "input_component",
@@ -2209,7 +2206,6 @@ class TestPackageMetadata(unittest.TestCase):
             "HoldingsLoader": HoldingsLoader,
             "REPORT_BUNDLE_REQUIRED_ARTIFACTS": REPORT_BUNDLE_REQUIRED_ARTIFACTS,
             "SecurityPerformanceLoader": SecurityPerformanceLoader,
-            "SecurityMasterLoader": SecurityMasterLoader,
             "SuppressionRule": SuppressionRule,
             "RELATED_OUTPUT": RELATED_OUTPUT,
             "TARGET_OUTPUT": TARGET_OUTPUT,

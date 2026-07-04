@@ -18,7 +18,13 @@ _GENERATOR_PATH = (
     _REPO_ROOT / "scripts" / "operational_demo_data" / "derive_operational_demo_data.py"
 )
 _SOURCE_PATH = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "performance" / "Mega-Cap Alpha Portfolio.csv"
+    _REPO_ROOT
+    / "ppar"
+    / "demos"
+    / "data"
+    / "generic_analytics"
+    / "performance"
+    / "Mega-Cap Alpha Portfolio.csv"
 )
 
 

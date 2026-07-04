@@ -66,12 +66,6 @@ class FxRateImpactMethod(StrEnum):
     EVIDENCE_ONLY = "evidence_only"
 
 
-class SecurityMasterImpactMethod(StrEnum):
-    """Supported `security_master_impact_methods` YAML method names."""
-
-    EVIDENCE_ONLY = "evidence_only"
-
-
 class ModifiedDietzFlowTiming(StrEnum):
     """Supported Modified Dietz flow date source options."""
 

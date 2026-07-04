@@ -2,16 +2,16 @@
 # PPAR Axys Analytics Demo Configuration
 # =========================
 # This configuration reads Axys-shaped exports derived from the same canonical
-# Mega-Cap analytics demo data used by ppar.demos.analytics_demo.
+# Mega-Cap analytics demo data used by ppar.demos.generic_analytics_demo.
 
 defaults:
   from_date: 2021-06-01
   thru_date: 2026-05-29
   classification: Economic Sector
 
-portfolio_performance_path: axys_analytics/portperf.csv
-security_performance_path: axys_analytics/secperf.csv
-security_master_path: axys_analytics/sec_ref.csv
+portfolio_performance_path: portperf.csv
+security_performance_path: secperf.csv
+security_master_path: secperf.csv
 
 mappings:
   Economic Sector:

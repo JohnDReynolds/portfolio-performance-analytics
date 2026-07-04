@@ -58,7 +58,7 @@ _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/axys_performance_comparison.yaml"
+    "ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
@@ -574,8 +574,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 set(manifest),
                 set(required_manifest_keys),
             )
-            self.assertEqual(manifest["counts"]["findings"], 16)
-            self.assertEqual(manifest["counts"]["active_findings"], 16)
+            self.assertEqual(manifest["counts"]["findings"], 13)
+            self.assertEqual(manifest["counts"]["active_findings"], 13)
             self.assertEqual(manifest["options"]["top_evidence_limit"], 2)
             self.assertFalse(
                 manifest["options"]["include_reconstruction_diagnostics"]
@@ -647,8 +647,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
-            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 5)
-            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 5)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
 
             review_summary = json.loads(
                 paths["review_summary"].read_text(encoding="utf-8")
@@ -766,7 +766,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(impact_coverage["impact_coverage_status"][0], "partial_estimates")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
-            self.assertEqual(context_evidence.height, 5)
+            self.assertEqual(context_evidence.height, 2)
             self.assertIn("review_key", context_evidence.columns)
             self.assertIn("context_use", context_evidence.columns)
             self.assertIn("review_priority", context_evidence.columns)
@@ -780,7 +780,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
 
             context_evidence_summary = pl.read_csv(paths["context_evidence_summary"])
-            self.assertEqual(context_evidence_summary.height, 5)
+            self.assertEqual(context_evidence_summary.height, 2)
             self.assertIn("review_priority", context_evidence_summary.columns)
             self.assertIn("review_priority_reason", context_evidence_summary.columns)
             self.assertIn("finding_count", context_evidence_summary.columns)
@@ -836,7 +836,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             extract_contract["path"],
-            "packaged:ppar.demos.data.axys/demo_extract_availability.yaml",
+            "packaged:ppar.demos.data/axys_performance_comparison/"
+            "demo_extract_availability.yaml",
         )
         self.assertTrue(extract_contract["enforce_ambiguous_axys_flows"])
         self.assertIn(

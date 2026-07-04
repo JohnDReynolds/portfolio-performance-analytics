@@ -16,9 +16,9 @@ _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axys/axys_performance_comparison.yaml"
+    "ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml"
 )
-_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys")
+_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axys_performance_comparison")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
 _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"
@@ -311,9 +311,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             manifest = json.loads(
                 (output_directory / "manifest.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["counts"]["findings"], 16)
-            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 5)
-            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 5)
+            self.assertEqual(manifest["counts"]["findings"], 13)
+            self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
+            self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(
                 manifest["artifacts"]["context_evidence"],
@@ -463,7 +463,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Contribution impact methods: none", result.stdout)
         self.assertIn("Cash impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: none", result.stdout)
-        self.assertIn("Security master impact methods: none", result.stdout)
         self.assertIn("Transaction rules configured: 11", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
@@ -616,11 +615,11 @@ def _copy_site_snapshots(directory: Path) -> Path:
     """Copy packaged demo snapshots into a setup-style site folder."""
     site_directory = directory / "my_site_extracts"
     shutil.copytree(
-        _PACKAGED_AXYS_DATA_PATH / "axys_full_spec_a",
+        _PACKAGED_AXYS_DATA_PATH / "snapshot_a",
         site_directory / "snapshot_a",
     )
     shutil.copytree(
-        _PACKAGED_AXYS_DATA_PATH / "axys_full_spec_b",
+        _PACKAGED_AXYS_DATA_PATH / "snapshot_b",
         site_directory / "snapshot_b",
     )
     return site_directory

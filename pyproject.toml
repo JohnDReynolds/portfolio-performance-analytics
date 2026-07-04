@@ -71,12 +71,12 @@ dev = [
 [project.scripts]
 # Console entry points installed with the package.
 ppar = "ppar.cli:main"
-ppar-analytics-demo = "ppar.demos.analytics_demo:main"
+ppar-generic-analytics-demo = "ppar.demos.generic_analytics_demo:main"
 ppar-axys-analytics-demo = "ppar.demos.axys_analytics_demo:main"
 ppar-performance-comparison-setup = "ppar.performance_comparison.cli.setup:main"
 ppar-performance-comparison-report = "ppar.performance_comparison.cli.site_report:main"
-ppar-performance-comparison-portfolio-demo = "ppar.demos.performance_comparison_portfolio_demo:main"
-ppar-performance-comparison-security-demo = "ppar.demos.performance_comparison_security_demo:main"
+ppar-performance-comparison-portfolio-demo = "ppar.demos.axys_performance_comparison_portfolio_demo:main"
+ppar-performance-comparison-security-demo = "ppar.demos.axys_performance_comparison_security_demo:main"
 
 [tool.mypy]
 python_version = "3.12"
@@ -128,13 +128,6 @@ packages = [
     "ppar.analytics",
     "ppar.axys",
     "ppar.demos.data",
-    "ppar.demos.data.axys",
-    "ppar.demos.data.axys.axys_analytics",
-    "ppar.demos.data.axys.axys_full_spec_a",
-    "ppar.demos.data.axys.axys_full_spec_b",
-    "ppar.demos.data.classifications",
-    "ppar.demos.data.mappings",
-    "ppar.demos.data.performance",
     "ppar.demos",
     "ppar.performance_comparison",
     "ppar.performance_comparison.cli",
@@ -149,13 +142,15 @@ include-package-data = true
 ppar = [
     "py.typed",
     "demos/data/*.md",
-    "demos/data/classifications/*.csv",
-    "demos/data/mappings/*.csv",
-    "demos/data/performance/*.csv",
-    "demos/data/axys/*.yaml",
-    "demos/data/axys/*.md",
-    "demos/data/axys/*/*.csv",
-    "demos/data/axys/*/*.md",
+    "demos/data/generic_analytics/classifications/*.csv",
+    "demos/data/generic_analytics/mappings/*.csv",
+    "demos/data/generic_analytics/performance/*.csv",
+    "demos/data/axys_analytics/*.yaml",
+    "demos/data/axys_analytics/*.csv",
+    "demos/data/axys_performance_comparison/*.yaml",
+    "demos/data/axys_performance_comparison/*.md",
+    "demos/data/axys_performance_comparison/*/*.csv",
+    "demos/data/axys_performance_comparison/*/*.md",
 ]
 
 [project.urls]

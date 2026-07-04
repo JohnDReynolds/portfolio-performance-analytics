@@ -79,7 +79,6 @@ from ppar.performance_comparison.policies import (
     _modified_dietz_external_flow_eligibility,
     _holding_impact_policies,
     _price_impact_policies,
-    _security_master_impact_policies,
     _security_return_impact_policies,
     _transaction_impact_policies,
 )
@@ -91,7 +90,6 @@ from ppar.performance_comparison.portfolio_performance import PortfolioPerforman
 from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
-from ppar.performance_comparison.security_master import SecurityMasterLoader
 from ppar.performance_comparison.specification import (
     SECURITY_COMPARISON_LEVEL,
     PerformanceComparisonSpecification,
@@ -115,7 +113,6 @@ _SECURITY_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
     pc_cols.FROM_DATE,
     pc_cols.THRU_DATE,
 )
-_SECURITY_MASTER_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.SECURITY_ID,)
 _HOLDINGS_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
     pc_cols.SECURITY_ID,
@@ -162,17 +159,6 @@ _SECURITY_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.SECURITY_RETURN: PC_SEC_RET,
     pc_cols.WEIGHT: PC_SEC_WGT,
     pc_cols.CONTRIBUTION: PC_SEC_CONTR,
-}
-_SECURITY_MASTER_COMPARE_COLUMNS: Final[dict[str, str]] = {
-    pc_cols.SECURITY_NAME: PC_REF_ID,
-    pc_cols.TICKER: PC_REF_ID,
-    pc_cols.CUSIP: PC_REF_ID,
-    pc_cols.ISIN: PC_REF_ID,
-    pc_cols.CURRENCY: PC_REF_ID,
-    pc_cols.COUNTRY: PC_REF_CLASS,
-    pc_cols.SECTOR: PC_REF_CLASS,
-    pc_cols.INDUSTRY: PC_REF_CLASS,
-    pc_cols.ASSET_CLASS: PC_REF_CLASS,
 }
 _HOLDINGS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.QUANTITY: PC_HOLD_QTY,
@@ -242,7 +228,6 @@ class PerformanceComparison:
         _specification: Parsed comparison specification.
         _portfolio_loader: Loader for normalized portfolio performance rows.
         _security_loader: Loader for normalized security performance rows.
-        _security_master_loader: Loader for normalized security master rows.
         _holdings_loader: Loader for normalized holding rows.
         _cash_loader: Loader for normalized cash rows.
         _fx_rates_loader: Loader for normalized FX rate rows.
@@ -259,8 +244,6 @@ class PerformanceComparison:
             by source column.
         _fx_rate_impact_policies: YAML-configured FX rate impact policy labels
             keyed by source column.
-        _security_master_impact_policies: YAML-configured security master
-            impact policy labels keyed by source column.
         _evidence_only_impact_policies: YAML-configured evidence-only policy
             labels keyed by dataset and source column.
     """
@@ -274,7 +257,6 @@ class PerformanceComparison:
         self._specification = specification
         self._portfolio_loader = PortfolioPerformanceLoader(specification)
         self._security_loader = SecurityPerformanceLoader(specification)
-        self._security_master_loader = SecurityMasterLoader(specification)
         self._holdings_loader = HoldingsLoader(specification)
         self._cash_loader = CashLoader(specification)
         self._fx_rates_loader = FxRatesLoader(specification)
@@ -292,9 +274,6 @@ class PerformanceComparison:
         self._price_impact_policies = _price_impact_policies(specification)
         self._cash_impact_policies = _cash_impact_policies(specification)
         self._fx_rate_impact_policies = _fx_rate_impact_policies(specification)
-        self._security_master_impact_policies = _security_master_impact_policies(
-            specification
-        )
         self._evidence_only_impact_policies = _evidence_only_impact_policies(
             specification
         )
@@ -320,7 +299,6 @@ class PerformanceComparison:
             shared source-data findings.
         """
         findings = self._primary_performance_findings()
-        findings.extend(self.compare_security_master())
         findings.extend(self.compare_holdings())
         findings.extend(self.compare_cash())
         findings.extend(self.compare_fx_rates())
@@ -363,40 +341,6 @@ class PerformanceComparison:
                 _SECURITY_KEY_COLUMNS,
                 _SECURITY_COMPARE_COLUMNS,
                 pc_cols.SECURITY_PERFORMANCE,
-            )
-        )
-        return findings
-
-    def compare_security_master(self) -> list[Finding]:
-        """Compare security master rows for snapshots A and B.
-
-        Returns:
-            Findings for added/dropped rows and changed security reference or
-            classification fields. Returns an empty list when the optional
-            security master dataset is unavailable.
-        """
-        snapshot_a = self._security_master_loader.load("a")
-        snapshot_b = self._security_master_loader.load("b")
-        if snapshot_a is None or snapshot_b is None:
-            return []
-
-        findings = self._row_presence_findings(
-            snapshot_a,
-            snapshot_b,
-            _SECURITY_MASTER_KEY_COLUMNS,
-            PC_ROW_ADD,
-            PC_ROW_DROP,
-            pc_cols.SECURITY_MASTER,
-            "Security master row appears only in snapshot B.",
-            "Security master row appears only in snapshot A.",
-        )
-        findings.extend(
-            self._changed_object_findings(
-                snapshot_a,
-                snapshot_b,
-                _SECURITY_MASTER_KEY_COLUMNS,
-                _SECURITY_MASTER_COMPARE_COLUMNS,
-                pc_cols.SECURITY_MASTER,
             )
         )
         return findings
@@ -1855,10 +1799,6 @@ class PerformanceComparison:
         """Return the evidence role for one changed-value finding."""
         if _field_roles.is_context(dataset, source_column):
             return CONTEXT
-        if dataset == pc_cols.SECURITY_MASTER and _is_evidence_only_policy_label(
-            impact_policy
-        ):
-            return DIRECT_INPUT
         return self._evidence_role(code, dataset, source_column)
 
     @staticmethod
@@ -1923,10 +1863,6 @@ class PerformanceComparison:
                 return policy
         if dataset == pc_cols.FX_RATES:
             policy = self._fx_rate_impact_policies.get(source_column)
-            if policy is not None:
-                return policy
-        if dataset == pc_cols.SECURITY_MASTER:
-            policy = self._security_master_impact_policies.get(source_column)
             if policy is not None:
                 return policy
         if _field_roles.is_reported_performance_component(dataset, source_column):

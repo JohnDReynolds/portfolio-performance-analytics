@@ -12,7 +12,7 @@ from pandas.tseries.offsets import BMonthEnd
 import generate_mega_cap_analytics_demo_data as generator
 
 
-WORKSPACE: Final = Path("_demo_output") / "analytics_data_generation"
+WORKSPACE: Final = Path("_demo_output") / "generic_analytics_data_generation"
 CACHE_DIRECTORY: Final = WORKSPACE / "cache" / "oef"
 OUTPUT_DIRECTORY: Final = WORKSPACE / "generated_oef_files"
 

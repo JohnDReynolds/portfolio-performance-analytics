@@ -12,7 +12,12 @@ import yaml
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[1]
 _DEFAULT_CONTRACT_PATH: Final = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axys" / "demo_extract_availability.yaml"
+    _REPO_ROOT
+    / "ppar"
+    / "demos"
+    / "data"
+    / "axys_performance_comparison"
+    / "demo_extract_availability.yaml"
 )
 _DEFAULT_OUTPUT_PATH: Final = (
     _REPO_ROOT
@@ -134,11 +139,11 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "# Demo Extract Availability Contract",
         "",
         "Repository: AXYS / APX Reference Repository",
-        "Scope: `ppar/demos/data/axys/axys_full_spec_a` and",
-        "`ppar/demos/data/axys/axys_full_spec_b`",
+        "Scope: `ppar/demos/data/axys_performance_comparison/snapshot_a` and",
+        "`ppar/demos/data/axys_performance_comparison/snapshot_b`",
         "Status: Draft confidence matrix generated from the packaged YAML contract.",
         "",
-        "<!-- GENERATED FROM ppar/demos/data/axys/demo_extract_availability.yaml. -->",
+        "<!-- GENERATED FROM ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml. -->",
         "<!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->",
         "",
         "---",
@@ -150,15 +155,15 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "and/or REP-style report extracts.",
         "",
         "The machine-readable source of truth is "
-        "`ppar/demos/data/axys/demo_extract_availability.yaml`. Tests verify "
-        "that the YAML covers every packaged full-spec Axys demo CSV header and "
+        "`ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`. Tests verify "
+        "that the YAML covers every packaged comparison demo CSV header and "
         "that this contract is current.",
         "",
         "The packaged demo files are normalized demo extracts. They are not "
         "official Axys schemas, not universal IMEX profiles, and not claims that "
         "every Axys site can export every field with these exact names.",
         "",
-        "The two full-spec snapshots currently use the same file layouts:",
+        "The two packaged snapshots currently use the same file layouts:",
         "",
         *[f"- `{dataset_name}`" for dataset_name in datasets],
         "",

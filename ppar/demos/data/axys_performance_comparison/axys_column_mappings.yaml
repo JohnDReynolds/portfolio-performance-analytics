@@ -35,7 +35,7 @@ defaults:
 # Portfolio Performance Export
 # =========================
 # Path to the Axys portfolio-level performance export.
-portfolio_performance_path: axys_full_spec_a/portperf.csv
+portfolio_performance_path: snapshot_a/portperf.csv
 
 # Optional: Portfolio Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -62,7 +62,7 @@ portfolio_performance_path: axys_full_spec_a/portperf.csv
 # Security Performance Export
 # =========================
 # Path to the Axys security-level performance export.
-security_performance_path: axys_full_spec_a/secperf.csv
+security_performance_path: snapshot_a/secperf.csv
 
 # Optional: Security Performance Column Overrides
 # Usually this section can be omitted. Add it only if your Axys export uses
@@ -75,7 +75,7 @@ security_performance_path: axys_full_spec_a/secperf.csv
 #   # Last date in the security performance period.
 #   thru_date: THRU_DATE
 #
-#   # Security identifier used in the security master.
+#   # Security identifier used in the security performance rows.
 #   identifier: SECURITY_ID
 #
 #   # Axys account code.
@@ -89,23 +89,6 @@ security_performance_path: axys_full_spec_a/secperf.csv
 #
 #   # Security contribution for the period.
 #   contribution: CONTRIBUTION
-
-# =========================
-# Security Master
-# =========================
-# Path to the Axys security master or security reference export.
-security_master_path: axys_full_spec_a/sec_ref.csv
-
-# Optional: Security Master Column Overrides
-# Usually this section can be omitted. Add it only if your Axys export uses
-# column names PPAR cannot infer.
-#
-# security_master_columns:
-#   # Security identifier matched to security performance rows.
-#   identifier_column: SECURITY_ID
-#
-#   # Security display name used in reports.
-#   name_column: SECURITY_NAME
 
 # =========================
 # Mappings

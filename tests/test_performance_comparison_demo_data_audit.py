@@ -55,16 +55,18 @@ _PACKAGED_COMPARISON_PATH = (
     / "ppar"
     / "demos"
     / "data"
-    / "axys"
+    / "axys_performance_comparison"
     / "axys_performance_comparison.yaml"
 )
 _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 )
-_PACKAGED_AXYS_DIRECTORY = _REPO_ROOT / "ppar" / "demos" / "data" / "axys"
+_PACKAGED_AXYS_DIRECTORY = (
+    _REPO_ROOT / "ppar" / "demos" / "data" / "axys_performance_comparison"
+)
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
 _PACKAGED_RESTATEMENT_NOTES_PATH = (
-    _PACKAGED_AXYS_DIRECTORY / "axys_full_spec_b" / "RESTATEMENT_NOTES.md"
+    _PACKAGED_AXYS_DIRECTORY / "snapshot_b" / "RESTATEMENT_NOTES.md"
 )
 _DEMO_EXTRACT_AVAILABILITY_PATH = (
     _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
@@ -247,7 +249,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             / "performance_comparison_transaction_scenarios.csv"
         )
 
-        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+        for snapshot_directory in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot_directory=snapshot_directory):
                 transactions = pd.read_csv(
                     _PACKAGED_AXYS_DIRECTORY
@@ -317,11 +319,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         datasets = availability["datasets"]
         expected_files = {
             path.name
-            for path in (_PACKAGED_AXYS_DIRECTORY / "axys_full_spec_a").glob("*.csv")
+            for path in (_PACKAGED_AXYS_DIRECTORY / "snapshot_a").glob("*.csv")
         }
         self.assertEqual(set(datasets), expected_files)
 
-        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+        for snapshot_directory in ("snapshot_a", "snapshot_b"):
             snapshot_path = _PACKAGED_AXYS_DIRECTORY / snapshot_directory
             for file_name in sorted(expected_files):
                 header = list(pd.read_csv(snapshot_path / file_name, nrows=0).columns)
@@ -423,7 +425,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_transaction_rules_cover_ambiguous_axys_codes(self) -> None:
         """Packaged demo YAML covers observed and ambiguous Axys source codes."""
         observed_codes: set[str] = set()
-        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+        for snapshot_directory in ("snapshot_a", "snapshot_b"):
             transactions = pd.read_csv(
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
@@ -529,7 +531,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_transaction_codes_stay_reviewer_realistic(self) -> None:
         """Packaged transaction rows avoid synthetic semantic edge cases."""
-        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+        for snapshot_directory in ("snapshot_a", "snapshot_b"):
             transactions = pd.read_csv(
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
@@ -540,7 +542,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
     def test_packaged_demo_has_no_unevidenced_corporate_action_rows(self) -> None:
         """User-facing corporate actions require real-world evidence first."""
-        for snapshot_directory in ("axys_full_spec_a", "axys_full_spec_b"):
+        for snapshot_directory in ("snapshot_a", "snapshot_b"):
             transactions = pd.read_csv(
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
@@ -557,8 +559,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         specification = PerformanceComparisonSpecification(_PACKAGED_COMPARISON_PATH)
 
         for snapshot_key, snapshot_directory in (
-            ("a", "axys_full_spec_a"),
-            ("b", "axys_full_spec_b"),
+            ("a", "snapshot_a"),
+            ("b", "snapshot_b"),
         ):
             with self.subTest(snapshot_key=snapshot_key):
                 transactions = pd.read_csv(
@@ -715,9 +717,6 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertEqual(cause_fields, _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS)
         self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
-        self.assertFalse(
-            any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in cause_fields)
-        )
 
     def test_packaged_demo_audit_fields_match_source_contract(self) -> None:
         """Cost remains audit evidence, not an additive performance cause."""
@@ -733,9 +732,6 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertIn((pc_cols.HOLDINGS, pc_cols.COST), raw_fields)
         self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
-        self.assertFalse(
-            any(dataset == pc_cols.SECURITY_MASTER for dataset, _field in cause_fields)
-        )
 
     def test_packaged_demo_accrual_changes_are_performance_causes(self) -> None:
         """Configured accrual amount changes remain performance-cause rows."""
@@ -829,13 +825,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         snapshots = {snapshot["snapshot"]: snapshot for snapshot in summary["snapshots"]}
 
-        self.assertEqual(snapshots["axys_full_spec_a"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["axys_full_spec_b"]["max_transaction_numeric_delta"], 0.0)
-        self.assertFalse(snapshots["axys_full_spec_b"]["has_transaction_field_drift"])
-        self.assertEqual(snapshots["axys_full_spec_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_scenario_rows"], 12)
+        self.assertEqual(snapshots["snapshot_a"]["max_holdings_numeric_delta"], 0.0)
+        self.assertEqual(snapshots["snapshot_b"]["max_transaction_numeric_delta"], 0.0)
+        self.assertFalse(snapshots["snapshot_b"]["has_transaction_field_drift"])
+        self.assertEqual(snapshots["snapshot_b"]["max_holdings_numeric_delta"], 0.0)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 12)
         self.assertEqual(
-            snapshots["axys_full_spec_b"]["transaction_scenarios_by_type"],
+            snapshots["snapshot_b"]["transaction_scenarios_by_type"],
             {
                 "by": 2,
                 "dp": 1,
@@ -849,9 +845,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["axys_full_spec_b"]["transaction_derived_holding_rows"], 16)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 16)
         self.assertEqual(
-            snapshots["axys_full_spec_b"]["transaction_derived_holdings_by_type"],
+            snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 4,
                 "dp": 1,
@@ -865,9 +861,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["axys_full_spec_b"]["holding_scenario_rows"], 7)
+        self.assertEqual(snapshots["snapshot_b"]["holding_scenario_rows"], 7)
         self.assertEqual(
-            snapshots["axys_full_spec_b"]["holding_scenarios_by_type"],
+            snapshots["snapshot_b"]["holding_scenarios_by_type"],
             {
                 "accrual_correction": 1,
                 "cash_balance_correction": 1,
@@ -876,8 +872,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "valuation_mark": 3,
             },
         )
-        self.assertFalse(snapshots["axys_full_spec_b"]["has_transaction_drift"])
-        self.assertFalse(snapshots["axys_full_spec_b"]["has_holdings_drift"])
+        self.assertFalse(snapshots["snapshot_b"]["has_transaction_drift"])
+        self.assertFalse(snapshots["snapshot_b"]["has_holdings_drift"])
 
     def test_remaining_holding_scenarios_are_classified(self) -> None:
         """Residual holding scenarios have explicit scenario types."""
@@ -887,7 +883,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             rebuild_module._DEFAULT_HOLDING_SCENARIOS_PATH,
         )
         type_counts = {}
-        for adjustment in scenarios.for_snapshot("axys_full_spec_b"):
+        for adjustment in scenarios.for_snapshot("snapshot_b"):
             type_counts[adjustment.scenario_type] = (
                 type_counts.get(adjustment.scenario_type, 0) + 1
             )
@@ -909,7 +905,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         summary = {
             "snapshots": [
                 {
-                    "snapshot": "axys_full_spec_b",
+                    "snapshot": "snapshot_b",
                     "transaction_scenarios_by_type": {"by": 1},
                     "transaction_derived_holdings_by_type": {},
                     "holding_scenarios_by_type": {},
@@ -926,17 +922,17 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         """Transaction changes create the expected cash and security adjustments."""
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
-        base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
+        base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
         base_transactions = rebuild_module._read_packaged_transactions(
-            axys_directory / "axys_full_spec_a" / "transactions.csv"
+            axys_directory / "snapshot_a" / "transactions.csv"
         )
         rebuilt_transactions = rebuild_module._read_packaged_transactions(
-            axys_directory / "axys_full_spec_b" / "transactions.csv"
+            axys_directory / "snapshot_b" / "transactions.csv"
         )
-        periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")
+        periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
 
         adjustments = rebuild_module._transaction_derived_holding_adjustments(
-            "axys_full_spec_b",
+            "snapshot_b",
             base_holdings=base_holdings,
             base_transactions=base_transactions,
             current_transactions=rebuilt_transactions,
@@ -1082,7 +1078,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "bad_scenarios.csv"
-            path.write_text("snapshot,PORT\naxys_full_spec_b,ALPHA\n")
+            path.write_text("snapshot,PORT\nsnapshot_b,ALPHA\n")
 
             with self.assertRaisesRegex(ValueError, "columns must exactly match"):
                 rebuild_module._load_holding_scenarios(path)
@@ -1092,7 +1088,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         rebuild_module = _load_rebuild_module()
         columns = ",".join(rebuild_module._HOLDING_SCENARIO_COLUMNS)
         row = (
-            "axys_full_spec_a,cash_balance_correction,ALPHA,CASH_USD,2026-01-30,"
+            "snapshot_a,cash_balance_correction,ALPHA,CASH_USD,2026-01-30,"
             "1,0,1,1,0,Invalid base adjustment\n"
         )
 
@@ -1108,7 +1104,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         rebuild_module = _load_rebuild_module()
         columns = ",".join(rebuild_module._HOLDING_SCENARIO_COLUMNS)
         row = (
-            "axys_full_spec_b,valuation_mark,ALPHA,AAPL,2026-05-29,"
+            "snapshot_b,valuation_mark,ALPHA,AAPL,2026-05-29,"
             "1,0,1,0,0,Invalid valuation mark quantity change\n"
         )
 
@@ -1125,7 +1121,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "bad_transaction_scenarios.csv"
-            path.write_text("snapshot,TRANSACTION_ID\naxys_full_spec_b,ALPHA0203\n")
+            path.write_text("snapshot,TRANSACTION_ID\nsnapshot_b,ALPHA0203\n")
 
             with self.assertRaisesRegex(ValueError, "columns must exactly match"):
                 rebuild_module._load_transaction_scenarios(path)
@@ -1139,7 +1135,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         }
         row.update(
             {
-                "snapshot": "axys_full_spec_a",
+                "snapshot": "snapshot_a",
                 "action": "adjust",
                 "TRANSACTION_ID": "ALPHA0203",
                 "QTY_delta": 0,
@@ -1164,11 +1160,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         """Explicit inserted li/lo rows can drive cash-flow scenarios."""
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
-        base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
+        base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
         base_transactions = rebuild_module._read_packaged_transactions(
-            axys_directory / "axys_full_spec_a" / "transactions.csv"
+            axys_directory / "snapshot_a" / "transactions.csv"
         )
-        periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")
+        periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
         scenario_rows = []
         for transaction_id, transaction_code, amount, scenario in (
             ("BALANCED0403", "li", 2500, "Test-only contribution insertion."),
@@ -1180,7 +1176,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             }
             row.update(
                 {
-                    "snapshot": "axys_full_spec_b",
+                    "snapshot": "snapshot_b",
                     "action": "insert",
                     "TRANSACTION_ID": transaction_id,
                     "PORT": "BALANCED",
@@ -1216,7 +1212,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             scenarios = rebuild_module._load_transaction_scenarios(path)
 
         rebuilt_transactions = rebuild_module._rebuild_transactions(
-            "axys_full_spec_b",
+            "snapshot_b",
             current_transactions=base_transactions,
             base_transactions=base_transactions,
             transaction_scenarios=scenarios,
@@ -1228,7 +1224,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(inserted["AMOUNT"].astype(float).to_list(), [2500.0, -900.0])
 
         adjustments = rebuild_module._transaction_derived_holding_adjustments(
-            "axys_full_spec_b",
+            "snapshot_b",
             base_holdings=base_holdings,
             base_transactions=base_transactions,
             current_transactions=rebuilt_transactions,
@@ -1254,11 +1250,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         """Explicit pa/sa rows can drive cash settlement scenarios."""
         rebuild_module = _load_rebuild_module()
         axys_directory = rebuild_module._DEFAULT_AXYS_DIRECTORY
-        base_holdings = pd.read_csv(axys_directory / "axys_full_spec_a" / "holdings.csv")
+        base_holdings = pd.read_csv(axys_directory / "snapshot_a" / "holdings.csv")
         base_transactions = rebuild_module._read_packaged_transactions(
-            axys_directory / "axys_full_spec_a" / "transactions.csv"
+            axys_directory / "snapshot_a" / "transactions.csv"
         )
-        periods = pd.read_csv(axys_directory / "axys_full_spec_b" / "portperf.csv")
+        periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
         scenario_rows = []
         for transaction_id, transaction_code, amount, scenario in (
             ("INCOME0604", "pa", -42.5, "Test-only purchase accrued interest."),
@@ -1270,7 +1266,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             }
             row.update(
                 {
-                    "snapshot": "axys_full_spec_b",
+                    "snapshot": "snapshot_b",
                     "action": "insert",
                     "TRANSACTION_ID": transaction_id,
                     "PORT": "INCOME",
@@ -1306,7 +1302,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             scenarios = rebuild_module._load_transaction_scenarios(path)
 
         rebuilt_transactions = rebuild_module._rebuild_transactions(
-            "axys_full_spec_b",
+            "snapshot_b",
             current_transactions=base_transactions,
             base_transactions=base_transactions,
             transaction_scenarios=scenarios,
@@ -1318,7 +1314,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(inserted["AMOUNT"].astype(float).to_list(), [-42.5, 37.25])
 
         adjustments = rebuild_module._transaction_derived_holding_adjustments(
-            "axys_full_spec_b",
+            "snapshot_b",
             base_holdings=base_holdings,
             base_transactions=base_transactions,
             current_transactions=rebuilt_transactions,

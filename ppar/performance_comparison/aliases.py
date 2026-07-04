@@ -58,33 +58,6 @@ SECURITY_PERFORMANCE_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
 }
 
-SECURITY_MASTER_REQUIRED_ALIASES: Final[ColumnAliases] = {
-    pc_cols.SECURITY_ID: SECURITY_PERFORMANCE_REQUIRED_ALIASES[pc_cols.SECURITY_ID],
-}
-SECURITY_MASTER_OPTIONAL_ALIASES: Final[ColumnAliases] = {
-    pc_cols.SECURITY_NAME: (
-        "SECURITY_NAME",
-        "DESC",
-        "DESCRIPTION",
-        "NAME",
-        "SEC_DESC",
-    ),
-    pc_cols.TICKER: ("TICKER", "SYMBOL", "TICKER_SYMBOL"),
-    pc_cols.CUSIP: ("CUSIP", "CUSIP_NO", "CUSIP_NUMBER"),
-    pc_cols.ISIN: ("ISIN",),
-    pc_cols.CURRENCY: ("CURRENCY_CODE", "CURRENCY", "CURR", "CCY", "LOCAL_CCY"),
-    pc_cols.COUNTRY: ("COUNTRY_CODE", "COUNTRY", "CNTRY", "ISSUE_COUNTRY"),
-    pc_cols.SECTOR: ("SECTOR_CODE", "SECTOR"),
-    pc_cols.INDUSTRY: ("INDUSTRY_CODE", "INDUSTRY", "IND"),
-    pc_cols.ASSET_CLASS: (
-        "ASSET_CLASS_CODE",
-        "ASSET_CLASS",
-        "SEC_TYPE",
-        "ASSET_TYPE",
-        "INV_TYPE",
-    ),
-}
-
 FX_RATES_REQUIRED_ALIASES: Final[ColumnAliases] = {
     pc_cols.FROM_CURRENCY: ("FROM_CURRENCY", "FROM_CCY", "BASE_CURRENCY", "BASE_CCY"),
     pc_cols.TO_CURRENCY: ("TO_CURRENCY", "TO_CCY", "QUOTE_CURRENCY", "QUOTE_CCY"),

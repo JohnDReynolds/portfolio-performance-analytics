@@ -49,7 +49,7 @@ Run the packaged portfolio demo when you want the portfolio-period reviewer-faci
 example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.performance_comparison_portfolio_demo
+./.venv/bin/python -m ppar.demos.axys_performance_comparison_portfolio_demo
 ```
 
 Output:
@@ -63,7 +63,7 @@ Run the packaged security demo when you want the security-period reviewer-facing
 example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.performance_comparison_security_demo
+./.venv/bin/python -m ppar.demos.axys_performance_comparison_security_demo
 ```
 
 Output:
@@ -101,8 +101,8 @@ differences from identifiable input differences and other evidence:
 
 Data used:
 
-- Snapshot A: `axys_full_spec_a`
-- Snapshot B: `axys_full_spec_b`
+- Snapshot A: `snapshot_a`
+- Snapshot B: `snapshot_b`
 - Files: Axys-style portfolio performance, security performance,
   transactions, holdings, and security reference data.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six

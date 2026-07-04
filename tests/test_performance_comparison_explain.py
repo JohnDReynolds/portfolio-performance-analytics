@@ -83,7 +83,6 @@ from ppar.performance_comparison.explain import (
     PRICE_DELTA,
     PRIORITY_SCORE,
     QUANTITY_DELTA,
-    REFERENCE_FINDING_COUNT,
     RECONCILIATION_STATUS,
     RECONCILIATION_STATUS_ALIGNED,
     RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA,
@@ -318,7 +317,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[CASH_FINDING_COUNT], 2)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
         self.assertEqual(row[FX_RATE_FINDING_COUNT], 0)
-        self.assertEqual(row[REFERENCE_FINDING_COUNT], 0)
         self.assertEqual(row[FINDING_COUNT], 12)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 
@@ -1323,11 +1321,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[SECURITY_FINDING_COUNT], 3)
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 6)
         self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 3)
-        self.assertEqual(row[CONTEXT_FINDING_COUNT], 3)
+        self.assertEqual(row[CONTEXT_FINDING_COUNT], 1)
         self.assertEqual(row[HOLDING_FINDING_COUNT], 4)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
-        self.assertEqual(row[REFERENCE_FINDING_COUNT], 2)
-        self.assertEqual(row[FINDING_COUNT], 12)
+        self.assertEqual(row[FINDING_COUNT], 10)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 
     def test_security_period_summary_tracks_suppressed_related_evidence(self) -> None:
@@ -1340,8 +1337,8 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertTrue(active_summary.row(0, named=True)[HAS_SUPPRESSED_FINDINGS])
         self.assertEqual(active_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 2)
         self.assertEqual(audit_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 3)
-        self.assertEqual(active_summary.row(0, named=True)[FINDING_COUNT], 11)
-        self.assertEqual(audit_summary.row(0, named=True)[FINDING_COUNT], 12)
+        self.assertEqual(active_summary.row(0, named=True)[FINDING_COUNT], 9)
+        self.assertEqual(audit_summary.row(0, named=True)[FINDING_COUNT], 10)
 
     def test_security_period_summary_returns_stable_empty_table(self) -> None:
         """No security return deltas produce an empty stable summary."""
@@ -1364,11 +1361,11 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             breakdown.columns,
             list(SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS),
         )
-        self.assertEqual(breakdown.height, 9)
+        self.assertEqual(breakdown.height, 8)
         self.assertEqual(_breakdown_count(breakdown, TARGET_OUTPUT, None), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, None), 6)
         self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 2)
-        self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 3)
+        self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 1)
         self.assertEqual(
             _breakdown_count(breakdown, TARGET_OUTPUT, "security_performance"),
             1,
@@ -1379,7 +1376,6 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "transactions"), 3)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "holdings"), 3)
-        self.assertEqual(_breakdown_count(breakdown, CONTEXT, "security_master"), 2)
 
     def test_security_period_evidence_breakdown_tracks_suppressed_counts(self) -> None:
         """Security evidence breakdown counts suppressed rows only when requested."""

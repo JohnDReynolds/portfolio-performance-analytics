@@ -70,8 +70,6 @@ def field_role(dataset: object, source_column: object) -> str:
     """
     if not isinstance(dataset, str) or not isinstance(source_column, str):
         return CONTEXT
-    if dataset == pc_cols.SECURITY_MASTER:
-        return CONTEXT
     return _FIELD_ROLES.get((dataset, source_column), CONTEXT)
 
 

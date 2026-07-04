@@ -23,7 +23,6 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
-  security_master: sec_ref.csv
   fx_rates: fx_rates.csv
   transactions: transactions.csv
   holdings: holdings.csv

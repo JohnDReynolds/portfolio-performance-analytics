@@ -57,7 +57,6 @@ from ppar.performance_comparison.runner import (
     validate_yaml_setup_complete,
 )
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
-from ppar.performance_comparison.security_master import SecurityMasterLoader
 from ppar.performance_comparison.specification import (
     ComparisonFile,
     ComparisonSnapshot,
@@ -75,7 +74,6 @@ __all__ = [
     "PerformanceComparisonSpecification",
     "PortfolioPerformanceLoader",
     "SecurityPerformanceLoader",
-    "SecurityMasterLoader",
     "TransactionsLoader",
     # Core comparison and finding model.
     "CONTEXT",

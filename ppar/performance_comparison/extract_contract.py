@@ -20,7 +20,8 @@ from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
 import ppar.utilities as util
 
-_CONTRACT_RESOURCE: Final[str] = "ppar.demos.data.axys"
+_CONTRACT_RESOURCE: Final[str] = "ppar.demos.data"
+_CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axys_performance_comparison"
 _CONTRACT_FILE_NAME: Final[str] = "demo_extract_availability.yaml"
 _AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = frozenset({"DP", "LI", "LO", "WD"})
 _EXTRACT_CONTRACT_KEY: Final[str] = "extract_contract"
@@ -134,10 +135,10 @@ def extract_contract_settings(
         contract = _load_packaged_extract_contract()
         validate_extract_contract(
             contract,
-            contract_label=f"packaged:{_CONTRACT_RESOURCE}/{_CONTRACT_FILE_NAME}",
+            contract_label=_packaged_contract_label(),
         )
         return ExtractContractSettings(
-            path=f"packaged:{_CONTRACT_RESOURCE}/{_CONTRACT_FILE_NAME}",
+            path=_packaged_contract_label(),
             enforce_ambiguous_axys_flows=True,
             contract=contract,
         )
@@ -162,11 +163,11 @@ def extract_contract_settings(
         contract = _load_packaged_extract_contract()
         validate_extract_contract(
             contract,
-            contract_label=f"packaged:{_CONTRACT_RESOURCE}/{_CONTRACT_FILE_NAME}",
+            contract_label=_packaged_contract_label(),
             require_ambiguous_flow_context=enforce_value,
         )
         return ExtractContractSettings(
-            path=f"packaged:{_CONTRACT_RESOURCE}/{_CONTRACT_FILE_NAME}",
+            path=_packaged_contract_label(),
             enforce_ambiguous_axys_flows=enforce_value,
             contract=contract,
         )
@@ -311,12 +312,23 @@ def _transaction_semantics_context_columns(contract: Mapping[str, Any]) -> froze
 @cache
 def _load_packaged_extract_contract() -> dict[str, Any]:
     """Load the packaged Axys demo extract availability contract."""
-    contract_path = files(_CONTRACT_RESOURCE).joinpath(_CONTRACT_FILE_NAME)
+    contract_path = files(_CONTRACT_RESOURCE).joinpath(
+        _CONTRACT_RESOURCE_DIRECTORY,
+        _CONTRACT_FILE_NAME,
+    )
     with contract_path.open(encoding=util.ENCODING) as handle:
         loaded = yaml.safe_load(handle)
     if not isinstance(loaded, dict):
         raise TypeError(f"{_CONTRACT_FILE_NAME} must contain a YAML mapping.")
     return loaded
+
+
+def _packaged_contract_label() -> str:
+    """Return the user-facing packaged contract resource label."""
+    return (
+        f"packaged:{_CONTRACT_RESOURCE}/{_CONTRACT_RESOURCE_DIRECTORY}/"
+        f"{_CONTRACT_FILE_NAME}"
+    )
 
 
 @cache

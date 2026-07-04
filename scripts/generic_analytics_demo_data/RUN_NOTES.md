@@ -21,8 +21,8 @@ generated outputs and caches are not part of the maintained refresh workflow.
 The helpers write generated artifacts under:
 
 ```text
-_demo_output/analytics_data_generation/generated_oef_files/
-_demo_output/analytics_data_generation/cache/oef/
+_demo_output/generic_analytics_data_generation/generated_oef_files/
+_demo_output/generic_analytics_data_generation/cache/oef/
 ```
 
 These files are ignored by Git. Promote generated CSVs into `ppar/demos/data/`
@@ -88,17 +88,17 @@ and still in the same calendar month. The performance period remains March 2024.
 Generate candidate files:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/generate_mega_cap_analytics_demo_data.py
+./.venv/bin/python scripts/generic_analytics_demo_data/generate_mega_cap_analytics_demo_data.py
 ```
 
 Validate generated candidate files:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/validate_generated_analytics_demo_data.py
+./.venv/bin/python scripts/generic_analytics_demo_data/validate_generated_analytics_demo_data.py
 ```
 
 Audit longer source history:
 
 ```bash
-./.venv/bin/python scripts/analytics_demo_data/audit_mega_cap_history.py
+./.venv/bin/python scripts/generic_analytics_demo_data/audit_mega_cap_history.py
 ```

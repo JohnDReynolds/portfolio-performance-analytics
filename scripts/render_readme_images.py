@@ -34,7 +34,7 @@ os.environ.setdefault("XDG_CACHE_HOME", str(_CACHE_DIR / "xdg"))
 # Project Imports
 from ppar.analytics import Analytics  # noqa: E402
 from ppar.analytics.attribution import Attribution, Chart, View  # noqa: E402
-import ppar.demos.demo_data_sources as demo_data  # noqa: E402
+import ppar.demos.generic_analytics_data_sources as demo_data  # noqa: E402
 from ppar.analytics.frequency import Frequency  # noqa: E402
 import ppar.utilities as util  # noqa: E402
 

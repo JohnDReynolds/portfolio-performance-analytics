@@ -10,10 +10,11 @@ import pandas as pd
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_PERFORMANCE_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "performance"
-_CLASSIFICATION_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "classifications"
-_MAPPING_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "mappings"
-_OUTPUT_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "axys" / "axys_analytics"
+_GENERIC_ANALYTICS_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "generic_analytics"
+_PERFORMANCE_DIR = _GENERIC_ANALYTICS_DIR / "performance"
+_CLASSIFICATION_DIR = _GENERIC_ANALYTICS_DIR / "classifications"
+_MAPPING_DIR = _GENERIC_ANALYTICS_DIR / "mappings"
+_OUTPUT_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "axys_analytics"
 _PORTFOLIOS = {
     "MEGA_ALPHA": {
         "file_name": "Mega-Cap Alpha Portfolio.csv",
@@ -55,12 +56,10 @@ def write_axys_analytics_demo_data(output_directory: Path) -> list[Path]:
     paths = {
         "portperf": output_directory / "portperf.csv",
         "secperf": output_directory / "secperf.csv",
-        "sec_ref": output_directory / "sec_ref.csv",
     }
     portperf.to_csv(paths["portperf"], index=False)
     secperf.to_csv(paths["secperf"], index=False)
-    security_reference.to_csv(paths["sec_ref"], index=False)
-    return [paths["portperf"], paths["secperf"], paths["sec_ref"]]
+    return [paths["portperf"], paths["secperf"]]
 
 
 def _read_performance(file_name: str) -> pd.DataFrame:

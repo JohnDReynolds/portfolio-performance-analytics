@@ -11,7 +11,7 @@ from ppar.analytics.attribution import View
 from ppar.analytics.frequency import Frequency
 
 
-WORKSPACE = Path("_demo_output") / "analytics_data_generation"
+WORKSPACE = Path("_demo_output") / "generic_analytics_data_generation"
 GENERATED = WORKSPACE / "generated_oef_files"
 
 

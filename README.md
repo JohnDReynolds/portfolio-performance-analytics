@@ -110,7 +110,7 @@ from_date,thru_date,identifier,weight,return,name
 Wide performance files with per-identifier columns such as `AAPL.ret` and
 `AAPL.wgt` are not supported.
 
-For sample source-data files, please refer to the ``ppar-analytics-demo``
+For sample source-data files, please refer to the ``ppar-generic-analytics-demo``
 command and the ppar/demos/data directory. Once the source-data has been
 provided, then the analytics may be requested using different calculation
 parameters, time-periods, and frequencies:
@@ -120,7 +120,7 @@ parameters, time-periods, and frequencies:
 4. Yearly
 
 Typically, a user will develop their own "data source" functions that provide
-the data in one of the above formats. The ``ppar-analytics-demo`` command uses
+the data in one of the above formats. The ``ppar-generic-analytics-demo`` command uses
 sample data source functions.
 
 ---
@@ -150,7 +150,7 @@ pip install ppar
 Run the bundled demos from an installed environment:
 
 ```bash
-ppar-analytics-demo
+ppar-generic-analytics-demo
 ppar-axys-analytics-demo
 ppar-performance-comparison-portfolio-demo
 ppar-performance-comparison-security-demo
@@ -168,9 +168,8 @@ The performance comparison feature compares two source-data snapshots and helps
 explain why reported performance changed between extraction dates. Portfolio
 comparison uses `portfolio_performance` as the primary result dataset; security
 comparison uses `security_performance` as the primary result dataset. Both paths
-can use normalized transactions, holdings, FX rates, cash, and
-security-reference data, then write a review bundle with HTML, CSV, manifest,
-and XLSX workbook artifacts.
+can use normalized transactions, holdings, FX rates, and cash, then write a
+review bundle with HTML, CSV, manifest, and XLSX workbook artifacts.
 
 Before a user-facing review bundle is written, every changed source-data field
 that ppar knows how to classify must be explicitly configured in YAML as
@@ -180,7 +179,7 @@ YAML configurations where visible differences are intentionally review-only or
 not additively estimated.
 
 The packaged portfolio and security demos share one YAML file:
-`ppar/demos/data/axys/axys_performance_comparison.yaml`. It maps native
+`ppar/demos/data/axys_performance_comparison/axys_performance_comparison.yaml`. It maps native
 lower-case transaction codes such as `by`, `sl`, `dv`, `in`, `dp`, `wd`, and
 `;` to normalized transaction categories used by the comparison logic.
 
@@ -193,17 +192,17 @@ Minimum source-data contract:
   `thru_date`, and `security_return`.
 - `holdings` and `transactions` are required when return reconstruction is
   configured or when their fields are used as performance explanations.
-- `security_master`, `cash`, and `fx_rates` are optional unless their rows are
-  configured as source-data evidence.
+- `cash` and `fx_rates` are optional unless their rows are configured as
+  source-data evidence.
 - Required datasets must exist in both snapshots, and required normalized
   columns must resolve unambiguously before ppar writes a review report.
 
 Use these entry points:
 
-- [Axys/APX Setup](ppar/demos/data/axys/SETUP.md): shortest path for running
+- [Axys/APX Setup](ppar/demos/data/axys_performance_comparison/SETUP.md): shortest path for running
   `ppar setup ./my_site_extracts`, creating `ppar.yaml`, validating portfolio
   setup, and then using `ppar report ./my_site_extracts` for report packages.
-- [Packaged Axys Demo Matrix](ppar/demos/data/axys/README.md): recommended
+- [Packaged Axys Demo Matrix](ppar/demos/data/axys_performance_comparison/README.md): recommended
   workbook demo command, packaged YAML fixtures, data used, and expected XLSX
   output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
@@ -223,8 +222,8 @@ Use these entry points:
 Source-checkout smoke test:
 
 ```bash
-./.venv/bin/python -m ppar.demos.performance_comparison_portfolio_demo
-./.venv/bin/python -m ppar.demos.performance_comparison_security_demo
+./.venv/bin/python -m ppar.demos.axys_performance_comparison_portfolio_demo
+./.venv/bin/python -m ppar.demos.axys_performance_comparison_security_demo
 ```
 
 For the full packaged performance-comparison demo guardrail pass, run:
@@ -233,7 +232,7 @@ For the full packaged performance-comparison demo guardrail pass, run:
 ./.venv/bin/python scripts/check_performance_comparison_demo_health.py
 ```
 
-Generated demo artifacts live under `_demo_output/analytics`,
+Generated demo artifacts live under `_demo_output/generic_analytics`,
 `_demo_output/axys_analytics`, `_demo_output/performance_comparison_portfolio`,
 and `_demo_output/performance_comparison_security`. The core analytics demo and
 the Axys analytics demo use the same Mega-Cap Alpha portfolio and benchmark;

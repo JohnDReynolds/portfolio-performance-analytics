@@ -47,7 +47,7 @@ def classification_data_source(
         return None
 
     # Return the path to the csv file containing the classification data.
-    return _demo_data_path(f"classifications/{classification_name}.csv")
+    return _demo_data_path(f"generic_analytics/classifications/{classification_name}.csv")
 
 
 def mapping_data_sources(
@@ -76,7 +76,8 @@ def mapping_data_sources(
             None
             if from_classification_name == to_classification_name
             else _demo_data_path(
-                f"mappings/{from_classification_name}--to--{to_classification_name}.csv"
+                f"generic_analytics/mappings/{from_classification_name}"
+                f"--to--{to_classification_name}.csv"
             )
         )
         for from_classification_name in analytics.classification_names()
@@ -96,4 +97,4 @@ def performance_data_source(performance_name: str) -> Path:
         Path to the requested packaged performance file.
     """
     # Return the path of the performance file corresponding to performance_name.
-    return _demo_data_path(f"performance/{performance_name}")
+    return _demo_data_path(f"generic_analytics/performance/{performance_name}")

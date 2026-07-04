@@ -11,7 +11,7 @@ import polars as pl
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
-import ppar.demos.demo_data_sources as demo_data
+import ppar.demos.generic_analytics_data_sources as demo_data
 from ppar.analytics.performance import Performance
 import ppar.utilities as util
 

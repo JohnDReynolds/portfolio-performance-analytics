@@ -66,10 +66,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Price impact methods: {summary['price_impact_methods']}")
     print(f"Cash impact methods: {summary['cash_impact_methods']}")
     print(f"FX rate impact methods: {summary['fx_rate_impact_methods']}")
-    print(
-        "Security master impact methods: "
-        f"{summary['security_master_impact_methods']}"
-    )
     print(f"Evidence-only impact methods: {summary['evidence_only_impact_methods']}")
     print(f"Transaction rules configured: {summary['transaction_rule_count']}")
     print(f"Transaction impact methods: {summary['transaction_impact_methods']}")
@@ -163,9 +159,6 @@ def _validate_config(
         "price_impact_methods": _price_impact_methods(specification),
         "cash_impact_methods": _cash_impact_methods(specification),
         "fx_rate_impact_methods": _fx_rate_impact_methods(specification),
-        "security_master_impact_methods": _security_master_impact_methods(
-            specification
-        ),
         "evidence_only_impact_methods": _evidence_only_impact_methods(specification),
         "transaction_rule_count": _transaction_rule_count(specification),
         "transaction_impact_methods": _transaction_impact_methods(specification),
@@ -303,16 +296,6 @@ def _fx_rate_impact_methods(
 ) -> str:
     """Return configured FX rate impact method keys."""
     methods_value = specification.values.get("fx_rate_impact_methods", {})
-    if not isinstance(methods_value, dict) or not methods_value:
-        return "none"
-    return ", ".join(sorted(str(key) for key in methods_value))
-
-
-def _security_master_impact_methods(
-    specification: PerformanceComparisonSpecification,
-) -> str:
-    """Return configured security master impact method keys."""
-    methods_value = specification.values.get("security_master_impact_methods", {})
     if not isinstance(methods_value, dict) or not methods_value:
         return "none"
     return ", ".join(sorted(str(key) for key in methods_value))

@@ -17,13 +17,24 @@ import pandas as pd
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_SOURCE_PATH: Final = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "performance" / "Mega-Cap Alpha Portfolio.csv"
+    _REPO_ROOT
+    / "ppar"
+    / "demos"
+    / "data"
+    / "generic_analytics"
+    / "performance"
+    / "Mega-Cap Alpha Portfolio.csv"
 )
 _DEFAULT_OUTPUT_DIRECTORY: Final = (
     _REPO_ROOT / "_demo_output" / "operational_demo_data_generation"
 )
 _AXYS_SCHEMA_PATH: Final = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axys" / "axys_column_mappings.yaml"
+    _REPO_ROOT
+    / "ppar"
+    / "demos"
+    / "data"
+    / "axys_performance_comparison"
+    / "axys_column_mappings.yaml"
 )
 _PORTFOLIOS: Final = (
     ("ALPHA", "Mega-Cap Alpha", 1.00, 0.04),

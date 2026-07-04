@@ -1,6 +1,6 @@
 # Axys Full-Spec Snapshot A
 
-This packaged snapshot is paired with `axys_full_spec_b` for the
+This packaged snapshot is paired with `snapshot_b` for the
 performance-comparison portfolio and security demos.
 
 The data is derived from the Mega-Cap Alpha analytics demo and reshaped into

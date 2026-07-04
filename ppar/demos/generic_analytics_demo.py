@@ -9,20 +9,20 @@ files, and exercises the main output-format methods.
 import os
 from pathlib import Path
 
-_OUTPUT_DIRECTORY = Path("_demo_output") / "analytics"
+_OUTPUT_DIRECTORY = Path("_demo_output") / "generic_analytics"
 os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
 _DEFAULT_PERIODICITY = "q"
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.demos.analytics_outputs import (
+from ppar.demos.analytics_demo_outputs import (
     frequency_display_name,
     parse_demo_frequency_argument,
     print_analytics_demo_handoff,
     write_analytics_demo_outputs,
 )
-import ppar.demos.demo_data_sources as demo_data
+import ppar.demos.generic_analytics_data_sources as demo_data
 from ppar.analytics.frequency import Frequency
 
 
@@ -32,7 +32,7 @@ def run_demo(periodicity: str) -> None:
     The demo loads sample Mega-Cap portfolio and benchmark performance data,
     creates attribution results by security and economic sector, and writes
     formatted tables, charts, and ex-post risk statistics to
-    ``_demo_output/analytics``.
+    ``_demo_output/generic_analytics``.
 
     Args:
         periodicity: Reporting periodicity selector. Values starting with

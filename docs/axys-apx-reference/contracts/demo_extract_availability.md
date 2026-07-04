@@ -1,11 +1,11 @@
 # Demo Extract Availability Contract
 
 Repository: AXYS / APX Reference Repository
-Scope: `ppar/demos/data/axys/axys_full_spec_a` and
-`ppar/demos/data/axys/axys_full_spec_b`
+Scope: `ppar/demos/data/axys_performance_comparison/snapshot_a` and
+`ppar/demos/data/axys_performance_comparison/snapshot_b`
 Status: Draft confidence matrix generated from the packaged YAML contract.
 
-<!-- GENERATED FROM ppar/demos/data/axys/demo_extract_availability.yaml. -->
+<!-- GENERATED FROM ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml. -->
 <!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->
 
 ---
@@ -14,15 +14,14 @@ Status: Draft confidence matrix generated from the packaged YAML contract.
 
 This contract estimates how likely each packaged Axys demo dataset and column is to be obtainable from an Axys installation through IMEX and/or REP-style report extracts.
 
-The machine-readable source of truth is `ppar/demos/data/axys/demo_extract_availability.yaml`. Tests verify that the YAML covers every packaged full-spec Axys demo CSV header and that this contract is current.
+The machine-readable source of truth is `ppar/demos/data/axys_performance_comparison/demo_extract_availability.yaml`. Tests verify that the YAML covers every packaged comparison demo CSV header and that this contract is current.
 
 The packaged demo files are normalized demo extracts. They are not official Axys schemas, not universal IMEX profiles, and not claims that every Axys site can export every field with these exact names.
 
-The two full-spec snapshots currently use the same file layouts:
+The two packaged snapshots currently use the same file layouts:
 
 - `holdings.csv`
 - `portperf.csv`
-- `sec_ref.csv`
 - `secperf.csv`
 - `transactions.csv`
 
@@ -88,19 +87,6 @@ Use this matrix as an implementation planning aid:
 | portfolio performance | `THRU_DATE` | Period end date. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Report parameters reliably provide the period; structured export field names require validation. |
 | portfolio performance | `BEGIN_MV` | Beginning market value. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Likely reportable; exact IMEX object/field remains unproven. |
 | portfolio performance | `PORT_RETURN` | Portfolio return. | Medium / Unknown | High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior. | Performance-history IMEX fields are not established; REP is preferred for report-tie values. |
-
-
-### `sec_ref.csv`
-
-| Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
-|---|---|---|---|---|---|---|---|
-| security master | `SECURITY_ID` | Security identifier. | High | High | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local security-master export aliases. | Security information is supported in IMEX/CI evidence and reports. |
-| security master | `SECURITY_NAME` | Security display name or description. | High | High | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local security-master export aliases. | Security description/name is a common security-master and report field. |
-| security master | `ASSET_CLASS_CODE` | Asset class classification. | Medium | Medium | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact security-master export field and whether classification history is as-of-date aware. | Conversion evidence mentions asset classes; exact field names and history behavior require validation. |
-| security master | `SECTOR_CODE` | Sector classification. | Medium | Medium | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact security-master export field and whether classification history is as-of-date aware. | Conversion and reporting evidence support sector use; exact source and timing require validation. |
-| security master | `COUNTRY_CODE` | Country classification. | Medium | Medium | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact security-master export field and whether classification history is as-of-date aware. | Axys reporting by country is supported at product level; exact source requires validation. |
-| security master | `CURRENCY_CODE` | Security/local currency code. | Medium | Medium | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact security-master export field and whether classification history is as-of-date aware. | Common in security and multicurrency contexts, but site configuration matters. |
-| security master | `INDUSTRY_CODE` | Industry classification. | Medium | Medium | Security-master and classification evidence in Chapter_04_Security_Master.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact security-master export field and whether classification history is as-of-date aware. | Conversion evidence mentions industries; exact field source requires validation. |
 
 
 ### `secperf.csv`
@@ -180,19 +166,6 @@ These names are candidate aliases for local discovery. They are not assertions t
 | portfolio performance | `PORT_RETURN` | Return, Portfolio Return | Portfolio Return, Total Return | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 
 
-### `sec_ref.csv` Name Candidates
-
-| Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
-|---|---|---|---|---|---|
-| security master | `SECURITY_ID` | SEC, Security, Symbol, Security ID | Security, Symbol, Security ID | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
-| security master | `SECURITY_NAME` | Security Name, Description, Security Description | Security Name, Description | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
-| security master | `ASSET_CLASS_CODE` | Asset Class, Asset Class Code | Asset Class | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-| security master | `SECTOR_CODE` | Sector, Sector Code | Sector | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-| security master | `COUNTRY_CODE` | Country, Country Code | Country | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-| security master | `CURRENCY_CODE` | Currency, Currency Code, Local Currency | Currency, Local Currency | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-| security master | `INDUSTRY_CODE` | Industry, Industry Code | Industry | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-
-
 ### `secperf.csv` Name Candidates
 
 | Dataset | Demo column | Candidate Axys/export names | Candidate report labels | Name confidence | Notes |
@@ -270,19 +243,6 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | portfolio performance | `THRU_DATE` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
 | portfolio performance | `BEGIN_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
 | portfolio performance | `PORT_RETURN` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-
-
-### `sec_ref.csv` Source Strategy
-
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| security master | `SECURITY_ID` | IMEX or REP | REP preferred | No | Yes | Use whichever local security-master export or report provides stable identifiers and classification timing. |
-| security master | `SECURITY_NAME` | IMEX or REP | Local discovery required | No | No | Use whichever local security-master export or report provides stable identifiers and classification timing. |
-| security master | `ASSET_CLASS_CODE` | IMEX or REP | Local discovery required | No | No | Use whichever local security-master export or report provides stable identifiers and classification timing. |
-| security master | `SECTOR_CODE` | IMEX or REP | Local discovery required | No | No | Use whichever local security-master export or report provides stable identifiers and classification timing. |
-| security master | `COUNTRY_CODE` | IMEX or REP | Local discovery required | No | No | Use whichever local security-master export or report provides stable identifiers and classification timing. |
-| security master | `CURRENCY_CODE` | IMEX or REP | Local discovery required | No | No | Use whichever local security-master export or report provides stable identifiers and classification timing. |
-| security master | `INDUSTRY_CODE` | IMEX or REP | Local discovery required | No | No | Use whichever local security-master export or report provides stable identifiers and classification timing. |
 
 
 ### `secperf.csv` Source Strategy

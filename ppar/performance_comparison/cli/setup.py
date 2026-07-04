@@ -21,7 +21,8 @@ import ppar.utilities as util
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _SNAPSHOT_A_DIR: Final[str] = "snapshot_a"
 _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
-_PACKAGED_AXYS_RESOURCE: Final[str] = "ppar.demos.data.axys"
+_PACKAGED_AXYS_RESOURCE: Final[str] = "ppar.demos.data"
+_PACKAGED_AXYS_DIRECTORY: Final[str] = "axys_performance_comparison"
 _PACKAGED_COMPARISON_YAML: Final[str] = "axys_performance_comparison.yaml"
 _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
@@ -173,7 +174,10 @@ def _ensure_config(config_path: Path, *, overwrite: bool) -> str:
 
 def _starter_config_values() -> dict[str, Any]:
     """Return a one-file starter configuration based on the packaged Axys YAML."""
-    resource = files(_PACKAGED_AXYS_RESOURCE).joinpath(_PACKAGED_COMPARISON_YAML)
+    resource = files(_PACKAGED_AXYS_RESOURCE).joinpath(
+        _PACKAGED_AXYS_DIRECTORY,
+        _PACKAGED_COMPARISON_YAML,
+    )
     values = yaml.safe_load(resource.read_text(encoding=util.ENCODING))
     if not isinstance(values, dict):
         raise PpaError("Packaged starter YAML must be a mapping.", 504)

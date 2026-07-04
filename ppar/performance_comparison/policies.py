@@ -36,7 +36,6 @@ from ppar.performance_comparison.methods import (
     ModifiedDietzInclusionRule,
     HoldingImpactMethod,
     PriceImpactMethod,
-    SecurityMasterImpactMethod,
     TransactionImpactMethod,
 )
 from ppar.performance_comparison.modified_dietz import (
@@ -59,7 +58,6 @@ _HOLDING_IMPACT_METHODS_KEY: Final[str] = "holding_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
 _CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 _FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
-_SECURITY_MASTER_IMPACT_METHODS_KEY: Final[str] = "security_master_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _SECURITY_RETURN_IMPACT_METHODS_KEY: Final[str] = "security_return_impact_methods"
 _PORTFOLIO_SOURCE_FIELD_KEY: Final[str] = "portfolio_source_field"
@@ -107,9 +105,6 @@ _CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD: Final[str] = (
     CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _FX_RATE_EVIDENCE_ONLY_METHOD: Final[str] = FxRateImpactMethod.EVIDENCE_ONLY.value
-_SECURITY_MASTER_EVIDENCE_ONLY_METHOD: Final[str] = (
-    SecurityMasterImpactMethod.EVIDENCE_ONLY.value
-)
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
 _INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
@@ -197,11 +192,6 @@ _FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _METHOD_KEY,
     }
 )
-_SECURITY_MASTER_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        _METHOD_KEY,
-    }
-)
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _FLOW_TIMING_KEY: _MODIFIED_DIETZ_FLOW_TIMINGS,
     _DAY_COUNT_KEY: _MODIFIED_DIETZ_DAY_COUNTS,
@@ -250,19 +240,6 @@ _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
     pc_cols.FX_RATES: frozenset({pc_cols.FX_RATE}),
     pc_cols.HOLDINGS: frozenset(
         {pc_cols.QUANTITY, pc_cols.MARKET_VALUE, pc_cols.COST, pc_cols.ACCRUED}
-    ),
-    pc_cols.SECURITY_MASTER: frozenset(
-        {
-            pc_cols.SECURITY_NAME,
-            pc_cols.TICKER,
-            pc_cols.CUSIP,
-            pc_cols.ISIN,
-            pc_cols.CURRENCY,
-            pc_cols.COUNTRY,
-            pc_cols.SECTOR,
-            pc_cols.INDUSTRY,
-            pc_cols.ASSET_CLASS,
-        }
     ),
     pc_cols.TRANSACTIONS: frozenset(
         {pc_cols.AMOUNT, pc_cols.QUANTITY, pc_cols.PRICE, pc_cols.COMMISSION}
@@ -1065,84 +1042,6 @@ def _fx_rate_impact_policies(
             pc_cols.FX_RATE,
         )
     }
-
-
-def _security_master_impact_policies(
-    specification: PerformanceComparisonSpecification,
-) -> dict[str, str]:
-    """Return validated YAML-selected security master impact policies.
-
-    Args:
-        specification: Parsed comparison specification.
-
-    Returns:
-        Policy labels keyed by security master source column. Missing
-        configuration returns an empty mapping, which leaves security master
-        differences as context evidence.
-
-    Raises:
-        PpaError: If security master impact method configuration is malformed
-            or names an unsupported method.
-    """
-    methods_value = specification.values.get(_SECURITY_MASTER_IMPACT_METHODS_KEY, {})
-    if methods_value is None:
-        return {}
-    if not isinstance(methods_value, dict):
-        raise PpaError(
-            (
-                f"{specification.path}: {_SECURITY_MASTER_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
-            504,
-        )
-
-    supported_keys = set(_EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS[pc_cols.SECURITY_MASTER])
-    unsupported_keys = set(methods_value) - supported_keys
-    if unsupported_keys:
-        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
-        raise PpaError(
-            (
-                f"{specification.path}: unsupported "
-                f"{_SECURITY_MASTER_IMPACT_METHODS_KEY} keys: {unsupported}."
-            ),
-            504,
-        )
-
-    policies: dict[str, str] = {
-        source_column: _evidence_only_impact_policy_label(
-            pc_cols.SECURITY_MASTER,
-            source_column,
-        )
-        for source_column in sorted(
-            _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS[pc_cols.SECURITY_MASTER]
-        )
-    }
-    for source_column in sorted(str(key) for key in methods_value):
-        policy = _require_policy_mapping(
-            specification,
-            _SECURITY_MASTER_IMPACT_METHODS_KEY,
-            source_column,
-            methods_value[source_column],
-        )
-        _validate_policy_keys(
-            specification,
-            _SECURITY_MASTER_IMPACT_METHODS_KEY,
-            source_column,
-            policy,
-            _SECURITY_MASTER_EVIDENCE_ONLY_REQUIRED_KEYS,
-        )
-        _validate_policy_method(
-            specification,
-            _SECURITY_MASTER_IMPACT_METHODS_KEY,
-            source_column,
-            policy,
-            _SECURITY_MASTER_EVIDENCE_ONLY_METHOD,
-        )
-        policies[source_column] = _evidence_only_impact_policy_label(
-            pc_cols.SECURITY_MASTER,
-            source_column,
-        )
-    return policies
 
 
 def _evidence_only_impact_policies(

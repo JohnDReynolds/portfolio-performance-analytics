@@ -16,15 +16,15 @@ The core question is:
 
 The feature will compare two snapshot directories. Each snapshot contains
 vendor exports such as portfolio performance, security performance, FX rates,
-transactions, holdings, cash, and security master/reference files.
+transactions, holdings, and cash.
 
 This should not be treated as an Axys-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
 live in small normalization adapters, with Axys as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
-portfolio performance, security performance, security master, holdings, cash,
-FX rates, and transactions rows, report material changes, and produce a
+portfolio performance, security performance, holdings, cash, FX rates, and
+transactions rows, report material changes, and produce a
 clear finding model. Deeper causal inference can be added after the finding
 model is stable.
 
@@ -40,7 +40,6 @@ Implemented normalized comparison datasets:
 
 - `portfolio_performance`
 - `security_performance`
-- `security_master`
 - `fx_rates`
 - `transactions`
 - `holdings`
@@ -151,8 +150,6 @@ Public YAML impact method values are centralized in:
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
 - `CashImpactMethod`: `cash_delta_over_return_denominator`.
 - `FxRateImpactMethod`: `evidence_only`.
-- `SecurityMasterImpactMethod`: `evidence_only`.
-
 Transaction sign/flow semantics are centralized in:
 
 - `TransactionCategory`: `external_flow`, `income`, `fee_expense`, `buy`,
@@ -227,7 +224,6 @@ ppar/performance_comparison/
   period_linking.py
   holdings.py
   runner.py
-  security_master.py
   security_performance.py
   transactions.py
 ```
@@ -283,7 +279,6 @@ engine. Initial normalized datasets include:
 
 - `portfolio_performance`
 - `security_performance`
-- `security_master`
 - `fx_rates`
 - `transactions`
 - `holdings`
@@ -354,21 +349,6 @@ modified-Dietz adjusted weight, or another vendor-provided effective weight.
 Method-specific source fields can still be preserved as optional explanatory
 columns when useful.
 
-`security_master` required columns:
-
-- `security_id`
-
-`security_master` useful optional columns:
-
-- `security_name`
-- `ticker`
-- `cusip`
-- `isin`
-- `currency`
-- `country`
-- `sector`
-- `industry`
-- `asset_class`
 - additional classification code/name pairs
 
 `fx_rates` required columns:
@@ -934,11 +914,6 @@ The first-pass role model should remain intentionally small:
   accrued-balance changes can drive performance inputs.
 - `cash`: `direct_input` because cash balance and cash market value changes can
   drive portfolio-level valuation and return inputs.
-- `security_master`: `context` because reference and classification changes
-  usually explain how data is grouped or identified, not a numeric TWR driver
-  by themselves. YAML may explicitly mark selected reference or classification
-  fields as review-only input evidence with
-  `security_master_impact_methods.<field>.method: evidence_only`.
 
 ## Finding Codes
 
@@ -1037,12 +1012,10 @@ snapshots/
   2026-05-01/
     portperf.csv
     secperf.csv
-    sec_ref.csv
 
   2026-05-15/
     portperf.csv
     secperf.csv
-    sec_ref.csv
 ```
 
 Example:
@@ -1067,7 +1040,6 @@ snapshots:
 files:
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
-  security_master: sec_ref.csv
   fx_rates: fx_rates.csv
   transactions:
     path: transactions.csv
@@ -1208,10 +1180,9 @@ contains two aliases for the same normalized column, loading should fail with a
 clear error instead of choosing one by priority.
 
 The current implementation honors explicit mappings from referenced schema YAML
-files for `portfolio_performance_columns`, `security_performance_columns`, and
-`security_master_columns`. For mapped columns, the explicit schema mapping is
-authoritative. Built-in aliases remain the fallback for columns not mapped in
-the schema file.
+files for `portfolio_performance_columns` and `security_performance_columns`.
+For mapped columns, the explicit schema mapping is authoritative. Built-in
+aliases remain the fallback for columns not mapped in the schema file.
 
 Comparison-only datasets such as FX rates, transactions, holdings,
 and cash currently use the performance-comparison alias/default layer. They do
@@ -1467,9 +1438,6 @@ price_impact_methods:
 fx_rate_impact_methods:
   fx_rate:
     method: evidence_only
-security_master_impact_methods:
-  sector:
-    method: evidence_only
 evidence_only_impact_methods:
   holdings:
     method: evidence_only
@@ -1622,14 +1590,6 @@ Current supported impact estimates:
      rates as intentional review evidence.
    - It does not create `estimated_return_impact`; additive FX attribution
      needs portfolio currency exposure linkage.
-13. Security master reference and classification evidence:
-   - `security_master_impact_methods.<field>.method: evidence_only` marks
-     changed security reference or classification fields as intentional review
-     evidence.
-   - It does not create `estimated_return_impact`; reference data can explain
-     grouping, identity, and mapping issues but is not a direct return formula
-     in the current model.
-
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
 
@@ -1637,9 +1597,9 @@ denominator, and linkage are available.
 hatch. It does not create `estimated_return_impact`; instead, workbook rows are
 marked review-only and `Explanation` says the row is configured as
 evidence-only. This keeps intentionally review-only changes from looking like
-missing setup. Supported dataset keys are `cash`, `fx_rates`, `holdings`,
-`security_master`, and `transactions`; each dataset may list only
-fields that the comparison engine already compares.
+missing setup. Supported dataset keys are `cash`, `fx_rates`, `holdings`, and
+`transactions`; each dataset may list only fields that the comparison engine
+already compares.
 
 First contribution estimates should start only where the math is defensible:
 
@@ -1829,10 +1789,10 @@ name the CSVs most relevant to each changed period.
 The packaged Axys fixtures intentionally separate user-facing demos from
 validation fixtures. The user-facing paths are:
 
-- `ppar.demos.performance_comparison_portfolio_demo`: portfolio strict-attribution
+- `ppar.demos.axys_performance_comparison_portfolio_demo`: portfolio strict-attribution
   demo writing `_demo_output/performance_comparison_portfolio` with `report.xlsx`,
   `report.html`, CSV artifacts, and a manifest.
-- `ppar.demos.performance_comparison_security_demo`: security-period review demo
+- `ppar.demos.axys_performance_comparison_security_demo`: security-period review demo
   writing `_demo_output/performance_comparison_security` with `report.xlsx`,
   `report.html`, CSV artifacts, and a manifest.
 
@@ -1855,7 +1815,7 @@ validators:
 - `ppar_performance_comparison_suppressed.yaml`: Active-vs-suppressed finding
   behavior and audit visibility.
 
-The compact demo scenario matrix lives in `ppar/demos/data/axys/README.md`.
+The compact demo scenario matrix lives in `ppar/demos/data/axys_performance_comparison/README.md`.
 It lists which YAML fixture covers each reviewer-facing problem type and which
 scenarios are intentionally planned rather than covered. It also tracks the
 goal that every supported public YAML impact method should have at least one
@@ -1881,9 +1841,9 @@ rows such as `transactions.quantity`,
 `transactions.price`, and `transactions.commission` also appear on the
 `Performance Difference Causes` sheet when they support a changed `transactions.amount`;
 their explained-difference columns remain blank because they are inputs for the
-changed transaction amount, not separate return-impact estimates. Cost basis and
-security-reference changes remain supporting evidence unless a later model gives
-them a defensible return-impact interpretation.
+changed transaction amount, not separate return-impact estimates. Cost basis
+changes remain supporting evidence unless a later model gives them a defensible
+return-impact interpretation.
 
 Transaction cross-checks are summarized separately from impact estimates. The
 `portfolio_period_transaction_cross_checks()` helper and report section group
@@ -2023,7 +1983,6 @@ remain intentionally conservative.
 - Compare holding price values for securities with changed returns.
 - Compare transactions for affected portfolio/security/period rows.
 - Compare holdings and cash balances.
-- Compare security master fields and classifications.
 - Compare FX rates when present.
 - Add confidence, residual, and needs-review findings where the evidence is
   incomplete or method-dependent.
@@ -2041,7 +2000,7 @@ The public command and demo surface is implemented for the current checkpoint.
 
 The current normalized dataset set already covers the first useful comparison
 surface: portfolio performance, security performance, holdings, cash,
-transactions, FX rates, and security master/reference data. Additional
+transactions, and FX rates. Additional
 datasets should be added only when real source files expose evidence that is
 not adequately represented by those existing datasets.
 

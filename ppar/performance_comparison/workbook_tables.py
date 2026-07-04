@@ -2659,11 +2659,6 @@ def _workbook_review_guidance(
         if source_column != pc_cols.FX_RATE:
             return f"No supported YAML impact method exists yet for {dataset_column}."
         return f"Specify the YAML fx_rate_impact_methods.fx_rate.method in {yaml_path}."
-    if dataset == pc_cols.SECURITY_MASTER:
-        return (
-            f"Specify the YAML security_master_impact_methods.{source_column}.method "
-            f"in {yaml_path}."
-        )
     return f"No supported YAML impact method exists yet for {dataset_column}."
 
 

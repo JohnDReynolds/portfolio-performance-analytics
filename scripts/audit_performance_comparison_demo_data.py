@@ -43,7 +43,7 @@ def main() -> int:
         "--axys-directory",
         type=Path,
         default=_DEFAULT_AXYS_DIRECTORY,
-        help="Directory containing axys_full_spec_a and axys_full_spec_b.",
+        help="Directory containing snapshot_a and snapshot_b.",
     )
     parser.add_argument(
         "--holding-scenarios-path",
