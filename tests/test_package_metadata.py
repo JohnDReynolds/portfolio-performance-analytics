@@ -817,7 +817,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("optional", roadmap)
         self.assertIn("reconstruction diagnostics stay opt-in", roadmap)
         self.assertIn("Setup raw-Python tutorial", roadmap)
-        self.assertIn("Root README marketing rewrite", roadmap)
+        self.assertIn("Root README image/artifact audit", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Generic analytics disposition", roadmap)
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
