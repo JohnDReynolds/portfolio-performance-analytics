@@ -88,6 +88,9 @@ Completed guardrails now cover:
 - `docs/architecture.md` provides a compact system map for commands, package
   boundaries, data flow, setup data, configuration boundaries, and report
   boundaries;
+- `ppar setup` has been dry-run end to end through Analytics and Performance
+  Comparison, including current-directory behavior and generated output clutter
+  checks;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3087,6 +3090,31 @@ workflow document, or another performance-comparison design document. The
 documentation rule is now: keep new docs rare, and prefer updating the roadmap,
 architecture map, repository guide, setup README, or heavily commented YAML
 before creating another durable document.
+
+### Phase 87: Setup Site Dry Run And User Surface Audit
+
+Status: complete for the current installed-style setup surface.
+
+The installed-style flow was dry-run into a temporary site directory:
+
+```bash
+ppar setup /tmp/ppar_phase87_site
+ppar analytics /tmp/ppar_phase87_site/analytics
+ppar performance_comparison /tmp/ppar_phase87_site/performance_comparison
+```
+
+The console output stayed concise: setup prints the two run commands and the
+customization pointer, analytics lists reviewable analytics files, and
+performance comparison lists only the generated workbook paths. Running
+`ppar analytics` or `ppar performance_comparison` from the setup root still
+fails with a useful message, while running those commands from the specific
+workflow folders works.
+
+The dry run found one user-output clutter issue: the top-level `ppar` command
+was priming Matplotlib cache paths inside `analytics/output`. Analytics cache
+setup now happens inside `ppar.analytics.cli` with a temporary cache directory,
+and tests assert that `analytics/output` does not receive `.matplotlib` or
+`.cache` folders.
 
 ## Guiding Principle
 

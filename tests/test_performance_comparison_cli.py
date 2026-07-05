@@ -537,6 +537,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "sector_overall_attribution.html"
                 ).exists()
             )
+            self.assertFalse((analytics_directory / "output" / ".matplotlib").exists())
+            self.assertFalse((analytics_directory / "output" / ".cache").exists())
 
     def test_analytics_demo_handoff_matches_quiet_success_contract(self) -> None:
         """Analytics demo handoffs use the same concise successful-run format."""

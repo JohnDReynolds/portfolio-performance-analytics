@@ -932,6 +932,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("retired setup/command terminology", roadmap)
         self.assertIn("Phase 86: Compact Architecture Map", roadmap)
         self.assertIn("keep new docs rare", roadmap)
+        self.assertIn("Phase 87: Setup Site Dry Run And User Surface Audit", roadmap)
+        self.assertIn("generated output clutter", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)

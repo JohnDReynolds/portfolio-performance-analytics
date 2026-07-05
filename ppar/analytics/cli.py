@@ -7,6 +7,7 @@ import argparse
 import os
 from pathlib import Path
 import sys
+import tempfile
 from typing import Any, Final
 
 # Third-party imports
@@ -96,28 +97,41 @@ def run_analytics(
     classification_name = _classification_name(config_values)
 
     selected_output.mkdir(parents=True, exist_ok=True)
-    os.environ.setdefault("MPLCONFIGDIR", str(selected_output / ".matplotlib"))
-    os.environ.setdefault("XDG_CACHE_HOME", str(selected_output / ".cache"))
-    quiet_matplotlib_startup()
+    original_cache_env = {
+        "MPLCONFIGDIR": os.environ.get("MPLCONFIGDIR"),
+        "XDG_CACHE_HOME": os.environ.get("XDG_CACHE_HOME"),
+    }
+    try:
+        with tempfile.TemporaryDirectory(prefix="ppar_chart_cache_") as cache_directory:
+            cache_path = Path(cache_directory)
+            os.environ.setdefault("MPLCONFIGDIR", str(cache_path / "matplotlib"))
+            os.environ.setdefault("XDG_CACHE_HOME", str(cache_path / "cache"))
+            quiet_matplotlib_startup()
 
-    # Import after cache env vars are set; analytics/chart modules may initialize
-    # Matplotlib during package import on some systems.
-    from ppar.axys import AxysData
-    from ppar.demos.analytics_demo_outputs import (
-        demo_frequency_from_string,
-        write_analytics_demo_outputs,
-    )
+            # Import after cache env vars are set; analytics/chart modules may
+            # initialize Matplotlib during package import on some systems.
+            from ppar.axys import AxysData
+            from ppar.demos.analytics_demo_outputs import (
+                demo_frequency_from_string,
+                write_analytics_demo_outputs,
+            )
 
-    selected_frequency = demo_frequency_from_string(selected_frequency_value)
-    axys_data = AxysData(config_path)
-    portfolio = axys_data.get_portfolio(selected_portfolio)
-    benchmark = axys_data.get_portfolio(selected_benchmark)
-    analytics = portfolio.to_analytics(benchmark, frequency=selected_frequency)
-    written_paths = write_analytics_demo_outputs(
-        analytics,
-        selected_output,
-        sector_classification_name=classification_name,
-    )
+            selected_frequency = demo_frequency_from_string(selected_frequency_value)
+            axys_data = AxysData(config_path)
+            portfolio = axys_data.get_portfolio(selected_portfolio)
+            benchmark = axys_data.get_portfolio(selected_benchmark)
+            analytics = portfolio.to_analytics(benchmark, frequency=selected_frequency)
+            written_paths = write_analytics_demo_outputs(
+                analytics,
+                selected_output,
+                sector_classification_name=classification_name,
+            )
+    finally:
+        for key, original_value in original_cache_env.items():
+            if original_value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = original_value
 
     if written_paths:
         print("Open these files to review analytics output:")

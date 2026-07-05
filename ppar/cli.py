@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-# Python imports
 import argparse
-import os
-from pathlib import Path
 import sys
 
 # Project imports
-from ppar._chart_console import quiet_matplotlib_startup
 from ppar.performance_comparison.cli import setup as _setup
 from ppar.performance_comparison.cli import site_report as _site_report
 
@@ -37,7 +33,6 @@ def main(argv: list[str] | None = None) -> int:
 
     args, remaining_args = _argument_parser().parse_known_args(effective_argv)
     if args.command == "analytics":
-        _prime_analytics_cache_environment(remaining_args)
         from ppar.analytics import cli as _analytics
 
         return _analytics.main(remaining_args)
@@ -112,49 +107,6 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Alias for performance_comparison.",
     )
     return parser
-
-
-def _prime_analytics_cache_environment(argv: list[str]) -> None:
-    """Set chart-rendering cache paths before importing analytics modules."""
-    output_directory = _analytics_output_directory(argv)
-    os.environ.setdefault("MPLCONFIGDIR", str(output_directory / ".matplotlib"))
-    os.environ.setdefault("XDG_CACHE_HOME", str(output_directory / ".cache"))
-    quiet_matplotlib_startup()
-
-
-def _analytics_output_directory(argv: list[str]) -> Path:
-    """Infer the analytics output directory from top-level command arguments."""
-    output_argument = _option_value(argv, "--output")
-    if output_argument is not None:
-        return Path(output_argument).expanduser()
-    site_directory = _first_positional_argument(argv)
-    if site_directory is None:
-        return Path.cwd() / "output"
-    return Path(site_directory).expanduser() / "output"
-
-
-def _option_value(argv: list[str], option: str) -> str | None:
-    """Return the value after an option if present."""
-    for index, value in enumerate(argv):
-        if value == option and index + 1 < len(argv):
-            return argv[index + 1]
-    return None
-
-
-def _first_positional_argument(argv: list[str]) -> str | None:
-    """Return the first argument that is not an option or option value."""
-    skip_next = False
-    for value in argv:
-        if skip_next:
-            skip_next = False
-            continue
-        if value in {"--portfolio", "--benchmark", "--frequency", "-f", "--output"}:
-            skip_next = True
-            continue
-        if value.startswith("-"):
-            continue
-        return value
-    return None
 
 
 if __name__ == "__main__":
