@@ -241,6 +241,7 @@ class TestPackageMetadata(unittest.TestCase):
             for dependency in optional_dependencies["dev"]
         }
 
+        self.assertEqual(pyproject["project"]["version"], "0.1.5")
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
         self.assertIn("openpyxl", pyproject_dependencies)
@@ -943,6 +944,9 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("no tag was created", roadmap)
         self.assertIn("single package-version authority", roadmap)
         self.assertIn("explicit version decision", roadmap)
+        self.assertIn("Phase 90: Version Decision And Release Tag Prep", roadmap)
+        self.assertIn("selected `0.1.5` as the next public version", roadmap)
+        self.assertIn("built metadata reporting `Version: 0.1.5`", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)

@@ -96,8 +96,9 @@ Completed guardrails now cover:
   and runs the installed setup, analytics, and performance-comparison smoke
   path;
 - release-readiness checks are documented in the repository guide, with
-  `pyproject.toml` as the single package-version authority and release tags
-  blocked until the maintainer makes an explicit version decision;
+  `pyproject.toml` as the single package-version authority; the maintainer
+  made an explicit version decision and selected `0.1.5` as the next release
+  candidate version before tagging;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3162,11 +3163,10 @@ extra, while Performance Comparison writes `.xlsx` workbooks by default.
 
 Status: complete for pre-tag readiness audit; no tag was created.
 
-The audit confirmed:
+The audit confirmed at that time:
 
 - the working tree was clean before the audit;
-- `pyproject.toml` is the only package-version authority and currently declares
-  `0.1.4`;
+- `pyproject.toml` was the only package-version authority and declared `0.1.4`;
 - no package-level `__version__` exists to drift;
 - the only existing tag is `workbook-review-checkpoint`, not a semantic release
   tag;
@@ -3178,6 +3178,24 @@ The repository guide now carries the compact release-readiness checklist. A
 release tag should wait until the maintainer explicitly chooses whether the next
 public artifact remains `0.1.4` or becomes a new version such as `0.1.5` or
 `0.2.0`.
+
+### Phase 90: Version Decision And Release Tag Prep
+
+Status: complete for the `0.1.5` release-candidate decision.
+
+The maintainer selected `0.1.5` as the next public version rather than `0.2.0`.
+The package-version authority remains `pyproject.toml`, and no package-level
+`__version__` was added. The version bump is intentionally small: this remains a
+pre-1.0 release, but it captures the Axys/APX onboarding, setup, command-line,
+package-surface, README, and release-readiness hardening that accumulated after
+`0.1.4`.
+
+Release-tag readiness for `v0.1.5` requires:
+
+- focused package metadata tests passing;
+- fresh wheel/sdist build succeeding;
+- built metadata reporting `Version: 0.1.5`; and
+- a clean working tree before creating the local tag.
 
 ## Guiding Principle
 

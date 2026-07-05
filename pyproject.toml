@@ -18,7 +18,7 @@ build-backend = "setuptools.build_meta"
 #   lower bound that reflects CI/test matrix.
 # - `dependencies`: runtime requirements expressed as minimum compatible versions.
 name = "ppar"
-version = "0.1.4"
+version = "0.1.5"
 description = "Portfolio attribution, contribution, and ex-post risk statistics."
 authors = [{ name = "John Reynolds", email = "jjjkreynolds@gmail.com" }]
 # README file included in the distribution and displayed on PyPI.
