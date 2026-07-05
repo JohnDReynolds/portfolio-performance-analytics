@@ -18,6 +18,8 @@
 # 2. Replace CSVs in snapshot_b with the newer/restated IMEX snapshot.
 # 3. Keep the starter filenames and headers when possible.
 # 4. Run ppar performance_comparison ./my_ppar_data/performance_comparison.
+#    The command writes both portfolio and security reports when secperf.csv is
+#    available in both snapshots.
 # 5. Edit this YAML only when validation or report evidence says what to fix.
 #
 # Axys/APX assumption:
@@ -41,7 +43,9 @@ comparison:
 
   # Primary review level for lower-level bundle tooling.
   # Allowed values: portfolio, security.
-  # The production command normally chooses report level with --report:
+  # Most users should leave this as portfolio. The production command normally
+  # chooses report output with --report and writes both reports by default when
+  # portfolio and security source files are available:
   #   ppar performance_comparison ./my_ppar_data/performance_comparison --report portfolio
   #   ppar performance_comparison ./my_ppar_data/performance_comparison --report security
   #   ppar performance_comparison ./my_ppar_data/performance_comparison --report both
@@ -91,6 +95,8 @@ files:
   #   returns and portfolio-level performance extract values. Required fields
   #   after Axys/APX normalization: portfolio id, from date, thru date, and
   #   portfolio return.
+  #   Starter headers: PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN,
+  #   BEGIN_MV, END_MV, FLOW, INCOME, and GAIN_LOSS.
   #
   # security_performance:
   #   Optional for the first portfolio-only onboarding pass, but required for
@@ -98,6 +104,9 @@ files:
   #   command skips security output. Required fields after Axys/APX
   #   normalization: portfolio id, security id, from date, thru date, and
   #   security return.
+  #   Starter headers: PORTFOLIO_CODE, SECURITY_ID, FROM_DATE, THRU_DATE,
+  #   SEC_RETURN, BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, and
+  #   CONTRIBUTION.
   #
   # holdings:
   #   Required. Contains beginning/ending holdings market values used as
@@ -105,6 +114,7 @@ files:
   #   Axys/APX normalization: portfolio id, security id, holding date, and
   #   market value. Quantity, price, and accrued interest are useful supporting
   #   evidence when available.
+  #   Starter headers: PORT, SEC, HOLDING_DATE, QTY, PRICE, MKT_VAL, ACCRUED.
   #
   # transactions:
   #   Required. Contains dated transaction rows used to classify external flows,
@@ -113,6 +123,10 @@ files:
   #   date, transaction code, security id, and amount. Quantity, price,
   #   commission, security type, and source/destination fields make the report
   #   more useful and help resolve ambiguous transaction codes.
+  #   Starter core headers: PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT.
+  #   Useful context headers: SETTLE_DATE, SEC_TYPE, SRC_DEST_TYPE,
+  #   SRC_DEST_SYMBOL, SPECIAL_SEC_TYPE, SPECIAL_SEC_SYMBOL, QTY, PRICE,
+  #   COMMISSION.
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv

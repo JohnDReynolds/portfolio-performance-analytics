@@ -60,6 +60,8 @@ defaults:
 #   IMEX portfolio-performance export containing returns for the portfolio and
 #   benchmark. Required columns are the portfolio/account code, from date, thru
 #   date, and portfolio return.
+#   Starter headers: FROM_DATE, THRU_DATE, PORTFOLIO_CODE, PORTFOLIO_NAME,
+#   PORT_RETURN.
 #
 # security_performance_path:
 #   Security-level performance CSV. For Axys/APX onboarding, start with an IMEX
@@ -67,6 +69,11 @@ defaults:
 #   contribution, and classification columns. Required columns are portfolio or
 #   account code, security code, from date, thru date, security return, weight,
 #   and contribution.
+#   Starter core headers: FROM_DATE, THRU_DATE, PORTFOLIO_CODE, SECURITY_ID,
+#   BEGIN_WEIGHT, SEC_RETURN, CONTRIBUTION.
+#   Starter classification headers: ASSET_CLASS_CODE, ASSET_CLASS_DESC,
+#   SECTOR_CODE, SECTOR_DESC, COUNTRY_CODE, COUNTRY_DESC, CURRENCY_CODE,
+#   CURRENCY_DESC.
 #
 # security_master_path:
 #   Optional security display/classification lookup. The starter points this at
