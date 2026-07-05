@@ -201,16 +201,13 @@ Expected workbook:
     reported portfolio and MSFT security return differences, leaving an
     intentional residual for reviewer triage;
   - a fully explained INCOME period with the same AAPL price correction plus
-    TNOTE2Y `in` interest, market-value and accrued-interest changes, related
-    TNOTE2Y quantity evidence, and TNOTE2Y cost in the `Raw Audit Trail`;
+    TNOTE2Y `in` interest, market-value and accrued-interest changes, and
+    related TNOTE2Y quantity evidence;
   - a partly explained INCOME period where paired TNOTE5Y `by`/`pa` and
     `sl`/`sa` fixed-income trade/accrued-interest settlement rows affect the
     cash/performance inputs, while separate quantity-driven holding value and
-    accrued-value rows remain visible as holding inputs. TNOTE5Y cost-only audit
-    evidence stays in the raw trail, and incomplete or overlapping estimates
-    still require reviewer triage;
-  - a TNOTE5Y cost-only correction that stays in the raw audit trail rather
-    than explaining performance by itself.
+    accrued-value rows remain visible as holding inputs. Incomplete or
+    overlapping estimates still require reviewer triage.
 
 Why: this is the most focused workbook for understanding the causal-attribution
 model. It keeps the data small and transaction semantics explicit while still
@@ -250,7 +247,7 @@ The workbook uses a small field-role model:
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. |
 | `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Raw Audit Trail` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | holding cost, FX rates, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |
+| `context` | FX rates, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

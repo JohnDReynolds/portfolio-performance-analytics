@@ -4,7 +4,6 @@
 import os
 from importlib.resources import as_file, files
 from pathlib import Path
-import time
 
 _OUTPUT_DIRECTORY = Path("_demo_output") / "axysapx_analytics"
 os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
@@ -13,7 +12,6 @@ os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
 # Project imports
 from ppar.axys import AxysData
 from ppar.demos.analytics_demo_outputs import (
-    frequency_display_name,
     parse_demo_frequency_argument,
     print_analytics_demo_handoff,
     write_analytics_demo_outputs,
@@ -30,11 +28,9 @@ def main() -> None:
         PpaError: If Axys/APX source validation, reconciliation, or analytics
             calculations fail.
     """
-    time_start = time.perf_counter()
     frequency = parse_demo_frequency_argument(
         description="Run the bundled Axys/APX analytics demo.",
     )
-    print(f"Using {frequency_display_name(frequency)} reporting.")
 
     with as_file(files("ppar.demos.data") / "axysapx_analytics") as axys_data_root:
         axys_data = AxysData(axys_data_root / "axysapx_analytics.yaml")
@@ -46,8 +42,6 @@ def main() -> None:
         )
         written_paths = write_analytics_demo_outputs(analytics, _OUTPUT_DIRECTORY)
         print_analytics_demo_handoff(_OUTPUT_DIRECTORY, written_paths)
-
-    print("Time:", time.perf_counter() - time_start)
 
 
 if __name__ == "__main__":

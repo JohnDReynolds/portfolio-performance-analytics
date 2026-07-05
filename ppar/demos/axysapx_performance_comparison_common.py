@@ -43,17 +43,10 @@ def run_performance_comparison_demo(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
     )
-    print(title)
-    print()
-    print(f"Report bundle written to: {written_bundle_paths['manifest'].parent}")
     _print_bundle_handoff(written_bundle_paths)
 
 
 def _print_bundle_handoff(bundle_paths: dict[str, Path]) -> None:
-    """Print generated bundle artifacts and the recommended review path."""
-    print(f"Bundle artifacts: {len(bundle_paths)} files")
-    print("Recommended review path")
-    print(f"1. Open {bundle_paths['review_workbook']}")
-    print(f"2. Open {bundle_paths['html_report']} if you prefer browser review")
-    print(f"3. Use {bundle_paths['manifest']} to audit generated artifacts")
-    print()
+    """Print generated workbook artifact paths."""
+    print("Open these files to review performance_comparison output:")
+    print(f"  {bundle_paths['review_workbook']}")

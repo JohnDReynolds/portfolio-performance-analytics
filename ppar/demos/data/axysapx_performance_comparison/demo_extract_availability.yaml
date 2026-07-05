@@ -162,29 +162,6 @@ datasets:
         blocking_if_missing: true
         source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
           REP extract.
-      COST:
-        normalized_meaning: Cost or cost basis.
-        imex_confidence: medium
-        rep_confidence: high
-        comments: Cost appears in report-output evidence; IMEX availability depends on position/lot profile.
-        basis: Report-output cost evidence and common-core holdings reference; IMEX depends on the position, tax-lot, or lot-summary
-          profile.
-        open_questions:
-        - Confirm whether local holdings export exposes cost or requires lot/report extraction.
-        candidate_axys_names:
-        - COST
-        - Cost
-        - Cost Basis
-        candidate_report_labels:
-        - Cost
-        - Cost Basis
-        name_confidence: report_label_inferred
-        name_notes: Report-style label candidates are more credible than native IMEX names for this field.
-        preferred_source: rep_preferred
-        fallback_source: local_discovery_required
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Useful as context, but ppar does not require cost to attribute return differences.
       ACCRUED:
         normalized_meaning: Accrued income or accrued interest.
         imex_confidence: medium

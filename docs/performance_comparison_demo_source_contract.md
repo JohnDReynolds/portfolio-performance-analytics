@@ -57,7 +57,7 @@ The packaged demo keeps four field groups separate:
 - **Realistic packaged-demo fields**: Axys/APX-style or report-style fields that
   are defensible in the local research corpus and useful for the packaged
   review story, such as transaction dates, security identifiers, transaction
-  codes, quantity, price, commission, cost, accrued interest, and portfolio or
+  codes, quantity, price, commission, accrued interest, and portfolio or
   security performance values.
 - **Optional local-enrichment fields**: fields ppar can use when a client site
   can provide them, but that the packaged demo does not assume as typical Axys/APX
@@ -104,7 +104,6 @@ flow-category, income-category, return-basis, and sign-convention YAML fields.
 | `transactions.security_type`, `transactions.source_destination_type`, `transactions.source_destination_symbol`, `transactions.special_security_type`, `transactions.special_security_symbol` | Context used by conditional YAML transaction rules. These fields help classify ambiguous Axys/APX-style transaction codes; they are not themselves performance-cause fields. |
 | `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
 | `transactions.quantity`, `transactions.price`, `transactions.commission` | Supporting inputs for changed `transactions.amount`; not a formula for `transactions.amount`. |
-| `holdings.cost` | Review evidence. Cost changes are useful review evidence but do not explain reported performance in this demo contract. |
 | `portperf.gain_loss`, `secperf.gain_loss` | Reported performance-extract context. These fields are defensible as report-style gain/loss components, but the local corpus does not prove native Axys/APX IMEX performance object names or calculation basis. They must not be described as recomputed tax-lot or accounting-ledger values. |
 | `transactions.settle_date` | Review evidence unless a future explicit settlement-date rule makes it performance-relevant. |
 
@@ -165,8 +164,8 @@ not just a validation result. The packaged demo is accepted as the future
 - the fee-like `dp` example assumes net-of-fees reported performance;
 - the portfolio and security reports intentionally include Fully Explained,
   Partly Explained, and Unexplained examples;
-- cost, settlement-date, and unsupported corporate-action differences remain
-  review evidence unless a future explicit rule changes their treatment; and
+- settlement-date and unsupported corporate-action differences remain review
+  evidence unless a future explicit rule changes their treatment; and
 - `vendor: axys` must continue to mean ppar's versioned Axys/APX preset semantics,
   not a claim about universal Axys/APX behavior.
 
@@ -180,7 +179,7 @@ Freeze-packet evidence map:
 | Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
 | Fee-like `dp` assumes net-of-fees reported performance. | The comparison YAML and packaged README both state the net-of-fees assumption and warn that gross-of-fees performance needs a separate return-basis policy. |
 | Report examples intentionally include Fully Explained, Partly Explained, and Unexplained cases. | The packaged README describes the controlled restatement story; generated portfolio and security report bundles are rebuilt and validated by `scripts/check_performance_comparison_demo_health.py`. |
-| Cost, settlement-date, and unsupported corporate-action differences remain review evidence. | The field-role contract classifies `holdings.cost` and `transactions.settle_date` as review evidence, while the transaction semantics matrix and demo matrix tests keep unsupported corporate actions outside additive Modified Dietz treatment. |
+| Settlement-date and unsupported corporate-action differences remain review evidence. | The field-role contract classifies `transactions.settle_date` as review evidence, while the transaction semantics matrix and demo matrix tests keep unsupported corporate actions outside additive Modified Dietz treatment. |
 | `vendor: axys` means ppar's versioned Axys/APX preset semantics, not universal Axys/APX behavior. | The source contract, roadmap, and vendor preset design docs use this boundary and keep preset implementation blocked until the demo is explicitly frozen. |
 
 If any of these boundaries changes later, the correct action is to update the

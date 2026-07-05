@@ -127,13 +127,7 @@ def _analytics_output_directory(argv: list[str]) -> Path:
         return Path(output_argument).expanduser()
     site_directory = _first_positional_argument(argv)
     if site_directory is None:
-        current_directory = Path.cwd()
-        if (current_directory / "ppar.yaml").exists():
-            return current_directory / "output"
-        analytics_directory = current_directory / "analytics"
-        if (analytics_directory / "ppar.yaml").exists():
-            return analytics_directory / "output"
-        return current_directory / "output"
+        return Path.cwd() / "output"
     return Path(site_directory).expanduser() / "output"
 
 

@@ -541,7 +541,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
                 raw_fields = {row[4] for row in raw_rows}
-                self.assertIn("holdings.cost", raw_fields)
+                self.assertNotIn("holdings.cost", raw_fields)
             finally:
                 workbook.close()
 
@@ -685,16 +685,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     places=6,
                 )
                 raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
-                self.assertTrue(
-                    {
-                        ("holdings.cost", "AAPL"),
-                        ("holdings.cost", "CASH_USD"),
-                        ("holdings.cost", "MSFT"),
-                        ("holdings.cost", "TNOTE2Y"),
-                    }.issubset(
-                        {(row[4], row[5]) for row in raw_rows}
-                    )
-                )
+                self.assertNotIn("holdings.cost", {row[4] for row in raw_rows})
                 underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
                 underlying_sort_keys = [
                     (row[0], str(row[1])[:10], str(row[2])[:10], row[5], row[4])

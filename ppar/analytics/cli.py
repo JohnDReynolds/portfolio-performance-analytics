@@ -135,8 +135,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         type=Path,
         help=(
             "Folder containing analytics ppar.yaml and source CSV files. "
-            "Defaults to the current folder, or ./analytics when run from a "
-            "setup folder."
+            "Defaults to the current folder."
         ),
     )
     parser.add_argument(
@@ -164,13 +163,7 @@ def _default_site_directory(site_directory: Path | None) -> Path:
     """Return the explicit or conventional analytics site directory."""
     if site_directory is not None:
         return site_directory
-    current_directory = Path.cwd()
-    if (current_directory / _CONFIG_FILE_NAME).exists():
-        return current_directory
-    analytics_directory = current_directory / _ANALYTICS_SECTION
-    if (analytics_directory / _CONFIG_FILE_NAME).exists():
-        return analytics_directory
-    return current_directory
+    return Path.cwd()
 
 
 def _load_config_values(config_path: Path) -> dict[str, Any]:

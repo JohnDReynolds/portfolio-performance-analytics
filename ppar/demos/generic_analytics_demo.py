@@ -17,7 +17,6 @@ _DEFAULT_PERIODICITY = "q"
 # Project Imports
 from ppar.analytics import Analytics
 from ppar.demos.analytics_demo_outputs import (
-    frequency_display_name,
     parse_demo_frequency_argument,
     print_analytics_demo_handoff,
     write_analytics_demo_outputs,
@@ -138,7 +137,6 @@ def main() -> None:
     frequency = parse_demo_frequency_argument(
         description="Run the bundled analytics demo.",
     )
-    print(f"Using {frequency_display_name(frequency)} reporting.")
     run_demo(frequency.value)
 
 

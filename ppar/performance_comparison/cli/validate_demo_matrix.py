@@ -535,28 +535,10 @@ def _check_portfolio_strict_attribution(findings: pl.DataFrame) -> _ScenarioChec
                 f"{dataset}.{column}" for dataset, column in missing_promoted_fields
             ),
         )
-    raw_audit_trail = _workbook_raw_audit_trail_table(findings)
-    raw_fields = {
-        (str(row["dataset"]), str(row["source_column"]))
-        for row in raw_audit_trail.select(["dataset", "source_column"]).iter_rows(
-            named=True
-        )
-    }
-    expected_raw_fields = {
-        ("holdings", "cost"),
-    }
-    missing_raw_fields = sorted(expected_raw_fields - raw_fields)
-    if missing_raw_fields:
-        return _ScenarioCheck(
-            name,
-            False,
-            "portfolio fixture is missing raw audit field(s): "
-            + ", ".join(f"{dataset}.{column}" for dataset, column in missing_raw_fields),
-        )
     return _ScenarioCheck(
         name,
         True,
-        "field roles cover additive causes plus intentional context-only examples",
+        "field roles cover additive causes plus intentional support examples",
     )
 
 

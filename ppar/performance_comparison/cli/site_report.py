@@ -120,8 +120,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         nargs="?",
         type=Path,
         help=(
-            "Folder containing ppar.yaml. Defaults to the current folder, or "
-            "./performance_comparison when run from a setup folder."
+            "Folder containing ppar.yaml. Defaults to the current folder."
         ),
     )
     parser.add_argument(
@@ -137,13 +136,7 @@ def _default_site_directory(site_directory: Path | None) -> Path:
     """Return the explicit or conventional performance-comparison site directory."""
     if site_directory is not None:
         return site_directory
-    current_directory = Path.cwd()
-    if (current_directory / _CONFIG_FILE_NAME).exists():
-        return current_directory
-    comparison_directory = current_directory / _DEFAULT_SITE_DIRECTORY
-    if (comparison_directory / _CONFIG_FILE_NAME).exists():
-        return comparison_directory
-    return current_directory
+    return Path.cwd()
 
 
 def _write_report_bundle(

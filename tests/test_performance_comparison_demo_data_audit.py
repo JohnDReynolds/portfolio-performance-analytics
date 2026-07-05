@@ -220,7 +220,6 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             self.assertIn(expected_text, normalized_lower_text)
 
         for expected_text in [
-            "cost changes are useful review evidence but do not explain reported performance",
             "reported performance-extract context",
             "defensible as report-style gain/loss components",
             "must not be described as recomputed tax-lot or accounting-ledger values",
@@ -231,11 +230,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         ]:
             self.assertIn(expected_text, normalized_lower_text)
 
-        for expected_text in [
-            "Cost changes are useful review evidence but do not explain reported performance",
+        self.assertIn(
             "Review evidence unless a future explicit settlement-date rule",
-        ]:
-            self.assertIn(expected_text, normalized_text)
+            normalized_text,
+        )
 
     def test_packaged_demo_transaction_fields_stay_user_facing(self) -> None:
         """Packaged transaction extracts omit internal IDs but keep rule context."""
@@ -300,7 +298,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "fee-like `dp` transaction",
             "classified from special-security context",
             "TNOTE2Y `in` interest",
-            "TNOTE5Y cost-only correction",
+            "paired TNOTE5Y `by`/`pa` and",
         ]:
             self.assertIn(expected_text, text)
 
@@ -725,7 +723,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
 
     def test_packaged_demo_audit_fields_match_source_contract(self) -> None:
-        """Cost remains audit evidence, not an additive performance cause."""
+        """Cost is not exposed in the packaged Axys/APX demo evidence surface."""
         findings = compare_snapshots(
             _PACKAGED_COMPARISON_PATH,
             require_causal_attribution=True,
@@ -736,7 +734,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         cause_fields = _dataset_fields(causes)
         raw_fields = _dataset_fields(raw_audit_trail)
 
-        self.assertIn((pc_cols.HOLDINGS, pc_cols.COST), raw_fields)
+        self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), raw_fields)
         self.assertNotIn((pc_cols.HOLDINGS, pc_cols.COST), cause_fields)
 
     def test_packaged_demo_accrual_changes_are_performance_causes(self) -> None:
@@ -1017,7 +1015,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             deltas={
                 "QTY": -3.0,
                 "MKT_VAL": -296.4,
-                "COST": -291.953975670502,
+                "COST": -296.3999753000021,
                 "ACCRUED": -3.0 * 4.56 / 485.83,
             },
         )
@@ -1054,7 +1052,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             portfolio="BALANCED",
             security="MSFT",
             holding_date="2026-01-30",
-            deltas={"QTY": -2.0, "MKT_VAL": -228.0, "COST": -224.58001579710972},
+            deltas={"QTY": -2.0, "MKT_VAL": -228.0, "COST": -228.0000041536562},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0203 sl transaction changes cash balance."],

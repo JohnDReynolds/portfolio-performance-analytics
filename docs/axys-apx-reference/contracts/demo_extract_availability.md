@@ -69,7 +69,6 @@ Use this matrix as an implementation planning aid:
 | holdings | `QTY` | Quantity, shares, or units. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Quantity is directly supported by transaction and appraisal report evidence. |
 | holdings | `PRICE` | Market price used for valuation. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Price import/export evidence and appraisal/report labels support availability. |
 | holdings | `MKT_VAL` | Market value. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Market value appears in report evidence and is a core position/appraisal value. |
-| holdings | `COST` | Cost or cost basis. | Medium | High | Report-output cost evidence and common-core holdings reference; IMEX depends on the position, tax-lot, or lot-summary profile. | Confirm whether local holdings export exposes cost or requires lot/report extraction. | Cost appears in report-output evidence; IMEX availability depends on position/lot profile. |
 | holdings | `ACCRUED` | Accrued income or accrued interest. | Medium | Medium | Fixed-income/accrual handling is documented as performance-sensitive; common-core holdings reference treats accrued income as plausible. | Confirm accrued-income field, date basis, and fixed-income treatment. | Common for fixed-income holdings, but exact export/report field requires validation. |
 
 
@@ -146,7 +145,6 @@ These names are candidate aliases for local discovery. They are not assertions t
 | holdings | `QTY` | QTY, Quantity, Shares, Units | Quantity, Shares, Units | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `PRICE` | PRICE, Price, Market Price | Price, Market Price | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `MKT_VAL` | MKT_VAL, Market Value, MarketVal | Market Value | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
-| holdings | `COST` | COST, Cost, Cost Basis | Cost, Cost Basis | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | holdings | `ACCRUED` | ACCRUED, Accrued Interest, Accrued Income | Accrued Interest, Accrued Income | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 
 
@@ -225,7 +223,6 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | holdings | `QTY` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
 | holdings | `PRICE` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
 | holdings | `MKT_VAL` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `COST` | REP preferred | Local discovery required | No | No | Useful as context, but ppar does not require cost to attribute return differences. |
 | holdings | `ACCRUED` | IMEX or REP | Local discovery required | No | Yes | Accrued income can affect performance reconciliation, so validate the field before running accrual-sensitive comparisons. |
 
 

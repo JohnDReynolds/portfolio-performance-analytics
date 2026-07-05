@@ -182,11 +182,11 @@ def print_analytics_demo_handoff(output_directory: Path, paths: Sequence[Path]) 
         output_directory: Directory that received the rendered demo artifacts.
         paths: Paths written by ``write_analytics_demo_outputs``.
     """
-    print(f"Analytics demo output written to: {output_directory.resolve()}")
+    _ = output_directory
     if paths:
-        print("Open these files to review the demo output:")
+        print("Open these files to review analytics output:")
         for path in paths:
-            print(f"- {path.resolve()}")
+            print(f"  {path.resolve()}")
 
 
 def _sector_attribution(

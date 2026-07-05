@@ -91,7 +91,20 @@ _PORTPERF_NUMERIC_COLUMNS: Final = [
     "BEGIN_MV",
     "PORT_RETURN",
 ]
-_HOLDINGS_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "MKT_VAL", "COST", "ACCRUED"]
+_PACKAGED_HOLDINGS_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "MKT_VAL", "ACCRUED"]
+_INTERNAL_HOLDINGS_NUMERIC_COLUMNS: Final = [
+    "QTY",
+    "PRICE",
+    "MKT_VAL",
+    "COST",
+    "ACCRUED",
+]
+_PACKAGED_HOLDINGS_COLUMNS: Final = [
+    "PORT",
+    "SEC",
+    "HOLDING_DATE",
+    *_PACKAGED_HOLDINGS_NUMERIC_COLUMNS,
+]
 _HOLDING_SCENARIO_COLUMNS: Final = [
     "snapshot",
     "scenario_type",
@@ -469,7 +482,7 @@ def rebuild_demo_performance_files(
 
     snapshots: list[dict[str, object]] = []
     base_snapshot_directory = axys_directory / _BASE_SNAPSHOT_DIRECTORY
-    base_holdings = pd.read_csv(base_snapshot_directory / "holdings.csv")
+    base_holdings = _with_internal_cost(pd.read_csv(base_snapshot_directory / "holdings.csv"))
     base_transactions = _read_packaged_transactions(
         base_snapshot_directory / "transactions.csv"
     )
@@ -479,7 +492,7 @@ def rebuild_demo_performance_files(
         snapshot_directory = axys_directory / snapshot_name
         current_secperf = pd.read_csv(snapshot_directory / "secperf.csv")
         current_portperf = pd.read_csv(snapshot_directory / "portperf.csv")
-        holdings = pd.read_csv(snapshot_directory / "holdings.csv")
+        holdings = _with_internal_cost(pd.read_csv(snapshot_directory / "holdings.csv"))
         current_transactions = _read_packaged_transactions(
             snapshot_directory / "transactions.csv"
         )
@@ -531,7 +544,7 @@ def rebuild_demo_performance_files(
         holdings_delta = _max_numeric_delta(
             holdings,
             rebuilt_holdings,
-            _HOLDINGS_NUMERIC_COLUMNS,
+            _PACKAGED_HOLDINGS_NUMERIC_COLUMNS,
         )
         secperf_delta = _max_numeric_delta(
             current_secperf,
@@ -555,7 +568,10 @@ def rebuild_demo_performance_files(
                 rebuilt_transactions,
                 snapshot_directory / "transactions.csv",
             )
-            rebuilt_holdings.to_csv(snapshot_directory / "holdings.csv", index=False)
+            _packaged_holdings(rebuilt_holdings).to_csv(
+                snapshot_directory / "holdings.csv",
+                index=False,
+            )
             rebuilt_secperf.to_csv(snapshot_directory / "secperf.csv", index=False)
             rebuilt_portperf.to_csv(snapshot_directory / "portperf.csv", index=False)
 
@@ -695,6 +711,26 @@ def _read_packaged_transactions(path: Path) -> pd.DataFrame:
     handles so the demo derivation remains auditable.
     """
     return _with_internal_transaction_ids(pd.read_csv(path))
+
+
+def _with_internal_cost(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Return holdings with internal best-efforts cost available for rebuild math.
+
+    The packaged Axys/APX demo intentionally omits ``COST`` from user-facing
+    ``holdings.csv`` files because cost is not a Modified Dietz input. Rebuild
+    tooling may still use a private best-efforts cost value while constructing
+    realistic fixtures, so missing cost falls back to market value.
+    """
+    if "COST" in holdings.columns:
+        return holdings
+    internal = holdings.copy()
+    internal["COST"] = internal["MKT_VAL"]
+    return internal
+
+
+def _packaged_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Return the public holdings columns written to packaged demo CSV files."""
+    return holdings[_PACKAGED_HOLDINGS_COLUMNS]
 
 
 def _write_packaged_transactions(transactions: pd.DataFrame, path: Path) -> None:
@@ -845,7 +881,7 @@ def _transaction_derived_holding_adjustments(
     base_prepared = _prepared_transactions(base_transactions)
     current_prepared = _prepared_transactions(current_transactions)
     transaction_diffs = _changed_transaction_rows(base_prepared, current_prepared)
-    holdings = _holding_values(base_holdings)
+    holdings = _holding_values(_with_internal_cost(base_holdings))
     adjustments: list[HoldingScenarioAdjustment] = []
     for row in transaction_diffs.itertuples(index=False):
         transaction_code = str(row.TRAN)
@@ -1199,7 +1235,7 @@ def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
             f"{unknown_types}. Supported={sorted(_HOLDING_SCENARIO_TYPES)}."
         )
 
-    delta_columns = [f"{column}_delta" for column in _HOLDINGS_NUMERIC_COLUMNS]
+    delta_columns = [f"{column}_delta" for column in _INTERNAL_HOLDINGS_NUMERIC_COLUMNS]
     converted_deltas = scenarios[delta_columns].apply(pd.to_numeric, errors="coerce")
     if bool(converted_deltas.isna().any().any()):
         raise ValueError("Holding scenario delta columns must be numeric.")
@@ -1208,7 +1244,7 @@ def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
     for row_index, row in scenarios.iterrows():
         deltas = {
             column: float(converted_deltas.loc[row_index, f"{column}_delta"])
-            for column in _HOLDINGS_NUMERIC_COLUMNS
+            for column in _INTERNAL_HOLDINGS_NUMERIC_COLUMNS
         }
         if not any(deltas.values()):
             raise ValueError(

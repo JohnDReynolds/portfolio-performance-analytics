@@ -1,6 +1,8 @@
 """Tests for performance comparison command-line modules."""
 
 # Python imports
+from contextlib import redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -29,6 +31,15 @@ _SETUP_MODULE = "ppar.performance_comparison.cli.setup"
 _SITE_REPORT_MODULE = "ppar.performance_comparison.cli.site_report"
 _ANALYTICS_MODULE = "ppar.analytics.cli"
 _PPAR_MODULE = "ppar.cli"
+_DEMO_QUIET_PHRASES = (
+    "Using quarterly reporting.",
+    "Time:",
+    "Analytics demo output written to:",
+    "Report bundle written to:",
+    "Bundle artifacts:",
+    "Portfolio Performance Comparison Demo",
+    "Security Performance Comparison Demo",
+)
 
 
 class TestPerformanceComparisonCli(unittest.TestCase):
@@ -418,8 +429,61 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 ).exists()
             )
 
-    def test_top_level_commands_default_to_setup_child_folders(self) -> None:
-        """Production commands can run without a path from the setup root."""
+    def test_analytics_demo_handoff_matches_quiet_success_contract(self) -> None:
+        """Analytics demo handoffs use the same concise successful-run format."""
+        from ppar.demos.analytics_demo_outputs import print_analytics_demo_handoff
+
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            print_analytics_demo_handoff(
+                Path("_demo_output") / "axysapx_analytics",
+                [
+                    Path("_demo_output")
+                    / "axysapx_analytics"
+                    / "risk_statistics.html"
+                ],
+            )
+
+        output = stdout.getvalue()
+        self.assertIn("Open these files to review analytics output:", output)
+        self.assertIn("risk_statistics.html", output)
+        for phrase in _DEMO_QUIET_PHRASES:
+            self.assertNotIn(phrase, output)
+
+    def test_performance_comparison_demo_handoff_matches_quiet_success_contract(
+        self,
+    ) -> None:
+        """Performance-comparison demo handoffs only list the workbook path."""
+        from ppar.demos.axysapx_performance_comparison_common import (
+            _print_bundle_handoff,
+        )
+
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            _print_bundle_handoff(
+                {
+                    "review_workbook": Path("_demo_output")
+                    / "performance_comparison_portfolio"
+                    / "report.xlsx",
+                    "html_report": Path("_demo_output")
+                    / "performance_comparison_portfolio"
+                    / "report.html",
+                    "manifest": Path("_demo_output")
+                    / "performance_comparison_portfolio"
+                    / "manifest.json",
+                }
+            )
+
+        output = stdout.getvalue()
+        self.assertIn("Open these files to review performance_comparison output:", output)
+        self.assertIn("report.xlsx", output)
+        self.assertNotIn("report.html", output)
+        self.assertNotIn("manifest.json", output)
+        for phrase in _DEMO_QUIET_PHRASES:
+            self.assertNotIn(phrase, output)
+
+    def test_top_level_commands_do_not_default_from_setup_root(self) -> None:
+        """Production commands require either a workflow folder or an explicit path."""
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_data"
             subprocess.run(
@@ -432,7 +496,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             analytics_result = subprocess.run(
                 _module_command(_PPAR_MODULE, "analytics"),
                 cwd=site_directory,
-                check=True,
                 capture_output=True,
                 text=True,
             )
@@ -444,6 +507,43 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     "portfolio",
                 ),
                 cwd=site_directory,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(analytics_result.returncode, 0)
+            self.assertNotEqual(comparison_result.returncode, 0)
+            self.assertIn("Analytics failed:", analytics_result.stderr)
+            self.assertIn("Report failed:", comparison_result.stderr)
+
+    def test_top_level_commands_default_inside_workflow_folders(self) -> None:
+        """Production commands can default to cwd inside their configured folder."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_PPAR_MODULE, "setup", str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            analytics_directory = site_directory / "analytics"
+            comparison_directory = site_directory / "performance_comparison"
+
+            analytics_result = subprocess.run(
+                _module_command(_PPAR_MODULE, "analytics"),
+                cwd=analytics_directory,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            comparison_result = subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "performance_comparison",
+                    "--report",
+                    "portfolio",
+                ),
+                cwd=comparison_directory,
                 check=True,
                 capture_output=True,
                 text=True,
@@ -458,21 +558,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 comparison_result.stdout,
             )
             self.assertTrue(
-                (
-                    site_directory
-                    / "analytics"
-                    / "output"
-                    / "risk_statistics.html"
-                ).exists()
+                (analytics_directory / "output" / "risk_statistics.html").exists()
             )
             self.assertTrue(
-                (
-                    site_directory
-                    / "performance_comparison"
-                    / "output"
-                    / "portfolio"
-                    / "report.xlsx"
-                ).exists()
+                (comparison_directory / "output" / "portfolio" / "report.xlsx").exists()
             )
 
     def test_analytics_cli_resolves_relative_site_directory_once(self) -> None:
