@@ -936,6 +936,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("generated output clutter", roadmap)
         self.assertIn("Phase 88: Release Package Smoke Audit", roadmap)
         self.assertIn("exposes only `ppar = ppar.cli:main`", roadmap)
+        self.assertIn(
+            "Phase 89: Release Candidate Tagging And Version Readiness Audit",
+            roadmap,
+        )
+        self.assertIn("no tag was created", roadmap)
+        self.assertIn("single package-version authority", roadmap)
+        self.assertIn("explicit version decision", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
@@ -1574,6 +1581,21 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("Other Data Differences", guide)
         self.assertNotIn("Residual Evidence", guide)
         self.assertNotIn("Return Reconstruction Summary", guide)
+
+    def test_repository_guide_documents_release_readiness_checklist(self) -> None:
+        """The repository guide keeps release-tag readiness checks explicit."""
+        guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
+
+        for expected_text in [
+            "## Release Readiness",
+            "`pyproject.toml` is the only package-version authority",
+            "./.venv/bin/python -m build --no-isolation",
+            "only the `ppar` console script is exposed",
+            "ppar setup /tmp/ppar_release_site",
+            "Do not create a release tag until the version decision is explicit.",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, guide)
 
     def test_axys_demo_readme_uses_current_report_sheet_names(self) -> None:
         """The packaged Axys README names the current workbook review path."""

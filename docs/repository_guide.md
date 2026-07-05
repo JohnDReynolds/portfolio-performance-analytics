@@ -256,6 +256,35 @@ When changing demo data or YAML, also run:
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
 ```
 
+## Release Readiness
+
+Before tagging or publishing, keep the release check small and concrete:
+
+1. Confirm the working tree is clean.
+2. Confirm `pyproject.toml` is the only package-version authority.
+3. Decide whether the current version is still right for the release.
+4. Build fresh artifacts:
+
+   ```bash
+   ./.venv/bin/python -m build --no-isolation
+   ```
+
+5. Inspect the wheel:
+   - only the `ppar` console script is exposed;
+   - Axys/APX analytics and performance-comparison starter files are included;
+   - `_demo_output`, `scripts`, `tests`, `docs`, and obsolete demo paths are not
+     present in the wheel.
+6. Install the wheel into a temporary environment and run:
+
+   ```bash
+   ppar --help
+   ppar setup /tmp/ppar_release_site
+   ppar analytics /tmp/ppar_release_site/analytics
+   ppar performance_comparison /tmp/ppar_release_site/performance_comparison
+   ```
+
+Do not create a release tag until the version decision is explicit.
+
 ## Generated Output
 
 Generated output normally belongs under `_demo_output/`:

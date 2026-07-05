@@ -95,6 +95,9 @@ Completed guardrails now cover:
   starter data needed by setup, excludes generated/source-checkout internals,
   and runs the installed setup, analytics, and performance-comparison smoke
   path;
+- release-readiness checks are documented in the repository guide, with
+  `pyproject.toml` as the single package-version authority and release tags
+  blocked until the maintainer makes an explicit version decision;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3154,6 +3157,27 @@ The no-deps temporary wheel environment initially lacked `openpyxl`, so workbook
 export failed until that declared runtime dependency was supplied locally. This
 confirmed that `openpyxl` must remain a core runtime dependency, not an optional
 extra, while Performance Comparison writes `.xlsx` workbooks by default.
+
+### Phase 89: Release Candidate Tagging And Version Readiness Audit
+
+Status: complete for pre-tag readiness audit; no tag was created.
+
+The audit confirmed:
+
+- the working tree was clean before the audit;
+- `pyproject.toml` is the only package-version authority and currently declares
+  `0.1.4`;
+- no package-level `__version__` exists to drift;
+- the only existing tag is `workbook-review-checkpoint`, not a semantic release
+  tag;
+- build artifacts such as `dist/`, `build/`, and `*.egg-info` remain ignored;
+  and
+- Phase 88 already verified the built wheel and installed `ppar` smoke path.
+
+The repository guide now carries the compact release-readiness checklist. A
+release tag should wait until the maintainer explicitly chooses whether the next
+public artifact remains `0.1.4` or becomes a new version such as `0.1.5` or
+`0.2.0`.
 
 ## Guiding Principle
 
