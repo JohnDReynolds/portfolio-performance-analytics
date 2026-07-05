@@ -1,8 +1,8 @@
 # Packaged Demo Data
 
-This directory contains CSV inputs used by packaged demos and setup templates.
-The public onboarding path starts with the Axys/APX workspace created by
-`ppar setup ./my_ppar_data`.
+This directory contains CSV inputs used by packaged setup templates, maintainer
+smoke modules, and README image generation. The public onboarding path starts
+with the Axys/APX workspace created by `ppar setup ./my_ppar_data`.
 
 ## Axys/APX Starter Data
 
@@ -15,8 +15,9 @@ The public onboarding path starts with the Axys/APX workspace created by
 
 The Mega-Cap analytics files are generated from historical holdings of the
 iShares S&P 100 ETF as a public, reproducible proxy for a U.S. mega-cap
-benchmark. This dataset remains available for maintainers and generic analytics
-examples, but the first target-market onboarding path is Axys/APX.
+benchmark. This dataset remains available for maintainers, regression tests,
+README marketing images, and data-derivation scripts, but it is not the primary
+new-user setup path.
 
 Files:
 
@@ -36,9 +37,10 @@ returns as its cash-return proxy.
 
 ## Refresh Notes
 
-The packaged CSVs are the source of truth for the generic analytics demo module,
-`README.md`, and the README images under `docs/images/readme/`. Refresh helpers
-live under `scripts/generic_analytics_demo_data/`; generated files under
+The packaged CSVs are the source of truth for the generic analytics smoke
+module, `README.md`, README images under `docs/images/readme/`, and selected
+operational demo derivation scripts. Refresh helpers live under
+`scripts/generic_analytics_demo_data/`; generated files under
 `_demo_output/generic_analytics_data_generation/` are cache/provenance output,
 not packaged demo inputs.
 

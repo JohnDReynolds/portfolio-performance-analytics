@@ -90,9 +90,14 @@ python -m ppar.demos.axysapx_performance_comparison_security_demo
 Packaged demos and test configuration fixtures intentionally live in different
 places:
 
-- `ppar/demos/data/axysapx_performance_comparison/` is for packaged examples that users and reviewers can
-  run. These fixtures should be understandable, documented, and stable enough
-  to explain from workbook/report output.
+- `ppar/demos/data/axysapx_analytics/` is the public analytics setup seed
+  copied by `ppar setup`.
+- `ppar/demos/data/axysapx_performance_comparison/` is the public
+  performance-comparison setup seed copied by `ppar setup` and is also used
+  for packaged examples that users and reviewers can run.
+- `ppar/demos/data/generic_analytics/` is maintainer/demo infrastructure. It
+  feeds README marketing images, analytics regression tests, and operational
+  demo-data derivation; it is not advertised as the primary onboarding path.
 - `tests/data/axys/` is for synthetic Axys/APX snapshots, test-only comparison YAML
   files, and validation matrix fixtures.
 
@@ -116,7 +121,7 @@ The source-checkout demo modules write durable artifacts under `_demo_output/`:
 
 | Command | Output Directory | Notes |
 | --- | --- | --- |
-| `ppar.demos.generic_analytics_demo` | `_demo_output/generic_analytics` | Writes table and chart artifacts; default frequency is quarterly. |
+| `ppar.demos.generic_analytics_demo` | `_demo_output/generic_analytics` | Maintainer smoke path for the generic Mega-Cap dataset used by README images; default frequency is quarterly. |
 | `ppar.demos.axysapx_analytics_demo` | `_demo_output/axysapx_analytics` | Axys/APX-backed analytics demo. |
 | `ppar.demos.axysapx_performance_comparison_portfolio_demo` | `_demo_output/performance_comparison_portfolio` | Portfolio review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
 | `ppar.demos.axysapx_performance_comparison_security_demo` | `_demo_output/performance_comparison_security` | Security review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |

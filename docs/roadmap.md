@@ -85,6 +85,9 @@ Completed guardrails now cover:
 - `ppar setup` installs a short raw-Python tutorial beside the setup README so
   users can run Analytics and Performance Comparison without the CLI when they
   need scheduler, notebook, or automation entrypoints;
+- the `generic_analytics` dataset is retained as maintainer/demo
+  infrastructure for README images, analytics regression tests, and operational
+  demo-data derivation, not as the first-user onboarding path;
 - generated bundle vocabulary, package-resource entrypoints, and distribution
   package-data boundaries are validated.
 
@@ -99,7 +102,6 @@ parked in Eventual Deliverables even though the Axys/APX seed is accepted.
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Root README image/artifact audit | Keep the project-root `README.md` marketing story aligned with generated Analytics and Performance Comparison outputs. Refresh screenshots and artifact references when report names, output paths, or demo narratives change. | The README continues to communicate product value quickly, every image reference resolves, and setup users are sent to the Axys/APX onboarding path without advertising generic analytics as the primary story. |
-| Generic analytics disposition | Decide the purpose of the `generic_analytics` demo now that Axys/APX analytics is the primary public target. Evaluate whether useful remnants should move into the raw-Python tutorial or remain as maintainer-only examples. | Public docs no longer create confusion between Axys/APX onboarding and generic demo history. Any retained generic content has a clear maintainer or tutorial role. |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
 | Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
 | Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
@@ -2999,9 +3001,30 @@ folders from schedulers, notebooks, or internal automation without learning
 repository-only demo modules.
 
 The tutorial deliberately uses the Axys/APX setup folders rather than the
-`generic_analytics` demo. Generic analytics remains a maintainer/example asset
-until the separate disposition item decides whether any of it should become
-user-facing tutorial material.
+`generic_analytics` demo, preserving the public onboarding boundary completed
+in Phase 83.
+
+### Phase 83: Generic Analytics Disposition
+
+Status: complete for the current public onboarding boundary.
+
+The `generic_analytics` dataset and smoke module are retained, but their role is
+now explicitly maintainer-facing:
+
+- they feed README marketing images;
+- they support analytics regression and optional-value tests;
+- they provide the source universe for selected operational demo-data
+  derivation scripts; and
+- they remain useful for source-checkout smoke runs.
+
+They are not the primary installed-user onboarding path. New users should start
+with `ppar setup`, which copies the Axys/APX `analytics` and
+`performance_comparison` starter folders. The raw-Python setup tutorial also
+uses those Axys/APX setup folders rather than the generic demo module.
+
+The generic refresh guide and demo-data README now state this boundary directly.
+No generic data or smoke modules were deleted because they still serve the
+README, tests, and maintainer refresh workflow.
 
 ## Guiding Principle
 

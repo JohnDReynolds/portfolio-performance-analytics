@@ -1,12 +1,18 @@
 # Analytics Demo Refresh Guide
 
-This guide documents the refresh workflow for the core analytics demo data,
-README story, and README images. Use it when replacing the packaged Mega-Cap
-demo inputs with a newer or better historical dataset.
+This maintainer guide documents the refresh workflow for the generic Mega-Cap
+analytics dataset, README story, and README images. Use it when replacing the
+packaged Mega-Cap inputs with a newer or better historical dataset.
+
+The public first-user onboarding path is the Axys/APX setup workspace created by
+`ppar setup`. The generic Mega-Cap dataset is retained as maintainer/demo
+infrastructure because it feeds README marketing images, analytics regression
+tests, and Axys/APX demo-data derivation.
 
 ## Current Demo Shape
 
-The user-facing analytics demo uses packaged CSV files under `ppar/demos/data/`:
+The generic analytics refresh path uses packaged CSV files under
+`ppar/demos/data/generic_analytics/`:
 
 - `performance/Mega-Cap Alpha Portfolio.csv`
 - `performance/Mega-Cap Benchmark.csv`
@@ -23,6 +29,7 @@ monthly returns as a cash-return proxy.
 The README story and images are generated from these packaged files, not from
 the temporary data-generation workspace. The packaged data remains monthly, but
 the README images are rendered quarterly to keep date-heavy charts readable.
+Installed setup users do not need this refresh path.
 
 ## Refresh Workflow
 
@@ -111,13 +118,14 @@ Run the demo-data contract and package metadata tests:
   tests/test_package_metadata.py
 ```
 
-Then run the analytics demo:
+Then run the source-checkout analytics smoke module:
 
 ```bash
 printf 'm\n' | ./.venv/bin/python -m ppar.demos.generic_analytics_demo
 ```
 
-Review output under `_demo_output/generic_analytics/`.
+Review output under `_demo_output/generic_analytics/`. This is a maintainer
+smoke output, not the user setup workspace.
 
 ### 5. Update README Story
 
@@ -174,7 +182,7 @@ Run the full test suite:
 Before committing, check:
 
 - README story matches regenerated image titles and values.
-- The generic analytics demo module uses the same packaged files.
+- The generic analytics smoke module uses the same packaged files.
 - `scripts/render_readme_images.py` uses the same packaged files.
 - `ppar/demos/data/README.md` documents source provenance and any date
   substitutions.

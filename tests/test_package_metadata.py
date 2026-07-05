@@ -490,6 +490,37 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("ppar.yaml", readme)
         self.assertIn("primary onboarding guide", readme)
 
+    def test_generic_analytics_is_documented_as_maintainer_infrastructure(self) -> None:
+        """Generic analytics remains useful without becoming the setup path."""
+        demo_data_readme = Path("ppar/demos/data/README.md").read_text(
+            encoding=util.ENCODING
+        )
+        refresh_guide = Path("docs/analytics_demo_refresh.md").read_text(
+            encoding=util.ENCODING
+        )
+        repository_guide = Path("docs/repository_guide.md").read_text(
+            encoding=util.ENCODING
+        )
+        normalized_demo_data_readme = " ".join(demo_data_readme.split())
+        normalized_refresh_guide = " ".join(refresh_guide.split())
+        normalized_repository_guide = " ".join(repository_guide.split())
+
+        self.assertIn("The public onboarding path starts", demo_data_readme)
+        self.assertIn(
+            "not the primary new-user setup path",
+            normalized_demo_data_readme,
+        )
+        self.assertIn("maintainer/demo infrastructure", normalized_refresh_guide)
+        self.assertIn(
+            "Installed setup users do not need this refresh path",
+            normalized_refresh_guide,
+        )
+        self.assertIn("maintainer/demo infrastructure", normalized_repository_guide)
+        self.assertIn(
+            "not advertised as the primary onboarding path",
+            normalized_repository_guide,
+        )
+
     def test_repository_readme_image_references_exist(self) -> None:
         """The marketing README only embeds checked-in README image artifacts."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
@@ -837,7 +868,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("installs a short raw-Python tutorial", roadmap)
         self.assertIn("Root README image/artifact audit", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
-        self.assertIn("Generic analytics disposition", roadmap)
+        self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
+        self.assertIn("not the primary installed-user onboarding path", roadmap)
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
