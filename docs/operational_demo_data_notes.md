@@ -3,7 +3,7 @@
 These notes document how the Axys/APX and performance-comparison demo data was
 derived from the packaged Mega-Cap Alpha Portfolio. They are retained as
 historical/process notes. The active forward-looking roadmap is
-[`performance_comparison_roadmap.md`](performance_comparison_roadmap.md).
+[`roadmap.md`](roadmap.md).
 
 ## Objective
 

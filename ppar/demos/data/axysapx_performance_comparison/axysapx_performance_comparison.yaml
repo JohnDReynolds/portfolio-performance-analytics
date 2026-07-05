@@ -1,19 +1,30 @@
 # =========================
-# Axys/APX Performance Comparison Demo Configuration
+# Axys/APX Performance Comparison Starter Configuration
 # =========================
-# This Mega-Cap operational fixture demonstrates the default field-role model
-# plus explicit transaction semantics. Demo commands choose portfolio or
-# security report level at runtime.
+# This file is copied to your setup folder as performance_comparison/ppar.yaml.
+# Treat it as both the configuration file and the onboarding guide for
+# Performance Comparison.
 #
-# This file is the accepted seed for a future vendor preset such as
-# `vendor: axys`, but it is not a hidden preset today. Keep policy choices
-# explicit and auditable until vendor preset implementation exists.
+# Big picture:
+# - Performance Comparison answers: "Why did my reported performance change?"
+# - It compares two Axys/APX-style source-data snapshots.
+# - It then ties changed performance to changed Modified Dietz inputs:
+#   beginning market value, ending market value, and dated cash flows.
+# - Portfolio comparison is the primary onboarding path. Security comparison is
+#   also configured when secperf.csv is available.
 #
-# Site onboarding: setup copies this file to performance_comparison/ppar.yaml.
-# Start by replacing CSV files in snapshot_a and snapshot_b. Edit this YAML only
-# after the portfolio report runs or validation tells you exactly what is missing.
-# Leave ambiguous Axys/APX codes conservative until the site extract supplies
-# source/destination, special-security, REP, or reviewed local evidence.
+# Recommended first pass:
+# 1. Replace CSVs in snapshot_a with the older/source snapshot.
+# 2. Replace CSVs in snapshot_b with the newer/restated snapshot.
+# 3. Keep the starter filenames and headers when possible.
+# 4. Run ppar performance_comparison ./my_ppar_data/performance_comparison.
+# 5. Edit this YAML only when validation or report evidence says what to fix.
+#
+# Axys/APX assumption:
+# The starter is intentionally conservative. Ambiguous transaction codes should
+# not become external flows, income, fees, or transfers from code alone. Use
+# source/destination fields, special-security context, report evidence, or
+# reviewed local site evidence before changing transaction meanings.
 #
 # First-run edit map:
 # - Edit snapshots.*.path only if you rename snapshot_a or snapshot_b.
@@ -23,16 +34,37 @@
 #   reviewed site evidence proves a site-specific override is needed.
 
 comparison:
+  # Human-readable name stored in generated report metadata.
   name: Axys/APX performance comparison demo
-  # report_bundle uses comparison.level to choose the primary review level.
-  # Use portfolio for the main portfolio-period review, or copy the YAML and
-  # set this to security for a security-period review.
+
+  # Primary review level for lower-level bundle tooling.
+  # Allowed values: portfolio, security.
+  # The production command normally chooses report level with --report:
+  #   ppar performance_comparison --report portfolio
+  #   ppar performance_comparison --report security
+  #   ppar performance_comparison --report both
   level: portfolio
 
 snapshots:
-  # For a site setup, point these paths at the two local extract directories you
-  # want to compare. Keep the paths relative to this YAML when possible so the
-  # starter kit can move as a directory.
+  # Required. A snapshot is one complete set of source CSVs.
+  #
+  # snapshot_a:
+  #   Usually the original/older source-data extract.
+  #
+  # snapshot_b:
+  #   Usually the newer/restated source-data extract.
+  #
+  # label:
+  #   User-facing label used in reports.
+  #
+  # path:
+  #   Folder containing the snapshot CSV files. Keep paths relative to this YAML
+  #   so the setup folder can move as one unit.
+  #
+  # vendor:
+  #   Selects the Axys/APX column mapping behavior. In an installed setup, this
+  #   is simplified to the built-in Axys/APX mapping. Do not edit unless you
+  #   are deliberately replacing the vendor mapping behavior.
   a:
     label: snapshot_a
     path: snapshot_a
@@ -46,16 +78,61 @@ snapshots:
     schema: axysapx_column_mappings.yaml
 
 files:
-  # Rename these only if the site extract files use different filenames. Column
-  # names belong in the schema mapping, not here.
+  # Required source files inside each snapshot folder.
+  #
+  # Rename these only if your site uses different filenames. Column/header
+  # differences belong in the column mapping section or vendor mapping, not in
+  # this filenames section.
+  #
+  # portfolio_performance:
+  #   Required for portfolio-level comparison. Contains reported portfolio
+  #   returns and portfolio-level performance extract values.
+  #
+  # security_performance:
+  #   Optional for the first portfolio-only onboarding pass, but required for
+  #   security-level comparison. If absent, portfolio reports still run and the
+  #   command skips security output.
+  #
+  # holdings:
+  #   Required. Contains beginning/ending holdings market values used as
+  #   Modified Dietz beginning and ending value inputs.
+  #
+  # transactions:
+  #   Required. Contains dated transaction rows used to classify external flows,
+  #   income, fees, buys, sells, transfers, and evidence-only activity.
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
   transactions: transactions.csv
 
 portfolio_return_reconstruction:
-  # Portfolio Modified Dietz uses holdings for beginning/ending value and only
-  # transactions classified as external_flow for dated external flows.
+  # Purpose:
+  #   Defines how PPAR reconstructs portfolio returns from source data. This is
+  #   the mathematical basis for deciding whether a source-data change explains
+  #   a reported portfolio return change.
+  #
+  # Method:
+  #   modified_dietz is the supported onboarding method. It uses beginning
+  #   value, ending value, and weighted external flows.
+  #
+  # Source choices:
+  #   beginning_value_source and ending_value_source normally stay holdings.
+  #   flow_source normally stays transactions.
+  #
+  # Timing:
+  #   flow_timing names the transaction date field used to weight external
+  #   flows. day_count actual_days means calendar-day weighting. inclusion_rule
+  #   beginning_of_day means a flow on the first day receives full-period
+  #   weighting.
+  #
+  # Categories:
+  #   flow_categories are transaction categories treated as investor external
+  #   flows. income_categories are performance-impacting but not investor
+  #   external flows.
+  #
+  # Sign convention:
+  #   signed_amount means cash-flow direction is expressed by the signed
+  #   transaction amount after transaction_rules are applied.
   method: modified_dietz
   beginning_value_source: holdings
   ending_value_source: holdings
@@ -72,8 +149,17 @@ portfolio_return_reconstruction:
   sign_convention: signed_amount
 
 security_return_reconstruction:
-  # Security Modified Dietz treats buys and sells as security-level flows. It
-  # does not turn those trades into portfolio-level external flows.
+  # Purpose:
+  #   Defines security-level return reconstruction when secperf.csv is present.
+  #
+  # Important distinction:
+  #   Buys and sells are security-level flows because they change capital
+  #   allocated to a security. They are not portfolio-level investor external
+  #   flows.
+  #
+  # Keep this section aligned with portfolio_return_reconstruction unless your
+  # site has reviewed evidence that security-level reporting uses different
+  # timing or day-count rules.
   method: modified_dietz
   beginning_value_source: holdings
   ending_value_source: holdings
@@ -91,9 +177,37 @@ security_return_reconstruction:
   sign_convention: signed_amount
 
 transaction_rules:
-  # Start with these vanilla rules. Add site overrides only after validate_config
-  # shows an observed code that needs treatment and the source data proves how
-  # that code affects Modified Dietz inputs.
+  # Purpose:
+  #   Maps Axys/APX transaction codes to performance-comparison categories.
+  #   This is usually the most site-specific part of onboarding.
+  #
+  # How to read one rule:
+  #   transaction_category tells PPAR what the row means.
+  #   cash_flow_sign tells PPAR whether the amount is positive, negative, none,
+  #   or already signed.
+  #   performance_flow_sign tells PPAR whether the row is an external flow,
+  #   performance-impacting activity, or neutral context.
+  #
+  # Common transaction_category values:
+  #   buy, sell, income, fee_expense, external_flow, transfer,
+  #   corporate_action.
+  #
+  # Common cash_flow_sign values:
+  #   positive, negative, none.
+  #
+  # Common performance_flow_sign values:
+  #   external, performance, neutral.
+  #
+  # Conditional rules:
+  #   A code can have multiple rules with when: clauses. PPAR uses context such
+  #   as security type, special-security fields, source/destination type, or
+  #   cash security identifiers to avoid overclassifying ambiguous codes.
+  #
+  # Site onboarding rule:
+  #   Add site overrides only after validation shows an observed code that needs
+  #   treatment and the source data proves how that code affects Modified Dietz
+  #   inputs.
+  #
   # Packaged transaction rows currently use by, sl, dv, in, fee-like dp,
   # external-cash li, external-cash lo, external-cash wd, and fixed-income
   # accrued-interest adjunct pa/sa. Rules for ";" are retained as defensive
@@ -194,6 +308,21 @@ transaction_rules:
       performance_flow_sign: neutral
 
 transaction_impact_methods:
+  # Purpose:
+  #   Explains how changed transaction rows are converted into basis-point
+  #   performance impact rows in the report.
+  #
+  # external_flow:
+  #   Uses Modified Dietz weighting because investor external flows change the
+  #   return denominator.
+  #
+  # performance:
+  #   Uses transaction amount delta over the return denominator for items such
+  #   as income and fee expense.
+  #
+  # double_count_policy cross_check_only:
+  #   Keeps flow rows available for review without double-counting the same
+  #   source-data change as multiple additive causes.
   external_flow:
     method: modified_dietz
     flow_timing: trade_date
@@ -206,6 +335,10 @@ transaction_impact_methods:
     denominator_source: begin_market_value
 
 security_return_impact_methods:
+  # Purpose:
+  #   Explains changed security-level transaction rows when security reports are
+  #   generated. For security Modified Dietz, buys and sells are treated as
+  #   security-level flows using transaction dates.
   transactions:
     method: modified_dietz
     flow_timing: transaction_date
@@ -213,6 +346,12 @@ security_return_impact_methods:
     inclusion_rule: beginning_of_day
 
 tolerances:
+  # Purpose:
+  #   Suppresses immaterial rounding noise. Tighten only if your extracts are
+  #   consistently more precise; loosen only when source-system rounding creates
+  #   harmless noise.
+  #
+  # return/contribution/weight are decimal units. market_value is currency units.
   return: 0.000001
   contribution: 0.000001
   weight: 0.000001

@@ -3,7 +3,7 @@
 These are historical checkpoint notes from earlier implementation sessions.
 They are useful for continuity, but they are not the active roadmap. Current
 future work belongs in
-[`performance_comparison_roadmap.md`](performance_comparison_roadmap.md).
+[`roadmap.md`](roadmap.md).
 
 ## Historical Checkpoint State
 

@@ -7,7 +7,7 @@ same portfolio and period changed between two source-data extraction dates.
 
 This document is the deep design/reference note. Active forward-looking work is
 tracked in the central
-[`Performance Comparison Roadmap`](performance_comparison_roadmap.md).
+[`PPAR Roadmap`](roadmap.md).
 
 The core question is:
 
@@ -126,7 +126,7 @@ Current report vocabulary:
   guardrails.
 - `ppar.performance_comparison.cli.validate_demo_matrix`: source-checkout
   command for validating packaged scenario coverage.
-- [Axys/APX Common-Core Export Reference](axys_common_core_export.md): starter
+- [Axys/APX Common-Core Export Reference](axysapx_common_core_export.md): starter
   export shape for Axys/APX-oriented source-data.
 
 This checkpoint is still a comparison and evidence organization layer. It is
@@ -988,7 +988,7 @@ shared, source-agnostic sections for files, tolerances, materiality, and
 suppressions. Use vendor-specific schema sections only when inference is
 insufficient or when the two snapshots have different schemas.
 
-See [Axys/APX Common-Core Export Reference](axys_common_core_export.md) for an
+See [Axys/APX Common-Core Export Reference](axysapx_common_core_export.md) for an
 operational Axys/APX export template and starter field-reference tables. Those
 tables are guidance only; explicit local schema mappings remain authoritative.
 
@@ -1896,7 +1896,7 @@ rendering helpers remain internal implementation details.
 
 This section records the earlier near-term plan that led to the current
 implementation checkpoint. For current next work, use the central
-[`Performance Comparison Roadmap`](performance_comparison_roadmap.md).
+[`PPAR Roadmap`](roadmap.md).
 
 The design work should continue to move slowly and favor reviewer clarity over
 broad new machinery.
@@ -2057,5 +2057,5 @@ transaction quantity, price, and commission.
 Treat the current comparison engine, evidence layer, report bundle, return
 reconstruction checks, and workbook model as the baseline. Current next work
 should be tracked in
-[`performance_comparison_roadmap.md`](performance_comparison_roadmap.md), not
+[`roadmap.md`](roadmap.md), not
 added here as a competing roadmap.

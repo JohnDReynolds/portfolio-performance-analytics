@@ -10,9 +10,9 @@ many disconnected entry points.
 | --- | --- | --- |
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and common smoke tests. |
 | Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
-| Performance comparison roadmap | [`docs/performance_comparison_roadmap.md`](performance_comparison_roadmap.md) | Central forward-looking plan for return reconstruction, explanations, report evolution, and demo-data guardrails. |
+| PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
-| Axys/APX export shape | [`docs/axys_common_core_export.md`](axys_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
+| Axys/APX export shape | [`docs/axysapx_common_core_export.md`](axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
 | Packaged Axys/APX demos | [`ppar/demos/data/axysapx_performance_comparison/README.md`](../ppar/demos/data/axysapx_performance_comparison/README.md) | User-facing Axys/APX analytics and performance comparison demo inputs. |
 | Test Axys/APX configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys/APX snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
 | Historical checkpoint notes | [`docs/performance_comparison_checkpoint_notes.md`](performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
@@ -41,7 +41,7 @@ many disconnected entry points.
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users and maintainers | Package overview, installation, public setup commands, performance-comparison smoke tests, and project checks. |
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
-| [`docs/performance_comparison_roadmap.md`](performance_comparison_roadmap.md) | Maintainers | Central future-work roadmap for performance comparison, return reconstruction, explanations, reports, and demo-data guardrails. |
+| [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
 | [`ppar/demos/data/axysapx_performance_comparison/README.md`](../ppar/demos/data/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, maintainer smoke modules, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys/APX snapshots, test-only comparison YAML files, and validation matrix fixtures. |
@@ -288,7 +288,7 @@ Before moving files, prefer clarifying the map:
    I run the main workflows?"
 2. Keep detailed packaged demo instructions in `ppar/demos/data/axysapx_performance_comparison/README.md`.
 3. Keep future performance-comparison plans in
-   `docs/performance_comparison_roadmap.md`.
+   `docs/roadmap.md`.
 4. Keep deep design rationale in `docs/performance_comparison_design.md`.
 5. Keep checkpoint/session notes in
    `docs/performance_comparison_checkpoint_notes.md`, but treat them as

@@ -45,7 +45,7 @@ The confidence ratings below rely on these local reference conclusions:
 - `Chapter_12_Imex.md` documents Axys/APX CI import workflows for transactions, positions, prices, security information, Trade Blotter context, and selected transaction translation fields.
 - `Chapter_13_Rep.md` establishes REP / RepLang / REP32 as a report-driven extraction path and distinguishes it from IMEX.
 - `Chapter_10_Performance.md` says `portperf` and `secperf` should be treated as normalized/local names unless a live IMEX object, report output, or vendor manual confirms native names.
-- `docs/axys_common_core_export.md` is a starter reference only. It proposes common field aliases but does not override the more conservative chapter confidence boundaries.
+- `docs/axysapx_common_core_export.md` is a starter reference only. It proposes common field aliases but does not override the more conservative chapter confidence boundaries.
 
 ## Interpretation Rules
 
@@ -63,12 +63,12 @@ Use this matrix as an implementation planning aid:
 
 | Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
 |---|---|---|---|---|---|---|---|
-| holdings | `PORT` | Portfolio/account identifier. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local IMEX profile and field name. | Core portfolio/client identifier in position and appraisal workflows. |
-| holdings | `SEC` | Security identifier. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local IMEX profile and field name. | Security identifiers are supported by CI/security-resolution and report evidence. |
-| holdings | `HOLDING_DATE` | As-of date for holdings. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local IMEX profile and field name. | Position exports and appraisal reports are inherently as-of-date based. |
-| holdings | `QTY` | Quantity, shares, or units. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local IMEX profile and field name. | Quantity is directly supported by transaction and appraisal report evidence. |
-| holdings | `PRICE` | Market price used for valuation. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local IMEX profile and field name. | Price import/export evidence and appraisal/report labels support availability. |
-| holdings | `MKT_VAL` | Market value. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axys_common_core_export.md. | Confirm exact local IMEX profile and field name. | Market value appears in report evidence and is a core position/appraisal value. |
+| holdings | `PORT` | Portfolio/account identifier. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Core portfolio/client identifier in position and appraisal workflows. |
+| holdings | `SEC` | Security identifier. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Security identifiers are supported by CI/security-resolution and report evidence. |
+| holdings | `HOLDING_DATE` | As-of date for holdings. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Position exports and appraisal reports are inherently as-of-date based. |
+| holdings | `QTY` | Quantity, shares, or units. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Quantity is directly supported by transaction and appraisal report evidence. |
+| holdings | `PRICE` | Market price used for valuation. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Price import/export evidence and appraisal/report labels support availability. |
+| holdings | `MKT_VAL` | Market value. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Market value appears in report evidence and is a core position/appraisal value. |
 | holdings | `COST` | Cost or cost basis. | Medium | High | Report-output cost evidence and common-core holdings reference; IMEX depends on the position, tax-lot, or lot-summary profile. | Confirm whether local holdings export exposes cost or requires lot/report extraction. | Cost appears in report-output evidence; IMEX availability depends on position/lot profile. |
 | holdings | `ACCRUED` | Accrued income or accrued interest. | Medium | Medium | Fixed-income/accrual handling is documented as performance-sensitive; common-core holdings reference treats accrued income as plausible. | Confirm accrued-income field, date basis, and fixed-income treatment. | Common for fixed-income holdings, but exact export/report field requires validation. |
 
@@ -312,5 +312,5 @@ Before treating a site extract as equivalent to these demo files, collect:
 - [Chapter_12_Imex.md](../reference/Chapter_12_Imex.md)
 - [Chapter_13_Rep.md](../reference/Chapter_13_Rep.md)
 - [Chapter_15_Data_Dictionary.md](../reference/Chapter_15_Data_Dictionary.md)
-- [axys_common_core_export.md](../../axys_common_core_export.md)
+- [axysapx_common_core_export.md](../../axysapx_common_core_export.md)
 - [performance_comparison_demo_source_contract.md](../../performance_comparison_demo_source_contract.md)

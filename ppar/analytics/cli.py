@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _argument_parser().parse_args(argv)
     try:
         run_analytics(
-            args.site_directory,
+            _default_site_directory(args.site_directory),
             portfolio_code=args.portfolio,
             benchmark_code=args.benchmark,
             frequency_value=args.frequency,
@@ -131,8 +131,13 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "site_directory",
+        nargs="?",
         type=Path,
-        help="Folder containing analytics ppar.yaml and source CSV files.",
+        help=(
+            "Folder containing analytics ppar.yaml and source CSV files. "
+            "Defaults to the current folder, or ./analytics when run from a "
+            "setup folder."
+        ),
     )
     parser.add_argument(
         "--portfolio",
@@ -153,6 +158,19 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Output directory. Defaults to analytics.output_directory in ppar.yaml.",
     )
     return parser
+
+
+def _default_site_directory(site_directory: Path | None) -> Path:
+    """Return the explicit or conventional analytics site directory."""
+    if site_directory is not None:
+        return site_directory
+    current_directory = Path.cwd()
+    if (current_directory / _CONFIG_FILE_NAME).exists():
+        return current_directory
+    analytics_directory = current_directory / _ANALYTICS_SECTION
+    if (analytics_directory / _CONFIG_FILE_NAME).exists():
+        return analytics_directory
+    return current_directory
 
 
 def _load_config_values(config_path: Path) -> dict[str, Any]:

@@ -96,12 +96,19 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             text=True,
         )
 
+        self.assertIn("usage: ppar <command> [options]", result.stdout)
         self.assertIn("analytics", result.stdout)
         self.assertIn("setup", result.stdout)
         self.assertIn("performance_comparison", result.stdout)
+        self.assertIn("Write performance-comparison reports", result.stdout)
         self.assertIn("perfcomp", result.stdout)
-        self.assertNotIn("{analytics,setup,report", result.stdout)
-        self.assertIn("PPAR command-line tools", result.stdout)
+        self.assertNotIn("{analytics,setup,performance_comparison,perfcomp}", result.stdout)
+        self.assertNotIn("PPAR command-line tools", result.stdout)
+        self.assertIn("Examples:", result.stdout)
+        self.assertIn("ppar setup ./my_ppar_data", result.stdout)
+        self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
+        self.assertNotIn("Set up and run PPAR reports.", result.stdout)
+        self.assertNotIn("After setup", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_setup_guide_prints_without_creating_files(self) -> None:
@@ -215,9 +222,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 result.stdout,
             )
             self.assertIn("output/portfolio/report.xlsx", result.stdout)
-            self.assertIn("output/portfolio/report.html", result.stdout)
             self.assertIn("output/security/report.xlsx", result.stdout)
-            self.assertIn("output/security/report.html", result.stdout)
+            self.assertNotIn("output/portfolio/report.html", result.stdout)
+            self.assertNotIn("output/security/report.html", result.stdout)
             self.assertTrue((comparison_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (
@@ -322,7 +329,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 result.stdout,
             )
             self.assertIn("output/security/report.xlsx", result.stdout)
-            self.assertIn("output/security/report.html", result.stdout)
+            self.assertNotIn("output/security/report.html", result.stdout)
             self.assertTrue(
                 (
                     comparison_directory / "output" / "security" / "report.xlsx"
@@ -408,6 +415,63 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     analytics_directory
                     / "output"
                     / "sector_overall_attribution.html"
+                ).exists()
+            )
+
+    def test_top_level_commands_default_to_setup_child_folders(self) -> None:
+        """Production commands can run without a path from the setup root."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_PPAR_MODULE, "setup", str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            analytics_result = subprocess.run(
+                _module_command(_PPAR_MODULE, "analytics"),
+                cwd=site_directory,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            comparison_result = subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "performance_comparison",
+                    "--report",
+                    "portfolio",
+                ),
+                cwd=site_directory,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn(
+                "Open these files to review analytics output:",
+                analytics_result.stdout,
+            )
+            self.assertIn(
+                "Open these files to review performance_comparison output:",
+                comparison_result.stdout,
+            )
+            self.assertTrue(
+                (
+                    site_directory
+                    / "analytics"
+                    / "output"
+                    / "risk_statistics.html"
+                ).exists()
+            )
+            self.assertTrue(
+                (
+                    site_directory
+                    / "performance_comparison"
+                    / "output"
+                    / "portfolio"
+                    / "report.xlsx"
                 ).exists()
             )
 

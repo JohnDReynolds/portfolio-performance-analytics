@@ -99,7 +99,7 @@ _RELATED_REFERENCES: Final[tuple[str, ...]] = (
     "[Chapter_12_Imex.md](../reference/Chapter_12_Imex.md)",
     "[Chapter_13_Rep.md](../reference/Chapter_13_Rep.md)",
     "[Chapter_15_Data_Dictionary.md](../reference/Chapter_15_Data_Dictionary.md)",
-    "[axys_common_core_export.md](../../axys_common_core_export.md)",
+    "[axysapx_common_core_export.md](../../axysapx_common_core_export.md)",
     "[performance_comparison_demo_source_contract.md]"
     "(../../performance_comparison_demo_source_contract.md)",
 )
@@ -194,7 +194,7 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
             "- `Chapter_10_Performance.md` says `portperf` and `secperf` "
             "should be treated as normalized/local names unless a live IMEX "
             "object, report output, or vendor manual confirms native names.",
-            "- `docs/axys_common_core_export.md` is a starter reference only. "
+            "- `docs/axysapx_common_core_export.md` is a starter reference only. "
             "It proposes common field aliases but does not override the more "
             "conservative chapter confidence boundaries.",
             "",

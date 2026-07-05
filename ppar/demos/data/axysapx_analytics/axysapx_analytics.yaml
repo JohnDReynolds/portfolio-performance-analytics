@@ -1,56 +1,88 @@
 # ==============================
 # PPAR Axys/APX Analytics Starter
 # ==============================
-# This file is copied to your setup folder as analytics/ppar.yaml.
-# Keep the CSV files beside this YAML unless you intentionally change the paths
-# below. The default command is:
+# This file is copied to your setup folder as analytics/ppar.yaml. Treat it as
+# both the configuration file and the onboarding guide for Analytics.
+#
+# Big picture:
+# - Analytics explains portfolio performance versus a benchmark.
+# - The starter uses Axys/APX-style portfolio performance and security
+#   performance CSV exports.
+# - Keep CSV files beside this YAML unless you intentionally change the paths.
+# - Start with the demo files, then replace them with your own IMEX CSVs.
+#
+# The default command is:
 #
 #   ppar analytics ./my_ppar_data/analytics
 #
 # First site setup:
-# 1. Replace portperf.csv and secperf.csv with IMEX/export CSVs from your site.
-# 2. Keep the same headers when possible. If your headers differ, add column
-#    mappings under portfolio_performance_columns and security_performance_columns.
+# 1. Replace portperf.csv and secperf.csv with IMEX CSVs from your site.
+# 2. Keep the same headers when possible. If your headers differ, add or adjust
+#    column mappings in this YAML.
 # 3. Change analytics.portfolio and analytics.benchmark to real portfolio codes.
 # 4. Run ppar analytics again and review the output folder.
 
 analytics:
-  # Portfolio and benchmark are Axys/APX account codes found in portperf.csv.
+  # Required. Portfolio and benchmark are Axys/APX account codes found in
+  # portperf.csv. The portfolio is the account you are reviewing. The benchmark
+  # is the comparison account/index used for active return and attribution.
   # Use command-line overrides only for one-off runs:
   #   ppar analytics ./my_ppar_data/analytics --portfolio MYPORT --benchmark MYBENCH
   portfolio: MEGA_ALPHA
   benchmark: MEGA_BENCH
 
-  # monthly, quarterly, and yearly are accepted. The short forms m, q, and y
-  # also work on the command line.
+  # Required. Controls the reporting periods used in the output.
+  # Allowed values: monthly, quarterly, yearly.
+  # Command-line short forms also work: m, q, y.
   frequency: quarterly
 
-  # Output is relative to the analytics folder unless you pass --output.
+  # Optional. Output is relative to the analytics folder unless you pass
+  # --output. The command creates this folder when needed.
   output_directory: output
 
 defaults:
-  # These dates limit the performance history loaded from the CSV files.
+  # Required for the starter. These dates limit the performance history loaded
+  # from the CSV files. Use full ISO dates: YYYY-MM-DD.
   from_date: 2021-06-01
   thru_date: 2026-05-29
 
-  # This classification is used for the sector attribution HTML and chart files.
-  # It must exist under mappings below.
+  # Required. This is the primary classification used for attribution tables,
+  # HTML, and chart files. It must match one mapping name below.
   classification: Economic Sector
 
-# Required IMEX/export-style CSVs for the starter analytics workflow.
-# portperf.csv should contain portfolio-level returns for the portfolio and
-# benchmark. secperf.csv should contain security-level returns, weights,
-# contribution, and classification columns. The packaged starter uses secperf.csv
-# as the security master because it already contains the display fields needed
-# for the demo.
+# Required CSVs for Analytics.
+#
+# portfolio_performance_path:
+#   Portfolio-level performance CSV. For Axys/APX onboarding, start with an
+#   IMEX portfolio-performance export containing returns for the portfolio and
+#   benchmark.
+#
+# security_performance_path:
+#   Security-level performance CSV. For Axys/APX onboarding, start with an IMEX
+#   security-performance export containing security returns, weights,
+#   contribution, and classification columns.
+#
+# security_master_path:
+#   Security display/classification data. The starter points this at secperf.csv
+#   because Axys/APX security-performance exports often already include the
+#   practical display fields needed for reports. Change it only if your site has
+#   a separate security master CSV that you want PPAR to use.
 portfolio_performance_path: portperf.csv
 security_performance_path: secperf.csv
 security_master_path: secperf.csv
 
 mappings:
-  # Each mapping names the source columns in secperf.csv that classify a
-  # security. Add or remove mappings to match the classifications you want to
-  # report. The value before the colon is the user-facing classification name.
+  # Each mapping names source columns in secperf.csv that classify a security.
+  #
+  # classification_column:
+  #   Code column used for grouping, sorting, and joins.
+  #
+  # display_name_column:
+  #   Human-readable label shown in reports.
+  #
+  # Add or remove mappings to match the classifications you want to report.
+  # The value before the colon is the user-facing classification name. If you
+  # change defaults.classification above, the new value must exist here.
   Economic Sector:
     classification_column: SECTOR_CODE
     display_name_column: SECTOR_DESC

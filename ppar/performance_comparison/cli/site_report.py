@@ -21,6 +21,7 @@ from ppar.performance_comparison.specification import (
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _OUTPUT_DIR: Final[str] = "output"
+_DEFAULT_SITE_DIRECTORY: Final[str] = "performance_comparison"
 _REPORT_CHOICES: Final[tuple[str, ...]] = (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
@@ -40,7 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
-        result = run_report(args.site_directory, report=args.report)
+        result = run_report(
+            _default_site_directory(args.site_directory),
+            report=args.report,
+        )
     except PpaError as error:
         print(f"Report failed: {error}", file=sys.stderr)
         return 1
@@ -113,8 +117,12 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "site_directory",
+        nargs="?",
         type=Path,
-        help="Folder containing ppar.yaml.",
+        help=(
+            "Folder containing ppar.yaml. Defaults to the current folder, or "
+            "./performance_comparison when run from a setup folder."
+        ),
     )
     parser.add_argument(
         "--report",
@@ -125,13 +133,26 @@ def _argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _default_site_directory(site_directory: Path | None) -> Path:
+    """Return the explicit or conventional performance-comparison site directory."""
+    if site_directory is not None:
+        return site_directory
+    current_directory = Path.cwd()
+    if (current_directory / _CONFIG_FILE_NAME).exists():
+        return current_directory
+    comparison_directory = current_directory / _DEFAULT_SITE_DIRECTORY
+    if (comparison_directory / _CONFIG_FILE_NAME).exists():
+        return comparison_directory
+    return current_directory
+
+
 def _write_report_bundle(
     config_path: Path,
     output_directory: Path,
     *,
     comparison_level: str,
 ) -> list[Path]:
-    """Write one report bundle and return the primary review artifact paths."""
+    """Write one report bundle and return the primary workbook path."""
     findings = compare_snapshots(
         config_path,
         comparison_level=comparison_level,
@@ -155,7 +176,7 @@ def _write_report_bundle(
     html_report = paths.get("html_report")
     if html_report is None:
         raise PpaError(f"Report bundle did not write report.html in {output_directory}.", 999)
-    return [workbook, html_report]
+    return [workbook]
 
 
 def _is_missing_security_data(error: PpaError) -> bool:

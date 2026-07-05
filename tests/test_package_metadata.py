@@ -380,24 +380,31 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertNotIn("_demo_output", path.as_posix())
                 self.assertNotIn("operational_demo_data", path.as_posix())
 
-    def test_packaged_axys_yaml_documents_seed_readiness_boundaries(self) -> None:
-        """The packaged Axys/APX YAML names preset-seed and guardrail boundaries."""
+    def test_packaged_axys_yaml_documents_onboarding_boundaries(self) -> None:
+        """The packaged Axys/APX YAML names user-facing onboarding boundaries."""
         yaml_text = Path("ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml").read_text(
             encoding=util.ENCODING
         )
 
         for expected_text in [
-            "accepted seed for a future vendor preset",
-            "`vendor: axys`",
-            "not a hidden preset today",
-            "until vendor preset implementation exists",
+            "both the configuration file and the onboarding guide",
+            "Why did my reported performance change?",
+            "Recommended first pass",
+            "Axys/APX assumption",
             "First-run edit map",
             "Edit snapshots.*.path",
             "Leave transaction rules and impact methods alone",
+            "Allowed values: portfolio, security",
+            "Usually the original/older source-data extract",
+            "security_performance",
+            "Optional for the first portfolio-only onboarding pass",
+            "modified_dietz is the supported onboarding method",
+            "beginning_value_source and ending_value_source normally stay holdings",
+            "Buys and sells are security-level flows",
+            "transaction_category tells PPAR what the row means",
+            "Common transaction_category values",
             "Marketing demo vs onboarding base",
             "should still confirm bond context",
-            "Portfolio Modified Dietz uses holdings",
-            "Security Modified Dietz treats buys and sells",
             "external-cash li, external-cash lo, external-cash wd",
             'Rules for ";"',
             "Long-out is external only with reviewed external-party context",
@@ -482,7 +489,7 @@ class TestPackageMetadata(unittest.TestCase):
             "docs/performance_comparison_evidence_pack_review.md"
         )
         source_contract = Path("docs/performance_comparison_demo_source_contract.md")
-        roadmap = Path("docs/performance_comparison_roadmap.md")
+        roadmap = Path("docs/roadmap.md")
 
         self.assertTrue(matrix_path.exists())
         self.assertTrue(matrix_yaml_path.exists())
@@ -515,7 +522,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_demo_transaction_expansion_gate_is_documented(self) -> None:
         """The roadmap keeps future packaged Axys transaction additions gated."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -537,7 +544,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_reinvestment_pair_gate_is_documented(self) -> None:
         """The roadmap keeps dividend-reinvestment pairs test-only until safe."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -553,7 +560,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_fixed_income_transaction_boundary_gate_is_documented(self) -> None:
         """The roadmap keeps under-evidenced fixed-income transaction rows gated."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
         source_contract = Path(
@@ -576,7 +583,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_fixed_income_modified_dietz_phase_is_documented(self) -> None:
         """The roadmap keeps Phase 10 scoped to Modified Dietz formula inputs."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -603,7 +610,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_test_only_transaction_semantics_phase_is_documented(self) -> None:
         """The roadmap keeps Phase 11 in the test-only semantics lane."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -622,7 +629,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_return_capital_and_short_backlog_phase_is_documented(self) -> None:
         """The roadmap and matrix keep high-risk code-only gates explicit."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
         matrix_yaml = _load_yaml(
@@ -679,7 +686,7 @@ class TestPackageMetadata(unittest.TestCase):
             "cs": "site_variants/short_side_trades",
         }
 
-        self.assertIn("These profiles are not universal Axys rules", checklist)
+        self.assertIn("These profiles are not universal Axys/APX rules", checklist)
         self.assertIn("Code-only rows still stay\n`unknown`", checklist)
         self.assertIn("not native Axys schemas", fixture_readme)
         self.assertIn("not promote the transaction code", fixture_readme)
@@ -696,7 +703,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_matrix_consolidation_phase_is_documented(self) -> None:
         """The roadmap documents the release-readiness consolidation phase."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
         snapshot = Path(
@@ -716,7 +723,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_final_review_pack_phase_is_documented(self) -> None:
         """The roadmap and review pack document commit-preparation scope."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
         review_pack = Path(
@@ -735,7 +742,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_phase_roadmap_sections_are_unique_after_review_pack(self) -> None:
         """The active roadmap keeps one section per late phase train."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -745,12 +752,15 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertEqual(roadmap.count("## Guiding Principle"), 1)
         self.assertEqual(roadmap.count("## Transaction-Type Backlog"), 1)
 
-    def test_performance_comparison_roadmap_starts_with_current_status(self) -> None:
-        """The roadmap separates active backlog from historical phase notes."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+    def test_project_roadmap_starts_with_current_status(self) -> None:
+        """The project roadmap separates active backlog from historical phase notes."""
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
+        self.assertIn("# PPAR Roadmap", roadmap)
+        self.assertIn("Axys/APX-focused analytics", roadmap)
+        self.assertIn("performance comparison, onboarding", roadmap)
         for heading in (
             "## How To Read This Roadmap",
             "## Current Status",
@@ -781,6 +791,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("default report/workbook review order starts", roadmap)
         self.assertIn("optional", roadmap)
         self.assertIn("reconstruction diagnostics stay opt-in", roadmap)
+        self.assertIn("Setup raw-Python tutorial", roadmap)
+        self.assertIn("Root README marketing rewrite", roadmap)
+        self.assertIn("X-Ref Issues worksheet", roadmap)
+        self.assertIn("Generic analytics disposition", roadmap)
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
@@ -973,7 +987,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_evidence_pack_hardening_phase_is_documented(self) -> None:
         """The roadmap keeps the reviewer-readiness train tied to evidence packs."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -1054,7 +1068,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_reinvestment_gate_stays_modified_dietz_scoped(self) -> None:
         """Dividend reinvestment docs avoid requiring accounting-style matching."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
 
@@ -1226,7 +1240,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_demo_transaction_coverage_triage_is_documented(self) -> None:
         """Packaged transaction rows require a reviewer story, not symmetry."""
-        roadmap = Path("docs/performance_comparison_roadmap.md").read_text(
+        roadmap = Path("docs/roadmap.md").read_text(
             encoding=util.ENCODING
         )
         matrix_yaml = _load_yaml(

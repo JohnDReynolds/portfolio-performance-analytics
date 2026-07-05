@@ -6,10 +6,18 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import sys
 
 # Project imports
 from ppar.performance_comparison.cli import setup as _setup
 from ppar.performance_comparison.cli import site_report as _site_report
+
+
+class _TopLevelHelpFormatter(argparse.RawTextHelpFormatter):
+    """Format top-level help with enough room for long command names."""
+
+    def __init__(self, prog: str) -> None:
+        super().__init__(prog, max_help_position=42, width=120)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -21,7 +29,12 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         Process exit code from the selected subcommand.
     """
-    args, remaining_args = _argument_parser().parse_known_args(argv)
+    effective_argv = sys.argv[1:] if argv is None else argv
+    if _is_top_level_help_request(effective_argv):
+        print(_top_level_help())
+        return 0
+
+    args, remaining_args = _argument_parser().parse_known_args(effective_argv)
     if args.command == "analytics":
         _prime_analytics_cache_environment(remaining_args)
         from ppar.analytics import cli as _analytics
@@ -34,13 +47,53 @@ def main(argv: list[str] | None = None) -> int:
     raise AssertionError(f"Unsupported command: {args.command}")
 
 
+def _is_top_level_help_request(argv: list[str]) -> bool:
+    """Return whether the user asked for top-level help."""
+    return len(argv) == 1 and argv[0] in {"-h", "--help"}
+
+
+def _top_level_help() -> str:
+    """Return user-facing help for the top-level command."""
+    return (
+        "usage: ppar <command> [options]\n"
+        "\n"
+        "commands:\n"
+        "  setup                   Create a local PPAR setup folder.\n"
+        "  analytics               Write analytics reports from a configured site.\n"
+        "  performance_comparison  "
+        "Write performance-comparison reports from a configured site.\n"
+        "  perfcomp                Alias for performance_comparison.\n"
+        "\n"
+        "options:\n"
+        "  -h, --help              Show this help message and exit.\n"
+        "\n"
+        "Examples:\n"
+        "  ppar setup ./my_ppar_data\n"
+        "  ppar analytics ./my_ppar_data/analytics\n"
+        "  ppar performance_comparison ./my_ppar_data/performance_comparison"
+    )
+
+
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the top-level command parser."""
     parser = argparse.ArgumentParser(
         prog="ppar",
-        description="PPAR command-line tools.",
+        usage="ppar <command> [options]",
+        description=None,
+        epilog=(
+            "Examples:\n"
+            "  ppar setup ./my_ppar_data\n"
+            "  ppar analytics ./my_ppar_data/analytics\n"
+            "  ppar performance_comparison ./my_ppar_data/performance_comparison"
+        ),
+        formatter_class=_TopLevelHelpFormatter,
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(
+        title="commands",
+        dest="command",
+        metavar="<command>",
+        required=True,
+    )
     subparsers.add_parser(
         "analytics",
         help="Write analytics reports from a configured site.",
@@ -74,7 +127,13 @@ def _analytics_output_directory(argv: list[str]) -> Path:
         return Path(output_argument).expanduser()
     site_directory = _first_positional_argument(argv)
     if site_directory is None:
-        return Path.cwd() / "output"
+        current_directory = Path.cwd()
+        if (current_directory / "ppar.yaml").exists():
+            return current_directory / "output"
+        analytics_directory = current_directory / "analytics"
+        if (analytics_directory / "ppar.yaml").exists():
+            return analytics_directory / "output"
+        return current_directory / "output"
     return Path(site_directory).expanduser() / "output"
 
 

@@ -1,8 +1,8 @@
-# Performance Comparison Roadmap
+# PPAR Roadmap
 
-This is the central roadmap for performance-comparison work. It covers return
-reconstruction, user-facing explanations, report evolution, and demo-data
-guardrails.
+This is the central roadmap for PPAR. It covers Axys/APX-focused analytics,
+performance comparison, onboarding, user-facing documentation, report evolution,
+and demo-data guardrails.
 
 Detailed design reference remains in
 [`performance_comparison_design.md`](performance_comparison_design.md).
@@ -18,7 +18,8 @@ Historical demo-generation notes remain in
 
 Start here when deciding what remains to do:
 
-- **Current Open Items** is the active backlog.
+- **Current Open Items** is the active project backlog across analytics,
+  performance comparison, onboarding, and public-facing documentation.
 - **Axys/APX Extract Contract Review Map** shows the source-contract path that must
   stay aligned as demo fields or site-extract rules change.
 - **Axys/APX blockers** in [Chapter 01][axys-apx-blockers]
@@ -94,6 +95,9 @@ parked in Eventual Deliverables even though the Axys/APX seed is accepted.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
+| Setup raw-Python tutorial | Add a short raw-Python tutorial document to the setup site and link to it from the generated setup `README.md`. The tutorial should show how to run both analytics and performance comparison without the `ppar` CLI, using the installed setup folder as input. | `ppar setup` installs the tutorial beside the setup README, the README points to it, and examples cover analytics plus portfolio/security performance comparison with minimal code. |
+| Root README marketing rewrite | Rewrite the project-root `README.md` as a marketing-oriented document with clear, separate Analytics and Performance Comparison sections. Use output screenshots/images and links or references to representative PNG, HTML, and XLSX artifacts. | The README quickly communicates the product value, shows concrete output examples, and sends setup users to the Axys/APX onboarding path without advertising generic analytics as the primary story. |
+| Generic analytics disposition | Decide the purpose of the `generic_analytics` demo now that Axys/APX analytics is the primary public target. Evaluate whether useful remnants should move into the raw-Python tutorial or remain as maintainer-only examples. | Public docs no longer create confusion between Axys/APX onboarding and generic demo history. Any retained generic content has a clear maintainer or tutorial role. |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
 | Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
 | Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
@@ -134,6 +138,7 @@ clearly than the existing packaged and site-variant fixtures.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
+| X-Ref Issues worksheet | Add an `X-Ref Issues` worksheet to performance-comparison workbooks for consistency checks between dataset items that should usually agree or move together, such as same-security intraday prices, dividend rates, bond accruals, and other cross-dataset sanity checks. | The worksheet flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. Each check documents its datasets, matching keys, tolerance, reason, and whether it is warning-only or blocking. |
 | Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys/APX demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
 | Multi-currency model | Add multi-currency source-data examples only when cash-account mapping, FX rates, reporting currency, and Modified Dietz treatment are explicit. | Reports distinguish FX/rate effects from cash-flow and valuation effects without implying vendor methodology that is not evidenced. |
 | Broader extract discovery | Review `docs/axys-apx-reference` for Axys/APX fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
@@ -143,8 +148,9 @@ clearly than the existing packaged and site-variant fixtures.
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys/APX demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys/APX behavior; it is versioned, tied to the accepted packaged Axys/APX demo/source contract, and still fails hard when required site-specific context is missing. |
+| Axys/APX Python package boundary | Consider renaming the importable `ppar.axys` package to `ppar.axysapx` so the public Python API matches the Axys/APX product positioning. Treat this as a deliberate API rename, not a mechanical docs cleanup. | Imports, pyproject package metadata, tests, docs, and examples all use the chosen package boundary. Decide explicitly whether `ppar.axys` remains as a short-lived compatibility shim or is removed before first public PyPI release. Class names may remain `Axys...` initially if that keeps the change focused. Keep this separate from the future `vendor: axys` YAML keyword, which can remain unchanged until preset semantics are implemented. |
 | Tested site override profiles | Create user-friendly, tested candidate override profiles for Axys/APX transaction families that are plausible but not safe enough for the core `vendor: axys` preset. Candidate profiles may include fixed-income accrued interest, margin or negative interest, principal paydown, return of capital, short sale/cover short, and cash-journal patterns. | Each profile has sample source rows, YAML rules, expected normalized semantics, confidence labels, required evidence, and tests. Documentation clearly separates conservative preset defaults from copy/adapt override examples, warns that candidate profiles require site confirmation, and helps onboarding users choose profiles when unmapped transaction codes appear. |
-| Ledger double-entry demo | Consider a separate demo for a ledger-style double-entry debit/credit system. Keep it outside the current Axys Modified Dietz demo unless it clearly improves source-data validation, accounting-system integration, or reviewer understanding. | The demo has its own source contract, fixture data, YAML, and tests. It demonstrates balanced debit/credit postings, account-level footing, and mapping from ledger activity into the performance-comparison inputs without implying that ppar reconstructs a full accounting ledger by default. |
+| Ledger double-entry demo | Consider a separate demo for a ledger-style double-entry debit/credit system. Keep it outside the current Axys/APX Modified Dietz demo unless it clearly improves source-data validation, accounting-system integration, or reviewer understanding. | The demo has its own source contract, fixture data, YAML, and tests. It demonstrates balanced debit/credit postings, account-level footing, and mapping from ledger activity into the performance-comparison inputs without implying that ppar reconstructs a full accounting ledger by default. |
 | Commercial licensing | Design a commercial PyPI licensing model for PPAR or a future Axys/APX audit product. Prefer a local-execution package with license activation, encrypted local activation token, periodic online validation, and a reasonable offline grace period. Keep calculations local so investment-firm portfolio data does not leave the client environment. | Licensing plan documents activation UX, evaluation licenses, organization-based tiers, offline activation, license-server architecture, subscription/revocation support, optional floating/network licenses, payment integration, machine-fingerprint tradeoffs, security limits, and sample activation code. The plan explicitly recognizes that Python licensing cannot fully prevent piracy; the goal is to make legitimate licensing easy and unauthorized use inconvenient. |
 
 ## Axys/APX Extract Contract Review Map
@@ -1201,7 +1207,7 @@ Next hardening steps:
 Status: complete for the current ambiguous-flow onboarding surface.
 
 Site-specific extract contracts should become easier to adopt without weakening
-the Axys ambiguous-flow guardrail.
+the Axys/APX ambiguous-flow guardrail.
 
 Near-term work:
 
@@ -1335,9 +1341,9 @@ coverage is visible from the CLI, not only from unit-test internals.
 Status: complete for the current code-only failure guard.
 
 The `imex_code_only` fixture remains the explicit failure case for ambiguous
-Axys flow codes without context columns. The demo matrix validator reports this
-as `Code-only failure guard` and expects the loader to fail before broad YAML
-classification can treat `li`, `lo`, `dp`, or `wd` as performance inputs.
+Axys/APX flow codes without context columns. The demo matrix validator reports
+this as `Code-only failure guard` and expects the loader to fail before broad
+YAML classification can treat `li`, `lo`, `dp`, or `wd` as performance inputs.
 
 #### Phase 9K: Local Opt-Out Boundary
 
@@ -1594,7 +1600,7 @@ cash, margin, or short-account symbols, amount and quantity signs, and local
 mapping or REP/report semantics before ppar can classify them.
 
 Code-only short-side rows stay `unknown`; the project does not infer universal
-short-account treatment from the Axys code alone.
+short-account treatment from the Axys/APX code alone.
 
 #### Phase 12D: Matrix + Validator Reporting
 
@@ -2404,10 +2410,10 @@ report content. Build residue was removed after inspection.
 Status: complete for design-only vendor preset framing.
 
 The design notes now define vendor presets as a future convenience layer that
-can support multiple vendors, with Axys as the first likely preset. A future
-keyword such as `vendor: axys` would expand to versioned preset semantics,
-then allow deterministic site YAML overrides. Preset resolution is documented
-as `engine defaults < vendor preset < site YAML overrides`.
+can support multiple vendors, with Axys/APX as the first likely preset. A future
+keyword such as `vendor: axys` would expand to versioned preset semantics, then
+allow deterministic site YAML overrides. Preset resolution is documented as
+`engine defaults < vendor preset < site YAML overrides`.
 
 The design intentionally blocks implementation until the relevant packaged demo
 is stable enough to become a preset seed. Presets must remain inspectable,
@@ -2537,7 +2543,7 @@ Status: complete for current release-candidate confidence.
 
 The broad local release smoke passed after the freeze-packet audit work. The
 full test suite passed with 608 tests. The package build succeeded for both
-wheel and source distribution, and the build output confirmed packaged Axys
+wheel and source distribution, and the build output confirmed packaged Axys/APX
 demo CSV/YAML/README resources are included in the wheel.
 
 The packaged performance-comparison demo health script passed after rebuilding

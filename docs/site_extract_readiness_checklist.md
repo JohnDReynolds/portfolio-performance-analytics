@@ -19,7 +19,7 @@ system.
 ## IMEX With Context Fields
 
 Use an IMEX-context contract when the transaction extract includes source fields
-that conditional `transaction_rules` can inspect. For ambiguous Axys-style
+that conditional `transaction_rules` can inspect. For ambiguous Axys/APX-style
 `li`, `lo`, `dp`, and `wd` rows, useful context usually includes:
 
 - transaction security type;
@@ -52,7 +52,7 @@ future core `vendor: axys` preset. ppar keeps these as tested candidate
 override profiles: copy/adapt examples that show how a site can classify rows
 after local evidence proves the Modified Dietz role.
 
-These profiles are not universal Axys rules. Code-only rows still stay
+These profiles are not universal Axys/APX rules. Code-only rows still stay
 `unknown`. Enable a profile only after confirming the same context fields and
 business meaning in the site's IMEX, REP, custom-report, or other reviewed
 source.
@@ -73,7 +73,7 @@ those fields.
 
 ## Code-Only Failure Mode
 
-A code-only extract is expected to fail when it contains ambiguous Axys flow
+A code-only extract is expected to fail when it contains ambiguous Axys/APX flow
 codes and lacks the blocking context columns named in the extract contract. This
 is a useful source-quality signal. Fix the extract, add a REP/report fallback,
 or document a reviewed local opt-out before treating the rows as performance

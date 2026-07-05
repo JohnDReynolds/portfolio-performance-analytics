@@ -207,8 +207,8 @@ Use these entry points:
   YAML fixtures, data used, maintainer smoke modules, and expected XLSX output.
 - [Repository Guide](docs/repository_guide.md): map of README files, commands,
   validators, generated outputs, and common workflows.
-- [Performance Comparison Roadmap](docs/performance_comparison_roadmap.md):
-  central plan for return reconstruction, reviewer explanations, report
+- [PPAR Roadmap](docs/roadmap.md):
+  central plan for analytics, performance comparison, onboarding, report
   evolution, and demo-data guardrails.
 - [Performance Comparison Demo Source Contract](docs/performance_comparison_demo_source_contract.md):
   how the packaged demo CSV files should be interpreted relative to the Axys/APX
@@ -216,7 +216,7 @@ Use these entry points:
 - [Performance Comparison Design Notes](docs/performance_comparison_design.md):
   internal model, YAML vocabulary, attribution setup, and report/workbook
   design rationale.
-- [Axys/APX Common-Core Export Reference](docs/axys_common_core_export.md): starter
+- [Axys/APX Common-Core Export Reference](docs/axysapx_common_core_export.md): starter
   Axys/APX export template and field-reference tables.
 
 Source-checkout smoke test for maintainers:

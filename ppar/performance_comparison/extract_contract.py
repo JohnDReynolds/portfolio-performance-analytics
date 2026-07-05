@@ -209,10 +209,10 @@ def validate_transaction_extract_contract(
     Raises:
         PpaError: If ambiguous Axys/APX transaction codes are present and the
             transaction extract does not include the context fields marked as
-            required by the packaged Axys availability contract.
+            required by the packaged Axys/APX availability contract.
 
     Notes:
-        Axys ``dp``, ``li``, ``lo``, and ``wd`` rows cannot always be classified
+        Axys/APX ``dp``, ``li``, ``lo``, and ``wd`` rows cannot always be classified
         from transaction code alone. Source/destination and special-security
         context must be available before YAML transaction rules are allowed to
         classify those rows.

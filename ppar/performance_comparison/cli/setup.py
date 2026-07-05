@@ -248,22 +248,13 @@ def _starter_comparison_config_text(resource: Traversable) -> str:
 
 def _starter_readme_text(site_path: Path) -> str:
     """Return the local setup README copied into a user's starter workspace."""
-    return f"""# PPAR Setup
+    return f"""# PPAR
 
 This folder was created by:
 
 ```bash
 ppar setup {site_path}
 ```
-
-Use these commands to run the starter reports:
-
-```bash
-ppar analytics {site_path / _ANALYTICS_DIRECTORY}
-ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
-```
-
-`ppar perfcomp` is a shorter alias for `ppar performance_comparison`.
 
 ## Folder Map
 
@@ -289,7 +280,13 @@ ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
 
 ## Running
 
-Analytics:
+### Analytics
+
+Analytics produces holdings-based multi-period performance attribution,
+contribution, and benchmark-relative ex-post risk statistics. It uses the
+Brinson-Fachler methodology for calculating attribution effects, and uses the
+Carino method for logarithmically-smoothing cumulative effects over multi-period
+time frames.
 
 ```bash
 ppar analytics {site_path / _ANALYTICS_DIRECTORY}
@@ -298,76 +295,51 @@ ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 Success means the `analytics/output` folder contains attribution HTML, chart PNG,
 and risk-statistics HTML files.
 
-Performance Comparison:
+### Performance Comparison
+
+Performance Comparison answers the question "Why did my reported performance
+change?". It does this by comparing two source-data snapshots, and then
+attributing the performance difference to specific changes in holdings market
+values and transaction cash flows.
 
 ```bash
 ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
 ```
 
-By default, this writes portfolio and security comparison reports when the
-required source files are available. Use `--report portfolio`,
-`--report security`, or `--report both` when you want to choose explicitly.
-
-Success means the `performance_comparison/output` folder contains one or both of:
+Success means the `performance_comparison/output` folder contains:
 
 ```text
 portfolio/report.xlsx
-portfolio/report.html
 security/report.xlsx
-security/report.html
 ```
+
+If you only want to create the portfolio reports, you can add the option
+`--report portfolio`.
+
+If you only want to create the security reports, you can add the option
+`--report security`.
 
 ## Customizing
 
 ### Analytics
 
-Purpose: explain portfolio performance versus a benchmark with attribution,
-contribution, charts, and risk statistics.
-
-1. Replace `analytics/portperf.csv` with a portfolio-performance IMEX/export CSV.
-2. Replace `analytics/secperf.csv` with a security-performance IMEX/export CSV.
-3. Edit `analytics/ppar.yaml`.
+1. Replace `analytics/portperf.csv` with your own portfolio-performance IMEX CSV.
+2. Replace `analytics/secperf.csv` with your own security-performance IMEX CSV.
+3. Edit `analytics/ppar.yaml` with your own specifications.
 4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
-
-The CSVs should keep the starter headers when possible. If your export headers
-are different, add or adjust the column-mapping sections in `analytics/ppar.yaml`.
 
 ### Performance Comparison
 
-Purpose: compare two Axys/APX source-data snapshots and explain changed reported
-performance.
-
 1. Replace the CSVs in `performance_comparison/snapshot_a`.
-2. Replace the CSVs in `performance_comparison/snapshot_b`.
-3. Edit `performance_comparison/ppar.yaml`.
+2. Replace the CSVs in `performance_comparison/snapshot_b` with your own data.
+3. Edit `performance_comparison/ppar.yaml` with your own specifications.
 4. Run `ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
-
-For the first pass, focus on IMEX/export CSVs for:
-
-- `portperf.csv`: portfolio returns by portfolio and period.
-- `secperf.csv`: security returns by portfolio, security, and period.
-- `holdings.csv`: beginning and ending holdings values.
-- `transactions.csv`: dated transaction rows used for Modified Dietz flows and
-  performance-impacting activity.
-
-Keep native transaction codes and security identifiers case-sensitive.
 
 ## YAML Files
 
 The YAML files are intentionally heavily commented. Treat them as the working
 user manual for filenames, required sections, transaction rules, and local
 overrides.
-
-Start by editing only:
-
-- portfolio and benchmark codes in `analytics/ppar.yaml`;
-- filenames or column mappings if your CSV headers differ;
-- transaction rules only after your site evidence proves a local override.
-
-Avoid changing transaction meanings from code alone. Ambiguous Axys/APX-style
-codes need source/destination, special-security, REP/report, or reviewed local
-evidence before they should be treated as external flows, fees, income, or
-transfers.
 """
 
 

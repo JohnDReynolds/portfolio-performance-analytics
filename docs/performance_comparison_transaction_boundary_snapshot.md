@@ -17,7 +17,7 @@ the matrix remains the implementation contract.
 
 | Family | Codes | Boundary |
 | --- | --- | --- |
-| Ambiguous Axys flows | `li`, `lo`, `dp`, `wd` | Classification requires IMEX context, REP/report semantics, or an explicit reviewed local opt-out. |
+| Ambiguous Axys/APX flows | `li`, `lo`, `dp`, `wd` | Classification requires IMEX context, REP/report semantics, or an explicit reviewed local opt-out. |
 
 ## Review-Only And Context-Only Rows
 

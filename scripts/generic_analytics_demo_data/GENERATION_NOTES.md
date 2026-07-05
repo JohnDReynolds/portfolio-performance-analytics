@@ -2,8 +2,8 @@
 
 These notes record how the current Mega-Cap analytics demo data was created.
 They are retained as generation/process notes, not as the active roadmap.
-Performance-comparison forward work is tracked centrally in
-`docs/performance_comparison_roadmap.md`. Reusable refresh helpers live in
+Project forward work is tracked centrally in
+`docs/roadmap.md`. Reusable refresh helpers live in
 `scripts/generic_analytics_demo_data/`; generated outputs and caches live in
 `_demo_output/generic_analytics_data_generation/`.
 
@@ -11,7 +11,7 @@ Performance-comparison forward work is tracked centrally in
 
 Create a believable, simple, reproducible large-cap demo data set that can
 eventually replace the current `ppar-generic-analytics-demo` files and become the
-source universe for related Axys analytics and performance comparison demos.
+source universe for related Axys/APX analytics and performance comparison demos.
 
 The demo should tell a story similar to the current README Features section:
 
@@ -99,10 +99,10 @@ Possible follow-up choices:
 
 Refresh README images and Features text only after the new output is accepted.
 
-## Phase 4: Derive Axys-Style Analytics Data
+## Phase 4: Derive Axys/APX-Style Analytics Data
 
 Use the same generated source universe to create Axys/APX-style exports for the
-Axys analytics demo.
+Axys/APX analytics demo.
 
 Likely files:
 
@@ -115,7 +115,7 @@ benchmark story as `ppar-generic-analytics-demo`, but through Axys/APX-style sou
 
 ## Phase 5: Derive Performance Comparison Snapshots
 
-Create controlled snapshot A and snapshot B data from the generated Axys-style
+Create controlled snapshot A and snapshot B data from the generated Axys/APX-style
 universe.
 
 Snapshot B should include small, understandable restatements such as:
