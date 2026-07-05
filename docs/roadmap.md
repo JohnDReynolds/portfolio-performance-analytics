@@ -101,10 +101,17 @@ parked in Eventual Deliverables even though the Axys/APX seed is accepted.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Root README image/artifact audit | Keep the project-root `README.md` marketing story aligned with generated Analytics and Performance Comparison outputs. Refresh screenshots and artifact references when report names, output paths, or demo narratives change. | The README continues to communicate product value quickly, every image reference resolves, and setup users are sent to the Axys/APX onboarding path without advertising generic analytics as the primary story. |
-| Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
-| Performance watchlist | Profile again only after meaningful data-size growth, report-shape changes, or new bottleneck evidence. | New speed work starts from measured timings; completed reconstruction-cache gains remain documented. |
 | Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
+
+Standing maintenance criteria:
+
+- Keep the project-root `README.md` marketing story aligned with generated
+  Analytics and Performance Comparison outputs. Metadata tests now assert that
+  embedded README image references resolve.
+- Remove clearly unused compatibility shims or simplify report/workbook helpers
+  only when a small, behavior-preserving change is obvious and covered by tests.
+- Profile again only after meaningful data-size growth, report-shape changes,
+  or new bottleneck evidence. New speed work should start from measured timings.
 
 ### Transaction And Policy Backlog
 
@@ -3026,6 +3033,23 @@ uses those Axys/APX setup folders rather than the generic demo module.
 The generic refresh guide and demo-data README now state this boundary directly.
 No generic data or smoke modules were deleted because they still serve the
 README, tests, and maintainer refresh workflow.
+
+### Phase 84: Open-Item Reconciliation And Release Backlog Slimming
+
+Status: complete for the current release-hardening backlog.
+
+The near-term release-hardening table now contains only active work with a
+concrete next action. Completed housekeeping trains, such as the root README
+image/artifact audit, moved into completed status and guardrail tests instead
+of remaining as open backlog.
+
+Ongoing reminders that do not currently justify their own implementation train
+were moved into standing maintenance criteria:
+
+- keep the marketing README aligned with generated artifacts;
+- simplify code only when a small, behavior-preserving cleanup is obvious; and
+- profile only when data growth, report-shape changes, or measured timings show
+  a real bottleneck.
 
 ## Guiding Principle
 
