@@ -459,6 +459,7 @@ class TestPackageMetadata(unittest.TestCase):
             "analytics/",
             "performance_comparison/",
             "README.md",
+            "PYTHON_TUTORIAL.md",
             "Customizing",
             "--overwrite",
         ]:
@@ -466,6 +467,12 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(expected_text, setup_doc)
 
         self.assertIn("SETUP.md", readme)
+        python_tutorial = Path(
+            "ppar/demos/data/axysapx_performance_comparison/PYTHON_TUTORIAL.md"
+        ).read_text(encoding=util.ENCODING)
+        self.assertIn("run_analytics", python_tutorial)
+        self.assertIn("run_report", python_tutorial)
+        self.assertIn("report=\"portfolio\"", python_tutorial)
 
     def test_repository_readme_points_axys_users_to_setup(self) -> None:
         """The top-level performance-comparison path starts with setup."""
@@ -826,7 +833,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("default report/workbook review order starts", roadmap)
         self.assertIn("optional", roadmap)
         self.assertIn("reconstruction diagnostics stay opt-in", roadmap)
-        self.assertIn("Setup raw-Python tutorial", roadmap)
+        self.assertIn("Phase 82: Setup Raw-Python Tutorial", roadmap)
+        self.assertIn("installs a short raw-Python tutorial", roadmap)
         self.assertIn("Root README image/artifact audit", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Generic analytics disposition", roadmap)

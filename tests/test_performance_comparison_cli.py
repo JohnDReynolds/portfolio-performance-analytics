@@ -169,6 +169,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             config_path = comparison_path / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             readme = (site_directory / "README.md").read_text(encoding="utf-8")
+            python_tutorial = (site_directory / "PYTHON_TUTORIAL.md").read_text(
+                encoding="utf-8"
+            )
             self.assertIn("PPAR setup complete:", result.stdout)
             self.assertIn("To run Analytics:", result.stdout)
             self.assertIn("To run Performance Comparison:", result.stdout)
@@ -181,10 +184,16 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("(written)", result.stdout)
             self.assertTrue((site_directory / "README.md").exists())
             self.assertIn("## Run Reports", readme)
+            self.assertIn("## Run From Python", readme)
             self.assertIn("## Customizing", readme)
             self.assertIn("## Folder Map", readme)
+            self.assertIn("PYTHON_TUTORIAL.md", readme)
             self.assertLess(
                 readme.index("## Run Reports"),
+                readme.index("## Run From Python"),
+            )
+            self.assertLess(
+                readme.index("## Run From Python"),
                 readme.index("## Customizing"),
             )
             self.assertLess(
@@ -193,6 +202,15 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertIn("Edit `analytics/ppar.yaml`.", readme)
             self.assertIn("Edit `performance_comparison/ppar.yaml`.", readme)
+            self.assertIn(
+                "from ppar.analytics.cli import run_analytics",
+                python_tutorial,
+            )
+            self.assertIn(
+                "from ppar.performance_comparison.cli.site_report import run_report",
+                python_tutorial,
+            )
+            self.assertIn('report="portfolio"', python_tutorial)
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
             self.assertTrue((analytics_path / "secperf.csv").exists())
@@ -225,6 +243,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("ppar performance_comparison", result.stdout)
             self.assertNotIn("secperf.csv", result.stdout)
             self.assertTrue((site_directory / "analytics").is_dir())
+            self.assertTrue((site_directory / "PYTHON_TUTORIAL.md").exists())
             self.assertTrue(
                 (site_directory / "performance_comparison" / "snapshot_a").is_dir()
             )
@@ -248,12 +267,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
             readme_path = site_directory / "README.md"
+            python_tutorial_path = site_directory / "PYTHON_TUTORIAL.md"
             analytics_config_path = site_directory / "analytics" / "ppar.yaml"
             comparison_config_path = (
                 site_directory / "performance_comparison" / "ppar.yaml"
             )
 
             custom_readme = "custom readme\n"
+            custom_python_tutorial = "custom python tutorial\n"
             custom_analytics_config = (
                 analytics_config_path.read_text(encoding="utf-8")
                 + "\n# custom analytics note\n"
@@ -263,6 +284,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 + "\n# custom performance comparison note\n"
             )
             readme_path.write_text(custom_readme, encoding="utf-8")
+            python_tutorial_path.write_text(custom_python_tutorial, encoding="utf-8")
             analytics_config_path.write_text(
                 custom_analytics_config,
                 encoding="utf-8",
@@ -280,6 +302,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertEqual(readme_path.read_text(encoding="utf-8"), custom_readme)
+            self.assertEqual(
+                python_tutorial_path.read_text(encoding="utf-8"),
+                custom_python_tutorial,
+            )
             self.assertEqual(
                 analytics_config_path.read_text(encoding="utf-8"),
                 custom_analytics_config,

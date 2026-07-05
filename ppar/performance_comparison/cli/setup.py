@@ -26,6 +26,7 @@ _PACKAGED_COMPARISON_DIRECTORY: Final[str] = "axysapx_performance_comparison"
 _PACKAGED_ANALYTICS_YAML: Final[str] = "axysapx_analytics.yaml"
 _PACKAGED_COMPARISON_YAML: Final[str] = "axysapx_performance_comparison.yaml"
 _PACKAGED_SETUP_GUIDE: Final[str] = "SETUP.md"
+_PACKAGED_PYTHON_TUTORIAL: Final[str] = "PYTHON_TUTORIAL.md"
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
@@ -99,6 +100,14 @@ def run_setup(
         _starter_readme_text(site_path),
         overwrite=overwrite,
     )
+    python_tutorial_status = _copy_resource_file(
+        files(_PACKAGED_DEMO_RESOURCE).joinpath(
+            _PACKAGED_COMPARISON_DIRECTORY,
+            _PACKAGED_PYTHON_TUTORIAL,
+        ),
+        site_path / _PACKAGED_PYTHON_TUTORIAL,
+        overwrite=overwrite,
+    )
     analytics_status = _ensure_analytics_starter(analytics_path, overwrite=overwrite)
     comparison_status = _ensure_comparison_starter(
         comparison_path,
@@ -111,6 +120,8 @@ def run_setup(
         "setup_status": setup_status,
         "readme_path": site_path / "README.md",
         "readme_status": readme_status,
+        "python_tutorial_path": site_path / _PACKAGED_PYTHON_TUTORIAL,
+        "python_tutorial_status": python_tutorial_status,
         "analytics_directory": analytics_path,
         "analytics_status": analytics_status,
         "analytics_config_path": analytics_path / _CONFIG_FILE_NAME,
@@ -287,6 +298,11 @@ To create only one report family:
 ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report portfolio
 ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
 ```
+
+## Run From Python
+
+If you want to run PPAR from Python instead of the `ppar` command, see
+`PYTHON_TUTORIAL.md`.
 
 ## Customizing
 

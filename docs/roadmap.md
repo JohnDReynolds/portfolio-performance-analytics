@@ -82,6 +82,9 @@ Completed guardrails now cover:
   YAML, source-contract, test, and generated-bundle evidence;
 - the packaged Axys/APX demo is accepted as the future `vendor: axys` preset seed,
   while preset implementation remains future work;
+- `ppar setup` installs a short raw-Python tutorial beside the setup README so
+  users can run Analytics and Performance Comparison without the CLI when they
+  need scheduler, notebook, or automation entrypoints;
 - generated bundle vocabulary, package-resource entrypoints, and distribution
   package-data boundaries are validated.
 
@@ -95,7 +98,6 @@ parked in Eventual Deliverables even though the Axys/APX seed is accepted.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Setup raw-Python tutorial | Add a short raw-Python tutorial document to the setup site and link to it from the generated setup `README.md`. The tutorial should show how to run both analytics and performance comparison without the `ppar` CLI, using the installed setup folder as input. | `ppar setup` installs the tutorial beside the setup README, the README points to it, and examples cover analytics plus portfolio/security performance comparison with minimal code. |
 | Root README image/artifact audit | Keep the project-root `README.md` marketing story aligned with generated Analytics and Performance Comparison outputs. Refresh screenshots and artifact references when report names, output paths, or demo narratives change. | The README continues to communicate product value quickly, every image reference resolves, and setup users are sent to the Axys/APX onboarding path without advertising generic analytics as the primary story. |
 | Generic analytics disposition | Decide the purpose of the `generic_analytics` demo now that Axys/APX analytics is the primary public target. Evaluate whether useful remnants should move into the raw-Python tutorial or remain as maintainer-only examples. | Public docs no longer create confusion between Axys/APX onboarding and generic demo history. Any retained generic content has a clear maintainer or tutorial role. |
 | Code simplification watchlist | Remove clearly unused compatibility shims or simplify report/workbook helpers only when a small, behavior-preserving change is obvious. | Public behavior, report content, manifests, and package/API boundaries stay covered by tests. |
@@ -2975,6 +2977,31 @@ with one user-facing `ppar.yaml`. The production performance-comparison command
 writes portfolio and security reports by default when required source files are
 available, and supports `--report portfolio`, `--report security`, or
 `--report both` for explicit selection. `ppar perfcomp` is the short alias.
+
+### Phase 82: Setup Raw-Python Tutorial
+
+Status: complete for the current setup site.
+
+`ppar setup` now installs `PYTHON_TUTORIAL.md` beside the generated setup
+`README.md`. The setup README points Python users to that tutorial without
+making raw Python the main onboarding path.
+
+The tutorial keeps the examples intentionally small:
+
+```python
+from ppar.analytics.cli import run_analytics
+from ppar.performance_comparison.cli.site_report import run_report
+```
+
+Those functions are the same programmatic entrypoints used by the CLI wrappers,
+so users can run the installed `analytics` and `performance_comparison` setup
+folders from schedulers, notebooks, or internal automation without learning
+repository-only demo modules.
+
+The tutorial deliberately uses the Axys/APX setup folders rather than the
+`generic_analytics` demo. Generic analytics remains a maintainer/example asset
+until the separate disposition item decides whether any of it should become
+user-facing tutorial material.
 
 ## Guiding Principle
 
