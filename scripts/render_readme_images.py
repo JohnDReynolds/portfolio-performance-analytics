@@ -12,6 +12,7 @@ refresh the chart images and table screenshots referenced by ``README.md``.
 # pylint: disable=wrong-import-order,wrong-import-position
 
 # Python Imports
+import argparse
 import io
 import os
 from pathlib import Path
@@ -50,6 +51,16 @@ _RENDER_CONFIG = {
     "CumulativeAttributionByEconomicSector": (5200, 3600),
     "OverallAttributionByEconomicSector": (5200, 3200),
     "RiskStatistics": (3000, 4800),
+    "PerformanceComparisonPortfolio": (3200, 2200),
+    "PerformanceComparisonSecurity": (3200, 2200),
+}
+_PERFORMANCE_COMPARISON_HTML = {
+    "PerformanceComparisonPortfolio": (
+        _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
+    ),
+    "PerformanceComparisonSecurity": (
+        _REPO_ROOT / "_demo_output" / "performance_comparison_security" / "report.html"
+    ),
 }
 
 
@@ -62,23 +73,37 @@ def main() -> None:
         OSError: If temporary or generated image files cannot be read or
             written.
     """
+    args = _parse_args()
     chrome_path = _find_chrome()
     with tempfile.TemporaryDirectory(prefix="ppar_readme_images_") as temp_dir_name:
         temp_dir = Path(temp_dir_name)
-        analytics, sector = _analytics_outputs()
-        _write_chart_images(sector)
-        html_paths = _write_html_inputs(temp_dir, analytics, sector)
-        for name, html_path in html_paths.items():
-            png_path = temp_dir / f"{name}.png"
-            user_data_dir = temp_dir / f"{name}_chrome_profile"
-            _render_png(
-                chrome_path,
-                html_path,
-                png_path,
-                _RENDER_CONFIG[name],
-                user_data_dir,
-            )
-            _crop_and_save_jpg(png_path, _IMAGE_DIR / f"{name}.jpg")
+        if args.only in ("all", "analytics"):
+            analytics, sector = _analytics_outputs()
+            _write_chart_images(sector)
+            html_paths = _write_html_inputs(temp_dir, analytics, sector)
+            for name, html_path in html_paths.items():
+                _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
+        if args.only in ("all", "performance-comparison"):
+            for name, html_path in _performance_comparison_html_inputs().items():
+                _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
+
+
+def _parse_args() -> argparse.Namespace:
+    """Parse README image-rendering arguments.
+
+    Returns:
+        Parsed command-line arguments.
+    """
+    parser = argparse.ArgumentParser(
+        description="Render README analytics and performance-comparison images.",
+    )
+    parser.add_argument(
+        "--only",
+        choices=("all", "analytics", "performance-comparison"),
+        default="all",
+        help="Limit rendering to one image family. Defaults to all.",
+    )
+    return parser.parse_args()
 
 
 def _analytics_outputs() -> tuple[Analytics, Attribution]:
@@ -218,8 +243,62 @@ def _render_png(
         raise
 
 
+def _render_cropped_jpg(
+    chrome_path: str,
+    html_path: Path,
+    temp_dir: Path,
+    name: str,
+) -> None:
+    """Render one README HTML source and save it as a cropped JPEG.
+
+    Args:
+        chrome_path: Path or executable name for Chrome or Chromium.
+        html_path: HTML document to render.
+        temp_dir: Temporary directory in which to render the intermediate PNG.
+        name: README image stem and render-configuration key.
+
+    Raises:
+        subprocess.CalledProcessError: If the Chrome rendering process fails.
+        OSError: If temporary or generated image files cannot be read or
+            written.
+    """
+    png_path = temp_dir / f"{name}.png"
+    user_data_dir = temp_dir / f"{name}_chrome_profile"
+    _render_png(
+        chrome_path,
+        html_path,
+        png_path,
+        _RENDER_CONFIG[name],
+        user_data_dir,
+    )
+    _crop_and_save_jpg(png_path, _IMAGE_DIR / f"{name}.jpg")
+
+
+def _performance_comparison_html_inputs() -> dict[str, Path]:
+    """Return existing performance-comparison report HTML files for screenshots.
+
+    Returns:
+        Mapping from README image stem to report HTML path.
+
+    Raises:
+        FileNotFoundError: If the demo report HTML files have not been generated.
+    """
+    missing_paths = [
+        path.relative_to(_REPO_ROOT)
+        for path in _PERFORMANCE_COMPARISON_HTML.values()
+        if not path.exists()
+    ]
+    if missing_paths:
+        missing_list = ", ".join(str(path) for path in missing_paths)
+        raise FileNotFoundError(
+            "Performance-comparison README images require generated report HTML: "
+            f"{missing_list}"
+        )
+    return dict(_PERFORMANCE_COMPARISON_HTML)
+
+
 def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
-    """Crop white screenshot margins and save a high-quality JPEG.
+    """Crop screenshot margins and save a high-quality JPEG.
 
     Args:
         png_path: Rendered PNG screenshot to open.
@@ -230,8 +309,11 @@ def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
             cannot be written.
     """
     image = Image.open(png_path).convert("RGB")
-    white = Image.new("RGB", image.size, (255, 255, 255))
-    bbox = ImageChops.difference(image, white).getbbox()
+    background_color = image.getpixel((0, 0))
+    background = Image.new("RGB", image.size, background_color)
+    diff = ImageChops.difference(image, background)
+    mask = diff.convert("L").point(lambda value: 255 if value > 6 else 0)
+    bbox = mask.getbbox()
     cropped = image
     if bbox is not None:
         pad = 48

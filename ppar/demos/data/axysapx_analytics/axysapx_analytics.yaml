@@ -69,10 +69,10 @@ defaults:
 #   and contribution.
 #
 # security_master_path:
-#   Security display/classification data. The starter points this at secperf.csv
-#   because Axys/APX security-performance exports often already include the
-#   practical display fields needed for reports. Change it only if your site has
-#   a separate security master CSV that you want PPAR to use.
+#   Optional security display/classification lookup. The starter points this at
+#   secperf.csv because Axys/APX security-performance exports often already
+#   include the practical display fields needed for reports. Most onboarding
+#   users should leave this alone.
 portfolio_performance_path: portperf.csv
 security_performance_path: secperf.csv
 security_master_path: secperf.csv

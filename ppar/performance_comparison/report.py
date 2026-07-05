@@ -185,40 +185,13 @@ def _performance_comparison_html_report(
             '<main class="pc-report">',
             '<header class="pc-header">',
             f"<h1>{_escape_html(title)}</h1>",
-            "<p>Browser view for reviewing this performance-comparison bundle.</p>",
             "</header>",
-            _html_workbook_contents_section(sheets),
             *[_html_workbook_sheet_section(sheet) for sheet in sheets],
             "</main>",
             "</body>",
             "</html>",
             "",
         ]
-    )
-
-
-def _html_workbook_contents_section(
-    sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
-) -> str:
-    """Return navigation for workbook-style HTML sections."""
-    primary_sheet_name = sheets[0].sheet_name if sheets else "the first sheet"
-    items = [
-        f'<li><a href="#{_html_section_id(sheet.sheet_name)}">'
-        f"{_escape_html(sheet.sheet_name)}</a></li>"
-        for sheet in sheets
-    ]
-    return _html_section(
-        _pc_review_model.REVIEW_ORDER_SECTION,
-        "\n".join(
-            [
-                f"<p>Start with {_escape_html(primary_sheet_name)}, then use "
-                f"{_escape_html(_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET)} "
-                "to see which source-data differences explain each period.</p>",
-                '<ol class="pc-contents-list">',
-                *items,
-                "</ol>",
-            ]
-        ),
     )
 
 
@@ -239,6 +212,7 @@ def _html_workbook_sheet_table(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
     labels = sheet.labels or {}
     header_cells = [
         _html_workbook_header_cell(
+            column=column,
             label=labels.get(column, _display_header(column)),
             tooltip=_pc_workbook_tables.workbook_column_tooltip(column),
         )
@@ -274,10 +248,14 @@ def _workbook_sheet_available_columns(
     return [column for column in requested_columns if column in sheet.table.columns]
 
 
-def _html_workbook_header_cell(*, label: str, tooltip: str) -> str:
+def _html_workbook_header_cell(*, column: str, label: str, tooltip: str) -> str:
     """Return one workbook-style HTML header cell."""
     title_attribute = f' title="{_escape_html(tooltip)}"' if tooltip else ""
-    return f'<th scope="col"{title_attribute}>{_escape_html(label)}</th>'
+    class_attribute = f' class="{_pc_rendering.html_column_class(column)}"'
+    return (
+        f'<th scope="col"{class_attribute}{title_attribute}>'
+        f"{_escape_html(label)}</th>"
+    )
 
 
 def _html_workbook_body_row(row: Mapping[str, object], columns: Sequence[str]) -> str:

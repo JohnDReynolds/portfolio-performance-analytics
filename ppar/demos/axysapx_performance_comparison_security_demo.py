@@ -14,7 +14,7 @@ def main() -> None:
         run_performance_comparison_demo(
             comparison_path=axys_data_root / "axysapx_performance_comparison.yaml",
             bundle_path=Path.cwd() / "_demo_output" / "performance_comparison_security",
-            title="Security Performance Comparison Demo",
+            title="Security Performance Comparison",
             comparison_level="security",
         )
 

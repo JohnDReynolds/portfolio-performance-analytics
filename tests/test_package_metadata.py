@@ -303,7 +303,10 @@ class TestPackageMetadata(unittest.TestCase):
             self.assertIn("audit traceability", text)
             self.assertNotIn("same review model in a browser", text)
 
-        self.assertIn("open `report.xlsx` when present", normalized_root_readme)
+        self.assertIn(
+            "open `report.xlsx` when present",
+            normalized_root_readme.lower(),
+        )
         self.assertIn("Open `report.xlsx` when present", normalized_axys_readme)
 
     def test_manifest_keeps_source_distribution_resources(self) -> None:
@@ -468,8 +471,8 @@ class TestPackageMetadata(unittest.TestCase):
         """The top-level performance-comparison path starts with setup."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("PPAR Axys/APX Setup", readme)
-        self.assertIn("ppar/demos/data/axysapx_performance_comparison/SETUP.md", readme)
+        self.assertIn("PPAR helps Axys/APX teams", readme)
+        self.assertIn("## Quick Setup", readme)
         self.assertIn("ppar setup ./my_ppar_data", readme)
         self.assertIn("ppar setup --guide", readme)
         self.assertIn("ppar analytics ./my_ppar_data/analytics", readme)
@@ -478,7 +481,7 @@ class TestPackageMetadata(unittest.TestCase):
             readme,
         )
         self.assertIn("ppar.yaml", readme)
-        self.assertIn("shortest path", readme)
+        self.assertIn("primary onboarding guide", readme)
 
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
@@ -2093,12 +2096,14 @@ class TestPackageMetadata(unittest.TestCase):
         )
         contracts = performance_source_data_contract.source_data_contract()
 
-        self.assertIn("Minimum source-data contract:", root_readme)
-        self.assertIn("required normalized", root_readme)
-        self.assertIn("columns must resolve unambiguously", root_readme)
+        self.assertIn("IMEX-style CSV exports", root_readme)
+        self.assertIn("PPAR normalizes those files through YAML", root_readme)
         self.assertIn("## Minimum Source-Data Contract", contract_doc)
         self.assertIn("stops before producing a report", contract_doc)
         self.assertIn("return reconstruction is configured", contract_doc)
+        self.assertIn("required normalized", contract_doc)
+        self.assertIn("required normalized column cannot be resolved", contract_doc)
+        self.assertIn("required source column is ambiguous", contract_doc)
         for contract in contracts:
             with self.subTest(dataset=contract.name):
                 self.assertIn(f"`{contract.name}`", contract_doc)

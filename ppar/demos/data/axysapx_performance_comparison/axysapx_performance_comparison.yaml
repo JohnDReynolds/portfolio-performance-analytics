@@ -42,9 +42,9 @@ comparison:
   # Primary review level for lower-level bundle tooling.
   # Allowed values: portfolio, security.
   # The production command normally chooses report level with --report:
-  #   ppar performance_comparison --report portfolio
-  #   ppar performance_comparison --report security
-  #   ppar performance_comparison --report both
+  #   ppar performance_comparison ./my_ppar_data/performance_comparison --report portfolio
+  #   ppar performance_comparison ./my_ppar_data/performance_comparison --report security
+  #   ppar performance_comparison ./my_ppar_data/performance_comparison --report both
   level: portfolio
 
 snapshots:

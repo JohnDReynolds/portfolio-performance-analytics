@@ -95,7 +95,8 @@ def html_table(
         return html_empty(empty_message)
 
     header_cells = [
-        f'<th scope="col">{escape_html(display_header(column))}</th>'
+        f'<th scope="col" class="{html_column_class(column)}">'
+        f"{escape_html(display_header(column))}</th>"
         for column in available_columns
     ]
     body_rows = []
@@ -463,16 +464,6 @@ body {
 .pc-section a {
   color: var(--pc-accent);
 }
-.pc-contents-list {
-  column-gap: 28px;
-  columns: 2;
-  margin: 0;
-  padding-left: 18px;
-}
-.pc-contents-list li {
-  break-inside: avoid;
-  margin: 0 0 3px;
-}
 .pc-card-row {
   display: grid;
   gap: 8px;
@@ -560,6 +551,24 @@ th {
   white-space: nowrap;
   z-index: 1;
 }
+th.pc-col-performance-change,
+th.pc-col-portfolio-return-delta,
+th.pc-col-estimated-cause-total,
+th.pc-col-unexplained-change,
+th.pc-col-estimated-impact {
+  line-height: 1.15;
+  min-width: 82px;
+  white-space: normal;
+}
+th.pc-col-from-date,
+th.pc-col-thru-date,
+th.pc-col-as-of-date,
+td.pc-col-from-date,
+td.pc-col-thru-date,
+td.pc-col-as-of-date {
+  min-width: 72px;
+  white-space: nowrap;
+}
 td {
   border-color: var(--pc-border-light);
 }
@@ -613,9 +622,6 @@ tbody tr:hover {
 @media (max-width: 760px) {
   .pc-report {
     padding: 12px;
-  }
-  .pc-contents-list {
-    columns: 1;
   }
 }
 @media print {

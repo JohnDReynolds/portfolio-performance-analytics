@@ -150,10 +150,11 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 html_report,
             )
             self.assertNotIn("Normalized source dataset", html_report)
-            self.assertIn(
+            self.assertNotIn(
                 "Browser view for reviewing this performance-comparison bundle.",
                 html_report,
             )
+            self.assertNotIn('class="pc-contents-list"', html_report)
             self.assertNotIn("same review model", html_report)
             self.assertNotIn("Browser review surface", html_report)
             self.assertNotIn("Transaction Match Diagnostics", html_report)

@@ -37,8 +37,8 @@ _DEMO_QUIET_PHRASES = (
     "Analytics demo output written to:",
     "Report bundle written to:",
     "Bundle artifacts:",
-    "Portfolio Performance Comparison Demo",
-    "Security Performance Comparison Demo",
+    "Portfolio Performance Comparison",
+    "Security Performance Comparison",
 )
 
 
