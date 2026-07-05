@@ -483,6 +483,16 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("ppar.yaml", readme)
         self.assertIn("primary onboarding guide", readme)
 
+    def test_repository_readme_image_references_exist(self) -> None:
+        """The marketing README only embeds checked-in README image artifacts."""
+        readme = Path("README.md").read_text(encoding=util.ENCODING)
+        image_paths = re.findall(r'src="(docs/images/readme/[^"]+)"', readme)
+
+        self.assertGreater(len(image_paths), 0)
+        for image_path in image_paths:
+            with self.subTest(image_path=image_path):
+                self.assertTrue(Path(image_path).exists())
+
     def test_site_extract_contract_template_is_documented(self) -> None:
         """The site extract-contract starter template remains linked from docs."""
         template_path = Path("docs/axys-apx-reference/contracts/templates/site_extract_contract.yaml")
