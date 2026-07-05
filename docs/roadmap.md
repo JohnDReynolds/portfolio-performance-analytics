@@ -91,6 +91,10 @@ Completed guardrails now cover:
 - `ppar setup` has been dry-run end to end through Analytics and Performance
   Comparison, including current-directory behavior and generated output clutter
   checks;
+- the built wheel exposes only the `ppar` console script, includes the Axys/APX
+  starter data needed by setup, excludes generated/source-checkout internals,
+  and runs the installed setup, analytics, and performance-comparison smoke
+  path;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3115,6 +3119,41 @@ was priming Matplotlib cache paths inside `analytics/output`. Analytics cache
 setup now happens inside `ppar.analytics.cli` with a temporary cache directory,
 and tests assert that `analytics/output` does not receive `.matplotlib` or
 `.cache` folders.
+
+### Phase 88: Release Package Smoke Audit
+
+Status: complete for the current wheel/sdist surface.
+
+The package was rebuilt with:
+
+```bash
+python -m build --no-isolation
+```
+
+The wheel audit confirmed:
+
+- `entry_points.txt` exposes only `ppar = ppar.cli:main`;
+- Axys/APX analytics starter files are included;
+- Axys/APX performance-comparison starter files and Snapshot A/B CSVs are
+  included;
+- `_demo_output`, `scripts`, `tests`, `docs`, former `axys` demo parent paths,
+  and former `axys_full_spec` paths are not present in the wheel; and
+- checkout-maintenance scripts remain in the sdist, not the wheel package.
+
+The built wheel was installed into a temporary environment and the installed
+`ppar` command successfully ran:
+
+```bash
+ppar --help
+ppar setup /tmp/ppar_phase88_site
+ppar analytics /tmp/ppar_phase88_site/analytics
+ppar performance_comparison /tmp/ppar_phase88_site/performance_comparison
+```
+
+The no-deps temporary wheel environment initially lacked `openpyxl`, so workbook
+export failed until that declared runtime dependency was supplied locally. This
+confirmed that `openpyxl` must remain a core runtime dependency, not an optional
+extra, while Performance Comparison writes `.xlsx` workbooks by default.
 
 ## Guiding Principle
 

@@ -934,6 +934,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("keep new docs rare", roadmap)
         self.assertIn("Phase 87: Setup Site Dry Run And User Surface Audit", roadmap)
         self.assertIn("generated output clutter", roadmap)
+        self.assertIn("Phase 88: Release Package Smoke Audit", roadmap)
+        self.assertIn("exposes only `ppar = ppar.cli:main`", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
