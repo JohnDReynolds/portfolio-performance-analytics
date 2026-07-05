@@ -9,6 +9,7 @@ many disconnected entry points.
 | Need | Start With | Why |
 | --- | --- | --- |
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and common smoke tests. |
+| Architecture map | [`docs/architecture.md`](architecture.md) | Compact map of the installed command surface, package boundaries, data flow, setup data, and report boundary. |
 | Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
 | PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
@@ -40,6 +41,7 @@ many disconnected entry points.
 | File | Audience | Contents |
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users and maintainers | Package overview, installation, public setup commands, performance-comparison smoke tests, and project checks. |
+| [`docs/architecture.md`](architecture.md) | Maintainers | Compact architecture map for commands, package boundaries, data flow, setup data, and report boundaries. |
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
 | [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |

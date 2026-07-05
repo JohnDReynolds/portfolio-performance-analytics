@@ -549,6 +549,38 @@ class TestPackageMetadata(unittest.TestCase):
             normalized_repository_guide,
         )
 
+    def test_architecture_doc_maps_current_project_boundaries(self) -> None:
+        """The compact architecture map stays tied to current public boundaries."""
+        architecture = Path("docs/architecture.md").read_text(encoding=util.ENCODING)
+        normalized_architecture = " ".join(architecture.split())
+        repository_guide = Path("docs/repository_guide.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("Architecture map", repository_guide)
+        self.assertIn("docs/architecture.md", repository_guide)
+        for expected_text in [
+            "# PPAR Architecture",
+            "The public installed command is:",
+            "ppar setup <site_directory>",
+            "ppar analytics <site_directory>/analytics",
+            "ppar performance_comparison <site_directory>/performance_comparison",
+            "`ppar perfcomp` is the short alias",
+            "`ppar.analytics`",
+            "`ppar.axys`",
+            "`ppar.performance_comparison`",
+            "`ppar.demos`",
+            "The performance-comparison engine does not try to rebuild a full accounting ledger.",
+            "Setup Data Versus Maintainer Data",
+            "The YAML files are the main configuration and onboarding surface.",
+            "`Performance Differences`",
+            "`Performance Difference Causes`",
+            "`Raw Audit Trail`",
+            "Keep new docs rare.",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, normalized_architecture)
+
     def test_repository_readme_image_references_exist(self) -> None:
         """The marketing README only embeds checked-in README image artifacts."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
@@ -898,6 +930,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Standing maintenance criteria", roadmap)
         self.assertIn("Phase 85: Documentation Freshness Guardrail Sweep", roadmap)
         self.assertIn("retired setup/command terminology", roadmap)
+        self.assertIn("Phase 86: Compact Architecture Map", roadmap)
+        self.assertIn("keep new docs rare", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)

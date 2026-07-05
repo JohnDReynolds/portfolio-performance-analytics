@@ -85,6 +85,9 @@ Completed guardrails now cover:
 - `ppar setup` installs a short raw-Python tutorial beside the setup README so
   users can run Analytics and Performance Comparison without the CLI when they
   need scheduler, notebook, or automation entrypoints;
+- `docs/architecture.md` provides a compact system map for commands, package
+  boundaries, data flow, setup data, configuration boundaries, and report
+  boundaries;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3069,6 +3072,21 @@ generation notes were rewritten as generic smoke-test and Axys/APX starter-data
 references. The check intentionally targets installed-user docs and onboarding
 surfaces, not historical phase notes or source-checkout-only maintenance
 scripts.
+
+### Phase 86: Compact Architecture Map
+
+Status: complete for the current documentation set.
+
+The project now has one small architecture document:
+`docs/architecture.md`. It maps the installed `ppar` command surface, package
+boundaries, analytics and performance-comparison data flow, setup data versus
+maintainer data, YAML configuration boundaries, and report boundaries.
+
+This phase intentionally did not add a decision log, separate onboarding
+workflow document, or another performance-comparison design document. The
+documentation rule is now: keep new docs rare, and prefer updating the roadmap,
+architecture map, repository guide, setup README, or heavily commented YAML
+before creating another durable document.
 
 ## Guiding Principle
 
