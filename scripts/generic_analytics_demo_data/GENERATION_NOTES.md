@@ -10,8 +10,8 @@ Project forward work is tracked centrally in
 ## Objective
 
 Create a believable, simple, reproducible large-cap demo data set that can
-eventually replace the current `ppar-generic-analytics-demo` files and become the
-source universe for related Axys/APX analytics and performance comparison demos.
+eventually refresh the generic analytics smoke-test files and become the source
+universe for related Axys/APX analytics and performance comparison demos.
 
 The demo should tell a story similar to the current README Features section:
 
@@ -110,8 +110,9 @@ Likely files:
 - `secperf.csv`;
 - classification or lookup data if useful.
 
-The goal is for `ppar-axysapx-analytics-demo` to tell the same broad portfolio vs.
-benchmark story as `ppar-generic-analytics-demo`, but through Axys/APX-style source files.
+The goal is for the Axys/APX analytics starter data to tell the same broad
+portfolio vs. benchmark story as the generic analytics smoke-test data, but
+through Axys/APX-style source files.
 
 ## Phase 5: Derive Performance Comparison Snapshots
 

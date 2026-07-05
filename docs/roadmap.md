@@ -88,8 +88,8 @@ Completed guardrails now cover:
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
-- generated bundle vocabulary, package-resource entrypoints, and distribution
-  package-data boundaries are validated.
+- generated bundle vocabulary, package-resource entrypoints, distribution
+  package-data boundaries, and retired setup/command terminology are validated.
 
 ## Current Open Items
 
@@ -3050,6 +3050,25 @@ were moved into standing maintenance criteria:
 - simplify code only when a small, behavior-preserving cleanup is obvious; and
 - profile only when data growth, report-shape changes, or measured timings show
   a real bottleneck.
+
+### Phase 85: Documentation Freshness Guardrail Sweep
+
+Status: complete for the current setup/onboarding vocabulary.
+
+User-facing setup docs now have an explicit metadata guardrail against retired
+front-door language:
+
+- `quickstart` / `QUICK_START`;
+- `ppar report` / `ppar-report`;
+- the former `performance_comparison_roadmap.md` filename;
+- former `axys_full_spec` snapshot folders; and
+- removed public demo console-script names.
+
+The remaining stale public-demo console-script references in maintainer
+generation notes were rewritten as generic smoke-test and Axys/APX starter-data
+references. The check intentionally targets installed-user docs and onboarding
+surfaces, not historical phase notes or source-checkout-only maintenance
+scripts.
 
 ## Guiding Principle
 

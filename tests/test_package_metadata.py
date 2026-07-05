@@ -439,6 +439,34 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)
 
+    def test_user_facing_setup_docs_avoid_retired_command_language(self) -> None:
+        """Installed-user docs stay aligned with the current setup/report commands."""
+        docs_to_check = [
+            Path("README.md"),
+            Path("ppar/demos/data/README.md"),
+            Path("ppar/demos/data/axysapx_performance_comparison/README.md"),
+            Path("ppar/demos/data/axysapx_performance_comparison/PYTHON_TUTORIAL.md"),
+            Path(
+                "ppar/demos/data/axysapx_performance_comparison/"
+                "axysapx_performance_comparison.yaml"
+            ),
+            Path("ppar/demos/data/axysapx_analytics/axysapx_analytics.yaml"),
+        ]
+        retired_patterns = {
+            "old roadmap filename": r"performance_comparison_roadmap",
+            "quickstart naming": r"\bquickstart\b|QUICK_START|quick start",
+            "old report command": r"\bppar report\b|ppar-report",
+            "old full-spec folders": r"axys_full_spec",
+            "old performance-comparison demo command": r"ppar-performance-comparison",
+            "old generic analytics console script": r"ppar-generic-analytics-demo",
+        }
+
+        for doc_path in docs_to_check:
+            doc_text = doc_path.read_text(encoding=util.ENCODING)
+            for label, pattern in retired_patterns.items():
+                with self.subTest(doc_path=doc_path.as_posix(), retired=label):
+                    self.assertIsNone(re.search(pattern, doc_text, flags=re.IGNORECASE))
+
     def test_packaged_axys_setup_documents_onboarding_path(self) -> None:
         """The packaged Axys setup stays action-oriented for site onboarding."""
         setup_doc = Path("ppar/demos/data/axysapx_performance_comparison/SETUP.md").read_text(
@@ -868,6 +896,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("installs a short raw-Python tutorial", roadmap)
         self.assertIn("Phase 84: Open-Item Reconciliation", roadmap)
         self.assertIn("Standing maintenance criteria", roadmap)
+        self.assertIn("Phase 85: Documentation Freshness Guardrail Sweep", roadmap)
+        self.assertIn("retired setup/command terminology", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
