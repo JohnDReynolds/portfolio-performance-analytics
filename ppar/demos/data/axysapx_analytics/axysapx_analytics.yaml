@@ -6,10 +6,11 @@
 #
 # Big picture:
 # - Analytics explains portfolio performance versus a benchmark.
-# - The starter uses Axys/APX-style portfolio performance and security
-#   performance CSV exports.
+# - The starter expects Axys/APX IMEX portfolio-performance and
+#   security-performance CSV exports.
 # - Keep CSV files beside this YAML unless you intentionally change the paths.
-# - Start with the demo files, then replace them with your own IMEX CSVs.
+# - Replace the starter CSV files with your own IMEX CSVs before onboarding a
+#   real site.
 #
 # The default command is:
 #
@@ -17,10 +18,12 @@
 #
 # First site setup:
 # 1. Replace portperf.csv and secperf.csv with IMEX CSVs from your site.
-# 2. Keep the same headers when possible. If your headers differ, add or adjust
-#    column mappings in this YAML.
-# 3. Change analytics.portfolio and analytics.benchmark to real portfolio codes.
-# 4. Run ppar analytics again and review the output folder.
+# 2. Keep the starter filenames if you can. If names differ, edit the path
+#    settings below.
+# 3. Keep the starter headers if you can. If headers differ, uncomment and edit
+#    the column override examples below.
+# 4. Change analytics.portfolio and analytics.benchmark to real portfolio codes.
+# 5. Run ppar analytics again and review the output folder.
 
 analytics:
   # Required. Portfolio and benchmark are Axys/APX account codes found in
@@ -55,12 +58,15 @@ defaults:
 # portfolio_performance_path:
 #   Portfolio-level performance CSV. For Axys/APX onboarding, start with an
 #   IMEX portfolio-performance export containing returns for the portfolio and
-#   benchmark.
+#   benchmark. Required columns are the portfolio/account code, from date, thru
+#   date, and portfolio return.
 #
 # security_performance_path:
 #   Security-level performance CSV. For Axys/APX onboarding, start with an IMEX
 #   security-performance export containing security returns, weights,
-#   contribution, and classification columns.
+#   contribution, and classification columns. Required columns are portfolio or
+#   account code, security code, from date, thru date, security return, weight,
+#   and contribution.
 #
 # security_master_path:
 #   Security display/classification data. The starter points this at secperf.csv
@@ -70,6 +76,32 @@ defaults:
 portfolio_performance_path: portperf.csv
 security_performance_path: secperf.csv
 security_master_path: secperf.csv
+
+# Optional portfolio-performance column overrides.
+# Leave this commented out when your CSV uses the starter headers or another
+# common Axys/APX IMEX spelling PPAR can infer. Uncomment only the rows your
+# local export names differently.
+#
+# portfolio_performance_columns:
+#   from_date: FROM_DATE
+#   thru_date: THRU_DATE
+#   portfolio_code: PORTFOLIO_CODE
+#   portfolio_name: PORTFOLIO_NAME
+#   portfolio_return: PORT_RETURN
+
+# Optional security-performance column overrides.
+# Leave this commented out when your CSV uses the starter headers or another
+# common Axys/APX IMEX spelling PPAR can infer. Uncomment only the rows your
+# local export names differently.
+#
+# security_performance_columns:
+#   from_date: FROM_DATE
+#   thru_date: THRU_DATE
+#   identifier: SECURITY_ID
+#   portfolio_code: PORTFOLIO_CODE
+#   return: SEC_RETURN
+#   weight: BEGIN_WEIGHT
+#   contribution: CONTRIBUTION
 
 mappings:
   # Each mapping names source columns in secperf.csv that classify a security.

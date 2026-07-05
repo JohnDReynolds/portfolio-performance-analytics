@@ -403,13 +403,35 @@ class TestPackageMetadata(unittest.TestCase):
             "Buys and sells are security-level flows",
             "transaction_category tells PPAR what the row means",
             "Common transaction_category values",
-            "Marketing demo vs onboarding base",
-            "should still confirm bond context",
-            "external-cash li, external-cash lo, external-cash wd",
-            'Rules for ";"',
+            "Starter transaction coverage",
+            "pa and sa require fixed-income context",
+            "Keep \";\" as a defensive corporate-action/journal guardrail",
             "Long-out is external only with reviewed external-party context",
             "Reserved corporate-action/journal marker",
-            "Withdrawal is external only for the packaged CASH_USD",
+            "Withdrawal is external only for a cash row",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, yaml_text)
+
+    def test_packaged_axys_analytics_yaml_documents_onboarding_boundaries(self) -> None:
+        """The packaged Axys/APX analytics YAML names first-pass setup choices."""
+        yaml_text = Path(
+            "ppar/demos/data/axysapx_analytics/axysapx_analytics.yaml"
+        ).read_text(encoding=util.ENCODING)
+
+        for expected_text in [
+            "both the configuration file and the onboarding guide",
+            "Axys/APX IMEX portfolio-performance",
+            "Replace the starter CSV files with your own IMEX CSVs",
+            "First site setup",
+            "column override examples",
+            "IMEX portfolio-performance export",
+            "security-performance export",
+            "Optional portfolio-performance column overrides",
+            "Optional security-performance column overrides",
+            "mappings",
+            "classification_column",
+            "display_name_column",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, yaml_text)

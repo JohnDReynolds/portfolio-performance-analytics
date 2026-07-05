@@ -5,11 +5,15 @@ import os
 from importlib.resources import as_file, files
 from pathlib import Path
 
+# Project imports
+from ppar._chart_console import quiet_matplotlib_startup
+
 _OUTPUT_DIRECTORY = Path("_demo_output") / "axysapx_analytics"
 os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
+quiet_matplotlib_startup()
 
-# Project imports
+# Project imports that may initialize chart-rendering dependencies.
 from ppar.axys import AxysData
 from ppar.demos.analytics_demo_outputs import (
     parse_demo_frequency_argument,

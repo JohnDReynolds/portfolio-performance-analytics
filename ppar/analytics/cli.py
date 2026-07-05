@@ -13,6 +13,7 @@ from typing import Any, Final
 import yaml
 
 # Project imports
+from ppar._chart_console import quiet_matplotlib_startup
 from ppar.errors import PpaError
 import ppar.utilities as util
 
@@ -97,6 +98,7 @@ def run_analytics(
     selected_output.mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("MPLCONFIGDIR", str(selected_output / ".matplotlib"))
     os.environ.setdefault("XDG_CACHE_HOME", str(selected_output / ".cache"))
+    quiet_matplotlib_startup()
 
     # Import after cache env vars are set; analytics/chart modules may initialize
     # Matplotlib during package import on some systems.
@@ -127,7 +129,14 @@ def run_analytics(
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the analytics argument parser."""
     parser = argparse.ArgumentParser(
+        prog="ppar analytics",
         description="Write Axys/APX analytics reports from a configured site folder.",
+        epilog=(
+            "Examples:\n"
+            "  ppar analytics ./my_ppar_data/analytics\n"
+            "  ppar analytics"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
         "site_directory",
@@ -169,7 +178,11 @@ def _default_site_directory(site_directory: Path | None) -> Path:
 def _load_config_values(config_path: Path) -> dict[str, Any]:
     """Load an analytics YAML file and return its root mapping."""
     if not config_path.exists():
-        raise PpaError(f"{config_path} does not exist.", 504)
+        raise PpaError(
+            f"{config_path} does not exist. Run from the analytics folder "
+            "or pass the folder.",
+            504,
+        )
     with open(config_path, "r", encoding=util.ENCODING) as file:
         try:
             values: Any = yaml.safe_load(file)

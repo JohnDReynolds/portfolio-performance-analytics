@@ -14,8 +14,8 @@
 #   also configured when secperf.csv is available.
 #
 # Recommended first pass:
-# 1. Replace CSVs in snapshot_a with the older/source snapshot.
-# 2. Replace CSVs in snapshot_b with the newer/restated snapshot.
+# 1. Replace CSVs in snapshot_a with the older/original IMEX snapshot.
+# 2. Replace CSVs in snapshot_b with the newer/restated IMEX snapshot.
 # 3. Keep the starter filenames and headers when possible.
 # 4. Run ppar performance_comparison ./my_ppar_data/performance_comparison.
 # 5. Edit this YAML only when validation or report evidence says what to fix.
@@ -29,13 +29,15 @@
 # First-run edit map:
 # - Edit snapshots.*.path only if you rename snapshot_a or snapshot_b.
 # - Edit files.* only when local extracts use different filenames.
-# - Add inline column mappings only when local extracts use different headers.
+# - Keep the starter headers when possible. If validation reports missing
+#   source columns, resolve the export/header mismatch before changing
+#   transaction or impact rules.
 # - Leave transaction rules and impact methods alone until validation or
 #   reviewed site evidence proves a site-specific override is needed.
 
 comparison:
   # Human-readable name stored in generated report metadata.
-  name: Axys/APX performance comparison demo
+  name: Axys/APX performance comparison starter
 
   # Primary review level for lower-level bundle tooling.
   # Allowed values: portfolio, security.
@@ -62,9 +64,9 @@ snapshots:
   #   so the setup folder can move as one unit.
   #
   # vendor:
-  #   Selects the Axys/APX column mapping behavior. In an installed setup, this
-  #   is simplified to the built-in Axys/APX mapping. Do not edit unless you
-  #   are deliberately replacing the vendor mapping behavior.
+  #   Selects the Axys/APX column mapping behavior. In an installed setup,
+  #   ppar setup simplifies this to the built-in Axys/APX mapping. Do not edit
+  #   unless you are deliberately replacing the vendor mapping behavior.
   a:
     label: snapshot_a
     path: snapshot_a
@@ -80,26 +82,37 @@ snapshots:
 files:
   # Required source files inside each snapshot folder.
   #
-  # Rename these only if your site uses different filenames. Column/header
-  # differences belong in the column mapping section or vendor mapping, not in
-  # this filenames section.
+  # Rename these only if your site uses different filenames. Header differences
+  # are handled by the Axys/APX vendor mapping and source-column validation,
+  # not by changing filenames.
   #
   # portfolio_performance:
   #   Required for portfolio-level comparison. Contains reported portfolio
-  #   returns and portfolio-level performance extract values.
+  #   returns and portfolio-level performance extract values. Required fields
+  #   after Axys/APX normalization: portfolio id, from date, thru date, and
+  #   portfolio return.
   #
   # security_performance:
   #   Optional for the first portfolio-only onboarding pass, but required for
   #   security-level comparison. If absent, portfolio reports still run and the
-  #   command skips security output.
+  #   command skips security output. Required fields after Axys/APX
+  #   normalization: portfolio id, security id, from date, thru date, and
+  #   security return.
   #
   # holdings:
   #   Required. Contains beginning/ending holdings market values used as
-  #   Modified Dietz beginning and ending value inputs.
+  #   Modified Dietz beginning and ending value inputs. Required fields after
+  #   Axys/APX normalization: portfolio id, security id, holding date, and
+  #   market value. Quantity, price, and accrued interest are useful supporting
+  #   evidence when available.
   #
   # transactions:
   #   Required. Contains dated transaction rows used to classify external flows,
   #   income, fees, buys, sells, transfers, and evidence-only activity.
+  #   Required fields after Axys/APX normalization: portfolio id, transaction
+  #   date, transaction code, security id, and amount. Quantity, price,
+  #   commission, security type, and source/destination fields make the report
+  #   more useful and help resolve ambiguous transaction codes.
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
@@ -208,15 +221,12 @@ transaction_rules:
   #   treatment and the source data proves how that code affects Modified Dietz
   #   inputs.
   #
-  # Packaged transaction rows currently use by, sl, dv, in, fee-like dp,
-  # external-cash li, external-cash lo, external-cash wd, and fixed-income
-  # accrued-interest adjunct pa/sa. Rules for ";" are retained as defensive
-  # guardrails/reserved semantics, not as current packaged rows.
-  #
-  # Marketing demo vs onboarding base: by/sl/dv/in/dp/li/lo/wd are the common
-  # operational story. The pa/sa rules are included because the packaged demo
-  # now has a narrow fixed-income trade/accrued-interest story, but local sites
-  # should still confirm bond context before relying on those codes.
+  # Starter transaction coverage:
+  #   by, sl, dv, and in are the common first-pass rules. dp, li, lo, and wd
+  #   require the context shown below before PPAR treats them as fees,
+  #   transfers, or external flows. pa and sa require fixed-income context.
+  #   Keep ";" as a defensive corporate-action/journal guardrail unless you
+  #   have a real event and reviewed local policy.
   by:
     transaction_category: buy
     cash_flow_sign: negative
@@ -229,9 +239,9 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
-  # Demo assumption: reported returns are net of fees, so fee changes are
-  # performance-impacting. Gross-of-fees returns need an explicit future
-  # return-basis policy before fees should be treated this way.
+  # Net-of-fees assumption: fee changes are performance-impacting only when the
+  # reported returns are net of fees. If your site reports gross-of-fees returns,
+  # review this rule before relying on fee_expense treatment.
   dp:
     - when:
         special_security_type: exus
@@ -245,7 +255,8 @@ transaction_rules:
     performance_flow_sign: performance
   pa:
     # Purchase accrued interest is a fixed-income trade adjunct, not an
-    # investor external flow. It is packaged only with explicit bond context.
+    # investor external flow. Use this only when the transaction row has
+    # explicit bond/fixed-income context.
     - when:
         security_type: fius
       transaction_category: fee_expense
@@ -253,7 +264,8 @@ transaction_rules:
       performance_flow_sign: performance
   sa:
     # Sale accrued interest is a fixed-income trade adjunct, not an investor
-    # external flow. It is packaged only with explicit bond context.
+    # external flow. Use this only when the transaction row has explicit
+    # bond/fixed-income context.
     - when:
         security_type: fius
       transaction_category: income
@@ -292,8 +304,8 @@ transaction_rules:
     cash_flow_sign: none
     performance_flow_sign: neutral
   wd:
-    # Withdrawal is external only for the packaged CASH_USD external-party case;
-    # sweep-like rows remain neutral transfer.
+    # Withdrawal is external only for a cash row with reviewed external-party
+    # context; sweep-like rows remain neutral transfer.
     - when:
         security_id: CASH_USD
         source_destination_type: $pty

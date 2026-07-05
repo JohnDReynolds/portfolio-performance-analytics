@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 
 # Project imports
+from ppar._chart_console import quiet_matplotlib_startup
 from ppar.performance_comparison.cli import setup as _setup
 from ppar.performance_comparison.cli import site_report as _site_report
 
@@ -118,6 +119,7 @@ def _prime_analytics_cache_environment(argv: list[str]) -> None:
     output_directory = _analytics_output_directory(argv)
     os.environ.setdefault("MPLCONFIGDIR", str(output_directory / ".matplotlib"))
     os.environ.setdefault("XDG_CACHE_HOME", str(output_directory / ".cache"))
+    quiet_matplotlib_startup()
 
 
 def _analytics_output_directory(argv: list[str]) -> Path:

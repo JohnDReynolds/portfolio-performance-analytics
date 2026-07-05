@@ -76,10 +76,14 @@ def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Any]:
 
     site_path = Path(site_directory).expanduser()
     if not site_path.is_dir():
-        raise PpaError(f"{site_path} is not a directory. Run setup first.", 802)
+        raise PpaError(f"{site_path} is not a directory.", 802)
     config_path = site_path / _CONFIG_FILE_NAME
     if not config_path.exists():
-        raise PpaError(f"{config_path} is missing. Run setup first.", 802)
+        raise PpaError(
+            f"{config_path} is missing. Run from the performance_comparison folder "
+            "or pass the folder.",
+            802,
+        )
 
     result: dict[str, Any] = {
         "site_directory": site_path,
@@ -113,7 +117,15 @@ def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Any]:
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the site report argument parser."""
     parser = argparse.ArgumentParser(
+        prog="ppar performance_comparison",
         description="Write performance-comparison report bundles for a site setup.",
+        epilog=(
+            "Examples:\n"
+            "  ppar performance_comparison ./my_ppar_data/performance_comparison\n"
+            "  ppar performance_comparison --report portfolio\n"
+            "  ppar perfcomp --report both"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
         "site_directory",

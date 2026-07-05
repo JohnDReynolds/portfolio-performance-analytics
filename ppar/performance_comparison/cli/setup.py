@@ -131,10 +131,17 @@ def run_setup(
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the setup argument parser."""
     parser = argparse.ArgumentParser(
+        prog="ppar setup",
         description=(
             "Create an Axys/APX starter workspace with analytics and "
             "performance-comparison folders."
         ),
+        epilog=(
+            "Examples:\n"
+            "  ppar setup ./my_ppar_data\n"
+            "  ppar setup --guide"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
         "site_directory",
@@ -236,7 +243,7 @@ def _starter_comparison_config_text(resource: Traversable) -> str:
     """Return the documented one-file performance-comparison starter YAML."""
     text = resource.read_text(encoding=util.ENCODING)
     text = text.replace(
-        "name: Axys/APX performance comparison demo",
+        "name: Axys/APX performance comparison starter",
         "name: PPAR performance comparison",
     )
     text = text.replace(
@@ -255,6 +262,53 @@ This folder was created by:
 ```bash
 ppar setup {site_path}
 ```
+
+## Run Reports
+
+### Analytics
+
+```bash
+ppar analytics {site_path / _ANALYTICS_DIRECTORY}
+```
+
+Open the files listed in the command output.
+
+### Performance Comparison
+
+```bash
+ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
+```
+
+Open the files listed in the command output.
+
+To create only one report family:
+
+```bash
+ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report portfolio
+ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
+```
+
+## Customizing
+
+Start by replacing the starter CSV files with your own Axys/APX IMEX exports.
+Then edit the nearby `ppar.yaml`. The YAML files are intentionally heavily
+commented; use them as the detailed setup guide.
+
+### Analytics
+
+1. Replace `analytics/portperf.csv` with your portfolio-performance IMEX CSV.
+2. Replace `analytics/secperf.csv` with your security-performance IMEX CSV.
+3. Edit `analytics/ppar.yaml`.
+4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
+
+### Performance Comparison
+
+1. Replace the CSVs in `performance_comparison/snapshot_a` with the older
+   source-data snapshot.
+2. Replace the CSVs in `performance_comparison/snapshot_b` with the newer or
+   restated source-data snapshot.
+3. Edit `performance_comparison/ppar.yaml`.
+4. Run `ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
 ## Folder Map
 
@@ -277,69 +331,6 @@ ppar setup {site_path}
       transactions.csv
       secperf.csv
 ```
-
-## Running
-
-### Analytics
-
-Analytics produces holdings-based multi-period performance attribution,
-contribution, and benchmark-relative ex-post risk statistics. It uses the
-Brinson-Fachler methodology for calculating attribution effects, and uses the
-Carino method for logarithmically-smoothing cumulative effects over multi-period
-time frames.
-
-```bash
-ppar analytics {site_path / _ANALYTICS_DIRECTORY}
-```
-
-Success means the `analytics/output` folder contains attribution HTML, chart PNG,
-and risk-statistics HTML files.
-
-### Performance Comparison
-
-Performance Comparison answers the question "Why did my reported performance
-change?". It does this by comparing two source-data snapshots, and then
-attributing the performance difference to specific changes in holdings market
-values and transaction cash flows.
-
-```bash
-ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
-```
-
-Success means the `performance_comparison/output` folder contains:
-
-```text
-portfolio/report.xlsx
-security/report.xlsx
-```
-
-If you only want to create the portfolio reports, you can add the option
-`--report portfolio`.
-
-If you only want to create the security reports, you can add the option
-`--report security`.
-
-## Customizing
-
-### Analytics
-
-1. Replace `analytics/portperf.csv` with your own portfolio-performance IMEX CSV.
-2. Replace `analytics/secperf.csv` with your own security-performance IMEX CSV.
-3. Edit `analytics/ppar.yaml` with your own specifications.
-4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
-
-### Performance Comparison
-
-1. Replace the CSVs in `performance_comparison/snapshot_a`.
-2. Replace the CSVs in `performance_comparison/snapshot_b` with your own data.
-3. Edit `performance_comparison/ppar.yaml` with your own specifications.
-4. Run `ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
-
-## YAML Files
-
-The YAML files are intentionally heavily commented. Treat them as the working
-user manual for filenames, required sections, transaction rules, and local
-overrides.
 """
 
 
@@ -407,7 +398,10 @@ def _print_success(result: dict[str, Path | str]) -> None:
         return
 
     print("To customize with your own data:")
-    print(f"  Open {result['site_directory'] / 'README.md'}")
+    print(
+        f"  Refer to the \"Customizing\" section in "
+        f"{result['site_directory'] / 'README.md'}"
+    )
 
 
 if __name__ == "__main__":

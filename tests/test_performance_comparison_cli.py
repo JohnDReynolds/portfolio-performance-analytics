@@ -95,8 +95,18 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 if module_name == _SETUP_MODULE:
                     self.assertIn("--overwrite", result.stdout)
                     self.assertIn("--guide", result.stdout)
+                    self.assertIn("usage: ppar setup", result.stdout)
+                    self.assertIn("ppar setup ./my_ppar_data", result.stdout)
+                if module_name == _ANALYTICS_MODULE:
+                    self.assertIn("usage: ppar analytics", result.stdout)
+                    self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
                 if module_name == _SITE_REPORT_MODULE:
                     self.assertIn("--report", result.stdout)
+                    self.assertIn("usage: ppar performance_comparison", result.stdout)
+                    self.assertIn(
+                        "ppar performance_comparison ./my_ppar_data/performance_comparison",
+                        result.stdout,
+                    )
 
     def test_top_level_ppar_cli_exposes_setup_analytics_and_comparison_help(self) -> None:
         """The product command separates setup from production report generation."""
@@ -133,7 +143,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
         self.assertIn("PPAR Axys/APX Setup", result.stdout)
         self.assertIn("ppar setup ./my_ppar_data", result.stdout)
-        self.assertIn("ppar performance_comparison ./my_ppar_data", result.stdout)
+        self.assertIn(
+            "ppar performance_comparison ./my_ppar_data/performance_comparison",
+            result.stdout,
+        )
         self.assertEqual(result.stderr, "")
 
     def test_setup_writes_one_yaml_config(self) -> None:
@@ -155,13 +168,31 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             comparison_path = site_directory / "performance_comparison"
             config_path = comparison_path / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            readme = (site_directory / "README.md").read_text(encoding="utf-8")
             self.assertIn("PPAR setup complete:", result.stdout)
             self.assertIn("To run Analytics:", result.stdout)
             self.assertIn("To run Performance Comparison:", result.stdout)
             self.assertIn("To customize with your own data:", result.stdout)
+            self.assertIn(
+                f"Refer to the \"Customizing\" section in {site_directory / 'README.md'}",
+                result.stdout,
+            )
             self.assertNotIn("(created)", result.stdout)
             self.assertNotIn("(written)", result.stdout)
             self.assertTrue((site_directory / "README.md").exists())
+            self.assertIn("## Run Reports", readme)
+            self.assertIn("## Customizing", readme)
+            self.assertIn("## Folder Map", readme)
+            self.assertLess(
+                readme.index("## Run Reports"),
+                readme.index("## Customizing"),
+            )
+            self.assertLess(
+                readme.index("## Customizing"),
+                readme.index("## Folder Map"),
+            )
+            self.assertIn("Edit `analytics/ppar.yaml`.", readme)
+            self.assertIn("Edit `performance_comparison/ppar.yaml`.", readme)
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
             self.assertTrue((analytics_path / "secperf.csv").exists())
@@ -205,6 +236,58 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 (site_directory / "performance_comparison" / "ppar.yaml").exists()
             )
             self.assertFalse((site_directory / "output").exists())
+
+    def test_setup_rerun_preserves_user_edits_without_overwrite(self) -> None:
+        """Setup does not replace local user edits unless overwrite is requested."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            readme_path = site_directory / "README.md"
+            analytics_config_path = site_directory / "analytics" / "ppar.yaml"
+            comparison_config_path = (
+                site_directory / "performance_comparison" / "ppar.yaml"
+            )
+
+            custom_readme = "custom readme\n"
+            custom_analytics_config = (
+                analytics_config_path.read_text(encoding="utf-8")
+                + "\n# custom analytics note\n"
+            )
+            custom_comparison_config = (
+                comparison_config_path.read_text(encoding="utf-8")
+                + "\n# custom performance comparison note\n"
+            )
+            readme_path.write_text(custom_readme, encoding="utf-8")
+            analytics_config_path.write_text(
+                custom_analytics_config,
+                encoding="utf-8",
+            )
+            comparison_config_path.write_text(
+                custom_comparison_config,
+                encoding="utf-8",
+            )
+
+            subprocess.run(
+                _module_command(_SETUP_MODULE, str(site_directory)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(readme_path.read_text(encoding="utf-8"), custom_readme)
+            self.assertEqual(
+                analytics_config_path.read_text(encoding="utf-8"),
+                custom_analytics_config,
+            )
+            self.assertEqual(
+                comparison_config_path.read_text(encoding="utf-8"),
+                custom_comparison_config,
+            )
 
     def test_site_report_writes_both_reports_by_default(self) -> None:
         """The production comparison command writes both workbooks by default."""
@@ -514,7 +597,15 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotEqual(analytics_result.returncode, 0)
             self.assertNotEqual(comparison_result.returncode, 0)
             self.assertIn("Analytics failed:", analytics_result.stderr)
+            self.assertIn(
+                "Run from the analytics folder or pass the folder.",
+                analytics_result.stderr,
+            )
             self.assertIn("Report failed:", comparison_result.stderr)
+            self.assertIn(
+                "Run from the performance_comparison folder or pass the folder.",
+                comparison_result.stderr,
+            )
 
     def test_top_level_commands_default_inside_workflow_folders(self) -> None:
         """Production commands can default to cwd inside their configured folder."""

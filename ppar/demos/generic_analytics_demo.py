@@ -9,12 +9,16 @@ files, and exercises the main output-format methods.
 import os
 from pathlib import Path
 
+# Project imports
+from ppar._chart_console import quiet_matplotlib_startup
+
 _OUTPUT_DIRECTORY = Path("_demo_output") / "generic_analytics"
 os.environ.setdefault("MPLCONFIGDIR", str(_OUTPUT_DIRECTORY / ".matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(_OUTPUT_DIRECTORY / ".cache"))
+quiet_matplotlib_startup()
 _DEFAULT_PERIODICITY = "q"
 
-# Project Imports
+# Project imports that may initialize chart-rendering dependencies.
 from ppar.analytics import Analytics
 from ppar.demos.analytics_demo_outputs import (
     parse_demo_frequency_argument,
