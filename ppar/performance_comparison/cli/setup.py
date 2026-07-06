@@ -313,15 +313,11 @@ ppar setup {site_path}
 ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 ```
 
-Open the files listed in the command output.
-
 ### Performance Comparison
 
 ```bash
 ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
 ```
-
-Open the files listed in the command output.
 
 To create only one report family:
 
@@ -331,10 +327,6 @@ ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --re
 ```
 
 ## Customizing
-
-Start by replacing the starter CSV files with your own Axys/APX IMEX exports.
-Then edit the nearby `ppar.yaml`. The YAML files are intentionally heavily
-commented; use them as the detailed setup guide.
 
 ### Analytics
 
@@ -347,12 +339,15 @@ Optional Python example: `analytics/run_analytics.py`.
 
 ### Performance Comparison
 
-1. Replace the CSVs in `performance_comparison/snapshot_a` with the older
-   source-data snapshot.
-2. Replace the CSVs in `performance_comparison/snapshot_b` with the newer or
-   restated source-data snapshot.
+1. Replace the CSVs in `performance_comparison/snapshot_a` with a snapshot of
+   your own IMEX CSV files.
+2. Replace the CSVs in `performance_comparison/snapshot_b` with a newer or
+   restated snapshot of your own IMEX CSV files.
 3. Edit `performance_comparison/ppar.yaml`.
 4. Run `ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
+
+If you want to run PPAR from Python instead of using the `ppar` command, see
+the optional Python scripts in each workflow folder.
 
 Optional Python examples:
 

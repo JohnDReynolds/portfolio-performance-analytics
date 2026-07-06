@@ -50,7 +50,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_analytics(
-    site_directory: Path,
+    site_directory: Path | str,
     *,
     portfolio_code: str | None = None,
     benchmark_code: str | None = None,
@@ -61,6 +61,7 @@ def run_analytics(
 
     Args:
         site_directory: Folder containing ``ppar.yaml`` and analytics CSV files.
+            Accepts a ``Path`` or string path.
         portfolio_code: Optional portfolio code override.
         benchmark_code: Optional benchmark portfolio code override.
         frequency_value: Optional reporting frequency override.

@@ -53,11 +53,16 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def run_report(site_directory: Path, *, report: str = "both") -> dict[str, Any]:
+def run_report(
+    site_directory: Path | str,
+    *,
+    report: str = "both",
+) -> dict[str, Any]:
     """Write one or more report bundles for a configured site folder.
 
     Args:
-        site_directory: Folder containing ``ppar.yaml``.
+        site_directory: Folder containing ``ppar.yaml``. Accepts a ``Path`` or
+            string path.
         report: Report family to generate: ``"portfolio"``, ``"security"``,
             or ``"both"``. Defaults to ``"both"``.
 

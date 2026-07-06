@@ -184,9 +184,25 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("## Customizing", readme)
             self.assertIn("## Folder Map", readme)
             self.assertNotIn("PYTHON_TUTORIAL.md", readme)
+            self.assertNotIn("Open the files listed in the command output.", readme)
+            self.assertNotIn("Start by replacing the starter CSV files", readme)
             self.assertIn("analytics/run_analytics.py", readme)
             self.assertIn("run_portfolio_comparison.py", readme)
             self.assertIn("run_security_comparison.py", readme)
+            self.assertIn(
+                "If you want to run PPAR from Python instead of using",
+                readme,
+            )
+            self.assertIn(
+                "with a snapshot of",
+                readme,
+            )
+            self.assertIn("your own IMEX CSV files", readme)
+            self.assertIn(
+                "with a newer or",
+                readme,
+            )
+            self.assertIn("restated snapshot of your own IMEX CSV files", readme)
             self.assertLess(
                 readme.index("## Run Reports"),
                 readme.index("## Customizing"),
@@ -337,7 +353,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             generic_directory = site_directory / "generic_analytics"
-            self.assertTrue((generic_directory / "run_analytics.py").exists())
+            self.assertTrue(
+                (generic_directory / "run_generic_analytics.py").exists()
+            )
             self.assertTrue(
                 (
                     generic_directory
@@ -352,6 +370,21 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "Economic Sector.csv"
                 ).exists()
             )
+
+    def test_public_python_entrypoints_accept_string_site_directories(self) -> None:
+        """Programmatic entrypoints accept string paths as well as ``Path`` values."""
+        from ppar.analytics.cli import run_analytics
+        from ppar.errors import PpaError
+        from ppar.performance_comparison.cli.site_report import run_report
+
+        with tempfile.TemporaryDirectory() as directory:
+            missing_analytics_path = str(Path(directory) / "missing_analytics")
+            missing_comparison_path = str(Path(directory) / "missing_comparison")
+
+            with self.assertRaises(PpaError):
+                run_analytics(missing_analytics_path)
+            with self.assertRaises(PpaError):
+                run_report(missing_comparison_path)
 
     def test_site_report_writes_both_reports_by_default(self) -> None:
         """The production comparison command writes both workbooks by default."""
