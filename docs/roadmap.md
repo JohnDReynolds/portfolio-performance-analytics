@@ -105,6 +105,9 @@ Completed guardrails now cover:
 - local release notes now summarize `v0.1.5`, and the local release tag is
   intended to point at the final audited release-record commit before any push
   or publish;
+- remote-release readiness was checked without publishing: local `main` is
+  ahead of `origin/main`, the remote `v0.1.5` tag does not exist yet, and the
+  remote branch remains an ancestor of local `main`;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3247,6 +3250,23 @@ than a separate changelog. The release record now treats the publish dry-run
 audit as part of the tagged source snapshot, so the local `v0.1.5` tag should
 point at the final audited release-record commit before any remote push or PyPI
 publish.
+
+### Phase 93: Remote Release Readiness Check
+
+Status: complete for read-only remote readiness; no artifact was uploaded and no
+tag or branch was pushed.
+
+The local repository was clean before the check. `main` was 15 commits ahead of
+`origin/main`, and `origin/main` was an ancestor of local `main`, so the local
+release branch can be pushed without a merge conflict based on the currently
+known remote state. A read-only remote query confirmed:
+
+- `origin/main` exists at `ee5d56e`; and
+- remote tag `v0.1.5` does not exist yet.
+
+The local `v0.1.5` tag should remain aligned with the final release-record
+commit before any push. Do not publish to PyPI until the maintainer explicitly
+chooses to upload the already-audited `0.1.5` artifacts.
 
 ## Guiding Principle
 

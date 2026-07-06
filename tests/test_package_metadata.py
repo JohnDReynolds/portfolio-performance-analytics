@@ -958,6 +958,9 @@ class TestPackageMetadata(unittest.TestCase):
             roadmap,
         )
         self.assertIn("final audited release-record commit", roadmap)
+        self.assertIn("Phase 93: Remote Release Readiness Check", roadmap)
+        self.assertIn("remote tag `v0.1.5` does not exist yet", roadmap)
+        self.assertIn("tag or branch was pushed.", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
