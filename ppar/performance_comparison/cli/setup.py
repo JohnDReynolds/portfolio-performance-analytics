@@ -26,7 +26,6 @@ _PACKAGED_COMPARISON_DIRECTORY: Final[str] = "axysapx_performance_comparison"
 _PACKAGED_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _PACKAGED_ANALYTICS_YAML: Final[str] = "axysapx_analytics.yaml"
 _PACKAGED_COMPARISON_YAML: Final[str] = "axysapx_performance_comparison.yaml"
-_PACKAGED_SETUP_GUIDE: Final[str] = "SETUP.md"
 _GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
@@ -55,15 +54,6 @@ def main(argv: list[str] | None = None) -> int:
         and performance comparison setup validates.
     """
     args = _argument_parser().parse_args(argv)
-    if args.guide:
-        print(_setup_guide_text())
-        return 0
-    if args.site_directory is None:
-        print(
-            "Setup failed: site_directory is required unless --guide is used.",
-            file=sys.stderr,
-        )
-        return 1
     try:
         result = run_setup(
             args.site_directory,
@@ -159,14 +149,12 @@ def _argument_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "Examples:\n"
-            "  ppar setup ./my_ppar_data\n"
-            "  ppar setup --guide"
+            "  ppar setup ./my_ppar_data"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
         "site_directory",
-        nargs="?",
         type=Path,
         help="Folder that will receive analytics and performance_comparison.",
     )
@@ -176,25 +164,11 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Replace existing starter files with packaged starter files.",
     )
     parser.add_argument(
-        "--guide",
-        action="store_true",
-        help="Print the Axys/APX setup guide and exit without creating files.",
-    )
-    parser.add_argument(
         "--include-generic-analytics",
         action="store_true",
         help=argparse.SUPPRESS,
     )
     return parser
-
-
-def _setup_guide_text() -> str:
-    """Return the packaged setup guide text."""
-    resource = files(_PACKAGED_DEMO_RESOURCE).joinpath(
-        _PACKAGED_COMPARISON_DIRECTORY,
-        _PACKAGED_SETUP_GUIDE,
-    )
-    return resource.read_text(encoding=util.ENCODING).rstrip()
 
 
 def _ensure_directory(directory: Path) -> str:

@@ -94,7 +94,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertIn("Security Return Checks", result.stdout)
                 if module_name == _SETUP_MODULE:
                     self.assertIn("--overwrite", result.stdout)
-                    self.assertIn("--guide", result.stdout)
+                    self.assertNotIn("--guide", result.stdout)
                     self.assertIn("usage: ppar setup", result.stdout)
                     self.assertIn("ppar setup ./my_ppar_data", result.stdout)
                 if module_name == _ANALYTICS_MODULE:
@@ -155,22 +155,19 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertNotIn("usage:", result.stdout)
         self.assertEqual(result.stderr, "")
 
-    def test_setup_guide_prints_without_creating_files(self) -> None:
-        """Installed users can print setup guidance without knowing package paths."""
+    def test_setup_requires_site_directory(self) -> None:
+        """Setup requires an explicit destination folder."""
         result = subprocess.run(
-            _module_command(_SETUP_MODULE, "--guide"),
-            check=True,
+            _module_command(_SETUP_MODULE),
+            check=False,
             capture_output=True,
             text=True,
         )
 
-        self.assertIn("PPAR Axys/APX Setup", result.stdout)
-        self.assertIn("ppar setup ./my_ppar_data", result.stdout)
-        self.assertIn(
-            "ppar performance_comparison ./my_ppar_data/performance_comparison",
-            result.stdout,
-        )
-        self.assertEqual(result.stderr, "")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("usage: ppar setup", result.stderr)
+        self.assertIn("site_directory", result.stderr)
+        self.assertNotIn("--guide", result.stderr)
 
     def test_setup_writes_one_yaml_config(self) -> None:
         """Setup creates one user-facing YAML per starter workflow."""

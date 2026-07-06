@@ -69,6 +69,22 @@ source checkout with `./.venv/bin/python -m <module>`.
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates performance comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch source-data and YAML setup issues before generating reports. |
 
+## Maintainer Checks
+
+Useful source-checkout checks:
+
+```bash
+./.venv/bin/python scripts/check_project.py --quick
+./.venv/bin/python scripts/check_performance_comparison_demo_health.py
+./.venv/bin/python scripts/render_readme_images.py
+```
+
+To refresh only the Performance Comparison README screenshots:
+
+```bash
+./.venv/bin/python scripts/render_readme_images.py --only performance-comparison
+```
+
 ## Installed Commands
 
 The installed command names are declared in `pyproject.toml`.

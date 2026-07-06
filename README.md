@@ -1,14 +1,11 @@
 # PPAR
 
-PPAR helps Axys/APX teams explain investment performance and review source-data
-changes without sending portfolio data outside the firm.
+PPAR uses local Axys/APX data to perform two main functions:
 
-It has two workflows:
-
-- **Analytics:** explain portfolio performance versus a benchmark with HTML and
-  PNG attribution/risk reports.
-- **Performance Comparison:** explain why reported performance changed between
-  two source-data snapshots with Excel workbooks and HTML review reports.
+1. Produce Brinson-Fachler attribution, Carino-smoothed multi-period effects,
+   contribution views, and ex-post risk statistics.
+2. Attribute changes in reported performance to underlying changes in holdings
+   and transactions.
 
 PPAR is built for local execution. Your Axys/APX exports stay on your machine or
 inside your environment.
@@ -20,8 +17,8 @@ inside your environment.
 ## Performance Analytics
 
 Use Analytics when you want a clean explanation of performance versus a
-benchmark. PPAR produces Brinson-Fachler attribution, contribution views,
-Carino-smoothed multi-period effects, and ex-post risk statistics.
+benchmark. PPAR produces Brinson-Fachler attribution, Carino-smoothed
+multi-period effects, contribution views, and ex-post risk statistics.
 
 Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
@@ -109,9 +106,9 @@ Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 ## Performance Comparison
 
 Use Performance Comparison when reported returns changed and you need to know
-why. PPAR compares two source-data snapshots, finds changed performance inputs,
-and writes reviewer-friendly workbooks that separate explained differences from
-items that need human review.
+why. PPAR compares two source-data snapshots, finds changed performance, and
+then attributes each change in performance to specific changes in transactions
+and holdings.
 
 Typical questions:
 
@@ -138,7 +135,7 @@ trail detail.
 
 ---
 
-## Quick Setup
+## Setup
 
 Install PPAR and create a local starter workspace:
 
@@ -168,22 +165,25 @@ my_ppar_data/
     ppar.yaml
     portperf.csv
     secperf.csv
+    run_analytics.py
   performance_comparison/
     ppar.yaml
+    run_portfolio_comparison.py
+    run_security_comparison.py
     snapshot_a/
+      portperf.csv
+      holdings.csv
+      transactions.csv
+      secperf.csv
     snapshot_b/
+      portperf.csv
+      holdings.csv
+      transactions.csv
+      secperf.csv
 ```
 
-Replace the starter CSV files with your own Axys/APX IMEX exports, then edit the
-nearby `ppar.yaml`. The YAML files are heavily commented and are intended to be
-the primary onboarding guide. The generated `README.md` in `my_ppar_data/`
-keeps the day-to-day run commands in one place.
-
-After installation, this command prints the setup guide:
-
-```bash
-ppar setup --guide
-```
+To customize with your own data, refer to the "Customizing" section in
+`./my_ppar_data/README.md`.
 
 ---
 
@@ -226,32 +226,4 @@ performance_comparison/output/
   portfolio/report.html
   security/report.xlsx
   security/report.html
-```
-
-Open `report.xlsx` when present; use `report.html` for browser review.
-CSV artifacts support audit traceability in detailed report bundles.
-
----
-
-## For Maintainers
-
-Repository orientation:
-
-- [Repository Guide](docs/repository_guide.md)
-- [Roadmap](docs/roadmap.md)
-- [Performance Comparison Design Notes](docs/performance_comparison_design.md)
-- [Axys/APX Reference](docs/axys-apx-reference/README.md)
-
-Useful source-checkout checks:
-
-```bash
-./.venv/bin/python scripts/check_project.py --quick
-./.venv/bin/python scripts/check_performance_comparison_demo_health.py
-./.venv/bin/python scripts/render_readme_images.py
-```
-
-To refresh only the Performance Comparison README screenshots:
-
-```bash
-./.venv/bin/python scripts/render_readme_images.py --only performance-comparison
 ```

@@ -295,19 +295,17 @@ class TestPackageMetadata(unittest.TestCase):
         axys_readme = Path("ppar/demos/data/axysapx_performance_comparison/README.md").read_text(
             encoding=util.ENCODING
         )
-        normalized_root_readme = " ".join(root_readme.split())
         normalized_axys_readme = " ".join(axys_readme.split())
 
-        for text in (root_readme, axys_readme):
-            self.assertIn("use `report.html` for browser review", text.lower())
-            self.assertIn("CSV artifacts", text)
-            self.assertIn("audit traceability", text)
-            self.assertNotIn("same review model in a browser", text)
-
-        self.assertIn(
-            "open `report.xlsx` when present",
-            normalized_root_readme.lower(),
-        )
+        self.assertIn("report.xlsx", root_readme)
+        self.assertIn("report.html", root_readme)
+        self.assertNotIn("Open `report.xlsx` when present", root_readme)
+        self.assertNotIn("CSV artifacts support audit traceability", root_readme)
+        self.assertIn("use `report.html` for browser review", axys_readme.lower())
+        self.assertIn("CSV artifacts", axys_readme)
+        self.assertIn("audit traceability", axys_readme)
+        self.assertNotIn("same review model in a browser", root_readme)
+        self.assertNotIn("same review model in a browser", axys_readme)
         self.assertIn("Open `report.xlsx` when present", normalized_axys_readme)
 
     def test_manifest_keeps_source_distribution_resources(self) -> None:
@@ -479,7 +477,6 @@ class TestPackageMetadata(unittest.TestCase):
         for expected_text in [
             "PPAR Axys/APX Setup",
             "ppar setup ./my_ppar_data",
-            "ppar setup --guide",
             "ppar analytics ./my_ppar_data/analytics",
             "ppar performance_comparison ./my_ppar_data/performance_comparison",
             "ppar perfcomp",
@@ -495,6 +492,7 @@ class TestPackageMetadata(unittest.TestCase):
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, setup_doc)
+        self.assertNotIn("ppar setup --guide", setup_doc)
 
         self.assertIn("SETUP.md", readme)
         self.assertTrue(Path("ppar/demos/data/axysapx_analytics/run_analytics.py").exists())
@@ -529,17 +527,19 @@ class TestPackageMetadata(unittest.TestCase):
         """The top-level performance-comparison path starts with setup."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("PPAR helps Axys/APX teams", readme)
-        self.assertIn("## Quick Setup", readme)
+        self.assertIn("PPAR uses local Axys/APX data", readme)
+        self.assertIn("## Setup", readme)
+        self.assertNotIn("## Quick Setup", readme)
         self.assertIn("ppar setup ./my_ppar_data", readme)
-        self.assertIn("ppar setup --guide", readme)
+        self.assertNotIn("ppar setup --guide", readme)
         self.assertIn("ppar analytics ./my_ppar_data/analytics", readme)
         self.assertIn(
             "ppar performance_comparison ./my_ppar_data/performance_comparison",
             readme,
         )
         self.assertIn("ppar.yaml", readme)
-        self.assertIn("primary onboarding guide", readme)
+        self.assertIn("Customizing", readme)
+        self.assertNotIn("## For Maintainers", readme)
 
     def test_generic_analytics_is_documented_as_maintainer_infrastructure(self) -> None:
         """Generic analytics remains useful without becoming the setup path."""

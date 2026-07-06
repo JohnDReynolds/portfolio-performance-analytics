@@ -6,12 +6,6 @@ Run setup once to create a local starter workspace:
 ppar setup ./my_ppar_data
 ```
 
-After installation, this guide is also available in the terminal:
-
-```bash
-ppar setup --guide
-```
-
 Setup copies starter files into:
 
 ```text
