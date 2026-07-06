@@ -12,6 +12,8 @@ from ppar.performance_comparison import (
 )
 
 
+# Anchor paths to this setup folder so the script can be run from any current
+# working directory.
 SITE_DIRECTORY = Path(__file__).resolve().parent
 CONFIG_PATH = SITE_DIRECTORY / "ppar.yaml"
 OUTPUT_DIRECTORY = SITE_DIRECTORY / "output" / "security"
@@ -25,6 +27,8 @@ def main() -> None:
     # first, then add security source files and run this script.
     findings = compare_snapshots(CONFIG_PATH, comparison_level=COMPARISON_LEVEL)
 
+    # The same YAML drives portfolio and security comparison; the
+    # ``comparison_level`` selects the security-performance report path.
     bundle_paths = write_performance_comparison_report_bundle(
         findings,
         OUTPUT_DIRECTORY,
@@ -34,6 +38,8 @@ def main() -> None:
         comparison_level=COMPARISON_LEVEL,
     )
 
+    # Print only the workbook path; the HTML file sits in the same output folder
+    # when a browser-friendly view is useful.
     print("Open these files to review performance_comparison output:")
     print(f"  {bundle_paths['review_workbook']}")
 

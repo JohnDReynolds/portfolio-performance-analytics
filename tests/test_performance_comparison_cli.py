@@ -183,6 +183,16 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("## Run Reports", readme)
             self.assertIn("## Customizing", readme)
             self.assertIn("## Folder Map", readme)
+            self.assertIn(
+                "Replace `analytics/portperf.csv` with your own "
+                "portfolio-performance IMEX CSV.",
+                readme,
+            )
+            self.assertIn(
+                "Replace `analytics/secperf.csv` with your own "
+                "security-performance IMEX CSV.",
+                readme,
+            )
             self.assertNotIn("PYTHON_TUTORIAL.md", readme)
             self.assertNotIn("Open the files listed in the command output.", readme)
             self.assertNotIn("Start by replacing the starter CSV files", readme)
@@ -223,6 +233,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("ppar.demos", analytics_script)
             self.assertNotIn("TemporaryDirectory", analytics_script)
             self.assertNotIn("MPLCONFIGDIR", analytics_script)
+            self.assertNotIn("This script is installed by", analytics_script)
+            self.assertIn("AxysData", analytics_script)
+            self.assertIn("to_analytics", analytics_script)
             self.assertTrue(
                 (comparison_path / "run_portfolio_comparison.py").exists()
             )

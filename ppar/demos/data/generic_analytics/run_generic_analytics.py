@@ -12,6 +12,8 @@ from ppar.analytics.frequency import Frequency
 import ppar.utilities as util
 
 
+# Anchor every relative path to this sample folder so the script behaves the
+# same way regardless of the current working directory.
 SITE_DIRECTORY = Path(__file__).resolve().parent
 OUTPUT_DIRECTORY = SITE_DIRECTORY / "output"
 CLASSIFICATION_NAME = "Economic Sector"
@@ -19,6 +21,8 @@ CLASSIFICATION_NAME = "Economic Sector"
 
 def main() -> None:
     """Create analytics output from the optional generic setup data."""
+    # The generic sample uses explicit CSV paths instead of a ``ppar.yaml`` file.
+    # The first file is the managed portfolio and the second is the benchmark.
     analytics = Analytics(
         SITE_DIRECTORY / "performance" / "Mega-Cap Alpha Portfolio.csv",
         SITE_DIRECTORY / "performance" / "Mega-Cap Benchmark.csv",
@@ -26,6 +30,9 @@ def main() -> None:
         benchmark_classification_name="Security",
         frequency=Frequency.QUARTERLY,
     )
+
+    # These files define how each security rolls up to an economic sector. The
+    # same mapping file is used for portfolio and benchmark in this sample.
     classification_data_source = (
         SITE_DIRECTORY / "classifications" / f"{CLASSIFICATION_NAME}.csv"
     )
@@ -36,6 +43,8 @@ def main() -> None:
 
     written_paths: list[Path] = []
 
+    # Start with security attribution to review the individual names behind the
+    # active return.
     attribution_by_security = analytics.get_attribution("Security")
     written_paths.append(
         _write_html(
@@ -44,6 +53,8 @@ def main() -> None:
         )
     )
 
+    # Then roll securities up to the configured sector classification for the
+    # cleaner, presentation-oriented views.
     attribution_by_sector = analytics.get_attribution(
         CLASSIFICATION_NAME,
         classification_data_source,
@@ -57,6 +68,8 @@ def main() -> None:
             )
         )
 
+    # Write the chart set as PNG files so each chart can be opened or reused on
+    # its own.
     for chart in (
         Chart.OVERALL_CONTRIBUTION,
         Chart.OVERALL_ATTRIBUTION,
@@ -73,6 +86,8 @@ def main() -> None:
             )
         )
 
+    # Risk statistics are calculated from the same portfolio and benchmark
+    # return history used for attribution.
     risk_statistics = analytics.get_riskstatistics()
     written_paths.append(_write_html("risk_statistics.html", risk_statistics.to_html()))
 
@@ -84,6 +99,8 @@ def main() -> None:
 def _write_html(file_name: str, html: str) -> Path:
     """Write one HTML review file."""
     path = OUTPUT_DIRECTORY / file_name
+    # Repeat runs should refresh the files in place, so create the output folder
+    # if it is missing and overwrite the target file.
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(html, encoding=util.ENCODING)
     return path
@@ -92,6 +109,7 @@ def _write_html(file_name: str, html: str) -> Path:
 def _write_png(file_name: str, png: bytes) -> Path:
     """Write one PNG chart file."""
     path = OUTPUT_DIRECTORY / file_name
+    # PNG output is binary data.
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(png)
     return path

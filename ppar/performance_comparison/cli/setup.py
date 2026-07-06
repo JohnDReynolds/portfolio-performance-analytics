@@ -330,8 +330,8 @@ ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --re
 
 ### Analytics
 
-1. Replace `analytics/portperf.csv` with your portfolio-performance IMEX CSV.
-2. Replace `analytics/secperf.csv` with your security-performance IMEX CSV.
+1. Replace `analytics/portperf.csv` with your own portfolio-performance IMEX CSV.
+2. Replace `analytics/secperf.csv` with your own security-performance IMEX CSV.
 3. Edit `analytics/ppar.yaml`.
 4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
 
