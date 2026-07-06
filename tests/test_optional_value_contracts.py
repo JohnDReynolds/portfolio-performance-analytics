@@ -11,7 +11,6 @@ import polars as pl
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
-import ppar.demos.generic_analytics_data_sources as demo_data
 from ppar.analytics.performance import Performance
 import ppar.utilities as util
 
@@ -67,15 +66,16 @@ class TestOptionalValueContracts(unittest.TestCase):
         self.assertEqual(implicit_html, explicit_html)
         self.assertNotIn("_empty_", implicit_html)
 
-    def test_demo_omitted_sources_return_none(self) -> None:
-        """Demo source helpers expose ``None`` when no source is requested."""
+    def test_omitted_attribution_sources_return_default_output(self) -> None:
+        """Omitted attribution source arguments select default analytics output."""
         analytics = Analytics(_performance_rows())
 
-        self.assertIsNone(demo_data.classification_data_source())
-        self.assertEqual(
-            demo_data.mapping_data_sources(analytics),
-            (None, None),
+        attribution = analytics.get_attribution(
+            classification_name=None,
+            classification_data_source=None,
+            mapping_data_sources=(None, None),
         )
+        self.assertTrue(attribution.to_polars(View.OVERALL_ATTRIBUTION).height > 0)
 
     def test_blank_sort_string_matches_omitted_sorting(self) -> None:
         """A blank sorting argument preserves default output ordering."""

@@ -93,12 +93,9 @@ The installed command names are declared in `pyproject.toml`.
 | --- | --- |
 | `ppar` | Top-level user command for setup, analytics, and performance comparison. |
 
-The remaining source-checkout demo modules are analytics-only helpers. The
-performance-comparison smoke path now uses setup-generated scripts:
+The source-checkout smoke path uses setup-generated scripts:
 
 ```bash
-python -m ppar.demos.generic_analytics_demo
-python -m ppar.demos.axysapx_analytics_demo
 ./.venv/bin/python scripts/check_performance_comparison_demo_health.py --skip-rebuild-audit
 ```
 

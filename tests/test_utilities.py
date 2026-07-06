@@ -15,7 +15,6 @@ import polars as pl
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import Attribution
 import ppar.analytics.schema as cols
-import ppar.demos.generic_analytics_data_sources as demo_data
 import ppar.errors as errs
 from ppar.errors import PpaError
 import ppar.utilities as util
@@ -304,14 +303,18 @@ class TestUtilities(unittest.TestCase):
 
     def test_demo_data_sources_return_paths(self) -> None:
         """Packaged demo data helpers resolve existing Path instances."""
-        performance_path = demo_data.performance_data_source("Mega-Cap Benchmark.csv")
-        classification_path = demo_data.classification_data_source("Security")
+        performance_path = (
+            Path("ppar/setup_templates/generic_analytics/performance")
+            / "Mega-Cap Benchmark.csv"
+        )
+        classification_path = (
+            Path("ppar/setup_templates/generic_analytics/classifications")
+            / "Security.csv"
+        )
 
         self.assertIsInstance(performance_path, Path)
         self.assertIsInstance(classification_path, Path)
         self.assertTrue(util.file_path_exists(performance_path))
-        if classification_path is None:
-            self.fail("A named demo classification must resolve to a file path.")
         self.assertTrue(util.file_path_exists(classification_path))
 
     def test_logarithmic_linking_coefficient_series(self) -> None:

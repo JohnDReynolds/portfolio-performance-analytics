@@ -730,27 +730,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertFalse((analytics_directory / "output" / ".matplotlib").exists())
             self.assertFalse((analytics_directory / "output" / ".cache").exists())
 
-    def test_analytics_demo_handoff_matches_quiet_success_contract(self) -> None:
-        """Analytics demo handoffs use the same concise successful-run format."""
-        from ppar.demos.analytics_demo_outputs import print_analytics_demo_handoff
-
-        stdout = io.StringIO()
-        with redirect_stdout(stdout):
-            print_analytics_demo_handoff(
-                Path("_demo_output") / "axysapx_analytics",
-                [
-                    Path("_demo_output")
-                    / "axysapx_analytics"
-                    / "risk_statistics.html"
-                ],
-            )
-
-        output = stdout.getvalue()
-        self.assertIn("Open these files to review analytics output:", output)
-        self.assertIn("risk_statistics.html", output)
-        for phrase in _DEMO_QUIET_PHRASES:
-            self.assertNotIn(phrase, output)
-
     def test_performance_comparison_demo_handoff_matches_quiet_success_contract(
         self,
     ) -> None:

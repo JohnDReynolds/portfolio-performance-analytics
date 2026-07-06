@@ -122,7 +122,6 @@ packages = [
     "ppar.analytics",
     "ppar.axys",
     "ppar.setup_templates",
-    "ppar.demos",
     "ppar.performance_comparison",
     "ppar.performance_comparison.cli",
 ]

@@ -592,7 +592,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`ppar.analytics`",
             "`ppar.axys`",
             "`ppar.performance_comparison`",
-            "`ppar.demos`",
+            "`ppar.setup_templates`",
             "The performance-comparison engine does not try to rebuild a full accounting ledger.",
             "Setup Data Versus Maintainer Data",
             "The YAML files are the main configuration and onboarding surface.",
@@ -1568,7 +1568,8 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertIn("ppar.axys", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn("ppar.analytics", pyproject["tool"]["setuptools"]["packages"])
-        self.assertIn("ppar.demos", pyproject["tool"]["setuptools"]["packages"])
+        self.assertIn("ppar.setup_templates", pyproject["tool"]["setuptools"]["packages"])
+        self.assertNotIn("ppar.demos", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn(
             "ppar.performance_comparison",
             pyproject["tool"]["setuptools"]["packages"],
@@ -1715,16 +1716,18 @@ class TestPackageMetadata(unittest.TestCase):
             with self.subTest(resource_path=f"axysapx_analytics/{resource_path}"):
                 self.assertTrue((axysapx_analytics_data / resource_path).is_file())
 
-    def test_public_demo_entrypoints_use_packaged_resources(self) -> None:
-        """Installed demo entrypoints read bundled resources, not repo paths."""
-        demo_modules = (Path("ppar/demos/axysapx_analytics_demo.py"),)
+    def test_setup_template_scripts_do_not_depend_on_demo_helpers(self) -> None:
+        """Installed setup scripts are self-contained tutorial surfaces."""
+        demo_modules = (
+            Path("ppar/setup_templates/axysapx_analytics/run_analytics.py"),
+            Path("ppar/setup_templates/generic_analytics/run_generic_analytics.py"),
+        )
 
         for path in demo_modules:
             text = path.read_text(encoding=util.ENCODING)
             with self.subTest(path=path.as_posix()):
-                self.assertIn('files("ppar.setup_templates")', text)
-                self.assertIn("as_file(", text)
-                self.assertNotIn('Path("ppar/setup_templates/axysapx_performance_comparison")', text)
+                self.assertNotIn("ppar.demos", text)
+                self.assertNotIn("analytics_demo_outputs", text)
                 self.assertNotIn("tests/data/axys", text)
 
     def test_axys_portfolio_demo_uses_operational_mega_cap_data(self) -> None:

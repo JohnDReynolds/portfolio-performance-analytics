@@ -37,7 +37,7 @@ ppar performance_comparison <site_directory>/performance_comparison
 | `ppar.analytics` | Performance analytics, attribution, contribution, risk statistics, and analytics report generation. |
 | `ppar.axys` | Axys/APX ingestion and normalization support. This name may eventually become `ppar.axysapx`, but it remains the current import boundary. |
 | `ppar.performance_comparison` | Snapshot loading, source-data comparison, Modified Dietz evidence assembly, report/workbook generation, and validation. |
-| `ppar.demos` | Source-checkout smoke modules and packaged starter-data helpers. Public users should start with `ppar setup`, not demo modules. |
+| `ppar.setup_templates` | Packaged setup workspaces and tutorial scripts copied by `ppar setup`. |
 
 ## Data Flow
 

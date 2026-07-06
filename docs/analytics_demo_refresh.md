@@ -118,14 +118,16 @@ Run the demo-data contract and package metadata tests:
   tests/test_package_metadata.py
 ```
 
-Then run the source-checkout analytics smoke module:
+Then run the optional generic analytics setup script from a temporary setup
+workspace:
 
 ```bash
-printf 'm\n' | ./.venv/bin/python -m ppar.demos.generic_analytics_demo
+./.venv/bin/python -m ppar.cli setup /tmp/ppar_generic_smoke --include-generic-analytics
+./.venv/bin/python /tmp/ppar_generic_smoke/generic_analytics/run_generic_analytics.py
 ```
 
-Review output under `_demo_output/generic_analytics/`. This is a maintainer
-smoke output, not the user setup workspace.
+Review output under `/tmp/ppar_generic_smoke/generic_analytics/output/`. This
+is a maintainer smoke output, not the primary user setup workspace.
 
 ### 5. Update README Story
 

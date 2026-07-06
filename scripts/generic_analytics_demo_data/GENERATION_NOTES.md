@@ -89,8 +89,8 @@ Minimum checks:
 
 ## Phase 3: Switch The Analytics Demo
 
-After manual review, update `ppar/demos/generic_analytics_demo.py` to use the
-generated files as the main data source.
+After manual review, update `ppar/setup_templates/generic_analytics/` to use
+the generated files as the main data source.
 
 Possible follow-up choices:
 

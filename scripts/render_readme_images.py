@@ -35,11 +35,11 @@ os.environ.setdefault("XDG_CACHE_HOME", str(_CACHE_DIR / "xdg"))
 # Project Imports
 from ppar.analytics import Analytics  # noqa: E402
 from ppar.analytics.attribution import Attribution, Chart, View  # noqa: E402
-import ppar.demos.generic_analytics_data_sources as demo_data  # noqa: E402
 from ppar.analytics.frequency import Frequency  # noqa: E402
 import ppar.utilities as util  # noqa: E402
 
 _IMAGE_DIR = _REPO_ROOT / "docs" / "images" / "readme"
+_GENERIC_ANALYTICS_TEMPLATE_DIR = _REPO_ROOT / "ppar" / "setup_templates" / "generic_analytics"
 _CHROME_CANDIDATES = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "google-chrome",
@@ -117,8 +117,8 @@ def _analytics_outputs() -> tuple[Analytics, Attribution]:
         PpaError: If construction of demonstration analytics output fails.
     """
     analytics = Analytics(
-        demo_data.performance_data_source("Mega-Cap Alpha Portfolio.csv"),
-        demo_data.performance_data_source("Mega-Cap Benchmark.csv"),
+        _performance_data_source("Mega-Cap Alpha Portfolio.csv"),
+        _performance_data_source("Mega-Cap Benchmark.csv"),
         portfolio_classification_name="Security",
         benchmark_classification_name="Security",
         frequency=Frequency.QUARTERLY,
@@ -126,10 +126,38 @@ def _analytics_outputs() -> tuple[Analytics, Attribution]:
     classification_name = "Economic Sector"
     sector = analytics.get_attribution(
         classification_name,
-        demo_data.classification_data_source(classification_name),
-        demo_data.mapping_data_sources(analytics, classification_name),
+        _classification_data_source(classification_name),
+        _mapping_data_sources(analytics, classification_name),
     )
     return analytics, sector
+
+
+def _performance_data_source(file_name: str) -> Path:
+    """Return one packaged generic analytics performance CSV path."""
+    return _GENERIC_ANALYTICS_TEMPLATE_DIR / "performance" / file_name
+
+
+def _classification_data_source(classification_name: str) -> Path:
+    """Return one packaged generic analytics classification CSV path."""
+    return _GENERIC_ANALYTICS_TEMPLATE_DIR / "classifications" / f"{classification_name}.csv"
+
+
+def _mapping_data_sources(
+    analytics: Analytics,
+    to_classification_name: str,
+) -> tuple[Path | None, Path | None]:
+    """Return packaged mapping CSV paths for README analytics rendering."""
+    mapping_paths: list[Path | None] = []
+    for from_classification_name in analytics.classification_names():
+        if from_classification_name == to_classification_name:
+            mapping_paths.append(None)
+        else:
+            mapping_paths.append(
+                _GENERIC_ANALYTICS_TEMPLATE_DIR
+                / "mappings"
+                / f"{from_classification_name}--to--{to_classification_name}.csv"
+            )
+    return (mapping_paths[0], mapping_paths[1])
 
 
 def _write_chart_images(sector: Attribution) -> None:
