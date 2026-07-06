@@ -309,7 +309,9 @@ current maintained release check is:
 Use this pre-publish checklist after the maintainer decides to release:
 
 1. Confirm the working tree is clean.
-2. Confirm `pyproject.toml` is the only package-version authority.
+2. Confirm `pyproject.toml` is the only package-version authority. The public
+   `ppar.__version__` value is read from installed package metadata; do not edit
+   a second source constant.
 3. Decide whether the current version is still right for the release.
 4. Confirm the local release tag points at the intended final release commit:
 

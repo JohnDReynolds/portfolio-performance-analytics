@@ -99,6 +99,8 @@ Completed guardrails now cover:
   `pyproject.toml` as the single package-version authority; the maintainer
   made an explicit version decision and selected `0.1.5` as the next release
   candidate version before tagging;
+- `ppar.__version__` is exposed from installed package metadata, keeping the
+  public version API tied to the same `pyproject.toml` release authority;
 - the `0.1.5` distribution artifacts passed `twine check`, metadata and
   package-content inspection, and installed-wheel command smoke with the
   declared runtime dependency set available;
@@ -3283,6 +3285,27 @@ release-readiness fixes. A read-only remote check confirmed that `origin` does
 not yet have a `v0.1.5` tag. Before any push or publish, rerun the pre-publish
 checklist in `docs/repository_guide.md`, retag local `v0.1.5` to final `HEAD`,
 rebuild `dist/`, and run `twine check`.
+
+### Phase 95: Public Version API And Fresh RC Pass
+
+Status: complete for package-surface polish; no artifact was uploaded and no tag
+or branch was pushed.
+
+The package now exposes `ppar.__version__`, sourced from installed package
+metadata, so Python callers can inspect the installed release without parsing
+`pyproject.toml`. The metadata test ties this public version value back to the
+single package-version authority.
+
+Fresh release-candidate checks passed from the updated commit:
+
+```bash
+./.venv/bin/python scripts/check_release_candidate.py
+./.venv/bin/python scripts/check_release_candidate.py --build
+```
+
+The build pass refreshed local ignored `dist/ppar-0.1.5*` artifacts from the
+current source tree. The local `v0.1.5` tag was not moved, no remote tag was
+created, and nothing was published.
 
 ## Guiding Principle
 

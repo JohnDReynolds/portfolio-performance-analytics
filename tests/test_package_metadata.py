@@ -1038,6 +1038,12 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 93: Remote Release Readiness Check", roadmap)
         self.assertIn("remote tag `v0.1.5` does not exist yet", roadmap)
         self.assertIn("tag or branch was pushed.", roadmap)
+        self.assertIn("Phase 95: Public Version API And Fresh RC Pass", roadmap)
+        self.assertIn("The package now exposes `ppar.__version__`", roadmap)
+        self.assertIn(
+            "./.venv/bin/python scripts/check_release_candidate.py --build",
+            roadmap,
+        )
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
@@ -1791,6 +1797,7 @@ class TestPackageMetadata(unittest.TestCase):
             "## Release Readiness",
             "./.venv/bin/python scripts/check_release_candidate.py --build",
             "`pyproject.toml` is the only package-version authority",
+            "`ppar.__version__` value is read from installed package metadata",
             "git rev-parse --short v0.1.5",
             "git ls-remote --tags origin v0.1.5",
             "git tag -f v0.1.5 HEAD",
