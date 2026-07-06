@@ -234,6 +234,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("TemporaryDirectory", analytics_script)
             self.assertNotIn("MPLCONFIGDIR", analytics_script)
             self.assertNotIn("This script is installed by", analytics_script)
+            self.assertNotIn("CONFIG_PATH", analytics_script)
+            self.assertIn("SPECIFICATIONS_PATH", analytics_script)
             self.assertIn("AxysData", analytics_script)
             self.assertIn("to_analytics", analytics_script)
             self.assertTrue(

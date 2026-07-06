@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from pathlib import Path
+from typing import Any
 
 # Project imports
 from ppar.analytics import Analytics
@@ -14,16 +15,21 @@ import ppar.utilities as util
 
 # Anchor every relative path to this sample folder so the script behaves the
 # same way regardless of the current working directory.
-SITE_DIRECTORY = Path(__file__).resolve().parent
-OUTPUT_DIRECTORY = SITE_DIRECTORY / "output"
+SITE_DIRECTORY: Path = Path(__file__).resolve().parent
+OUTPUT_DIRECTORY: Path = SITE_DIRECTORY / "output"
 CLASSIFICATION_NAME = "Economic Sector"
 
 
 def main() -> None:
-    """Create analytics output from the optional generic setup data."""
+    """Create analytics output from the optional generic setup data.
+
+    Returns:
+        None. Review files are written to ``output/`` and listed in the
+        console.
+    """
     # The generic sample uses explicit CSV paths instead of a ``ppar.yaml`` file.
     # The first file is the managed portfolio and the second is the benchmark.
-    analytics = Analytics(
+    analytics: Analytics = Analytics(
         SITE_DIRECTORY / "performance" / "Mega-Cap Alpha Portfolio.csv",
         SITE_DIRECTORY / "performance" / "Mega-Cap Benchmark.csv",
         portfolio_classification_name="Security",
@@ -33,10 +39,10 @@ def main() -> None:
 
     # These files define how each security rolls up to an economic sector. The
     # same mapping file is used for portfolio and benchmark in this sample.
-    classification_data_source = (
+    classification_data_source: Path = (
         SITE_DIRECTORY / "classifications" / f"{CLASSIFICATION_NAME}.csv"
     )
-    mapping_data_sources = (
+    mapping_data_sources: tuple[Path, Path] = (
         SITE_DIRECTORY / "mappings" / "Security--to--Economic Sector.csv",
         SITE_DIRECTORY / "mappings" / "Security--to--Economic Sector.csv",
     )
@@ -45,7 +51,7 @@ def main() -> None:
 
     # Start with security attribution to review the individual names behind the
     # active return.
-    attribution_by_security = analytics.get_attribution("Security")
+    attribution_by_security: Any = analytics.get_attribution("Security")
     written_paths.append(
         _write_html(
             "security_overall_attribution.html",
@@ -55,7 +61,7 @@ def main() -> None:
 
     # Then roll securities up to the configured sector classification for the
     # cleaner, presentation-oriented views.
-    attribution_by_sector = analytics.get_attribution(
+    attribution_by_sector: Any = analytics.get_attribution(
         CLASSIFICATION_NAME,
         classification_data_source,
         mapping_data_sources,
@@ -88,7 +94,7 @@ def main() -> None:
 
     # Risk statistics are calculated from the same portfolio and benchmark
     # return history used for attribution.
-    risk_statistics = analytics.get_riskstatistics()
+    risk_statistics: Any = analytics.get_riskstatistics()
     written_paths.append(_write_html("risk_statistics.html", risk_statistics.to_html()))
 
     print("Open these files to review analytics output:")
@@ -97,8 +103,16 @@ def main() -> None:
 
 
 def _write_html(file_name: str, html: str) -> Path:
-    """Write one HTML review file."""
-    path = OUTPUT_DIRECTORY / file_name
+    """Write one HTML review file.
+
+    Args:
+        file_name: Output file name under ``output/``.
+        html: HTML document text to write.
+
+    Returns:
+        Path to the written HTML file.
+    """
+    path: Path = OUTPUT_DIRECTORY / file_name
     # Repeat runs should refresh the files in place, so create the output folder
     # if it is missing and overwrite the target file.
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,8 +121,16 @@ def _write_html(file_name: str, html: str) -> Path:
 
 
 def _write_png(file_name: str, png: bytes) -> Path:
-    """Write one PNG chart file."""
-    path = OUTPUT_DIRECTORY / file_name
+    """Write one PNG chart file.
+
+    Args:
+        file_name: Output file name under ``output/``.
+        png: PNG image bytes returned by the chart renderer.
+
+    Returns:
+        Path to the written PNG file.
+    """
+    path: Path = OUTPUT_DIRECTORY / file_name
     # PNG output is binary data.
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(png)

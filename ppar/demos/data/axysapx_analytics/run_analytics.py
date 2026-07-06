@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from pathlib import Path
+from typing import Any
 
 # Project imports
 from ppar.analytics.attribution import Chart, View
@@ -14,38 +15,43 @@ import ppar.utilities as util
 
 # Anchor every relative path to the folder containing this script. That lets
 # you run the script from any current working directory without changing paths.
-SITE_DIRECTORY = Path(__file__).resolve().parent
-CONFIG_PATH = SITE_DIRECTORY / "ppar.yaml"
-OUTPUT_DIRECTORY = SITE_DIRECTORY / "output"
+SITE_DIRECTORY: Path = Path(__file__).resolve().parent
+SPECIFICATIONS_PATH: Path = SITE_DIRECTORY / "ppar.yaml"
+OUTPUT_DIRECTORY: Path = SITE_DIRECTORY / "output"
 
 # These defaults match the starter ``ppar.yaml``. You can change the values here
 # for an automation-specific override, but most sites should change the YAML.
 PORTFOLIO_CODE = "MEGA_ALPHA"
 BENCHMARK_CODE = "MEGA_BENCH"
-FREQUENCY = Frequency.QUARTERLY
+FREQUENCY: Frequency = Frequency.QUARTERLY
 
 
 def main() -> None:
-    """Create analytics output from the local setup-site CSV files."""
+    """Create analytics output from the local setup-site CSV files.
+
+    Returns:
+        None. Review files are written to ``output/`` and listed in the
+        console.
+    """
     # ``AxysData`` reads ``ppar.yaml`` and uses its ``files`` and ``columns``
     # sections to locate and interpret the local IMEX CSV files.
-    source_data = AxysData(CONFIG_PATH)
+    source_data: AxysData = AxysData(SPECIFICATIONS_PATH)
 
     # These two portfolio objects are the inputs to attribution: one managed
     # portfolio and one benchmark. Change the codes above or in YAML as your
     # site setup evolves.
-    portfolio = source_data.get_portfolio(PORTFOLIO_CODE)
-    benchmark = source_data.get_portfolio(BENCHMARK_CODE)
+    portfolio: Any = source_data.get_portfolio(PORTFOLIO_CODE)
+    benchmark: Any = source_data.get_portfolio(BENCHMARK_CODE)
 
     # ``to_analytics`` calculates the return, contribution, attribution, and
     # risk data used by the review files below.
-    analytics = portfolio.to_analytics(benchmark, frequency=FREQUENCY)
+    analytics: Any = portfolio.to_analytics(benchmark, frequency=FREQUENCY)
 
     written_paths: list[Path] = []
 
     # Security attribution is useful for checking which individual positions
     # drove the active return over the selected reporting window.
-    attribution_by_security = analytics.get_attribution("Security")
+    attribution_by_security: Any = analytics.get_attribution("Security")
     written_paths.append(
         _write_html(
             "security_overall_attribution.html",
@@ -55,7 +61,7 @@ def main() -> None:
 
     # The default attribution level in the starter setup is sector. These HTML
     # tables are easy to inspect first because they are compact and sortable.
-    attribution_by_sector = analytics.get_attribution()
+    attribution_by_sector: Any = analytics.get_attribution()
     for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
         written_paths.append(
             _write_html(
@@ -84,7 +90,7 @@ def main() -> None:
 
     # Risk statistics provide a separate cross-check on the same return stream:
     # tracking error, information ratio, drawdown, and related review metrics.
-    risk_statistics = analytics.get_riskstatistics()
+    risk_statistics: Any = analytics.get_riskstatistics()
     written_paths.append(_write_html("risk_statistics.html", risk_statistics.to_html()))
 
     print("Open these files to review analytics output:")
@@ -93,8 +99,16 @@ def main() -> None:
 
 
 def _write_html(file_name: str, html: str) -> Path:
-    """Write one HTML review file."""
-    path = OUTPUT_DIRECTORY / file_name
+    """Write one HTML review file.
+
+    Args:
+        file_name: Output file name under ``output/``.
+        html: HTML document text to write.
+
+    Returns:
+        Path to the written HTML file.
+    """
+    path: Path = OUTPUT_DIRECTORY / file_name
     # ``exist_ok=True`` makes repeat runs overwrite output files without needing
     # manual cleanup between review cycles.
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -103,8 +117,16 @@ def _write_html(file_name: str, html: str) -> Path:
 
 
 def _write_png(file_name: str, png: bytes) -> Path:
-    """Write one PNG chart file."""
-    path = OUTPUT_DIRECTORY / file_name
+    """Write one PNG chart file.
+
+    Args:
+        file_name: Output file name under ``output/``.
+        png: PNG image bytes returned by the chart renderer.
+
+    Returns:
+        Path to the written PNG file.
+    """
+    path: Path = OUTPUT_DIRECTORY / file_name
     # Chart renderers return PNG bytes, so ``write_bytes`` avoids any text
     # encoding assumptions.
     path.parent.mkdir(parents=True, exist_ok=True)
