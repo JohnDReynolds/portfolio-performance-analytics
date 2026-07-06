@@ -84,6 +84,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 self.assertIn("-h, --help", result.stdout)
                 self.assertEqual(result.stderr, "")
                 if module_name == _BUNDLE_MODULE:
+                    self.assertIn("--comparison-level", result.stdout)
                     self.assertIn(
                         "--include-reconstruction-diagnostics",
                         result.stdout,
@@ -958,6 +959,38 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "context_evidence_summary.csv",
             )
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
+
+    def test_bundle_cli_module_accepts_comparison_level_override(self) -> None:
+        """The bundle CLI can write a security report from a shared YAML file."""
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory) / "security_bundle"
+
+            result = subprocess.run(
+                _module_command(
+                    _BUNDLE_MODULE,
+                    str(_PORTFOLIO_COMPARISON_PATH),
+                    str(output_directory),
+                    "--comparison-level",
+                    "security",
+                    "--include-workbook",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn(str(output_directory), result.stdout)
+            self.assertTrue((output_directory / "report.html").exists())
+            self.assertTrue((output_directory / "report.xlsx").exists())
+            manifest = json.loads(
+                (output_directory / "manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertGreater(manifest["counts"]["findings"], 0)
+            readme = (output_directory / "README.md").read_text(encoding="utf-8")
+            self.assertIn(
+                "source-data differences additively explain each security period",
+                readme,
+            )
             self.assertEqual(
                 manifest["artifacts"]["review_summary"],
                 "review_summary.json",

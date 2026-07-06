@@ -167,13 +167,15 @@ packaged scenario-matrix validation.
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
   ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml \
   _demo_output/custom_portfolio \
+  --comparison-level portfolio \
   --include-workbook \
   --require-causal-attribution
 ```
 
 Use this lower-level command when you want to choose a YAML file or output
-directory yourself. The public user-facing path is `ppar setup` followed by
-`ppar performance_comparison`.
+directory yourself. Use `--comparison-level security` with the same YAML when
+you want a security-level bundle. The public user-facing path is `ppar setup`
+followed by `ppar performance_comparison`.
 
 Code that needs to inspect the generated report-bundle handoff surface should
 use `ppar.performance_comparison.report_bundle_contract()`. That helper returns

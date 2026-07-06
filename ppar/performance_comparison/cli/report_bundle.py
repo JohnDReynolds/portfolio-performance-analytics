@@ -12,7 +12,16 @@ from ppar.performance_comparison import (
     write_performance_comparison_report_bundle,
 )
 from ppar.performance_comparison import review_model as _pc_review_model
-from ppar.performance_comparison.specification import PerformanceComparisonSpecification
+from ppar.performance_comparison.specification import (
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+    PerformanceComparisonSpecification,
+)
+
+_COMPARISON_LEVEL_CHOICES = (
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,9 +35,14 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = _argument_parser().parse_args(argv)
     try:
-        specification = PerformanceComparisonSpecification(args.comparison_path)
+        specification = PerformanceComparisonSpecification(
+            args.comparison_path,
+            comparison_level=args.comparison_level,
+        )
+        comparison_level = specification.comparison_level
         findings = compare_snapshots(
             args.comparison_path,
+            comparison_level=comparison_level,
             include_suppressed=not args.active_only,
             require_causal_attribution=args.require_causal_attribution,
         )
@@ -41,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
             require_complete_yaml_setup=not args.allow_incomplete_yaml,
             require_causal_attribution=args.require_causal_attribution,
             comparison_path=args.comparison_path,
-            comparison_level=specification.comparison_level,
+            comparison_level=comparison_level,
             include_reconstruction_diagnostics=(
                 args.include_reconstruction_diagnostics
             ),
@@ -87,6 +101,14 @@ def _argument_parser() -> argparse.ArgumentParser:
         type=_non_negative_int,
         default=10,
         help="Maximum top-evidence rows to include per portfolio period.",
+    )
+    parser.add_argument(
+        "--comparison-level",
+        choices=_COMPARISON_LEVEL_CHOICES,
+        help=(
+            "Primary performance result to compare. Overrides comparison.level "
+            "in the YAML when supplied."
+        ),
     )
     parser.add_argument(
         "--active-only",
