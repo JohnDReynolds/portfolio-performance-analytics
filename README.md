@@ -105,15 +105,15 @@ Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
 ## Performance Comparison
 
-Use Performance Comparison when reported returns changed and you need to know
-why. PPAR compares two source-data snapshots, finds changed performance, and
-then attributes each change in performance to specific changes in transactions
-and holdings.
+Use Performance Comparison when reported returns have changed and you need to
+know why. PPAR compares two source-data snapshots, finds changed performance,
+and then attributes each change in performance to specific changes in
+transactions and holdings.
 
 Typical questions:
 
-- Did a revised holding market value change Modified Dietz return?
-- Did a transaction correction change weighted external flows?
+- Did a revised holding market value change the return?
+- Did a transaction correction change the weighted external flows?
 - Which rows explain the performance difference?
 - Which differences are evidence-only or still unexplained?
 
@@ -129,9 +129,8 @@ Typical questions:
   width="100%"
 />
 
-The workbook output is designed for review, not just export. It includes
-performance differences, explanation rows, residual review status, and raw audit
-trail detail.
+The workbook output includes performance differences, explanation rows,
+residual review status, and raw audit trail detail.
 
 ---
 
