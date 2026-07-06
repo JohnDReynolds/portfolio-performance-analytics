@@ -418,6 +418,78 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 ).exists()
             )
 
+    def test_setup_installed_python_scripts_run_end_to_end(self) -> None:
+        """Copied setup scripts are the canonical Python smoke-test path."""
+        with tempfile.TemporaryDirectory() as directory:
+            site_directory = Path(directory) / "my_ppar_data"
+            subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "setup",
+                    str(site_directory),
+                    "--include-generic-analytics",
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            script_paths = (
+                site_directory / "analytics" / "run_analytics.py",
+                site_directory
+                / "performance_comparison"
+                / "run_portfolio_comparison.py",
+                site_directory
+                / "performance_comparison"
+                / "run_security_comparison.py",
+                site_directory / "generic_analytics" / "run_generic_analytics.py",
+            )
+            for script_path in script_paths:
+                with self.subTest(script_path=script_path.name):
+                    result = subprocess.run(
+                        [sys.executable, str(script_path)],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertIn("Open these files to review", result.stdout)
+                    self.assertEqual(result.stderr, "")
+
+            self.assertTrue(
+                (
+                    site_directory
+                    / "performance_comparison"
+                    / "output"
+                    / "portfolio"
+                    / "report.xlsx"
+                ).exists()
+            )
+            self.assertTrue(
+                (
+                    site_directory
+                    / "performance_comparison"
+                    / "output"
+                    / "security"
+                    / "report.xlsx"
+                ).exists()
+            )
+            self.assertTrue(
+                (
+                    site_directory
+                    / "analytics"
+                    / "output"
+                    / "risk_statistics.html"
+                ).exists()
+            )
+            self.assertTrue(
+                (
+                    site_directory
+                    / "generic_analytics"
+                    / "output"
+                    / "risk_statistics.html"
+                ).exists()
+            )
+
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:
         """Programmatic entrypoints accept string paths as well as ``Path`` values."""
         from ppar.analytics.cli import run_analytics

@@ -49,27 +49,46 @@ class TestPerformanceComparisonDemoHealthScript(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                "ppar.demos.axysapx_performance_comparison_portfolio_demo" in text
+                "ppar.cli setup" in text
+                and "--include-generic-analytics" in text
                 for text in command_texts
             )
         )
         self.assertTrue(
             any(
-                "ppar.demos.axysapx_performance_comparison_security_demo" in text
+                "analytics/run_analytics.py" in text
+                for text in command_texts
+            )
+        )
+        self.assertTrue(
+            any(
+                "performance_comparison/run_portfolio_comparison.py" in text
+                for text in command_texts
+            )
+        )
+        self.assertTrue(
+            any(
+                "performance_comparison/run_security_comparison.py" in text
+                for text in command_texts
+            )
+        )
+        self.assertTrue(
+            any(
+                "generic_analytics/run_generic_analytics.py" in text
                 for text in command_texts
             )
         )
         self.assertTrue(
             any(
                 "validate_bundle" in text
-                and "performance_comparison_portfolio" in text
+                and "output/portfolio" in text
                 for text in command_texts
             )
         )
         self.assertTrue(
             any(
                 "validate_bundle" in text
-                and "performance_comparison_security" in text
+                and "output/security" in text
                 for text in command_texts
             )
         )

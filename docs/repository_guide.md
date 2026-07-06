@@ -93,8 +93,8 @@ The installed command names are declared in `pyproject.toml`.
 | --- | --- |
 | `ppar` | Top-level user command for setup, analytics, and performance comparison. |
 
-Demo modules are intentionally source-checkout smoke paths, not public console
-scripts:
+Legacy demo modules remain source-checkout-only helpers while setup-generated
+scripts become the preferred smoke path:
 
 ```bash
 python -m ppar.demos.generic_analytics_demo
@@ -133,29 +133,22 @@ For the validation fixture matrix, use
 
 ## Common Workflows
 
-### Run Demo Smoke Modules
+### Run Setup-Generated Smoke Scripts
 
-The source-checkout demo modules write durable artifacts under `_demo_output/`:
-
-| Command | Output Directory | Notes |
-| --- | --- | --- |
-| `ppar.demos.generic_analytics_demo` | `_demo_output/generic_analytics` | Maintainer smoke path for the generic Mega-Cap dataset used by README images; default frequency is quarterly. |
-| `ppar.demos.axysapx_analytics_demo` | `_demo_output/axysapx_analytics` | Axys/APX-backed analytics demo. |
-| `ppar.demos.axysapx_performance_comparison_portfolio_demo` | `_demo_output/performance_comparison_portfolio` | Portfolio review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
-| `ppar.demos.axysapx_performance_comparison_security_demo` | `_demo_output/performance_comparison_security` | Security review bundle with `report.xlsx`, `report.html`, CSVs, and manifest. |
-
-All demo smoke modules print the generated artifact paths and leave browser opening
-to the reviewer.
-
-The performance comparison demo can be smoke-tested noninteractively:
+The preferred source-checkout smoke path creates a temporary setup workspace and
+runs the Python scripts copied by `ppar setup`. This proves the same Python
+examples that users see in their local setup folder:
 
 ```bash
-./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_portfolio_demo
-./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_security_demo
+./.venv/bin/python -m ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics
+./.venv/bin/python /tmp/ppar_smoke_site/analytics/run_analytics.py
+./.venv/bin/python /tmp/ppar_smoke_site/performance_comparison/run_portfolio_comparison.py
+./.venv/bin/python /tmp/ppar_smoke_site/performance_comparison/run_security_comparison.py
+./.venv/bin/python /tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_portfolio
+  /tmp/ppar_smoke_site/performance_comparison/output/portfolio
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_security
+  /tmp/ppar_smoke_site/performance_comparison/output/security
 ```
 
 Open the generated `report.xlsx` when it is present. Use `report.html` for
@@ -169,7 +162,7 @@ For the full packaged-demo guardrail pass, run:
 ```
 
 This consolidates the operational rebuild drift audit, extract-availability
-appendix check, portfolio/security bundle generation, bundle validation, and
+appendix check, setup-generated script execution, bundle validation, and
 packaged scenario-matrix validation.
 
 ### Generate A Custom Review Bundle

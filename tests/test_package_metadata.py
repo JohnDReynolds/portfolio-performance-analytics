@@ -1595,14 +1595,18 @@ class TestPackageMetadata(unittest.TestCase):
         guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
 
         for expected_text in [
-            "ppar.demos.axysapx_performance_comparison_portfolio_demo",
-            "ppar.demos.axysapx_performance_comparison_security_demo",
+            "Run Setup-Generated Smoke Scripts",
+            "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
+            "/tmp/ppar_smoke_site/analytics/run_analytics.py",
+            "/tmp/ppar_smoke_site/performance_comparison/run_portfolio_comparison.py",
+            "/tmp/ppar_smoke_site/performance_comparison/run_security_comparison.py",
+            "/tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py",
             "ppar.performance_comparison.cli.validate_bundle",
             "ppar.performance_comparison.cli.validate_config",
             "ppar.performance_comparison.cli.validate_demo_matrix",
             "scripts/check_performance_comparison_demo_health.py",
-            "_demo_output/performance_comparison_portfolio",
-            "_demo_output/performance_comparison_security",
+            "/tmp/ppar_smoke_site/performance_comparison/output/portfolio",
+            "/tmp/ppar_smoke_site/performance_comparison/output/security",
             "report.xlsx",
             "report_bundle_contract()",
             "prefer the package-root workflow helpers",
@@ -1614,7 +1618,7 @@ class TestPackageMetadata(unittest.TestCase):
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
-            "All demo smoke modules print the generated artifact paths",
+            "copied by `ppar setup`",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, guide)

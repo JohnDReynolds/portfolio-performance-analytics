@@ -10,14 +10,13 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python"
-_PORTFOLIO_BUNDLE = _PROJECT_ROOT / "_demo_output" / "performance_comparison_portfolio"
-_SECURITY_BUNDLE = _PROJECT_ROOT / "_demo_output" / "performance_comparison_security"
 
 
 def _format_command(command: Sequence[str | Path]) -> str:
@@ -60,6 +59,64 @@ def _run(command: Sequence[str | Path]) -> None:
         cwd=_PROJECT_ROOT,
         check=True,
     )
+
+
+def _run_setup_generated_smoke_tests() -> None:
+    """Create a setup workspace and run its copied Python scripts.
+
+    The copied scripts are the user-visible Python examples installed by
+    ``ppar setup``. Running them here keeps the health check focused on the
+    onboarding surface instead of the older source-checkout demo modules.
+    """
+    with tempfile.TemporaryDirectory(prefix="ppar_setup_smoke_") as directory:
+        site_directory = Path(directory) / "my_ppar_data"
+        comparison_directory = site_directory / "performance_comparison"
+
+        _run(
+            [
+                _VENV_PYTHON,
+                "-m",
+                "ppar.cli",
+                "setup",
+                site_directory,
+                "--include-generic-analytics",
+            ]
+        )
+        _run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
+        _run(
+            [
+                _VENV_PYTHON,
+                comparison_directory / "run_portfolio_comparison.py",
+            ]
+        )
+        _run(
+            [
+                _VENV_PYTHON,
+                comparison_directory / "run_security_comparison.py",
+            ]
+        )
+        _run(
+            [
+                _VENV_PYTHON,
+                site_directory / "generic_analytics" / "run_generic_analytics.py",
+            ]
+        )
+        _run(
+            [
+                _VENV_PYTHON,
+                "-m",
+                "ppar.performance_comparison.cli.validate_bundle",
+                comparison_directory / "output" / "portfolio",
+            ]
+        )
+        _run(
+            [
+                _VENV_PYTHON,
+                "-m",
+                "ppar.performance_comparison.cli.validate_bundle",
+                comparison_directory / "output" / "security",
+            ]
+        )
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -121,24 +178,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if not args.skip_bundles:
-        _run([_VENV_PYTHON, "-m", "ppar.demos.axysapx_performance_comparison_portfolio_demo"])
-        _run([_VENV_PYTHON, "-m", "ppar.demos.axysapx_performance_comparison_security_demo"])
-        _run(
-            [
-                _VENV_PYTHON,
-                "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
-                _PORTFOLIO_BUNDLE,
-            ]
-        )
-        _run(
-            [
-                _VENV_PYTHON,
-                "-m",
-                "ppar.performance_comparison.cli.validate_bundle",
-                _SECURITY_BUNDLE,
-            ]
-        )
+        _run_setup_generated_smoke_tests()
 
     if not args.skip_demo_matrix:
         _run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
