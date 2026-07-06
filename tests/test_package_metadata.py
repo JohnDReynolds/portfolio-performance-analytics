@@ -1749,6 +1749,7 @@ class TestPackageMetadata(unittest.TestCase):
             "scripts/check_release_candidate.py --build",
             "--include-generic-data-generation",
             "--write-packaged-assets",
+            "--verbose",
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",

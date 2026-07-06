@@ -8,6 +8,7 @@ exact command being run, and stops at the first failure.
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass, field
 import os
 import shutil
 import subprocess
@@ -33,6 +34,114 @@ _OUTPUT_DIRECTORIES = (
     _PROJECT_ROOT / "_demo_output" / "performance_comparison_security",
     _PROJECT_ROOT / "_demo_output" / "readme_image_cache",
 )
+
+
+@dataclass
+class ReleaseCandidateRunner:
+    """Run release-candidate commands while tracking status for a concise summary.
+
+    Attributes:
+        verbose: Whether to stream subcommand output directly to the terminal.
+        completed_phases: Names of phases that completed successfully.
+        skipped_items: Notes describing checks intentionally skipped by options.
+        changed_asset_notes: Notes describing options that may modify tracked files.
+    """
+
+    verbose: bool = False
+    completed_phases: list[str] = field(default_factory=list)
+    skipped_items: list[str] = field(default_factory=list)
+    changed_asset_notes: list[str] = field(default_factory=list)
+
+    def phase(self, number: int, name: str) -> None:
+        """Print a numbered release-candidate phase heading.
+
+        Args:
+            number: Phase number in the release-candidate sequence.
+            name: Human-readable phase name.
+        """
+        print(f"\n{number}. {name}", flush=True)
+
+    def complete(self, name: str) -> None:
+        """Record and print a successful phase completion.
+
+        Args:
+            name: Human-readable phase name.
+        """
+        self.completed_phases.append(name)
+        print(f"   OK: {name}", flush=True)
+
+    def skip(self, note: str) -> None:
+        """Record and print an intentionally skipped item.
+
+        Args:
+            note: Explanation of what was skipped.
+        """
+        self.skipped_items.append(note)
+        print(f"   SKIP: {note}", flush=True)
+
+    def asset_note(self, note: str) -> None:
+        """Record an option that may change tracked generated assets.
+
+        Args:
+            note: Explanation of the possible tracked-file change.
+        """
+        self.changed_asset_notes.append(note)
+
+    def run(self, command: Sequence[str | Path]) -> None:
+        """Run one release-candidate command and stop on failure.
+
+        Args:
+            command: Command and arguments to execute.
+
+        Raises:
+            subprocess.CalledProcessError: If the command exits nonzero.
+        """
+        print(f"   RUN: {_format_command(command)}", flush=True)
+        _CHECK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        env = os.environ.copy()
+        env.setdefault("XDG_CACHE_HOME", str(_CHECK_CACHE_DIR))
+        env.setdefault("MPLCONFIGDIR", str(_CHECK_CACHE_DIR / "matplotlib"))
+        if self.verbose:
+            subprocess.run(
+                [str(part) for part in command],
+                cwd=_PROJECT_ROOT,
+                check=True,
+                env=env,
+            )
+            return
+
+        completed = subprocess.run(
+            [str(part) for part in command],
+            cwd=_PROJECT_ROOT,
+            check=False,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        if completed.returncode != 0:
+            print("\nCommand failed. Captured output:", flush=True)
+            print(completed.stdout, flush=True)
+            raise subprocess.CalledProcessError(
+                completed.returncode,
+                [str(part) for part in command],
+                output=completed.stdout,
+            )
+
+    def print_summary(self) -> None:
+        """Print release-candidate summary details."""
+        print("\nRelease-candidate checks passed.", flush=True)
+        print("\nCompleted:", flush=True)
+        for phase in self.completed_phases:
+            print(f"  - {phase}", flush=True)
+        if self.skipped_items:
+            print("\nSkipped:", flush=True)
+            for item in self.skipped_items:
+                print(f"  - {item}", flush=True)
+        if self.changed_asset_notes:
+            print("\nTracked assets may have changed:", flush=True)
+            for item in self.changed_asset_notes:
+                print(f"  - {item}", flush=True)
 
 
 def _format_command(command: Sequence[str | Path]) -> str:
@@ -67,45 +176,24 @@ def _require_venv_python() -> None:
         )
 
 
-def _run(command: Sequence[str | Path]) -> None:
-    """Run one release-candidate command and stop on failure.
-
-    Args:
-        command: Command and arguments to execute.
-
-    Raises:
-        subprocess.CalledProcessError: If the command exits nonzero.
-    """
-    print(f"\n==> {_format_command(command)}", flush=True)
-    _CHECK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    env = os.environ.copy()
-    env.setdefault("XDG_CACHE_HOME", str(_CHECK_CACHE_DIR))
-    env.setdefault("MPLCONFIGDIR", str(_CHECK_CACHE_DIR / "matplotlib"))
-    subprocess.run(
-        [str(part) for part in command],
-        cwd=_PROJECT_ROOT,
-        check=True,
-        env=env,
-    )
-
-
-def _clean_generated_output() -> None:
+def _clean_generated_output(runner: ReleaseCandidateRunner) -> None:
     """Remove ignored generated-output directories used by this check."""
-    print("\n==> Cleaning generated release-candidate output", flush=True)
+    runner.phase(0, "Clean generated output")
     for output_directory in _OUTPUT_DIRECTORIES:
         shutil.rmtree(output_directory, ignore_errors=True)
+    runner.complete("Clean generated output")
 
 
-def _run_generic_data_generation() -> None:
+def _run_generic_data_generation(runner: ReleaseCandidateRunner) -> None:
     """Generate and validate optional candidate generic analytics demo data."""
-    _run(
+    runner.run(
         [
             _VENV_PYTHON,
             "scripts/generic_analytics_demo_data/"
             "generate_mega_cap_analytics_demo_data.py",
         ]
     )
-    _run(
+    runner.run(
         [
             _VENV_PYTHON,
             "scripts/generic_analytics_demo_data/"
@@ -114,7 +202,11 @@ def _run_generic_data_generation() -> None:
     )
 
 
-def _run_demo_data_audit(*, write_packaged_assets: bool) -> None:
+def _run_demo_data_audit(
+    runner: ReleaseCandidateRunner,
+    *,
+    write_packaged_assets: bool,
+) -> None:
     """Audit or rewrite packaged Axys/APX performance-comparison demo data.
 
     Args:
@@ -128,12 +220,12 @@ def _run_demo_data_audit(*, write_packaged_assets: bool) -> None:
     ]
     if write_packaged_assets:
         command.append("--write")
-    _run(command)
+    runner.run(command)
 
 
-def _run_extract_availability_check() -> None:
+def _run_extract_availability_check(runner: ReleaseCandidateRunner) -> None:
     """Check that rendered Axys/APX extract-availability docs are current."""
-    _run(
+    runner.run(
         [
             _VENV_PYTHON,
             "scripts/render_demo_extract_availability.py",
@@ -142,7 +234,7 @@ def _run_extract_availability_check() -> None:
     )
 
 
-def _run_report_bundle_checks() -> None:
+def _run_report_bundle_checks(runner: ReleaseCandidateRunner) -> None:
     """Generate and validate portfolio and security demo report bundles."""
     bundle_specs = (
         (
@@ -155,7 +247,7 @@ def _run_report_bundle_checks() -> None:
         ),
     )
     for comparison_level, output_directory in bundle_specs:
-        _run(
+        runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
@@ -167,7 +259,7 @@ def _run_report_bundle_checks() -> None:
                 "--include-workbook",
             ]
         )
-        _run(
+        runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
@@ -177,13 +269,13 @@ def _run_report_bundle_checks() -> None:
         )
 
 
-def _run_setup_smoke_tests() -> None:
+def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
     """Run scripts copied by ``ppar setup`` in a temporary site workspace."""
     with tempfile.TemporaryDirectory(prefix="ppar_release_site_") as directory:
         site_directory = Path(directory) / "my_ppar_data"
         comparison_directory = site_directory / "performance_comparison"
 
-        _run(
+        runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
@@ -193,16 +285,20 @@ def _run_setup_smoke_tests() -> None:
                 "--include-generic-analytics",
             ]
         )
-        _run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
-        _run([_VENV_PYTHON, comparison_directory / "run_portfolio_comparison.py"])
-        _run([_VENV_PYTHON, comparison_directory / "run_security_comparison.py"])
-        _run(
+        runner.run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
+        runner.run(
+            [_VENV_PYTHON, comparison_directory / "run_portfolio_comparison.py"]
+        )
+        runner.run(
+            [_VENV_PYTHON, comparison_directory / "run_security_comparison.py"]
+        )
+        runner.run(
             [
                 _VENV_PYTHON,
                 site_directory / "generic_analytics" / "run_generic_analytics.py",
             ]
         )
-        _run(
+        runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
@@ -210,7 +306,7 @@ def _run_setup_smoke_tests() -> None:
                 comparison_directory / "output" / "portfolio",
             ]
         )
-        _run(
+        runner.run(
             [
                 _VENV_PYTHON,
                 "-m",
@@ -220,12 +316,17 @@ def _run_setup_smoke_tests() -> None:
         )
 
 
-def _run_readme_image_refresh() -> None:
+def _run_readme_image_refresh(runner: ReleaseCandidateRunner) -> None:
     """Refresh README images from current generated demo outputs."""
-    _run([_VENV_PYTHON, "scripts/render_readme_images.py"])
+    runner.run([_VENV_PYTHON, "scripts/render_readme_images.py"])
 
 
-def _run_project_checks(*, quick: bool, build: bool) -> None:
+def _run_project_checks(
+    runner: ReleaseCandidateRunner,
+    *,
+    quick: bool,
+    build: bool,
+) -> None:
     """Run the consolidated project health check.
 
     Args:
@@ -237,7 +338,7 @@ def _run_project_checks(*, quick: bool, build: bool) -> None:
         command.append("--quick")
     if build:
         command.append("--build")
-    _run(command)
+    runner.run(command)
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -293,6 +394,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="Skip the final scripts/check_project.py pass.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Stream full subcommand output instead of only command names.",
+    )
     return parser.parse_args(argv)
 
 
@@ -307,26 +413,63 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     _require_venv_python()
     args = _parse_args(sys.argv[1:] if argv is None else argv)
+    runner = ReleaseCandidateRunner(verbose=args.verbose)
 
     if args.clean_output:
-        _clean_generated_output()
+        _clean_generated_output(runner)
+    else:
+        runner.skip("Generated-output cleanup; use --clean-output to remove caches first.")
 
+    runner.phase(1, "Optional generic analytics data generation")
     if args.include_generic_data_generation:
-        _run_generic_data_generation()
+        _run_generic_data_generation(runner)
+        runner.complete("Generic analytics candidate data generated and validated")
+    else:
+        runner.skip(
+            "Yahoo-dependent generic analytics data generation; use "
+            "--include-generic-data-generation."
+        )
 
-    _run_demo_data_audit(write_packaged_assets=args.write_packaged_assets)
-    _run_extract_availability_check()
-    _run_report_bundle_checks()
-    _run_setup_smoke_tests()
-    _run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
+    runner.phase(2, "Audit packaged demo data")
+    _run_demo_data_audit(runner, write_packaged_assets=args.write_packaged_assets)
+    if args.write_packaged_assets:
+        runner.asset_note(
+            "Packaged Axys/APX performance-comparison CSV assets may have been rewritten."
+        )
+    runner.complete("Packaged demo data audit")
 
+    runner.phase(3, "Check extract-availability docs")
+    _run_extract_availability_check(runner)
+    runner.complete("Extract-availability docs current")
+
+    runner.phase(4, "Generate and validate report bundles")
+    _run_report_bundle_checks(runner)
+    runner.complete("Portfolio/security report bundles generated and validated")
+
+    runner.phase(5, "Smoke-test setup workspace")
+    _run_setup_smoke_tests(runner)
+    runner.complete("Setup workspace scripts and bundles")
+
+    runner.phase(6, "Validate scenario matrix")
+    runner.run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
+    runner.complete("Scenario matrix")
+
+    runner.phase(7, "Optional README image refresh")
     if args.refresh_images:
-        _run_readme_image_refresh()
+        _run_readme_image_refresh(runner)
+        runner.asset_note("README images under docs/images/readme may have been refreshed.")
+        runner.complete("README image refresh")
+    else:
+        runner.skip("README image refresh; use --refresh-images.")
 
+    runner.phase(8, "Run project checks")
     if not args.skip_project_check:
-        _run_project_checks(quick=args.quick, build=args.build)
+        _run_project_checks(runner, quick=args.quick, build=args.build)
+        runner.complete("Project checks")
+    else:
+        runner.skip("Project checks; --skip-project-check was supplied.")
 
-    print("\nRelease-candidate checks passed.", flush=True)
+    runner.print_summary()
     return 0
 
 

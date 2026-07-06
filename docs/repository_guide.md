@@ -146,6 +146,9 @@ smoke scripts in a temporary site directory, validates the scenario matrix, and
 then runs the project check. It does not contact Yahoo for generic analytics
 data generation and does not rewrite tracked packaged CSV assets.
 
+By default, subcommand output is captured and only printed if a command fails.
+Use `--verbose` when you want the full underlying command output.
+
 Use these opt-in switches only when the intent is explicit:
 
 ```bash
