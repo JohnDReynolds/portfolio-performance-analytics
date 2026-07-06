@@ -1787,11 +1787,16 @@ class TestPackageMetadata(unittest.TestCase):
 
         for expected_text in [
             "## Release Readiness",
+            "./.venv/bin/python scripts/check_release_candidate.py --build",
             "`pyproject.toml` is the only package-version authority",
-            "./.venv/bin/python -m build --no-isolation",
+            "git rev-parse --short v0.1.5",
+            "git ls-remote --tags origin v0.1.5",
+            "git tag -f v0.1.5 HEAD",
+            "./.venv/bin/python -m build --wheel --sdist --no-isolation --outdir dist",
+            "./.venv/bin/python -m twine check dist/ppar-0.1.5-py3-none-any.whl dist/ppar-0.1.5.tar.gz",
             "only the `ppar` console script is exposed",
             "ppar setup /tmp/ppar_release_site",
-            "Do not create a release tag until the version decision is explicit.",
+            "Do not move, create, or push a release tag until the version and release commit",
         ]:
             with self.subTest(expected_text=expected_text):
                 self.assertIn(expected_text, guide)

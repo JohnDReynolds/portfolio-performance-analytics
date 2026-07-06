@@ -3267,6 +3267,23 @@ The local `v0.1.5` tag should remain aligned with the final release-record
 commit before any push. Do not publish to PyPI until the maintainer explicitly
 chooses to upload the already-audited `0.1.5` artifacts.
 
+### Phase 94: Local Release Pause Checkpoint
+
+Status: complete for local release-pause documentation; no artifact was uploaded
+and no tag or branch was pushed.
+
+The release-candidate and package-content checks passed again after the final
+documentation freshness work. Fresh local `dist/ppar-0.1.5*` artifacts were
+rebuilt from current `HEAD` and passed `twine check`, metadata inspection, and
+package-content inspection.
+
+The local `v0.1.5` tag is intentionally not trusted as the release pointer yet:
+it currently points at an older local commit, while current `HEAD` contains later
+release-readiness fixes. A read-only remote check confirmed that `origin` does
+not yet have a `v0.1.5` tag. Before any push or publish, rerun the pre-publish
+checklist in `docs/repository_guide.md`, retag local `v0.1.5` to final `HEAD`,
+rebuild `dist/`, and run `twine check`.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.

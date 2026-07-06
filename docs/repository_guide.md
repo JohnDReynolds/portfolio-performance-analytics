@@ -299,23 +299,47 @@ When changing demo data or YAML, also run:
 
 ## Release Readiness
 
-Before tagging or publishing, keep the release check small and concrete:
+Before tagging or publishing, keep the release check small and concrete. The
+current maintained release check is:
+
+```bash
+./.venv/bin/python scripts/check_release_candidate.py --build
+```
+
+Use this pre-publish checklist after the maintainer decides to release:
 
 1. Confirm the working tree is clean.
 2. Confirm `pyproject.toml` is the only package-version authority.
 3. Decide whether the current version is still right for the release.
-4. Build fresh artifacts:
+4. Confirm the local release tag points at the intended final release commit:
 
    ```bash
-   ./.venv/bin/python -m build --no-isolation
+   git rev-parse --short HEAD
+   git rev-parse --short v0.1.5
+   git ls-remote --tags origin v0.1.5
    ```
 
-5. Inspect the wheel:
+   If the local tag is stale and the remote tag does not exist, retag locally
+   before pushing:
+
+   ```bash
+   git tag -f v0.1.5 HEAD
+   ```
+
+5. Build fresh artifacts:
+
+   ```bash
+   rm -rf dist
+   ./.venv/bin/python -m build --wheel --sdist --no-isolation --outdir dist
+   ./.venv/bin/python -m twine check dist/ppar-0.1.5-py3-none-any.whl dist/ppar-0.1.5.tar.gz
+   ```
+
+6. Inspect the wheel:
    - only the `ppar` console script is exposed;
    - Axys/APX analytics and performance-comparison starter files are included;
    - `_demo_output`, `scripts`, `tests`, `docs`, and obsolete demo paths are not
      present in the wheel.
-6. Install the wheel into a temporary environment and run:
+7. Install the wheel into a temporary environment and run:
 
    ```bash
    ppar --help
@@ -323,8 +347,11 @@ Before tagging or publishing, keep the release check small and concrete:
    ppar analytics /tmp/ppar_release_site/analytics
    ppar performance_comparison /tmp/ppar_release_site/performance_comparison
    ```
+8. Push the branch and tag only after the checks above match the intended
+   release commit.
 
-Do not create a release tag until the version decision is explicit.
+Do not move, create, or push a release tag until the version and release commit
+are explicit.
 
 ## Generated Output
 
