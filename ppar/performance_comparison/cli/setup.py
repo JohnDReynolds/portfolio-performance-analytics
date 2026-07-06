@@ -23,18 +23,24 @@ _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
 _PACKAGED_DEMO_RESOURCE: Final[str] = "ppar.demos.data"
 _PACKAGED_ANALYTICS_DIRECTORY: Final[str] = "axysapx_analytics"
 _PACKAGED_COMPARISON_DIRECTORY: Final[str] = "axysapx_performance_comparison"
+_PACKAGED_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _PACKAGED_ANALYTICS_YAML: Final[str] = "axysapx_analytics.yaml"
 _PACKAGED_COMPARISON_YAML: Final[str] = "axysapx_performance_comparison.yaml"
 _PACKAGED_SETUP_GUIDE: Final[str] = "SETUP.md"
-_PACKAGED_PYTHON_TUTORIAL: Final[str] = "PYTHON_TUTORIAL.md"
+_GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
+    "run_analytics.py",
 )
 _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "holdings.csv",
     "transactions.csv",
+)
+_COMPARISON_TUTORIAL_SCRIPTS: Final[tuple[str, ...]] = (
+    "run_portfolio_comparison.py",
+    "run_security_comparison.py",
 )
 
 
@@ -62,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
         result = run_setup(
             args.site_directory,
             overwrite=args.overwrite,
+            include_generic_analytics=args.include_generic_analytics,
         )
     except PpaError as error:
         print(f"Setup failed: {error}", file=sys.stderr)
@@ -75,6 +82,7 @@ def run_setup(
     site_directory: Path,
     *,
     overwrite: bool = False,
+    include_generic_analytics: bool = False,
 ) -> dict[str, Path | str]:
     """Create an Axys/APX starter workspace with analytics and comparison folders.
 
@@ -82,6 +90,8 @@ def run_setup(
         site_directory: Folder that will receive ``analytics`` and
             ``performance_comparison`` subfolders.
         overwrite: Whether to replace existing starter files.
+        include_generic_analytics: Whether to copy the maintainer-facing generic
+            analytics starter data and tutorial script.
 
     Returns:
         Paths and status labels for the starter workspace.
@@ -100,19 +110,18 @@ def run_setup(
         _starter_readme_text(site_path),
         overwrite=overwrite,
     )
-    python_tutorial_status = _copy_resource_file(
-        files(_PACKAGED_DEMO_RESOURCE).joinpath(
-            _PACKAGED_COMPARISON_DIRECTORY,
-            _PACKAGED_PYTHON_TUTORIAL,
-        ),
-        site_path / _PACKAGED_PYTHON_TUTORIAL,
-        overwrite=overwrite,
-    )
     analytics_status = _ensure_analytics_starter(analytics_path, overwrite=overwrite)
     comparison_status = _ensure_comparison_starter(
         comparison_path,
         overwrite=overwrite,
     )
+    generic_analytics_path = site_path / _GENERIC_ANALYTICS_DIRECTORY
+    generic_analytics_status: str | None = None
+    if include_generic_analytics:
+        generic_analytics_status = _ensure_generic_analytics_starter(
+            generic_analytics_path,
+            overwrite=overwrite,
+        )
     comparison_config_path = comparison_path / _CONFIG_FILE_NAME
 
     result: dict[str, Path | str] = {
@@ -120,8 +129,6 @@ def run_setup(
         "setup_status": setup_status,
         "readme_path": site_path / "README.md",
         "readme_status": readme_status,
-        "python_tutorial_path": site_path / _PACKAGED_PYTHON_TUTORIAL,
-        "python_tutorial_status": python_tutorial_status,
         "analytics_directory": analytics_path,
         "analytics_status": analytics_status,
         "analytics_config_path": analytics_path / _CONFIG_FILE_NAME,
@@ -129,6 +136,9 @@ def run_setup(
         "comparison_status": comparison_status,
         "comparison_config_path": comparison_config_path,
     }
+    if generic_analytics_status is not None:
+        result["generic_analytics_directory"] = generic_analytics_path
+        result["generic_analytics_status"] = generic_analytics_status
     missing_files = _missing_snapshot_files(comparison_path)
     if missing_files:
         result["missing_files"] = "\n".join(missing_files)
@@ -169,6 +179,11 @@ def _argument_parser() -> argparse.ArgumentParser:
         "--guide",
         action="store_true",
         help="Print the Axys/APX setup guide and exit without creating files.",
+    )
+    parser.add_argument(
+        "--include-generic-analytics",
+        action="store_true",
+        help=argparse.SUPPRESS,
     )
     return parser
 
@@ -247,7 +262,23 @@ def _ensure_comparison_starter(directory: Path, *, overwrite: bool) -> str:
             directory / snapshot_dir,
             overwrite=overwrite,
         )
+    for file_name in _COMPARISON_TUTORIAL_SCRIPTS:
+        _copy_resource_file(
+            source_directory.joinpath(file_name),
+            directory / file_name,
+            overwrite=overwrite,
+        )
     return _combined_status(status, config_status)
+
+
+def _ensure_generic_analytics_starter(directory: Path, *, overwrite: bool) -> str:
+    """Copy maintainer-facing generic analytics starter files into ``directory``."""
+    status = _ensure_directory(directory)
+    source_directory = files(_PACKAGED_DEMO_RESOURCE).joinpath(
+        _PACKAGED_GENERIC_ANALYTICS_DIRECTORY
+    )
+    _copy_resource_tree(source_directory, directory, overwrite=overwrite)
+    return status
 
 
 def _starter_comparison_config_text(resource: Traversable) -> str:
@@ -299,11 +330,6 @@ ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --re
 ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
 ```
 
-## Run From Python
-
-If you want to run PPAR from Python instead of the `ppar` command, see
-`PYTHON_TUTORIAL.md`.
-
 ## Customizing
 
 Start by replacing the starter CSV files with your own Axys/APX IMEX exports.
@@ -317,6 +343,8 @@ commented; use them as the detailed setup guide.
 3. Edit `analytics/ppar.yaml`.
 4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
 
+Optional Python example: `analytics/run_analytics.py`.
+
 ### Performance Comparison
 
 1. Replace the CSVs in `performance_comparison/snapshot_a` with the older
@@ -326,6 +354,11 @@ commented; use them as the detailed setup guide.
 3. Edit `performance_comparison/ppar.yaml`.
 4. Run `ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
+Optional Python examples:
+
+- `performance_comparison/run_portfolio_comparison.py`
+- `performance_comparison/run_security_comparison.py`
+
 ## Folder Map
 
 ```text
@@ -334,8 +367,11 @@ commented; use them as the detailed setup guide.
     ppar.yaml
     portperf.csv
     secperf.csv
+    run_analytics.py
   performance_comparison/
     ppar.yaml
+    run_portfolio_comparison.py
+    run_security_comparison.py
     snapshot_a/
       portperf.csv
       holdings.csv

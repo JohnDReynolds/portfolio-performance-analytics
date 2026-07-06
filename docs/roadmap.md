@@ -82,9 +82,9 @@ Completed guardrails now cover:
   YAML, source-contract, test, and generated-bundle evidence;
 - the packaged Axys/APX demo is accepted as the future `vendor: axys` preset seed,
   while preset implementation remains future work;
-- `ppar setup` installs a short raw-Python tutorial beside the setup README so
-  users can run Analytics and Performance Comparison without the CLI when they
-  need scheduler, notebook, or automation entrypoints;
+- `ppar setup` installs optional Python runner scripts beside the workflow data
+  they use, so users can run Analytics and Performance Comparison without the
+  CLI when they need scheduler, notebook, or automation entrypoints;
 - `docs/architecture.md` provides a compact system map for commands, package
   boundaries, data flow, setup data, configuration boundaries, and report
   boundaries;
@@ -3011,29 +3011,27 @@ writes portfolio and security reports by default when required source files are
 available, and supports `--report portfolio`, `--report security`, or
 `--report both` for explicit selection. `ppar perfcomp` is the short alias.
 
-### Phase 82: Setup Raw-Python Tutorial
+### Phase 82: Setup Python Runner Scripts
 
-Status: complete for the current setup site.
+Status: refreshed for the current setup site.
 
-`ppar setup` now installs `PYTHON_TUTORIAL.md` beside the generated setup
-`README.md`. The setup README points Python users to that tutorial without
-making raw Python the main onboarding path.
+`ppar setup` now installs optional Python runner scripts beside the data and
+YAML they execute:
 
-The tutorial keeps the examples intentionally small:
+- `analytics/run_analytics.py`
+- `performance_comparison/run_portfolio_comparison.py`
+- `performance_comparison/run_security_comparison.py`
 
-```python
-from ppar.analytics.cli import run_analytics
-from ppar.performance_comparison.cli.site_report import run_report
-```
-
-Those functions are the same programmatic entrypoints used by the CLI wrappers,
-so users can run the installed `analytics` and `performance_comparison` setup
-folders from schedulers, notebooks, or internal automation without learning
+The setup README mentions those scripts only as optional examples. The main
+onboarding path remains the `ppar` command plus heavily documented nearby YAML.
+The scripts use setup-site CSV files and paths relative to their own directory,
+so users can copy them into schedulers or notebooks without learning
 repository-only demo modules.
 
-The tutorial deliberately uses the Axys/APX setup folders rather than the
-`generic_analytics` demo, preserving the public onboarding boundary completed
-in Phase 83.
+`ppar setup --include-generic-analytics` can also copy the maintainer-facing
+generic analytics sample and its Python runner script, but this remains hidden
+from the public Axys/APX onboarding README so it does not distract first-target
+users.
 
 ### Phase 83: Generic Analytics Disposition
 
@@ -3050,8 +3048,8 @@ now explicitly maintainer-facing:
 
 They are not the primary installed-user onboarding path. New users should start
 with `ppar setup`, which copies the Axys/APX `analytics` and
-`performance_comparison` starter folders. The raw-Python setup tutorial also
-uses those Axys/APX setup folders rather than the generic demo module.
+`performance_comparison` starter folders. The optional Python runner scripts
+also use those Axys/APX setup folders rather than the generic demo module.
 
 The generic refresh guide and demo-data README now state this boundary directly.
 No generic data or smoke modules were deleted because they still serve the

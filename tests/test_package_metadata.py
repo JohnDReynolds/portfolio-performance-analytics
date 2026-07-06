@@ -369,8 +369,8 @@ class TestPackageMetadata(unittest.TestCase):
                 )
 
     def test_packaged_axys_demo_files_are_product_inputs(self) -> None:
-        """Packaged Axys/APX demo files stay limited to user-facing inputs and notes."""
-        allowed_suffixes = {".csv", ".md", ".yaml"}
+        """Packaged Axys/APX demo files stay limited to user-facing setup assets."""
+        allowed_suffixes = {".csv", ".md", ".py", ".yaml"}
         axys_demo_files = [
             path
             for path in Path("ppar/demos/data/axysapx_performance_comparison").rglob("*")
@@ -446,7 +446,6 @@ class TestPackageMetadata(unittest.TestCase):
             Path("README.md"),
             Path("ppar/demos/data/README.md"),
             Path("ppar/demos/data/axysapx_performance_comparison/README.md"),
-            Path("ppar/demos/data/axysapx_performance_comparison/PYTHON_TUTORIAL.md"),
             Path(
                 "ppar/demos/data/axysapx_performance_comparison/"
                 "axysapx_performance_comparison.yaml"
@@ -488,7 +487,9 @@ class TestPackageMetadata(unittest.TestCase):
             "analytics/",
             "performance_comparison/",
             "README.md",
-            "PYTHON_TUTORIAL.md",
+            "run_analytics.py",
+            "run_portfolio_comparison.py",
+            "run_security_comparison.py",
             "Customizing",
             "--overwrite",
         ]:
@@ -496,12 +497,19 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(expected_text, setup_doc)
 
         self.assertIn("SETUP.md", readme)
-        python_tutorial = Path(
-            "ppar/demos/data/axysapx_performance_comparison/PYTHON_TUTORIAL.md"
-        ).read_text(encoding=util.ENCODING)
-        self.assertIn("run_analytics", python_tutorial)
-        self.assertIn("run_report", python_tutorial)
-        self.assertIn("report=\"portfolio\"", python_tutorial)
+        self.assertTrue(Path("ppar/demos/data/axysapx_analytics/run_analytics.py").exists())
+        self.assertTrue(
+            Path(
+                "ppar/demos/data/axysapx_performance_comparison/"
+                "run_portfolio_comparison.py"
+            ).exists()
+        )
+        self.assertTrue(
+            Path(
+                "ppar/demos/data/axysapx_performance_comparison/"
+                "run_security_comparison.py"
+            ).exists()
+        )
 
     def test_repository_readme_points_axys_users_to_setup(self) -> None:
         """The top-level performance-comparison path starts with setup."""
@@ -925,8 +933,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("default report/workbook review order starts", roadmap)
         self.assertIn("optional", roadmap)
         self.assertIn("reconstruction diagnostics stay opt-in", roadmap)
-        self.assertIn("Phase 82: Setup Raw-Python Tutorial", roadmap)
-        self.assertIn("installs a short raw-Python tutorial", roadmap)
+        self.assertIn("Phase 82: Setup Python Runner Scripts", roadmap)
+        self.assertIn("installs optional Python runner scripts", roadmap)
         self.assertIn("Phase 84: Open-Item Reconciliation", roadmap)
         self.assertIn("Standing maintenance criteria", roadmap)
         self.assertIn("Phase 85: Documentation Freshness Guardrail Sweep", roadmap)

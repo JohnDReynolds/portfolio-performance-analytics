@@ -139,10 +139,13 @@ ppar = [
     "demos/data/generic_analytics/classifications/*.csv",
     "demos/data/generic_analytics/mappings/*.csv",
     "demos/data/generic_analytics/performance/*.csv",
+    "demos/data/generic_analytics/*.py",
     "demos/data/axysapx_analytics/*.yaml",
     "demos/data/axysapx_analytics/*.csv",
+    "demos/data/axysapx_analytics/*.py",
     "demos/data/axysapx_performance_comparison/*.yaml",
     "demos/data/axysapx_performance_comparison/*.md",
+    "demos/data/axysapx_performance_comparison/*.py",
     "demos/data/axysapx_performance_comparison/*/*.csv",
 ]
 
