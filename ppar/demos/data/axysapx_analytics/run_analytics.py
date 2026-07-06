@@ -1,19 +1,20 @@
 """Run the local PPAR analytics setup from Python.
 
 This script is installed by ``ppar setup`` next to ``ppar.yaml`` and the
-analytics CSV files. It is intentionally small: keep site-specific choices in
-``ppar.yaml`` so scheduled jobs can stay stable while configuration changes.
+analytics CSV files. It keeps the workflow visible: load data, calculate
+analytics, write review files, and print the files to open.
 """
 
 from __future__ import annotations
 
 # Python imports
-import os
 from pathlib import Path
-import tempfile
 
 # Project imports
-from ppar._chart_console import quiet_matplotlib_startup
+from ppar.analytics.attribution import Chart, View
+from ppar.analytics.frequency import Frequency
+from ppar.axys import AxysData
+import ppar.utilities as util
 
 
 SITE_DIRECTORY = Path(__file__).resolve().parent
@@ -24,55 +25,73 @@ OUTPUT_DIRECTORY = SITE_DIRECTORY / "output"
 # for an automation-specific override, but most sites should change the YAML.
 PORTFOLIO_CODE = "MEGA_ALPHA"
 BENCHMARK_CODE = "MEGA_BENCH"
-FREQUENCY = "quarterly"
-CLASSIFICATION_NAME = "Economic Sector"
+FREQUENCY = Frequency.QUARTERLY
 
 
 def main() -> None:
     """Create analytics output from the local setup-site CSV files."""
-    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    source_data = AxysData(CONFIG_PATH)
+    portfolio = source_data.get_portfolio(PORTFOLIO_CODE)
+    benchmark = source_data.get_portfolio(BENCHMARK_CODE)
+    analytics = portfolio.to_analytics(benchmark, frequency=FREQUENCY)
 
-    # Chart rendering libraries can create small cache files. Keep those cache
-    # files in a temporary folder so the setup directory stays clean.
-    original_cache_env = {
-        "MPLCONFIGDIR": os.environ.get("MPLCONFIGDIR"),
-        "XDG_CACHE_HOME": os.environ.get("XDG_CACHE_HOME"),
-    }
-    try:
-        with tempfile.TemporaryDirectory(prefix="ppar_chart_cache_") as cache_directory:
-            cache_path = Path(cache_directory)
-            os.environ.setdefault("MPLCONFIGDIR", str(cache_path / "matplotlib"))
-            os.environ.setdefault("XDG_CACHE_HOME", str(cache_path / "cache"))
-            quiet_matplotlib_startup()
+    written_paths: list[Path] = []
 
-            # Import after chart cache settings are in place. Some chart
-            # dependencies read cache-related environment variables at import.
-            from ppar.axys import AxysData
-            from ppar.demos.analytics_demo_outputs import (
-                demo_frequency_from_string,
-                print_analytics_demo_handoff,
-                write_analytics_demo_outputs,
-            )
+    attribution_by_security = analytics.get_attribution("Security")
+    written_paths.append(
+        _write_html(
+            "security_overall_attribution.html",
+            attribution_by_security.to_html(View.OVERALL_ATTRIBUTION),
+        )
+    )
 
-            source_data = AxysData(CONFIG_PATH)
-            portfolio = source_data.get_portfolio(PORTFOLIO_CODE)
-            benchmark = source_data.get_portfolio(BENCHMARK_CODE)
-            analytics = portfolio.to_analytics(
-                benchmark,
-                frequency=demo_frequency_from_string(FREQUENCY),
+    attribution_by_sector = analytics.get_attribution()
+    for view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
+        written_paths.append(
+            _write_html(
+                f"sector_{view.name.lower()}.html",
+                attribution_by_sector.to_html(view),
             )
-            written_paths = write_analytics_demo_outputs(
-                analytics,
-                OUTPUT_DIRECTORY,
-                sector_classification_name=CLASSIFICATION_NAME,
+        )
+
+    for chart in (
+        Chart.OVERALL_CONTRIBUTION,
+        Chart.OVERALL_ATTRIBUTION,
+        Chart.SUBPERIOD_ATTRIBUTION,
+        Chart.HEATMAP_ACTIVE_CONTRIBUTION,
+        Chart.HEATMAP_ATTRIBUTION,
+        Chart.CUMULATIVE_ATTRIBUTION,
+        Chart.CUMULATIVE_RETURN,
+    ):
+        written_paths.append(
+            _write_png(
+                f"sector_{chart.name.lower()}.png",
+                attribution_by_sector.to_chart(chart),
             )
-            print_analytics_demo_handoff(OUTPUT_DIRECTORY, written_paths)
-    finally:
-        for key, original_value in original_cache_env.items():
-            if original_value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = original_value
+        )
+
+    risk_statistics = analytics.get_riskstatistics()
+    written_paths.append(_write_html("risk_statistics.html", risk_statistics.to_html()))
+
+    print("Open these files to review analytics output:")
+    for path in written_paths:
+        print(f"  {path.resolve()}")
+
+
+def _write_html(file_name: str, html: str) -> Path:
+    """Write one HTML review file."""
+    path = OUTPUT_DIRECTORY / file_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding=util.ENCODING)
+    return path
+
+
+def _write_png(file_name: str, png: bytes) -> Path:
+    """Write one PNG chart file."""
+    path = OUTPUT_DIRECTORY / file_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(png)
+    return path
 
 
 if __name__ == "__main__":

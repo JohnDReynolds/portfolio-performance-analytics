@@ -1018,6 +1018,9 @@ class Attribution:
             ModuleNotFoundError: If chart rendering dependencies are not installed.
         """
         # Keep chart rendering code out of normal imports until chart output is requested.
+        from ppar._chart_console import prepare_chart_rendering
+
+        prepare_chart_rendering()
         try:
             from ppar.analytics import format_chart  # pylint: disable=import-outside-toplevel
         except ModuleNotFoundError as error:

@@ -217,6 +217,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue((analytics_path / "portperf.csv").exists())
             self.assertTrue((analytics_path / "secperf.csv").exists())
             self.assertTrue((analytics_path / "run_analytics.py").exists())
+            analytics_script = (analytics_path / "run_analytics.py").read_text(
+                encoding="utf-8"
+            )
+            self.assertNotIn("ppar.demos", analytics_script)
+            self.assertNotIn("TemporaryDirectory", analytics_script)
+            self.assertNotIn("MPLCONFIGDIR", analytics_script)
             self.assertTrue(
                 (comparison_path / "run_portfolio_comparison.py").exists()
             )
@@ -356,6 +362,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue(
                 (generic_directory / "run_generic_analytics.py").exists()
             )
+            generic_script = (
+                generic_directory / "run_generic_analytics.py"
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("ppar.demos", generic_script)
+            self.assertNotIn("TemporaryDirectory", generic_script)
+            self.assertNotIn("MPLCONFIGDIR", generic_script)
             self.assertTrue(
                 (
                     generic_directory

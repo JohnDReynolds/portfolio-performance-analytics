@@ -511,6 +511,20 @@ class TestPackageMetadata(unittest.TestCase):
             ).exists()
         )
 
+    def test_user_installed_analytics_paths_do_not_depend_on_demos(self) -> None:
+        """Installed analytics entrypoints avoid maintainer demo helper modules."""
+        paths = [
+            Path("ppar/analytics/cli.py"),
+            Path("ppar/demos/data/axysapx_analytics/run_analytics.py"),
+            Path("ppar/demos/data/generic_analytics/run_generic_analytics.py"),
+        ]
+
+        for path in paths:
+            with self.subTest(path=path.as_posix()):
+                text = path.read_text(encoding=util.ENCODING)
+                self.assertNotIn("ppar.demos", text)
+                self.assertNotIn("analytics_demo_outputs", text)
+
     def test_repository_readme_points_axys_users_to_setup(self) -> None:
         """The top-level performance-comparison path starts with setup."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
