@@ -99,6 +99,9 @@ Completed guardrails now cover:
   `pyproject.toml` as the single package-version authority; the maintainer
   made an explicit version decision and selected `0.1.5` as the next release
   candidate version before tagging;
+- the `0.1.5` distribution artifacts passed `twine check`, metadata and
+  package-content inspection, and installed-wheel command smoke with the
+  declared runtime dependency set available;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3196,6 +3199,34 @@ Release-tag readiness for `v0.1.5` requires:
 - fresh wheel/sdist build succeeding;
 - built metadata reporting `Version: 0.1.5`; and
 - a clean working tree before creating the local tag.
+
+### Phase 91: Publish Dry Run And Final Artifact Audit
+
+Status: complete for the local `0.1.5` publish dry run.
+
+The local `dist/ppar-0.1.5.tar.gz` and `dist/ppar-0.1.5-py3-none-any.whl`
+artifacts passed `twine check`. Wheel metadata reported `Name: ppar`,
+`Version: 0.1.5`, and `Requires-Python: >=3.12.1`; `entry_points.txt` exposed
+only `ppar = ppar.cli:main`.
+
+Package-content inspection confirmed:
+
+- Axys/APX analytics starter data is present in the wheel;
+- Axys/APX performance-comparison Snapshot A/B starter data is present in the
+  wheel;
+- `_demo_output`, `tests`, `docs`, former `axys` demo parent paths, and removed
+  `RESTATEMENT_NOTES.md` files are absent from the wheel;
+- the source distribution contains `pyproject.toml`; and
+- checkout-maintenance scripts remain source-distribution material, not wheel
+  package data.
+
+The built wheel was installed into a temporary environment from `dist/` with
+`--no-deps`. `ppar --help`, `ppar setup`, and `ppar analytics` passed. As
+expected for a no-deps install, `ppar performance_comparison` reported that
+`openpyxl` is required. Rerunning with the already-installed local dependency
+set available completed both portfolio and security workbook generation.
+
+No artifact was uploaded and no tag was pushed.
 
 ## Guiding Principle
 
