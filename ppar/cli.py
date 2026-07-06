@@ -27,6 +27,9 @@ def main(argv: list[str] | None = None) -> int:
         Process exit code from the selected subcommand.
     """
     effective_argv = sys.argv[1:] if argv is None else argv
+    if not effective_argv:
+        print(_top_level_onboarding())
+        return 0
     if _is_top_level_help_request(effective_argv):
         print(_top_level_help())
         return 0
@@ -67,6 +70,23 @@ def _top_level_help() -> str:
         "  ppar setup ./my_ppar_data\n"
         "  ppar analytics ./my_ppar_data/analytics\n"
         "  ppar performance_comparison ./my_ppar_data/performance_comparison"
+    )
+
+
+def _top_level_onboarding() -> str:
+    """Return the first-run handoff for users who type ``ppar``."""
+    return (
+        "PPAR creates Axys/APX analytics and performance-comparison reports.\n"
+        "\n"
+        "First-time setup:\n"
+        "  ppar setup ./my_ppar_data\n"
+        "\n"
+        "Then run:\n"
+        "  ppar analytics ./my_ppar_data/analytics\n"
+        "  ppar performance_comparison ./my_ppar_data/performance_comparison\n"
+        "\n"
+        "For command help:\n"
+        "  ppar -h"
     )
 
 

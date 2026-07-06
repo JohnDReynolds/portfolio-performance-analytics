@@ -132,6 +132,29 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertNotIn("After setup", result.stdout)
         self.assertEqual(result.stderr, "")
 
+    def test_top_level_ppar_cli_without_args_prints_first_run_handoff(self) -> None:
+        """Typing ``ppar`` gives new users the setup command, not parser noise."""
+        result = subprocess.run(
+            _module_command(_PPAR_MODULE),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn(
+            "PPAR creates Axys/APX analytics and performance-comparison reports.",
+            result.stdout,
+        )
+        self.assertIn("First-time setup:", result.stdout)
+        self.assertIn("ppar setup ./my_ppar_data", result.stdout)
+        self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
+        self.assertIn(
+            "ppar performance_comparison ./my_ppar_data/performance_comparison",
+            result.stdout,
+        )
+        self.assertNotIn("usage:", result.stdout)
+        self.assertEqual(result.stderr, "")
+
     def test_setup_guide_prints_without_creating_files(self) -> None:
         """Installed users can print setup guidance without knowing package paths."""
         result = subprocess.run(
@@ -727,11 +750,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Run from the analytics folder or pass the folder.",
                 analytics_result.stderr,
             )
+            self.assertIn("ppar setup ./my_ppar_data", analytics_result.stderr)
             self.assertIn("Report failed:", comparison_result.stderr)
             self.assertIn(
                 "Run from the performance_comparison folder or pass the folder.",
                 comparison_result.stderr,
             )
+            self.assertIn("ppar setup ./my_ppar_data", comparison_result.stderr)
 
     def test_top_level_commands_default_inside_workflow_folders(self) -> None:
         """Production commands can default to cwd inside their configured folder."""

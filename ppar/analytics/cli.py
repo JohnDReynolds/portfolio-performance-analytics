@@ -164,7 +164,8 @@ def _load_config_values(config_path: Path) -> dict[str, Any]:
     if not config_path.exists():
         raise PpaError(
             f"{config_path} does not exist. Run from the analytics folder "
-            "or pass the folder.",
+            "or pass the folder. For first-time setup, run: "
+            "ppar setup ./my_ppar_data",
             504,
         )
     with open(config_path, "r", encoding=util.ENCODING) as file:

@@ -86,7 +86,8 @@ def run_report(
     if not config_path.exists():
         raise PpaError(
             f"{config_path} is missing. Run from the performance_comparison folder "
-            "or pass the folder.",
+            "or pass the folder. For first-time setup, run: "
+            "ppar setup ./my_ppar_data",
             802,
         )
 
