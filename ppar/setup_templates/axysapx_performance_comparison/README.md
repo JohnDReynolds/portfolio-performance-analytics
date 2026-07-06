@@ -3,11 +3,35 @@
 The packaged Axys/APX demo data contains only user-facing demo inputs. Test-only
 performance comparison scenarios live under `tests/data/axys`.
 
-Start with [SETUP.md](SETUP.md) when onboarding an Axys/APX
-site. That file separates one-time setup from normal report generation: run
-`ppar setup`, review the copied analytics and performance-comparison folders,
-then use `ppar analytics` and `ppar performance_comparison` for repeatable
-output packages.
+For onboarding, run setup once to create a local starter workspace:
+
+```bash
+ppar setup ./my_ppar_data
+```
+
+Setup copies starter files into:
+
+```text
+my_ppar_data/
+  README.md
+  analytics/
+    run_analytics.py
+  performance_comparison/
+    run_portfolio_comparison.py
+    run_security_comparison.py
+```
+
+The setup command prints the repeatable run commands for the copied folders:
+
+```bash
+ppar analytics ./my_ppar_data/analytics
+ppar performance_comparison ./my_ppar_data/performance_comparison
+```
+
+`ppar perfcomp` is a shorter alias for `ppar performance_comparison`.
+Open `my_ppar_data/README.md`, section `Customizing`, when you are ready to
+replace the starter CSV files with your own Axys/APX IMEX or export data.
+Existing files are kept unless you pass `--overwrite`.
 
 ## Comparison YAML
 
@@ -58,10 +82,10 @@ ppar performance_comparison ./my_ppar_data/performance_comparison --report portf
 
 Output:
 
-- `_demo_output/performance_comparison_portfolio/report.xlsx`
-- `_demo_output/performance_comparison_portfolio/report.html`
-- `_demo_output/performance_comparison_portfolio/manifest.json`
-- `_demo_output/performance_comparison_portfolio/*.csv`
+- `my_ppar_data/performance_comparison/output/portfolio/report.xlsx`
+- `my_ppar_data/performance_comparison/output/portfolio/report.html`
+- `my_ppar_data/performance_comparison/output/portfolio/manifest.json`
+- `my_ppar_data/performance_comparison/output/portfolio/*.csv`
 
 Run the security comparison from a setup workspace when you want the
 security-period reviewer-facing example:
@@ -72,10 +96,10 @@ ppar performance_comparison ./my_ppar_data/performance_comparison --report secur
 
 Output:
 
-- `_demo_output/performance_comparison_security/report.xlsx`
-- `_demo_output/performance_comparison_security/report.html`
-- `_demo_output/performance_comparison_security/manifest.json`
-- `_demo_output/performance_comparison_security/*.csv`
+- `my_ppar_data/performance_comparison/output/security/report.xlsx`
+- `my_ppar_data/performance_comparison/output/security/report.html`
+- `my_ppar_data/performance_comparison/output/security/manifest.json`
+- `my_ppar_data/performance_comparison/output/security/*.csv`
 
 Open `report.xlsx` when present. Use `report.html` for browser review, and keep
 the CSV artifacts for supplementary diagnostics and audit traceability. The
@@ -217,9 +241,9 @@ After generating the workbook demo bundle, validate it with:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_portfolio
+  my_ppar_data/performance_comparison/output/portfolio
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  _demo_output/performance_comparison_security
+  my_ppar_data/performance_comparison/output/security
 ```
 
 For a full packaged-demo health pass from a source checkout, maintainers can use

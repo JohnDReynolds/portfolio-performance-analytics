@@ -2930,15 +2930,15 @@ design-only and parked in Eventual Deliverables.
 
 Status: complete for the first-client-segment onboarding path.
 
-The packaged Axys/APX demo now has `SETUP.md` as the front door for Axys/APX
-performance-comparison onboarding. The setup guide is intentionally procedural:
-confirm source files, copy the vanilla Axys/APX YAML, validate before report
-generation, keep core transaction types conservative, generate portfolio and
-security report bundles, review the workbook in order, and iterate local
-overrides one at a time.
+The packaged Axys/APX demo now keeps one-time setup guidance in the template
+README for Axys/APX performance-comparison onboarding. The setup guidance is
+intentionally procedural: run `ppar setup`, confirm copied source files, validate
+before report generation, keep core transaction types conservative, generate
+portfolio and security report bundles, review the workbook in order, and iterate
+local overrides one at a time.
 
-The packaged demo README points new users to that setup guide before the longer
-demo reference material. The sample YAML now includes practical comments about
+The packaged demo README presents that setup guidance before the longer demo
+reference material. The sample YAML now includes practical comments about
 the first site edits: change snapshot paths and schema mapping, keep filenames
 separate from column mapping, run `validate_config`, and avoid guessing at
 ambiguous Axys/APX transaction codes without site evidence. This phase did not

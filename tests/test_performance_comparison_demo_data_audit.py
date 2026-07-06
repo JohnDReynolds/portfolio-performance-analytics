@@ -53,8 +53,7 @@ _RENDER_EXTRACT_AVAILABILITY_SCRIPT_PATH = (
 _PACKAGED_COMPARISON_PATH = (
     _REPO_ROOT
     / "ppar"
-    / "demos"
-    / "data"
+    / "setup_templates"
     / "axysapx_performance_comparison"
     / "axysapx_performance_comparison.yaml"
 )
@@ -62,7 +61,7 @@ _DEMO_SOURCE_CONTRACT_PATH = (
     _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 )
 _PACKAGED_AXYS_DIRECTORY = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
+    _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
 _DEMO_EXTRACT_AVAILABILITY_PATH = (

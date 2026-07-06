@@ -19,8 +19,7 @@ _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_SOURCE_PATH: Final = (
     _REPO_ROOT
     / "ppar"
-    / "demos"
-    / "data"
+    / "setup_templates"
     / "generic_analytics"
     / "performance"
     / "Mega-Cap Alpha Portfolio.csv"
@@ -31,8 +30,7 @@ _DEFAULT_OUTPUT_DIRECTORY: Final = (
 _AXYS_SCHEMA_PATH: Final = (
     _REPO_ROOT
     / "ppar"
-    / "demos"
-    / "data"
+    / "setup_templates"
     / "axysapx_performance_comparison"
     / "axysapx_column_mappings.yaml"
 )

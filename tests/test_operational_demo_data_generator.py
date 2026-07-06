@@ -20,8 +20,7 @@ _GENERATOR_PATH = (
 _SOURCE_PATH = (
     _REPO_ROOT
     / "ppar"
-    / "demos"
-    / "data"
+    / "setup_templates"
     / "generic_analytics"
     / "performance"
     / "Mega-Cap Alpha Portfolio.csv"

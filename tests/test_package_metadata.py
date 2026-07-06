@@ -467,15 +467,11 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_packaged_axys_setup_documents_onboarding_path(self) -> None:
         """The packaged Axys setup stays action-oriented for site onboarding."""
-        setup_doc = Path("ppar/setup_templates/axysapx_performance_comparison/SETUP.md").read_text(
-            encoding=util.ENCODING
-        )
         readme = Path("ppar/setup_templates/axysapx_performance_comparison/README.md").read_text(
             encoding=util.ENCODING
         )
 
         for expected_text in [
-            "PPAR Axys/APX Setup",
             "ppar setup ./my_ppar_data",
             "ppar analytics ./my_ppar_data/analytics",
             "ppar performance_comparison ./my_ppar_data/performance_comparison",
@@ -491,10 +487,10 @@ class TestPackageMetadata(unittest.TestCase):
             "--overwrite",
         ]:
             with self.subTest(expected_text=expected_text):
-                self.assertIn(expected_text, setup_doc)
-        self.assertNotIn("ppar setup --guide", setup_doc)
+                self.assertIn(expected_text, readme)
 
-        self.assertIn("SETUP.md", readme)
+        self.assertNotIn("SETUP.md", readme)
+        self.assertNotIn("ppar setup --guide", readme)
         self.assertTrue(Path("ppar/setup_templates/axysapx_analytics/run_analytics.py").exists())
         self.assertTrue(
             Path(
@@ -1698,7 +1694,6 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = demo_data / "axysapx_performance_comparison"
         expected_resources = (
             "README.md",
-            "SETUP.md",
             "axysapx_column_mappings.yaml",
             "axysapx_performance_comparison.yaml",
             "snapshot_a/portperf.csv",

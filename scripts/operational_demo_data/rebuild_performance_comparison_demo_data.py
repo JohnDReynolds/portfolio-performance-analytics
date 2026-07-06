@@ -47,7 +47,7 @@ from ppar.performance_comparison.workbook_tables import (
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_AXYS_DIRECTORY: Final = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
+    _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )
 _DEFAULT_COMPARISON_PATH: Final = (
     _DEFAULT_AXYS_DIRECTORY / "axysapx_performance_comparison.yaml"

@@ -53,8 +53,8 @@ The project uses `_demo_output/` as the shared generated-demo output root:
 - `_demo_output/axysapx_analytics`
 - `_demo_output/performance_comparison_portfolio`
 
-All installed demos write artifacts under these directories and print the paths
-to review. They do not open browser windows automatically.
+Source-checkout demo and smoke commands write artifacts under these directories
+and print the paths to review. They do not open browser windows automatically.
 
 The packaged performance comparison demo is documented in
 [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md):

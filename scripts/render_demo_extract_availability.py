@@ -14,8 +14,7 @@ _REPO_ROOT: Final = Path(__file__).resolve().parents[1]
 _DEFAULT_CONTRACT_PATH: Final = (
     _REPO_ROOT
     / "ppar"
-    / "demos"
-    / "data"
+    / "setup_templates"
     / "axysapx_performance_comparison"
     / "demo_extract_availability.yaml"
 )

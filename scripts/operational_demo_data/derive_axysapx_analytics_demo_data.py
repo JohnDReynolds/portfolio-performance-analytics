@@ -10,11 +10,11 @@ import pandas as pd
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_GENERIC_ANALYTICS_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "generic_analytics"
+_GENERIC_ANALYTICS_DIR = _REPO_ROOT / "ppar" / "setup_templates" / "generic_analytics"
 _PERFORMANCE_DIR = _GENERIC_ANALYTICS_DIR / "performance"
 _CLASSIFICATION_DIR = _GENERIC_ANALYTICS_DIR / "classifications"
 _MAPPING_DIR = _GENERIC_ANALYTICS_DIR / "mappings"
-_OUTPUT_DIR = _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_analytics"
+_OUTPUT_DIR = _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_analytics"
 _PORTFOLIOS = {
     "MEGA_ALPHA": {
         "file_name": "Mega-Cap Alpha Portfolio.csv",
