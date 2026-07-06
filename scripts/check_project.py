@@ -60,8 +60,8 @@ def _run(command: Sequence[str | Path]) -> None:
     print(f"\n==> {_format_command(command)}", flush=True)
     _MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
-    env.setdefault("XDG_CACHE_HOME", str(_CHECK_CACHE_DIR))
-    env.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+    env["XDG_CACHE_HOME"] = str(_CHECK_CACHE_DIR)
+    env["MPLCONFIGDIR"] = str(_MPLCONFIGDIR)
     subprocess.run(
         [str(part) for part in command],
         cwd=_PROJECT_ROOT,
