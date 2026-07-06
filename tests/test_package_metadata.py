@@ -199,6 +199,28 @@ def _yaml_string_list(value: object, *, label: str) -> list[str]:
     return cast(list[str], value)
 
 
+def _package_data_patterns(pyproject: dict[str, object]) -> list[str]:
+    """Return package-data patterns as paths relative to the repository root."""
+    setuptools_config = _yaml_mapping(pyproject["tool"], label="tool")
+    setuptools_config = _yaml_mapping(
+        setuptools_config["setuptools"],
+        label="tool.setuptools",
+    )
+    package_data = _yaml_mapping(
+        setuptools_config["package-data"],
+        label="tool.setuptools.package-data",
+    )
+    patterns: list[str] = []
+    for package_name, package_patterns in package_data.items():
+        package_path = str(package_name).replace(".", "/")
+        for pattern in _yaml_string_list(
+            package_patterns,
+            label=f"tool.setuptools.package-data.{package_name}",
+        ):
+            patterns.append(f"{package_path}/{pattern}")
+    return patterns
+
+
 def _transaction_codes_in_csv(path: Path) -> set[str]:
     """Return lowercase transaction codes from a fixture CSV."""
     with path.open(encoding=util.ENCODING, newline="") as file:
@@ -355,7 +377,7 @@ class TestPackageMetadata(unittest.TestCase):
         """Wheel package-data exposes demo inputs, not source-checkout tooling."""
         with open("pyproject.toml", "rb") as file:
             pyproject = tomllib.load(file)
-        package_data_patterns = pyproject["tool"]["setuptools"]["package-data"]["ppar"]
+        package_data_patterns = _package_data_patterns(pyproject)
 
         forbidden_fragments = (
             "_demo_output",
@@ -377,11 +399,12 @@ class TestPackageMetadata(unittest.TestCase):
         """Every packaged demo resource is covered by explicit package-data globs."""
         with open("pyproject.toml", "rb") as file:
             pyproject = tomllib.load(file)
-        package_data_patterns = pyproject["tool"]["setuptools"]["package-data"]["ppar"]
+        package_data_patterns = _package_data_patterns(pyproject)
         demo_resource_paths = [
-            path.relative_to("ppar").as_posix()
+            path.as_posix()
             for path in Path("ppar/setup_templates").rglob("*")
             if path.is_file() and "__pycache__" not in path.parts
+            and path.name != "__init__.py"
         ]
 
         self.assertGreater(len(demo_resource_paths), 0)
@@ -1682,6 +1705,18 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("ppar.axys", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn("ppar.analytics", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn("ppar.setup_templates", pyproject["tool"]["setuptools"]["packages"])
+        self.assertIn(
+            "ppar.setup_templates.axysapx_analytics",
+            pyproject["tool"]["setuptools"]["packages"],
+        )
+        self.assertIn(
+            "ppar.setup_templates.axysapx_performance_comparison",
+            pyproject["tool"]["setuptools"]["packages"],
+        )
+        self.assertIn(
+            "ppar.setup_templates.generic_analytics",
+            pyproject["tool"]["setuptools"]["packages"],
+        )
         self.assertNotIn("ppar.demos", pyproject["tool"]["setuptools"]["packages"])
         self.assertIn(
             "ppar.performance_comparison",
