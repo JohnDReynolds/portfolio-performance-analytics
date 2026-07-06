@@ -183,7 +183,7 @@ clearly than the existing packaged and site-variant fixtures.
 | --- | --- | --- |
 | Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys/APX demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys/APX behavior; it is versioned, tied to the accepted packaged Axys/APX demo/source contract, and still fails hard when required site-specific context is missing. |
 | Axys/APX Python package boundary | Consider renaming the importable `ppar.axys` package to `ppar.axysapx` so the public Python API matches the Axys/APX product positioning. Treat this as a deliberate API rename, not a mechanical docs cleanup. | Imports, pyproject package metadata, tests, docs, and examples all use the chosen package boundary. Decide explicitly whether `ppar.axys` remains as a short-lived compatibility shim or is removed before first public PyPI release. Class names may remain `Axys...` initially if that keeps the change focused. Keep this separate from the future `vendor: axys` YAML keyword, which can remain unchanged until preset semantics are implemented. |
-| Generic analytics removal | Eventually remove the `generic_analytics` packaged dataset and smoke module if the Axys/APX analytics setup fully replaces its remaining maintainer roles. Do not delete it casually: it currently feeds README marketing images, analytics regression tests, optional-value tests, and operational Axys/APX demo-data derivation. | Removal is safe only after README image rendering uses Axys/APX analytics inputs, tests no longer depend on generic demo data, operational derivation scripts use another accepted source universe, package-data globs are simplified, and docs no longer reference generic analytics as active infrastructure. Until then, keep it as maintainer-only infrastructure rather than user-facing onboarding. |
+| Generic analytics removal | Eventually remove the `generic_analytics` packaged dataset and optional setup script if the Axys/APX analytics setup fully replaces its remaining maintainer roles. Do not delete it casually: it currently feeds README marketing images, analytics regression tests, optional-value tests, and operational Axys/APX demo-data derivation. | Removal is safe only after README image rendering uses Axys/APX analytics inputs, tests no longer depend on generic demo data, operational derivation scripts use another accepted source universe, package-data globs are simplified, and docs no longer reference generic analytics as active infrastructure. Until then, keep it as maintainer-only infrastructure rather than user-facing onboarding. |
 | Report packaging | Maybe add optional report packaging that combines multiple HTML reports and image files into a single PDF handoff package. | PDF generation is opt-in, preserves the existing HTML/XLSX/PNG artifacts as first-class outputs, documents its rendering dependencies, and produces stable page ordering suitable for client review packets. |
 | Analytics demo tuning | Revisit the Mega-Cap Alpha vs Mega-Cap Benchmark analytics demo to make the marketing story even stronger. The current demo is compelling, but it may be better if allocation effect is more visible and overall outperformance is modestly higher. | Updated demo data still feels realistic, preserves clear benchmark-relative attribution, and produces refreshed README images. Allocation effect becomes easier to see without making the story look contrived. |
 | Tested site override profiles | Create user-friendly, tested candidate override profiles for Axys/APX transaction families that are plausible but not safe enough for the core `vendor: axys` preset. Candidate profiles may include fixed-income accrued interest, margin or negative interest, principal paydown, return of capital, short sale/cover short, and cash-journal patterns. | Each profile has sample source rows, YAML rules, expected normalized semantics, confidence labels, required evidence, and tests. Documentation clearly separates conservative preset defaults from copy/adapt override examples, warns that candidate profiles require site confirmation, and helps onboarding users choose profiles when unmapped transaction codes appear. |
@@ -3038,8 +3038,8 @@ users.
 
 Status: complete for the current public onboarding boundary.
 
-The `generic_analytics` dataset and smoke module are retained, but their role is
-now explicitly maintainer-facing:
+The `generic_analytics` dataset and optional setup script are retained, but
+their role is now explicitly maintainer-facing:
 
 - they feed README marketing images;
 - they support analytics regression and optional-value tests;
@@ -3053,7 +3053,7 @@ with `ppar setup`, which copies the Axys/APX `analytics` and
 also use those Axys/APX setup folders rather than the generic demo module.
 
 The generic refresh guide and demo-data README now state this boundary directly.
-No generic data or smoke modules were deleted because they still serve the
+No generic data or setup scripts were deleted because they still serve the
 README, tests, and maintainer refresh workflow.
 
 ### Phase 84: Open-Item Reconciliation And Release Backlog Slimming

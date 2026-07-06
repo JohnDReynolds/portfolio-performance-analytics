@@ -8,7 +8,7 @@ many disconnected entry points.
 
 | Need | Start With | Why |
 | --- | --- | --- |
-| Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and common smoke tests. |
+| Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and user-facing outputs. |
 | Architecture map | [`docs/architecture.md`](architecture.md) | Compact map of the installed command surface, package boundaries, data flow, setup data, and report boundary. |
 | Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
 | PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
@@ -26,8 +26,7 @@ many disconnected entry points.
 | `ppar/analytics/` | Core analytics engine, analytics column schema, attribution, contribution, and risk calculations. |
 | `ppar/axys/` | Axys/APX-specific ingestion and normalization support. |
 | `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
-| `ppar/demos/` | Demo modules used by public setup files and maintainer smoke tests. |
-| `ppar/setup_templates/` | Packaged demo inputs shipped with source distributions and wheels. |
+| `ppar/setup_templates/` | Packaged setup inputs and tutorial scripts shipped with source distributions and wheels. |
 | `ppar/setup_templates/axysapx_performance_comparison/` | Packaged user-facing Axys/APX demo snapshots and comparison YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
@@ -40,12 +39,12 @@ many disconnected entry points.
 
 | File | Audience | Contents |
 | --- | --- | --- |
-| [`README.md`](../README.md) | New users and maintainers | Package overview, installation, public setup commands, performance-comparison smoke tests, and project checks. |
+| [`README.md`](../README.md) | New users | Package overview, installation, public setup commands, and user-facing outputs. |
 | [`docs/architecture.md`](architecture.md) | Maintainers | Compact architecture map for commands, package boundaries, data flow, setup data, and report boundaries. |
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
 | [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
-| [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, maintainer smoke modules, and expected workbook outputs. |
+| [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, setup-installed Python runners, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys/APX snapshots, test-only comparison YAML files, and validation matrix fixtures. |
 | Snapshot README files under `tests/data/axys/snapshots/*/README.md` | Test authors | Small notes about individual synthetic snapshot directories. |
 
@@ -121,7 +120,7 @@ workflows. Broader scenario coverage lives under `tests/data/axys`.
 
 | Role | YAML | Snapshot A | Snapshot B | Use |
 | --- | --- | --- | --- | --- |
-| Workbook demos | `axysapx_performance_comparison.yaml` | `snapshot_a` | `snapshot_b` | Shared portfolio/security demo spec. Internal smoke modules select the primary review level. |
+| Workbook demos | `axysapx_performance_comparison.yaml` | `snapshot_a` | `snapshot_b` | Shared portfolio/security demo spec. Setup-generated scripts select the primary review level. |
 
 For the maintained XLSX workbook smoke paths and expected output, use
 [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md).

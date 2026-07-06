@@ -2622,7 +2622,7 @@ Safe `pa`/`sa` treatment should verify:
 - holdings/accrued-interest movement; and
 - security-performance and portfolio-performance treatment.
 
-The packaged Axys demo promotes `pa`/`sa` only in that coherent paired
+The packaged Axys/APX demo promotes `pa`/`sa` only in that coherent paired
 fixed-income scenario: accrued-interest transaction rows, cash movement,
 holdings/accrued-interest rows, `secperf.csv`, `portperf.csv`, and
 reviewer-facing report comments are derived together. That is a demo-quality

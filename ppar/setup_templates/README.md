@@ -1,7 +1,8 @@
 # Packaged Demo Data
 
-This directory contains CSV inputs used by packaged setup templates, maintainer
-smoke modules, and README image generation. The public onboarding path starts
+This directory contains CSV inputs, YAML files, and Python runner scripts used
+by packaged setup templates, maintainer checks, and README image generation.
+The public onboarding path starts
 with the Axys/APX workspace created by `ppar setup ./my_ppar_data`.
 
 ## Axys/APX Starter Data
@@ -37,8 +38,8 @@ returns as its cash-return proxy.
 
 ## Refresh Notes
 
-The packaged CSVs are the source of truth for the generic analytics smoke
-module, `README.md`, README images under `docs/images/readme/`, and selected
+The packaged CSVs are the source of truth for the optional generic analytics
+setup script, `README.md`, README images under `docs/images/readme/`, and selected
 operational demo derivation scripts. Refresh helpers live under
 `scripts/generic_analytics_demo_data/`; generated files under
 `_demo_output/generic_analytics_data_generation/` are cache/provenance output,

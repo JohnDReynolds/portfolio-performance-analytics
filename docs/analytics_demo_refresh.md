@@ -184,7 +184,7 @@ Run the full test suite:
 Before committing, check:
 
 - README story matches regenerated image titles and values.
-- The generic analytics smoke module uses the same packaged files.
+- The optional generic analytics setup script uses the same packaged files.
 - `scripts/render_readme_images.py` uses the same packaged files.
 - `ppar/setup_templates/README.md` documents source provenance and any date
   substitutions.
