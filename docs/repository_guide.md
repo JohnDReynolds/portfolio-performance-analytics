@@ -59,6 +59,7 @@ source checkout with `./.venv/bin/python -m <module>`.
 
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
+| `scripts/check_release_candidate.py` | Runs the maintained release-candidate demo, setup, packaging, and health-check sequence. | `./.venv/bin/python scripts/check_release_candidate.py --build` |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
 | `scripts/check_performance_comparison_demo_health.py` | Runs packaged performance-comparison demo guardrails. | `./.venv/bin/python scripts/check_performance_comparison_demo_health.py` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
@@ -128,6 +129,37 @@ For the validation fixture matrix, use
 [`tests/data/axys/README.md`](../tests/data/axys/README.md).
 
 ## Common Workflows
+
+### Run Release-Candidate Checks
+
+Use the release-candidate script instead of pasting the long demo refresh and
+health-check command list into a shell:
+
+```bash
+./.venv/bin/python scripts/check_release_candidate.py --build
+```
+
+The default path is intentionally deterministic: it audits packaged demo data,
+checks generated Axys/APX extract-availability docs, builds and validates
+portfolio/security report bundles under `_demo_output/`, runs setup-generated
+smoke scripts in a temporary site directory, validates the scenario matrix, and
+then runs the project check. It does not contact Yahoo for generic analytics
+data generation and does not rewrite tracked packaged CSV assets.
+
+Use these opt-in switches only when the intent is explicit:
+
+```bash
+./.venv/bin/python scripts/check_release_candidate.py \
+  --include-generic-data-generation
+
+./.venv/bin/python scripts/check_release_candidate.py \
+  --write-packaged-assets
+```
+
+`--include-generic-data-generation` runs the Yahoo-dependent generic analytics
+candidate-data generator. `--write-packaged-assets` lets the operational
+performance-comparison rebuild script update tracked packaged CSV assets after
+intentional demo-data edits.
 
 ### Run Setup-Generated Smoke Scripts
 

@@ -1745,6 +1745,11 @@ class TestPackageMetadata(unittest.TestCase):
 
         for expected_text in [
             "Run Setup-Generated Smoke Scripts",
+            "Run Release-Candidate Checks",
+            "scripts/check_release_candidate.py --build",
+            "--include-generic-data-generation",
+            "--write-packaged-assets",
+            "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
             "/tmp/ppar_smoke_site/performance_comparison/run_portfolio_comparison.py",
