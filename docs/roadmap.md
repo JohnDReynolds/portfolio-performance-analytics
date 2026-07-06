@@ -3256,7 +3256,7 @@ publish.
 Status: complete for read-only remote readiness; no artifact was uploaded and no
 tag or branch was pushed.
 
-The local repository was clean before the check. `main` was 15 commits ahead of
+The local repository was clean before the check. `main` was ahead of
 `origin/main`, and `origin/main` was an ancestor of local `main`, so the local
 release branch can be pushed without a merge conflict based on the currently
 known remote state. A read-only remote query confirmed:
