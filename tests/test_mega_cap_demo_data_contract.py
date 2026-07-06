@@ -16,9 +16,9 @@ from ppar.axys import AxysData
 from ppar.demos.analytics_demo_outputs import demo_frequency_from_string
 
 
-_PERFORMANCE_DIRECTORY = "ppar/demos/data/generic_analytics/performance"
-_CLASSIFICATION_DIRECTORY = "ppar/demos/data/generic_analytics/classifications"
-_MAPPING_DIRECTORY = "ppar/demos/data/generic_analytics/mappings"
+_PERFORMANCE_DIRECTORY = "ppar/setup_templates/generic_analytics/performance"
+_CLASSIFICATION_DIRECTORY = "ppar/setup_templates/generic_analytics/classifications"
+_MAPPING_DIRECTORY = "ppar/setup_templates/generic_analytics/mappings"
 
 _PORTFOLIO_PATH = (
     f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Alpha Portfolio.csv"
@@ -27,7 +27,7 @@ _BENCHMARK_PATH = f"{_PERFORMANCE_DIRECTORY}/Mega-Cap Benchmark.csv"
 _SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
 _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
-_AXYS_ANALYTICS_YAML = Path("ppar/demos/data/axysapx_analytics/axysapx_analytics.yaml").resolve()
+_AXYS_ANALYTICS_YAML = Path("ppar/setup_templates/axysapx_analytics/axysapx_analytics.yaml").resolve()
 
 
 class TestMegaCapDemoDataContract(unittest.TestCase):

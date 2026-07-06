@@ -36,7 +36,7 @@ from ppar.performance_comparison.workbook_tables import (
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_DEMO_DIRECTORY = (
-    _REPO_ROOT / "ppar" / "demos" / "data" / "axysapx_performance_comparison"
+    _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )
 _DEFAULT_SCENARIO_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "validation"
 _DEFAULT_SNAPSHOT_DIRECTORY = _REPO_ROOT / "tests" / "data" / "axys" / "snapshots"

@@ -57,7 +57,7 @@ All installed demos write artifacts under these directories and print the paths
 to review. They do not open browser windows automatically.
 
 The packaged performance comparison demo is documented in
-[`ppar/demos/data/axysapx_performance_comparison/README.md`](../ppar/demos/data/axysapx_performance_comparison/README.md):
+[`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md):
 
 The baseline, single-restatement, and transaction-rules YAML files remain
 validation fixtures. They are covered by the demo matrix validator and targeted

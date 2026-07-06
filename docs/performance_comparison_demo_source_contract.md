@@ -303,7 +303,7 @@ for `ai`, `pa`, `sa`, and `pd`, but only `pa`/`sa` have been promoted into the
 packaged demo, and only for the paired fixed-income accrued-interest story.
 
 The default runtime guard uses
-`ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`. A site comparison YAML
+`ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`. A site comparison YAML
 can point to a local contract when its validated IMEX/REP extract layout differs:
 
 ```yaml

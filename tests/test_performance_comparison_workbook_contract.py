@@ -18,7 +18,7 @@ from ppar.performance_comparison import (
 from ppar.performance_comparison import review_model as _pc_review_model
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
 )
 
 _EXPECTED_PORTFOLIO_SHEETS = [

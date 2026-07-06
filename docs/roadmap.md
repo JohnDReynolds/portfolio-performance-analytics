@@ -195,7 +195,7 @@ clearly than the existing packaged and site-variant fixtures.
 The Axys/APX extract guardrails now have a single review path:
 
 ```text
-ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml
+ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml
   -> scripts/render_demo_extract_availability.py
   -> docs/axys-apx-reference/contracts/demo_extract_availability.md
   -> ppar/performance_comparison/extract_contract.py
@@ -858,7 +858,7 @@ Implemented guardrail:
   context confirms the fee case; `li`/`lo` rules distinguish external party
   flows from internal transfer cases. If an IMEX export cannot provide the
   context fields marked as required by
-  `ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`, the transaction loader
+  `ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`, the transaction loader
   fails before YAML rules classify the rows. The next design step for that site
   is to consider a REP/report extract, custom report, or other local-discovery
   source that carries enough classification evidence.
@@ -2138,7 +2138,7 @@ release-candidate cleanup.
 Status: complete for package/product boundary guardrails.
 
 The packaged Axys/APX demo boundary is now test-covered as a wheel/package-data
-surface: demo resources under `ppar/demos/data/axysapx_performance_comparison` stay limited to CSV, YAML,
+surface: demo resources under `ppar/setup_templates/axysapx_performance_comparison` stay limited to CSV, YAML,
 and Markdown product inputs/notes, and package-data globs do not expose
 generated report output, source-checkout scripts, test fixtures, or
 demo-generation internals. Source distributions may still include maintainer

@@ -2,7 +2,7 @@
 
 This directory contains test-only Axys CSV snapshots, a test-only Axys column
 mapping schema, and performance comparison YAML files. User-facing demo data
-lives under `ppar/demos/data/axysapx_performance_comparison`.
+lives under `ppar/setup_templates/axysapx_performance_comparison`.
 
 Keeping the synthetic fixtures here avoids mixing regression scenarios with
 the user-facing demo files.

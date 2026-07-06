@@ -19,9 +19,9 @@ _RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
 )
-_PACKAGED_AXYS_DATA_PATH = Path("ppar/demos/data/axysapx_performance_comparison")
+_PACKAGED_AXYS_DATA_PATH = Path("ppar/setup_templates/axysapx_performance_comparison")
 _AXYS_SNAPSHOT_PATH = Path("tests/data/axys/snapshots")
 _BUNDLE_MODULE = "ppar.performance_comparison.cli.report_bundle"
 _VALIDATE_BUNDLE_MODULE = "ppar.performance_comparison.cli.validate_bundle"

@@ -12,7 +12,7 @@ tests, and Axys/APX demo-data derivation.
 ## Current Demo Shape
 
 The generic analytics refresh path uses packaged CSV files under
-`ppar/demos/data/generic_analytics/`:
+`ppar/setup_templates/generic_analytics/`:
 
 - `performance/Mega-Cap Alpha Portfolio.csv`
 - `performance/Mega-Cap Benchmark.csv`
@@ -82,29 +82,29 @@ Run or update the candidate validation helper if it still exists:
 
 ### 3. Promote Packaged CSVs
 
-Once accepted, copy the generated files into `ppar/demos/data/` using the
+Once accepted, copy the generated files into `ppar/setup_templates/` using the
 stable user-facing `Mega-Cap` names:
 
 ```text
 generated_oef_files/performance/Generated OEF Alpha Portfolio.csv
-  -> ppar/demos/data/generic_analytics/performance/Mega-Cap Alpha Portfolio.csv
+  -> ppar/setup_templates/generic_analytics/performance/Mega-Cap Alpha Portfolio.csv
 
 generated_oef_files/performance/Generated OEF Benchmark.csv
-  -> ppar/demos/data/generic_analytics/performance/Mega-Cap Benchmark.csv
+  -> ppar/setup_templates/generic_analytics/performance/Mega-Cap Benchmark.csv
 
 generated_oef_files/classifications/Generated OEF Security.csv
-  -> ppar/demos/data/generic_analytics/classifications/Security.csv
+  -> ppar/setup_templates/generic_analytics/classifications/Security.csv
 
 generated_oef_files/classifications/Generated OEF Economic Sector.csv
-  -> ppar/demos/data/generic_analytics/classifications/Economic Sector.csv
+  -> ppar/setup_templates/generic_analytics/classifications/Economic Sector.csv
 
 generated_oef_files/mappings/Generated OEF Security--to--Generated OEF Economic Sector.csv
-  -> ppar/demos/data/generic_analytics/mappings/Security--to--Economic Sector.csv
+  -> ppar/setup_templates/generic_analytics/mappings/Security--to--Economic Sector.csv
 ```
 
 After promotion, update:
 
-- `ppar/demos/data/README.md`
+- `ppar/setup_templates/README.md`
 - `tests/test_mega_cap_demo_data_contract.py`
 - any expected coverage dates, cash notes, and story metrics.
 
@@ -184,7 +184,7 @@ Before committing, check:
 - README story matches regenerated image titles and values.
 - The generic analytics smoke module uses the same packaged files.
 - `scripts/render_readme_images.py` uses the same packaged files.
-- `ppar/demos/data/README.md` documents source provenance and any date
+- `ppar/setup_templates/README.md` documents source provenance and any date
   substitutions.
 - No generated `_demo_output/` files are accidentally staged.
 

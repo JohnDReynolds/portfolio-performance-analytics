@@ -10,7 +10,7 @@ from ppar.demos.axysapx_performance_comparison_common import run_performance_com
 
 def main() -> None:
     """Run the portfolio performance comparison demonstration."""
-    with as_file(files("ppar.demos.data") / "axysapx_performance_comparison") as axys_data_root:
+    with as_file(files("ppar.setup_templates") / "axysapx_performance_comparison") as axys_data_root:
         run_performance_comparison_demo(
             comparison_path=axys_data_root / "axysapx_performance_comparison.yaml",
             bundle_path=Path.cwd() / "_demo_output" / "performance_comparison_portfolio",

@@ -28,7 +28,7 @@ _DATA_DIRECTORIES = (
     Path("tests/data"),
     Path("../tests/data"),
     Path("data"),
-    Path("ppar/demos/data"),
+    Path("ppar/setup_templates"),
 )
 _AXYS_DIRECTORIES = [directory / "axys" for directory in _DATA_DIRECTORIES]
 _DEFAULT_AXYS_SNAPSHOT_DIRECTORY = "snapshots/axys_a"

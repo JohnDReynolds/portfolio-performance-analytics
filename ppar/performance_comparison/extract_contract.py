@@ -20,7 +20,7 @@ from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
 import ppar.utilities as util
 
-_CONTRACT_RESOURCE: Final[str] = "ppar.demos.data"
+_CONTRACT_RESOURCE: Final[str] = "ppar.setup_templates"
 _CONTRACT_RESOURCE_DIRECTORY: Final[str] = "axysapx_performance_comparison"
 _CONTRACT_FILE_NAME: Final[str] = "demo_extract_availability.yaml"
 _AXYS_AMBIGUOUS_FLOW_CODES: Final[frozenset[str]] = frozenset({"DP", "LI", "LO", "WD"})

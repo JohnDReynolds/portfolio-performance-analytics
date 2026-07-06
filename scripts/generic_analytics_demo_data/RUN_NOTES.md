@@ -25,7 +25,7 @@ _demo_output/generic_analytics_data_generation/generated_oef_files/
 _demo_output/generic_analytics_data_generation/cache/oef/
 ```
 
-These files are ignored by Git. Promote generated CSVs into `ppar/demos/data/`
+These files are ignored by Git. Promote generated CSVs into `ppar/setup_templates/`
 only after review.
 
 ## Source Data

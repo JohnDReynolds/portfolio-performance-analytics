@@ -58,7 +58,7 @@ _MULTI_RESTATEMENT_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_multi_restatement.yaml"
 )
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
 )
 _POLICY_GAP_DEMO_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison_policy_gap_demo.yaml"
@@ -837,7 +837,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(
             extract_contract["path"],
-            "packaged:ppar.demos.data/axysapx_performance_comparison/"
+            "packaged:ppar.setup_templates/axysapx_performance_comparison/"
             "demo_extract_availability.yaml",
         )
         self.assertTrue(extract_contract["enforce_ambiguous_axys_flows"])

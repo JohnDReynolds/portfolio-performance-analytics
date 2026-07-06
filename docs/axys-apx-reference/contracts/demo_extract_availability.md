@@ -1,11 +1,11 @@
 # Demo Extract Availability Contract
 
 Repository: AXYS / APX Reference Repository
-Scope: `ppar/demos/data/axysapx_performance_comparison/snapshot_a` and
-`ppar/demos/data/axysapx_performance_comparison/snapshot_b`
+Scope: `ppar/setup_templates/axysapx_performance_comparison/snapshot_a` and
+`ppar/setup_templates/axysapx_performance_comparison/snapshot_b`
 Status: Draft confidence matrix generated from the packaged YAML contract.
 
-<!-- GENERATED FROM ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml. -->
+<!-- GENERATED FROM ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml. -->
 <!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->
 
 ---
@@ -14,7 +14,7 @@ Status: Draft confidence matrix generated from the packaged YAML contract.
 
 This contract estimates how likely each packaged Axys/APX demo dataset and column is to be obtainable from an Axys/APX installation through IMEX and/or REP-style report extracts.
 
-The machine-readable source of truth is `ppar/demos/data/axysapx_performance_comparison/demo_extract_availability.yaml`. Tests verify that the YAML covers every packaged comparison demo CSV header and that this contract is current.
+The machine-readable source of truth is `ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`. Tests verify that the YAML covers every packaged comparison demo CSV header and that this contract is current.
 
 The packaged demo files are normalized demo extracts. They are not official Axys/APX schemas, not universal IMEX profiles, and not claims that every Axys/APX site can export every field with these exact names.
 

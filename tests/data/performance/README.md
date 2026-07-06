@@ -1,11 +1,11 @@
 # Performance Test Fixtures
 
 These CSV files are test-only analytics fixtures. They intentionally stay under
-`tests/data/performance` instead of `ppar/demos/data/generic_analytics/performance` because they
+`tests/data/performance` instead of `ppar/setup_templates/generic_analytics/performance` because they
 anchor regression values, frequency-consolidation behavior, validation errors,
 or oversized-output checks.
 
-Use packaged demo performance data in `ppar/demos/data/generic_analytics/performance` for
+Use packaged demo performance data in `ppar/setup_templates/generic_analytics/performance` for
 user-facing examples. Add files here only when the test needs a narrow fixture
 that would be distracting or misleading as demo data.
 

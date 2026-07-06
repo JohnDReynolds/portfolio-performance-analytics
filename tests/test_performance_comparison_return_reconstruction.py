@@ -35,12 +35,12 @@ from ppar.performance_comparison.return_reconstruction import (
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 
 _PORTFOLIO_COMPARISON_PATH = Path(
-    "ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
+    "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
 )
 _BASELINE_COMPARISON_PATH = Path(
     "tests/data/axys/validation/ppar_performance_comparison.yaml"
 )
-_DEMO_AXYS_DIRECTORY = Path("ppar/demos/data/axysapx_performance_comparison")
+_DEMO_AXYS_DIRECTORY = Path("ppar/setup_templates/axysapx_performance_comparison")
 _INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS = {
     ("BALANCED", "2026-05-01", "2026-05-29"),
     ("INCOME", "2026-04-01", "2026-04-30"),

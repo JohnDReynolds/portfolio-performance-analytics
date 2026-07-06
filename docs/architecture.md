@@ -73,9 +73,9 @@ context unless explicit YAML policy says otherwise.
 
 | Area | Intended audience | Notes |
 | --- | --- | --- |
-| `ppar/demos/data/axysapx_analytics` | Installed users and demos | Copied by `ppar setup` into `analytics/`. |
-| `ppar/demos/data/axysapx_performance_comparison` | Installed users and demos | Copied by `ppar setup` into `performance_comparison/`. |
-| `ppar/demos/data/generic_analytics` | Maintainers | Feeds README images, analytics regression tests, and demo-data derivation. It is not the primary onboarding path. |
+| `ppar/setup_templates/axysapx_analytics` | Installed users and demos | Copied by `ppar setup` into `analytics/`. |
+| `ppar/setup_templates/axysapx_performance_comparison` | Installed users and demos | Copied by `ppar setup` into `performance_comparison/`. |
+| `ppar/setup_templates/generic_analytics` | Maintainers | Feeds README images, analytics regression tests, and demo-data derivation. It is not the primary onboarding path. |
 | `tests/data/axys` | Test authors | Synthetic fixtures for narrow validation and edge-case behavior. |
 | `_demo_output` | Maintainers | Generated local report/image output; not source-data and not shipped as user setup input. |
 

@@ -36,7 +36,7 @@ def main() -> None:
         description="Run the bundled Axys/APX analytics demo.",
     )
 
-    with as_file(files("ppar.demos.data") / "axysapx_analytics") as axys_data_root:
+    with as_file(files("ppar.setup_templates") / "axysapx_analytics") as axys_data_root:
         axys_data = AxysData(axys_data_root / "axysapx_analytics.yaml")
         portfolio = axys_data.get_portfolio(_PORTFOLIO_CODE)
         benchmark = axys_data.get_portfolio(_BENCHMARK_CODE)

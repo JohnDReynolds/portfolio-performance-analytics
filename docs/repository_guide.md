@@ -14,7 +14,7 @@ many disconnected entry points.
 | PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
 | Axys/APX export shape | [`docs/axysapx_common_core_export.md`](axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
-| Packaged Axys/APX demos | [`ppar/demos/data/axysapx_performance_comparison/README.md`](../ppar/demos/data/axysapx_performance_comparison/README.md) | User-facing Axys/APX analytics and performance comparison demo inputs. |
+| Packaged Axys/APX demos | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | User-facing Axys/APX analytics and performance comparison demo inputs. |
 | Test Axys/APX configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys/APX snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
 | Historical checkpoint notes | [`docs/performance_comparison_checkpoint_notes.md`](performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
 
@@ -27,8 +27,8 @@ many disconnected entry points.
 | `ppar/axys/` | Axys/APX-specific ingestion and normalization support. |
 | `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
 | `ppar/demos/` | Demo modules used by public setup files and maintainer smoke tests. |
-| `ppar/demos/data/` | Packaged demo inputs shipped with source distributions and wheels. |
-| `ppar/demos/data/axysapx_performance_comparison/` | Packaged user-facing Axys/APX demo snapshots and comparison YAML files. Use these for demos and review workflows. |
+| `ppar/setup_templates/` | Packaged demo inputs shipped with source distributions and wheels. |
+| `ppar/setup_templates/axysapx_performance_comparison/` | Packaged user-facing Axys/APX demo snapshots and comparison YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
 | `scripts/` | Repository-maintenance helpers; Performance Comparison commands live under ppar.performance_comparison.cli. |
@@ -45,7 +45,7 @@ many disconnected entry points.
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
 | [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
 | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
-| [`ppar/demos/data/axysapx_performance_comparison/README.md`](../ppar/demos/data/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, maintainer smoke modules, and expected workbook outputs. |
+| [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, maintainer smoke modules, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys/APX snapshots, test-only comparison YAML files, and validation matrix fixtures. |
 | Snapshot README files under `tests/data/axys/snapshots/*/README.md` | Test authors | Small notes about individual synthetic snapshot directories. |
 
@@ -108,12 +108,12 @@ python -m ppar.demos.axysapx_performance_comparison_security_demo
 Packaged demos and test configuration fixtures intentionally live in different
 places:
 
-- `ppar/demos/data/axysapx_analytics/` is the public analytics setup seed
+- `ppar/setup_templates/axysapx_analytics/` is the public analytics setup seed
   copied by `ppar setup`.
-- `ppar/demos/data/axysapx_performance_comparison/` is the public
+- `ppar/setup_templates/axysapx_performance_comparison/` is the public
   performance-comparison setup seed copied by `ppar setup` and is also used
   for packaged examples that users and reviewers can run.
-- `ppar/demos/data/generic_analytics/` is maintainer/demo infrastructure. It
+- `ppar/setup_templates/generic_analytics/` is maintainer/demo infrastructure. It
   feeds README marketing images, analytics regression tests, and operational
   demo-data derivation; it is not advertised as the primary onboarding path.
 - `tests/data/axys/` is for synthetic Axys/APX snapshots, test-only comparison YAML
@@ -127,7 +127,7 @@ workflows. Broader scenario coverage lives under `tests/data/axys`.
 | Workbook demos | `axysapx_performance_comparison.yaml` | `snapshot_a` | `snapshot_b` | Shared portfolio/security demo spec. Internal smoke modules select the primary review level. |
 
 For the maintained XLSX workbook smoke paths and expected output, use
-[`ppar/demos/data/axysapx_performance_comparison/README.md`](../ppar/demos/data/axysapx_performance_comparison/README.md).
+[`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md).
 For the validation fixture matrix, use
 [`tests/data/axys/README.md`](../tests/data/axys/README.md).
 
@@ -169,7 +169,7 @@ packaged scenario-matrix validation.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.report_bundle \
-  ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml \
+  ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml \
   _demo_output/custom_portfolio \
   --include-workbook \
   --require-causal-attribution
@@ -215,7 +215,7 @@ Use this after generating report/workbook output.
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_config \
-  ppar/demos/data/axysapx_performance_comparison/axysapx_performance_comparison.yaml
+  ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml
 ```
 
 Use this before report generation when you are editing YAML.
@@ -331,7 +331,7 @@ Before moving files, prefer clarifying the map:
 
 1. Keep the root README short enough to answer "what is this project and how do
    I run the main workflows?"
-2. Keep detailed packaged demo instructions in `ppar/demos/data/axysapx_performance_comparison/README.md`.
+2. Keep detailed packaged demo instructions in `ppar/setup_templates/axysapx_performance_comparison/README.md`.
 3. Keep future performance-comparison plans in
    `docs/roadmap.md`.
 4. Keep deep design rationale in `docs/performance_comparison_design.md`.
