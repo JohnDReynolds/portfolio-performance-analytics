@@ -176,6 +176,29 @@ def _load_yaml(path: Path) -> dict[str, object]:
     return loaded
 
 
+def _yaml_mapping(value: object, *, label: str) -> dict[str, object]:
+    """Return a nested YAML mapping with a useful assertion message."""
+    if not isinstance(value, dict):
+        raise AssertionError(f"Expected YAML mapping for {label}.")
+    return cast(dict[str, object], value)
+
+
+def _yaml_mapping_rows(value: object, *, label: str) -> dict[str, dict[str, object]]:
+    """Return a YAML mapping whose values are row mappings."""
+    rows = _yaml_mapping(value, label=label)
+    return {
+        str(key): _yaml_mapping(row, label=f"{label}.{key}")
+        for key, row in rows.items()
+    }
+
+
+def _yaml_string_list(value: object, *, label: str) -> list[str]:
+    """Return a YAML list of strings with a useful assertion message."""
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise AssertionError(f"Expected YAML string list for {label}.")
+    return cast(list[str], value)
+
+
 def _transaction_codes_in_csv(path: Path) -> set[str]:
     """Return lowercase transaction codes from a fixture CSV."""
     with path.open(encoding=util.ENCODING, newline="") as file:
@@ -190,9 +213,12 @@ def _demo_transactions_by_natural_key(
     snapshot_path: Path,
 ) -> dict[tuple[str, str, str, str], dict[str, str]]:
     """Return packaged Axys transactions keyed by visible row attributes."""
-    return _csv_rows_by_key(
-        snapshot_path / "transactions.csv",
-        ("PORT", "TRANSACTION_DATE", "SEC", "TRAN"),
+    return cast(
+        dict[tuple[str, str, str, str], dict[str, str]],
+        _csv_rows_by_key(
+            snapshot_path / "transactions.csv",
+            ("PORT", "TRANSACTION_DATE", "SEC", "TRAN"),
+        ),
     )
 
 
@@ -812,10 +838,14 @@ class TestPackageMetadata(unittest.TestCase):
         }
         for code, expected_fixtures in partial_fixture_expectations.items():
             with self.subTest(code=code):
-                row = matrix_yaml["rows"][code]
+                rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+                row = rows[code]
                 self.assertEqual(row["coverage_status"], "partial")
                 self.assertEqual(row["fixtures"], expected_fixtures)
-                self.assertIn("Code-only treatment remains unknown", row["coverage_notes"])
+                self.assertIn(
+                    "Code-only treatment remains unknown",
+                    str(row["coverage_notes"]),
+                )
 
     def test_candidate_override_profiles_are_documented_as_test_only(self) -> None:
         """Candidate override profiles remain explicit onboarding examples."""
@@ -847,9 +877,13 @@ class TestPackageMetadata(unittest.TestCase):
         for code, fixture in expected_profiles.items():
             profile_name = fixture.removeprefix("site_variants/")
             with self.subTest(code=code):
-                row = matrix_yaml["rows"][code]
+                rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+                row = rows[code]
                 self.assertEqual(row["coverage_status"], "partial")
-                self.assertIn(fixture, row["fixtures"])
+                self.assertIn(
+                    fixture,
+                    _yaml_string_list(row["fixtures"], label=f"rows.{code}.fixtures"),
+                )
                 self.assertIn(profile_name, checklist)
                 self.assertIn(profile_name, fixture_readme)
 
@@ -1274,8 +1308,11 @@ class TestPackageMetadata(unittest.TestCase):
             "docs/axys-apx-reference/contracts/transaction_semantics_matrix.md"
         ).read_text(encoding=util.ENCODING)
 
-        rows = matrix_yaml["rows"]
-        required_codes = matrix_yaml["required_matrix_codes"]
+        rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+        required_codes = _yaml_string_list(
+            matrix_yaml["required_matrix_codes"],
+            label="required_matrix_codes",
+        )
         self.assertEqual(set(rows), set(required_codes))
 
         for code, metadata in rows.items():
@@ -1287,7 +1324,12 @@ class TestPackageMetadata(unittest.TestCase):
             self.assertIn("coverage_notes", metadata)
 
         self.assertEqual(
-            set(matrix_yaml["ambiguous_external_flow_codes"]),
+            set(
+                _yaml_string_list(
+                    matrix_yaml["ambiguous_external_flow_codes"],
+                    label="ambiguous_external_flow_codes",
+                )
+            ),
             {"li", "lo", "dp", "wd"},
         )
 
@@ -1296,10 +1338,16 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml = _load_yaml(
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
-        coverage_statuses = set(matrix_yaml["coverage_statuses"])
+        coverage_statuses = set(
+            _yaml_mapping(
+                matrix_yaml["coverage_statuses"],
+                label="coverage_statuses",
+            )
+        )
 
         for section_name in ("rows", "pair_patterns"):
-            for code, metadata in matrix_yaml[section_name].items():
+            section = _yaml_mapping_rows(matrix_yaml[section_name], label=section_name)
+            for code, metadata in section.items():
                 with self.subTest(section=section_name, code=code):
                     coverage_status = metadata["coverage_status"]
                     fixtures = metadata.get("fixtures", [])
@@ -1320,7 +1368,12 @@ class TestPackageMetadata(unittest.TestCase):
         matrix_yaml = _load_yaml(
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
-        matrix_codes = set(matrix_yaml["required_matrix_codes"])
+        matrix_codes = set(
+            _yaml_string_list(
+                matrix_yaml["required_matrix_codes"],
+                label="required_matrix_codes",
+            )
+        )
 
         self.assertLessEqual(matrix_codes, registered_transaction_codes())
         self.assertEqual(
@@ -1371,8 +1424,13 @@ class TestPackageMetadata(unittest.TestCase):
         )
         demo_yaml = _load_yaml(Path("ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"))
 
-        matrix_codes = set(matrix_yaml["rows"])
-        demo_codes = set(demo_yaml["transaction_rules"])
+        matrix_codes = set(_yaml_mapping_rows(matrix_yaml["rows"], label="rows"))
+        demo_codes = set(
+            _yaml_mapping(
+                demo_yaml["transaction_rules"],
+                label="transaction_rules",
+            )
+        )
 
         self.assertLessEqual(demo_codes, matrix_codes)
 
@@ -1382,9 +1440,15 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_codes = set(
-            _load_yaml(Path("ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"))[
-                "transaction_rules"
-            ]
+            _yaml_mapping(
+                _load_yaml(
+                    Path(
+                        "ppar/setup_templates/axysapx_performance_comparison/"
+                        "axysapx_performance_comparison.yaml"
+                    )
+                )["transaction_rules"],
+                label="transaction_rules",
+            )
         )
         imex_context_codes = _transaction_codes_in_csv(
             Path("tests/data/axys/site_variants/imex_context/snapshot_a/transactions.csv")
@@ -1402,8 +1466,9 @@ class TestPackageMetadata(unittest.TestCase):
             )
         )
 
-        for code, metadata in matrix_yaml["rows"].items():
-            fixtures = metadata["fixtures"]
+        rows = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+        for code, metadata in rows.items():
+            fixtures = _yaml_string_list(metadata["fixtures"], label=f"rows.{code}.fixtures")
             coverage_status = metadata["coverage_status"]
             if coverage_status == "backlog":
                 self.assertEqual(fixtures, [], code)
@@ -1421,7 +1486,12 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertIn(code, review_only_codes, code)
 
         self.assertLessEqual(
-            set(matrix_yaml["ambiguous_external_flow_codes"]),
+            set(
+                _yaml_string_list(
+                    matrix_yaml["ambiguous_external_flow_codes"],
+                    label="ambiguous_external_flow_codes",
+                )
+            ),
             imex_context_codes & rep_semantics_codes & code_only_codes,
         )
 
@@ -1434,9 +1504,15 @@ class TestPackageMetadata(unittest.TestCase):
             Path("docs/axys-apx-reference/contracts/transaction_semantics_matrix.yaml")
         )
         packaged_demo_rule_codes = set(
-            _load_yaml(Path("ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"))[
-                "transaction_rules"
-            ]
+            _yaml_mapping(
+                _load_yaml(
+                    Path(
+                        "ppar/setup_templates/axysapx_performance_comparison/"
+                        "axysapx_performance_comparison.yaml"
+                    )
+                )["transaction_rules"],
+                label="transaction_rules",
+            )
         )
         packaged_demo_data_codes = (
             _transaction_codes_in_csv(
@@ -1466,36 +1542,51 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("pa", packaged_demo_data_codes)
         self.assertIn("sa", packaged_demo_data_codes)
         self.assertEqual(
-            matrix_yaml["rows"]["li"]["coverage_status"],
+            _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["li"]["coverage_status"],
             "covered_packaged_demo",
         )
         self.assertEqual(
-            matrix_yaml["rows"]["lo"]["coverage_status"],
+            _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["coverage_status"],
             "covered_packaged_demo",
         )
         self.assertIn(
             "packaged_demo",
-            matrix_yaml["rows"]["lo"]["fixtures"],
+            _yaml_string_list(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["fixtures"],
+                label="rows.lo.fixtures",
+            ),
         )
         self.assertIn(
             "site_variants/imex_context",
-            matrix_yaml["rows"]["lo"]["fixtures"],
+            _yaml_string_list(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["fixtures"],
+                label="rows.lo.fixtures",
+            ),
         )
         self.assertIn(
             "site_variants/rep_semantics",
-            matrix_yaml["rows"]["lo"]["fixtures"],
+            _yaml_string_list(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["lo"]["fixtures"],
+                label="rows.lo.fixtures",
+            ),
         )
         self.assertEqual(
-            matrix_yaml["rows"]["pa"]["coverage_status"],
+            _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["pa"]["coverage_status"],
             "partial",
         )
         self.assertIn(
             "packaged_demo",
-            matrix_yaml["rows"]["pa"]["fixtures"],
+            _yaml_string_list(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["pa"]["fixtures"],
+                label="rows.pa.fixtures",
+            ),
         )
         self.assertIn(
             "packaged_demo",
-            matrix_yaml["rows"]["sa"]["fixtures"],
+            _yaml_string_list(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")["sa"]["fixtures"],
+                label="rows.sa.fixtures",
+            ),
         )
 
     def test_review_only_action_fixture_is_documented(self) -> None:
@@ -1515,12 +1606,19 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("review_only_actions", readme)
         self.assertIn("neutral review evidence", readme)
         self.assertEqual(
-            matrix_yaml["rows"][";"]["fixtures"],
+            _yaml_string_list(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")[";"]["fixtures"],
+                label="rows.;.fixtures",
+            ),
             ["site_variants/review_only_actions"],
         )
         self.assertIn(
             "synthetic corporate-action markers",
-            matrix_yaml["rows"][";"]["coverage_notes"],
+            str(
+                _yaml_mapping_rows(matrix_yaml["rows"], label="rows")[";"][
+                    "coverage_notes"
+                ]
+            ),
         )
 
     def test_transaction_semantics_matrix_matches_ambiguous_fixture_outputs(self) -> None:
@@ -1537,23 +1635,42 @@ class TestPackageMetadata(unittest.TestCase):
         frame = TransactionsLoader(specification).load("a")
         assert frame is not None
 
-        for code in matrix_yaml["ambiguous_external_flow_codes"]:
+        rows_by_code = _yaml_mapping_rows(matrix_yaml["rows"], label="rows")
+        for code in _yaml_string_list(
+            matrix_yaml["ambiguous_external_flow_codes"],
+            label="ambiguous_external_flow_codes",
+        ):
             rows = frame.filter(pl.col(schema.TRANSACTION_CODE) == code)
-            documented = matrix_yaml["rows"][code]
+            documented = rows_by_code[code]
 
             self.assertLessEqual(
                 set(rows.get_column(schema.TRANSACTION_CATEGORY).to_list()),
-                set(documented["ppar_categories"]),
+                set(
+                    _yaml_string_list(
+                        documented["ppar_categories"],
+                        label=f"rows.{code}.ppar_categories",
+                    )
+                ),
                 code,
             )
             self.assertLessEqual(
                 set(rows.get_column(schema.CASH_FLOW_SIGN).to_list()),
-                set(documented["cash_flow_signs"]),
+                set(
+                    _yaml_string_list(
+                        documented["cash_flow_signs"],
+                        label=f"rows.{code}.cash_flow_signs",
+                    )
+                ),
                 code,
             )
             self.assertLessEqual(
                 set(rows.get_column(schema.PERFORMANCE_FLOW_SIGN).to_list()),
-                set(documented["performance_flow_signs"]),
+                set(
+                    _yaml_string_list(
+                        documented["performance_flow_signs"],
+                        label=f"rows.{code}.performance_flow_signs",
+                    )
+                ),
                 code,
             )
 

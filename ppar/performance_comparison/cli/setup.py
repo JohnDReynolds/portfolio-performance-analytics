@@ -426,9 +426,10 @@ def _print_success(result: dict[str, Path | str]) -> None:
         return
 
     print("To customize with your own data:")
+    readme_path = Path(result["site_directory"]) / "README.md"
     print(
         f"  Refer to the \"Customizing\" section in "
-        f"{result['site_directory'] / 'README.md'}"
+        f"{readme_path}"
     )
 
 

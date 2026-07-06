@@ -21,6 +21,7 @@ from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
 )
+from ppar.performance_comparison.portfolio_performance import SnapshotKey
 from ppar.performance_comparison.transaction_summary import (
     transaction_rule_codes,
     transaction_semantics_summary,
@@ -451,9 +452,10 @@ def _report_bundle_transaction_semantics(
         return transaction_semantics_summary([active_findings])
     specification = PerformanceComparisonSpecification(comparison_path)
     loader = TransactionsLoader(specification)
+    snapshot_keys: tuple[SnapshotKey, SnapshotKey] = ("a", "b")
     frames = [
         frame
-        for snapshot_key in ("a", "b")
+        for snapshot_key in snapshot_keys
         if (frame := loader.load(snapshot_key)) is not None
     ]
     return transaction_semantics_summary(

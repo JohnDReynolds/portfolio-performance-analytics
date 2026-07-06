@@ -6,6 +6,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import tempfile
+from typing import Literal, cast
 import unittest
 
 import pandas as pd
@@ -452,7 +453,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         for snapshot_key in ("a", "b"):
             with self.subTest(snapshot_key=snapshot_key):
-                frame = TransactionsLoader(specification).load(snapshot_key)
+                frame = TransactionsLoader(specification).load(
+                    cast(Literal["a", "b"], snapshot_key)
+                )
                 assert frame is not None
                 resolved_rows = {
                     "ALPHA0203": _transaction_row(
@@ -601,7 +604,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 self.assertFalse(fixed_income_holdings.empty)
                 self.assertGreater(fixed_income_holdings["ACCRUED"].sum(), 0)
 
-                frame = TransactionsLoader(specification).load(snapshot_key)
+                frame = TransactionsLoader(specification).load(
+                    cast(Literal["a", "b"], snapshot_key)
+                )
                 assert frame is not None
                 resolved_row = _transaction_row(
                     frame,
@@ -1132,7 +1137,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_transaction_scenario_file_rejects_base_snapshot_adjustments(self) -> None:
         """Transaction scenario rows must target derived snapshots."""
         rebuild_module = _load_rebuild_module()
-        row = {
+        row: dict[str, object] = {
             column: ""
             for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
         }
@@ -1168,12 +1173,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             axys_directory / "snapshot_a" / "transactions.csv"
         )
         periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
-        scenario_rows = []
+        scenario_rows: list[dict[str, object]] = []
         for transaction_id, transaction_code, amount, scenario in (
             ("BALANCED0403", "li", 2500, "Test-only contribution insertion."),
             ("BALANCED0404", "lo", -900, "Test-only withdrawal insertion."),
         ):
-            row = {
+            row: dict[str, object] = {
                 column: ""
                 for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
             }
@@ -1258,12 +1263,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             axys_directory / "snapshot_a" / "transactions.csv"
         )
         periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
-        scenario_rows = []
+        scenario_rows: list[dict[str, object]] = []
         for transaction_id, transaction_code, amount, scenario in (
             ("INCOME0604", "pa", -42.5, "Test-only purchase accrued interest."),
             ("INCOME0605", "sa", 37.25, "Test-only sale accrued interest."),
         ):
-            row = {
+            row: dict[str, object] = {
                 column: ""
                 for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
             }

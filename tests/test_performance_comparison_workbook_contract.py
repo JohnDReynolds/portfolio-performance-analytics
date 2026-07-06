@@ -277,25 +277,30 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     else:
                         self.assertIsNotNone(row[5])
                 balanced_may = partly_explained_rows[0]
+                balanced_may_review_note = str(balanced_may[7])
                 self.assertIn(
                     "The remaining Unexplained Difference may be due to missing "
                     "source-data, source-file timing differences, or vendor "
                     "methodology that does not match the YAML specifications.",
-                    balanced_may[7],
+                    balanced_may_review_note,
                 )
-                self.assertNotIn("portfolio_performance.gain_loss", balanced_may[7])
-                self.assertNotIn("holdings.cost", balanced_may[7])
+                self.assertNotIn(
+                    "portfolio_performance.gain_loss",
+                    balanced_may_review_note,
+                )
+                self.assertNotIn("holdings.cost", balanced_may_review_note)
                 income_april = unexplained_rows[0]
+                income_april_review_note = str(income_april[7])
                 self.assertIn(
                     "The Unexplained Difference may be due to missing source-data, "
                     "source-file timing differences, or vendor methodology that "
                     "does not match the YAML specifications.",
-                    income_april[7],
+                    income_april_review_note,
                 )
-                self.assertNotIn("holdings.cost", income_april[7])
+                self.assertNotIn("holdings.cost", income_april_review_note)
                 self.assertNotIn(
                     'Review the "Raw Audit Trail" sheet',
-                    income_april[7],
+                    income_april_review_note,
                 )
                 self.assertTrue(
                     all(

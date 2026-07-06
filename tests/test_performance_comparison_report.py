@@ -651,8 +651,17 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
 
-            review_summary = json.loads(
-                paths["review_summary"].read_text(encoding="utf-8")
+            review_summary = cast(
+                dict[str, Any],
+                json.loads(paths["review_summary"].read_text(encoding="utf-8")),
+            )
+            review_vocabulary = cast(
+                Mapping[str, str],
+                review_summary["review_vocabulary"],
+            )
+            review_vocabulary_keys = cast(
+                tuple[str, ...],
+                contract["review_vocabulary_keys"],
             )
             self.assertEqual(
                 set(review_summary),
@@ -672,27 +681,27 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 review_summary["transaction_semantics"],
                 manifest["transaction_semantics"],
             )
-            for vocabulary_key in contract["review_vocabulary_keys"]:
-                self.assertIn(vocabulary_key, review_summary["review_vocabulary"])
+            for vocabulary_key in review_vocabulary_keys:
+                self.assertIn(vocabulary_key, review_vocabulary)
             self.assertEqual(
-                set(review_summary["review_vocabulary"]),
-                set(contract["review_vocabulary_keys"]),
+                set(review_vocabulary),
+                set(review_vocabulary_keys),
             )
             self.assertIn(
                 "Modified Dietz",
-                review_summary["review_vocabulary"]["formula_input"],
+                review_vocabulary["formula_input"],
             )
             self.assertIn(
                 "source-data",
-                review_summary["review_vocabulary"]["source_data"],
+                review_vocabulary["source_data"],
             )
             self.assertIn(
                 "reviewer judgment",
-                review_summary["review_vocabulary"]["review_only"],
+                review_vocabulary["review_only"],
             )
             self.assertIn(
                 "audit",
-                review_summary["review_vocabulary"]["evidence_only"],
+                review_vocabulary["evidence_only"],
             )
             self.assertIn(
                 "finding-level",

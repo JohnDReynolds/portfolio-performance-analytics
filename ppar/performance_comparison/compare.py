@@ -1301,14 +1301,14 @@ class PerformanceComparison:
         return tuple(str(value) for value in row_key)
 
     @staticmethod
-    def _transaction_category(row: dict[str, object], dataset: str) -> object | None:
+    def _transaction_category(row: Mapping[str, object], dataset: str) -> object | None:
         """Return normalized transaction category context for transaction rows."""
         if dataset != pc_cols.TRANSACTIONS:
             return None
         return row.get(pc_cols.TRANSACTION_CATEGORY)
 
     @staticmethod
-    def _transaction_code(row: dict[str, object], dataset: str) -> object | None:
+    def _transaction_code(row: Mapping[str, object], dataset: str) -> object | None:
         """Return source transaction code context for transaction rows."""
         if dataset != pc_cols.TRANSACTIONS:
             return None
@@ -1316,7 +1316,7 @@ class PerformanceComparison:
 
     @staticmethod
     def _transaction_cash_flow_sign(
-        row: dict[str, object],
+        row: Mapping[str, object],
         dataset: str,
     ) -> object | None:
         """Return normalized transaction cash-flow semantics for transaction rows."""
@@ -1326,7 +1326,7 @@ class PerformanceComparison:
 
     @staticmethod
     def _transaction_performance_flow_sign(
-        row: dict[str, object],
+        row: Mapping[str, object],
         dataset: str,
     ) -> object | None:
         """Return normalized transaction performance-flow semantics."""
@@ -1336,7 +1336,7 @@ class PerformanceComparison:
 
     @staticmethod
     def _transaction_semantics_source(
-        row: dict[str, object],
+        row: Mapping[str, object],
         dataset: str,
     ) -> object | None:
         """Return transaction semantics provenance for transaction rows."""
@@ -1346,7 +1346,7 @@ class PerformanceComparison:
 
     def _transaction_impact_policy(
         self,
-        row: dict[str, object],
+        row: Mapping[str, object],
         dataset: str,
         source_column: str,
     ) -> object | None:
