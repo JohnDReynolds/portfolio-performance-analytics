@@ -19,6 +19,7 @@ import polars as pl
 import yaml
 
 # Project Imports
+import ppar
 import ppar.analytics.schema as core_schema
 import ppar.errors as core_errors
 import ppar.utilities as util
@@ -290,6 +291,7 @@ class TestPackageMetadata(unittest.TestCase):
         }
 
         self.assertEqual(pyproject["project"]["version"], "0.1.5")
+        self.assertEqual(ppar.__version__, pyproject["project"]["version"])
         self.assertNotIn("great_tables", pyproject_dependencies)
         self.assertIn("pyyaml", pyproject_dependencies)
         self.assertIn("openpyxl", pyproject_dependencies)
