@@ -755,23 +755,19 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self,
     ) -> None:
         """Performance-comparison demo handoffs only list the workbook path."""
-        from ppar.demos.axysapx_performance_comparison_common import (
-            _print_bundle_handoff,
+        from ppar.performance_comparison.cli.site_report import (
+            _print_success,
         )
 
         stdout = io.StringIO()
         with redirect_stdout(stdout):
-            _print_bundle_handoff(
+            _print_success(
                 {
-                    "review_workbook": Path("_demo_output")
-                    / "performance_comparison_portfolio"
-                    / "report.xlsx",
-                    "html_report": Path("_demo_output")
-                    / "performance_comparison_portfolio"
-                    / "report.html",
-                    "manifest": Path("_demo_output")
-                    / "performance_comparison_portfolio"
-                    / "manifest.json",
+                    "review_paths": [
+                        Path("_demo_output")
+                        / "performance_comparison_portfolio"
+                        / "report.xlsx",
+                    ],
                 }
             )
 

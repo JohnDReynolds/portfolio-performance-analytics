@@ -49,11 +49,11 @@ check a YAML file without writing reports.
 
 ## Recommended User-Facing Demo
 
-Run the packaged portfolio demo when you want the portfolio-period reviewer-facing
-example:
+Run the portfolio comparison from a setup workspace when you want the
+portfolio-period reviewer-facing example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_portfolio_demo
+ppar performance_comparison ./my_ppar_data/performance_comparison --report portfolio
 ```
 
 Output:
@@ -63,11 +63,11 @@ Output:
 - `_demo_output/performance_comparison_portfolio/manifest.json`
 - `_demo_output/performance_comparison_portfolio/*.csv`
 
-Run the packaged security demo when you want the security-period reviewer-facing
-example:
+Run the security comparison from a setup workspace when you want the
+security-period reviewer-facing example:
 
 ```bash
-./.venv/bin/python -m ppar.demos.axysapx_performance_comparison_security_demo
+ppar performance_comparison ./my_ppar_data/performance_comparison --report security
 ```
 
 Output:

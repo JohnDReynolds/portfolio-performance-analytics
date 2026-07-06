@@ -68,12 +68,11 @@ User-facing entry point:
 - `ppar performance_comparison`: writes portfolio and security comparison report
   bundles from a configured workspace.
 
-Developer/internal helper modules:
+Developer/internal helper commands:
 
-- `ppar.demos.axysapx_performance_comparison_portfolio_demo`: source-checkout
-  smoke module for the portfolio-level packaged fixture.
-- `ppar.demos.axysapx_performance_comparison_security_demo`: source-checkout
-  smoke module for the security-level packaged fixture.
+- `scripts/check_performance_comparison_demo_health.py`: source-checkout smoke
+  command that runs `ppar setup`, executes the setup-generated portfolio and
+  security scripts, and validates the generated bundles.
 - `ppar.performance_comparison.cli.report_bundle`: source-checkout command
   for writing a report bundle from a comparison YAML file.
 
@@ -1793,15 +1792,12 @@ next steps. Period-level bundle tables carry a stable `review_key` where
 possible, and `needs_review_summary.csv` includes `review_detail_artifacts` to
 name the CSVs most relevant to each changed period.
 
-The packaged Axys/APX fixtures intentionally separate user-facing demos from
-validation fixtures. The user-facing paths are:
-
-- `ppar.demos.axysapx_performance_comparison_portfolio_demo`: portfolio strict-attribution
-  demo writing `_demo_output/performance_comparison_portfolio` with `report.xlsx`,
-  `report.html`, CSV artifacts, and a manifest.
-- `ppar.demos.axysapx_performance_comparison_security_demo`: security-period review demo
-  writing `_demo_output/performance_comparison_security` with `report.xlsx`,
-  `report.html`, CSV artifacts, and a manifest.
+The packaged Axys/APX fixtures intentionally separate user-facing setup
+templates from validation fixtures. `ppar setup` installs the portfolio and
+security comparison starter files, including `run_portfolio_comparison.py` and
+`run_security_comparison.py`. Those setup-generated scripts write `report.xlsx`,
+`report.html`, CSV artifacts, and a manifest under `output/portfolio` and
+`output/security`.
 
 The remaining YAML files are scenario-coverage fixtures for tests and
 validators:

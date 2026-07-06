@@ -1672,10 +1672,11 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         for expected_text in [
-            "ppar.demos.axysapx_performance_comparison_portfolio_demo",
-            "ppar.demos.axysapx_performance_comparison_security_demo",
-            "_demo_output/performance_comparison_portfolio",
-            "_demo_output/performance_comparison_security",
+            "ppar setup",
+            "run_portfolio_comparison.py",
+            "run_security_comparison.py",
+            "output/portfolio",
+            "output/security",
             "report.xlsx",
             "report.html",
             "review_summary.json",
@@ -1716,11 +1717,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_public_demo_entrypoints_use_packaged_resources(self) -> None:
         """Installed demo entrypoints read bundled resources, not repo paths."""
-        demo_modules = (
-            Path("ppar/demos/axysapx_analytics_demo.py"),
-            Path("ppar/demos/axysapx_performance_comparison_portfolio_demo.py"),
-            Path("ppar/demos/axysapx_performance_comparison_security_demo.py"),
-        )
+        demo_modules = (Path("ppar/demos/axysapx_analytics_demo.py"),)
 
         for path in demo_modules:
             text = path.read_text(encoding=util.ENCODING)
