@@ -102,6 +102,9 @@ Completed guardrails now cover:
 - the `0.1.5` distribution artifacts passed `twine check`, metadata and
   package-content inspection, and installed-wheel command smoke with the
   declared runtime dependency set available;
+- local release notes now summarize `v0.1.5`, and the local release tag is
+  intended to point at the final audited release-record commit before any push
+  or publish;
 - the `generic_analytics` dataset is retained as maintainer/demo
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
@@ -3200,6 +3203,12 @@ Release-tag readiness for `v0.1.5` requires:
 - built metadata reporting `Version: 0.1.5`; and
 - a clean working tree before creating the local tag.
 
+### Release Notes Stub
+
+- `v0.1.5`: Axys/APX setup, analytics and performance-comparison onboarding,
+  single `ppar` CLI, packaged starter data, streamlined report commands,
+  marketing README refresh, and release artifact audit.
+
 ### Phase 91: Publish Dry Run And Final Artifact Audit
 
 Status: complete for the local `0.1.5` publish dry run.
@@ -3227,6 +3236,17 @@ expected for a no-deps install, `ppar performance_comparison` reported that
 set available completed both portfolio and security workbook generation.
 
 No artifact was uploaded and no tag was pushed.
+
+### Phase 92: Tag Placement Decision And Release Notes Stub
+
+Status: complete for local tag-placement preparation; no artifact was uploaded
+and no tag was pushed.
+
+The release notes remain intentionally small and live in this roadmap rather
+than a separate changelog. The release record now treats the publish dry-run
+audit as part of the tagged source snapshot, so the local `v0.1.5` tag should
+point at the final audited release-record commit before any remote push or PyPI
+publish.
 
 ## Guiding Principle
 

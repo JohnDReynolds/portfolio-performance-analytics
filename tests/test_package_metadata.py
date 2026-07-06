@@ -951,6 +951,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("artifacts passed `twine check`", roadmap)
         self.assertIn("only `ppar = ppar.cli:main`", roadmap)
         self.assertIn("No artifact was uploaded and no tag was pushed", roadmap)
+        self.assertIn("### Release Notes Stub", roadmap)
+        self.assertIn("`v0.1.5`: Axys/APX setup", roadmap)
+        self.assertIn(
+            "Phase 92: Tag Placement Decision And Release Notes Stub",
+            roadmap,
+        )
+        self.assertIn("final audited release-record commit", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
