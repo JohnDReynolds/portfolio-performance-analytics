@@ -413,6 +413,13 @@ def _print_success(result: dict[str, Path | str]) -> None:
     print("To run Performance Comparison:")
     print(f"  ppar performance_comparison {result['comparison_directory']}")
     print()
+    if "generic_analytics_directory" in result:
+        print("To run Generic Analytics:")
+        generic_script_path = (
+            Path(result["generic_analytics_directory"]) / "run_generic_analytics.py"
+        )
+        print(f"  python {generic_script_path}")
+        print()
     if "missing_files" in result:
         print("Next step: add these portfolio source files, then run setup again:")
         print(result["missing_files"])

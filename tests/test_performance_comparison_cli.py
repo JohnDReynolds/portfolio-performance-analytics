@@ -383,7 +383,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             site_directory = Path(directory) / "my_ppar_data"
 
-            subprocess.run(
+            result = subprocess.run(
                 _module_command(
                     _SETUP_MODULE,
                     "--include-generic-analytics",
@@ -395,6 +395,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             generic_directory = site_directory / "generic_analytics"
+            self.assertIn("To run Generic Analytics:", result.stdout)
+            self.assertIn(
+                f"python {generic_directory / 'run_generic_analytics.py'}",
+                result.stdout,
+            )
             self.assertTrue(
                 (generic_directory / "run_generic_analytics.py").exists()
             )
