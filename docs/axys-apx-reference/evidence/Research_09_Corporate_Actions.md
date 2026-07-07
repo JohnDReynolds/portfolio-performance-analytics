@@ -32,8 +32,10 @@ This research intentionally preserves unknowns. It does not invent transaction c
 | SS&C Advent, “Brief: Advent Corporate Actions for APX” | Vendor web page / product brief | APX integration with Advent Corporate Actions (ACA), processing flow, Trade Blotter, Reorg Utility | Public vendor page | Verified for ACA/APX product claims |
 | SS&C Advent, “What is SS&C Advent Corporate Actions?” | Vendor web page | General ACA positioning; dashboard/calendar/reporting improvements | Public vendor page | Verified for ACA product positioning only |
 | AdventGuru, “Demystifying Portfolio Accounting Systems Integration Post-Merger/Acquisition” / Data Conversion category | Consultant article | Mentions Axys/APX merge workflows; exported CSV copies of `split.inf`; import into merged Advent environment | Public consultant source, not official vendor documentation | Medium to High Confidence depending on claim |
+| AdventGuru/Kevin Shea split-file merge example | Consultant implementation note | Shows exported CSV copies of firms' `split.inf` files and SQL field names `SplitDate`, `SplitSymbol`, and `SplitFactor` | Public consultant source; field names may be consultant table aliases rather than official Advent headers | Medium to High Confidence for logical date/symbol/factor model |
 | FinFolio, “Advent Axys, Moxy & APX Conversions” | Vendor conversion page | Lists Advent source files used in conversion; explicitly mentions split transactions “blown out” from `SPLIT.INF` | Third-party converter | Medium Confidence for conversion observations |
 | Morningstar Office, “Advent Axys Database Conversion” PDF | Third-party conversion guide | Lists Axys export files including `.cli`, `sec.inf`, `split.inf`, `.pri`, `type.inf`; discusses export mechanics and transaction conversion limitations | Third-party conversion guide; includes procedural Axys export steps | High Confidence for Axys file existence and conversion requirements |
+| SourceForge Walnut Axys file opener release notes | Third-party tooling notes | Release notes state support was added to open `split.inf` files | Confirms file artifact and structured readability, not field layout | Medium Confidence |
 | AdventGuru, “Building Advent APX Data Pipeline Integration with REST API” | Consultant article | Notes APX REST API may not cover all data; IMEX/Replang/public views/stored procedures/SSRS may still be needed | Public consultant source | Medium Confidence for APX integration strategy |
 | SS&C Advent corporate actions processing white paper | Vendor white paper | General corporate action concepts and operational challenges | Not Axys/APX-specific | Background only |
 
@@ -49,6 +51,7 @@ This research intentionally preserves unknowns. It does not invent transaction c
 | Axys has a `split.inf` file used for security splits. | Yes | Unknown whether native APX stores an equivalent physical file | High Confidence | Third-party conversion and consultant sources identify `split.inf` / `SPLIT.INF` as Advent Axys security splits file. |
 | Axys conversion/extract packages commonly include `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf`. | Yes | Unknown | High Confidence | Morningstar conversion guide lists these files as Advent Axys database files. |
 | Split transactions may be derived or “blown out” from `SPLIT.INF` during conversion. | Yes, in third-party conversion process | Listed by converter for Advent Axys/Moxy/APX conversions, but source-system distinction is unclear | Medium Confidence | FinFolio page states split transactions are “blown out” from `SPLIT.INF`. |
+| Normal Axys split evidence points to central security-level split factors rather than ordinary account-level split transactions. | Yes | APX native storage Unknown | High Confidence for Axys; Unknown for APX | Morningstar identifies `split.inf` as securities splits file; AdventGuru shows exported split-file date/symbol/factor semantics; FinFolio says converters “blow out” split transactions from `SPLIT.INF`. |
 | APX provides a Reorg Utility used in the ACA workflow. | Not identified in public Axys brief | Yes | Verified for APX only | SS&C ACA/APX brief says the Reorg Utility runs and transactions post to APX Trade Blotter. |
 | APX Trade Blotter is the destination for ACA-generated reorganization transactions. | Not applicable from public source | Yes | Verified | SS&C ACA/APX brief. |
 | Exact APX database tables for corporate actions are public-source Unknown. | Unknown | Unknown | Unknown | No supplied APX schema or vendor technical docs provided. |
@@ -101,6 +104,8 @@ The following event taxonomy is included only as a research checklist. It should
 | Topic | Research Finding | Classification | Notes |
 |---|---|---:|---|
 | Splits | Axys maintains split data in `split.inf` in at least some environments/versions. | High Confidence | Confirm with exported sample before documenting field layout. |
+| Split factor logical layout | Consultant split-file merge code uses `SplitDate`, `SplitSymbol`, and `SplitFactor` fields after exported CSV files are loaded for merging. | Medium to High Confidence for logical fields; Unknown for official header names | Treat these as logical fields until a sanitized exported file or vendor dictionary confirms actual headers and factor convention. |
+| Split transaction absence | The strongest current evidence does not show normal splits as ordinary account-level `.cli` transaction rows. | High Confidence as an inference | Conversion systems may materialize split transactions from `SPLIT.INF`; that is converter behavior, not proof of native Axys transaction storage. |
 | ACA for Axys | SS&C Advent marketed ACA as integrated with Axys, receiving active holdings by daily script, providing reports and Automation Results email, and processing simple/mandatory events to the Trade Blotter. | Verified for vendor workflow claim | Exact fields, transaction rows, and final posting lifecycle Unknown. |
 | Simple vs complex ACA events | Axys ACA brief says simple/mandatory events such as cash or stock exchanges can automatically process, while non-simple/mandatory option events such as mergers with options require review before processing. | Verified for vendor workflow claim | Downstream status fields Unknown. |
 | ACA coverage | Axys ACA brief covers U.S. and non-U.S. equities, fixed income, taxable/non-taxable/combination mergers, name changes, spin-offs, bankruptcies, and many others. | Verified for vendor coverage claim | Exact accounting output Unknown. |
@@ -126,6 +131,33 @@ conversion evidence says split transactions can be "blown out" from
 `SPLIT.INF`; that is target-system conversion behavior and should not be
 treated as proof that native Axys stores split transactions in every
 account `.cli` file.
+
+### 5.2.2 Axys `split.inf` Logical Model
+
+The strongest public model for exported Axys split data is a
+security-level split-factor file. Morningstar identifies `split.inf` as
+the securities splits file. AdventGuru/Kevin Shea's merge example works
+with exported CSV copies of firms' `split.inf` files and shows SQL
+columns named `SplitDate`, `SplitSymbol`, and `SplitFactor`.
+
+Those names should be treated as logical/consultant-derived fields, not
+official SS&C header names. No public official record layout, native
+file format, sample row, reverse-split convention, or APX public-view
+equivalent was found in this research pass.
+
+The defensible conceptual model is:
+
+| Logical field | Meaning | Confidence |
+|---|---|---:|
+| Split security identifier / symbol | Security affected by the split factor. | Medium to High Confidence |
+| Split effective date | Date on which the split factor applies. | Medium to High Confidence |
+| Split factor | Share multiplier applied to quantity and inverse price/cost-per-share treatment. | Medium to High Confidence |
+
+Practical implication: an Axys/APX audit extract should prefer a
+separate split-factor dataset when available. Split-factor rows explain
+why holdings quantities may change; they should not be modeled as
+ordinary cash-flow transactions unless the source system or conversion
+process actually materializes account-level split transactions.
 
 ### 5.3 Axys Field Dictionary Candidates
 

@@ -43,6 +43,7 @@ _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
     {
         _PORTFOLIO_PERFORMANCE_KEY,
         _SECURITY_PERFORMANCE_KEY,
+        "splits",
         "holdings",
         "transactions",
         "cash",

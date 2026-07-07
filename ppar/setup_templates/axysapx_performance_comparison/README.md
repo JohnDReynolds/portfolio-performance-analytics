@@ -134,10 +134,12 @@ Data used:
 - Files: Axys/APX-style portfolio performance, security performance,
   transactions, and holdings.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
-  monthly periods, ten mega-cap equities, `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and
-  `TNOTE5Y`. `ALPHA` is the closest match to the Mega-Cap Alpha analytics
-  portfolio; `BALANCED` and `INCOME` reuse the same securities with larger
-  cash/fixed-income sleeves.
+  monthly periods, ten mega-cap equities, one CVNA split-processing example,
+  `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and `TNOTE5Y`. `ALPHA` is the closest match
+  to the Mega-Cap Alpha analytics portfolio; `BALANCED` and `INCOME` reuse the
+  same securities with larger cash/fixed-income sleeves. CVNA appears only in
+  the BALANCED portfolio as a small corporate-action processing example tied to
+  a May 2026 5-for-1 split.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
 - YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `pa`, `sa`,
@@ -164,9 +166,10 @@ Data used:
   | Home | Transaction families |
   | --- | --- |
   | Packaged demo rows | `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
-  | YAML rules reserved for runtime guards | `;` corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
+  | Packaged split-factor rows | CVNA `splits.csv` row in Snapshot B, used as context evidence for central split processing. |
+  | YAML rules reserved for runtime guards | `;` locally materialized corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
   | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, `pa`/`sa` local-override examples, and `dv` + `by` reinvestment guards. |
-  | Evidence-blocked backlog | `ai`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and real-world corporate actions until source evidence and accounting policy are strong enough. |
+  | Evidence-blocked backlog | `ai`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
   interest uses an `in` transaction row, accrued-interest restatement uses
@@ -217,6 +220,9 @@ Expected workbook:
   - a fully explained BALANCED period with a JPM `dv` dividend amount change;
   - a fully explained BALANCED period with an inserted `li` row on `CASH_USD`
     for an external cash contribution;
+  - a fully explained BALANCED period where Snapshot A missed the CVNA
+    5-for-1 split quantity adjustment while both snapshots use split-adjusted
+    ending prices, so Snapshot B corrects CVNA ending quantity and market value;
   - a fully explained INCOME period with a larger fee-like `dp` transaction,
     classified from special-security context, and matching lower `CASH_USD`
     ending value;
@@ -334,6 +340,10 @@ Current public YAML targets are intentionally narrow:
   fixed-income backlog codes such as `ai` and `pd` require test-only fixture
   proof plus local mapping or REP/report evidence before they should become
   user-facing demo transactions.
+- `splits`: optional security-level split-factor evidence. The packaged CVNA
+  row is intentionally not a transaction. It supports the review story that
+  Snapshot B has central split-factor evidence and corrected holdings quantity,
+  while Snapshot A is missing that factor.
 - `transaction_amount_delta_over_return_denominator`: default amount-impact
   method used after `transaction_rules` mark a transaction code as
   performance-affecting.

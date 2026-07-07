@@ -124,7 +124,7 @@ These file names should not be treated as a complete Axys file dictionary. They 
 | `INF` | Security master / type / split information in migration context. | Migration vendor page. | Medium Confidence | Verify exact file names and contents. |
 | `SECURITY.INF` | Security master in migration context. | Migration vendor page. | Medium Confidence | Candidate for Chapter 04 cross-reference. |
 | `TYPE.INF` | Security type information in migration context. | Migration vendor page. | Medium Confidence | Candidate for Chapter 04/15 cross-reference. |
-| `SPLIT.INF` | Split information in migration context. | Migration vendor page. | Medium Confidence | Candidate for Chapter 09 cross-reference. |
+| `SPLIT.INF` | Split information in migration context; later split-file research identifies `split.inf` as Axys securities splits file and supports logical date/symbol/factor semantics from consultant merge code. | Migration vendor page; Morningstar conversion guide; AdventGuru split-file merge example. | High Confidence for file existence; Medium to High Confidence for logical fields | Candidate for Chapter 09 cross-reference; exact official headers remain Unknown. |
 | `PRF` | Performance returns in migration context. | Migration vendor page. | Medium Confidence | Candidate for Chapter 10 cross-reference. |
 | `GRP` | Groups/color groups in migration context. | Migration vendor page. | Medium Confidence | Candidate for classifications/groups cross-reference. |
 | `.REP` | Replang report source/report files. | AdventGuru and AUG technical note. | High Confidence | Safe to discuss in REP/reporting architecture. |

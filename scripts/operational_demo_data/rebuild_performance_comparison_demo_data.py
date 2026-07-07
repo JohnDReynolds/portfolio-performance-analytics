@@ -243,7 +243,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "accrual_correction": 1,
             "cash_balance_correction": 1,
             "cost_only_correction": 1,
-            "quantity_valuation_correction": 1,
+            "quantity_valuation_correction": 2,
             "valuation_mark": 3,
         },
     }

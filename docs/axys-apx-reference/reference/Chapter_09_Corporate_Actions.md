@@ -50,6 +50,7 @@ This chapter covers:
 | Corporate actions may appear as split records, transaction activity, security-master changes, price changes, holdings changes, and/or blotter activity. | Yes, partially supported | Yes, partially supported | Medium Confidence |
 | Axys conversion packages commonly include `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf`. | Yes | Unknown | High Confidence |
 | `split.inf` is identified in supplied research as the Axys securities splits file. | Yes | Unknown | High Confidence |
+| The strongest Axys split evidence points to central security-level split factors rather than ordinary portfolio transaction rows. | Yes | Unknown | High Confidence for Axys; Unknown for APX |
 | Third-party conversion tools may materialize split history from `SPLIT.INF` into explicit split transactions. | Yes, conversion context | Unclear | Medium Confidence |
 | ACA is verified as an Advent corporate-actions workflow for both Axys and APX at the vendor workflow/product-claim level. | Yes | Yes | Verified |
 | In the ACA/Axys workflow, active holdings can be received by daily script, ACA reports and Automation Results email can be produced, simple/mandatory events can process to the Trade Blotter, and complex/option events require review. | Yes | N/A | Verified |
@@ -111,6 +112,7 @@ The supplied research identifies several Axys file artifacts that can be relevan
 | Axys has a `split.inf` file identified as a securities splits file. | High Confidence | Supported by Morningstar conversion research and consultant/conversion references summarized in the supplied corporate-action research. |
 | `split.inf` is part of common Axys conversion/extract packages along with `.cli`, `sec.inf`, `.pri`, and `type.inf`. | High Confidence | Supported by supplied conversion research. |
 | Third-party conversion tools may convert or “blow out” split records from `SPLIT.INF` into explicit split transactions. | Medium Confidence | This describes converter behavior, not native Axys accounting behavior. |
+| Normal split audit evidence should be treated as security-level split-factor data when available, not as a required account-level transaction row. | High Confidence | This follows from `split.inf` being a securities splits file and conversion tools deriving split transactions from it. |
 | Exact `split.inf` columns are not established. | Unknown | No sanitized file, vendor layout, or IMEX dictionary was supplied. |
 | Exact split ratio/date/security key conventions are not established. | Unknown | Do not invent date/factor fields. |
 | Whether Axys uses split records at report time, materializes split transactions internally, or uses another mechanism is not established. | Unknown | Requires Axys documentation or before/after sample files/reports. |
@@ -144,6 +146,36 @@ third-party conversion evidence says split records may be "blown out"
 from `SPLIT.INF` into target-system split transactions. That does not
 prove that native Axys stores split transactions in each account `.cli`
 file.
+
+### 3.3.1 Axys `split.inf` Logical Model
+
+The most defensible Axys split model is a security-level factor dataset:
+
+```text
+split.inf logical record
+------------------------
+security identifier / symbol
+split effective date
+split factor
+```
+
+AdventGuru/Kevin Shea's consultant merge example uses exported CSV
+copies of firms' `split.inf` files and SQL field names `SplitDate`,
+`SplitSymbol`, and `SplitFactor`. These names are useful logical labels,
+but they are not verified official SS&C field headers.
+
+For performance-comparison and audit work, this means:
+
+| Audit Need | Recommended Source Treatment |
+|---|---|
+| Prove a split existed | Preserve a split-factor extract such as `split.inf` / exported `splits.csv`. |
+| Explain quantity changes | Link the split factor to changed holdings quantity for portfolios holding the security. |
+| Explain market-value changes | Review quantity, split-adjusted price, and ending market value together. |
+| Avoid false cash-flow treatment | Do not model split factors as external flows or ordinary buy/sell transactions. |
+
+If a converter materializes split transactions from `SPLIT.INF`, those
+rows should be labeled as conversion output, not assumed to be native
+Axys account-level transaction storage.
 
 ### 3.4 Axys Dividends and Reinvestments
 

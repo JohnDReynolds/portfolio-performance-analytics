@@ -241,6 +241,7 @@ _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
     pc_cols.HOLDINGS: frozenset(
         {pc_cols.QUANTITY, pc_cols.MARKET_VALUE, pc_cols.COST, pc_cols.ACCRUED}
     ),
+    pc_cols.SPLITS: frozenset({pc_cols.SPLIT_FACTOR}),
     pc_cols.TRANSACTIONS: frozenset(
         {pc_cols.AMOUNT, pc_cols.QUANTITY, pc_cols.PRICE, pc_cols.COMMISSION}
     ),

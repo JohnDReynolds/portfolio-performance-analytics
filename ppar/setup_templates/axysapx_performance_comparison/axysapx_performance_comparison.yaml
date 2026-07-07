@@ -127,10 +127,21 @@ files:
   #   Useful context headers: SETTLE_DATE, SEC_TYPE, SRC_DEST_TYPE,
   #   SRC_DEST_SYMBOL, SPECIAL_SEC_TYPE, SPECIAL_SEC_SYMBOL, QTY, PRICE,
   #   COMMISSION.
+  #
+  # splits:
+  #   Optional but recommended when your Axys/APX extract process can export
+  #   security-level split factors. Axys evidence indicates normal split
+  #   handling is driven by central split-factor data such as split.inf, not by
+  #   ordinary portfolio transaction rows. Required fields after normalization:
+  #   security id, split date, and split factor. This is context evidence only;
+  #   it explains why holdings.quantity may change, but it is not an external
+  #   cash flow and does not directly enter Modified Dietz.
+  #   Starter headers: SEC, SPLIT_DATE, SPLIT_FACTOR.
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
   transactions: transactions.csv
+  splits: splits.csv
 
 portfolio_return_reconstruction:
   # Purpose:
@@ -312,8 +323,10 @@ transaction_rules:
       cash_flow_sign: none
       performance_flow_sign: neutral
   ";":
-    # Reserved corporate-action/journal marker. User-facing split examples
-    # should wait for a real historical event and explicit policy.
+    # Reserved corporate-action/journal marker. Normal Axys split evidence is
+    # better modeled through the separate splits.csv factor extract. Use this
+    # only when a local site or conversion process materializes corporate-action
+    # markers in transaction rows.
     transaction_category: corporate_action
     cash_flow_sign: none
     performance_flow_sign: neutral
@@ -370,6 +383,17 @@ security_return_impact_methods:
     flow_timing: transaction_date
     day_count: actual_days
     inclusion_rule: beginning_of_day
+
+evidence_only_impact_methods:
+  # Purpose:
+  #   Names source-data fields that are intentionally review context, not
+  #   additive Modified Dietz causes. Split factors explain why holdings
+  #   quantities changed, but the actual performance input remains ending
+  #   holdings.market_value.
+  splits:
+    method: evidence_only
+    source_fields:
+      - split_factor
 
 tolerances:
   # Purpose:

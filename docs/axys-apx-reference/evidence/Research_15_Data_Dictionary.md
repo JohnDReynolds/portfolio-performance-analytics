@@ -551,3 +551,28 @@ Any future field dictionary should include:
 No candidate normalized field above should be documented as generally available
 in Axys IMEX until confirmed by a live IMEX catalog, vendor manual, or sanitized
 export sample.
+
+## 22. Split File Addendum Incorporated 2026-07-07
+
+Source: `_temp_axys_split_inf_file_format_research.md`.
+
+Later corporate-action research strengthens the Axys data-dictionary evidence
+for split factors. Morningstar identifies `split.inf` as Axys' securities
+splits file, and AdventGuru/Kevin Shea's consultant split-file merge example
+uses exported CSV copies of firms' `split.inf` files with SQL field names
+`SplitDate`, `SplitSymbol`, and `SplitFactor`.
+
+These names should be treated as logical field labels, not verified official
+SS&C headers.
+
+| Field / Concept | Description | Axys | APX | IMEX | REP | Confidence |
+|---|---|---|---|---|---|---:|
+| `split.inf` / `SPLIT.INF` | Axys securities splits file. | Yes | Unknown native APX status | Unknown | Unknown | High Confidence |
+| Split date / effective date | Date on which a split factor applies; consultant merge code uses logical `SplitDate`. | Likely in `split.inf`; official header Unknown | Unknown | Unknown | Unknown | Medium to High Confidence as logical field |
+| Split security / symbol | Security identifier affected by a split; consultant merge code uses logical `SplitSymbol`. | Likely in `split.inf`; official header Unknown | Unknown | Unknown | Unknown | Medium to High Confidence as logical field |
+| Split factor | Share multiplier/factor; consultant merge code uses logical `SplitFactor`. | Likely in `split.inf`; official header and reverse-split convention Unknown | Unknown | Unknown | Unknown | Medium to High Confidence as logical field |
+
+Practical implication: performance-comparison extracts should prefer a
+separate split-factor dataset for split evidence when available. Split factors
+explain holdings quantity changes but should not be treated as ordinary
+account-level transactions or external flows.

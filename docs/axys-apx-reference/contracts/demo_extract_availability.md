@@ -24,6 +24,7 @@ The two packaged snapshots currently use the same file layouts:
 - `portperf.csv`
 - `secperf.csv`
 - `transactions.csv`
+- `splits.csv`
 
 ## Confidence Labels
 
@@ -125,6 +126,15 @@ Use this matrix as an implementation planning aid:
 | transactions | `COMMISSION` | Commission. | Medium | Medium | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Supported in CI parameter evidence; report/profile availability should be validated. |
 
 
+### `splits.csv`
+
+| Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
+|---|---|---|---|---|---|---|---|
+| split factors | `SEC` | Security identifier for the split-factor row. | Medium / High | Medium | Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md identify Axys `split.inf` as securities splits data and cite consultant date/symbol/factor merge evidence. | Confirm whether the local site can export split.inf or an equivalent split-factor report. | Axys split-file research supports security-level split records; exact local export field names must be validated. |
+| split factors | `SPLIT_DATE` | Effective date for the split factor. | Medium / High | Medium | Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md cite AdventGuru/Kevin Shea logical `SplitDate` evidence from exported split.inf files. | Confirm local date field name and whether the date is effective, ex-date, or another local split date basis. | Consultant split-file merge evidence uses a date field for exported split records. |
+| split factors | `SPLIT_FACTOR` | Share multiplier or split factor. | Medium / High | Medium | Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md cite AdventGuru/Kevin Shea logical `SplitFactor` evidence from exported split.inf files. | Confirm whether the local factor convention is multiplier, ratio text, inverse factor, or another representation. | Consultant split-file merge evidence uses a factor field for exported split records; exact reverse-split convention is unknown. |
+
+
 ## Candidate Name Mapping
 
 These names are candidate aliases for local discovery. They are not assertions that the packaged demo headers are official Axys/APX IMEX or REP names.
@@ -199,6 +209,15 @@ These names are candidate aliases for local discovery. They are not assertions t
 | transactions | `PRICE` | PRICE, Price | Price | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `AMOUNT` | Amount, Net Amount, Cash Amount | Amount, Net Amount, Cash Amount | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `COMMISSION` | Commission, Commissions | Commission | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
+
+
+### `splits.csv` Name Candidates
+
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
+|---|---|---|---|---|---|
+| split factors | `SEC` | SEC, SplitSymbol, Security, Symbol | Security, Symbol, Split Symbol | Inferred Alias | `SplitSymbol` is consultant-derived logical evidence, not a verified official Axys header. |
+| split factors | `SPLIT_DATE` | SPLIT_DATE, SplitDate, Effective Date | Split Date, Effective Date | Inferred Alias | `SplitDate` is consultant-derived logical evidence, not a verified official Axys header. |
+| split factors | `SPLIT_FACTOR` | SPLIT_FACTOR, SplitFactor, Factor | Split Factor, Factor | Inferred Alias | `SplitFactor` is consultant-derived logical evidence, not a verified official Axys header. |
 
 
 ## Source Strategy Matrix
@@ -277,6 +296,15 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | transactions | `PRICE` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `AMOUNT` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `COMMISSION` | IMEX then REP cross-check | REP preferred | No | No | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+
+
+### `splits.csv` Source Strategy
+
+| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
+|---|---|---|---|---|---|---|
+| split factors | `SEC` | IMEX or REP | Local discovery required | No | No | Prefer a direct split.inf/exported split-factor source; use REP/custom reports only if they expose security-level split factors. |
+| split factors | `SPLIT_DATE` | IMEX or REP | Local discovery required | No | No | Validate the local date basis before comparing split factors to holdings and prices. |
+| split factors | `SPLIT_FACTOR` | IMEX or REP | Local discovery required | No | No | Treat split factors as context evidence explaining holdings changes, not as cash-flow transactions. |
 
 
 ## Practical Extraction Guidance

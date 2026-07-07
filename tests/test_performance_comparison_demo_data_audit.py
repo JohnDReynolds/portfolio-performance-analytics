@@ -104,6 +104,7 @@ _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.PRICE),
     (pc_cols.HOLDINGS, pc_cols.QUANTITY),
+    (pc_cols.SPLITS, pc_cols.SPLIT_FACTOR),
     (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
     (pc_cols.TRANSACTIONS, pc_cols.COMMISSION),
     (pc_cols.TRANSACTIONS, pc_cols.PRICE),
@@ -756,6 +757,29 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertGreater(accrued_causes.height, 0)
 
+    def test_packaged_demo_split_factor_supports_holding_cause(self) -> None:
+        """Split-factor evidence supports the CVNA holding-value correction."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        causes = _workbook_underlying_causes_table(findings)
+        split_causes = causes.filter(
+            (pl.col("dataset") == pc_cols.SPLITS)
+            & (pl.col("source_column") == pc_cols.SPLIT_FACTOR)
+            & (pl.col("security_id") == "CVNA")
+        )
+
+        self.assertEqual(split_causes.height, 1)
+        self.assertEqual(
+            split_causes["review_guidance"][0],
+            (
+                "split: Caused CVNA holdings.quantity and related "
+                "holdings.market_value to increase using a 5.0 split factor."
+            ),
+        )
+
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
         """Packaged reports preserve intentional partial and unresolved periods."""
         portfolio_findings = compare_snapshots(_PACKAGED_COMPARISON_PATH)
@@ -869,14 +893,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["holding_scenario_rows"], 7)
+        self.assertEqual(snapshots["snapshot_b"]["holding_scenario_rows"], 8)
         self.assertEqual(
             snapshots["snapshot_b"]["holding_scenarios_by_type"],
             {
                 "accrual_correction": 1,
                 "cash_balance_correction": 1,
                 "cost_only_correction": 1,
-                "quantity_valuation_correction": 1,
+                "quantity_valuation_correction": 2,
                 "valuation_mark": 3,
             },
         )
@@ -901,7 +925,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             {
                 "valuation_mark": 3,
                 "cash_balance_correction": 1,
-                "quantity_valuation_correction": 1,
+                "quantity_valuation_correction": 2,
                 "accrual_correction": 1,
                 "cost_only_correction": 1,
             },

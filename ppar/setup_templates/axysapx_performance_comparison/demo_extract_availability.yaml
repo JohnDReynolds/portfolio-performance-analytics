@@ -1002,6 +1002,80 @@ datasets:
         blocking_if_missing: false
         source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
           sign-convention validation.
+  splits.csv:
+    columns:
+      SEC:
+        normalized_meaning: Security identifier for the split-factor row.
+        imex_confidence: medium_high
+        rep_confidence: medium
+        comments: Axys split-file research supports security-level split records; exact local export field names must be validated.
+        basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md identify Axys `split.inf` as securities
+          splits data and cite consultant date/symbol/factor merge evidence.
+        open_questions:
+        - Confirm whether the local site can export split.inf or an equivalent split-factor report.
+        candidate_axys_names:
+        - SEC
+        - SplitSymbol
+        - Security
+        - Symbol
+        candidate_report_labels:
+        - Security
+        - Symbol
+        - Split Symbol
+        name_confidence: inferred_alias
+        name_notes: "`SplitSymbol` is consultant-derived logical evidence, not a verified official Axys header."
+        preferred_source: imex_or_rep
+        fallback_source: local_discovery_required
+        requires_context_for_semantics: false
+        blocking_if_missing: false
+        source_strategy_notes: Prefer a direct split.inf/exported split-factor source; use REP/custom reports only if they expose
+          security-level split factors.
+      SPLIT_DATE:
+        normalized_meaning: Effective date for the split factor.
+        imex_confidence: medium_high
+        rep_confidence: medium
+        comments: Consultant split-file merge evidence uses a date field for exported split records.
+        basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md cite AdventGuru/Kevin Shea logical
+          `SplitDate` evidence from exported split.inf files.
+        open_questions:
+        - Confirm local date field name and whether the date is effective, ex-date, or another local split date basis.
+        candidate_axys_names:
+        - SPLIT_DATE
+        - SplitDate
+        - Effective Date
+        candidate_report_labels:
+        - Split Date
+        - Effective Date
+        name_confidence: inferred_alias
+        name_notes: "`SplitDate` is consultant-derived logical evidence, not a verified official Axys header."
+        preferred_source: imex_or_rep
+        fallback_source: local_discovery_required
+        requires_context_for_semantics: false
+        blocking_if_missing: false
+        source_strategy_notes: Validate the local date basis before comparing split factors to holdings and prices.
+      SPLIT_FACTOR:
+        normalized_meaning: Share multiplier or split factor.
+        imex_confidence: medium_high
+        rep_confidence: medium
+        comments: Consultant split-file merge evidence uses a factor field for exported split records; exact reverse-split convention is unknown.
+        basis: Chapter_09_Corporate_Actions.md and Research_09_Corporate_Actions.md cite AdventGuru/Kevin Shea logical
+          `SplitFactor` evidence from exported split.inf files.
+        open_questions:
+        - Confirm whether the local factor convention is multiplier, ratio text, inverse factor, or another representation.
+        candidate_axys_names:
+        - SPLIT_FACTOR
+        - SplitFactor
+        - Factor
+        candidate_report_labels:
+        - Split Factor
+        - Factor
+        name_confidence: inferred_alias
+        name_notes: "`SplitFactor` is consultant-derived logical evidence, not a verified official Axys header."
+        preferred_source: imex_or_rep
+        fallback_source: local_discovery_required
+        requires_context_for_semantics: false
+        blocking_if_missing: false
+        source_strategy_notes: Treat split factors as context evidence explaining holdings changes, not as cash-flow transactions.
 name_confidence_labels:
   inferred_alias: Likely field/report aliases for the underlying value, but not proven as official native Axys/APX names by the
     local corpus.

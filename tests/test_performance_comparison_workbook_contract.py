@@ -357,6 +357,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Helped explain" in str(row[10])
                         or "Caused cash-balance" in str(row[10])
                         or "Caused transactions.amount" in str(row[10])
+                        or "split factor" in str(row[10])
                         or "transactions.amount to" in str(row[10])
                         or "holdings.quantity to" in str(row[10])
                         or "ending holdings." in str(row[10])
@@ -607,7 +608,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     {row[3] for row in security_rows},
-                    {"AAPL", "CASH_USD", "JPM", "MSFT", "TNOTE2Y", "TNOTE5Y"},
+                    {
+                        "AAPL",
+                        "CASH_USD",
+                        "CVNA",
+                        "JPM",
+                        "MSFT",
+                        "TNOTE2Y",
+                        "TNOTE5Y",
+                    },
                 )
                 self.assertEqual(
                     {row[7] for row in security_rows},

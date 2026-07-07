@@ -142,7 +142,7 @@ Standing maintenance criteria:
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | Real historical split only if the demo period supports it; additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys/APX behavior. |
+| Packaged demo candidate | Additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases; future corporate actions only when they add a distinct story beyond the packaged CVNA split-processing correction. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys/APX behavior. |
 | Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
 | Evidence-blocked backlog | Mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
@@ -971,9 +971,10 @@ transaction type:
 - `dv` and `in` increase ending `CASH_USD` holdings;
 - `by` increases the traded security holding and reduces cash;
 - `sl` reduces the traded security holding and increases cash;
-- split/corporate-action evidence is intentionally absent from the current
-  user-facing packaged comparison demo until it can use a real-world split in a period
-  designed for that corporate action.
+- the packaged CVNA split-processing correction demonstrates a realistic
+  corporate-action miss within the demo period: Snapshot A carries stale
+  quantity at the split-adjusted price, while Snapshot B corrects quantity and
+  ending market value.
 
 Suggested source-of-truth inputs:
 
@@ -1063,7 +1064,7 @@ classify Axys/APX transaction semantics safely.
 | 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
 | 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. Keep `ai` and `pd` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
 | 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | Test-only site variants cover explicit performance-income treatments for `rc` and `pd`. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
-| 6 | Real-world split / corporate action evidence | Packaged demo only when the demo period/security supports a real historical event | Actual historical date/security, split ratio, quantity and price treatment, report evidence, and a policy for whether it is explanatory or review-only. | User-facing demo splits must not be fictional future events. Synthetic corporate-action fixtures belong in clearly labeled test-only data. |
+| 6 | Real-world split / corporate action evidence | Packaged demo for one coherent story; test-only for broader variants | Actual historical date/security, split ratio, quantity and price treatment, report evidence, and a policy for whether it is explanatory or review-only. | The packaged demo includes a CVNA 5-for-1 split-processing correction in May 2026. Additional user-facing split examples should add a new reviewer lesson; synthetic corporate-action fixtures belong in clearly labeled test-only data. |
 | 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys/APX convention. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
 
@@ -3341,6 +3342,6 @@ Near-term backlog by home:
 
 | Home | Transaction families | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | nonredundant external-flow variants; possibly realistic `li`/`lo` transfer examples; real historical split when the demo period supports it | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
+| Packaged demo candidate | nonredundant external-flow variants; possibly realistic `li`/`lo` transfer examples; additional corporate actions only when they add a new reviewer lesson beyond the CVNA split-processing correction | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
 | Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
 | Evidence-blocked backlog | Mergers, spin-offs, ticker changes | Axys/APX REP/report evidence identifies required fields and ppar treatment well enough to avoid code-only classification. |

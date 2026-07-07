@@ -1640,9 +1640,11 @@ paydown codes, while preserving the same evidence boundary.
   Service charge      `dp` with                       Medium Fee-like.
                       `exus custfee`
 
-  Split               `;`                             Medium Source maps split to
-                                                             semicolon/comment-like
-                                                             type.
+  Split               central split                   High   Prefer `split.inf`
+                      factor data                            / split-factor
+                                                             evidence; `;` is
+                                                             only a local or
+                                                             conversion marker.
 
   Transfer            `li` / `lo`                     Medium Direction depends on
   positive/negative                                          sign.
@@ -1665,7 +1667,7 @@ observed research. It is not an official Axys/APX code dictionary.
 | `ai` | Negative interest / margin interest / financing adjustment | No | Validate margin or negative-interest context, amount sign, margin cash/security markers, and financing-rate support. |
 | `dp`, `wd` | Cash, fee, expense, external-flow, or cash-security movement | Context-dependent | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, internal movement, or true external movement. |
 | `rc`, `pd` | Corporate action / principal event | Usually no | Validate return-of-capital, paydown, cost-basis, factor, and amortization treatment. |
-| `;` | Journal, split, other, or placeholder | Usually no | Require firm mapping or manual review before performance treatment. |
+| `;` | Journal, other, placeholder, or locally materialized split marker | Usually no | Prefer central split-factor evidence such as `split.inf` for normal split processing; require firm mapping before treating `;` as split evidence. |
 | Uppercase code, e.g. `BY` | Reversal / deletion | Depends on original | Link to the original transaction and reverse original economics rather than treating it as independent activity. |
 | `epus`, `exus` | Fee/expense security type or marker | No | Preserve as security/type context, not as a standalone transaction-code conclusion. |
 | `dvwash` | Reinvestment wash symbol | No | Link dividend and reinvestment buy legs; avoid treating wash cash as external cash flow. |
@@ -1683,7 +1685,7 @@ for ambiguous transaction families.
 | `lo` | Cash or non-cash | Client-specific | `$pty` or equivalent | `$cash` or equivalent | Withdrawal, security transfer out, correction, or other | Confirm | Separate client withdrawal from fees and journals. |
 | `dp` | `epus`, `exus`, cash, or other | Fee/tax/cash symbol | Client-specific | Client-specific | Fee, expense, tax, cash-security buy, or other | Usually no | Confirm gross/net performance treatment. |
 | `wd` | Cash or cash-like | Cash-security symbol | Client-specific | Client-specific | Cash-security sell, sweep, withdrawal-like event, or other | Confirm | Do not infer client withdrawal from name alone; require context before treating it as an external flow. |
-| `;` | Any | Any | Any | Any | Split, journal, other, or placeholder | Usually no | Route high-value items to manual review. |
+| `;` | Any | Any | Any | Any | Journal, other, placeholder, or locally materialized split marker | Usually no | Route high-value items to manual review; prefer split-factor extracts for normal split evidence. |
 | `dv` / `by` | Real security | Real symbol or `dvwash` | `$ity` or equivalent | `$income` or wash symbol | Dividend reinvestment | No | Link income and buy legs to avoid double counting. |
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
 | `pa` / `sa` | Bond or fixed-income security | Real symbol | Client-specific | Client-specific | Buy-side or sell-side accrued interest | No | Validate accrued interest, day count, and settlement economics; do not classify as external flow. |
@@ -2642,7 +2644,7 @@ official complete Axys/APX transaction-code manual.
 | `pd` | Principal paydown / bond-security return-of-capital event. Public translation evidence maps bond-security return-of-capital activity to `pd`; Morningstar Axys conversion evidence discusses principal paydown rows and zero share quantity. | Fixed-income principal event, not ordinary interest income or client external flow. Packaged-demo promotion requires bond context, cash receipt, principal/holding evidence, and performance-report treatment. |
 | `ss` | Short sale / sell short candidate. | Requires short security type, cash/margin/short-account context, and verified amount/quantity sign conventions. |
 | `cs` | Cover short / buy-cover-short candidate. | Requires the same short-account context as `ss`; keep lowercase economic cover-short treatment separate from uppercase cancellation/delete patterns. |
-| `;` | Journal, Other, or Split marker. Public integration evidence maps split/journal/other concepts to `;`, and consultant examples show standalone split comment rows using `;`. | Marker/comment/corporate-action evidence unless local mapping proves a specific economic role. |
+| `;` | Journal, Other, or locally materialized split marker. Public integration evidence maps split/journal/other concepts to `;`, but newer split-file evidence indicates normal Axys split support is central `split.inf` factor data rather than ordinary account-level transactions. | Marker/comment/corporate-action evidence unless local mapping proves a specific economic role. Prefer split-factor extracts for packaged or audited split scenarios. |
 
 ### 18.1 `pd` Principal Paydown Boundary
 

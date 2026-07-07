@@ -36,6 +36,7 @@ _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "holdings.csv",
     "transactions.csv",
+    "splits.csv",
 )
 _COMPARISON_TUTORIAL_SCRIPTS: Final[tuple[str, ...]] = (
     "run_portfolio_comparison.py",

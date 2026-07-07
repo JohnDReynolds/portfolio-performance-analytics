@@ -8,6 +8,7 @@ callers that need stable output column names.
 __all__ = [
     "PORTFOLIO_PERFORMANCE",
     "SECURITY_PERFORMANCE",
+    "SPLITS",
     "FX_RATES",
     "TRANSACTIONS",
     "HOLDINGS",
@@ -17,6 +18,7 @@ __all__ = [
     "FROM_DATE",
     "THRU_DATE",
     "RATE_DATE",
+    "SPLIT_DATE",
     "TRANSACTION_DATE",
     "SETTLEMENT_DATE",
     "HOLDING_DATE",
@@ -48,6 +50,7 @@ __all__ = [
     "CURRENCY",
     "RATE_SOURCE",
     "RATE_TYPE",
+    "SPLIT_FACTOR",
     "TRANSACTION_ID",
     "TRANSACTION_CODE",
     "SECURITY_TYPE",
@@ -72,6 +75,9 @@ __all__ = [
     "SECURITY_PERFORMANCE_REQUIRED_COLUMNS",
     "SECURITY_PERFORMANCE_OPTIONAL_COLUMNS",
     "SECURITY_PERFORMANCE_COLUMNS",
+    "SPLITS_REQUIRED_COLUMNS",
+    "SPLITS_OPTIONAL_COLUMNS",
+    "SPLITS_COLUMNS",
     "FX_RATES_REQUIRED_COLUMNS",
     "FX_RATES_OPTIONAL_COLUMNS",
     "FX_RATES_COLUMNS",
@@ -88,6 +94,7 @@ __all__ = [
 
 PORTFOLIO_PERFORMANCE = "portfolio_performance"
 SECURITY_PERFORMANCE = "security_performance"
+SPLITS = "splits"
 FX_RATES = "fx_rates"
 TRANSACTIONS = "transactions"
 HOLDINGS = "holdings"
@@ -98,6 +105,7 @@ SECURITY_ID = "security_id"
 FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
 RATE_DATE = "rate_date"
+SPLIT_DATE = "split_date"
 TRANSACTION_DATE = "transaction_date"
 SETTLEMENT_DATE = "settlement_date"
 HOLDING_DATE = "holding_date"
@@ -129,6 +137,7 @@ PERIOD_ID = "period_id"
 CURRENCY = "currency"
 RATE_SOURCE = "rate_source"
 RATE_TYPE = "rate_type"
+SPLIT_FACTOR = "split_factor"
 TRANSACTION_ID = "transaction_id"
 TRANSACTION_CODE = "transaction_code"
 SECURITY_TYPE = "security_type"
@@ -194,6 +203,22 @@ SECURITY_PERFORMANCE_OPTIONAL_COLUMNS = (
 SECURITY_PERFORMANCE_COLUMNS = (
     *SECURITY_PERFORMANCE_REQUIRED_COLUMNS,
     *SECURITY_PERFORMANCE_OPTIONAL_COLUMNS,
+)
+
+SPLITS_REQUIRED_COLUMNS = (
+    SECURITY_ID,
+    SPLIT_DATE,
+    SPLIT_FACTOR,
+)
+
+SPLITS_OPTIONAL_COLUMNS = (
+    SECURITY_NAME,
+    TICKER,
+)
+
+SPLITS_COLUMNS = (
+    *SPLITS_REQUIRED_COLUMNS,
+    *SPLITS_OPTIONAL_COLUMNS,
 )
 
 FX_RATES_REQUIRED_COLUMNS = (

@@ -492,8 +492,9 @@ These tokens are observed in integration workflows. Native cash-balance schema r
 | `split.inf` / `SPLIT.INF` | Axys securities splits file. | Yes | Unknown | Unknown | Unknown | High Confidence for Axys |
 | `.veh` | AIA vehicle file transformed to `sec.inf` layout in Axys/APX security import workflows. | Yes in AIA context | Yes in AIA context | Import staging | Unknown | Verified in AIA context |
 | Security identifier | Identifier tying corporate action to security. Exact field name not supplied. | Required conceptually | Required conceptually | Unknown | Unknown | Unknown as field |
-| Split date / effective date | Date on which split applies. Exact field name not supplied. | Likely in `split.inf` but unverified | Unknown | Unknown | Unknown | Unknown |
-| Split ratio / factor | Split ratio or factor. Exact field name not supplied. | Likely in `split.inf` but unverified | Unknown | Unknown | Unknown | Unknown |
+| Split date / effective date | Date on which split applies. AdventGuru consultant merge code uses logical `SplitDate` after loading exported split files. | Likely in `split.inf`; exact official header Unknown | Unknown | Unknown | Unknown | Medium to High Confidence as logical field |
+| Split security / symbol | Security identifier affected by a split. AdventGuru consultant merge code uses logical `SplitSymbol`. | Likely in `split.inf`; exact official header Unknown | Unknown | Unknown | Unknown | Medium to High Confidence as logical field |
+| Split ratio / factor | Split ratio or factor. AdventGuru consultant merge code uses logical `SplitFactor`. | Likely in `split.inf`; exact official header/factor convention Unknown | Unknown | Unknown | Unknown | Medium to High Confidence as logical field |
 | Old security identifier | Security being reorganized. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | New security identifier | Replacement/distributed security. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Cash-in-lieu amount | Cash from fractional shares. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |

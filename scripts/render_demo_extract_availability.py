@@ -30,6 +30,7 @@ _DATASET_LABELS: Final[dict[str, str]] = {
     "portperf.csv": "portfolio performance",
     "sec_ref.csv": "security master",
     "secperf.csv": "security performance",
+    "splits.csv": "split factors",
     "transactions.csv": "transactions",
 }
 _CONFIDENCE_DISPLAY: Final[dict[str, str]] = {

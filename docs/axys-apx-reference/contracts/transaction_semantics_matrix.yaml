@@ -216,16 +216,16 @@ rows:
     fixtures: [packaged_demo, site_variants/imex_context, site_variants/rep_semantics]
     coverage_notes: Packaged demo covers external cash withdrawal; site-variant fixtures cover external and transfer/sweep behavior plus REP/source semantics.
   ";":
-    observed_meaning: Journal, Other, Split marker in integration tables.
+    observed_meaning: Journal, Other, or locally materialized split marker in integration tables.
     ppar_categories: [corporate_action, unknown_pending_review]
     cash_flow_signs: [none, context_dependent]
     performance_flow_signs: [neutral, review_only, unknown]
-    required_evidence: [corporate_action_or_report_context, split_details, local_mapping]
+    required_evidence: [corporate_action_or_report_context, split_factor_extract, local_mapping]
     imex_confidence: low
     rep_confidence: medium
     coverage_status: covered_site_variant
     fixtures: [site_variants/review_only_actions]
-    coverage_notes: Test-only review-only action fixture proves synthetic corporate-action markers can stay neutral; real-world split support remains backlog for packaged demos.
+    coverage_notes: Test-only review-only action fixture proves synthetic corporate-action markers can stay neutral; normal Axys split evidence should use split-factor extracts such as split.inf rather than requiring account-level transaction rows.
   epus:
     observed_meaning: Management fee or fee-related token in conversion evidence.
     ppar_categories: [fee_expense]

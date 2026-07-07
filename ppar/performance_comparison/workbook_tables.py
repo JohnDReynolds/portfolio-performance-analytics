@@ -91,6 +91,7 @@ _WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION = "_workbook_non_additive_portfolio
 _WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING = (
     "_workbook_transaction_flow_supports_holding"
 )
+_WORKBOOK_SPLIT_FACTOR_SUPPORTS_HOLDING = "_workbook_split_factor_supports_holding"
 _WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW = (
     "_workbook_transaction_supports_reconstruction_flow"
 )
@@ -133,6 +134,7 @@ _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
     pc_cols.CASH: {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE},
     pc_cols.FX_RATES: {pc_cols.FX_RATE},
     pc_cols.HOLDINGS: {pc_cols.ACCRUED, pc_cols.MARKET_VALUE, pc_cols.QUANTITY},
+    pc_cols.SPLITS: {pc_cols.SPLIT_FACTOR},
     pc_cols.TRANSACTIONS: {
         pc_cols.AMOUNT,
         pc_cols.COMMISSION,
@@ -1517,6 +1519,8 @@ def _workbook_underlying_causes_table(
             performance_input_keys,
             comparison_level=comparison_level,
         ):
+            if _workbook_is_split_factor_row(row):
+                row = _workbook_split_factor_support_row(row)
             workbook_row = _workbook_changed_item_row(
                 _workbook_non_additive_row(row),
                 comparison_path=comparison_path,
@@ -1977,6 +1981,11 @@ def _workbook_should_promote_context_row(
         return False
     if _workbook_is_transaction_component_row(row):
         return _workbook_cause_family_key(row, comparison_level) in performance_input_keys
+    if _workbook_is_split_factor_row(row):
+        return _workbook_split_holding_value_key(
+            row,
+            comparison_level=comparison_level,
+        ) in performance_input_keys
     if _workbook_primary_key(row, comparison_level) in unexplained_keys:
         return True
     return (
@@ -1993,6 +2002,34 @@ def _workbook_is_promotable_evidence_only_row(row: Mapping[str, object]) -> bool
     dataset = _format_value(row.get(_pc_findings.DATASET))
     source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
     return source_column in _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS.get(dataset, set())
+
+
+def _workbook_is_split_factor_row(row: Mapping[str, object]) -> bool:
+    """Return whether the row is split-factor evidence."""
+    return (
+        row.get(_pc_findings.DATASET) == pc_cols.SPLITS
+        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.SPLIT_FACTOR
+    )
+
+
+def _workbook_split_holding_value_key(
+    row: Mapping[str, object],
+    *,
+    comparison_level: str,
+) -> tuple[object, ...]:
+    """Return the holding-value cause family that a split factor can support."""
+    return (
+        *_workbook_primary_key(row, comparison_level),
+        row.get(_pc_findings.SECURITY_ID),
+        "holding_value",
+    )
+
+
+def _workbook_split_factor_support_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return split-factor evidence marked as supporting holding value changes."""
+    row_dict = dict(row)
+    row_dict[_WORKBOOK_SPLIT_FACTOR_SUPPORTS_HOLDING] = True
+    return row_dict
 
 
 def _workbook_raw_audit_trail_table(
@@ -2387,6 +2424,8 @@ def _workbook_input_role(
         pc_cols.QUANTITY,
     }:
         return _INPUT_ROLE_SUPPORTING_EVIDENCE
+    if row.get(_WORKBOOK_SPLIT_FACTOR_SUPPORTS_HOLDING):
+        return _INPUT_ROLE_SUPPORTING_EVIDENCE
     if (
         _field_roles.is_input_component(dataset, source_column)
         or _field_roles.is_performance_input(dataset, source_column)
@@ -2418,6 +2457,8 @@ def _workbook_row_use(row: Mapping[str, object]) -> str:
     """Return how a changed item should be used during review."""
     if _workbook_row_kind(row) == _WORKBOOK_ROW_KIND_DIAGNOSTIC:
         return _USE_DIAGNOSTIC
+    if row.get(_WORKBOOK_SPLIT_FACTOR_SUPPORTS_HOLDING):
+        return _USE_EXPLAINS_CHANGE
     evidence_role = row.get(_pc_findings.EVIDENCE_ROLE)
     if evidence_role == _pc_findings.CONTEXT.value:
         return _USE_REVIEW_CONTEXT
@@ -2526,6 +2567,8 @@ def _workbook_source_row_explanation(
                 return _workbook_portfolio_external_flow_transaction_explanation(row)
             return _workbook_transaction_cash_balance_explanation(row)
         return _workbook_transaction_component_explanation(row, source_column)
+    if dataset == pc_cols.SPLITS and source_column == pc_cols.SPLIT_FACTOR:
+        return _workbook_split_factor_explanation(row)
     if dataset == pc_cols.CASH:
         return _workbook_cash_detail_explanation(row, source_column)
     return ""
@@ -2591,6 +2634,8 @@ def _workbook_review_guidance(
             "Transaction activity changed. The holding value row shows the counted "
             "effect."
         )
+    if row.get(_WORKBOOK_SPLIT_FACTOR_SUPPORTS_HOLDING):
+        return _workbook_split_factor_explanation(row)
     if row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE):
         return _workbook_related_input_guidance(row, dataset, source_column)
     if _workbook_has_evidence_only_policy(row):
@@ -2755,6 +2800,28 @@ def _workbook_cash_detail_explanation(
         f"Cash {source_column} {_workbook_increased_or_decreased(change_value)} "
         f"by {_workbook_change_amount_text(change_value)}."
     )
+
+
+def _workbook_split_factor_explanation(row: Mapping[str, object]) -> str:
+    """Return plain-language explanation for split-factor support rows."""
+    security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+    security_prefix = f"{security_id} " if security_id else ""
+    split_factor = _workbook_row_change_value(row)
+    return (
+        f"split: Caused {security_prefix}holdings.quantity and related "
+        "holdings.market_value to increase using a "
+        f"{_workbook_split_factor_text(split_factor)} split factor."
+    )
+
+
+def _workbook_split_factor_text(value: object) -> str:
+    """Return compact split-factor text for workbook explanations."""
+    number = _number_or_none(value)
+    if number is None:
+        return "changed"
+    if float(number).is_integer():
+        return f"{abs(number):.1f}"
+    return f"{abs(number):g}"
 
 
 def _workbook_holding_timing_label(row: Mapping[str, object]) -> str:

@@ -169,7 +169,7 @@ The following artifacts are supported by the supplied research. They are not a c
 | `$pathinf` | Folder label | Axys information folder containing `sec.inf` and `type.inf` in CI evidence. | Yes | No | Verified for CI workflow | Example paths may vary. |
 | `.pri` / `*.pri` | Prices | Price files referenced in Axys conversion/integration workflows. | Yes | APX AIA examples include `.pri` files. | Verified for integration contexts | Complete price file layout Unknown. |
 | `$pathpri` | Folder label | Axys price folder label in CI evidence. | Yes | No | Verified for CI workflow | Installation-specific label. |
-| `split.inf` / `SPLIT.INF` | Corporate actions / splits | Axys securities splits file in conversion research. | Yes | Unknown as native APX file | High Confidence | Complete split layout Unknown. |
+| `split.inf` / `SPLIT.INF` | Corporate actions / splits | Axys securities splits file in conversion research. Consultant split-file merge evidence supports logical date/symbol/factor semantics. | Yes | Unknown as native APX file | High Confidence for file; Medium to High Confidence for logical fields | Complete official split layout Unknown. |
 | `PRF` / `.PRF` | Performance returns | Migration/conversion source mentions PRF files as performance-return leads. | Yes | Unknown | Medium Confidence | Candidate artifact only; exact native/export status Unknown. |
 | `GRP` / `.GRP` | Groups / classifications | Migration/conversion source mentions GRP files as group/color-group leads. | Yes | Unknown | Medium Confidence | Candidate artifact only; exact native/export status Unknown. |
 | `.pos` | Positions | Replacement position files created by Position Post in CI evidence. | Yes | Unknown | Verified for CI workflow | Not proven as complete native holdings store. |
@@ -431,7 +431,7 @@ These tokens are examples only. They are not a full RepLang dictionary.
 | Axys conversion packages commonly include `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf`. | Yes | Unknown | High Confidence |
 | Distribution reinvestment may appear as Buy + Distribution pairs in conversion evidence. | Yes | Unknown | Verified for conversion behavior only |
 | APX has an Advent Corporate Actions workflow involving holdings sent to ACA, cross-reference to action database, review/download, APX Reorg Utility, and Trade Blotter postings. | No | Yes | Verified at APX product/workflow level |
-| Exact Axys split file fields, dividend/reorg files, corporate action transaction codes, and APX Reorg Utility field mapping are Unknown. | Yes | Yes | Unknown |
+| Exact official Axys split file headers, reverse-split factor convention, dividend/reorg files, corporate action transaction codes, and APX Reorg Utility field mapping are Unknown. | Yes | Yes | Unknown |
 
 ### 8.8 Performance
 

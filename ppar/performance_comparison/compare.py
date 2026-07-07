@@ -90,6 +90,7 @@ from ppar.performance_comparison.portfolio_performance import PortfolioPerforman
 from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.rules import apply_suppressions
 from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
+from ppar.performance_comparison.splits import SplitsLoader
 from ppar.performance_comparison.specification import (
     SECURITY_COMPARISON_LEVEL,
     PerformanceComparisonSpecification,
@@ -129,6 +130,10 @@ _FX_RATE_KEY_COLUMNS: Final[tuple[str, str, str, str, str]] = (
     pc_cols.RATE_DATE,
     pc_cols.RATE_SOURCE,
     pc_cols.RATE_TYPE,
+)
+_SPLITS_KEY_COLUMNS: Final[tuple[str, str]] = (
+    pc_cols.SECURITY_ID,
+    pc_cols.SPLIT_DATE,
 )
 _TRANSACTION_ID_KEY_COLUMNS: Final[tuple[str]] = (pc_cols.TRANSACTION_ID,)
 _TRANSACTION_SINGLETON_FALLBACK_KEY_COLUMNS: Final[tuple[str, str, str, str]] = (
@@ -174,6 +179,9 @@ _CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
 _FX_RATE_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.FX_RATE: PC_FX_RATE,
 }
+_SPLITS_COMPARE_COLUMNS: Final[dict[str, str]] = {
+    pc_cols.SPLIT_FACTOR: PC_ROW_ADD,
+}
 _TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.AMOUNT: PC_TXN_AMT,
     pc_cols.QUANTITY: PC_TXN_QTY,
@@ -195,6 +203,7 @@ _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
     "market_value": 0.01,
     "quantity": 1e-6,
     "price": 1e-6,
+    "split_factor": 1e-8,
     "fx_rate": 1e-8,
 }
 _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
@@ -213,6 +222,7 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.ACCRUED: "market_value",
     pc_cols.CASH_BALANCE: "market_value",
     pc_cols.PRICE: "price",
+    pc_cols.SPLIT_FACTOR: "split_factor",
     pc_cols.FX_RATE: "fx_rate",
     pc_cols.AMOUNT: "market_value",
     pc_cols.COMMISSION: "market_value",
@@ -231,6 +241,7 @@ class PerformanceComparison:
         _holdings_loader: Loader for normalized holding rows.
         _cash_loader: Loader for normalized cash rows.
         _fx_rates_loader: Loader for normalized FX rate rows.
+        _splits_loader: Loader for optional normalized split-factor rows.
         _transactions_loader: Loader for normalized transaction rows.
         _transaction_impact_policies: YAML-configured transaction impact
             policies keyed by performance-flow treatment.
@@ -260,6 +271,7 @@ class PerformanceComparison:
         self._holdings_loader = HoldingsLoader(specification)
         self._cash_loader = CashLoader(specification)
         self._fx_rates_loader = FxRatesLoader(specification)
+        self._splits_loader = SplitsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
         self._transaction_impact_policies = _transaction_impact_policies(
             specification
@@ -302,6 +314,7 @@ class PerformanceComparison:
         findings.extend(self.compare_holdings())
         findings.extend(self.compare_cash())
         findings.extend(self.compare_fx_rates())
+        findings.extend(self.compare_splits())
         findings.extend(self.compare_transactions())
         return apply_suppressions(findings, self._specification)
 
@@ -462,6 +475,183 @@ class PerformanceComparison:
             )
         )
         return findings
+
+    def compare_splits(self) -> list[Finding]:
+        """Compare split-factor rows for snapshots A and B.
+
+        Returns:
+            Context findings for added/dropped split rows and material split
+            factor changes. Returns an empty list when the optional splits
+            dataset is unavailable.
+        """
+        snapshot_a = self._splits_loader.load("a")
+        snapshot_b = self._splits_loader.load("b")
+        if snapshot_a is None or snapshot_b is None:
+            return []
+
+        portfolio_periods = self._portfolio_periods()
+        holdings_a = self._holdings_loader.load("a")
+        holdings_b = self._holdings_loader.load("b")
+        findings = self._split_row_presence_findings(
+            snapshot_a,
+            snapshot_b,
+            holdings_a,
+            holdings_b,
+            portfolio_periods,
+        )
+        findings.extend(
+            self._changed_value_findings(
+                snapshot_a,
+                snapshot_b,
+                _SPLITS_KEY_COLUMNS,
+                _SPLITS_COMPARE_COLUMNS,
+                pc_cols.SPLITS,
+            )
+        )
+        return findings
+
+    def _split_row_presence_findings(
+        self,
+        snapshot_a: pl.DataFrame,
+        snapshot_b: pl.DataFrame,
+        holdings_a: pl.DataFrame | None,
+        holdings_b: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame,
+    ) -> list[Finding]:
+        """Return split add/drop findings with portfolio-period context."""
+        self._validate_unique_keys(
+            snapshot_a,
+            _SPLITS_KEY_COLUMNS,
+            pc_cols.SPLITS,
+            "snapshot A",
+        )
+        self._validate_unique_keys(
+            snapshot_b,
+            _SPLITS_KEY_COLUMNS,
+            pc_cols.SPLITS,
+            "snapshot B",
+        )
+        rows_a = self._row_keys(snapshot_a, _SPLITS_KEY_COLUMNS)
+        rows_b = self._row_keys(snapshot_b, _SPLITS_KEY_COLUMNS)
+        findings: list[Finding] = []
+        findings.extend(
+            self._split_presence_findings_for_side(
+                snapshot_b,
+                rows_a,
+                holdings_b,
+                PC_ROW_ADD,
+                "Split-factor row appears only in snapshot B.",
+                "b",
+                portfolio_periods,
+            )
+        )
+        findings.extend(
+            self._split_presence_findings_for_side(
+                snapshot_a,
+                rows_b,
+                holdings_a,
+                PC_ROW_DROP,
+                "Split-factor row appears only in snapshot A.",
+                "a",
+                portfolio_periods,
+            )
+        )
+        return findings
+
+    def _split_presence_findings_for_side(
+        self,
+        source_snapshot: pl.DataFrame,
+        other_keys: set[tuple[object, ...]],
+        holdings: pl.DataFrame | None,
+        code: str,
+        message: str,
+        snapshot_side: str,
+        portfolio_periods: pl.DataFrame,
+    ) -> list[Finding]:
+        """Return split presence findings for one snapshot side."""
+        source_file = self._source_file(pc_cols.SPLITS)
+        findings: list[Finding] = []
+        for row in source_snapshot.iter_rows(named=True):
+            row_key = tuple(row[column] for column in _SPLITS_KEY_COLUMNS)
+            if row_key in other_keys:
+                continue
+            for portfolio_id, from_date, thru_date in self._split_contexts(
+                row,
+                holdings,
+                portfolio_periods,
+            ):
+                factor = row.get(pc_cols.SPLIT_FACTOR)
+                factor_delta = self._split_presence_factor_delta(factor, snapshot_side)
+                findings.append(
+                    Finding(
+                        code=code,
+                        severity=SEVERITY_INFORMATIONAL,
+                        confidence=CONFIDENCE_HIGH,
+                        dataset=pc_cols.SPLITS,
+                        evidence_role=CONTEXT,
+                        portfolio_id=portfolio_id,
+                        security_id=row.get(pc_cols.SECURITY_ID),
+                        from_date=from_date,
+                        thru_date=thru_date,
+                        input_date=row.get(pc_cols.SPLIT_DATE),
+                        source_file=source_file,
+                        source_column=pc_cols.SPLIT_FACTOR,
+                        impact_policy=self._impact_policy(
+                            pc_cols.SPLITS,
+                            pc_cols.SPLIT_FACTOR,
+                        ),
+                        snapshot_a_value=factor if snapshot_side == "a" else None,
+                        snapshot_b_value=factor if snapshot_side == "b" else None,
+                        delta_b_minus_a=factor_delta,
+                        message=message,
+                    )
+                )
+        return findings
+
+    @staticmethod
+    def _split_presence_factor_delta(
+        value: object,
+        snapshot_side: str,
+    ) -> float | None:
+        """Return B-minus-A split-factor delta for a presence finding."""
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        value_float = float(value)
+        if snapshot_side == "a":
+            return -value_float
+        if snapshot_side == "b":
+            return value_float
+        return None
+
+    def _split_contexts(
+        self,
+        row: Mapping[str, object],
+        holdings: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame,
+    ) -> list[tuple[object | None, object | None, object | None]]:
+        """Return portfolio-period contexts for a security-level split row."""
+        security_id = row.get(pc_cols.SECURITY_ID)
+        split_date = row.get(pc_cols.SPLIT_DATE)
+        if holdings is None or security_id is None:
+            return [(None, None, None)]
+
+        holding_rows = holdings.filter(pl.col(pc_cols.SECURITY_ID) == security_id)
+        if holding_rows.is_empty():
+            return [(None, None, None)]
+
+        contexts: set[tuple[object | None, object | None, object | None]] = set()
+        for holding_row in holding_rows.iter_rows(named=True):
+            context_row = {
+                pc_cols.PORTFOLIO_ID: holding_row.get(pc_cols.PORTFOLIO_ID),
+                pc_cols.SPLIT_DATE: split_date,
+            }
+            from_date, thru_date = period_context_for_dated_evidence(
+                context_row,
+                pc_cols.SPLITS,
+                portfolio_periods,
+            )
+            contexts.add((holding_row.get(pc_cols.PORTFOLIO_ID), from_date, thru_date))
+        return sorted(contexts, key=lambda context: tuple(str(value) for value in context))
 
     def compare_transactions(self) -> list[Finding]:
         """Compare transaction rows for snapshots A and B.
@@ -1758,6 +1948,7 @@ class PerformanceComparison:
             pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,
             pc_cols.FX_RATES: pc_cols.RATE_DATE,
             pc_cols.CASH: pc_cols.CASH_DATE,
+            pc_cols.SPLITS: pc_cols.SPLIT_DATE,
         }
         date_column = date_column_by_dataset.get(dataset)
         if date_column is None:
