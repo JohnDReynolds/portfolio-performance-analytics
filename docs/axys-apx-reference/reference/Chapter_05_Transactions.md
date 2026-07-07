@@ -2627,3 +2627,85 @@ fixed-income scenario: accrued-interest transaction rows, cash movement,
 holdings/accrued-interest rows, `secperf.csv`, `portperf.csv`, and
 reviewer-facing report comments are derived together. That is a demo-quality
 gate, not a claim that `pa`/`sa` are universal code-only Axys defaults.
+
+## 18. Under-Evidenced Backlog Transaction Update
+
+The 2026-07-07 backlog transaction research strengthens the practical
+interpretation of `rc`, `pd`, `ss`, `cs`, and split/journal marker `;`, but it
+does not convert them into safe code-only packaged-demo defaults. The new
+evidence is still mostly integration and conversion documentation, not an
+official complete Axys/APX transaction-code manual.
+
+| Code or marker | Strongest supported meaning | Product boundary |
+|---|---|---|
+| `rc` | Return of capital. ByAllAccounts Axys/APX default translation evidence maps return-of-capital activity to `rc`, with `$pty` and `$cash` source/destination context. | Policy-gated. Public evidence does not verify native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone. |
+| `pd` | Principal paydown / bond-security return-of-capital event. Public translation evidence maps bond-security return-of-capital activity to `pd`; Morningstar Axys conversion evidence discusses principal paydown rows and zero share quantity. | Fixed-income principal event, not ordinary interest income or client external flow. Packaged-demo promotion requires bond context, cash receipt, principal/holding evidence, and performance-report treatment. |
+| `ss` | Short sale / sell short candidate. | Requires short security type, cash/margin/short-account context, and verified amount/quantity sign conventions. |
+| `cs` | Cover short / buy-cover-short candidate. | Requires the same short-account context as `ss`; keep lowercase economic cover-short treatment separate from uppercase cancellation/delete patterns. |
+| `;` | Journal, Other, or Split marker. Public integration evidence maps split/journal/other concepts to `;`, and consultant examples show standalone split comment rows using `;`. | Marker/comment/corporate-action evidence unless local mapping proves a specific economic role. |
+
+### 18.1 `pd` Principal Paydown Boundary
+
+`pd` is the strongest candidate for future packaged-demo promotion among the
+newly researched backlog codes, but only as a coherent fixed-income scenario.
+Safe `pd` treatment should verify:
+
+- fixed-income security type or equivalent amortizing-bond context;
+- principal-paydown or return-of-principal context;
+- cash movement, typically portfolio cash in the public translation evidence;
+- holding principal, factor, quantity, or market-value movement consistent with
+  the event;
+- reported security-performance and portfolio-performance treatment; and
+- reviewer wording that distinguishes principal return from coupon interest,
+  accrued interest, amortization/accretion, and client external flow.
+
+Morningstar conversion evidence warns that Advent Axys principal paydown
+activity may involve zero share quantity and original-principal adjustment
+mechanics. Therefore, quantity alone is not enough to audit a paydown; principal
+or factor context is needed where available. Cost-basis, amortization, and tax
+lot mechanics remain best-efforts demo-construction context, not requirements
+for Modified Dietz calculation.
+
+### 18.2 `rc` Return-of-Capital Boundary
+
+`rc` is supported as return of capital in public integration mapping evidence,
+but its performance role is policy-sensitive. A site may reasonably configure
+return of capital as performance income, security-level capital-return evidence,
+corporate-action/cost-basis evidence, or review-only evidence depending on the
+report methodology. Public evidence does not verify native Axys/APX cost-basis
+algorithm or exact performance-report treatment.
+
+For this reason, `rc` should remain a site-confirmed rule rather than a packaged
+default. Any future packaged example should explicitly state the configured
+methodology and should not imply universal Axys/APX treatment.
+
+### 18.3 `ss` / `cs` Short-Side Boundary
+
+Public integration evidence supports `ss` as short sale and `cs` as cover short,
+but a safe performance interpretation needs more than the code:
+
+- security type or position context proving the holding is short;
+- quantity sign convention for trade rows and holdings rows;
+- amount and cash/proceeds sign convention;
+- cash, restricted cash, margin, or short-proceeds account mapping;
+- realized gain/loss or lot-closure treatment when a short is covered; and
+- reported performance treatment for the short exposure.
+
+Until those items are available in a coherent source-data scenario, `ss` and
+`cs` are better suited to tested site-variant YAML and onboarding override
+examples than to the default packaged Axys/APX demo.
+
+### 18.4 Concrete Example Gap
+
+The 2026-07-07 research found useful translation-table rows and row-like
+comment/import examples. It did **not** find public sanitized examples of:
+
+- account-level Axys/APX transaction report rows for `rc`, `pd`, `ss`, or `cs`;
+- IMEX `.cli` rows for those target types;
+- REP/Replang report-output rows for those target types;
+- APX Public View or SQL result rows for those target types; or
+- before/after holdings plus before/after performance rows for the same real
+  account event.
+
+Those examples remain the highest-value evidence needed before broad packaged
+demo promotion.

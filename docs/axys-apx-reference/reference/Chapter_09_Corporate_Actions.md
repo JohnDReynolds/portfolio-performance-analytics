@@ -735,3 +735,69 @@ The strongest supported material is:
 7. Many implementation-critical details remain Unknown: field layouts, transaction codes, IMEX object names, REP report names, ACA action IDs, final posting behavior, cost-basis/taxability storage, and performance impact.
 
 Use this chapter as a disciplined reference boundary: it documents what is known, identifies where corporate actions touch adjacent data areas, and prevents unsupported Axys/APX behavior from being invented.
+
+---
+
+## 18. Stock Split / Reverse Split Update
+
+The 2026-07-07 split research strengthens the practical split boundary without
+closing exact Axys/APX schema unknowns. The strongest split evidence remains:
+
+- Axys conversion evidence identifying `split.inf` / `SPLIT.INF` as the Axys
+  securities splits file;
+- AdventGuru conversion evidence describing exported CSV copies of `split.inf`
+  and APX-to-Axys IMEX export of splits;
+- FinFolio conversion evidence saying split transactions may be derived or
+  "blown out" from `SPLIT.INF`;
+- ByAllAccounts Axys/APX integration evidence mapping `SPLIT`, `JOURNAL`, and
+  `OTHER` to the `;` marker; and
+- WealthTechs examples showing a standalone split comment row using `;`.
+
+### 18.1 Split Representation Boundary
+
+| Representation surface | Current interpretation | Confidence |
+|---|---|---:|
+| `split.inf` / `SPLIT.INF` | Axys securities split history file in public conversion evidence. | High Confidence for file existence |
+| Conversion-created split transactions | Downstream conversion tools may materialize split history as explicit split transactions. | Medium |
+| `;` marker/comment rows | Integration workflows can use `;` for split/journal/other markers; one consultant example shows a `;` split comment row. | Medium |
+| APX split storage | APX can export splits in conversion workflows, but native split table/view/schema remains Unknown. | Unknown / Medium concept |
+| Exact split fields | Split date, symbol, and factor are conceptually required, but exact Axys/APX field layouts remain Unknown. | Unknown |
+
+### 18.2 Performance And Audit Treatment
+
+A normal stock split or reverse split should be treated as a neutral corporate
+action: share quantity and per-share price change inversely, and market value
+should remain stable aside from rounding or cash-in-lieu. It is not ordinary
+income, not a client external flow, and not a Modified Dietz performance cause
+by itself.
+
+For performance-comparison work, split evidence is most useful as review or
+cross-reference evidence:
+
+- holdings quantity should reconcile to the split factor;
+- price should move inversely to the split factor where price data is available;
+- market value should remain stable when the split is processed correctly;
+- cash-in-lieu should be audited as a separate cash/transaction event; and
+- missing or incorrect split treatment can create artificial performance or
+  holdings differences.
+
+Therefore, split evidence belongs naturally in Raw Audit Trail, review evidence,
+or a future `X-Ref Issues` worksheet unless the split error actually changes a
+Modified Dietz input such as holdings market value, transaction amount, or
+reported performance.
+
+### 18.3 Remaining Split Evidence Needed
+
+The highest-value additional materials are:
+
+1. sanitized Axys `split.inf` rows with field names, split dates, symbols, and
+   factors;
+2. APX IMEX split export rows or APX Public View / SQL rows for split history;
+3. before/after holdings rows around a split;
+4. before/after price rows around a split;
+5. cash-in-lieu transaction rows tied to a split; and
+6. before/after performance report rows for a missed or corrected split.
+
+Until those examples are available, this chapter should not claim exact vendor
+split field layouts, REP report names, APX table names, or universal transaction
+code treatment.
