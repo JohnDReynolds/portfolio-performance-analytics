@@ -326,8 +326,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         and row[5] == "CASH_USD"
                         and row[10]
                         == (
-                            "CASH_USD beginning holdings.market_value decreased by "
-                            "1,500.00."
+                            "CASH_USD ending holdings.market_value decreased by "
+                            "2,000.00."
                         )
                         for row in alpha_february_rows
                     )
@@ -383,6 +383,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and row[5] == "JPM"
                     and str(row[1])[:10] == "2026-04-01"
                     and str(row[2])[:10] == "2026-04-30"
+                    and str(row[10]).startswith("dv:")
                 )
                 self.assertEqual(str(jpm_dividend_row[3])[:10], "2026-04-06")
                 self.assertEqual(
@@ -414,14 +415,14 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     if row[0] == "ALPHA"
                     and row[4] == "transactions.amount"
                     and row[5] == "CASH_USD"
-                    and str(row[1])[:10] == "2026-01-01"
-                    and str(row[2])[:10] == "2026-01-30"
+                    and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-27"
                 )
                 self.assertEqual(
                     alpha_withdrawal_row[10],
                     (
-                        "wd: External flow decreased by 1,500.00; weighted "
-                        "external flow decreased by 550.00."
+                        "lo: External flow decreased by 2,000.00; weighted "
+                        "external flow decreased by 785.71."
                     ),
                 )
                 transaction_component_guidance = [
@@ -694,11 +695,18 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 tnote_row = next(
                     row for row in security_rows if row[3] == "TNOTE2Y"
                 )
+                self.assertEqual(tnote_row[7], "Fully Explained")
                 self.assertAlmostEqual(
                     _numeric_value(tnote_row[4]),
-                    (128.0 + 50.0 + 80.0) / 64000.0,
+                    0.005375,
                     places=6,
                 )
+                self.assertAlmostEqual(
+                    _numeric_value(tnote_row[5]),
+                    _numeric_value(tnote_row[4]),
+                    places=6,
+                )
+                self.assertIsNone(tnote_row[6])
                 raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
                 self.assertNotIn("holdings.cost", {row[4] for row in raw_rows})
                 underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
@@ -731,8 +739,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and row[5] == "TNOTE2Y"
                     and str(row[1])[:10] == "2026-05-01"
                     and str(row[2])[:10] == "2026-05-29"
+                    and str(row[3])[:10] == "2026-05-15"
                 )
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
+                self.assertEqual(
+                    tnote_interest_row[10],
+                    "in: The income for TNOTE2Y changed by 80.00.",
+                )
                 cash_external_flow_row = next(
                     row
                     for row in underlying_rows
@@ -767,6 +780,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and row[5] == "JPM"
                     and str(row[1])[:10] == "2026-04-01"
                     and str(row[2])[:10] == "2026-04-30"
+                    and str(row[10]).startswith("dv:")
                 )
                 self.assertEqual(
                     jpm_dividend_row[10],

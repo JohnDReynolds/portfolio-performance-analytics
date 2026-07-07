@@ -28,6 +28,16 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
 | `contracts/*.yaml` | Machine-readable contract | Validation, test fixtures, and structured implementation inputs. | Narrative explanation. |
 | `contracts/templates/*.yaml` | Site contract examples | Starting points for site-specific extract contracts. | Guaranteed Axys/APX schemas. |
 
+## Where to Put New Information
+
+| Information type | Primary location | Supporting location |
+|---|---|---|
+| Transaction-code meanings, confidence labels, and context gates | [Chapter_05_Transactions.md](reference/Chapter_05_Transactions.md) | [Research_05_Transactions.md](evidence/Research_05_Transactions.md) |
+| Transaction behavior used by ppar demos, tests, or validation | [transaction_semantics_matrix.yaml](contracts/transaction_semantics_matrix.yaml) | [transaction_semantics_matrix.md](contracts/transaction_semantics_matrix.md) |
+| Split factors, corporate actions, reorganizations, and ACA/Reorg evidence | [Chapter_09_Corporate_Actions.md](reference/Chapter_09_Corporate_Actions.md) | [Research_09_Corporate_Actions.md](evidence/Research_09_Corporate_Actions.md) |
+| Dataset, file, and field definitions | [Chapter_15_Data_Dictionary.md](reference/Chapter_15_Data_Dictionary.md) | Relevant `Research_*.md` file |
+| Terms and conceptual vocabulary | [Chapter_16_Glossary.md](reference/Chapter_16_Glossary.md) | Relevant subject chapter |
+
 ## Main Reference Chapters
 
 See [reference/README.md](reference/README.md) for the chapter index. The main
@@ -55,6 +65,14 @@ The `evidence/Research_*.md` files are preserved for traceability. They are not
 intended to be a parallel reference manual. If evidence in that folder is
 important for current implementation or reader understanding, it should also be
 summarized in the relevant chapter.
+
+## Temporary Research Intake
+
+When a temporary research file is used as input, merge it into the matching
+`evidence/Research_*.md` file first, summarize the durable conclusion in the
+matching `reference/Chapter_*.md` file, and then delete the temporary file. Keep
+the source filename and merge date in the evidence file so provenance remains
+visible without leaving loose files in the repository root.
 
 ## Maintenance Rules
 

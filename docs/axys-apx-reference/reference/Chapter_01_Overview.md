@@ -531,8 +531,8 @@ This table is an observed-code catalog, not an official transaction-code matrix.
 | `lo` | Deliver out / transfer out / debit / withdrawal depending context. | Observed | Observed | Medium Confidence |
 | `dv` | Dividend / income / reinvestment leg in examples. | Observed in contexts | Observed | Medium Confidence |
 | `in` | Income / interest in examples. | Observed in contexts | Observed | Medium Confidence |
-| `rc` | Return of capital in examples. | Observed in contexts | Observed | Medium Confidence |
-| `pd` | Principal paydown / bond-security return-of-capital case in examples. | Observed in contexts | Observed | Medium Confidence |
+| `rc` | Return of capital; public ByAllAccounts mapping evidence points to portfolio-cash destination context. | Observed in contexts | Observed | Medium-High Confidence for integration mapping |
+| `pd` | Principal paydown / bond-security return-of-capital case; Morningstar conversion evidence notes zero-quantity/principal mechanics; conservative Modified Dietz treatment is not client external flow. | Observed in contexts | Observed | Medium-High Confidence for integration/conversion evidence |
 | `ai` | Negative interest or margin interest depending context. | Observed in contexts | Observed | Medium Confidence |
 | `sa` | Sale accrued interest / sell-side accrued interest in examples. | Observed in contexts | Observed | Medium Confidence |
 | `pa` | Purchase accrued interest / buy-side accrued interest in examples. | Observed in contexts | Observed | Medium Confidence |

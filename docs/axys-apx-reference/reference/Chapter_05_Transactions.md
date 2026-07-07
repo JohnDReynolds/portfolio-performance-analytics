@@ -19,6 +19,23 @@
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — transactions drive holdings, lots, and cost-basis updates.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — transactions feed performance and attribution inputs.
 
+## Canonical Use of This Chapter
+
+This chapter is the canonical reader-facing reference for Axys/APX transaction
+semantics in this repository. Other chapters should describe their local effects
+on holdings, cash, corporate actions, performance, or reporting, but should not
+maintain separate transaction-code dictionaries. When a transaction code appears
+in another chapter, interpret it through this chapter and the implementation
+contract in
+[`../contracts/transaction_semantics_matrix.yaml`](../contracts/transaction_semantics_matrix.yaml).
+
+The evidence archive in
+[`../evidence/Research_05_Transactions.md`](../evidence/Research_05_Transactions.md)
+preserves source-by-source research and may contain older wording retained for
+provenance. If this chapter, the research archive, and the implementation
+contract appear to disagree, treat that as a documentation cleanup issue rather
+than as three independent sources of truth.
+
 ## 1. Overview
 
 Transactions are the central accounting events in Axys/APX-style
@@ -1481,14 +1498,25 @@ paydown codes, while preserving the same evidence boundary.
 
   `in`        Income / interest          Unknown     Observed            Medium Requires context.
 
-  `rc`        Return of capital          Unknown     Observed            Medium Requires vendor
-                                                                                confirmation.
+  `rc`        Return of capital          Observed    Observed      Medium-High Confirmed in
+                                                                                ByAllAccounts
+                                                                                Axys/APX
+                                                                                translation
+                                                                                evidence; native
+                                                                                performance and
+                                                                                cost-basis
+                                                                                treatment still
+                                                                                needs site proof.
 
-  `pd`        Principal paydown / bond   Unknown     Observed            Medium Bond-related;
-              return-of-capital case                                            supported by
+  `pd`        Principal paydown / bond   Observed    Observed      Medium-High Confirmed in
+              return-of-capital case                                            ByAllAccounts
+                                                                                bond-security
                                                                                 return-of-capital
-                                                                                bond mapping and
-                                                                                conversion caveats.
+                                                                                mapping and
+                                                                                Morningstar
+                                                                                paydown
+                                                                                conversion
+                                                                                caveats.
 
   `ai`        Negative interest or       Unknown     Observed            Medium Narrower than
               margin interest                                                   generic accrued
@@ -1616,9 +1644,13 @@ paydown codes, while preserving the same evidence boundary.
 
   Repeat payment      `lo`                            Medium Outflow-like.
 
-  Return of capital   `rc`; bond                      Medium Bond-specific behavior
-                      security may map                       requires verification.
-                      to `pd`
+  Return of capital   `rc`; bond                Medium-High `rc` is confirmed
+                      security may map                      in public
+                      to `pd`                               translation
+                                                             mapping evidence;
+                                                             bond-security
+                                                             return of capital
+                                                             maps to `pd`.
 
   Sell                `sl`                            Medium Normal sell.
 
@@ -1666,7 +1698,7 @@ observed research. It is not an official Axys/APX code dictionary.
 | `pa`, `sa` | Fixed-income trade adjunct | No | Validate accrued interest, settlement date, coupon schedule, day count, and total trade settlement. |
 | `ai` | Negative interest / margin interest / financing adjustment | No | Validate margin or negative-interest context, amount sign, margin cash/security markers, and financing-rate support. |
 | `dp`, `wd` | Cash, fee, expense, external-flow, or cash-security movement | Context-dependent | Treat as context-dependent; verify whether the record is a fee, expense, cash-security buy/sell, tax, internal movement, or true external movement. |
-| `rc`, `pd` | Corporate action / principal event | Usually no | Validate return-of-capital, paydown, cost-basis, factor, and amortization treatment. |
+| `rc`, `pd` | Corporate action / principal event | Usually no | Confirmed in public Axys/APX translation mapping evidence as cash-producing security events; validate return-of-capital, paydown, cost-basis, factor, amortization, and performance-report treatment. |
 | `;` | Journal, other, placeholder, or locally materialized split marker | Usually no | Prefer central split-factor evidence such as `split.inf` for normal split processing; require firm mapping before treating `;` as split evidence. |
 | Uppercase code, e.g. `BY` | Reversal / deletion | Depends on original | Link to the original transaction and reverse original economics rather than treating it as independent activity. |
 | `epus`, `exus` | Fee/expense security type or marker | No | Preserve as security/type context, not as a standalone transaction-code conclusion. |
@@ -1689,7 +1721,7 @@ for ambiguous transaction families.
 | `dv` / `by` | Real security | Real symbol or `dvwash` | `$ity` or equivalent | `$income` or wash symbol | Dividend reinvestment | No | Link income and buy legs to avoid double counting. |
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
 | `pa` / `sa` | Bond or fixed-income security | Real symbol | Client-specific | Client-specific | Buy-side or sell-side accrued interest | No | Validate accrued interest, day count, and settlement economics; do not classify as external flow. |
-| `rc` / `pd` | Real security or bond/MBS | Real symbol | Client-specific | Client-specific | Return of capital or principal paydown | No | Confirm cost-basis, factor, and amortization treatment. |
+| `rc` / `pd` | Real security or bond/MBS | Real symbol | Usually `$pty` in ByAllAccounts mapping evidence | Usually `$cash` in ByAllAccounts mapping evidence | Return of capital or principal paydown | No | Confirm context before classification. The packaged demo uses narrow context-gated examples only. |
 
 ### 8.6 Observed Public Mapping Examples
 
@@ -1709,7 +1741,7 @@ contract and are not universal Axys transaction-code rules.
 | Accrued interest on buy/sell | Fixed-income trade adjunct | `pa` / `sa` | Part of bond trade settlement economics; not client external cash flow. |
 | Fee / service charge / expense | Fee context | `dp` with `epus`/`exus` symbols | Fee or expense, not client withdrawal unless firm policy proves otherwise. |
 | Cash-security buy/sell | Cash security | `dp` / `wd` | Cash-security handling; do not infer external cash flow from the code name. |
-| Return of capital / paydown | Normal / bond | `rc` / `pd` | Issuer/principal event, not client capital flow. |
+| Return of capital / paydown | Normal / bond | `rc` / `pd` | Issuer/principal event producing portfolio cash in public translation mapping evidence; not client capital flow. |
 | Split / journal / other | Special marker | `;` | Requires firm mapping or manual review. |
 | Reversal / deletion | Original code uppercased | e.g. `BY` | Reverse original economics; flag orphan reversals. |
 
@@ -2633,30 +2665,36 @@ gate, not a claim that `pa`/`sa` are universal code-only Axys defaults.
 ## 18. Under-Evidenced Backlog Transaction Update
 
 The 2026-07-07 backlog transaction research strengthens the practical
-interpretation of `rc`, `pd`, `ss`, `cs`, and split/journal marker `;`, but it
-does not convert them into safe code-only packaged-demo defaults. The new
-evidence is still mostly integration and conversion documentation, not an
-official complete Axys/APX transaction-code manual.
+interpretation of `rc`, `pd`, `ss`, `cs`, and split/journal marker `;`. A later
+2026-07-07 `rc`/`pd` research pass further confirms the public integration
+mapping evidence for return of capital and bond principal paydown. This does
+not convert the codes into safe code-only packaged-demo defaults, because the
+strongest evidence is still integration and conversion documentation rather
+than an official complete Axys/APX transaction-code manual or native
+performance-report methodology.
 
 | Code or marker | Strongest supported meaning | Product boundary |
 |---|---|---|
-| `rc` | Return of capital. ByAllAccounts Axys/APX default translation evidence maps return-of-capital activity to `rc`, with `$pty` and `$cash` source/destination context. | Policy-gated. Public evidence does not verify native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone. |
-| `pd` | Principal paydown / bond-security return-of-capital event. Public translation evidence maps bond-security return-of-capital activity to `pd`; Morningstar Axys conversion evidence discusses principal paydown rows and zero share quantity. | Fixed-income principal event, not ordinary interest income or client external flow. Packaged-demo promotion requires bond context, cash receipt, principal/holding evidence, and performance-report treatment. |
+| `rc` | Return of capital. ByAllAccounts Axys/APX default translation evidence maps return-of-capital activity to `rc`, with `$pty` and `$cash` source/destination context. | Policy-gated. Public evidence confirms the translation mapping and cash destination, but not native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone. |
+| `pd` | Principal paydown / bond-security return-of-capital event. ByAllAccounts translation evidence maps bond-security return-of-capital activity to `pd`, again with portfolio-cash destination context; Morningstar Axys conversion evidence discusses principal paydown rows and zero share quantity. | Fixed-income principal event, not ordinary interest income or client external flow. The packaged demo includes only a narrow context-gated MBS/amortizing-security example with cash receipt, principal/holding evidence, and performance-report treatment. |
 | `ss` | Short sale / sell short candidate. | Requires short security type, cash/margin/short-account context, and verified amount/quantity sign conventions. |
 | `cs` | Cover short / buy-cover-short candidate. | Requires the same short-account context as `ss`; keep lowercase economic cover-short treatment separate from uppercase cancellation/delete patterns. |
 | `;` | Journal, Other, or locally materialized split marker. Public integration evidence maps split/journal/other concepts to `;`, but newer split-file evidence indicates normal Axys split support is central `split.inf` factor data rather than ordinary account-level transactions. | Marker/comment/corporate-action evidence unless local mapping proves a specific economic role. Prefer split-factor extracts for packaged or audited split scenarios. |
 
 ### 18.1 `pd` Principal Paydown Boundary
 
-`pd` is the strongest candidate for future packaged-demo promotion among the
-newly researched backlog codes, but only as a coherent fixed-income scenario.
-Safe `pd` treatment should verify:
+`pd` is now represented in the packaged performance-comparison demo, but only as
+a coherent amortizing-security principal-paydown scenario. Safe `pd` treatment should
+verify:
 
-- fixed-income security type or equivalent amortizing-bond context;
+- fixed-income security type or equivalent MBS/ABS/amortizing-security context;
 - principal-paydown or return-of-principal context;
-- cash movement, typically portfolio cash in the public translation evidence;
+- cash movement, typically `$pty` / `$cash` portfolio-cash context in the public
+  translation evidence;
 - holding principal, factor, quantity, or market-value movement consistent with
   the event;
+- amount and sign convention, trade/effective date, and local translation
+  support;
 - reported security-performance and portfolio-performance treatment; and
 - reviewer wording that distinguishes principal return from coupon interest,
   accrued interest, amortization/accretion, and client external flow.
@@ -2668,11 +2706,27 @@ or factor context is needed where available. Cost-basis, amortization, and tax
 lot mechanics remain best-efforts demo-construction context, not requirements
 for Modified Dietz calculation.
 
+For Modified Dietz performance-comparison work, `pd` should be treated as a
+security-level principal return unless site evidence proves otherwise. It
+increases cash and reduces outstanding principal, but it should not be
+classified as an investor contribution or withdrawal. At portfolio level, it is
+best modeled as an internal movement from security principal exposure to cash
+when the MBS/ABS/amortizing-security paydown context is coherent. At security
+level, it is a principal return by the security. Public sources do not
+establish a universal native Axys/APX field layout for principal amount,
+factor, or amortized-cost movement.
+
+Rows lacking fixed-income context, cash destination, or local mapping support
+should remain review-only. Reversal/delete rows and custom site-translation rows
+should be classified separately before any performance treatment is inferred.
+
 ### 18.2 `rc` Return-of-Capital Boundary
 
 `rc` is supported as return of capital in public integration mapping evidence,
-but its performance role is policy-sensitive. A site may reasonably configure
-return of capital as performance income, security-level capital-return evidence,
+and the strengthened research specifically confirms a portfolio-cash
+destination in the ByAllAccounts mapping. Its performance role is still
+policy-sensitive. A site may reasonably configure return of capital as
+performance income, security-level capital-return evidence,
 corporate-action/cost-basis evidence, or review-only evidence depending on the
 report methodology. Public evidence does not verify native Axys/APX cost-basis
 algorithm or exact performance-report treatment.
@@ -2680,6 +2734,11 @@ algorithm or exact performance-report treatment.
 For this reason, `rc` should remain a site-confirmed rule rather than a packaged
 default. Any future packaged example should explicitly state the configured
 methodology and should not imply universal Axys/APX treatment.
+
+For Modified Dietz, `rc` should not be modeled as an external client flow when
+it represents issuer return of capital. It is a security-level distribution or
+capital-return event that may affect cash, return, and cost-basis context, while
+tax-basis handling remains best-efforts outside the performance calculation.
 
 ### 18.3 `ss` / `cs` Short-Side Boundary
 

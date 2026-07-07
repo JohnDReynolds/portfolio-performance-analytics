@@ -305,6 +305,7 @@ def _assert_workbook_explained_row_actions(
                 or "transactions.amount to" in str(required_setup)
                 or "holdings.quantity to" in str(required_setup)
                 or "Caused cash-balance" in str(required_setup)
+                or "split factor" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
                 continue

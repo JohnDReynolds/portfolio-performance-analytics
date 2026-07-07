@@ -88,7 +88,7 @@ The governing blueprint requires facts-first documentation, separate Axys and AP
 | `Management Mode` can be used in Axys Report Writer to produce a single group Portfolio Appraisal with owner portfolio code beside each holding. | Verified for CSSI example | CSSI instructions and test result state this. |
 | In an AIA historical-load workflow, historical holdings require report calculation rather than direct current-date file read. | Verified for AIA workflow | WealthTechs AIA Axys guide. |
 | Principal paydown methodology can affect converted holdings. Morningstar states Axys adjusts original principal amount to decrease principal balance, while Morningstar uses principal factors in holding price calculation. | Verified as Morningstar conversion limitation | Important for fixed income / mortgage-backed holdings conversion and reconciliation. |
-| Some principal paydown transaction types are provided with zero share quantity and cannot be processed by Morningstar Office; affected holdings in converted data will not match Axys performance reporting results. | Verified as Morningstar conversion limitation | This is not necessarily an Axys bug; it is a conversion limitation and methodology difference documented by Morningstar. |
+| Some principal paydown transaction types are provided with zero share quantity and cannot be processed by Morningstar Office; affected holdings in converted data will not match Axys performance reporting results. | Verified as Morningstar conversion limitation | This is not necessarily an Axys bug; it is a conversion limitation and methodology difference documented by Morningstar. The 2026-07-07 `rc`/`pd` and `pd` Modified Dietz research reinforces that `pd` should preserve principal or factor context where available because share quantity alone may be insufficient. |
 | Zero-quantity transactions, missing transaction prices, and missing quarter-end prices are issues to resolve during conversion/reconciliation. | Verified as Morningstar guidance | These issues can affect holdings/report matching but are not specific to an Axys holdings table. |
 
 ## 4. APX Holdings Research
@@ -271,6 +271,7 @@ Classification: Verified for Custodial Integrator APX workflow.
 | APX position import can exclude stale or failed accounts. | APX | Verified | CI advanced position export options. |
 | Custodial Integrator will not overwrite same-day APX security price records that already contain a price. | APX | Verified | CI guide states this. |
 | Principal paydown handling can cause converted holdings not to match Axys performance reporting results. | Axys conversion | Verified | Morningstar guide documents methodology differences and zero-quantity transaction limitations. |
+| `pd` principal-paydown classification should not rely on holdings quantity alone. | Axys/APX performance comparison | Medium-High for conservative audit treatment | The 2026-07-07 `pd` Modified Dietz research recommends preserving principal amount, factor, amortization, or equivalent principal-balance evidence when available. |
 | New uploads/copies of old reports can have recent file dates but old content. | Repository process | High Confidence | Blueprint requires preserving evidence and source freshness; final author should inspect source content, not only metadata. |
 
 ## 10. Version Differences and Release Notes

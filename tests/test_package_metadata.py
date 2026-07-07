@@ -458,7 +458,8 @@ class TestPackageMetadata(unittest.TestCase):
             "Common transaction_category values",
             "Starter transaction coverage",
             "pa and sa require fixed-income context",
-            "Keep \";\" as a defensive corporate-action/journal guardrail",
+            "requires explicit return-of-capital context",
+            "defensive corporate-action/journal guardrail",
             "Long-out is external only with reviewed external-party context",
             "Reserved corporate-action/journal marker",
             "Withdrawal is external only for a cash row",
@@ -773,12 +774,13 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 8C: Fixed-Income Transaction Boundary Gate", roadmap)
         self.assertIn("ordinary `in` interest rows", roadmap)
         self.assertIn("`holdings.accrued`", roadmap)
-        self.assertIn("`ai` and `pd`", roadmap)
+        self.assertIn("broad `pd` treatment still proves cash movement", roadmap)
+        self.assertIn("`ai` as a backlog code", roadmap)
         self.assertIn("local mapping or\n  REP/report semantics", roadmap)
         self.assertIn("quantity or principal\n  exposure", roadmap)
-        self.assertIn("before it is treated as performance income", roadmap)
+        self.assertIn("before it is\n  treated as performance income", roadmap)
         self.assertIn(
-            "three proved fixed-income Modified Dietz input\nfamilies",
+            "four proved fixed-income Modified Dietz input\nfamilies",
             source_contract,
         )
         self.assertIn("amortization/accretion engine", source_contract)
@@ -856,8 +858,8 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("`Capital-return and short-side backlog\ngates`", roadmap)
 
         partial_fixture_expectations = {
-            "rc": ["site_variants/rc_return_of_capital"],
-            "pd": ["site_variants/pd_principal_paydown"],
+            "rc": ["packaged_demo", "site_variants/rc_return_of_capital"],
+            "pd": ["packaged_demo", "site_variants/pd_principal_paydown"],
             "ss": ["site_variants/short_side_trades"],
             "cs": ["site_variants/short_side_trades"],
         }
@@ -1754,10 +1756,12 @@ class TestPackageMetadata(unittest.TestCase):
         for expected_text in [
             "Run Setup-Generated Smoke Scripts",
             "Run Release-Candidate Checks",
+            "scripts/check_release_candidate.py",
             "scripts/check_release_candidate.py --build",
             "--include-generic-data-generation",
             "--write-packaged-assets",
             "--verbose",
+            "`--build` adds a package-build check",
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
@@ -1788,6 +1792,29 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("Other Data Differences", guide)
         self.assertNotIn("Residual Evidence", guide)
         self.assertNotIn("Return Reconstruction Summary", guide)
+
+    def test_repository_guide_documents_packaged_demo_inventory(self) -> None:
+        """The repository guide keeps demo source ownership and scenarios visible."""
+        guide = Path("docs/repository_guide.md").read_text(encoding=util.ENCODING)
+
+        for expected_text in [
+            "Packaged Axys/APX Performance Comparison Maintenance",
+            "Treat the packaged Axys/APX performance-comparison demo as a small accounting",
+            "derive_operational_demo_data.py",
+            "performance_comparison_transaction_scenarios.csv",
+            "performance_comparison_holding_scenarios.csv",
+            "rebuild_performance_comparison_demo_data.py",
+            "Use `--write` only when you intend to rewrite tracked packaged CSV assets.",
+            "Current packaged scenario inventory",
+            "`CVNA` split row",
+            "`MBSPOOL` `pd` row",
+            "`TNOTE2Y` `in` row",
+            "`TNOTE5Y` `by`/`pa` and `sl`/`sa` rows",
+            "`TNOTE5Y` cost-only row",
+            "`JPM` `dv` and `rc` rows",
+        ]:
+            with self.subTest(expected_text=expected_text):
+                self.assertIn(expected_text, guide)
 
     def test_repository_guide_documents_release_readiness_checklist(self) -> None:
         """The repository guide keeps release-tag readiness checks explicit."""

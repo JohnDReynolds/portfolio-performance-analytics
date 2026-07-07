@@ -150,27 +150,27 @@ rows:
     fixtures: [packaged_demo, site_variants/fixed_income_accruals]
     coverage_notes: Packaged demo includes purchase accrued interest only with explicit fixed-income context and paired bond-trade scenario support; code-only treatment remains unknown.
   rc:
-    observed_meaning: Return of capital.
+    observed_meaning: Return of capital; ByAllAccounts Axys/APX mapping evidence points to portfolio-cash destination context.
     ppar_categories: [income, corporate_action]
     cash_flow_signs: [positive]
     performance_flow_signs: [performance, review_only]
-    required_evidence: [code, security, amount_sign, local_mapping_or_report_treatment]
-    imex_confidence: low_medium
-    rep_confidence: medium
-    coverage_status: partial
-    fixtures: [site_variants/rc_return_of_capital]
-    coverage_notes: "Test-only site variant covers a Modified Dietz performance-income treatment through explicit return-of-capital YAML context. Code-only treatment remains unknown. Cost-basis handling is best-efforts demo-construction context, not required for this performance classification."
-  pd:
-    observed_meaning: Principal paydown or bond-security return-of-capital transaction.
-    ppar_categories: [income, corporate_action]
-    cash_flow_signs: [positive]
-    performance_flow_signs: [performance, review_only]
-    required_evidence: [bond_security_type, principal_paydown_context, cash_movement, local_mapping_or_report_treatment]
+    required_evidence: [code, security, amount_sign, cash_destination_context, local_mapping_or_report_treatment]
     imex_confidence: medium
     rep_confidence: medium
     coverage_status: partial
-    fixtures: [site_variants/pd_principal_paydown]
-    coverage_notes: "Test-only site variant covers a Modified Dietz performance-income treatment through explicit principal-paydown YAML context. Code-only treatment remains unknown. Principal, cost-basis, and amortization handling are best-efforts demo-construction context, not required for this performance classification."
+    fixtures: [packaged_demo, site_variants/rc_return_of_capital]
+    coverage_notes: "Packaged demo covers rc only with explicit equity/security and return-of-capital context; test-only site variant covers a local Modified Dietz performance-income override. Code-only treatment remains unknown. Cost-basis handling is best-efforts demo-construction context, not required for this performance classification."
+  pd:
+    observed_meaning: Principal paydown or bond-security return-of-capital transaction; ByAllAccounts mapping evidence points to portfolio-cash destination context.
+    ppar_categories: [sell, corporate_action]
+    cash_flow_signs: [positive]
+    performance_flow_signs: [performance, review_only]
+    required_evidence: [bond_security_type, principal_paydown_context, cash_movement, principal_or_factor_context, local_mapping_or_report_treatment]
+    imex_confidence: medium
+    rep_confidence: medium
+    coverage_status: partial
+    fixtures: [packaged_demo, site_variants/pd_principal_paydown]
+    coverage_notes: "Packaged demo covers pd only with MBS/amortizing-security, principal-paydown, and portfolio-cash destination context, using sell-like security-flow mechanics for Modified Dietz. Test-only site variant covers an explicit local override. Code-only treatment remains unknown. Principal, factor, cost-basis, and amortization handling are best-efforts demo-construction context."
   li:
     observed_meaning: Deliver in, transfer in, credit, deposit, positive movement.
     ppar_categories: [external_flow, transfer]

@@ -105,6 +105,7 @@ definitions, or production examples.
 | Pre-existing reconciliation issues in a prior portfolio management system or custodian files can affect conversion and reporting workflows. | Medium Confidence | Morningstar Axys conversion guide describes conversion issues and adjustment transactions in a migration context. |
 | Adjustment transactions entered during conversion can affect performance reporting for affected accounts in the target system. | Medium Confidence | Morningstar guide discusses effect of adjustment transactions on Morningstar Office performance after conversion, not Axys calculations directly. |
 | The inspected Morningstar guide does not provide native Axys cash-balance calculations or Axys reconciliation report names. | Verified Unknown | Conversion-focused source only. |
+| Public Axys/APX integration evidence maps bond-security return-of-capital / principal-paydown activity to `pd` with `$pty` / `$cash` destination context. | Medium-High Confidence | The 2026-07-07 `pd` Modified Dietz research reinforces that `pd` should normally increase portfolio cash only when MBS/ABS/amortizing-security paydown context and cash destination evidence are present. |
 
 ---
 
@@ -277,8 +278,8 @@ The following codes appear in the inspected ByAllAccounts Axys transaction trans
 | `dv` | Dividend and reinvested dividend leg. | Income/cash-related. | High Confidence as observed |
 | `in` | Income, interest, dividends on cash securities. | Income/cash-related. | High Confidence as observed |
 | `ai` | Interest negative; margin interest. | Negative-interest or margin-interest cash effect. | High Confidence as observed |
-| `rc` | Return of capital. | Cash/security cash-impacting. | High Confidence as observed |
-| `pd` | Return of capital for bond security / principal paydown. | Cash/security cash-impacting. | High Confidence as observed |
+| `rc` | Return of capital. | Maps to portfolio cash context (`$pty` / `$cash`) in ByAllAccounts Axys/APX translation evidence. | Confirmed in integration mapping evidence |
+| `pd` | Return of capital for bond security / principal paydown. | Maps to portfolio cash context in ByAllAccounts Axys/APX translation evidence. | Confirmed in integration mapping evidence |
 | `sa` | Sale accrued interest / sell-side accrued interest. | Income/cash-related fixed-income trade adjunct. | High Confidence as observed |
 | `cs` | Cover short / closure negative leg. | Cash/security cash-impacting. | High Confidence as observed |
 | `ss` | Short sale. | Short/cash-related. | High Confidence as observed |

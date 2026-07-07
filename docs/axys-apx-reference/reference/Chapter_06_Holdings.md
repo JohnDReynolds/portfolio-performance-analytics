@@ -13,6 +13,14 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 - [Chapter_07_Cash.md](Chapter_07_Cash.md) — holdings and cash often move together in reconciliation workflows.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — holdings provide the base for performance measurement.
 
+## Transaction-Code Boundary
+
+This chapter explains holdings effects and position evidence. It should not
+maintain a separate transaction-code dictionary. Interpret transaction codes
+through [Chapter_05_Transactions.md](Chapter_05_Transactions.md) and use this
+chapter only for the holdings-side implications, such as quantity, market value,
+principal, accrued income, lots, and cost-basis context.
+
 ## 1. Overview
 
 This chapter documents holdings and position-related behavior in Axys and APX using only the supplied research material.
@@ -118,7 +126,7 @@ The supplied material identifies several Axys files that are relevant to holding
 | Reconciliation report | AIA reconciliation compares calculated positions in Advent to downloaded custodian positions and displays non-equal positions. | Verified for AIA workflow | Third-party workflow. |
 | Morningstar conversion reconciliation | A Reconciliation report from Advent Axys as of the last transaction date of backup is used by Morningstar to show out-of-balance items compared to the custodian record. | Verified | Conversion-specific. |
 | Principal paydown methodology | Morningstar states Axys adjusts original principal amount to decrease principal balance, while Morningstar uses principal factors in holding price calculation. | Verified as conversion limitation | Do not document as an Axys defect. |
-| Zero-quantity principal paydown issue | Some principal paydown transaction types are provided with zero share quantity and cannot be processed by Morningstar Office; affected converted holdings may not match Axys performance reporting results. | Verified as conversion limitation | Conversion-specific; native Axys behavior remains partially unknown. |
+| Zero-quantity principal paydown issue | Some principal paydown transaction types are provided with zero share quantity and cannot be processed by Morningstar Office; affected converted holdings may not match Axys performance reporting results. | Verified as conversion limitation | Conversion-specific; native Axys behavior remains partially unknown. Do not use quantity alone to decide whether a `pd` principal event occurred. |
 
 ### 2.7 Axys holdings storage model
 
@@ -411,6 +419,12 @@ Source-backed conversion issue:
 5. In those cases, converted holdings may not match Axys performance reporting results.
 
 Classification: **Verified as Morningstar conversion limitation.** Do not document as a native Axys error without additional evidence.
+
+The 2026-07-07 `rc`/`pd` and `pd` Modified Dietz research reinforces that `pd`
+is best treated as a principal-paydown or bond return-of-capital event, not as
+ordinary coupon income. For holdings audits, preserve principal, factor,
+amortization, or equivalent principal-balance evidence when available; share
+quantity alone may be zero or insufficient for reconciliation.
 
 ---
 

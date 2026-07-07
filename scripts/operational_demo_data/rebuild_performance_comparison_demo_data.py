@@ -74,6 +74,19 @@ _PORTPERF_COLUMNS: Final = [
     "BEGIN_MV",
     "PORT_RETURN",
 ]
+_SECPERF_COLUMNS: Final = [
+    "END_MV",
+    "INCOME",
+    "GAIN_LOSS",
+    "PORTFOLIO_CODE",
+    "SECURITY_ID",
+    "FROM_DATE",
+    "THRU_DATE",
+    "BEGIN_WEIGHT",
+    "BEGIN_MV",
+    "SEC_RETURN",
+    "CONTRIBUTION",
+]
 _SECPERF_NUMERIC_COLUMNS: Final = [
     "END_MV",
     "INCOME",
@@ -196,9 +209,9 @@ _INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
     ("BALANCED", "MSFT", "2026-05-01", "2026-05-29"): 0.002,
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"): 0.004,
 }
-_SECURITY_FLOW_CODES: Final = {"by", "sl"}
+_SECURITY_FLOW_CODES: Final = {"by", "pd", "sl"}
 _ACCRUED_INTEREST_ADJUNCT_CODES: Final = {"pa", "sa"}
-_INCOME_CODES: Final = {"dv", "in", "dp", *_ACCRUED_INTEREST_ADJUNCT_CODES}
+_INCOME_CODES: Final = {"dv", "in", "dp", "rc", *_ACCRUED_INTEREST_ADJUNCT_CODES}
 _AMBIGUOUS_EXTERNAL_FLOW_CODES: Final = {"li", "lo", "wd"}
 _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
     ";",
@@ -211,6 +224,8 @@ _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
     "dv",
     "in",
     "dp",
+    "pd",
+    "rc",
 }
 _CASH_SECURITY_ID: Final = "CASH_USD"
 _EXPECTED_SCENARIO_COVERAGE: Final = {
@@ -223,6 +238,8 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "li": 1,
             "lo": 1,
             "pa": 1,
+            "pd": 1,
+            "rc": 1,
             "sa": 1,
             "sl": 2,
             "wd": 1,
@@ -235,6 +252,8 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "li": 1,
             "lo": 1,
             "pa": 1,
+            "pd": 2,
+            "rc": 1,
             "sa": 1,
             "sl": 4,
             "wd": 1,
@@ -520,6 +539,7 @@ def rebuild_demo_performance_files(
         rebuilt_secperf = _rebuild_security_performance(
             snapshot_name,
             current_secperf,
+            current_portperf,
             rebuilt_holdings,
             rebuilt_transactions,
             security_reconstruction,
@@ -572,7 +592,10 @@ def rebuild_demo_performance_files(
                 snapshot_directory / "holdings.csv",
                 index=False,
             )
-            rebuilt_secperf.to_csv(snapshot_directory / "secperf.csv", index=False)
+            rebuilt_secperf[_SECPERF_COLUMNS].to_csv(
+                snapshot_directory / "secperf.csv",
+                index=False,
+            )
             rebuilt_portperf.to_csv(snapshot_directory / "portperf.csv", index=False)
 
         snapshots.append(
@@ -958,6 +981,28 @@ def _transaction_derived_holding_adjustments(
                     ),
                 )
             )
+        elif transaction_code == "pd":
+            principal_delta = -float(row.AMOUNT_delta)
+            adjustments.append(
+                _principal_paydown_adjustment(
+                    snapshot_name,
+                    holdings=holdings,
+                    portfolio=str(row.PORT),
+                    security=str(row.SEC),
+                    holding_date=holding_date,
+                    principal_delta=principal_delta,
+                    scenario=f"{row.TRANSACTION_ID} pd transaction changes ending holding.",
+                )
+            )
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=f"{row.TRANSACTION_ID} pd transaction changes cash balance.",
+                )
+            )
         elif _is_cash_balance_transaction(row):
             adjustments.append(
                 _cash_adjustment(
@@ -1155,6 +1200,44 @@ def _security_trade_adjustment(
             "MKT_VAL": market_value_delta,
             "COST": cost_delta,
             "ACCRUED": accrued_delta,
+        },
+        scenario=scenario,
+    )
+
+
+def _principal_paydown_adjustment(
+    snapshot: str,
+    *,
+    holdings: pd.DataFrame,
+    portfolio: str,
+    security: str,
+    holding_date: str,
+    principal_delta: float,
+    scenario: str,
+) -> HoldingScenarioAdjustment:
+    """Return the holding impact for a principal paydown with unchanged quantity."""
+    rows = holdings[
+        holdings["PORT"].eq(portfolio)
+        & holdings["SEC"].eq(security)
+        & holdings["HOLDING_DATE"].eq(pd.Timestamp(holding_date))
+    ]
+    if rows.shape[0] != 1:
+        raise ValueError(
+            "Transaction-derived principal adjustment must match one holding: "
+            f"{portfolio}/{security}/{holding_date}."
+        )
+    return HoldingScenarioAdjustment(
+        snapshot=snapshot,
+        portfolio=portfolio,
+        security=security,
+        holding_date=holding_date,
+        scenario_type="transaction_derived",
+        deltas={
+            "QTY": 0.0,
+            "PRICE": 0.0,
+            "MKT_VAL": principal_delta,
+            "COST": principal_delta,
+            "ACCRUED": 0.0,
         },
         scenario=scenario,
     )
@@ -1442,6 +1525,7 @@ def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
 def _rebuild_security_performance(
     snapshot_name: str,
     secperf: pd.DataFrame,
+    portperf: pd.DataFrame,
     holdings: pd.DataFrame,
     transactions: pd.DataFrame,
     reconstruction: SecurityReturnReconstruction,
@@ -1505,12 +1589,59 @@ def _rebuild_security_performance(
         rows.append(rebuilt_row)
 
     rebuilt = pd.DataFrame(rows)
+    rebuilt = _align_security_begin_market_values(rebuilt, portperf)
     period_begin_market_value = rebuilt.groupby(_PERIOD_KEY)["BEGIN_MV"].transform("sum")
     rebuilt["BEGIN_WEIGHT"] = (rebuilt["BEGIN_MV"] / period_begin_market_value).round(10)
     rebuilt["CONTRIBUTION"] = (rebuilt["BEGIN_WEIGHT"] * rebuilt["SEC_RETURN"]).round(10)
     if snapshot_name != _BASE_SNAPSHOT_DIRECTORY:
         rebuilt = _with_intentional_security_return_residuals(rebuilt)
     return rebuilt[secperf.columns]
+
+
+def _align_security_begin_market_values(
+    secperf: pd.DataFrame,
+    portperf: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return security rows whose beginning values sum to portfolio rows.
+
+    Rounding each security-level beginning market value independently can leave
+    the package off by a penny versus the portfolio-level beginning value. The
+    report treats the portfolio value as the period-level control total, so the
+    rebuild applies penny residuals to one security row and recomputes that
+    row's synthetic return math.
+    """
+    aligned = secperf.copy()
+    target_begin_values = {
+        (row.PORTFOLIO_CODE, row.FROM_DATE, row.THRU_DATE): float(row.BEGIN_MV)
+        for row in portperf.itertuples(index=False)
+    }
+    for period_key, target_begin_value in target_begin_values.items():
+        portfolio_code, from_date, thru_date = period_key
+        mask = (
+            aligned["PORTFOLIO_CODE"].eq(portfolio_code)
+            & aligned["FROM_DATE"].astype(str).eq(str(from_date))
+            & aligned["THRU_DATE"].astype(str).eq(str(thru_date))
+        )
+        if not bool(mask.any()):
+            continue
+        residual = round(target_begin_value - float(aligned.loc[mask, "BEGIN_MV"].sum()), 2)
+        if abs(residual) < 0.005:
+            continue
+        if abs(residual) > 0.05:
+            raise ValueError(
+                "Security BEGIN_MV rows do not reconcile to portfolio BEGIN_MV "
+                f"for {period_key}: residual={residual}."
+            )
+        adjustment_index = aligned.index[mask][-1]
+        begin_value = round(float(aligned.loc[adjustment_index, "BEGIN_MV"]) + residual, 2)
+        end_value = float(aligned.loc[adjustment_index, "END_MV"])
+        income = float(aligned.loc[adjustment_index, "INCOME"])
+        gain_loss = round(end_value - begin_value - income, 2)
+        security_return = round((gain_loss + income) / begin_value if begin_value else 0.0, 10)
+        aligned.loc[adjustment_index, "BEGIN_MV"] = begin_value
+        aligned.loc[adjustment_index, "GAIN_LOSS"] = gain_loss
+        aligned.loc[adjustment_index, "SEC_RETURN"] = security_return
+    return aligned
 
 
 def _rebuild_portfolio_performance(
@@ -1801,7 +1932,7 @@ def _is_portfolio_external_flow(
 def _is_cash_balance_transaction(row: object) -> bool:
     """Return whether a changed transaction row should adjust demo cash holdings."""
     transaction_code = _row_string(row, "TRAN").lower()
-    if transaction_code in {"dv", "in", "dp"}:
+    if transaction_code in {"dv", "in", "dp", "rc"}:
         return True
     if transaction_code in {"li", "lo"}:
         return (

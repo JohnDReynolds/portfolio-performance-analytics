@@ -13,6 +13,24 @@ The machine-readable companion is
 [`transaction_semantics_matrix.yaml`](transaction_semantics_matrix.yaml). Tests use
 that YAML to check demo transaction rules and fixture coverage.
 
+## Document Role
+
+Use this Markdown file as a human-readable companion to the YAML contract. Do
+not expand it into a second evidence archive or a parallel reader-facing
+transaction-code manual. The intended ownership is:
+
+- `../reference/Chapter_05_Transactions.md` holds the reader-facing transaction
+  semantics, confidence labels, and open questions.
+- `../evidence/Research_05_Transactions.md` preserves source evidence and
+  research history.
+- `transaction_semantics_matrix.yaml` is the implementation contract used by
+  tests, demo fixtures, and validation logic.
+- This file explains the YAML at a practical level for maintainers.
+
+When this file needs more explanation than a compact contract can comfortably
+hold, put the evidence and reasoning in the research archive and summarize the
+reader-facing conclusion in Chapter 05.
+
 ## Evidence Boundary
 
 Primary local references:
@@ -67,8 +85,8 @@ Important boundary rules:
 | `ai` | Negative interest or margin interest. | `fee_expense` or `income` pending local mapping. | Usually negative for margin/negative interest; context-dependent. | `performance` | Security type, margin symbols, amount sign, local mapping or REP/report semantics. | Medium | Medium | Partially covered by a test-only site variant. | `site_variants/ai_margin_interest` proves explicit margin-context YAML classification; code-only treatment remains unknown and packaged-demo use still needs local mapping or REP/report evidence. |
 | `sa` | Sale accrued interest / sell-side accrued interest. | `income` or `fee_expense` pending local mapping. | Positive or context-dependent. | `performance` or `unknown` | Bond/accrual context, accrued-interest amount, settlement date, local mapping or REP/report semantics. | Medium | Medium | Partially covered by packaged demo and a test-only site variant. | Packaged demo includes sale accrued interest only with explicit fixed-income context and paired bond-trade scenario support; code-only treatment remains unknown. |
 | `pa` | Purchase accrued interest / buy-side accrued interest. | `fee_expense` or `income` pending local mapping. | Negative or context-dependent. | `performance` or `unknown` | Bond/accrual context, accrued-interest amount, settlement date, local mapping or REP/report semantics. | Medium | Medium | Partially covered by packaged demo and a test-only site variant. | Packaged demo includes purchase accrued interest only with explicit fixed-income context and paired bond-trade scenario support; code-only treatment remains unknown. |
-| `rc` | Return of capital. | `income` or `corporate_action` pending local policy. | Usually positive cash; cost-basis handling is separate from the Modified Dietz role. | `performance` or `review_only` depending on configured methodology. | Code, security, amount sign, local mapping or REP/report treatment. | Low to Medium | Medium | Partially covered by a test-only site variant. | `site_variants/rc_return_of_capital` proves explicit return-of-capital YAML classification as performance income; code-only treatment remains unknown and cost-basis treatment stays best-efforts demo-construction context. |
-| `pd` | Principal paydown / bond-security return-of-capital transaction. | `income` or `corporate_action` pending local policy. | Usually positive cash; principal/cost mechanics are separate from the Modified Dietz role. | `performance` or `review_only` depending on configured methodology. | Bond/security type, principal/paydown context, cash movement, local mapping or REP/report treatment. | Medium | Medium | Partially covered by a test-only site variant. | `site_variants/pd_principal_paydown` proves explicit principal-paydown YAML classification as performance income; code-only treatment remains unknown and principal/cost/amortization treatment stays best-efforts demo-construction context. |
+| `rc` | Return of capital; ByAllAccounts Axys/APX mapping evidence points to portfolio-cash destination context. | `income` or `corporate_action` pending local policy. | Usually positive cash; cost-basis handling is separate from the Modified Dietz role. | `performance` or `review_only` depending on configured methodology. | Code, security, amount sign, cash destination, return-of-capital context, and local mapping or report treatment. | Medium | Medium | Partially covered by packaged demo and a test-only site variant. | Packaged demo covers `rc` only with explicit equity/security and return-of-capital context; code-only treatment remains unknown and cost-basis treatment stays best-efforts demo-construction context. |
+| `pd` | Principal paydown / bond-security return-of-capital transaction; ByAllAccounts mapping evidence points to portfolio-cash destination context. | `sell`-like security flow or `corporate_action` pending local policy. | Usually positive cash; principal/cost mechanics are separate from the Modified Dietz role. | `performance` or `review_only` depending on configured methodology. | Bond/MBS/ABS security type, principal/paydown context, cash movement, local mapping or REP/report treatment. | Medium | Medium | Partially covered by packaged demo and a test-only site variant. | Packaged demo covers `pd` only with MBS/amortizing-security, principal-paydown, and portfolio-cash destination context, using sell-like security-flow mechanics for Modified Dietz; code-only treatment remains unknown. Principal, factor, cost-basis, and amortization handling stay best-efforts demo-construction context. |
 | `li` | Deliver in, transfer in, credit, deposit, positive movement. | `external_flow` or `transfer` | Positive when external inflow; none/neutral for internal transfer. | `external` or `neutral` | Source/destination type and symbol, security type, amount/quantity signs, local mapping or reviewed REP semantics. | Medium when context fields available; insufficient when code-only. | Medium to High | Covered in packaged demo and site-variant tests for external and transfer cases. | Packaged demo covers a contextual external cash contribution; code-only `li` must remain unsafe. |
 | `lo` | Deliver out, transfer out, debit, withdrawal, negative movement. | `external_flow` or `transfer` | Negative when external outflow; none/neutral for internal transfer. | `external` or `neutral` | Source/destination type and symbol, security type, amount/quantity signs, local mapping or reviewed REP semantics. | Medium when context fields available; insufficient when code-only. | Medium to High | Covered in packaged demo and site-variant tests for external and transfer cases. | Packaged demo covers a contextual external cash deliver-out; code-only `lo` must remain unsafe. |
 | `dp` | Cash-security buy, tax, fee, recordkeeping, investment expense, service charge, debit-like case. | `fee_expense`, `transfer`, or `unknown pending review` | Negative for fee/expense; neutral for sweep/internal movement. | `performance`, `neutral`, or `unknown` | Special security type/symbol, source/destination context, fee/tax/sweep symbols, local mapping. | Medium when context fields available; insufficient when code-only. | Medium to High | Covered in packaged demo and site-variant tests for fee and sweep/transfer cases. | Do not classify as external flow by code alone. |
@@ -134,8 +152,6 @@ Future demo data and tests should add explicit examples for:
 - short sale and cover short: `ss`, `cs`;
 - packaged-demo promotion for `ai` only after coherent margin-interest,
   holdings, cash, and performance scenarios exist;
-- packaged-demo promotion for `rc` and `pd` only after coherent cash,
-  holdings/principal, and performance scenarios exist;
 - real-world split/corporate-action example using an actual historical split
   date and security when the demo period is designed to support it;
 - reinvested dividend pair: `dv` + `by` with dividend-wash context;

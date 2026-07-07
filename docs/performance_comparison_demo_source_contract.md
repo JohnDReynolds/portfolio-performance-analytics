@@ -272,7 +272,7 @@ alone.
 
 ## Fixed-Income Transaction Boundary
 
-The packaged demo currently uses three proved fixed-income Modified Dietz input
+The packaged demo currently uses four proved fixed-income Modified Dietz input
 families:
 
 - `in` transaction rows for ordinary bond or cash interest that is treated as
@@ -280,7 +280,9 @@ families:
 - `holdings.accrued` changes as valuation/performance evidence when the
   comparison YAML includes accrued interest as a return input; and
 - context-gated `pa`/`sa` transaction rows as fixed-income accrued-interest
-  adjuncts paired with TNOTE5Y buy/sell transactions.
+  adjuncts paired with TNOTE5Y buy/sell transactions; and
+- context-gated `pd` principal-paydown rows as MBS/amortizing-security
+  principal flow with portfolio-cash destination evidence.
 
 That boundary is deliberate. Modified Dietz needs beginning value, ending
 value, and dated external cash flows. It does not need ppar to rebuild an
@@ -295,12 +297,13 @@ transaction rows, cash movement, quantity-driven holding value/accrual rows,
 rebuild path keeps these rows outside portfolio external-flow weighting, and
 the YAML rules require fixed-income context before classifying them.
 
-The packaged demo still does not use `ai` or `pd` rows. Those codes need more
-than the Axys/APX short code before ppar can classify them: margin or bond/principal
-context, cash movement, amount sign, and local mapping or REP/report evidence.
-Test-only candidate override profiles cover explicit Modified Dietz treatments
-for `ai`, `pa`, `sa`, and `pd`, but only `pa`/`sa` have been promoted into the
-packaged demo, and only for the paired fixed-income accrued-interest story.
+The packaged demo still does not use `ai` rows, and it does not treat `pd` as a
+safe code-only default. Those codes need more than the Axys/APX short code
+before ppar can classify them: margin or bond/principal context, cash movement,
+amount sign, and local mapping or REP/report evidence. Test-only candidate
+override profiles cover explicit Modified Dietz treatments for `ai`, `pa`,
+`sa`, and `pd`; the packaged demo promotes only context-gated `pa`/`sa` accrued
+interest and MBS `pd` principal paydown stories.
 
 The default runtime guard uses
 `ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`. A site comparison YAML

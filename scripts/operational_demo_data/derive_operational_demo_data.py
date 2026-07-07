@@ -44,11 +44,17 @@ _EQUITY_COUNT: Final = 10
 _PERIOD_COUNT: Final = 6
 _CASH_IDENTIFIER: Final = "CASH_USD"
 _CASH_SLEEVE_FLOOR: Final = 0.04
+_CVNA_SPLIT_IDENTIFIER: Final = "CVNA"
+_CVNA_SPLIT_NAME: Final = "Carvana Co."
+_CVNA_SYNTHETIC_WEIGHT: Final = 0.001
+_CVNA_SYNTHETIC_RETURN: Final = 0.012
+_CVNA_SPLIT_ADJUSTED_PRICE: Final = 58.00
 _FIXED_INCOME_SLEEVE: Final = (
     (_CASH_IDENTIFIER, "US Dollar Cash", "Cash", 0.40, 0.00025, 1.0, 0.0),
     ("TBILL13W", "13 Week Treasury Bill", "Treasury Bills", 0.25, 0.0038, 99.35, 0.0),
-    ("TNOTE2Y", "2 Year Treasury Note", "Treasury Notes", 0.20, 0.0032, 100.15, 65.0),
+    ("TNOTE2Y", "2 Year Treasury Note", "Treasury Notes", 0.15, 0.0032, 100.15, 65.0),
     ("TNOTE5Y", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027, 98.80, 95.0),
+    ("MBSPOOL", "Agency MBS Pool", "Mortgage-Backed Securities", 0.05, 0.0035, 97.25, 120.0),
 )
 _JPM_DIVIDEND_IDENTIFIER: Final = "JPM"
 _JPM_DIVIDEND_EX_DATE: Final = "2026-04-06"
@@ -124,6 +130,7 @@ def derive_operational_performance(
     recent = source[
         source[["from_date", "thru_date"]].apply(tuple, axis=1).isin(period_keys)
     ].copy()
+    recent = _with_synthetic_cvna_rows(recent, periods)
     selected_equities = select_equity_identifiers(recent, equity_count)
     rows: list[dict[str, object]] = []
     for portfolio_code, portfolio_name, equity_return_scale, sleeve_floor in _PORTFOLIOS:
@@ -203,15 +210,53 @@ def select_equity_identifiers(source: pd.DataFrame, equity_count: int) -> list[s
         .head(equity_count)["identifier"]
         .tolist()
     )
-    if (
-        _JPM_DIVIDEND_IDENTIFIER in set(candidates["identifier"])
-        and _JPM_DIVIDEND_IDENTIFIER not in identifiers
-    ):
-        identifiers[-1] = _JPM_DIVIDEND_IDENTIFIER
+    available_identifiers = set(candidates["identifier"])
+    for required_identifier in (_JPM_DIVIDEND_IDENTIFIER, _CVNA_SPLIT_IDENTIFIER):
+        if required_identifier not in available_identifiers:
+            continue
+        if required_identifier in identifiers:
+            continue
+        replaceable_index = _last_replaceable_identifier_index(
+            identifiers,
+            required_identifiers={_JPM_DIVIDEND_IDENTIFIER, _CVNA_SPLIT_IDENTIFIER},
+        )
+        identifiers[replaceable_index] = required_identifier
         identifiers = sorted(identifiers)
     if len(identifiers) < equity_count:
         raise ValueError("Source data does not contain enough equity identifiers.")
     return identifiers
+
+
+def _with_synthetic_cvna_rows(recent: pd.DataFrame, periods: pd.DataFrame) -> pd.DataFrame:
+    """Return recent rows with a small CVNA position for the split demo."""
+    if _CVNA_SPLIT_IDENTIFIER in set(recent["identifier"]):
+        return recent
+
+    rows: list[dict[str, object]] = []
+    for period in periods.itertuples(index=False):
+        rows.append(
+            {
+                "from_date": period.from_date,
+                "thru_date": period.thru_date,
+                "identifier": _CVNA_SPLIT_IDENTIFIER,
+                "weight": _CVNA_SYNTHETIC_WEIGHT,
+                "return": _CVNA_SYNTHETIC_RETURN,
+                "name": _CVNA_SPLIT_NAME,
+            }
+        )
+    return pd.concat([recent, pd.DataFrame(rows)], ignore_index=True)
+
+
+def _last_replaceable_identifier_index(
+    identifiers: list[str],
+    *,
+    required_identifiers: set[str],
+) -> int:
+    """Return the last identifier index that can be replaced by a demo fixture."""
+    for index in range(len(identifiers) - 1, -1, -1):
+        if identifiers[index] not in required_identifiers:
+            return index
+    raise ValueError("No replaceable equity identifier is available.")
 
 
 def build_axys_exports(performance: pd.DataFrame) -> dict[str, pd.DataFrame]:
@@ -682,11 +727,69 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         "SETTLE_DATE": settle_date.date(),
                         "SEC": transaction_identifier,
                         "TRAN": transaction_code,
+                        "SEC_TYPE": _security_type_for_transaction(
+                            transaction_identifier
+                        ),
+                        "SRC_DEST_TYPE": (
+                            "$cash" if transaction_code == "by" else "$income"
+                        ),
+                        "SRC_DEST_SYMBOL": (
+                            _CASH_IDENTIFIER if transaction_code == "by" else "$cash"
+                        ),
+                        "SPECIAL_SEC_TYPE": "",
+                        "SPECIAL_SEC_SYMBOL": "",
                         "QTY": quantity,
                         "PRICE": price,
                         "AMOUNT": amount,
                         "COMMISSION": commission,
                     }
+                )
+            if portfolio_code == "ALPHA" and str(period.thru_date.date()) == "2026-01-30":
+                rows.append(
+                    _transaction_row(
+                        transaction_id="ALPHA0203",
+                        portfolio_code=portfolio_code,
+                        transaction_date="2026-01-20",
+                        settle_date="2026-01-20",
+                        security_id=_CASH_IDENTIFIER,
+                        transaction_code="wd",
+                        source_destination_type="$pty",
+                        source_destination_symbol="$cash",
+                        amount=-500.0,
+                    )
+                )
+            if portfolio_code == "BALANCED" and str(period.thru_date.date()) == "2026-01-30":
+                rows.append(
+                    _transaction_row(
+                        transaction_id="BALANCED0203",
+                        portfolio_code=portfolio_code,
+                        transaction_date="2026-01-15",
+                        settle_date="2026-01-15",
+                        security_id="MSFT",
+                        transaction_code="sl",
+                        source_destination_type="$cash",
+                        source_destination_symbol=_CASH_IDENTIFIER,
+                        quantity=10.0,
+                        price=114.0,
+                        amount=1135.05,
+                        commission=4.95,
+                    )
+                )
+            if portfolio_code == "INCOME" and str(period.thru_date.date()) == "2026-01-30":
+                rows.append(
+                    _transaction_row(
+                        transaction_id="INCOME0203",
+                        portfolio_code=portfolio_code,
+                        transaction_date="2026-01-20",
+                        settle_date="2026-01-20",
+                        security_id=_CASH_IDENTIFIER,
+                        transaction_code="dp",
+                        source_destination_type="$cash",
+                        source_destination_symbol="$cash",
+                        special_security_type="exus",
+                        special_security_symbol="custfee",
+                        amount=-50.0,
+                    )
                 )
             if (
                 portfolio_code == "INCOME"
@@ -702,6 +805,13 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         "SETTLE_DATE": pd.Timestamp(_TNOTE2Y_INTEREST_DATE).date(),
                         "SEC": _TNOTE2Y_INTEREST_IDENTIFIER,
                         "TRAN": "in",
+                        "SEC_TYPE": _security_type_for_transaction(
+                            _TNOTE2Y_INTEREST_IDENTIFIER
+                        ),
+                        "SRC_DEST_TYPE": "$income",
+                        "SRC_DEST_SYMBOL": "$cash",
+                        "SPECIAL_SEC_TYPE": "",
+                        "SPECIAL_SEC_SYMBOL": "",
                         "QTY": 0.0,
                         "PRICE": 0.0,
                         "AMOUNT": _TNOTE2Y_PRIOR_INTEREST_AMOUNT,
@@ -709,6 +819,54 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                     }
                 )
     return pd.DataFrame(rows)
+
+
+def _transaction_row(
+    *,
+    transaction_id: str,
+    portfolio_code: str,
+    transaction_date: str,
+    settle_date: str,
+    security_id: str,
+    transaction_code: str,
+    source_destination_type: str,
+    source_destination_symbol: str,
+    quantity: float = 0.0,
+    price: float = 0.0,
+    amount: float = 0.0,
+    commission: float = 0.0,
+    special_security_type: str = "",
+    special_security_symbol: str = "",
+) -> dict[str, object]:
+    """Return one Axys/APX-style demo transaction row."""
+    return {
+        "TRANSACTION_ID": transaction_id,
+        "PORT": portfolio_code,
+        "TRANSACTION_DATE": pd.Timestamp(transaction_date).date(),
+        "SETTLE_DATE": pd.Timestamp(settle_date).date(),
+        "SEC": security_id,
+        "TRAN": transaction_code,
+        "SEC_TYPE": _security_type_for_transaction(security_id),
+        "SRC_DEST_TYPE": source_destination_type,
+        "SRC_DEST_SYMBOL": source_destination_symbol,
+        "SPECIAL_SEC_TYPE": special_security_type,
+        "SPECIAL_SEC_SYMBOL": special_security_symbol,
+        "QTY": quantity,
+        "PRICE": price,
+        "AMOUNT": amount,
+        "COMMISSION": commission,
+    }
+
+
+def _security_type_for_transaction(identifier: str) -> str:
+    """Return a compact Axys/APX-style security type for demo transaction rows."""
+    if identifier == _CASH_IDENTIFIER:
+        return "caus"
+    if identifier == "MBSPOOL":
+        return "mbus"
+    if identifier in {"TBILL13W", "TNOTE2Y", "TNOTE5Y"}:
+        return "fius"
+    return "csus"
 
 
 def _jpm_dividend_amount(performance: pd.DataFrame, dividend_per_share: float) -> float:
@@ -1187,6 +1345,7 @@ def _asset_class_code(asset_class: str) -> str:
     return {
         "Cash": "CASH",
         "Equity": "EQ",
+        "Mortgage-Backed Securities": "MBS",
         "Treasury Bills": "TBILL",
         "Treasury Notes": "TNOTE",
     }.get(asset_class, "OTHER")
@@ -1196,6 +1355,7 @@ def _sector_code(sector: str) -> str:
     return {
         "Cash": "CA",
         "Equity": "EQ",
+        "Mortgage-Backed Securities": "MB",
         "Treasury Bills": "TB",
         "Treasury Notes": "TN",
     }.get(sector, "OT")
@@ -1204,6 +1364,8 @@ def _sector_code(sector: str) -> str:
 def _price_for(identifier: str) -> float:
     if identifier == _CASH_IDENTIFIER:
         return 1.0
+    if identifier == _CVNA_SPLIT_IDENTIFIER:
+        return _CVNA_SPLIT_ADJUSTED_PRICE
     for sleeve_identifier, _, _, _, _, price, _ in _FIXED_INCOME_SLEEVE:
         if identifier == sleeve_identifier:
             return price
@@ -1225,7 +1387,7 @@ def _accrued_for(identifier: str, market_value: float) -> float:
 
 
 def _income_component(identifier: str, security_return: float) -> float:
-    if identifier in {"TBILL13W", "TNOTE2Y", "TNOTE5Y", _CASH_IDENTIFIER}:
+    if identifier in {"MBSPOOL", "TBILL13W", "TNOTE2Y", "TNOTE5Y", _CASH_IDENTIFIER}:
         return min(security_return, max(security_return, 0.0))
     return 0.0
 

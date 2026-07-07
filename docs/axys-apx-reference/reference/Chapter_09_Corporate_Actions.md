@@ -13,6 +13,17 @@ Governing specification: `AXYS_APX_REFERENCE_BLUEPRINT.md`, Version 2.0
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — corporate actions change holdings and cost basis.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — corporate actions can materially affect performance attribution.
 
+## Transaction-Code Boundary
+
+This chapter explains corporate-action evidence and processing implications. It
+should not maintain a separate transaction-code dictionary for `rc`, `pd`,
+split markers, or other corporate-action-related codes. Interpret
+transaction-code semantics through
+[Chapter_05_Transactions.md](Chapter_05_Transactions.md), then use this chapter
+for corporate-action-specific evidence such as split factors, `split.inf`,
+ACA/Reorg workflows, holdings adjustments, cash consequences, and
+cost-basis/principal context.
+
 ## 1. Overview
 
 Corporate actions in Axys and APX can affect security reference data, holdings, prices, transactions, cash, cost basis, realized gain/loss, income, reporting, reconciliation, and performance.
@@ -74,8 +85,8 @@ The following table is a technical checklist, not a claim that Axys or APX uses 
 | Stock split | Share quantity adjustment; possible price/factor handling. | `split.inf` is identified as securities splits file. | ACA/Reorg Utility supports reorg workflow generally; exact split storage Unknown. | Axys High Confidence; APX Unknown for storage |
 | Reverse split | Share quantity adjustment; likely ratio/factor handling. | Likely represented in split data if supported by split conventions, but exact fields Unknown. | Unknown. | Medium Confidence / Unknown |
 | Stock dividend | Share distribution or split-like accounting, depending system setup. | Unknown. | Unknown. | Unknown |
-| Return of capital | Cash/cost-basis transaction. | Exact transaction codes and processing Unknown. | Exact transaction codes and processing Unknown. | Unknown |
-| Principal paydown | Principal reduction; fixed-income/MBS-specific effect. | Transaction research shows principal paydown conversion issues in Axys conversion context; exact corporate-action treatment Unknown. | Unknown. | Medium Confidence for conversion issue; Unknown native behavior |
+| Return of capital | Cash/cost-basis transaction; `rc` and bond-security `pd` are supported by public Axys/APX translation mapping evidence. | Transaction-code evidence supported; native posting mechanics Unknown. | Transaction-code evidence supported; native posting mechanics Unknown. | Medium-High for integration mapping; Unknown native mechanics |
+| Principal paydown | Principal reduction; MBS/ABS/amortizing-security effect; conservative Modified Dietz treatment is principal return, not client external flow. | Transaction research shows principal paydown conversion issues in Axys conversion context; exact corporate-action treatment Unknown. | APX-adjacent mapping evidence supports `pd`, but native mechanics remain Unknown. | Medium-High for integration/conversion evidence; Unknown native behavior |
 | Cash exchange | Cash/security exchange event. | Verified in ACA-for-Axys brief as a simple/mandatory example; exact output Unknown. | Likely ACA workflow candidate; exact public APX example not found. | Verified for Axys ACA coverage; Unknown for output |
 | Stock exchange | Security exchange event. | Verified in ACA-for-Axys brief as a simple/mandatory example; exact output Unknown. | Likely ACA workflow candidate; exact public APX example not found. | Verified for Axys ACA coverage; Unknown for output |
 | Merger | Security reorganization; old/new security mapping; possible cash-in-lieu. | ACA-for-Axys brief covers taxable, non-taxable, combination, and option mergers; exact postings Unknown. | ACA/APX workflow supports reorganization processing generally; exact postings Unknown. | Verified for Axys ACA coverage and APX workflow; Unknown for details |

@@ -63,7 +63,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertLess(float((weights - 1.0).abs().max()), 1e-12)
         self.assertEqual(
             set(performance[performance["sector"].eq("Cash")]["identifier"]),
-            {"CASH_USD", "TBILL13W", "TNOTE2Y", "TNOTE5Y"},
+            {"CASH_USD", "MBSPOOL", "TBILL13W", "TNOTE2Y", "TNOTE5Y"},
         )
         self.assertEqual(
             performance[performance["asset_class"].eq("Equity")]["identifier"].nunique(),

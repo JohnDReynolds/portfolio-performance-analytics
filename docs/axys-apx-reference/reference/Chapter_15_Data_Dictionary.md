@@ -399,8 +399,8 @@ This table is an observed-code catalog only. It is not a complete official Axys/
 | `lo` | Deliver out / transfer out / debit / withdrawal / negative direction depending context. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `dv` | Dividend / income / reinvestment leg. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `in` | Income / interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `rc` | Return of capital. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `pd` | Principal paydown / bond-security return-of-capital case. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `rc` | Return of capital; public translation evidence maps it to portfolio-cash context. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High Confidence for integration mapping |
+| `pd` | Principal paydown / bond-security return-of-capital case; public translation evidence maps it to portfolio-cash context. Treat as principal-return context, not client external flow, when MBS/ABS/amortizing-security paydown evidence is present. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High Confidence for integration mapping |
 | `ai` | Negative interest or margin interest depending context. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `sa` | Sale accrued interest / sell-side accrued interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `pa` | Purchase accrued interest / buy-side accrued interest. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |

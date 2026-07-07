@@ -1062,8 +1062,8 @@ classify Axys/APX transaction semantics safely.
 | 1 | Additional contribution or withdrawal variants | Test-only first, packaged demo only when nonredundant | Cash security, external-party source/destination context, amount sign, Modified Dietz flow-weighting policy. | The packaged demo now includes one ordinary `li` contribution, one contextual `lo` deliver-out, and one `wd` withdrawal. Add more only when the scenario teaches a new review behavior. |
 | 2 | `li` / `lo` external-flow and transfer examples | Test-only first, packaged demo only when realistic | Source/destination type and symbol, security type, amount/quantity signs, or reviewed REP semantics. | Site-variant fixtures and the packaged `li`/`lo` external-flow rows prove the classification patterns. Add transfer examples to the packaged demo only if the business story is realistic and not redundant with withdrawal/contribution. |
 | 3 | Additional `dp` / `wd` variants | Test-only first | Special-security context, sweep/cash symbols, source/destination context, and explicit fee/transfer/external-flow treatment. | Keep proving code-only `dp` and `wd` are unsafe. Packaged demo should stay focused on one fee-like `dp` and one external `wd` until a stronger story is needed. |
-| 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. Keep `ai` and `pd` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
-| 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | Test-only site variants cover explicit performance-income treatments for `rc` and `pd`. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
+| 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond or amortizing security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. `pd` now has a narrow packaged principal-paydown story with MBS/amortizing-security, principal-paydown, and portfolio-cash destination context. Keep `ai` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
+| 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first, packaged demo only with explicit context | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | The packaged demo now includes context-gated `rc` and `pd` rows, while test-only site variants continue to prove local override profiles. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
 | 6 | Real-world split / corporate action evidence | Packaged demo for one coherent story; test-only for broader variants | Actual historical date/security, split ratio, quantity and price treatment, report evidence, and a policy for whether it is explanatory or review-only. | The packaged demo includes a CVNA 5-for-1 split-processing correction in May 2026. Additional user-facing split examples should add a new reviewer lesson; synthetic corporate-action fixtures belong in clearly labeled test-only data. |
 | 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys/APX convention. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
@@ -1150,15 +1150,15 @@ Before adding a reinvestment fixture, require:
 
 #### Phase 8C: Fixed-Income Transaction Boundary Gate
 
-Status: partial test-only coverage. The packaged demo currently supports
-ordinary `in` interest rows and `holdings.accrued` as proved fixed-income
-performance inputs. Test-only site variants now prove explicit YAML
-classification for margin-style `ai` and bond-context `pa`/`sa`, while
-packaged-demo use remains blocked pending a coherent holdings, cash, accrual,
-and performance scenario.
+Status: complete for current packaged fixed-income guardrails. The packaged
+demo supports ordinary `in` interest rows, `holdings.accrued` as proved
+fixed-income performance inputs, paired-trade `pa`/`sa` accrued-interest
+adjuncts, and a narrow `pd` principal-paydown story. Test-only site variants
+still prove explicit YAML classification for margin-style `ai` and local
+`pa`/`sa`/`pd` variants where site evidence differs from the packaged defaults.
 
-Before adding accrued-interest or principal-paydown transaction examples,
-require:
+Before adding any new accrued-interest or principal-paydown transaction
+examples, require:
 
 - source evidence: bond or accrual security type, cash offset, amount sign,
   accrued-interest or principal-paydown context, and local mapping or
@@ -1168,9 +1168,10 @@ require:
   scenario intent;
 - YAML semantics: `ai`, `pa`, and `sa` distinguish income from fee/expense or
   unknown treatment from context, not from code alone;
-- principal boundary: `pd` proves cash movement and principal exposure changes
-  before it is treated as performance income, corporate-action evidence, or
-  review-only evidence;
+- principal boundary: broad `pd` treatment still proves cash movement,
+  principal-paydown context, and principal exposure changes before it is
+  treated as performance income, corporate-action evidence, or review-only
+  evidence;
 - report behavior: workbook rows should make clear whether the transaction is
   a direct formula input, supporting accounting evidence, or a blocked
   classification that needs REP/report context.
@@ -1508,7 +1509,9 @@ The packaged demo audit now pins the proved fixed-income story:
 - the packaged snapshots include positive `TNOTE2Y` `holdings.accrued` values;
 - paired `pa`/`sa` rows appear only as TNOTE5Y accrued-interest adjuncts with
   fixed-income trade context; and
-- `ai` and `pd` do not appear in packaged transaction files.
+- `ai` does not appear in packaged transaction files; and
+- `pd` appears only as an MBS principal-paydown row with portfolio-cash
+  destination context.
 
 This proves the current public fixture without adding new synthetic bond
 accounting behavior.
@@ -1522,7 +1525,8 @@ The transaction boundary helper treats:
 - `in` as safe ordinary interest;
 - `pa`/`sa` as accrued-interest adjuncts when fixed-income context supports
   them;
-- `ai` and `pd` as backlog codes;
+- `ai` as a backlog code;
+- broad/code-only `pd` as a still-gated principal-paydown code;
 - all other codes as outside this fixed-income boundary helper.
 
 The backlog codes remain `unknown` by code alone. They need source context,
@@ -1623,10 +1627,12 @@ external flows, or corporate actions.
 
 Status: complete for the current matrix and helper vocabulary.
 
-`pd` remains aligned with the capital-return gate even though it also belongs
-to the fixed-income backlog. Principal paydown needs bond security type,
+`pd` remains aligned with the capital-return gate even though the packaged demo
+now includes one context-gated MBS principal-paydown example. Broad
+principal paydown still needs bond, MBS, or ABS security type,
 principal-paydown context, cash movement, principal exposure or quantity
-change, and local mapping or REP/report semantics before it can be classified.
+change, and local mapping or REP/report semantics before it can be classified
+from site data.
 
 This keeps "return of capital," "principal paydown," and "corporate action" as
 separate reviewer decisions rather than interchangeable labels.
@@ -1647,9 +1653,10 @@ short-account treatment from the Axys/APX code alone.
 Status: complete for the current validator surface.
 
 The demo matrix validator now reports `Capital-return and short-side backlog
-gates`. The check enforces that `rc`, `pd`, `ss`, and `cs` remain backlog rows
-with no fixture claims until the semantics matrix records enough policy and
-evidence to support classification.
+gates`. The check enforces that `rc` and `pd` are packaged only with explicit
+context, while `ss` and `cs` remain backlog rows with no fixture claims until
+the semantics matrix records enough policy and evidence to support
+classification.
 
 ### Phase 13: Matrix Consolidation And Release Readiness
 
@@ -2680,12 +2687,13 @@ packaged demo could derive the transaction rows, cash movement,
 quantity-driven holding/accrual rows, `secperf.csv`, `portperf.csv`, and report
 comments from one coherent scenario intent.
 
-`ai`, `rc`, `pd`, and `ss`/`cs` remain onboarding override examples rather than
-packaged defaults. Their current value is to prove tested YAML shapes for sites
-that can supply local evidence. Cost basis, principal, factor, amortization,
-margin, and short-account details remain best-efforts demo-construction context
-unless a future return formula explicitly uses those fields. The Modified Dietz
-product boundary remains beginning value, ending value, dated external flows,
+`ai` and `ss`/`cs` remain onboarding override examples rather than packaged
+defaults. `rc` and `pd` now have narrow context-gated packaged stories, while
+their broader local variants still prove tested YAML shapes for sites that can
+supply local evidence. Cost basis, principal, factor, amortization, margin, and
+short-account details remain best-efforts demo-construction context unless a
+future return formula explicitly uses those fields. The Modified Dietz product
+boundary remains beginning value, ending value, dated external flows,
 and configured income/fee performance rows.
 
 This phase was documentation-only. It did not require report regeneration or

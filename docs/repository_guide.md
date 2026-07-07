@@ -58,7 +58,7 @@ source checkout with `./.venv/bin/python -m <module>`.
 
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
-| `scripts/check_release_candidate.py` | Runs the maintained release-candidate demo, setup, packaging, and health-check sequence. | `./.venv/bin/python scripts/check_release_candidate.py --build` |
+| `scripts/check_release_candidate.py` | Runs the maintained release-candidate demo, setup, and health-check sequence. | `./.venv/bin/python scripts/check_release_candidate.py` |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
 | `scripts/check_performance_comparison_demo_health.py` | Runs packaged performance-comparison demo guardrails. | `./.venv/bin/python scripts/check_performance_comparison_demo_health.py` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
@@ -127,15 +127,58 @@ For the maintained XLSX workbook smoke paths and expected output, use
 For the validation fixture matrix, use
 [`tests/data/axys/README.md`](../tests/data/axys/README.md).
 
+### Packaged Axys/APX Performance Comparison Maintenance
+
+Treat the packaged Axys/APX performance-comparison demo as a small accounting
+lab, not as hand-edited CSV examples. The durable source-of-truth files are:
+
+| File | Owns |
+| --- | --- |
+| `scripts/operational_demo_data/derive_operational_demo_data.py` | Base portfolios, selected securities, baseline holdings, baseline transactions, and synthetic Axys/APX-style performance rows. |
+| `scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
+| `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and cost-only review examples. |
+| `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
+| `ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
+| `ppar/setup_templates/axysapx_performance_comparison/README.md` | User-facing demo story and setup guidance. |
+| `ppar.performance_comparison.cli.validate_demo_matrix` | Test-only scenario coverage guardrail. It does not define the packaged demo story. |
+
+When changing packaged demo behavior, edit the generator/scenario source first,
+then run:
+
+```bash
+./.venv/bin/python scripts/operational_demo_data/derive_operational_demo_data.py
+./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py --write
+./.venv/bin/python scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py
+./.venv/bin/python -m ppar.performance_comparison.cli.validate_demo_matrix
+```
+
+Use `--write` only when you intend to rewrite tracked packaged CSV assets.
+Otherwise, run the rebuild script without `--write` to audit drift.
+
+Current packaged scenario inventory:
+
+| Scenario | Packaged story |
+| --- | --- |
+| `AAPL` price and buy rows | Equity valuation and buy-transaction amount examples. |
+| `MSFT` sale rows | Sale amount, quantity, price, and commission evidence. |
+| `CASH_USD` `wd`, `li`, and `lo` rows | Context-gated external cash-flow examples. |
+| `CASH_USD` `dp` row | Fee-like expense classified from special-security context. |
+| `JPM` `dv` and `rc` rows | Dividend income plus context-gated return of capital. |
+| `CVNA` split row | Central split-factor context that explains corrected quantity and related market value. |
+| `TNOTE2Y` `in` row | Ordinary interest income plus related holding/accrual evidence. |
+| `MBSPOOL` `pd` row | MBS principal paydown with portfolio-cash destination evidence. |
+| `TNOTE5Y` `by`/`pa` and `sl`/`sa` rows | Paired fixed-income trade and accrued-interest settlement examples. |
+| `TNOTE5Y` cost-only row | Review evidence that should not become a Modified Dietz cause. |
+
 ## Common Workflows
 
 ### Run Release-Candidate Checks
 
 Use the release-candidate script instead of pasting the long demo refresh and
-health-check command list into a shell:
+health-check command list into a shell. The everyday check is:
 
 ```bash
-./.venv/bin/python scripts/check_release_candidate.py --build
+./.venv/bin/python scripts/check_release_candidate.py
 ```
 
 The default path is intentionally deterministic: it audits packaged demo data,
@@ -151,6 +194,8 @@ Use `--verbose` when you want the full underlying command output.
 Use these opt-in switches only when the intent is explicit:
 
 ```bash
+./.venv/bin/python scripts/check_release_candidate.py --build
+
 ./.venv/bin/python scripts/check_release_candidate.py \
   --include-generic-data-generation
 
@@ -158,10 +203,10 @@ Use these opt-in switches only when the intent is explicit:
   --write-packaged-assets
 ```
 
-`--include-generic-data-generation` runs the Yahoo-dependent generic analytics
-candidate-data generator. `--write-packaged-assets` lets the operational
-performance-comparison rebuild script update tracked packaged CSV assets after
-intentional demo-data edits.
+`--build` adds a package-build check. `--include-generic-data-generation` runs
+the Yahoo-dependent generic analytics candidate-data generator.
+`--write-packaged-assets` lets the operational performance-comparison rebuild
+script update tracked packaged CSV assets after intentional demo-data edits.
 
 ### Run Setup-Generated Smoke Scripts
 

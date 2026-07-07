@@ -13,6 +13,15 @@
 - [Chapter_06_Holdings.md](Chapter_06_Holdings.md) — cash and holdings are closely linked in portfolio accounting.
 - [Chapter_10_Performance.md](Chapter_10_Performance.md) — cash and flow treatment matter for performance calculations.
 
+## Transaction-Code Boundary
+
+This chapter explains cash effects and cash-evidence surfaces. It should not
+maintain a separate transaction-code dictionary for codes such as `li`, `lo`,
+`dp`, `wd`, `rc`, or `pd`. Interpret transaction-code semantics through
+[Chapter_05_Transactions.md](Chapter_05_Transactions.md), then use this chapter
+for cash-specific implications such as source/destination fields, cash-like
+symbols, sweep behavior, and external-flow classification evidence.
+
 ## 1. Overview
 
 Cash in Axys/APX documentation should be treated as a portfolio-accounting topic with several distinct layers:
@@ -155,8 +164,8 @@ The following table catalogs observed codes from supplied research. These are no
 | `dv` | Dividend and reinvested-dividend leg. | Income/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 | `in` | Income, interest, dividends on cash securities. | Income/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 | `ai` | Negative interest; margin interest. | Accrued/margin-interest cash effect. | Observed | Observed in transaction research | High Confidence as observed |
-| `rc` | Return of capital. | Cash/security cash-impacting. | Observed | Observed in transaction research | High Confidence as observed |
-| `pd` | Return of capital for bond security. | Cash/security cash-impacting. | Observed | Observed in transaction research | High Confidence as observed |
+| `rc` | Return of capital. | Maps to portfolio cash context (`$pty` / `$cash`) in ByAllAccounts Axys/APX translation evidence. | Observed | Observed in transaction research | Confirmed in integration mapping evidence |
+| `pd` | Return of capital for bond security / principal paydown. | Maps to `$pty` / `$cash` portfolio-cash context in ByAllAccounts Axys/APX translation evidence; classify only with MBS/ABS/amortizing-security paydown context. | Observed | Observed in transaction research | Confirmed in integration mapping evidence |
 | `sa` | Sale accrued interest / sell-side accrued interest. | Income/cash-related fixed-income trade adjunct. | Observed | Observed in transaction research | High Confidence as observed |
 | `cs` | Cover short / negative closure leg. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
 | `ss` | Short sale. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |

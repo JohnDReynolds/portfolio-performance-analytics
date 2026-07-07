@@ -249,9 +249,13 @@ transaction_rules:
   # Starter transaction coverage:
   #   by, sl, dv, and in are the common first-pass rules. dp, li, lo, and wd
   #   require the context shown below before PPAR treats them as fees,
-  #   transfers, or external flows. pa and sa require fixed-income context.
-  #   Keep ";" as a defensive corporate-action/journal guardrail unless you
-  #   have a real event and reviewed local policy.
+  #   transfers, or external flows. pa and sa require fixed-income context. rc
+  #   requires explicit return-of-capital context. pd requires amortizing
+  #   fixed-income/MBS/ABS principal-paydown context and is modeled as a
+  #   security-level principal flow, not an investor external flow.
+  #   Keep ";" as a defensive corporate-action/journal guardrail.
+  #   Override it only when a real event and reviewed local policy support a
+  #   more specific treatment.
   by:
     transaction_category: buy
     cash_flow_sign: negative
@@ -278,6 +282,30 @@ transaction_rules:
     transaction_category: income
     cash_flow_sign: positive
     performance_flow_sign: performance
+  rc:
+    # Return of capital is included only with explicit equity/security context
+    # and a return-of-capital marker. Do not promote code-only rc rows; native
+    # cost-basis handling remains best-efforts context outside Modified Dietz.
+    - when:
+        security_type: csus
+        special_security_type: return_of_capital
+      transaction_category: income
+      cash_flow_sign: positive
+      performance_flow_sign: performance
+  pd:
+    # Principal paydown is included only with amortizing security context and
+    # portfolio cash destination evidence. The existing security-level
+    # reconstruction engine treats this as a sell-like principal flow because
+    # principal leaves the security and cash returns to the portfolio. Do not
+    # promote code-only pd rows; quantity may be zero or unchanged.
+    - when:
+        security_type: mbus
+        source_destination_type: $pty
+        source_destination_symbol: $cash
+        special_security_type: principal_paydown
+      transaction_category: sell
+      cash_flow_sign: positive
+      performance_flow_sign: performance
   pa:
     # Purchase accrued interest is a fixed-income trade adjunct, not an
     # investor external flow. Use this only when the transaction row has

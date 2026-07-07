@@ -142,20 +142,24 @@ Data used:
   a May 2026 5-for-1 split.
 - YAML: includes transaction semantics; standard field roles supply the common
   performance-input, input-component, and context treatment.
-- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `pa`, `sa`,
-  `dp`, `li`, `lo`, `wd`, and `;`) to normalized categories such as `buy`,
-  `sell`, `income`, `fee_expense`, `external_flow`, and `corporate_action`.
+- YAML: maps source transaction codes (`by`, `sl`, `dv`, `in`, `pa`, `pd`,
+  `sa`, `rc`, `dp`, `li`, `lo`, `wd`, and `;`) to normalized categories such
+  as `buy`, `sell`, `income`, `fee_expense`, `external_flow`, and
+  `corporate_action`.
   Reviewer-facing explanations preserve the source code rather than uppercasing
   or replacing it with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
-  `by`, `sl`, `dv`, `in`, `pa`, `sa`, `dp`, `li`, `lo`, and `wd`. The packaged
-  `pa` and `sa` rows appear only as fixed-income accrued-interest adjuncts
-  paired with TNOTE5Y buy/sell rows. The packaged `li` row is a plain external
-  cash contribution with external-party context, and the packaged `lo` row is an
-  external cash deliver-out with the same context standard. More ambiguous
-  `li`/`lo` transfer cases and synthetic corporate-action rows live in test-only
-  fixtures until a realistic packaged story and evidence trail justify adding
-  them here.
+  `by`, `sl`, `dv`, `in`, `pa`, `pd`, `sa`, `rc`, `dp`, `li`, `lo`, and `wd`. The
+  packaged `pa` and `sa` rows appear only as fixed-income accrued-interest
+  adjuncts paired with TNOTE5Y buy/sell rows. The packaged `rc` row appears only
+  as an equity/security return-of-capital row with explicit return-of-capital
+  context and portfolio-cash destination context. The packaged `pd` row appears
+  only as an MBS principal-paydown row with portfolio-cash destination context.
+  The packaged `li` row is a plain external cash contribution with
+  external-party context, and the packaged `lo` row is an external cash
+  deliver-out with the same context standard. More ambiguous `li`/`lo` transfer
+  cases and synthetic corporate-action rows live in test-only fixtures until a
+  realistic packaged story and evidence trail justify adding them here.
 - Packaged transaction rows omit `TRANSACTION_ID`. ppar supports stable
   transaction IDs when a local extract provides them, but the packaged Axys/APX
   demo uses the more realistic conservative no-ID path by default. Internal
@@ -165,17 +169,19 @@ Data used:
 
   | Home | Transaction families |
   | --- | --- |
-  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
+  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, equity/security return-of-capital `rc`, MBS principal-paydown `pd`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
   | Packaged split-factor rows | CVNA `splits.csv` row in Snapshot B, used as context evidence for central split processing. |
   | YAML rules reserved for runtime guards | `;` locally materialized corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
   | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, `pa`/`sa` local-override examples, and `dv` + `by` reinvestment guards. |
-  | Evidence-blocked backlog | `ai`, `pd`, `ss`, `cs`, `rc`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
+  | Evidence-blocked backlog | `ai`, `ss`, `cs`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
-  interest uses an `in` transaction row, accrued-interest restatement uses
-  `holdings.accrued`, and TNOTE5Y `pa`/`sa` rows are packaged only with paired
-  fixed-income trade context. The packaged demo does not infer accrued-interest,
-  margin-interest, or principal-paydown treatment from code alone.
+  interest uses an `in` transaction row, MBSPOOL `pd` principal-paydown uses
+  MBS plus portfolio-cash destination context, accrued-interest
+  restatement uses `holdings.accrued`, and TNOTE5Y `pa`/`sa` rows are packaged
+  only with paired fixed-income trade context. The packaged demo does not infer
+  accrued-interest, margin-interest, or principal-paydown treatment from code
+  alone.
 - Real site extracts should keep ambiguous-flow enforcement enabled. IMEX is
   sufficient only when transaction rows include source/destination and
   special-security context for `dp`, `li`, `lo`, and `wd`; otherwise use a REP,
@@ -218,6 +224,7 @@ Expected workbook:
   - a fully explained BALANCED period with a changed MSFT `sl` transaction
     amount and related quantity, price, and commission support rows;
   - a fully explained BALANCED period with a JPM `dv` dividend amount change;
+  - a context-gated BALANCED period with a JPM `rc` return-of-capital row;
   - a fully explained BALANCED period with an inserted `li` row on `CASH_USD`
     for an external cash contribution;
   - a fully explained BALANCED period where Snapshot A missed the CVNA
@@ -231,8 +238,9 @@ Expected workbook:
     reported portfolio and MSFT security return differences, leaving an
     intentional residual for reviewer triage;
   - a fully explained INCOME period with the same AAPL price correction plus
-    TNOTE2Y `in` interest, market-value and accrued-interest changes, and
-    related TNOTE2Y quantity evidence;
+    TNOTE2Y `in` interest, MBSPOOL `pd` principal-paydown cash/principal
+    movement, market-value and accrued-interest changes, and related TNOTE2Y
+    quantity evidence;
   - a partly explained INCOME period where paired TNOTE5Y `by`/`pa` and
     `sl`/`sa` fixed-income trade/accrued-interest settlement rows affect the
     cash/performance inputs, while separate quantity-driven holding value and
@@ -336,10 +344,11 @@ Current public YAML targets are intentionally narrow:
   Ambiguous Axys/APX-style `li`, `lo`, `dp`, and `wd` examples require matching
   transaction-context fields before they are treated as external flows or
   fee/expense rows. Fixed-income `pa`/`sa` accrued-interest adjuncts require
-  fixed-income context and paired-trade support in the packaged demo. Remaining
-  fixed-income backlog codes such as `ai` and `pd` require test-only fixture
-  proof plus local mapping or REP/report evidence before they should become
-  user-facing demo transactions.
+  fixed-income context and paired-trade support in the packaged demo. The
+  packaged `pd` row requires amortizing MBS context, principal-paydown context,
+  and portfolio-cash destination evidence. Remaining fixed-income backlog codes
+  such as `ai` require test-only fixture proof plus local mapping or REP/report
+  evidence before they should become user-facing demo transactions.
 - `splits`: optional security-level split-factor evidence. The packaged CVNA
   row is intentionally not a transaction. It supports the review story that
   Snapshot B has central split-factor evidence and corrected holdings quantity,

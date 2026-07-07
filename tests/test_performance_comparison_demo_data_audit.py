@@ -77,6 +77,8 @@ _PACKAGED_DEMO_TRANSACTION_CODES = {
     "li",
     "lo",
     "pa",
+    "pd",
+    "rc",
     "sa",
     "wd",
 }
@@ -273,14 +275,16 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "Current transaction coverage by home",
             "Packaged demo rows",
             "`by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`",
+            "equity/security return-of-capital `rc`",
+            "MBS principal-paydown `pd`",
             "external-cash `lo`, and external-cash `wd`",
             "YAML rules reserved for runtime guards",
             "Test-only fixtures",
             "`dv` + `by` reinvestment guards",
             "Evidence-blocked backlog",
-            "`ai`, `pd`, `ss`, `cs`, `rc`",
+            "`ai`, `ss`, `cs`",
             "ordinary TNOTE2Y\n  interest uses an `in` transaction row",
-            "TNOTE5Y `pa`/`sa` rows are packaged only with paired",
+            "TNOTE5Y `pa`/`sa` rows are packaged",
         ]:
             self.assertIn(expected_text, text)
 
@@ -296,9 +300,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "inserted `li` row on `CASH_USD`",
             "inserted `lo` row on `CASH_USD`",
             "JPM `dv` dividend amount",
+            "JPM `rc` return-of-capital",
             "fee-like `dp` transaction",
             "classified from special-security context",
             "TNOTE2Y `in` interest",
+            "MBSPOOL `pd` principal-paydown",
             "paired TNOTE5Y `by`/`pa` and",
         ]:
             self.assertIn(expected_text, text)
@@ -575,11 +581,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 )
                 observed_codes = set(transactions["TRAN"].astype(str))
 
-                self.assertTrue(
-                    observed_codes.isdisjoint(FIXED_INCOME_BACKLOG_TRANSACTION_CODES)
+                disallowed_backlog_codes = (
+                    FIXED_INCOME_BACKLOG_TRANSACTION_CODES - {"pd"}
                 )
+                self.assertTrue(observed_codes.isdisjoint(disallowed_backlog_codes))
                 if snapshot_key == "b":
                     self.assertIn("pa", observed_codes)
+                    self.assertIn("pd", observed_codes)
                     self.assertIn("sa", observed_codes)
 
                 fixed_income_interest = transactions.loc[
@@ -780,6 +788,54 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             ),
         )
 
+    def test_packaged_demo_rc_row_explains_return_of_capital_cash_effect(self) -> None:
+        """Return-of-capital row has explicit reviewer-facing cash wording."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        causes = _workbook_underlying_causes_table(findings)
+        rc_causes = causes.filter(
+            (pl.col("dataset") == pc_cols.TRANSACTIONS)
+            & (pl.col("source_column") == pc_cols.AMOUNT)
+            & (pl.col("security_id") == "JPM")
+            & pl.col("review_guidance").str.starts_with("rc:")
+        )
+
+        self.assertEqual(rc_causes.height, 1)
+        self.assertEqual(
+            rc_causes["review_guidance"][0],
+            (
+                "rc: Caused cash-balance ending holdings.market_value "
+                "to increase by 240.00."
+            ),
+        )
+
+    def test_packaged_demo_pd_row_explains_principal_paydown_cash_effect(self) -> None:
+        """Principal-paydown row has explicit reviewer-facing cash wording."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+
+        causes = _workbook_underlying_causes_table(findings)
+        pd_causes = causes.filter(
+            (pl.col("dataset") == pc_cols.TRANSACTIONS)
+            & (pl.col("source_column") == pc_cols.AMOUNT)
+            & (pl.col("security_id") == "MBSPOOL")
+            & pl.col("review_guidance").str.starts_with("pd:")
+        )
+
+        self.assertEqual(pd_causes.height, 1)
+        self.assertEqual(
+            pd_causes["review_guidance"][0],
+            (
+                "pd: Caused cash-balance ending holdings.market_value "
+                "to increase by 320.00."
+            ),
+        )
+
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
         """Packaged reports preserve intentional partial and unresolved periods."""
         portfolio_findings = compare_snapshots(_PACKAGED_COMPARISON_PATH)
@@ -861,7 +917,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["snapshot_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["snapshot_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 12)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 14)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_scenarios_by_type"],
             {
@@ -872,12 +928,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "li": 1,
                 "lo": 1,
                 "pa": 1,
+                "pd": 1,
+                "rc": 1,
                 "sa": 1,
                 "sl": 2,
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 16)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 19)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
@@ -888,6 +946,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "li": 1,
                 "lo": 1,
                 "pa": 1,
+                "pd": 2,
+                "rc": 1,
                 "sa": 1,
                 "sl": 4,
                 "wd": 1,
@@ -972,7 +1032,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 16)
+        self.assertEqual(len(adjustments), 19)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1003,11 +1063,32 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             deltas={"QTY": 117.07, "MKT_VAL": 117.07, "COST": 117.07},
         )
         self._assert_adjustment(
+            by_scenario["BALANCED0503 rc transaction changes cash balance."],
+            portfolio="BALANCED",
+            security="CASH_USD",
+            holding_date="2026-04-30",
+            deltas={"QTY": 240.0, "MKT_VAL": 240.0, "COST": 240.0},
+        )
+        self._assert_adjustment(
             by_scenario["INCOME0603 in transaction changes cash balance."],
             portfolio="INCOME",
             security="CASH_USD",
             holding_date="2026-05-29",
             deltas={"QTY": 80.0, "MKT_VAL": 80.0, "COST": 80.0},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0604 pd transaction changes ending holding."],
+            portfolio="INCOME",
+            security="MBSPOOL",
+            holding_date="2026-05-29",
+            deltas={"MKT_VAL": -320.0, "COST": -320.0},
+        )
+        self._assert_adjustment(
+            by_scenario["INCOME0604 pd transaction changes cash balance."],
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-05-29",
+            deltas={"QTY": 320.0, "MKT_VAL": 320.0, "COST": 320.0},
         )
         self._assert_adjustment(
             by_scenario["INCOME0303 by transaction changes ending holding."],
@@ -1080,7 +1161,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             portfolio="BALANCED",
             security="MSFT",
             holding_date="2026-01-30",
-            deltas={"QTY": -2.0, "MKT_VAL": -228.0, "COST": -228.0000041536562},
+            deltas={"QTY": -2.0, "MKT_VAL": -228.0, "COST": -227.9999989303458},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0203 sl transaction changes cash balance."],

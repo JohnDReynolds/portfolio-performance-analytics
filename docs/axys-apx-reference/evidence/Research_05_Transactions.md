@@ -9,10 +9,18 @@
 
 ## How to Read This Research File
 
+Use this file as the transaction evidence archive and research provenance. The
+canonical reader-facing transaction reference is
+[`../reference/Chapter_05_Transactions.md`](../reference/Chapter_05_Transactions.md).
+The implementation-facing transaction contract is
+[`../contracts/transaction_semantics_matrix.yaml`](../contracts/transaction_semantics_matrix.yaml),
+with the companion narrative in
+[`../contracts/transaction_semantics_matrix.md`](../contracts/transaction_semantics_matrix.md).
+
 Use Sections 1 through 15 as the current synthesized transaction research. They
-contain the reader-facing executive summary, evidence rules, transaction model,
-observed code matrix, field dictionary, audit rules, contradictions, unknowns,
-and conclusions.
+contain the executive summary, evidence rules, transaction model, observed code
+matrix, field dictionary, audit rules, contradictions, unknowns, and
+conclusions that feed Chapter 05 and the transaction contract.
 
 Use Appendices A through C as consolidation and drafting metadata. Use
 Appendices D and E as provenance for independent research passes; they preserve
@@ -25,6 +33,27 @@ body, prefer merging that explanation into Sections 1 through 15 and leaving the
 appendix as source provenance. Do not treat appendix wording as a competing
 normative statement when the synthesized sections already state the same point
 with confidence labels.
+
+### Current Canonical Pointers
+
+Use these pointers when updating transaction semantics so the documentation does
+not drift into parallel code dictionaries:
+
+- Reader-facing code meanings, confidence labels, and open questions belong in
+  `Chapter_05_Transactions.md`.
+- Machine-readable demo, validation, and test behavior belongs in
+  `transaction_semantics_matrix.yaml`.
+- This research file should preserve source evidence, research history, and
+  reasoning that is too detailed for the chapter.
+- Cash, holdings, and corporate-action chapters should describe their local
+  implications and link back to Chapter 05 for transaction-code semantics.
+- New transaction-code evidence should first be added here as provenance, then
+  summarized in Chapter 05, and only then promoted into the YAML contract when
+  ppar has a concrete behavior, demo, validation, or test implication.
+- Current `pa`/`sa`, `rc`/`pd`, short-side, and split-factor conclusions remain
+  intentionally context-gated. Avoid converting appendices or third-party
+  integration examples into code-only behavior unless a later source proves the
+  native Axys/APX treatment.
 
 ---
 
@@ -1221,8 +1250,8 @@ Rows should be promoted to Verified only when supported by official vendor docum
 | `lo` | Deliver out / transfer out / debit / withdrawal / payment / ATM negative / direct debit | Observed | Observed | ByAllAccounts, Morningstar | Medium | Meaning may depend on sign/configuration. |
 | `dv` | Dividend / income / reinvestment leg | Unknown | Observed | ByAllAccounts | Medium | Often paired with reinvestment. |
 | `in` | Income / interest | Unknown | Observed | ByAllAccounts | Medium | Added in deep mining/evidence hunt. |
-| `rc` | Return of capital | Unknown | Observed | ByAllAccounts | Medium | Requires vendor confirmation. |
-| `pd` | Principal paydown / bond-security return-of-capital case | Unknown | Observed | ByAllAccounts | Medium | Bond-related; conversion evidence flags reconciliation complications. |
+| `rc` | Return of capital | Observed | Observed | ByAllAccounts | Medium-High | Confirmed in integration mapping evidence with portfolio-cash destination context; native cost/performance treatment still needs site proof. |
+| `pd` | Principal paydown / bond-security return-of-capital case | Observed | Observed | ByAllAccounts | Medium-High | Confirmed in bond-security integration mapping evidence; conversion evidence flags zero-quantity and principal-balance complications. |
 | `ai` | Negative interest or margin interest | Unknown | Observed | ByAllAccounts | Medium | Requires context; do not describe as generic accrued interest. |
 | `sa` | Sale accrued interest / sell-side accrued interest | Unknown | Observed | ByAllAccounts | Medium | Integration-level evidence. |
 | `pa` | Purchase accrued interest / buy-side accrued interest | Unknown | Observed | ByAllAccounts | Medium | Integration-level evidence. |
@@ -1266,7 +1295,7 @@ Rows should be promoted to Verified only when supported by official vendor docum
 | Point of sale positive/negative | `li` / `lo` | Direction depends on sign. | Medium |
 | Reinvestment | `dv` and `by` pair | Source shows two-line APX translation. | Medium |
 | Repeat payment | `lo` | Outflow-like. | Medium |
-| Return of capital | `rc`; bond security maps to `pd` | Bond-specific behavior requires verification. | Medium |
+| Return of capital | `rc`; bond security maps to `pd` | Confirmed in public translation mapping evidence; native performance/cost treatment requires verification. | Medium-High |
 | Sell | `sl` | Normal sell. | Medium |
 | Sell cash security | `wd` | Cash-security special case. | Medium |
 | Short | `ss` | Short sale. | Medium |
@@ -3047,8 +3076,8 @@ The ByAllAccounts APX default translation table provides the strongest public co
 | `dv` | Dividend; dividend-paying security income; reinvested dividend; reinvestment paired leg. | Medium | Income/reinvestment context. |
 | `in` | Cash-security dividend/income; interest positive. | Medium | Integration translation table. |
 | `ai` | Interest negative; margin interest. | Medium | Narrower than generic accrued interest; context-dependent financing/income adjustment. |
-| `rc` | Return of capital. | Medium | Integration translation table. |
-| `pd` | Bond-security return-of-capital/principal paydown. | Medium | Bond-related special case; conversion evidence also flags principal-paydown reconciliation complications. |
+| `rc` | Return of capital. | Medium-High | Integration translation table with portfolio-cash destination context. |
+| `pd` | Bond-security return-of-capital/principal paydown. | Medium-High | Bond-related integration mapping; conversion evidence also flags principal-paydown reconciliation complications and zero-quantity rows. |
 | `sl` | Sell; positive closure. | Medium | Integration translation table. |
 | `wd` | Sell cash security. | Medium | Cash-security special case. |
 | `ss` | Short. | Medium | Integration translation table. |
@@ -3489,7 +3518,7 @@ code manuals, sanitized native transaction reports, or APX schema references.
 | Code or marker | Strengthened interpretation | Practical caution |
 |---|---|---|
 | `rc` | Return of capital maps to Axys/APX transaction type `rc` in ByAllAccounts default translation tables, with source/destination type `$pty` and source/destination symbol `$cash`. | Public evidence does not verify native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone without site policy/report evidence. |
-| `pd` | Bond-security return-of-capital/principal-paydown activity maps to `pd`, also with `$pty`/`$cash`; Morningstar conversion evidence separately discusses Advent Axys principal paydown transactions. | Strongest candidate for future packaged-demo promotion, but only with bond context, cash movement, principal/holding evidence, and performance-report treatment. |
+| `pd` | Bond-security return-of-capital/principal-paydown activity maps to `pd`, also with `$pty`/`$cash`; Morningstar conversion evidence separately discusses Advent Axys principal paydown transactions. | Packaged-demo use is now limited to one MBS/amortizing-security example with cash movement, principal/holding evidence, and performance-report treatment. Code-only treatment remains unsupported. |
 | `ss` | Sell-short / short-sale activity maps to `ss` in public integration evidence. | Needs short security type, cash/margin/short-account symbols, and amount/quantity sign conventions. Packaged-demo use still needs a coherent short-account scenario. |
 | `cs` | Buy-cover-short / cover-short activity maps to `cs` in public integration evidence. | Keep economic lowercase `cs` treatment separate from uppercase reversal/delete/cancellation patterns in integration tools. |
 | `;` | Journal, Other, and Split can map to `;`; WealthTechs examples show a standalone split comment line using `;`. | Treat as marker/comment/corporate-action evidence unless local mapping proves a specific economic role. |
@@ -3510,12 +3539,12 @@ Research synthesis:
 
 | Question | Current answer | Confidence |
 |---|---|---:|
-| Is `pd` a principal-paydown or bond capital-return code? | Yes, in public integration/conversion evidence. | Medium |
-| Is `pd` distinct from `rc`? | Yes: generic return of capital maps to `rc`; bond-security return of capital maps to `pd`. | Medium |
-| Does `pd` produce cash? | Yes in the integration mapping (`$pty`/`$cash`) and economic interpretation. | Medium |
+| Is `pd` a principal-paydown or bond capital-return code? | Yes, in public integration/conversion evidence. | Medium-High |
+| Is `pd` distinct from `rc`? | Yes: generic return of capital maps to `rc`; bond-security return of capital maps to `pd`. | Medium-High |
+| Does `pd` produce cash? | Yes in the integration mapping (`$pty`/`$cash`) and economic interpretation. | Medium-High |
 | Does `pd` reduce quantity? | Public Axys conversion evidence says exported paydown rows may have zero share quantity; principal balance rather than share count is the key field. | Medium |
-| Is `pd` ordinary interest income? | No evidence supports treating it as coupon interest; it is principal/capital return. | Medium |
-| Is `pd` a client external flow? | No; it is a security-level principal event unless local policy/reporting says otherwise. | Medium |
+| Is `pd` ordinary interest income? | No evidence supports treating it as coupon interest; it is principal/capital return. | Medium-High |
+| Is `pd` a client external flow? | No; it is a security-level principal event unless local policy/reporting says otherwise. | Medium-High |
 | Does `pd` affect reported performance? | Economically it should be reflected in total-return/reconciliation mechanics, but exact Advent formula and report treatment remain unverified. | Unknown / Medium concept |
 
 Safe packaged-demo promotion would require a coherent fixed-income scenario:
@@ -3534,9 +3563,9 @@ Research synthesis:
 
 | Question | Current answer | Confidence |
 |---|---|---:|
-| Is `rc` documented as return of capital? | Yes in public Axys/APX integration mapping evidence. | Medium |
-| Is it mapped to cash? | Yes, with `$pty` and `$cash` in the integration mapping. | Medium |
-| Is it ordinary dividend or interest income? | No; it is separated from dividend/interest mappings that use income-oriented targets. | Medium |
+| Is `rc` documented as return of capital? | Yes in public Axys/APX integration mapping evidence. | Medium-High |
+| Is it mapped to cash? | Yes, with `$pty` and `$cash` in the integration mapping. | Medium-High |
+| Is it ordinary dividend or interest income? | No; it is separated from dividend/interest mappings that use income-oriented targets. | Medium-High |
 | Does it reduce cost basis? | General tax/accounting interpretation says return of capital reduces basis, but Advent-native cost-basis mechanics are not public-source verified. | Medium concept / Unknown implementation |
 | Is it included in performance? | Public sources do not verify exact Axys/APX performance-report treatment. | Unknown |
 
@@ -3585,3 +3614,124 @@ row-like import/comment examples, but did not find public sanitized examples of:
 These missing examples are the main reason the packaged demo should continue to
 avoid broad promotion of `rc`, `pd`, `ss`, and `cs` until each candidate has a
 coherent source-data and performance-report story.
+
+### E.22 `rc` / `pd` Transaction Research Incorporated 2026-07-07
+
+Source: temporary `temp_Axys_APX_rc_pd_transaction_research.md` supplied on
+2026-07-07 and merged into this evidence archive.
+
+This research pass focused specifically on return-of-capital and principal
+paydown semantics for Axys/APX transaction codes `rc` and `pd`. It strengthens
+the existing Section E.21 conclusions for those two codes.
+
+#### E.22.1 Confirmed Mapping Evidence
+
+The strongest public evidence is the ByAllAccounts Custodial Integrator
+documentation for Axys/APX, which maps custodian transaction activity into
+native Axys/APX-style transaction codes.
+
+| Code | Mapping evidence | Cash context | Confidence |
+|---|---|---|---:|
+| `rc` | Return of Capital maps to `rc`. | Source/destination context maps to portfolio cash: `$pty` / `$cash`. | Confirmed in integration mapping evidence |
+| `pd` | Bond-security Return of Capital maps to `pd`. | Public mapping evidence again indicates portfolio-cash destination context. | Confirmed in integration mapping evidence |
+
+This is stronger than a code appearing in a sample list: it is transaction
+translation evidence. It is still not the same as an official complete native
+Axys/APX transaction-code manual or a native performance-report methodology
+specification.
+
+#### E.22.2 Principal Paydown Conversion Evidence
+
+The Morningstar Axys conversion guide remains important for `pd` because it
+documents methodology differences around principal paydowns:
+
+- Axys adjusts original principal amount.
+- Principal paydowns decrease outstanding principal balance.
+- Some exported paydown transaction types may have zero share quantity.
+- Converted performance can differ when the target system lacks equivalent
+  paydown processing.
+
+The practical implication is that quantity alone is not enough to audit a
+principal paydown. A good `pd` evidence package should preserve principal,
+factor, cash, holding, and performance-report context where available.
+
+#### E.22.3 Performance Interpretation
+
+For Modified Dietz performance-comparison work, both `rc` and `pd` should be
+treated as security-level issuer/principal events unless local evidence proves
+otherwise:
+
+| Code | Modified Dietz interpretation | Cost/principal caveat |
+|---|---|---|
+| `rc` | Return of capital is not an investor contribution or withdrawal. It may be configured as security-level capital-return/performance income or supporting corporate-action evidence. | Likely reduces tax basis, but native Axys/APX cost-basis mechanics were not verified in public evidence. |
+| `pd` | Principal paydown is not coupon income and not a client external flow. It is a return of invested principal, normally increasing cash and reducing outstanding principal. | Principal balance, factor, amortization, and cost treatment are best-efforts context unless site evidence supplies them. |
+
+Both codes therefore remain **policy-gated** for packaged-demo promotion. The
+evidence supports tested site variants and client onboarding overrides today.
+Promotion into the default packaged Axys/APX demo should wait for a coherent
+scenario tying together transactions, cash, holdings/principal or factor
+evidence, and reported performance.
+
+### E.23 `pd` Modified Dietz Research Incorporated 2026-07-07
+
+Source: temporary `temp_Axys_APX_pd_Modified_Dietz_Research.md` supplied on
+2026-07-07 and merged into this evidence archive.
+
+This research pass focused specifically on whether `pd` can be safely modeled
+for performance comparison and Modified Dietz work. It does not replace the
+broader `rc`/`pd` conclusions above; it narrows the `pd` recommendation.
+
+#### E.23.1 Strengthened Meaning
+
+The researched public evidence supports `pd` as Advent Axys/APX bond-security
+return of capital / principal paydown activity. It also preserves the
+distinction between:
+
+- ordinary return of capital, mapped to `rc`; and
+- bond-security return of capital or principal paydown, mapped to `pd`.
+
+The strongest mapping evidence again points to source/destination type `$pty`
+and source/destination symbol `$cash`.
+
+#### E.23.2 Conservative Modified Dietz Treatment
+
+For portfolio-level Modified Dietz, the conservative treatment is:
+
+- do not treat `pd` as an investor contribution or withdrawal;
+- treat it as internal movement from security principal exposure to portfolio
+  cash when MBS/ABS/amortizing-security paydown context is present; and
+- include it in performance only when the site's reported-performance
+  methodology and source-data support that treatment.
+
+For security-level Modified Dietz, `pd` is best treated as principal returned by
+the security. The security exposure decreases and portfolio cash increases, but
+share quantity should not be assumed to change because the Morningstar
+conversion evidence notes zero-share paydown rows.
+
+#### E.23.3 Field Checklist For Safe Classification
+
+The research recommends keeping `pd` review-only unless enough fields are
+available to establish the principal-paydown story:
+
+- transaction code;
+- security identifier;
+- security type or asset class proving fixed-income, bond, MBS, or similar
+  principal-bearing context;
+- source/destination type and symbol, especially `$pty` and `$cash`;
+- amount and sign convention;
+- trade/effective date;
+- quantity, if present, without assuming nonzero quantity; and
+- principal amount, pool factor, amortization, or equivalent principal-balance
+  evidence when available.
+
+Rows lacking fixed-income context, cash destination, or local translation
+support should remain review-only. Reversal/delete rows and custom
+site-translation rows also require separate handling before any performance
+classification.
+
+#### E.23.4 Remaining Evidence Gap
+
+The research did not locate a public IMEX `.cli` row, REP/Replang output row,
+APX Public View row, or official SS&C field layout for `pd`. The evidence is
+strong enough for a conservative site rule or future coherent packaged demo, but
+not strong enough for code-only treatment.

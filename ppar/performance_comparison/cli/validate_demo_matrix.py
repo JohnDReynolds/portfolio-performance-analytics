@@ -748,16 +748,23 @@ def _check_review_only_action_quarantine(site_directory: Path) -> _ScenarioCheck
 
 
 def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
-    """Return whether high-risk transaction families remain test-only candidates."""
+    """Return whether high-risk transaction families remain context-gated."""
     matrix = yaml.safe_load(_TRANSACTION_SEMANTICS_MATRIX_PATH.read_text())
     rows = matrix["rows"]
-    expected = {
+    expected: dict[str, tuple[str, ...]] = {
         code: (
-            "Test-only site variant",
             "Code-only treatment remains unknown",
         )
         for code in CAPITAL_RETURN_BACKLOG_TRANSACTION_CODES
     }
+    expected["rc"] = (
+        "Packaged demo covers rc only with explicit",
+        "Code-only treatment remains unknown",
+    )
+    expected["pd"] = (
+        "Packaged demo covers pd only with MBS/amortizing-security",
+        "Code-only treatment remains unknown",
+    )
     expected.update(
         {
             code: (
@@ -782,7 +789,7 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
         if missing_fragments:
             failures.append(f"{code} missing {', '.join(missing_fragments)}")
         if not row["fixtures"]:
-            failures.append(f"{code} missing test-only fixture")
+            failures.append(f"{code} missing fixture")
 
     if failures:
         return _ScenarioCheck(
@@ -793,7 +800,7 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
     return _ScenarioCheck(
         "Capital-return and short-side candidate gates",
         True,
-        "rc/pd and ss/cs remain test-only until site policy and evidence are present",
+        "rc and pd are packaged only with explicit context; ss/cs remain test-only",
     )
 
 
