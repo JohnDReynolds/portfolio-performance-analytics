@@ -3459,3 +3459,129 @@ The research explicitly leaves the following items unresolved:
 - security-performance and portfolio-performance rows;
 - stored versus recalculated performance treatment; and
 - sanitized production examples.
+
+### E.21 Under-Evidenced Transaction Research Incorporated 2026-07-07
+
+Source: temporary external-research notes supplied on 2026-07-07 for stock
+splits, return of capital (`rc`), principal paydown (`pd`), short sale (`ss`),
+cover short (`cs`), and concrete source-row examples.
+
+The July 2026 research strengthens the implementation evidence for several
+backlog transaction families, but it does not close the main packaged-demo
+promotion gates. The strongest public evidence remains semi-official
+integration/conversion documentation rather than official Advent transaction
+code manuals, sanitized native transaction reports, or APX schema references.
+
+#### E.21.1 Source Inventory
+
+| Source | Evidence contributed | Evidence quality |
+|---|---|---:|
+| Morningstar / ByAllAccounts Custodial Integrator User Guide for Axys | Default transaction translation table columns and Axys-compatible code mappings, including `rc`, bond-security `pd`, `ss`, `cs`, and `;` for split/journal/other markers. | Semi-official integration documentation |
+| Morningstar / ByAllAccounts Custodial Integrator User Guide for APX | APX counterpart to the Axys translation table, with the same broad structure and similar mappings. | Semi-official integration documentation |
+| Morningstar Office Advent Axys conversion guide | Axys export-file set including `.cli`, `sec.inf`, `split.inf`, `.pri`, and `type.inf`; principal-paydown conversion limitations; zero-quantity paydown rows; original-principal adjustment behavior. | Conversion documentation |
+| WealthTechs AIA manuals for Axys/APX users | Trade Blotter translation examples referencing `BY`, `SL`, `SS`, and `CS`; case-insensitive translation behavior in that tool; examples of comma-delimited source rows and split comment markers. | Consultant/vendor implementation documentation |
+| AdventGuru conversion notes | Exported `split.inf` CSV usage, split-file merge workflows, and APX-to-Axys IMEX export of splits. | Consultant evidence |
+| FinFolio Advent conversion notes | Conversion statements that split transactions may be derived or "blown out" from `SPLIT.INF`. | Conversion vendor evidence |
+| SS&C Advent Corporate Actions product material | Corporate-actions workflow context for Axys/APX, including ACA and Trade Blotter/Reorg Utility references. | Official product evidence, not code-level evidence |
+
+#### E.21.2 Transaction Mapping Evidence
+
+| Code or marker | Strengthened interpretation | Practical caution |
+|---|---|---|
+| `rc` | Return of capital maps to Axys/APX transaction type `rc` in ByAllAccounts default translation tables, with source/destination type `$pty` and source/destination symbol `$cash`. | Public evidence does not verify native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone without site policy/report evidence. |
+| `pd` | Bond-security return-of-capital/principal-paydown activity maps to `pd`, also with `$pty`/`$cash`; Morningstar conversion evidence separately discusses Advent Axys principal paydown transactions. | Strongest candidate for future packaged-demo promotion, but only with bond context, cash movement, principal/holding evidence, and performance-report treatment. |
+| `ss` | Sell-short / short-sale activity maps to `ss` in public integration evidence. | Needs short security type, cash/margin/short-account symbols, and amount/quantity sign conventions. Packaged-demo use still needs a coherent short-account scenario. |
+| `cs` | Buy-cover-short / cover-short activity maps to `cs` in public integration evidence. | Keep economic lowercase `cs` treatment separate from uppercase reversal/delete/cancellation patterns in integration tools. |
+| `;` | Journal, Other, and Split can map to `;`; WealthTechs examples show a standalone split comment line using `;`. | Treat as marker/comment/corporate-action evidence unless local mapping proves a specific economic role. |
+| Uppercase codes | ByAllAccounts-style guides describe uppercase codes as delete/reversal representations for original transaction types. | Classify reversal intent before economic treatment; do not confuse uppercase `CS` in a local file with lowercase cover-short semantics. |
+
+#### E.21.3 Principal Paydown (`pd`) Findings
+
+The strongest `pd` evidence comes from two directions:
+
+1. ByAllAccounts Axys/APX default translation tables map a bond-security
+   return-of-capital case to `pd` with `$pty` and `$cash`.
+2. Morningstar conversion documentation says Advent Axys principal paydown
+   transaction types may export with zero share quantity, and that Axys reduces
+   actual original principal amount rather than relying on the same principal
+   factor mechanics Morningstar Office uses.
+
+Research synthesis:
+
+| Question | Current answer | Confidence |
+|---|---|---:|
+| Is `pd` a principal-paydown or bond capital-return code? | Yes, in public integration/conversion evidence. | Medium |
+| Is `pd` distinct from `rc`? | Yes: generic return of capital maps to `rc`; bond-security return of capital maps to `pd`. | Medium |
+| Does `pd` produce cash? | Yes in the integration mapping (`$pty`/`$cash`) and economic interpretation. | Medium |
+| Does `pd` reduce quantity? | Public Axys conversion evidence says exported paydown rows may have zero share quantity; principal balance rather than share count is the key field. | Medium |
+| Is `pd` ordinary interest income? | No evidence supports treating it as coupon interest; it is principal/capital return. | Medium |
+| Is `pd` a client external flow? | No; it is a security-level principal event unless local policy/reporting says otherwise. | Medium |
+| Does `pd` affect reported performance? | Economically it should be reflected in total-return/reconciliation mechanics, but exact Advent formula and report treatment remain unverified. | Unknown / Medium concept |
+
+Safe packaged-demo promotion would require a coherent fixed-income scenario:
+security type, principal or factor context, cash receipt, holdings/principal
+movement, reported security/portfolio performance treatment, and reviewer text
+that distinguishes principal return from interest income and external capital
+flow. Cost, amortization, and tax-lot mechanics should remain best-efforts
+demo-construction context, not requirements for Modified Dietz calculation.
+
+#### E.21.4 Return Of Capital (`rc`) Findings
+
+The ByAllAccounts Axys/APX translation tables directly support `rc` as a
+return-of-capital mapping and distinguish it from bond-security `pd`.
+
+Research synthesis:
+
+| Question | Current answer | Confidence |
+|---|---|---:|
+| Is `rc` documented as return of capital? | Yes in public Axys/APX integration mapping evidence. | Medium |
+| Is it mapped to cash? | Yes, with `$pty` and `$cash` in the integration mapping. | Medium |
+| Is it ordinary dividend or interest income? | No; it is separated from dividend/interest mappings that use income-oriented targets. | Medium |
+| Does it reduce cost basis? | General tax/accounting interpretation says return of capital reduces basis, but Advent-native cost-basis mechanics are not public-source verified. | Medium concept / Unknown implementation |
+| Is it included in performance? | Public sources do not verify exact Axys/APX performance-report treatment. | Unknown |
+
+For ppar, `rc` should remain policy-gated. A site may configure it as
+performance income, corporate-action/cost-basis evidence, or review-only
+evidence, depending on the client report methodology. Code-only packaged-demo
+promotion would overstate the current evidence.
+
+#### E.21.5 Short Sale (`ss`) And Cover Short (`cs`) Findings
+
+Public integration evidence supports `ss` as short sale and `cs` as cover short.
+WealthTechs AIA documentation also references `SS` and `CS` in transaction
+translation examples involving Trade Blotter cleanup. Those examples are useful
+evidence that the codes appear in Axys/APX-adjacent workflows, but they are not
+enough to define universal accounting or performance semantics.
+
+Research synthesis:
+
+| Code | Current answer | Confidence |
+|---|---|---:|
+| `ss` | Short sale / sell short candidate. | Low to Medium |
+| `cs` | Cover short / buy-cover-short candidate. | Low to Medium |
+| Quantity signs | Not publicly verified in native Axys/APX rows; likely depends on user-facing transaction versus holdings convention. | Unknown |
+| Cash/proceeds treatment | May use cash, restricted cash, margin, or short-proceeds accounts depending on site. | Unknown / site-specific |
+| Holdings treatment | Should create or reduce negative exposure in economic interpretation, but native row conventions need site evidence. | Medium concept / Unknown implementation |
+| Performance treatment | Short exposure should contribute to investment return, not external capital flow, but exact report behavior remains unverified. | Medium concept / Unknown implementation |
+
+Packaged-demo promotion would require a clean short-account scenario with short
+security type, cash/margin/short-account context, amount and quantity signs,
+holdings liability treatment, and reported performance movement. Until then,
+`ss`/`cs` remain better suited to tested site-variant YAML and onboarding
+override examples.
+
+#### E.21.6 Concrete Row-Level Evidence Gaps
+
+The July 2026 source-row search found concrete translation-table rows and a few
+row-like import/comment examples, but did not find public sanitized examples of:
+
+- account-level Axys/APX transaction report rows for `rc`, `pd`, `ss`, or `cs`;
+- IMEX `.cli` rows for the target transaction types;
+- REP/Replang report-output rows for the target transaction types;
+- APX Public View or SQL result rows for the target transaction types;
+- before/after holdings plus before/after performance rows for the same real
+  account event.
+
+These missing examples are the main reason the packaged demo should continue to
+avoid broad promotion of `rc`, `pd`, `ss`, and `cs` until each candidate has a
+coherent source-data and performance-report story.

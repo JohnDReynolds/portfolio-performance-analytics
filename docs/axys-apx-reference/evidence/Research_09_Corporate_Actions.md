@@ -529,3 +529,68 @@ To produce a stronger chapter, the highest-value additional source material woul
 4. REP report catalog or sample outputs for transaction history, splits, reorgs, and reconciliation.
 
 Until those are available, unsupported details should remain marked **Unknown**.
+
+---
+
+## 20. Stock Split / Reverse Split Research Incorporated 2026-07-07
+
+Source: temporary external-research notes supplied on 2026-07-07 for stock
+splits, reverse splits, concrete source rows, and under-evidenced transaction
+families.
+
+This addendum strengthens the split-specific evidence without closing the
+public-source unknowns around exact Axys/APX split schemas.
+
+### 20.1 Source Additions
+
+| Source | Evidence contributed | Evidence quality |
+|---|---|---:|
+| Morningstar Office Advent Axys conversion guide | Identifies `split.inf` as an Advent Axys security splits file and lists it with `.cli`, `sec.inf`, `.pri`, and `type.inf` as exported conversion inputs. | Conversion documentation; high confidence for Axys file existence |
+| AdventGuru conversion notes | Describes exported CSV copies of Axys `split.inf` files and merge/import workflows; APX-to-Axys guidance mentions IMEX export of splits to Axys 3 format. | Consultant evidence |
+| FinFolio Advent conversion notes | States split transactions may be derived or "blown out" from `SPLIT.INF` during conversions. | Conversion vendor evidence |
+| ByAllAccounts Axys/APX Custodial Integrator guides | Default translation tables map `SPLIT`, `JOURNAL`, and `OTHER` to the `;` marker. | Semi-official integration documentation |
+| WealthTechs AIA manuals | Provide a concrete standalone split comment row using `;`, such as a line describing a `3:2 SPLIT`. | Consultant/vendor implementation documentation |
+| SS&C Advent Corporate Actions material | Confirms corporate-action workflow context for Axys/APX, but not exact split row fields. | Official product evidence |
+
+### 20.2 Split Representation Findings
+
+| Question | Current answer | Confidence |
+|---|---|---:|
+| Does Axys have a split file? | Yes. Public conversion evidence identifies `split.inf` / `SPLIT.INF` as the Axys security splits file. | High |
+| Can splits appear in conversion workflows as transactions? | Yes. Conversion vendors may derive or "blow out" split transactions from `SPLIT.INF`. | Medium |
+| Can split evidence appear as a `;` marker/comment row? | Yes. Integration tables map `SPLIT` to `;`, and WealthTechs documentation shows a standalone `;` split comment row. | Medium |
+| Is the exact `split.inf` schema public-source verified? | No. Public evidence confirms the file and some field names from examples, but not a full authoritative schema. | Unknown |
+| Does APX have an equivalent native split table or file? | Public evidence confirms APX can export splits via IMEX in conversion workflows, but the native storage schema remains unknown. | Unknown / Medium concept |
+| Does a normal split affect market value or performance? | A normal split should adjust quantity and price inversely and be market-value neutral aside from rounding/cash-in-lieu. Public sources did not verify Advent's exact performance treatment. | High concept / Unknown vendor formula |
+
+### 20.3 Practical Audit Treatment
+
+The safe product interpretation is that a normal split is a **neutral corporate
+action**, not income, not a client external flow, and not a Modified Dietz
+performance cause by itself. It may still be important review evidence when it
+explains:
+
+- holdings quantity changes;
+- inverse price changes;
+- market-value stability across a quantity/price restatement;
+- apparent performance breaks caused by missing or incorrect split adjustment;
+- cash-in-lieu rows that should be reviewed separately from the split factor.
+
+For ppar, split evidence is better suited to review evidence or a future
+`X-Ref Issues` worksheet than to default `Performance Difference Causes` unless
+the split error actually changes a Modified Dietz input such as holdings market
+value, transaction amount, or reported performance.
+
+### 20.4 Fields And Examples Still Needed
+
+Future research should seek concrete Axys/APX examples for:
+
+1. exported `split.inf` rows with field names, split dates, symbols, and factors;
+2. APX IMEX split export rows or APX Public View / SQL rows for split history;
+3. before/after holdings rows around a split;
+4. before/after price rows around a split;
+5. cash-in-lieu transaction rows tied to a split;
+6. before/after performance report rows for a missed or corrected split.
+
+Until those examples are available, the chapter should avoid claiming exact
+vendor split field layouts, exact REP report names, or exact APX table names.
