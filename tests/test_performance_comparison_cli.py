@@ -1135,7 +1135,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Contribution impact methods: none", result.stdout)
         self.assertIn("Cash impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: none", result.stdout)
-        self.assertIn("Transaction rules configured: 13", result.stdout)
+        self.assertIn("Transaction rules configured: 15", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
         self.assertIn("Extract contract: packaged:", result.stdout)
@@ -1149,7 +1149,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Report-bundle source context:", result.stdout)
         self.assertIn("transaction semantics summary", result.stdout)
         self.assertIn(
-            "Transaction codes observed: by, dp, dv, in, li, lo, pa, pd, rc, sa, sl, wd",
+            "Transaction codes observed: by, cs, dp, dv, in, li, lo, pa, pd, rc, "
+            "sa, sl, ss, wd",
             result.stdout,
         )
         self.assertIn("Transaction codes without YAML rules: none", result.stdout)

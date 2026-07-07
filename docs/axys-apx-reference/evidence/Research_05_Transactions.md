@@ -1244,8 +1244,8 @@ Rows should be promoted to Verified only when supported by official vendor docum
 | `by` | Buy | Unknown / observed in examples | Observed | ByAllAccounts, WealthTechs | Medium | Public integration documentation only. |
 | `BY` | Cancellation/deletion of Buy | Observed | Observed | WealthTechs, ByAllAccounts | Medium | Uppercase cancellation observed; native universality unknown. |
 | `sl` | Sell | Unknown | Observed | ByAllAccounts | Medium | Requires vendor confirmation. |
-| `ss` | Short sale | Unknown | Observed | ByAllAccounts | Medium | Requires vendor confirmation. |
-| `cs` | Cover short | Unknown | Observed | ByAllAccounts | Medium | Added in later evidence hunt. |
+| `ss` | Short sale | Unknown | Observed | ByAllAccounts | Medium-High | Integration mapping now directly maps `SELL / SHORT` to `ss`; exact native signs and short-cash mechanics remain site-specific. |
+| `cs` | Cover short | Unknown | Observed | ByAllAccounts | Medium-High | Integration mapping now directly maps `BUY / COVER SHORT` to `cs`; exact native signs and short-cash mechanics remain site-specific. |
 | `li` | Deliver in / transfer in / credit / deposit / ATM positive / direct deposit | Observed | Observed | ByAllAccounts, Morningstar | Medium | Meaning may depend on sign/configuration. |
 | `lo` | Deliver out / transfer out / debit / withdrawal / payment / ATM negative / direct debit | Observed | Observed | ByAllAccounts, Morningstar | Medium | Meaning may depend on sign/configuration. |
 | `dv` | Dividend / income / reinvestment leg | Unknown | Observed | ByAllAccounts | Medium | Often paired with reinvestment. |
@@ -3069,7 +3069,7 @@ The ByAllAccounts APX default translation table provides the strongest public co
 |---|---|---:|---|
 | `by` | Buy; reinvestment paired leg; non-cash deposit paired leg. | Medium | Integration translation table. |
 | `dp` | Cash security buy; tax; fee; recordkeeping; investment expense; service charge. | Medium | Context-dependent. |
-| `cs` | Cover short; negative closure. | Medium | Integration translation table. |
+| `cs` | Cover short; negative closure. | Medium-High | Integration translation table maps `BUY / COVER SHORT` to `cs`; exact cash and sign mechanics remain unverified. |
 | `pa` | Purchase accrued interest / buy-side accrued interest. | Medium | BUY + ACCRUED INTEREST mapping; integration-level evidence, not official native code manual. |
 | `li` | ATM positive; credit; deposit; direct deposit; positive income bond security; point-of-sale positive; transfer positive. | Medium | Direction/sign dependent. |
 | `lo` | ATM negative; check; non-cash debit; direct debit; negative income bond security; payment; point-of-sale negative; transfer negative; withdrawal. | Medium | Direction/sign dependent. |
@@ -3080,7 +3080,7 @@ The ByAllAccounts APX default translation table provides the strongest public co
 | `pd` | Bond-security return-of-capital/principal paydown. | Medium-High | Bond-related integration mapping; conversion evidence also flags principal-paydown reconciliation complications and zero-quantity rows. |
 | `sl` | Sell; positive closure. | Medium | Integration translation table. |
 | `wd` | Sell cash security. | Medium | Cash-security special case. |
-| `ss` | Short. | Medium | Integration translation table. |
+| `ss` | Short sale / sell short. | Medium-High | Integration translation table maps `SELL / SHORT` to `ss`; exact cash and sign mechanics remain unverified. |
 | `sa` | Sale accrued interest / sell-side accrued interest. | Medium | SELL + ACCRUED INTEREST mapping; integration-level evidence, not official native code manual. |
 | `;` | Journal, Other, Split. | Medium | Treat as integration behavior; official native meaning Unknown. |
 
@@ -3422,8 +3422,8 @@ principal, and zero-quantity paydown rows differently.
 |---|---|---|
 | `by` | Buy / purchase security; may also appear as reinvestment buy leg or non-cash deposit pair. | Trade activity, not external cash flow. |
 | `sl` | Sell / sale of long security; positive closure may map here. | Trade activity, not external cash flow. |
-| `ss` | Short sale. | Requires short-account evidence before packaged-demo classification. |
-| `cs` | Cover short; negative closure may map here. | Keep uppercase `CS` cancellation evidence separate from economic cover-short treatment. |
+| `ss` | Short sale. | Requires short-account evidence before packaged-demo classification; code meaning is stronger than the accounting mechanics. |
+| `cs` | Cover short; negative closure may map here. | Requires prior-short or short-account context; keep uppercase `CS` cancellation evidence separate from economic cover-short treatment. |
 | `li` | Deliver in / transfer in / deposit / credit / positive movement. | External-flow candidate only when outside-party context proves capital entering the portfolio. |
 | `lo` | Deliver out / transfer out / withdrawal / debit / negative movement. | External-flow candidate only when outside-party context proves capital leaving the portfolio. |
 | `dv` | Dividend income; reinvestment income leg. | Link to `by` and `dvwash` when reinvested; do not treat as external flow. |
@@ -3519,7 +3519,7 @@ code manuals, sanitized native transaction reports, or APX schema references.
 |---|---|---|
 | `rc` | Return of capital maps to Axys/APX transaction type `rc` in ByAllAccounts default translation tables, with source/destination type `$pty` and source/destination symbol `$cash`. | Public evidence does not verify native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone without site policy/report evidence. |
 | `pd` | Bond-security return-of-capital/principal-paydown activity maps to `pd`, also with `$pty`/`$cash`; Morningstar conversion evidence separately discusses Advent Axys principal paydown transactions. | Packaged-demo use is now limited to one MBS/amortizing-security example with cash movement, principal/holding evidence, and performance-report treatment. Code-only treatment remains unsupported. |
-| `ss` | Sell-short / short-sale activity maps to `ss` in public integration evidence. | Needs short security type, cash/margin/short-account symbols, and amount/quantity sign conventions. Packaged-demo use still needs a coherent short-account scenario. |
+| `ss` | Sell-short / short-sale activity maps to `ss` in public integration evidence. | Needs short security type, cash/margin/short-account symbols, and amount/quantity sign conventions. A disclosed synthetic lifecycle is defensible; production use still needs local short-account evidence. |
 | `cs` | Buy-cover-short / cover-short activity maps to `cs` in public integration evidence. | Keep economic lowercase `cs` treatment separate from uppercase reversal/delete/cancellation patterns in integration tools. |
 | `;` | Journal, Other, and Split can map to `;`; WealthTechs examples show a standalone split comment line using `;`. | Treat as marker/comment/corporate-action evidence unless local mapping proves a specific economic role. |
 | Uppercase codes | ByAllAccounts-style guides describe uppercase codes as delete/reversal representations for original transaction types. | Classify reversal intent before economic treatment; do not confuse uppercase `CS` in a local file with lowercase cover-short semantics. |
@@ -3578,26 +3578,29 @@ promotion would overstate the current evidence.
 
 Public integration evidence supports `ss` as short sale and `cs` as cover short.
 WealthTechs AIA documentation also references `SS` and `CS` in transaction
-translation examples involving Trade Blotter cleanup. Those examples are useful
-evidence that the codes appear in Axys/APX-adjacent workflows, but they are not
-enough to define universal accounting or performance semantics.
+translation examples involving Trade Blotter cleanup. Later `ss`/`cs` research
+strengthened the code-meaning confidence, but still did not find public native
+rows proving universal accounting, cash, holdings, or performance semantics.
 
 Research synthesis:
 
 | Code | Current answer | Confidence |
 |---|---|---:|
-| `ss` | Short sale / sell short candidate. | Low to Medium |
-| `cs` | Cover short / buy-cover-short candidate. | Low to Medium |
+| `ss` | Short sale / sell short. | Medium-High for code meaning; Low to Medium for accounting mechanics |
+| `cs` | Cover short / buy-cover-short. | Medium-High for code meaning; Low to Medium for accounting mechanics |
 | Quantity signs | Not publicly verified in native Axys/APX rows; likely depends on user-facing transaction versus holdings convention. | Unknown |
 | Cash/proceeds treatment | May use cash, restricted cash, margin, or short-proceeds accounts depending on site. | Unknown / site-specific |
 | Holdings treatment | Should create or reduce negative exposure in economic interpretation, but native row conventions need site evidence. | Medium concept / Unknown implementation |
 | Performance treatment | Short exposure should contribute to investment return, not external capital flow, but exact report behavior remains unverified. | Medium concept / Unknown implementation |
 
-Packaged-demo promotion would require a clean short-account scenario with short
+Packaged-demo promotion requires a clean short-account scenario with short
 security type, cash/margin/short-account context, amount and quantity signs,
-holdings liability treatment, and reported performance movement. Until then,
-`ss`/`cs` remain better suited to tested site-variant YAML and onboarding
-override examples.
+holdings liability treatment, and reported performance movement. The current
+packaged demo satisfies only a narrow disclosed variant: a same-period TSLA
+short sale / cover short lifecycle using real May 2026 prices and explicit
+source/destination context. Broader `ss`/`cs` treatment remains better suited
+to tested site-variant YAML and onboarding override examples until a site
+extract proves local mechanics.
 
 #### E.21.6 Concrete Row-Level Evidence Gaps
 
@@ -3735,3 +3738,193 @@ The research did not locate a public IMEX `.cli` row, REP/Replang output row,
 APX Public View row, or official SS&C field layout for `pd`. The evidence is
 strong enough for a conservative site rule or future coherent packaged demo, but
 not strong enough for code-only treatment.
+
+### E.24 `ss` / `cs` Short-Side Research Incorporated 2026-07-07
+
+Source: temporary `temp_axys_apx_short_sale_cover_short_ss_cs_research.md`
+supplied on 2026-07-07 and merged into this evidence archive.
+
+This research pass focused specifically on Axys/APX short-sale and cover-short
+transaction handling for `ss` and `cs`. It strengthens the code-meaning
+evidence, but it does not close the packaged-demo gate because public sources
+still do not provide native transaction rows, position rows, or performance
+report examples for a complete short-account story.
+
+#### E.24.1 Strengthened Mapping Evidence
+
+The strongest public evidence is the Morningstar / ByAllAccounts Custodial
+Integrator User Guide for APX. Its default transaction translation table maps:
+
+| Source concept | APX transaction code | Source/destination evidence | Confidence |
+|---|---|---|---:|
+| `SELL / SHORT` | `ss` | `Src/Dest Type = awus`; `Src/Dest Symbol = none` | High for code meaning |
+| `BUY / COVER SHORT` | `cs` | `Src/Dest Type = $pty`; `Src/Dest Symbol = $cash` | High for code meaning |
+
+The same table maps ordinary buys and sells to `by` and `sl`, which supports
+treating `ss` and `cs` as distinct short-side trade codes rather than ordinary
+buy/sell aliases.
+
+#### E.24.2 Fields And Context Needed
+
+The research did not locate public sanitized IMEX, REP, APX Public View, or SQL
+rows specifically containing `ss` or `cs`. Based on integration-table fields
+and APX-style transaction examples, a conservative evidence package should
+include:
+
+- portfolio or account code;
+- lowercase transaction code;
+- security identifier and security type;
+- trade date and preferably settlement date;
+- quantity, amount, and preferably price and commission;
+- source/destination type and source/destination symbol;
+- cash, margin, short-cash, or short-account symbols where applicable; and
+- prior or resulting short-position evidence.
+
+Do not infer quantity or amount sign conventions from code alone. Some import
+paths may store positive transaction quantities while the code carries the
+economic direction; position reports may instead represent resulting exposure as
+negative quantity or negative market value.
+
+#### E.24.3 Cash And Holdings Implications
+
+The mapping difference between ordinary sells and short sells is important:
+ordinary sells map to the usual portfolio-cash context, while the researched
+short-sale mapping uses `awus / none`. That suggests short-sale proceeds may
+involve a short-proceeds, collateral, margin, or other account treatment rather
+than unrestricted cash. WealthTechs APX/Axys integration material also shows
+separate handling for cash, margin, and short sweeps using symbols such as
+`CASH`, `MARGIN`, and `SHORT`.
+
+For holdings, public sources did not prove the native Axys/APX representation.
+Likely implementations may use negative quantity, negative market value,
+separate short-side positions, separate accounts, or short/margin cash symbols.
+Treat the representation as site-specific until a holdings report, position
+extract, or reconciliation output proves it.
+
+#### E.24.4 Modified Dietz Interpretation
+
+The conservative performance interpretation is that `ss` and `cs` are internal
+security-level trades, not investor external flows:
+
+| Code | Portfolio-level interpretation | Security-level interpretation | Confidence |
+|---|---|---|---:|
+| `ss` | Short-sale proceeds are not client contributions. They are internal trade/financing mechanics. | Creates or increases short exposure. | Medium concept; native mechanics Unknown |
+| `cs` | Cover-short cash use is not a client withdrawal. It closes or reduces a security liability. | Reduces or closes short exposure. | Medium concept; native mechanics Unknown |
+
+The exact security-level Modified Dietz treatment depends on whether the site
+assigns cash/proceeds to the short security, a short cash bucket, margin
+collateral, or portfolio cash. Therefore, `ss`/`cs` should remain review-only or
+site-configured unless the source-data extract proves short exposure and cash
+mechanics.
+
+#### E.24.5 Uppercase Caveat
+
+Uppercase `SS` and `CS` are dangerous in integration/import contexts. The APX
+Custodial Integrator guide describes reversals/deletions by converting the
+original APX transaction code to uppercase. WealthTechs AIA material similarly
+shows uppercased transaction codes for cancel/delete workflows and references
+`BY`, `SL`, `SS`, and `CS` in Trade Blotter cleanup logic. Uppercase `SS` or
+`CS` must therefore be classified as possible reversal/delete/control evidence,
+not as a new economic short sale or cover short, unless linked to the original
+transaction.
+
+#### E.24.6 Safe Packaged-Demo Recommendation
+
+`ss` and `cs` can be modeled in a synthetic demo only with explicit synthetic
+assumptions:
+
+- lowercase `ss` and `cs`;
+- explicit short-position context;
+- visible short exposure, such as negative market value or short liability;
+- clearly defined short-cash, proceeds, or margin treatment;
+- no external-flow treatment; and
+- report explanations that say the row affects short exposure and related
+  market value, not client capital.
+
+Safe as a blanket production rule: no. Recommended production default:
+classify as performance-impacting short trades only when lowercase code,
+security, quantity, amount, and short-position context are present; otherwise
+route to review.
+
+The packaged Axys/APX performance-comparison demo follows this recommendation
+with a narrow same-period TSLA lifecycle using real May 2026 prices. That
+packaged example is intentionally disclosed as synthetic short-side accounting,
+not as proof of universal native Axys/APX short-account mechanics.
+
+### E.25 `ss` / `cs` Short Lifecycle Research Incorporated 2026-07-07
+
+Source: temporary `temp_axys_apx_short_lifecycle_accounting_reporting.md`
+supplied on 2026-07-07 and merged into this evidence archive.
+
+This follow-on research pass focused on whether the project can construct a
+defensible complete short-sale / cover-short lifecycle for examples, tests, or
+future packaged demo data. It does not add public native Axys/APX report rows,
+but it does provide a coherent synthetic assumption set grounded in the
+integration mapping evidence already recorded in E.24.
+
+#### E.25.1 Lifecycle Evidence Boundary
+
+The code mapping evidence remains the strongest part of the record:
+
+| Item | Evidence | Confidence |
+|---|---|---:|
+| `ss` code meaning | `SELL / SHORT -> ss` in public APX/Axys integration mapping. | High for code meaning |
+| `ss` cash context | `Src/Dest Type = awus`; `Src/Dest Symbol = none`. | High for mapping; Medium for cash interpretation |
+| `cs` code meaning | `BUY / COVER SHORT -> cs` in public APX/Axys integration mapping. | High for code meaning |
+| `cs` cash context | `Src/Dest Type = $pty`; `Src/Dest Symbol = $cash`. | High for mapping; Medium for cash interpretation |
+| Short/margin sweep conventions | WealthTechs APX/Axys AIA materials show `MARGIN` and `SHORT` sweep examples. | Medium |
+
+The still-unproven areas are native holdings-report signs, native short-market
+value signs, exact short-proceeds buckets, APX Public View fields, and official
+SS&C Modified Dietz examples for `ss` / `cs`.
+
+#### E.25.2 Synthetic Demo Assumption Set
+
+A controlled synthetic lifecycle is defensible only when the assumptions are
+explicit:
+
+| Assumption | Synthetic treatment | Evidence basis |
+|---|---|---|
+| Open short quantity | Negative position quantity after the short sale. | General accounting convention; not proven by public native Axys/APX row. |
+| Open short market value | Negative market value / short liability. | General investment-accounting convention; not proven by public native Axys/APX row. |
+| Short-sale proceeds | Separate short-proceeds, short-cash, margin, or collateral bucket rather than ordinary unrestricted cash. | `ss` maps differently from ordinary sell; WealthTechs shows `SHORT` / `MARGIN` sweep examples. |
+| Cover short | Reduces or closes negative exposure and uses cash/proceeds. | `cs` maps to cover short with `$pty / $cash`; sign treatment remains site-specific. |
+| Realized gain/loss | Realized when the short is covered. | General short-sale accounting logic. |
+| Modified Dietz external flow | Neither `ss` nor `cs` is a client contribution or withdrawal. | Investment-accounting interpretation of internal trades. |
+
+#### E.25.3 Synthetic Lifecycle Example
+
+The researched file recommends this as a synthetic pattern, not a copied
+Axys/APX row:
+
+| Step | Transaction | Position effect | Cash/proceeds effect | Performance interpretation |
+|---|---|---|---|---|
+| Sell short | `ss` 100 shares at 50.00 | Resulting short position `-100`; short market value `-5,000`. | Proceeds recorded in a disclosed `SHORT`, margin, collateral, or site-specific bucket. | Internal trade; creates short exposure. |
+| Mark to market | Price moves to 45.00 | Short market value moves to `-4,500`. | No client external flow. | Positive unrealized effect because liability declined. |
+| Cover short | `cs` 100 shares at 40.00 | Short position closes to zero. | Cash/proceeds used to cover. | Internal trade; realized gain of 1,000 in the synthetic example. |
+
+#### E.25.4 Production Safeguards
+
+For production classification, the project should not classify a row from code
+alone. A conservative `ss` / `cs` rule needs:
+
+- lowercase code;
+- security identifier;
+- quantity and amount;
+- source/destination fields;
+- short context, such as prior negative position, resulting negative position,
+  explicit short-cash or margin symbol, or source/destination pattern matching
+  a reviewed site rule; and
+- site-specific override when a local transaction map is known.
+
+Uppercase `SS` and `CS` remain possible reversal/delete/control evidence and
+should stay out of economic treatment unless the original transaction linkage
+proves otherwise.
+
+#### E.25.5 Updated Demo Recommendation
+
+Safe for a controlled packaged synthetic demo: yes, if the demo states the
+assumptions above and avoids claiming universal Axys/APX treatment.
+
+Safe as a blanket production rule: no. Production classification still needs
+cash/proceeds, holdings, source/destination, and site-mapping evidence.

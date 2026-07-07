@@ -73,27 +73,27 @@ rows:
     fixtures: [packaged_demo]
     coverage_notes: Packaged demo includes normal sell rows with cash proceeds and security quantity changes.
   ss:
-    observed_meaning: Short sale.
+    observed_meaning: Short sale; ByAllAccounts APX mapping evidence maps SELL / SHORT to ss.
     ppar_categories: [sell, unknown_pending_review]
-    cash_flow_signs: [positive, context_dependent]
+    cash_flow_signs: [positive, collateral_like, short_proceeds_specific, context_dependent]
     performance_flow_signs: [performance, unknown]
-    required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
-    imex_confidence: low_medium
+    required_evidence: [lowercase_code, security, quantity, amount, short_security_type_or_negative_exposure, cash_margin_short_symbols, source_destination_context]
+    imex_confidence: medium_high_for_code_low_medium_for_mechanics
     rep_confidence: medium
     coverage_status: partial
-    fixtures: [site_variants/short_side_trades]
-    coverage_notes: "Test-only site variant covers a Modified Dietz performance-sell treatment through explicit short-security YAML context. Code-only treatment remains unknown, and packaged-demo use still needs a coherent short-account scenario."
+    fixtures: [packaged_demo, site_variants/short_side_trades]
+    coverage_notes: "Packaged demo covers ss only in a disclosed synthetic TSLA short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown, and uppercase SS may be reversal/delete evidence."
   cs:
-    observed_meaning: Cover short.
+    observed_meaning: Cover short; ByAllAccounts APX mapping evidence maps BUY / COVER SHORT to cs.
     ppar_categories: [buy, unknown_pending_review]
-    cash_flow_signs: [negative, context_dependent]
+    cash_flow_signs: [negative, collateral_like, short_cash_release_specific, context_dependent]
     performance_flow_signs: [performance, unknown]
-    required_evidence: [short_security_type, cash_margin_short_symbols, amount_or_quantity_signs]
-    imex_confidence: low_medium
+    required_evidence: [lowercase_code, security, quantity, amount, prior_or_resulting_short_exposure, cash_margin_short_symbols, source_destination_context]
+    imex_confidence: medium_high_for_code_low_medium_for_mechanics
     rep_confidence: medium
     coverage_status: partial
-    fixtures: [site_variants/short_side_trades]
-    coverage_notes: "Test-only site variant covers a Modified Dietz performance-buy treatment through explicit short-security YAML context. Code-only treatment remains unknown, and uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
+    fixtures: [packaged_demo, site_variants/short_side_trades]
+    coverage_notes: "Packaged demo covers cs only in a disclosed synthetic TSLA cover-short lifecycle using real prices and explicit source/destination context; test-only site variant covers explicit short-security YAML classification. Code-only treatment remains unknown, and uppercase CS cancellation evidence must stay separate from economic cover-short treatment."
   dv:
     observed_meaning: Dividend, dividend-paying security income, reinvested-dividend leg.
     ppar_categories: [income]

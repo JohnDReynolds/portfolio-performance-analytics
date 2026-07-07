@@ -860,8 +860,8 @@ class TestPackageMetadata(unittest.TestCase):
         partial_fixture_expectations = {
             "rc": ["packaged_demo", "site_variants/rc_return_of_capital"],
             "pd": ["packaged_demo", "site_variants/pd_principal_paydown"],
-            "ss": ["site_variants/short_side_trades"],
-            "cs": ["site_variants/short_side_trades"],
+            "ss": ["packaged_demo", "site_variants/short_side_trades"],
+            "cs": ["packaged_demo", "site_variants/short_side_trades"],
         }
         for code, expected_fixtures in partial_fixture_expectations.items():
             with self.subTest(code=code):

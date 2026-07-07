@@ -106,6 +106,7 @@ definitions, or production examples.
 | Adjustment transactions entered during conversion can affect performance reporting for affected accounts in the target system. | Medium Confidence | Morningstar guide discusses effect of adjustment transactions on Morningstar Office performance after conversion, not Axys calculations directly. |
 | The inspected Morningstar guide does not provide native Axys cash-balance calculations or Axys reconciliation report names. | Verified Unknown | Conversion-focused source only. |
 | Public Axys/APX integration evidence maps bond-security return-of-capital / principal-paydown activity to `pd` with `$pty` / `$cash` destination context. | Medium-High Confidence | The 2026-07-07 `pd` Modified Dietz research reinforces that `pd` should normally increase portfolio cash only when MBS/ABS/amortizing-security paydown context and cash destination evidence are present. |
+| Public APX integration evidence maps `SELL / SHORT` to `ss` with `awus / none`, while `BUY / COVER SHORT` maps to `cs` with `$pty / $cash`. | Medium-High for code/cash-context evidence | The 2026-07-07 `ss`/`cs` lifecycle research suggests short-sale proceeds may not behave like unrestricted ordinary sale cash. A synthetic demo may use a disclosed `SHORT`, margin, collateral, or short-proceeds bucket; production treatment remains site-specific until source/destination and holdings evidence prove the cash mechanics. |
 
 ---
 
@@ -281,8 +282,8 @@ The following codes appear in the inspected ByAllAccounts Axys transaction trans
 | `rc` | Return of capital. | Maps to portfolio cash context (`$pty` / `$cash`) in ByAllAccounts Axys/APX translation evidence. | Confirmed in integration mapping evidence |
 | `pd` | Return of capital for bond security / principal paydown. | Maps to portfolio cash context in ByAllAccounts Axys/APX translation evidence. | Confirmed in integration mapping evidence |
 | `sa` | Sale accrued interest / sell-side accrued interest. | Income/cash-related fixed-income trade adjunct. | High Confidence as observed |
-| `cs` | Cover short / closure negative leg. | Cash/security cash-impacting. | High Confidence as observed |
-| `ss` | Short sale. | Short/cash-related. | High Confidence as observed |
+| `cs` | Cover short / closure negative leg. | Cash/security cash-impacting; integration mapping points to `$pty / $cash`, but exact sign mechanics remain site-specific. | Medium-High for code meaning |
+| `ss` | Short sale. | Cash/security cash-impacting; integration mapping points to `awus / none`, so unrestricted cash treatment is not safe to assume. | Medium-High for code meaning |
 
 ### 8.2 Transaction-Code Caveats
 

@@ -4,6 +4,8 @@ snapshot_b,adjust,ALPHA0401,,,,,,,,,,,,,,,1.1372,0.15,-196.98,10.0,AAPL buy corr
 snapshot_b,adjust,BALANCED0203,,,,,,,,,,,,,,,2.0,0.25,226.0,5.0,MSFT sell correction changes quantity price commission and amount.
 snapshot_b,insert,BALANCED0403,BALANCED,2026-03-20,2026-03-20,CASH_USD,li,caus,$pty,$cash,,,0.0,0.0,2500.0,0.0,0.0,0.0,0.0,0.0,Contribution restatement adds external cash inflow.
 snapshot_b,insert,ALPHA0303,ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$pty,$cash,,,0.0,0.0,-2000.0,0.0,0.0,0.0,0.0,0.0,Deliver-out restatement adds external cash outflow.
+snapshot_b,insert,BALANCED0603,BALANCED,2026-05-15,2026-05-15,TSLA,ss,csus,awus,none,,,50.0,422.24,21112.0,0.0,0.0,0.0,0.0,0.0,TSLA short sale uses real 2026-05-15 close price in a synthetic short-side demo.
+snapshot_b,insert,BALANCED0604,BALANCED,2026-05-29,2026-05-29,TSLA,cs,csus,$pty,$cash,,,50.0,435.79,-21789.5,0.0,0.0,0.0,0.0,0.0,TSLA cover short uses real 2026-05-29 close price in a synthetic short-side demo.
 snapshot_b,adjust,BALANCED0502,,,,,,,,,,,,,,,0.0,0.0,117.07,0.0,JPM dividend correction increases cash income.
 snapshot_b,insert,BALANCED0503,BALANCED,2026-04-18,2026-04-18,JPM,rc,csus,$pty,$cash,return_of_capital,JPM,0.0,0.0,240.0,0.0,0.0,0.0,0.0,0.0,JPM return-of-capital row adds security-level cash income.
 snapshot_b,adjust,INCOME0203,,,,,,,,,,,,,,,0.0,0.0,-50.0,0.0,Fee correction increases cash expense.

@@ -391,9 +391,9 @@ This table is an observed-code catalog only. It is not a complete official Axys/
 | `BY` | Cancellation/deletion/reversal of buy in uppercase-code workflows. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `sl` | Sell. | Unknown / likely observed in examples | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `SL` | Uppercase sell code appears in AIA delete/translation examples. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `ss` | Short sale. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `ss` | Short sale; APX integration evidence maps `SELL / SHORT` to lowercase `ss`. Uppercase `SS` may be cancellation/delete evidence. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High for code meaning; Unknown native mechanics |
 | `SS` | Uppercase short-sale code appears in AIA delete/translation examples. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
-| `cs` | Cover short. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
+| `cs` | Cover short; APX integration evidence maps `BUY / COVER SHORT` to lowercase `cs`. Uppercase `CS` may be cancellation/delete evidence. | Unknown native field layout | Observed | Trade Blotter/import context | Unknown | Medium-High for code meaning; Unknown native mechanics |
 | `CS` | Uppercase cover-short code appears in AIA delete/translation examples. | Unknown | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `li` | Deliver in / transfer in / credit / deposit / positive direction depending context. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |
 | `lo` | Deliver out / transfer out / debit / withdrawal / negative direction depending context. | Observed | Observed | Trade Blotter/import context | Unknown | Medium Confidence |

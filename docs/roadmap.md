@@ -1065,7 +1065,7 @@ classify Axys/APX transaction semantics safely.
 | 4 | Fixed-income accrued-interest, maturity, and principal-paydown cases (`pa`, `sa`, `ai`, `pd`) | Test-only first, then packaged demo when accounting rules are deterministic | Bond or amortizing security type, accrued-interest treatment, cash offset, principal movement, gain/loss or income treatment, local mapping or REP evidence. | `pa`/`sa` now have a narrow packaged paired-trade story plus test-only local variants. `pd` now has a narrow packaged principal-paydown story with MBS/amortizing-security, principal-paydown, and portfolio-cash destination context. Keep `ai` out of the packaged demo until holdings, accrual, cash, `secperf.csv`, and `portperf.csv` all derive from one coherent scenario intent. |
 | 5 | Return of capital (`rc`) and principal paydown (`pd`) | Test-only first, packaged demo only with explicit context | Security, amount sign, local mapping or REP/report treatment, and whether return is Modified Dietz performance income or review-only corporate-action evidence. | The packaged demo now includes context-gated `rc` and `pd` rows, while test-only site variants continue to prove local override profiles. Cost, principal, and amortization handling are best-efforts demo-construction context, not the driver of Modified Dietz classification. |
 | 6 | Real-world split / corporate action evidence | Packaged demo for one coherent story; test-only for broader variants | Actual historical date/security, split ratio, quantity and price treatment, report evidence, and a policy for whether it is explanatory or review-only. | The packaged demo includes a CVNA 5-for-1 split-processing correction in May 2026. Additional user-facing split examples should add a new reviewer lesson; synthetic corporate-action fixtures belong in clearly labeled test-only data. |
-| 7 | Short sale / cover short (`ss`, `cs`) | Test-only first | Short/security type, cash/margin/short symbols, amount/quantity signs, and reviewed local treatment. | Keep as backlog until the project has enough short-account evidence to avoid implying a universal Axys/APX convention. |
+| 7 | Short sale / cover short (`ss`, `cs`) | Packaged synthetic demo plus test-only variants | Lowercase code, short/security type or resulting negative exposure, cash/margin/short symbols, source/destination context, amount/quantity signs, and reviewed local treatment. | Public APX integration evidence now strongly supports `ss` as short sale and `cs` as cover short. The packaged demo includes one disclosed same-period TSLA short sale / cover short lifecycle using real May 2026 prices; production use still needs local short-account evidence so ppar does not imply universal cash/proceeds or holdings conventions. |
 | 8 | Correction/cancellation/reversal-like uppercase rows | Test-only first | Link to original transaction or enough matching fields to identify the reversal target. | Demonstrate review-only or correction behavior without treating an unlinked uppercase row as a new economic event. |
 
 #### Phase 8A: Realistic Transaction Expansion Gate
@@ -1641,12 +1641,18 @@ separate reviewer decisions rather than interchangeable labels.
 
 Status: complete for the current backlog contract.
 
-`ss` and `cs` remain short-side evidence gates. They need short security type,
-cash, margin, or short-account symbols, amount and quantity signs, and local
-mapping or REP/report semantics before ppar can classify them.
+`ss` and `cs` remain short-side evidence gates. Public APX integration evidence
+now strongly supports `ss` as short sale and `cs` as cover short. The packaged
+demo now includes one disclosed same-period TSLA short sale / cover short
+lifecycle using real May 2026 prices, separate proceeds and cover cash movement,
+no external-flow treatment, and realized loss on cover. Production rows still
+need short security type or resulting negative exposure, cash, margin, or
+short-account symbols, source/destination context, amount and quantity signs,
+and local mapping or REP/report semantics before ppar can classify them.
 
 Code-only short-side rows stay `unknown`; the project does not infer universal
-short-account treatment from the Axys/APX code alone.
+short-account, short-proceeds, or holdings treatment from the Axys/APX code
+alone.
 
 #### Phase 12D: Matrix + Validator Reporting
 
@@ -1654,9 +1660,8 @@ Status: complete for the current validator surface.
 
 The demo matrix validator now reports `Capital-return and short-side backlog
 gates`. The check enforces that `rc` and `pd` are packaged only with explicit
-context, while `ss` and `cs` remain backlog rows with no fixture claims until
-the semantics matrix records enough policy and evidence to support
-classification.
+context, while `ss` and `cs` are packaged only in a disclosed synthetic
+same-period lifecycle and remain gated for code-only production treatment.
 
 ### Phase 13: Matrix Consolidation And Release Readiness
 

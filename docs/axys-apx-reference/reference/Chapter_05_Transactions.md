@@ -1667,7 +1667,11 @@ paydown codes, while preserving the same evidence boundary.
                                                              not external
                                                              flow.
 
-  Short               `ss`                            Medium Short sale.
+  Short               `ss`                       Medium-High Short sale;
+                                                             exact signs and
+                                                             short-cash
+                                                             mechanics remain
+                                                             site-specific.
 
   Service charge      `dp` with                       Medium Fee-like.
                       `exus custfee`
@@ -1693,7 +1697,7 @@ observed research. It is not an official Axys/APX code dictionary.
 |---|---|---:|---|
 | `li` | Transfer / external-flow candidate | Often, not always | Candidate contribution or security-in-kind transfer; verify cash/security fields and firm mapping. |
 | `lo` | Transfer / external-flow candidate | Often, not always | Candidate withdrawal or outgoing security transfer; separate fees, corrections, and internal journals. |
-| `by`, `sl`, `ss`, `cs` | Trading activity | No | Affects holdings, cash, realized gain/loss, and exposure; validate price, quantity, commission, and settlement cash. |
+| `by`, `sl`, `ss`, `cs` | Trading activity | No | Affects holdings, cash, realized gain/loss, and exposure; validate price, quantity, commission, settlement cash, and short-account context for `ss`/`cs`. |
 | `dv`, `in` | Income | No | Affects income and cash unless reinvested or netted; validate expected dividend/coupon and pay-date treatment. |
 | `pa`, `sa` | Fixed-income trade adjunct | No | Validate accrued interest, settlement date, coupon schedule, day count, and total trade settlement. |
 | `ai` | Negative interest / margin interest / financing adjustment | No | Validate margin or negative-interest context, amount sign, margin cash/security markers, and financing-rate support. |
@@ -1722,6 +1726,7 @@ for ambiguous transaction families.
 | `in` / `ai` | Bond, cash, or margin | Real symbol or margin symbol | Client-specific | Client-specific | Interest, negative interest, or margin interest | No | Validate coupon, accrual, or margin-rate support. |
 | `pa` / `sa` | Bond or fixed-income security | Real symbol | Client-specific | Client-specific | Buy-side or sell-side accrued interest | No | Validate accrued interest, day count, and settlement economics; do not classify as external flow. |
 | `rc` / `pd` | Real security or bond/MBS | Real symbol | Usually `$pty` in ByAllAccounts mapping evidence | Usually `$cash` in ByAllAccounts mapping evidence | Return of capital or principal paydown | No | Confirm context before classification. The packaged demo uses narrow context-gated examples only. |
+| `ss` / `cs` | Shortable security or short-side account context | Real symbol | `ss` mapping evidence uses `awus`; `cs` mapping evidence uses `$pty` | `ss` mapping evidence uses no symbol; `cs` mapping evidence uses `$cash` | Short sale or cover short | No | Require lowercase code, short-position context, quantity, amount, and site cash/proceeds treatment. Uppercase `SS`/`CS` may be reversal/delete evidence. |
 
 ### 8.6 Observed Public Mapping Examples
 
@@ -1735,7 +1740,7 @@ contract and are not universal Axys transaction-code rules.
 | Withdrawal / check / payment | Cash out | `lo` | External outflow candidate; separate client withdrawal from fees and journals. |
 | Transfer | Positive / negative | `li` / `lo` | May be cash transfer, in-kind transfer, or internal movement. |
 | Buy / sell | Security | `by` / `sl` | Trade activity, not external flow. |
-| Short / cover short | Security | `ss` / `cs` | Trade activity; validate short exposure and cash signs. |
+| Short / cover short | Security | `ss` / `cs` | Trade activity; validate short exposure, source/destination fields, cash/proceeds treatment, and quantity/amount signs. |
 | Dividend / reinvestment | Income plus buy | `dv`, `by`, `dvwash` | Link paired legs and avoid double-counting income or wash cash. |
 | Interest / negative interest | Positive / negative | `in` / `ai` | Separate income from margin or financing expense. |
 | Accrued interest on buy/sell | Fixed-income trade adjunct | `pa` / `sa` | Part of bond trade settlement economics; not client external cash flow. |
@@ -2677,8 +2682,8 @@ performance-report methodology.
 |---|---|---|
 | `rc` | Return of capital. ByAllAccounts Axys/APX default translation evidence maps return-of-capital activity to `rc`, with `$pty` and `$cash` source/destination context. | Policy-gated. Public evidence confirms the translation mapping and cash destination, but not native tax-lot, cost-basis, or performance-report treatment. Do not classify from code alone. |
 | `pd` | Principal paydown / bond-security return-of-capital event. ByAllAccounts translation evidence maps bond-security return-of-capital activity to `pd`, again with portfolio-cash destination context; Morningstar Axys conversion evidence discusses principal paydown rows and zero share quantity. | Fixed-income principal event, not ordinary interest income or client external flow. The packaged demo includes only a narrow context-gated MBS/amortizing-security example with cash receipt, principal/holding evidence, and performance-report treatment. |
-| `ss` | Short sale / sell short candidate. | Requires short security type, cash/margin/short-account context, and verified amount/quantity sign conventions. |
-| `cs` | Cover short / buy-cover-short candidate. | Requires the same short-account context as `ss`; keep lowercase economic cover-short treatment separate from uppercase cancellation/delete patterns. |
+| `ss` | Short sale / sell short. ByAllAccounts APX mapping evidence maps `SELL / SHORT` to lowercase `ss`. | Requires short security type or resulting negative exposure, cash/margin/short-account context, source/destination evidence, and verified amount/quantity sign conventions. Uppercase `SS` may be reversal/delete evidence. |
+| `cs` | Cover short / buy-cover-short. ByAllAccounts APX mapping evidence maps `BUY / COVER SHORT` to lowercase `cs`. | Requires prior or resulting short exposure plus cash/margin/short-account context. Keep lowercase economic cover-short treatment separate from uppercase cancellation/delete patterns. |
 | `;` | Journal, Other, or locally materialized split marker. Public integration evidence maps split/journal/other concepts to `;`, but newer split-file evidence indicates normal Axys split support is central `split.inf` factor data rather than ordinary account-level transactions. | Marker/comment/corporate-action evidence unless local mapping proves a specific economic role. Prefer split-factor extracts for packaged or audited split scenarios. |
 
 ### 18.1 `pd` Principal Paydown Boundary
@@ -2752,9 +2757,20 @@ but a safe performance interpretation needs more than the code:
 - realized gain/loss or lot-closure treatment when a short is covered; and
 - reported performance treatment for the short exposure.
 
-Until those items are available in a coherent source-data scenario, `ss` and
-`cs` are better suited to tested site-variant YAML and onboarding override
-examples than to the default packaged Axys/APX demo.
+The 2026-07-07 short-lifecycle research supports a controlled synthetic demo
+when the assumptions are disclosed: negative short quantity, negative short
+market value, separate short-proceeds or margin/short-cash handling, no client
+external-flow treatment, and realized gain/loss on cover. That is a defensible
+demo model, not a universal production rule.
+
+The packaged Axys/APX performance-comparison demo uses that boundary for one
+same-period TSLA `ss` / `cs` lifecycle with real May 2026 prices and explicit
+source/destination context. It is included to show reviewer behavior, not to
+claim universal native Axys/APX short-account mechanics.
+
+For production rows, `ss` and `cs` remain better suited to tested site-variant
+YAML and onboarding override examples unless the extract proves the local
+short-position and cash/proceeds mechanics.
 
 ### 18.4 Concrete Example Gap
 
@@ -2770,3 +2786,7 @@ comment/import examples. It did **not** find public sanitized examples of:
 
 Those examples remain the highest-value evidence needed before broad packaged
 demo promotion.
+
+The short-lifecycle research reduces the demo-design gap for `ss` and `cs`, but
+it does not remove the need for native customer or vendor rows before promoting
+code-only production classification.

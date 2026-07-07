@@ -37,6 +37,13 @@ observed public mappings, dividend reinvestment may use `dv`, `by`, and
 `dvwash`, while margin-interest handling may use `ai` with margin cash
 context; neither pattern should be treated as an external cash flow.
 
+The same conservative boundary applies to short-side activity. The 2026-07-07
+short-lifecycle research supports modeling lowercase `ss` and `cs` as internal
+trades in a disclosed synthetic demo, with negative short exposure, separate
+short-proceeds or margin/short-cash handling, and realized gain/loss on cover.
+It does not support code-only production classification without local holdings,
+cash/proceeds, source/destination, and report evidence.
+
 ### 1.1 Confidence labels
 
 | Label | Meaning in this chapter |

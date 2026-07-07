@@ -226,6 +226,8 @@ _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
     "dp",
     "pd",
     "rc",
+    "ss",
+    "cs",
 }
 _CASH_SECURITY_ID: Final = "CASH_USD"
 _EXPECTED_SCENARIO_COVERAGE: Final = {
@@ -242,6 +244,8 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "rc": 1,
             "sa": 1,
             "sl": 2,
+            "ss": 1,
+            "cs": 1,
             "wd": 1,
         },
         "transaction_derived_holdings_by_type": {
@@ -256,6 +260,8 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "rc": 1,
             "sa": 1,
             "sl": 4,
+            "ss": 1,
+            "cs": 1,
             "wd": 1,
         },
         "holding_scenarios_by_type": {
@@ -931,6 +937,26 @@ def _transaction_derived_holding_adjustments(
                     holding_date=holding_date,
                     cash_delta=float(row.AMOUNT_delta),
                     scenario=f"{row.TRANSACTION_ID} by transaction changes cash balance.",
+                )
+            )
+        elif transaction_code == "ss":
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=f"{row.TRANSACTION_ID} ss transaction changes cash balance.",
+                )
+            )
+        elif transaction_code == "cs":
+            adjustments.append(
+                _cash_adjustment(
+                    snapshot_name,
+                    portfolio=str(row.PORT),
+                    holding_date=holding_date,
+                    cash_delta=float(row.AMOUNT_delta),
+                    scenario=f"{row.TRANSACTION_ID} cs transaction changes cash balance.",
                 )
             )
         elif transaction_code == "sl":

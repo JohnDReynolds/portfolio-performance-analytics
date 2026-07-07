@@ -2928,6 +2928,9 @@ def _workbook_transaction_quantity_holding_effect(
     change_number = _number_or_none(_workbook_row_change_value(row))
     if change_number is None:
         return ""
+    transaction_code = _format_value(row.get(_pc_findings.TRANSACTION_CODE)).lower()
+    if transaction_code in {"ss", "cs"}:
+        return ""
     transaction_category = row.get(_pc_findings.TRANSACTION_CATEGORY)
     if transaction_category == TRANSACTION_CATEGORY_BUY:
         return "decrease" if change_number < 0 else "increase"

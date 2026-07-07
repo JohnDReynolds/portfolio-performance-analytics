@@ -525,8 +525,8 @@ This table is an observed-code catalog, not an official transaction-code matrix.
 | `by` | Buy. | Observed | Observed | Medium Confidence |
 | `BY` | Uppercase cancellation/deletion/reversal example. | Observed | Observed | Medium Confidence |
 | `sl` / `SL` | Sell / uppercase cancellation example. | Observed in contexts | Observed | Medium Confidence |
-| `ss` / `SS` | Short sale / uppercase cancellation example. | Observed in contexts | Observed | Medium Confidence |
-| `cs` / `CS` | Cover short / uppercase cancellation example. | Observed in contexts | Observed | Medium Confidence |
+| `ss` / `SS` | Lowercase `ss` maps to short sale in APX integration evidence; uppercase `SS` may be cancellation/delete evidence. | Observed in contexts | Observed | Medium-High for code meaning; Unknown native mechanics |
+| `cs` / `CS` | Lowercase `cs` maps to cover short in APX integration evidence; uppercase `CS` may be cancellation/delete evidence. | Observed in contexts | Observed | Medium-High for code meaning; Unknown native mechanics |
 | `li` | Deliver in / transfer in / credit / deposit depending context. | Observed | Observed | Medium Confidence |
 | `lo` | Deliver out / transfer out / debit / withdrawal depending context. | Observed | Observed | Medium Confidence |
 | `dv` | Dividend / income / reinvestment leg in examples. | Observed in contexts | Observed | Medium Confidence |

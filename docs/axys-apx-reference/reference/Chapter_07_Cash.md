@@ -167,8 +167,8 @@ The following table catalogs observed codes from supplied research. These are no
 | `rc` | Return of capital. | Maps to portfolio cash context (`$pty` / `$cash`) in ByAllAccounts Axys/APX translation evidence. | Observed | Observed in transaction research | Confirmed in integration mapping evidence |
 | `pd` | Return of capital for bond security / principal paydown. | Maps to `$pty` / `$cash` portfolio-cash context in ByAllAccounts Axys/APX translation evidence; classify only with MBS/ABS/amortizing-security paydown context. | Observed | Observed in transaction research | Confirmed in integration mapping evidence |
 | `sa` | Sale accrued interest / sell-side accrued interest. | Income/cash-related fixed-income trade adjunct. | Observed | Observed in transaction research | High Confidence as observed |
-| `cs` | Cover short / negative closure leg. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
-| `ss` | Short sale. | Short/cash-related. | Observed | Observed in transaction research | High Confidence as observed |
+| `cs` | Cover short / negative closure leg. | Cash/security cash-impacting; APX integration mapping points to `$pty / $cash`, but exact sign mechanics remain site-specific. | Observed | Observed in transaction research | Medium-High for code meaning |
+| `ss` | Short sale. | Cash/security cash-impacting; APX integration mapping points to `awus / none`, so unrestricted cash treatment is not safe to assume. | Observed | Observed in transaction research | Medium-High for code meaning |
 
 `li` and `lo` are best treated as external-flow candidates rather than
 automatic contribution/withdrawal conclusions. A true client cash
@@ -239,6 +239,7 @@ Implementation note: because cash balances may be derived, reported, stored, or 
 |---|---|---:|
 | Money market sweep vehicles may look like holdings or cash depending on extract/report path. | Downstream tools should explicitly decide whether to treat sweep vehicles as cash, securities, or both. | High Confidence |
 | Margin and short cash require separate handling. | Do not assume all cash-like symbols represent unrestricted long cash. | High Confidence |
+| Short-sale proceeds require site-specific cash evidence. | Public APX integration evidence maps `ss` differently from ordinary sells, so do not assume short-sale proceeds post to unrestricted portfolio cash without source/destination or report support. A synthetic demo may disclose a `SHORT`, margin, collateral, or short-proceeds bucket. | Medium-High for mapping evidence; Unknown native mechanics |
 | Dividend-wash and income-like symbols are excluded from sweep-removal logic in AIA workflows. | Treat `dvwash`, `dvshrt`, `dvlong`, `cashrt`, `calong`, and `income` cautiously. | High Confidence |
 | Margin-interest mappings may use margin cash context such as `caus margin`. | Separate financing expense from external cash-flow treatment. | High Confidence as observed mapping guidance |
 | Native definitions of many symbols are not supplied. | Do not promote observed tokens into authoritative native field definitions. | Unknown |

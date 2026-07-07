@@ -80,6 +80,8 @@ _PACKAGED_DEMO_TRANSACTION_CODES = {
     "pd",
     "rc",
     "sa",
+    "ss",
+    "cs",
     "wd",
 }
 _TEST_ONLY_TRANSACTION_CODES: set[str] = set()
@@ -917,11 +919,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["snapshot_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["snapshot_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 14)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 16)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_scenarios_by_type"],
             {
                 "by": 2,
+                "cs": 1,
                 "dp": 1,
                 "dv": 1,
                 "in": 1,
@@ -932,14 +935,16 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "rc": 1,
                 "sa": 1,
                 "sl": 2,
+                "ss": 1,
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 19)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 21)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 4,
+                "cs": 1,
                 "dp": 1,
                 "dv": 1,
                 "in": 1,
@@ -950,6 +955,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "rc": 1,
                 "sa": 1,
                 "sl": 4,
+                "ss": 1,
                 "wd": 1,
             },
         )
@@ -1032,7 +1038,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 19)
+        self.assertEqual(len(adjustments), 21)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1047,6 +1053,20 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             security="CASH_USD",
             holding_date="2026-01-30",
             deltas={"QTY": -1500.0, "MKT_VAL": -1500.0, "COST": -1500.0},
+        )
+        self._assert_adjustment(
+            by_scenario["BALANCED0603 ss transaction changes cash balance."],
+            portfolio="BALANCED",
+            security="CASH_USD",
+            holding_date="2026-05-29",
+            deltas={"QTY": 21112.0, "MKT_VAL": 21112.0, "COST": 21112.0},
+        )
+        self._assert_adjustment(
+            by_scenario["BALANCED0604 cs transaction changes cash balance."],
+            portfolio="BALANCED",
+            security="CASH_USD",
+            holding_date="2026-05-29",
+            deltas={"QTY": -21789.5, "MKT_VAL": -21789.5, "COST": -21789.5},
         )
         self._assert_adjustment(
             by_scenario["INCOME0203 dp transaction changes cash balance."],

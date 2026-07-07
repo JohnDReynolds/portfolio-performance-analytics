@@ -581,3 +581,23 @@ APX Performance Overview report is an official report-guide lead for
 multi-period portfolio performance and benchmark comparison. APX performance
 tables/views/procedures, benchmark fields, attribution formulas, and
 stored-versus-recalculated behavior remain Unknown.
+
+## Short Lifecycle Performance Addendum Incorporated 2026-07-07
+
+The `temp_axys_apx_short_lifecycle_accounting_reporting.md` research supports a
+controlled synthetic performance scenario for lowercase `ss` and `cs` when
+assumptions are disclosed. In that model:
+
+- `ss` creates or increases short exposure and related proceeds/collateral
+  mechanics;
+- `cs` reduces or closes the short exposure;
+- open short exposure may be modeled with negative quantity and negative market
+  value;
+- realized gain/loss occurs when the short is covered; and
+- neither `ss` nor `cs` is treated as a client contribution or withdrawal for
+  Modified Dietz.
+
+This is a defensible demo convention, not public proof of universal native
+Axys/APX report behavior. Production interpretation still needs local evidence
+for holdings signs, cash/proceeds buckets, source/destination fields, and
+reported performance treatment.

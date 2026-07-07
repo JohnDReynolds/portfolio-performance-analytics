@@ -768,7 +768,8 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
     expected.update(
         {
             code: (
-                "Test-only site variant",
+                "Packaged demo covers",
+                "test-only site variant",
                 "Code-only treatment remains unknown",
             )
             for code in SHORT_SIDE_BACKLOG_TRANSACTION_CODES
@@ -800,7 +801,7 @@ def _check_capital_return_and_short_side_backlog_gates() -> _ScenarioCheck:
     return _ScenarioCheck(
         "Capital-return and short-side candidate gates",
         True,
-        "rc and pd are packaged only with explicit context; ss/cs remain test-only",
+        "rc, pd, ss, and cs are packaged only with explicit context",
     )
 
 

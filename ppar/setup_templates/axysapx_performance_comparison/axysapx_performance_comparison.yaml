@@ -253,6 +253,11 @@ transaction_rules:
   #   requires explicit return-of-capital context. pd requires amortizing
   #   fixed-income/MBS/ABS principal-paydown context and is modeled as a
   #   security-level principal flow, not an investor external flow.
+  #   ss and cs are included only for the controlled synthetic short-side demo.
+  #   The demo assumes lowercase ss/cs, real equity prices, no client external
+  #   flow, and cash/proceeds treatment visible in the source rows. Production
+  #   sites should confirm local short-cash and position-sign conventions before
+  #   relying on these rules.
   #   Keep ";" as a defensive corporate-action/journal guardrail.
   #   Override it only when a real event and reviewed local policy support a
   #   more specific treatment.
@@ -264,6 +269,22 @@ transaction_rules:
     transaction_category: sell
     cash_flow_sign: positive
     performance_flow_sign: performance
+  ss:
+    - when:
+        security_type: csus
+        source_destination_type: awus
+        source_destination_symbol: none
+      transaction_category: sell
+      cash_flow_sign: positive
+      performance_flow_sign: performance
+  cs:
+    - when:
+        security_type: csus
+        source_destination_type: $pty
+        source_destination_symbol: $cash
+      transaction_category: buy
+      cash_flow_sign: negative
+      performance_flow_sign: performance
   dv:
     transaction_category: income
     cash_flow_sign: positive
