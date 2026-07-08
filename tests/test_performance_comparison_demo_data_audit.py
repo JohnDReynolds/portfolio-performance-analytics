@@ -805,6 +805,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             (pl.col("dataset") == pc_cols.TRANSACTIONS)
             & (pl.col("source_column") == pc_cols.AMOUNT)
             & (pl.col("security_id") == "JPM")
+            & (pl.col("snapshot_b_value") == 240.0)
             & pl.col("review_guidance").str.starts_with("rc:")
         )
 

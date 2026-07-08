@@ -397,7 +397,7 @@ def write_performance_comparison_report_bundle(
     )
     _remove_legacy_root_supporting_files(
         bundle_directory,
-        table_names=tables.keys(),
+        table_names=tuple(tables.keys()),
     )
 
     paths: dict[str, Path] = {}

@@ -498,7 +498,8 @@ def _artifact_references(
         try:
             reference = path.resolve().relative_to(root)
         except ValueError:
-            reference = path.name
+            references[name] = path.name
+            continue
         references[name] = reference.as_posix()
     return references
 

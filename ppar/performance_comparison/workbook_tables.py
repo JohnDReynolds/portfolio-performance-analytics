@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import datetime as _dt
 from pathlib import Path
+from typing import cast
 
 # Third-party imports
 import polars as pl
@@ -485,7 +486,7 @@ def _workbook_portfolio_changes_table(
     )
     unresolved_keys = _workbook_unresolved_primary_keys_from_rows(
         coverage.iter_rows(named=True),
-        underlying_totals,
+        cast(Mapping[tuple[object, ...], float], underlying_totals),
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
     )
     possible_cause_comments = _workbook_possible_cause_comments(
@@ -803,7 +804,7 @@ def _workbook_security_changes_table(
     if not summary.is_empty():
         unresolved_keys = _workbook_unresolved_primary_keys_from_rows(
             summary.iter_rows(named=True),
-            security_totals,
+            cast(Mapping[tuple[object, ...], float], security_totals),
             comparison_level=comparison_level,
         )
         possible_cause_comments = _workbook_possible_cause_comments(
@@ -2259,13 +2260,13 @@ def _workbook_raw_audit_trail_table(
     )
     rows: list[dict[str, object]] = []
     for row in source_rows:
-        row = _workbook_raw_audit_enriched_row(
+        enriched_row = _workbook_raw_audit_enriched_row(
             row,
             cash_security_matches,
             comparison_level=comparison_level,
         )
         workbook_row = _workbook_changed_item_row(
-            row,
+            enriched_row,
             comparison_path=comparison_path,
         )
         raw_values = {
