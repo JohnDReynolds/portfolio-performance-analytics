@@ -939,19 +939,19 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 21)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 28)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
-                "by": 4,
+                "by": 6,
                 "cs": 1,
                 "dp": 1,
                 "dv": 1,
-                "in": 1,
+                "in": 3,
                 "li": 1,
                 "lo": 1,
-                "pa": 1,
-                "pd": 2,
+                "pa": 2,
+                "pd": 4,
                 "rc": 1,
                 "sa": 1,
                 "sl": 4,
@@ -1016,6 +1016,95 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertGreaterEqual(len(issues), 1)
         self.assertEqual(issues[0].check, "scenario_coverage")
 
+    def test_scenario_calendar_covers_intentional_demo_rows(self) -> None:
+        """The simplification calendar covers every current intentional row."""
+        rebuild_module = _load_rebuild_module()
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+        holding_scenarios = rebuild_module._load_holding_scenarios(
+            rebuild_module._DEFAULT_HOLDING_SCENARIOS_PATH,
+        )
+        transaction_scenarios = rebuild_module._load_transaction_scenarios(
+            rebuild_module._DEFAULT_TRANSACTION_SCENARIOS_PATH,
+        )
+
+        issues = rebuild_module._audit_scenario_calendar(
+            calendar=calendar,
+            holding_scenarios=holding_scenarios,
+            transaction_scenarios=transaction_scenarios,
+            axys_directory=rebuild_module._DEFAULT_AXYS_DIRECTORY,
+        )
+
+        self.assertEqual(issues, [])
+
+    def test_scenario_calendar_density_identifies_periods_to_split(self) -> None:
+        """The calendar identifies legacy periods that still need simplification."""
+        rebuild_module = _load_rebuild_module()
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+
+        density_rows = rebuild_module._scenario_calendar_density(calendar)
+        density_by_period = {
+            (row["portfolio"], row["from_date"], row["thru_date"]): row
+            for row in density_rows
+        }
+
+        balanced_may = density_by_period[("BALANCED", "2026-05-01", "2026-05-29")]
+        income_february_buy = density_by_period[
+            ("INCOME", "2026-01-31", "2026-02-13")
+        ]
+        income_february_sell = density_by_period[
+            ("INCOME", "2026-02-14", "2026-02-27")
+        ]
+        income_may_mark = density_by_period[("INCOME", "2026-05-01", "2026-05-08")]
+        income_may_income = density_by_period[
+            ("INCOME", "2026-05-09", "2026-05-15")
+        ]
+        income_may_paydown = density_by_period[
+            ("INCOME", "2026-05-16", "2026-05-22")
+        ]
+        alpha_may = density_by_period[("ALPHA", "2026-05-01", "2026-05-29")]
+        self.assertEqual(balanced_may["current_difference_rows"], 5)
+        self.assertTrue(balanced_may["needs_intra_month_split"])
+        self.assertEqual(income_february_buy["current_difference_rows"], 2)
+        self.assertFalse(income_february_buy["needs_intra_month_split"])
+        self.assertEqual(income_february_sell["current_difference_rows"], 2)
+        self.assertFalse(income_february_sell["needs_intra_month_split"])
+        self.assertEqual(income_may_mark["current_difference_rows"], 1)
+        self.assertFalse(income_may_mark["needs_intra_month_split"])
+        self.assertEqual(income_may_income["current_difference_rows"], 2)
+        self.assertFalse(income_may_income["needs_intra_month_split"])
+        self.assertEqual(income_may_paydown["current_difference_rows"], 1)
+        self.assertFalse(income_may_paydown["needs_intra_month_split"])
+        self.assertEqual(alpha_may["current_difference_rows"], 2)
+        self.assertFalse(alpha_may["needs_intra_month_split"])
+
+    def test_period_split_plan_covers_crowded_periods(self) -> None:
+        """The split plan maps crowded current periods to simpler periods."""
+        rebuild_module = _load_rebuild_module()
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+        plan = rebuild_module._load_period_split_plan(
+            rebuild_module._DEFAULT_PERIOD_SPLIT_PLAN_PATH,
+        )
+
+        issues = rebuild_module._audit_period_split_plan(
+            plan=plan,
+            calendar=calendar,
+        )
+        planned_density_rows = rebuild_module._scenario_period_split_plan_summary(plan)
+        max_planned_difference_rows = max(
+            row["planned_difference_rows"]
+            for row in planned_density_rows
+        )
+
+        self.assertEqual(issues, [])
+        self.assertEqual(len(plan), 5)
+        self.assertLessEqual(max_planned_difference_rows, 2)
+
     def test_transaction_scenarios_create_expected_holding_impacts(self) -> None:
         """Transaction changes create the expected cash and security adjustments."""
         rebuild_module = _load_rebuild_module()
@@ -1038,7 +1127,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 21)
+        self.assertEqual(len(adjustments), 28)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,

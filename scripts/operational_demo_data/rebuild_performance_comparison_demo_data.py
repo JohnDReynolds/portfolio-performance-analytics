@@ -58,6 +58,12 @@ _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
 _DEFAULT_TRANSACTION_SCENARIOS_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_transaction_scenarios.csv"
 )
+_DEFAULT_SCENARIO_CALENDAR_PATH: Final = (
+    Path(__file__).resolve().parent / "performance_comparison_scenario_calendar.csv"
+)
+_DEFAULT_PERIOD_SPLIT_PLAN_PATH: Final = (
+    Path(__file__).resolve().parent / "performance_comparison_period_split_plan.csv"
+)
 _SNAPSHOT_DIRECTORIES: Final = ("snapshot_a", "snapshot_b")
 _BASE_SNAPSHOT_DIRECTORY: Final = "snapshot_a"
 _PERIOD_KEY: Final = ["PORTFOLIO_CODE", "FROM_DATE", "THRU_DATE"]
@@ -178,6 +184,36 @@ _TRANSACTION_SCENARIO_COLUMNS: Final = [
 ]
 _TRANSACTION_SCENARIO_KEY: Final = ["snapshot", "action", "TRANSACTION_ID", "scenario"]
 _TRANSACTION_SCENARIO_ACTIONS: Final = {"adjust", "insert"}
+_SCENARIO_CALENDAR_COLUMNS: Final = [
+    "scenario_key",
+    "scenario_source",
+    "portfolio",
+    "from_date",
+    "thru_date",
+    "scenario_family",
+    "primary_security",
+    "current_expected_difference_rows",
+    "future_max_expected_differences",
+    "notes",
+]
+_SCENARIO_CALENDAR_KEY: Final = "scenario_key"
+_SCENARIO_CALENDAR_SOURCES: Final = {"holding", "transaction"}
+_SCENARIO_CALENDAR_NUMERIC_COLUMNS: Final = [
+    "current_expected_difference_rows",
+    "future_max_expected_differences",
+]
+_SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS: Final = 2
+_PERIOD_SPLIT_PLAN_COLUMNS: Final = [
+    "scenario_key",
+    "portfolio",
+    "current_from_date",
+    "current_thru_date",
+    "planned_from_date",
+    "planned_thru_date",
+    "planned_difference_rows",
+    "notes",
+]
+_PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS: Final = ["planned_difference_rows"]
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
 _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
@@ -249,14 +285,14 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "wd": 1,
         },
         "transaction_derived_holdings_by_type": {
-            "by": 4,
+            "by": 6,
             "dp": 1,
             "dv": 1,
-            "in": 1,
+            "in": 3,
             "li": 1,
             "lo": 1,
-            "pa": 1,
-            "pd": 2,
+            "pa": 2,
+            "pd": 4,
             "rc": 1,
             "sa": 1,
             "sl": 4,
@@ -397,6 +433,16 @@ def main() -> int:
         comparison_path=args.comparison_path,
         holding_scenarios_path=args.holding_scenarios_path,
         transaction_scenarios_path=args.transaction_scenarios_path,
+        scenario_calendar_path=args.scenario_calendar_path,
+        period_split_plan_path=args.period_split_plan_path,
+    )
+    scenario_calendar = _load_scenario_calendar(args.scenario_calendar_path)
+    period_split_plan = _load_period_split_plan(args.period_split_plan_path)
+    summary["scenario_calendar_density"] = _scenario_calendar_density(
+        scenario_calendar,
+    )
+    summary["scenario_period_split_plan"] = _scenario_period_split_plan_summary(
+        period_split_plan,
     )
     summary["audit_issues"] = [asdict(issue) for issue in audit_issues]
     print(json.dumps(summary, indent=2))
@@ -414,6 +460,8 @@ def audit_demo_data(
     comparison_path: Path = _DEFAULT_COMPARISON_PATH,
     holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
     transaction_scenarios_path: Path = _DEFAULT_TRANSACTION_SCENARIOS_PATH,
+    scenario_calendar_path: Path = _DEFAULT_SCENARIO_CALENDAR_PATH,
+    period_split_plan_path: Path = _DEFAULT_PERIOD_SPLIT_PLAN_PATH,
 ) -> list[AuditIssue]:
     """Return packaged demo-data audit issues.
 
@@ -421,6 +469,14 @@ def audit_demo_data(
         axys_directory: Directory containing the packaged Axys/APX snapshots.
         comparison_path: Portfolio comparison YAML used for visible residual
             guardrails.
+        holding_scenarios_path: CSV containing intentional holding
+            adjustments.
+        transaction_scenarios_path: CSV containing intentional transaction
+            adjustments.
+        scenario_calendar_path: CSV mapping intentional scenario rows to the
+            demo periods they are meant to explain.
+        period_split_plan_path: CSV mapping crowded period scenario rows to
+            proposed intra-month periods.
 
     Returns:
         Audit issues. An empty list means the checked-in derived performance
@@ -473,6 +529,23 @@ def audit_demo_data(
     issues.extend(_audit_visible_portfolio_residuals(comparison_path))
     issues.extend(_audit_visible_security_residuals(comparison_path))
     issues.extend(_audit_scenario_coverage(rebuild_summary))
+    issues.extend(
+        _audit_scenario_calendar(
+            calendar=_load_scenario_calendar(scenario_calendar_path),
+            holding_scenarios=_load_holding_scenarios(holding_scenarios_path),
+            transaction_scenarios=_load_transaction_scenarios(
+                transaction_scenarios_path
+            ),
+            axys_directory=axys_directory,
+        )
+    )
+    scenario_calendar = _load_scenario_calendar(scenario_calendar_path)
+    issues.extend(
+        _audit_period_split_plan(
+            plan=_load_period_split_plan(period_split_plan_path),
+            calendar=scenario_calendar,
+        )
+    )
     return issues
 
 
@@ -916,132 +989,149 @@ def _transaction_derived_holding_adjustments(
         transaction_code = str(row.TRAN)
         if transaction_code not in _TRANSACTION_HOLDING_EFFECT_CODES:
             continue
-        holding_date = _period_end_for_transaction(periods, row.PORT, row.TRANSACTION_DATE)
-        if transaction_code == "by":
-            adjustments.append(
-                _security_trade_adjustment(
-                    snapshot_name,
-                    holdings=holdings,
-                    transaction_code=transaction_code,
-                    portfolio=str(row.PORT),
-                    security=str(row.SEC),
-                    holding_date=holding_date,
-                    quantity_delta=float(row.QTY_delta),
-                    scenario=f"{row.TRANSACTION_ID} by transaction changes ending holding.",
+        holding_dates = _holding_dates_for_transaction_effect(
+            periods,
+            str(row.PORT),
+            row.TRANSACTION_DATE,
+        )
+        for holding_date in holding_dates:
+            if transaction_code == "by":
+                adjustments.append(
+                    _security_trade_adjustment(
+                        snapshot_name,
+                        holdings=holdings,
+                        transaction_code=transaction_code,
+                        portfolio=str(row.PORT),
+                        security=str(row.SEC),
+                        holding_date=holding_date,
+                        quantity_delta=float(row.QTY_delta),
+                        scenario=(
+                            f"{row.TRANSACTION_ID} by transaction changes "
+                            "ending holding."
+                        ),
+                    )
                 )
-            )
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} by transaction changes cash balance.",
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=f"{row.TRANSACTION_ID} by transaction changes cash balance.",
+                    )
                 )
-            )
-        elif transaction_code == "ss":
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} ss transaction changes cash balance.",
+            elif transaction_code == "ss":
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=f"{row.TRANSACTION_ID} ss transaction changes cash balance.",
+                    )
                 )
-            )
-        elif transaction_code == "cs":
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} cs transaction changes cash balance.",
+            elif transaction_code == "cs":
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=f"{row.TRANSACTION_ID} cs transaction changes cash balance.",
+                    )
                 )
-            )
-        elif transaction_code == "sl":
-            adjustments.append(
-                _security_trade_adjustment(
-                    snapshot_name,
-                    holdings=holdings,
-                    transaction_code=transaction_code,
-                    portfolio=str(row.PORT),
-                    security=str(row.SEC),
-                    holding_date=holding_date,
-                    quantity_delta=-float(row.QTY_delta),
-                    scenario=f"{row.TRANSACTION_ID} sl transaction changes ending holding.",
+            elif transaction_code == "sl":
+                adjustments.append(
+                    _security_trade_adjustment(
+                        snapshot_name,
+                        holdings=holdings,
+                        transaction_code=transaction_code,
+                        portfolio=str(row.PORT),
+                        security=str(row.SEC),
+                        holding_date=holding_date,
+                        quantity_delta=-float(row.QTY_delta),
+                        scenario=(
+                            f"{row.TRANSACTION_ID} sl transaction changes "
+                            "ending holding."
+                        ),
+                    )
                 )
-            )
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} sl transaction changes cash balance.",
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=f"{row.TRANSACTION_ID} sl transaction changes cash balance.",
+                    )
                 )
-            )
-        elif transaction_code == ";":
-            adjustments.append(
-                _security_trade_adjustment(
-                    snapshot_name,
-                    holdings=holdings,
-                    transaction_code=transaction_code,
-                    portfolio=str(row.PORT),
-                    security=str(row.SEC),
-                    holding_date=holding_date,
-                    quantity_delta=float(row.QTY_delta),
-                    scenario=f"{row.TRANSACTION_ID} ; transaction changes ending holding.",
+            elif transaction_code == ";":
+                adjustments.append(
+                    _security_trade_adjustment(
+                        snapshot_name,
+                        holdings=holdings,
+                        transaction_code=transaction_code,
+                        portfolio=str(row.PORT),
+                        security=str(row.SEC),
+                        holding_date=holding_date,
+                        quantity_delta=float(row.QTY_delta),
+                        scenario=(
+                            f"{row.TRANSACTION_ID} ; transaction changes "
+                            "ending holding."
+                        ),
+                    )
                 )
-            )
-        elif transaction_code in _ACCRUED_INTEREST_ADJUNCT_CODES:
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=(
-                        f"{row.TRANSACTION_ID} {transaction_code} transaction "
-                        "changes cash balance."
-                    ),
+            elif transaction_code in _ACCRUED_INTEREST_ADJUNCT_CODES:
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=(
+                            f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                            "changes cash balance."
+                        ),
+                    )
                 )
-            )
-        elif transaction_code == "pd":
-            principal_delta = -float(row.AMOUNT_delta)
-            adjustments.append(
-                _principal_paydown_adjustment(
-                    snapshot_name,
-                    holdings=holdings,
-                    portfolio=str(row.PORT),
-                    security=str(row.SEC),
-                    holding_date=holding_date,
-                    principal_delta=principal_delta,
-                    scenario=f"{row.TRANSACTION_ID} pd transaction changes ending holding.",
+            elif transaction_code == "pd":
+                principal_delta = -float(row.AMOUNT_delta)
+                adjustments.append(
+                    _principal_paydown_adjustment(
+                        snapshot_name,
+                        holdings=holdings,
+                        portfolio=str(row.PORT),
+                        security=str(row.SEC),
+                        holding_date=holding_date,
+                        principal_delta=principal_delta,
+                        scenario=(
+                            f"{row.TRANSACTION_ID} pd transaction changes "
+                            "ending holding."
+                        ),
+                    )
                 )
-            )
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=f"{row.TRANSACTION_ID} pd transaction changes cash balance.",
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=f"{row.TRANSACTION_ID} pd transaction changes cash balance.",
+                    )
                 )
-            )
-        elif _is_cash_balance_transaction(row):
-            adjustments.append(
-                _cash_adjustment(
-                    snapshot_name,
-                    portfolio=str(row.PORT),
-                    holding_date=holding_date,
-                    cash_delta=float(row.AMOUNT_delta),
-                    scenario=(
-                        f"{row.TRANSACTION_ID} {transaction_code} transaction "
-                        "changes cash balance."
-                    ),
+            elif _is_cash_balance_transaction(row):
+                adjustments.append(
+                    _cash_adjustment(
+                        snapshot_name,
+                        portfolio=str(row.PORT),
+                        holding_date=holding_date,
+                        cash_delta=float(row.AMOUNT_delta),
+                        scenario=(
+                            f"{row.TRANSACTION_ID} {transaction_code} transaction "
+                            "changes cash balance."
+                        ),
+                    )
                 )
-            )
     return tuple(adjustments)
 
 
@@ -1179,6 +1269,46 @@ def _period_end_for_transaction(
             f"{portfolio_code}/{transaction_date.date()}."
         )
     return pd.Timestamp(period_rows.iloc[0]["THRU_DATE"]).date().isoformat()
+
+
+def _holding_dates_for_transaction_effect(
+    periods: pd.DataFrame,
+    portfolio_code: str,
+    transaction_date: pd.Timestamp,
+) -> tuple[str, ...]:
+    """Return same-month holding dates affected by one transaction change.
+
+    Notes:
+        The operational demo rebuild is intentionally narrow. A transaction
+        affects the period-end holding date that contains it plus any later
+        holding dates in the same calendar month. This lets intra-month demo
+        periods carry a buy/sell/cash effect forward without changing the
+        legacy month-to-month fixture model.
+    """
+    primary_holding_date = _period_end_for_transaction(
+        periods,
+        portfolio_code,
+        transaction_date,
+    )
+    primary_timestamp = pd.Timestamp(primary_holding_date)
+    transaction_month = transaction_date.to_period("M")
+    period_rows = periods[
+        periods["PORTFOLIO_CODE"].eq(portfolio_code)
+        & (pd.to_datetime(periods["THRU_DATE"]).dt.to_period("M") == transaction_month)
+        & pd.to_datetime(periods["THRU_DATE"]).ge(primary_timestamp)
+    ].copy()
+    holding_dates = sorted(
+        {
+            pd.Timestamp(thru_date).date().isoformat()
+            for thru_date in period_rows["THRU_DATE"]
+        }
+    )
+    if primary_holding_date not in holding_dates:
+        raise ValueError(
+            "Transaction effect did not include its primary holding date: "
+            f"{portfolio_code}/{transaction_date.date()}."
+        )
+    return tuple(holding_dates)
 
 
 def _security_trade_adjustment(
@@ -1536,6 +1666,153 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
             )
         )
     return TransactionScenarioSet(tuple(adjustments), path)
+
+
+def _load_scenario_calendar(path: Path) -> pd.DataFrame:
+    """Return the validated scenario calendar used by demo simplification work.
+
+    Args:
+        path: CSV mapping each intentional scenario row to a portfolio period
+            and short scenario family.
+
+    Returns:
+        Validated scenario calendar rows in file order.
+
+    Raises:
+        ValueError: If the CSV has unexpected columns, duplicate keys, unknown
+            sources, invalid dates, or invalid row-count expectations.
+    """
+    calendar = pd.read_csv(path, keep_default_na=False)
+    missing_columns = [
+        column for column in _SCENARIO_CALENDAR_COLUMNS if column not in calendar.columns
+    ]
+    extra_columns = [
+        column for column in calendar.columns if column not in _SCENARIO_CALENDAR_COLUMNS
+    ]
+    if missing_columns or extra_columns:
+        raise ValueError(
+            "Scenario calendar CSV columns must exactly match "
+            f"{_SCENARIO_CALENDAR_COLUMNS}. "
+            f"Missing={missing_columns}; extra={extra_columns}."
+        )
+
+    required_text_columns = [
+        column
+        for column in _SCENARIO_CALENDAR_COLUMNS
+        if column not in _SCENARIO_CALENDAR_NUMERIC_COLUMNS
+    ]
+    blank_rows = calendar[required_text_columns].map(lambda value: not str(value).strip())
+    if bool(blank_rows.any().any()):
+        raise ValueError("Scenario calendar rows must not have blank key text values.")
+
+    duplicate_keys = calendar.duplicated([_SCENARIO_CALENDAR_KEY], keep=False)
+    if bool(duplicate_keys.any()):
+        duplicates = calendar.loc[
+            duplicate_keys,
+            [_SCENARIO_CALENDAR_KEY],
+        ].to_dict("records")
+        raise ValueError(f"Duplicate scenario calendar keys are not allowed: {duplicates}.")
+
+    unknown_sources = sorted(
+        set(calendar["scenario_source"]) - _SCENARIO_CALENDAR_SOURCES
+    )
+    if unknown_sources:
+        raise ValueError(
+            "Scenario calendar source must be one of "
+            f"{sorted(_SCENARIO_CALENDAR_SOURCES)}. "
+            f"Unsupported sources={unknown_sources}."
+        )
+
+    for date_column in ("from_date", "thru_date"):
+        parsed_dates = pd.to_datetime(calendar[date_column], errors="coerce")
+        if bool(parsed_dates.isna().any()):
+            raise ValueError(f"Scenario calendar {date_column} values must be dates.")
+
+    converted_counts = calendar[_SCENARIO_CALENDAR_NUMERIC_COLUMNS].apply(
+        pd.to_numeric,
+        errors="coerce",
+    )
+    if bool(converted_counts.isna().any().any()):
+        raise ValueError("Scenario calendar expected row counts must be numeric.")
+    calendar = calendar.copy()
+    for column in _SCENARIO_CALENDAR_NUMERIC_COLUMNS:
+        calendar[column] = converted_counts[column].astype(int)
+    invalid_counts = (
+        calendar["current_expected_difference_rows"] <= 0
+    ) | (
+        calendar["future_max_expected_differences"]
+        < calendar["current_expected_difference_rows"]
+    )
+    if bool(invalid_counts.any()):
+        raise ValueError(
+            "Scenario calendar future row limits must be positive and at least "
+            "the current expected row count."
+        )
+    return calendar
+
+
+def _load_period_split_plan(path: Path) -> pd.DataFrame:
+    """Return the validated intra-month period split plan.
+
+    Args:
+        path: CSV mapping crowded calendar scenario rows to proposed shorter
+            periods.
+
+    Returns:
+        Validated split-plan rows in file order.
+
+    Raises:
+        ValueError: If columns, dates, or planned row counts are invalid.
+    """
+    plan = pd.read_csv(path, keep_default_na=False)
+    missing_columns = [
+        column for column in _PERIOD_SPLIT_PLAN_COLUMNS if column not in plan.columns
+    ]
+    extra_columns = [
+        column for column in plan.columns if column not in _PERIOD_SPLIT_PLAN_COLUMNS
+    ]
+    if missing_columns or extra_columns:
+        raise ValueError(
+            "Period split plan CSV columns must exactly match "
+            f"{_PERIOD_SPLIT_PLAN_COLUMNS}. "
+            f"Missing={missing_columns}; extra={extra_columns}."
+        )
+
+    required_text_columns = [
+        column
+        for column in _PERIOD_SPLIT_PLAN_COLUMNS
+        if column not in _PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS
+    ]
+    blank_rows = plan[required_text_columns].map(lambda value: not str(value).strip())
+    if bool(blank_rows.any().any()):
+        raise ValueError("Period split plan rows must not have blank key text values.")
+    duplicate_keys = plan.duplicated(["scenario_key"], keep=False)
+    if bool(duplicate_keys.any()):
+        duplicates = plan.loc[duplicate_keys, ["scenario_key"]].to_dict("records")
+        raise ValueError(f"Duplicate period split plan keys are not allowed: {duplicates}.")
+
+    for date_column in (
+        "current_from_date",
+        "current_thru_date",
+        "planned_from_date",
+        "planned_thru_date",
+    ):
+        parsed_dates = pd.to_datetime(plan[date_column], errors="coerce")
+        if bool(parsed_dates.isna().any()):
+            raise ValueError(f"Period split plan {date_column} values must be dates.")
+
+    converted_counts = plan[_PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS].apply(
+        pd.to_numeric,
+        errors="coerce",
+    )
+    if bool(converted_counts.isna().any().any()):
+        raise ValueError("Period split plan expected row counts must be numeric.")
+    plan = plan.copy()
+    for column in _PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS:
+        plan[column] = converted_counts[column].astype(int)
+    if bool((plan["planned_difference_rows"] <= 0).any()):
+        raise ValueError("Period split plan row counts must be positive.")
+    return plan
 
 
 def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
@@ -2113,6 +2390,335 @@ def _audit_scenario_coverage(rebuild_summary: dict[str, object]) -> list[AuditIs
     return issues
 
 
+def _audit_scenario_calendar(
+    *,
+    calendar: pd.DataFrame,
+    holding_scenarios: HoldingScenarioSet,
+    transaction_scenarios: TransactionScenarioSet,
+    axys_directory: Path,
+) -> list[AuditIssue]:
+    """Return issues when scenario rows are missing calendar period guardrails.
+
+    The calendar is a planning/audit layer for the Axys/APX demo simplification.
+    It does not drive rebuild behavior yet; it records where each intentional
+    source-data difference currently appears and which periods should be split
+    in later phases.
+    """
+    issues: list[AuditIssue] = []
+    expected_counts: dict[str, int] = {}
+    for adjustment in transaction_scenarios.adjustments:
+        key = _transaction_scenario_calendar_key(adjustment)
+        expected_counts[key] = expected_counts.get(key, 0) + 1
+    for adjustment in holding_scenarios.adjustments:
+        key = _holding_scenario_calendar_key(adjustment)
+        expected_counts[key] = expected_counts.get(key, 0) + 1
+
+    calendar_counts = {
+        str(row.scenario_key): int(row.current_expected_difference_rows)
+        for row in calendar.itertuples(index=False)
+    }
+    for key in sorted(set(expected_counts) - set(calendar_counts)):
+        issues.append(
+            AuditIssue(
+                check="scenario_calendar",
+                detail=f"Scenario row is missing from the simplification calendar: {key}.",
+            )
+        )
+    for key in sorted(set(calendar_counts) - set(expected_counts)):
+        issues.append(
+            AuditIssue(
+                check="scenario_calendar",
+                detail=f"Scenario calendar key no longer matches a scenario row: {key}.",
+            )
+        )
+    for key in sorted(set(expected_counts) & set(calendar_counts)):
+        if expected_counts[key] != calendar_counts[key]:
+            issues.append(
+                AuditIssue(
+                    check="scenario_calendar",
+                    detail=(
+                        "Scenario calendar expected row count changed: "
+                        f"{key}; expected={expected_counts[key]}; "
+                        f"calendar={calendar_counts[key]}."
+                    ),
+                )
+            )
+
+    period_keys = _demo_portfolio_period_keys(axys_directory)
+    for row in calendar.itertuples(index=False):
+        period_key = (str(row.portfolio), str(row.from_date), str(row.thru_date))
+        if period_key not in period_keys:
+            issues.append(
+                AuditIssue(
+                    check="scenario_calendar",
+                    portfolio=str(row.portfolio),
+                    from_date=str(row.from_date),
+                    thru_date=str(row.thru_date),
+                    detail=(
+                        "Scenario calendar references a portfolio period that "
+                        f"is not in the packaged demo: {row.scenario_key}."
+                    ),
+                )
+            )
+    return issues
+
+
+def _scenario_calendar_density(calendar: pd.DataFrame) -> list[dict[str, object]]:
+    """Return current scenario-row density by portfolio period.
+
+    The target is intentionally a planning metric rather than a hard audit
+    failure. Current legacy demo periods can exceed the target while future
+    simplification phases split those stories into cleaner intra-month periods.
+    """
+    density_rows: list[dict[str, object]] = []
+    period_columns = ["portfolio", "from_date", "thru_date"]
+    grouped = calendar.groupby(period_columns, sort=True, dropna=False)
+    for period_key, period_rows in grouped:
+        portfolio, from_date, thru_date = (str(value) for value in period_key)
+        current_difference_rows = int(
+            period_rows["current_expected_difference_rows"].sum()
+        )
+        scenario_families = sorted(set(period_rows["scenario_family"].astype(str)))
+        primary_securities = sorted(set(period_rows["primary_security"].astype(str)))
+        density_rows.append(
+            {
+                "portfolio": portfolio,
+                "from_date": from_date,
+                "thru_date": thru_date,
+                "current_difference_rows": current_difference_rows,
+                "target_max_difference_rows": (
+                    _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
+                ),
+                "needs_intra_month_split": (
+                    current_difference_rows
+                    > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
+                ),
+                "scenario_families": scenario_families,
+                "primary_securities": primary_securities,
+            }
+        )
+    return density_rows
+
+
+def _audit_period_split_plan(
+    *,
+    plan: pd.DataFrame,
+    calendar: pd.DataFrame,
+) -> list[AuditIssue]:
+    """Return issues for an invalid intra-month period split plan."""
+    issues: list[AuditIssue] = []
+    calendar_by_key = {
+        str(row.scenario_key): row
+        for row in calendar.itertuples(index=False)
+    }
+    planned_keys = set(plan["scenario_key"].astype(str))
+    for key in sorted(planned_keys - set(calendar_by_key)):
+        issues.append(
+            AuditIssue(
+                check="period_split_plan",
+                detail=f"Period split plan key is not in the scenario calendar: {key}.",
+            )
+        )
+
+    crowded_keys = _crowded_scenario_calendar_keys(calendar)
+    for key in sorted(crowded_keys - planned_keys):
+        issues.append(
+            AuditIssue(
+                check="period_split_plan",
+                detail=f"Crowded-period scenario is missing from split plan: {key}.",
+            )
+        )
+
+    for row in plan.itertuples(index=False):
+        calendar_row = calendar_by_key.get(str(row.scenario_key))
+        if calendar_row is None:
+            continue
+        current_key = (
+            str(row.portfolio),
+            str(row.current_from_date),
+            str(row.current_thru_date),
+        )
+        calendar_key = (
+            str(calendar_row.portfolio),
+            str(calendar_row.from_date),
+            str(calendar_row.thru_date),
+        )
+        if current_key != calendar_key:
+            issues.append(
+                AuditIssue(
+                    check="period_split_plan",
+                    portfolio=str(row.portfolio),
+                    from_date=str(row.current_from_date),
+                    thru_date=str(row.current_thru_date),
+                    detail=(
+                        "Period split plan current period does not match "
+                        f"scenario calendar: {row.scenario_key}."
+                    ),
+                )
+            )
+        current_from = pd.Timestamp(row.current_from_date)
+        current_thru = pd.Timestamp(row.current_thru_date)
+        planned_from = pd.Timestamp(row.planned_from_date)
+        planned_thru = pd.Timestamp(row.planned_thru_date)
+        if planned_from > planned_thru:
+            issues.append(
+                AuditIssue(
+                    check="period_split_plan",
+                    portfolio=str(row.portfolio),
+                    from_date=str(row.planned_from_date),
+                    thru_date=str(row.planned_thru_date),
+                    detail=f"Planned period starts after it ends: {row.scenario_key}.",
+                )
+            )
+        if planned_from < current_from or planned_thru > current_thru:
+            issues.append(
+                AuditIssue(
+                    check="period_split_plan",
+                    portfolio=str(row.portfolio),
+                    from_date=str(row.planned_from_date),
+                    thru_date=str(row.planned_thru_date),
+                    detail=(
+                        "Planned period must stay inside current period: "
+                        f"{row.scenario_key}."
+                    ),
+                )
+            )
+
+    for row in _scenario_period_split_plan_summary(plan):
+        if (
+            int(row["planned_difference_rows"])
+            > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
+        ):
+            issues.append(
+                AuditIssue(
+                    check="period_split_plan",
+                    portfolio=str(row["portfolio"]),
+                    from_date=str(row["planned_from_date"]),
+                    thru_date=str(row["planned_thru_date"]),
+                    detail=(
+                        "Planned period exceeds target difference-row density: "
+                        f"{row['planned_difference_rows']}."
+                    ),
+                )
+            )
+    issues.extend(_audit_period_split_plan_overlaps(plan))
+    return issues
+
+
+def _audit_period_split_plan_overlaps(plan: pd.DataFrame) -> list[AuditIssue]:
+    """Return issues for overlapping planned periods inside a current period."""
+    issues: list[AuditIssue] = []
+    period_columns = [
+        "portfolio",
+        "current_from_date",
+        "current_thru_date",
+        "planned_from_date",
+        "planned_thru_date",
+    ]
+    planned_periods = plan[period_columns].drop_duplicates()
+    current_period_columns = ["portfolio", "current_from_date", "current_thru_date"]
+    grouped = planned_periods.groupby(current_period_columns, sort=True, dropna=False)
+    for current_period, current_rows in grouped:
+        portfolio, current_from_date, current_thru_date = (
+            str(value) for value in current_period
+        )
+        sorted_rows = current_rows.assign(
+            _planned_from=pd.to_datetime(current_rows["planned_from_date"]),
+            _planned_thru=pd.to_datetime(current_rows["planned_thru_date"]),
+        ).sort_values(["_planned_from", "_planned_thru"])
+        previous_thru: pd.Timestamp | None = None
+        previous_period = ""
+        for row in sorted_rows.itertuples(index=False):
+            planned_from = pd.Timestamp(row.planned_from_date)
+            planned_thru = pd.Timestamp(row.planned_thru_date)
+            current_period_label = f"{row.planned_from_date}/{row.planned_thru_date}"
+            if previous_thru is not None and planned_from <= previous_thru:
+                issues.append(
+                    AuditIssue(
+                        check="period_split_plan",
+                        portfolio=portfolio,
+                        from_date=str(current_from_date),
+                        thru_date=str(current_thru_date),
+                        detail=(
+                            "Planned periods overlap inside the same current "
+                            f"period: {previous_period} and {current_period_label}."
+                        ),
+                    )
+                )
+            previous_thru = planned_thru
+            previous_period = current_period_label
+    return issues
+
+
+def _crowded_scenario_calendar_keys(calendar: pd.DataFrame) -> set[str]:
+    """Return scenario keys from periods above the simplification target."""
+    crowded_periods = {
+        (row["portfolio"], row["from_date"], row["thru_date"])
+        for row in _scenario_calendar_density(calendar)
+        if row["needs_intra_month_split"]
+    }
+    return {
+        str(row.scenario_key)
+        for row in calendar.itertuples(index=False)
+        if (str(row.portfolio), str(row.from_date), str(row.thru_date))
+        in crowded_periods
+    }
+
+
+def _scenario_period_split_plan_summary(plan: pd.DataFrame) -> list[dict[str, object]]:
+    """Return planned scenario-row density by proposed intra-month period."""
+    summary_rows: list[dict[str, object]] = []
+    period_columns = ["portfolio", "planned_from_date", "planned_thru_date"]
+    grouped = plan.groupby(period_columns, sort=True, dropna=False)
+    for period_key, period_rows in grouped:
+        portfolio, planned_from_date, planned_thru_date = (
+            str(value) for value in period_key
+        )
+        summary_rows.append(
+            {
+                "portfolio": portfolio,
+                "planned_from_date": planned_from_date,
+                "planned_thru_date": planned_thru_date,
+                "planned_difference_rows": int(
+                    period_rows["planned_difference_rows"].sum()
+                ),
+                "scenario_keys": sorted(set(period_rows["scenario_key"].astype(str))),
+            }
+        )
+    return summary_rows
+
+
+def _transaction_scenario_calendar_key(
+    adjustment: TransactionScenarioAdjustment,
+) -> str:
+    """Return the calendar key for one transaction scenario row."""
+    return f"transaction:{adjustment.transaction_id}:{adjustment.scenario}"
+
+
+def _holding_scenario_calendar_key(adjustment: HoldingScenarioAdjustment) -> str:
+    """Return the calendar key for one holding scenario row."""
+    return (
+        f"holding:{adjustment.portfolio}:{adjustment.security}:"
+        f"{adjustment.holding_date}:{adjustment.scenario}"
+    )
+
+
+def _demo_portfolio_period_keys(axys_directory: Path) -> set[tuple[str, str, str]]:
+    """Return all portfolio-period keys present in packaged demo portperf files."""
+    period_keys: set[tuple[str, str, str]] = set()
+    for snapshot_name in _SNAPSHOT_DIRECTORIES:
+        portperf = pd.read_csv(axys_directory / snapshot_name / "portperf.csv")
+        for row in portperf.itertuples(index=False):
+            period_keys.add(
+                (
+                    str(row.PORTFOLIO_CODE),
+                    str(row.FROM_DATE),
+                    str(row.THRU_DATE),
+                )
+            )
+    return period_keys
+
+
 def _portfolio_residual_issue(row: dict[str, object], detail: str) -> AuditIssue:
     """Return an audit issue for one portfolio-period residual row."""
     return AuditIssue(
@@ -2216,6 +2822,24 @@ def _parse_args() -> argparse.Namespace:
         help=(
             "CSV file containing explicit scenario adjustments used to derive "
             "snapshot B transactions from snapshot A transactions."
+        ),
+    )
+    parser.add_argument(
+        "--scenario-calendar-path",
+        type=Path,
+        default=_DEFAULT_SCENARIO_CALENDAR_PATH,
+        help=(
+            "CSV file mapping intentional scenario rows to the demo periods "
+            "they are meant to explain."
+        ),
+    )
+    parser.add_argument(
+        "--period-split-plan-path",
+        type=Path,
+        default=_DEFAULT_PERIOD_SPLIT_PLAN_PATH,
+        help=(
+            "CSV file mapping crowded current periods to proposed shorter "
+            "intra-month periods."
         ),
     )
     parser.add_argument(
