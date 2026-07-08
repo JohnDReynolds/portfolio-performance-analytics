@@ -137,6 +137,8 @@ lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 | `scripts/operational_demo_data/derive_operational_demo_data.py` | Base portfolios, selected securities, baseline holdings, baseline transactions, and synthetic Axys/APX-style performance rows. |
 | `scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
 | `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and cost-only review examples. |
+| `scripts/operational_demo_data/performance_comparison_scenario_calendar.csv` | Scenario-to-period map that keeps packaged demo periods at or below the two-difference review target. |
+| `scripts/operational_demo_data/performance_comparison_period_split_plan.csv` | Empty split backlog. Add rows only when a future scenario makes a period too crowded again. |
 | `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
 | `ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
 | `ppar/setup_templates/axysapx_performance_comparison/README.md` | User-facing demo story and setup guidance. |
@@ -165,6 +167,7 @@ Current packaged scenario inventory:
 | `CASH_USD` `dp` row | Fee-like expense classified from special-security context. |
 | `JPM` `dv` and `rc` rows | Dividend income plus context-gated return of capital. |
 | `CVNA` split row | Central split-factor context that explains corrected quantity and related market value. |
+| `TSLA` `ss`/`cs` rows | Disclosed synthetic short-sale and cover-short lifecycle using real May 2026 prices. |
 | `TNOTE2Y` `in` row | Ordinary interest income plus related holding/accrual evidence. |
 | `MBSPOOL` `pd` row | MBS principal paydown with portfolio-cash destination evidence. |
 | `TNOTE5Y` `by`/`pa` and `sl`/`sa` rows | Paired fixed-income trade and accrued-interest settlement examples. |

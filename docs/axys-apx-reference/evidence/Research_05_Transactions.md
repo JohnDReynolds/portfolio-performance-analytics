@@ -3614,9 +3614,10 @@ row-like import/comment examples, but did not find public sanitized examples of:
 - before/after holdings plus before/after performance rows for the same real
   account event.
 
-These missing examples are the main reason the packaged demo should continue to
-avoid broad promotion of `rc`, `pd`, `ss`, and `cs` until each candidate has a
-coherent source-data and performance-report story.
+These missing examples are the main reason the project should avoid broad,
+unqualified promotion of `rc`, `pd`, `ss`, and `cs`. Later research supported
+narrow packaged-demo scenarios for these codes, but those scenarios remain
+plausible/defensible examples rather than universal Axys/APX behavior.
 
 ### E.22 `rc` / `pd` Transaction Research Incorporated 2026-07-07
 

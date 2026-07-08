@@ -76,6 +76,10 @@ Completed guardrails now cover:
 - the packaged portfolio and security reports intentionally include Fully
   Explained, intentional `Partly Explained`, and intentional `Unexplained`
   review examples;
+- the packaged Axys/APX scenario calendar now keeps every demo period at or
+  below the two-difference target, and the intra-month split-plan backlog is
+  empty after splitting the crowded BALANCED and INCOME periods into focused
+  review windows;
 - portfolio and security report explanations intentionally use different
   transaction wording when the review level asks a different question;
 - the Axys/APX Demo Freeze Decision Packet is mapped to concrete packaged-data,
@@ -142,8 +146,8 @@ Standing maintenance criteria:
 
 | Home | Open item | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | Additional external-flow variants only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, and `dp` cases; future corporate actions only when they add a distinct story beyond the packaged CVNA split-processing correction. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys/APX behavior. |
-| Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
+| Packaged demo candidate | Additional external-flow variants and corporate actions only when they add a distinct reviewer story beyond the existing packaged `li`, `lo`, `wd`, `dp`, `rc`, `pd`, `ss`/`cs`, and CVNA split-processing cases. | Scenario intent, transactions, holdings, performance rows, YAML rules, report explanations, and source-contract language all align without implying universal Axys/APX behavior. |
+| Test-only fixture | More `li` / `lo` external and neutral variants; additional `dp` / `wd` fee, sweep, and external-flow cases; tested candidate override profiles for `ai` and local `pa`/`sa` variants; uppercase reversal/cancellation; synthetic corporate-action rows. | Fixture proves expected semantics, failure mode, or review-only treatment without making the packaged demo less realistic. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
 | Evidence-blocked backlog | Mergers, spin-offs, ticker changes. | IMEX context, REP/report semantics, or real source samples identify required fields and ppar treatment well enough to avoid code-only classification. |
 | Policy expansion | Fee/expense return-basis handling beyond the current scoped examples; settlement-date impact rules; fixed-income principal/accrual cases beyond ordinary interest and configured accrued value. | Explicit YAML policy, source evidence, Modified Dietz role, report wording, and tests are all present. |
 
@@ -165,9 +169,10 @@ story. Synthetic edge cases belong in test-only fixtures.
 Current triage: the packaged Axys/APX demo already covers normal buys, sells,
 ordinary income, fixed-income income, fixed-income `pa`/`sa` accrued-interest
 adjuncts with paired trade context, contextual `li`, contextual `lo`, external
-`wd`, and fee-like `dp` rows. Do not add more packaged external-flow rows merely
-for symmetry. Additional rows should wait until they show a nonredundant
-outflow or transfer situation that changes the reviewer conversation more
+`wd`, fee-like `dp`, return of capital `rc`, principal paydown `pd`, short
+sale/cover short `ss`/`cs`, and a CVNA split-processing correction. Do not add
+more packaged rows merely for symmetry. Additional rows should wait until they
+show a nonredundant situation that changes the reviewer conversation more
 clearly than the existing packaged and site-variant fixtures.
 
 ### Longer-Term Deliverables
@@ -639,14 +644,14 @@ numerator, denominator, and source component inputs.
 - Make guidance action-oriented and understandable when formula rows and
   supporting rows overlap.
 
-The current pain point is periods like BALANCED `2026-05-01` to `2026-05-29`,
-where:
+The original pain point was crowded periods such as the former BALANCED
+`2026-05-01` to `2026-05-29` period, where:
 
 - `holdings.ending_market_value` explains the positive calculated difference;
 - `holdings.beginning_market_value` explains a negative denominator effect;
 - individual AAPL/MSFT `holdings.market_value` rows foot to the ending-value
   effect but are supporting detail rather than separate additive causes; and
-- the current `Explanation` text is technically accurate but not helpful
+- the `Explanation` text was technically accurate but not helpful
   enough for a normal reviewer.
 
 Future guidance should make those relationships explicit. For example:
@@ -3321,6 +3326,34 @@ The build pass refreshed local ignored `dist/ppar-0.1.5*` artifacts from the
 current source tree. The local `v0.1.5` tag was not moved, no remote tag was
 created, and nothing was published.
 
+### Phase 96: Axys/APX Demo Simplification
+
+Status: complete for the current packaged-demo review cadence.
+
+The packaged Axys/APX performance-comparison demo now uses smaller review
+periods where the original monthly periods had too many intentional
+differences. The scenario calendar keeps each packaged demo period at or below
+the two-difference target, and the period split backlog is now empty.
+
+The simplification kept the demo economics and reviewer stories intact while
+making each period easier to inspect:
+
+- INCOME February separates the TNOTE5Y purchase/accrued-interest pair from
+  the sale/accrued-interest pair;
+- INCOME May separates the AAPL valuation mark, TNOTE2Y income/accrual story,
+  and MBSPOOL principal paydown;
+- BALANCED May separates the AAPL valuation/CVNA split story, the MSFT holding
+  correction, and the TSLA short-sale/cover-short pair; and
+- the roadmap now treats `rc`, `pd`, `ss`/`cs`, and the CVNA split-processing
+  correction as scoped packaged-demo examples rather than merely future
+  candidates.
+
+The rebuild audit reports no packaged-data drift and no audit issues. Focused
+tests assert that no scenario period needs another intra-month split and that
+the split-plan backlog remains empty. The supporting research notes still warn
+against broad, universal Axys/APX claims for these transaction codes; the
+packaged rows are plausible/defensible examples, not vendor-wide semantics.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
@@ -3355,6 +3388,6 @@ Near-term backlog by home:
 
 | Home | Transaction families | Exit criteria |
 | --- | --- | --- |
-| Packaged demo candidate | nonredundant external-flow variants; possibly realistic `li`/`lo` transfer examples; additional corporate actions only when they add a new reviewer lesson beyond the CVNA split-processing correction | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
-| Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; tested candidate override profiles for `ai`, local `pa`/`sa` variants, `rc`, `pd`, `ss`, and `cs`; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
+| Packaged demo candidate | nonredundant external-flow variants and additional corporate actions only when they add a new reviewer lesson beyond the packaged `rc`, `pd`, `ss`/`cs`, and CVNA split-processing examples | Scenario intent, transactions, holdings, security performance, portfolio performance, YAML rules, workbook explanations, and README/source-contract language all align. |
+| Test-only fixture | `li`/`lo` external and neutral variants; more `dp`/`wd` fee/sweep/external cases; tested candidate override profiles for `ai` and local `pa`/`sa` variants; uppercase reversal/cancellation; synthetic corporate actions | Fixture proves expected semantics or failure mode without implying the packaged demo is a realistic client story. Candidate override profiles remain copy/adapt onboarding examples when local site evidence differs from conservative packaged defaults. |
 | Evidence-blocked backlog | Mergers, spin-offs, ticker changes | Axys/APX REP/report evidence identifies required fields and ppar treatment well enough to avoid code-only classification. |

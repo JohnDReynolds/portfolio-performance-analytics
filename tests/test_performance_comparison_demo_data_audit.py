@@ -854,7 +854,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             for row in portfolio_changes.iter_rows(named=True)
         }
 
-        partly_explained = portfolio_statuses[("BALANCED", "2026-05-01", "2026-05-29")]
+        partly_explained = portfolio_statuses[("BALANCED", "2026-05-09", "2026-05-14")]
         unexplained = portfolio_statuses[("INCOME", "2026-04-01", "2026-04-30")]
         self.assertEqual(partly_explained["review_status"], "Partly Explained")
         self.assertGreater(abs(partly_explained["estimated_cause_total"]), 0.0)
@@ -883,7 +883,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         }
 
         partly_explained = security_statuses[
-            ("BALANCED", "MSFT", "2026-05-01", "2026-05-29")
+            ("BALANCED", "MSFT", "2026-05-09", "2026-05-14")
         ]
         unexplained = security_statuses[
             ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30")
@@ -1038,8 +1038,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertEqual(issues, [])
 
-    def test_scenario_calendar_density_identifies_periods_to_split(self) -> None:
-        """The calendar identifies legacy periods that still need simplification."""
+    def test_scenario_calendar_density_confirms_simplified_periods(self) -> None:
+        """The calendar confirms every demo period is within the density target."""
         rebuild_module = _load_rebuild_module()
         calendar = rebuild_module._load_scenario_calendar(
             rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
@@ -1051,7 +1051,15 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             for row in density_rows
         }
 
-        balanced_may = density_by_period[("BALANCED", "2026-05-01", "2026-05-29")]
+        balanced_may_mark = density_by_period[
+            ("BALANCED", "2026-05-01", "2026-05-08")
+        ]
+        balanced_may_corrections = density_by_period[
+            ("BALANCED", "2026-05-09", "2026-05-14")
+        ]
+        balanced_may_short = density_by_period[
+            ("BALANCED", "2026-05-15", "2026-05-29")
+        ]
         income_february_buy = density_by_period[
             ("INCOME", "2026-01-31", "2026-02-13")
         ]
@@ -1066,8 +1074,12 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             ("INCOME", "2026-05-16", "2026-05-22")
         ]
         alpha_may = density_by_period[("ALPHA", "2026-05-01", "2026-05-29")]
-        self.assertEqual(balanced_may["current_difference_rows"], 5)
-        self.assertTrue(balanced_may["needs_intra_month_split"])
+        self.assertEqual(balanced_may_mark["current_difference_rows"], 2)
+        self.assertFalse(balanced_may_mark["needs_intra_month_split"])
+        self.assertEqual(balanced_may_corrections["current_difference_rows"], 1)
+        self.assertFalse(balanced_may_corrections["needs_intra_month_split"])
+        self.assertEqual(balanced_may_short["current_difference_rows"], 2)
+        self.assertFalse(balanced_may_short["needs_intra_month_split"])
         self.assertEqual(income_february_buy["current_difference_rows"], 2)
         self.assertFalse(income_february_buy["needs_intra_month_split"])
         self.assertEqual(income_february_sell["current_difference_rows"], 2)
@@ -1080,9 +1092,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertFalse(income_may_paydown["needs_intra_month_split"])
         self.assertEqual(alpha_may["current_difference_rows"], 2)
         self.assertFalse(alpha_may["needs_intra_month_split"])
+        self.assertFalse(any(row["needs_intra_month_split"] for row in density_rows))
 
-    def test_period_split_plan_covers_crowded_periods(self) -> None:
-        """The split plan maps crowded current periods to simpler periods."""
+    def test_period_split_plan_has_no_remaining_crowded_periods(self) -> None:
+        """The split backlog is empty because every demo period is in target."""
         rebuild_module = _load_rebuild_module()
         calendar = rebuild_module._load_scenario_calendar(
             rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
@@ -1095,15 +1108,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             plan=plan,
             calendar=calendar,
         )
-        planned_density_rows = rebuild_module._scenario_period_split_plan_summary(plan)
-        max_planned_difference_rows = max(
-            row["planned_difference_rows"]
-            for row in planned_density_rows
-        )
 
         self.assertEqual(issues, [])
-        self.assertEqual(len(plan), 5)
-        self.assertLessEqual(max_planned_difference_rows, 2)
+        self.assertEqual(len(plan), 0)
+        self.assertEqual(rebuild_module._crowded_scenario_calendar_keys(calendar), set())
+        self.assertEqual(rebuild_module._scenario_period_split_plan_summary(plan), [])
 
     def test_transaction_scenarios_create_expected_holding_impacts(self) -> None:
         """Transaction changes create the expected cash and security adjustments."""

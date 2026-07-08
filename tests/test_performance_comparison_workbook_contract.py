@@ -52,7 +52,7 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "Security",
 ]
 _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
-    ("BALANCED", "2026-05-01", "2026-05-29", "Partly Explained"),
+    ("BALANCED", "2026-05-09", "2026-05-14", "Partly Explained"),
     ("INCOME", "2026-04-01", "2026-04-30", "Unexplained"),
 }
 
@@ -253,7 +253,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         )
                         for row in partly_explained_rows
                     },
-                    {("BALANCED", "2026-05-01", "2026-05-29")},
+                    {("BALANCED", "2026-05-09", "2026-05-14")},
                 )
                 self.assertEqual(
                     {
@@ -473,13 +473,22 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         for guidance in transaction_component_guidance
                     )
                 )
-                income_tnote_quantity_guidance = {
+                income_tnote_buy_quantity_guidance = {
                     str(row[10])
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.quantity"
                     and row[5] == "TNOTE5Y"
                     and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-13"
+                }
+                income_tnote_sell_quantity_guidance = {
+                    str(row[10])
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.quantity"
+                    and row[5] == "TNOTE5Y"
+                    and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertIn(
@@ -487,22 +496,31 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "by: Caused TNOTE5Y transactions.amount to increase "
                         "and TNOTE5Y holdings.quantity to increase."
                     ),
-                    income_tnote_quantity_guidance,
+                    income_tnote_buy_quantity_guidance,
                 )
                 self.assertIn(
                     (
                         "sl: Caused TNOTE5Y transactions.amount to increase "
                         "and TNOTE5Y holdings.quantity to decrease."
                     ),
-                    income_tnote_quantity_guidance,
+                    income_tnote_sell_quantity_guidance,
                 )
-                income_tnote_amount_guidance = {
+                income_tnote_buy_amount_guidance = {
                     str(row[10])
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
                     and row[5] == "TNOTE5Y"
                     and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-13"
+                }
+                income_tnote_sell_amount_guidance = {
+                    str(row[10])
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "transactions.amount"
+                    and row[5] == "TNOTE5Y"
+                    and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertIn(
@@ -510,32 +528,48 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "pa: Caused cash-balance ending holdings.market_value "
                         "to decrease by 42.50."
                     ),
-                    income_tnote_amount_guidance,
+                    income_tnote_buy_amount_guidance,
                 )
                 self.assertIn(
                     (
                         "sa: Caused cash-balance ending holdings.market_value "
                         "to increase by 37.25."
                     ),
-                    income_tnote_amount_guidance,
+                    income_tnote_sell_amount_guidance,
                 )
-                income_tnote_accrued_guidance = {
+                income_tnote_buy_accrued_guidance = {
                     str(row[10])
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "holdings.accrued"
                     and row[5] == "TNOTE5Y"
                     and str(row[1])[:10] == "2026-01-31"
+                    and str(row[2])[:10] == "2026-02-13"
+                }
+                income_tnote_sell_accrued_guidance = {
+                    str(row[10])
+                    for row in underlying_rows
+                    if row[0] == "INCOME"
+                    and row[4] == "holdings.accrued"
+                    and row[5] == "TNOTE5Y"
+                    and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertEqual(
-                    income_tnote_accrued_guidance,
+                    income_tnote_buy_accrued_guidance,
+                    {"TNOTE5Y ending holdings.accrued increased by 0.05."},
+                )
+                self.assertEqual(
+                    income_tnote_sell_accrued_guidance,
                     {"TNOTE5Y ending holdings.accrued increased by 0.02."},
                 )
                 self.assertFalse(
                     any(
                         guidance.startswith(("pa:", "sa:"))
-                        for guidance in income_tnote_accrued_guidance
+                        for guidance in (
+                            income_tnote_buy_accrued_guidance
+                            | income_tnote_sell_accrued_guidance
+                        )
                     )
                 )
                 self.assertFalse(
@@ -634,7 +668,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         for row in security_rows
                         if row[7] == "Partly Explained"
                     },
-                    {("BALANCED", "MSFT", "2026-05-01", "2026-05-29")},
+                    {("BALANCED", "MSFT", "2026-05-09", "2026-05-14")},
                 )
                 self.assertEqual(
                     {
@@ -676,14 +710,31 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     places=6,
                 )
                 self.assertIsNone(aapl_trade_row[6])
+                aapl_price_periods = {
+                    ("ALPHA", "2026-05-01", "2026-05-29"),
+                    ("BALANCED", "2026-05-01", "2026-05-08"),
+                    ("INCOME", "2026-05-01", "2026-05-08"),
+                }
+                self.assertTrue(
+                    aapl_price_periods.issubset(
+                        {
+                            (
+                                row[0],
+                                _workbook_date_text(row[1]),
+                                _workbook_date_text(row[2]),
+                            )
+                            for row in security_rows
+                            if row[3] == "AAPL"
+                        }
+                    )
+                )
                 aapl_price_rows = [
                     row
                     for row in security_rows
                     if row[3] == "AAPL"
-                    and str(row[1])[:10] == "2026-05-01"
-                    and str(row[2])[:10] == "2026-05-29"
+                    and (row[0], _workbook_date_text(row[1]), _workbook_date_text(row[2]))
+                    in aapl_price_periods
                 ]
-                self.assertEqual(len(aapl_price_rows), 3)
                 for row in aapl_price_rows:
                     self.assertEqual(row[7], "Fully Explained")
                     self.assertAlmostEqual(
@@ -737,8 +788,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[4] == "transactions.amount"
                     and row[5] == "TNOTE2Y"
-                    and str(row[1])[:10] == "2026-05-01"
-                    and str(row[2])[:10] == "2026-05-29"
+                    and str(row[1])[:10] == "2026-05-09"
+                    and str(row[2])[:10] == "2026-05-15"
                     and str(row[3])[:10] == "2026-05-15"
                 )
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")

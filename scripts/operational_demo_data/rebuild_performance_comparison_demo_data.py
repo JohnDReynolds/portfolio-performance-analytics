@@ -217,7 +217,7 @@ _PERIOD_SPLIT_PLAN_NUMERIC_COLUMNS: Final = ["planned_difference_rows"]
 _CHECK_TOLERANCE: Final = 0.000000001
 _RETURN_TOLERANCE: Final = 0.000001
 _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
-    ("BALANCED", "2026-05-01", "2026-05-29", "Partly Explained"): (
+    ("BALANCED", "2026-05-09", "2026-05-14", "Partly Explained"): (
         "Intentional partial example: beginning-value and ending-value changes "
         "both foot, but the selected report causes leave a denominator-effect "
         "residual for review."
@@ -227,11 +227,11 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
     ),
 }
 _INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS: Final = {
-    ("BALANCED", "2026-05-01", "2026-05-29"): 0.0002,
+    ("BALANCED", "2026-05-09", "2026-05-14"): 0.0002,
     ("INCOME", "2026-04-01", "2026-04-30"): 0.00035,
 }
 _INTENTIONAL_SECURITY_RESIDUALS: Final = {
-    ("BALANCED", "MSFT", "2026-05-01", "2026-05-29", "Partly Explained"): (
+    ("BALANCED", "MSFT", "2026-05-09", "2026-05-14", "Partly Explained"): (
         "Intentional partial security example: a holding correction explains "
         "part of the reported security-return change, with the remainder left "
         "as a methodology/source-data residual."
@@ -242,7 +242,7 @@ _INTENTIONAL_SECURITY_RESIDUALS: Final = {
     ),
 }
 _INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
-    ("BALANCED", "MSFT", "2026-05-01", "2026-05-29"): 0.002,
+    ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"): 0.002,
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"): 0.004,
 }
 _SECURITY_FLOW_CODES: Final = {"by", "pd", "sl"}
@@ -1752,14 +1752,15 @@ def _load_scenario_calendar(path: Path) -> pd.DataFrame:
 
 
 def _load_period_split_plan(path: Path) -> pd.DataFrame:
-    """Return the validated intra-month period split plan.
+    """Return the validated intra-month period split backlog.
 
     Args:
-        path: CSV mapping crowded calendar scenario rows to proposed shorter
-            periods.
+        path: CSV mapping any crowded calendar scenario rows to proposed
+            shorter periods. An empty file means the current demo has no known
+            crowded-period backlog.
 
     Returns:
-        Validated split-plan rows in file order.
+        Validated split-backlog rows in file order.
 
     Raises:
         ValueError: If columns, dates, or planned row counts are invalid.
@@ -2466,9 +2467,10 @@ def _audit_scenario_calendar(
 def _scenario_calendar_density(calendar: pd.DataFrame) -> list[dict[str, object]]:
     """Return current scenario-row density by portfolio period.
 
-    The target is intentionally a planning metric rather than a hard audit
-    failure. Current legacy demo periods can exceed the target while future
-    simplification phases split those stories into cleaner intra-month periods.
+    The target is intentionally tracked as a planning metric. The current
+    packaged demo is expected to stay within the target; future scenario
+    additions can use this density view to spot periods that need another
+    intra-month split.
     """
     density_rows: list[dict[str, object]] = []
     period_columns = ["portfolio", "from_date", "thru_date"]
@@ -2505,7 +2507,7 @@ def _audit_period_split_plan(
     plan: pd.DataFrame,
     calendar: pd.DataFrame,
 ) -> list[AuditIssue]:
-    """Return issues for an invalid intra-month period split plan."""
+    """Return issues for an invalid intra-month period split backlog."""
     issues: list[AuditIssue] = []
     calendar_by_key = {
         str(row.scenario_key): row
@@ -2838,8 +2840,8 @@ def _parse_args() -> argparse.Namespace:
         type=Path,
         default=_DEFAULT_PERIOD_SPLIT_PLAN_PATH,
         help=(
-            "CSV file mapping crowded current periods to proposed shorter "
-            "intra-month periods."
+            "CSV file mapping any crowded current periods to proposed shorter "
+            "intra-month periods. An empty file means no split backlog remains."
         ),
     )
     parser.add_argument(

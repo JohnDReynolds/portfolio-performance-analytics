@@ -1,6 +1,1 @@
 scenario_key,portfolio,current_from_date,current_thru_date,planned_from_date,planned_thru_date,planned_difference_rows,notes
-holding:BALANCED:AAPL:2026-05-29:AAPL price correction changes ending market value.,BALANCED,2026-05-01,2026-05-29,2026-05-01,2026-05-08,1,Move the AAPL valuation mark into its own short period.
-holding:BALANCED:MSFT:2026-05-29:MSFT holding quantity correction changes market value.,BALANCED,2026-05-01,2026-05-29,2026-05-09,2026-05-14,1,Move the MSFT holding correction into its own short period.
-transaction:BALANCED0603:TSLA short sale uses real 2026-05-15 close price in a synthetic short-side demo.,BALANCED,2026-05-01,2026-05-29,2026-05-15,2026-05-29,1,Keep the short sale paired with its cover in one short-side period.
-transaction:BALANCED0604:TSLA cover short uses real 2026-05-29 close price in a synthetic short-side demo.,BALANCED,2026-05-01,2026-05-29,2026-05-15,2026-05-29,1,Keep the cover short paired with its short sale in one short-side period.
-holding:BALANCED:CVNA:2026-05-29:CVNA 5-for-1 split correction changes ending quantity and market value.,BALANCED,2026-05-01,2026-05-29,2026-05-09,2026-05-14,1,Pair the split correction with the MSFT holding correction under the two-row target.

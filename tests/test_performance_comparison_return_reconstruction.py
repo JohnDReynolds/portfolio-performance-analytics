@@ -42,11 +42,11 @@ _BASELINE_COMPARISON_PATH = Path(
 )
 _DEMO_AXYS_DIRECTORY = Path("ppar/setup_templates/axysapx_performance_comparison")
 _INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS = {
-    ("BALANCED", "2026-05-01", "2026-05-29"),
+    ("BALANCED", "2026-05-09", "2026-05-14"),
     ("INCOME", "2026-04-01", "2026-04-30"),
 }
 _INTENTIONAL_SECURITY_DIFFERENT_KEYS = {
-    ("BALANCED", "MSFT", "2026-05-01", "2026-05-29"),
+    ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"),
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"),
 }
 

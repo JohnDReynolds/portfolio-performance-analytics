@@ -119,7 +119,7 @@ from ppar.performance_comparison import (
 )
 
 _INTENTIONAL_PORTFOLIO_RECONSTRUCTION_DIFFERENT_KEYS = {
-    ("BALANCED", "2026-05-01", "2026-05-29"),
+    ("BALANCED", "2026-05-09", "2026-05-14"),
     ("INCOME", "2026-04-01", "2026-04-30"),
 }
 
@@ -1046,14 +1046,17 @@ class TestPackageMetadata(unittest.TestCase):
             "./.venv/bin/python scripts/check_release_candidate.py --build",
             roadmap,
         )
+        self.assertIn("Phase 96: Axys/APX Demo Simplification", roadmap)
+        self.assertIn("period split backlog is now empty", roadmap)
+        self.assertIn("plausible/defensible examples", roadmap)
         self.assertIn("X-Ref Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
         self.assertIn("intentional `Unexplained`", roadmap)
         self.assertIn("Do not add \"all transaction types\"", roadmap)
-        self.assertIn("Do not add more packaged external-flow", roadmap)
-        self.assertIn("merely\nfor symmetry", roadmap)
+        self.assertIn("more packaged rows", roadmap)
+        self.assertIn("merely for symmetry", roadmap)
         self.assertIn("Richer APX demo", roadmap)
         self.assertIn("multi-currency data must affect comparison behavior", roadmap)
         self.assertIn("Vendor YAML presets", roadmap)
@@ -1803,10 +1806,15 @@ class TestPackageMetadata(unittest.TestCase):
             "derive_operational_demo_data.py",
             "performance_comparison_transaction_scenarios.csv",
             "performance_comparison_holding_scenarios.csv",
+            "performance_comparison_scenario_calendar.csv",
+            "performance_comparison_period_split_plan.csv",
+            "two-difference review target",
+            "Empty split backlog",
             "rebuild_performance_comparison_demo_data.py",
             "Use `--write` only when you intend to rewrite tracked packaged CSV assets.",
             "Current packaged scenario inventory",
             "`CVNA` split row",
+            "`TSLA` `ss`/`cs` rows",
             "`MBSPOOL` `pd` row",
             "`TNOTE2Y` `in` row",
             "`TNOTE5Y` `by`/`pa` and `sl`/`sa` rows",
@@ -2337,10 +2345,15 @@ class TestPackageMetadata(unittest.TestCase):
             ("portfolio_id", "security_id", "from_date", "thru_date"),
         )
 
-        for portfolio in ("ALPHA", "BALANCED", "INCOME"):
+        aapl_periods = {
+            "ALPHA": ("2026-05-01", "2026-05-29", "2026-05-29"),
+            "BALANCED": ("2026-05-01", "2026-05-08", "2026-05-08"),
+            "INCOME": ("2026-05-01", "2026-05-08", "2026-05-08"),
+        }
+        for portfolio, (from_date, thru_date, holding_date) in aapl_periods.items():
             with self.subTest(portfolio=portfolio, security="AAPL"):
-                key = (portfolio, "AAPL", "2026-05-01", "2026-05-29")
-                holding_key = (portfolio, "AAPL", "2026-05-29")
+                key = (portfolio, "AAPL", from_date, thru_date)
+                holding_key = (portfolio, "AAPL", holding_date)
                 price_delta = _float_delta(
                     holdings_a[holding_key],
                     holdings_b[holding_key],
@@ -2357,8 +2370,8 @@ class TestPackageMetadata(unittest.TestCase):
                     RECONSTRUCTION_STATUS_ALIGNED,
                 )
 
-        tnote_key = ("INCOME", "TNOTE2Y", "2026-05-01", "2026-05-29")
-        tnote_holding_key = ("INCOME", "TNOTE2Y", "2026-05-29")
+        tnote_key = ("INCOME", "TNOTE2Y", "2026-05-09", "2026-05-15")
+        tnote_holding_key = ("INCOME", "TNOTE2Y", "2026-05-15")
         self.assertNotEqual(
             _float_delta(
                 holdings_a[tnote_holding_key],
