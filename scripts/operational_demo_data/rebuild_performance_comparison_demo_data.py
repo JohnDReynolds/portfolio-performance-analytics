@@ -8,8 +8,7 @@ performance files internally aligned by:
 1. deriving ``secperf.csv`` from holdings and security-level transactions;
 2. deriving ``portperf.csv`` from holdings and portfolio-level transactions; and
 3. deriving snapshot B ``transactions.csv`` from snapshot A transactions plus
-   explicit transaction scenarios that either adjust base rows or insert new
-   rows;
+   explicit transaction scenarios that adjust, insert, or delete base rows;
 4. deriving snapshot B ``holdings.csv`` from snapshot A holdings plus
    transaction-derived and explicit holding scenarios; and
 5. reporting whether the checked-in files already match those derived values.
@@ -183,7 +182,7 @@ _TRANSACTION_SCENARIO_COLUMNS: Final = [
     "scenario",
 ]
 _TRANSACTION_SCENARIO_KEY: Final = ["snapshot", "action", "TRANSACTION_ID", "scenario"]
-_TRANSACTION_SCENARIO_ACTIONS: Final = {"adjust", "insert"}
+_TRANSACTION_SCENARIO_ACTIONS: Final = {"adjust", "delete", "insert"}
 _SCENARIO_CALENDAR_COLUMNS: Final = [
     "scenario_key",
     "scenario_source",
@@ -225,6 +224,14 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
     ("INCOME", "2026-04-01", "2026-04-30", "Unexplained"): (
         "Intentional vendor/methodology residual used to demonstrate unresolved review."
     ),
+    ("INCOME", "2026-05-09", "2026-05-14", "Partly Explained"): (
+        "Intentional late-dividend timing example: the corrected AAPL dividend "
+        "explains the income change, while cash timing leaves a small residual."
+    ),
+    ("INCOME", "2026-05-15", "2026-05-15", "Partly Explained"): (
+        "Intentional carry-forward example from the corrected AAPL dividend "
+        "and same-day TNOTE2Y interest/accrual correction."
+    ),
 }
 _INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS: Final = {
     ("BALANCED", "2026-05-09", "2026-05-14"): 0.0002,
@@ -236,12 +243,29 @@ _INTENTIONAL_SECURITY_RESIDUALS: Final = {
         "part of the reported security-return change, with the remainder left "
         "as a methodology/source-data residual."
     ),
+    ("BALANCED", "JPM", "2026-05-09", "2026-05-14", "Unexplained"): (
+        "Intentional possible-cause example: a code-only rc transaction remains "
+        "neutral review evidence and is not counted as explained performance."
+    ),
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30", "Unexplained"): (
         "Intentional unexplained security example: reported security return "
         "changed while the visible source-data change is cost-only context."
     ),
+    ("INCOME", "CASH_USD", "2026-05-09", "2026-05-14", "Unexplained"): (
+        "Intentional cash-side residual from the corrected AAPL dividend timing."
+    ),
+    ("INCOME", "TNOTE2Y", "2026-05-09", "2026-05-14", "Partly Explained"): (
+        "Intentional carry-forward residual after splitting the May income period."
+    ),
+    ("INCOME", "AAPL", "2026-05-15", "2026-05-15", "Unexplained"): (
+        "Intentional one-day security residual from the dividend timing split."
+    ),
+    ("INCOME", "TNOTE2Y", "2026-05-15", "2026-05-15", "Partly Explained"): (
+        "Intentional TNOTE2Y residual from the one-day interest/accrual example."
+    ),
 }
 _INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
+    ("BALANCED", "JPM", "2026-05-09", "2026-05-14"): 0.0056216158,
     ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"): 0.002,
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"): 0.004,
 }
@@ -271,13 +295,13 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
         "transaction_scenarios_by_type": {
             "by": 2,
             "dp": 1,
-            "dv": 1,
+            "dv": 3,
             "in": 1,
             "li": 1,
             "lo": 1,
             "pa": 1,
             "pd": 1,
-            "rc": 1,
+            "rc": 2,
             "sa": 1,
             "sl": 2,
             "ss": 1,
@@ -287,7 +311,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
         "transaction_derived_holdings_by_type": {
             "by": 6,
             "dp": 1,
-            "dv": 1,
+            "dv": 6,
             "in": 3,
             "li": 1,
             "lo": 1,
@@ -439,6 +463,9 @@ def main() -> int:
     scenario_calendar = _load_scenario_calendar(args.scenario_calendar_path)
     period_split_plan = _load_period_split_plan(args.period_split_plan_path)
     summary["scenario_calendar_density"] = _scenario_calendar_density(
+        scenario_calendar,
+    )
+    summary["scenario_readability_matrix"] = _scenario_readability_matrix(
         scenario_calendar,
     )
     summary["scenario_period_split_plan"] = _scenario_period_split_plan_summary(
@@ -630,14 +657,16 @@ def rebuild_demo_performance_files(
             rebuilt_transactions,
             portfolio_reconstruction,
         )
+        current_packaged_transactions = current_transactions[_PACKAGED_TRANSACTION_COLUMNS]
+        rebuilt_packaged_transactions = rebuilt_transactions[_PACKAGED_TRANSACTION_COLUMNS]
         transaction_delta = _max_numeric_delta(
-            current_transactions,
-            rebuilt_transactions,
+            current_packaged_transactions,
+            rebuilt_packaged_transactions,
             _TRANSACTION_NUMERIC_COLUMNS,
         )
         has_transaction_field_drift = _has_non_numeric_delta(
-            current_transactions,
-            rebuilt_transactions,
+            current_packaged_transactions,
+            rebuilt_packaged_transactions,
             _TRANSACTION_NUMERIC_COLUMNS,
         )
         holdings_delta = _max_numeric_delta(
@@ -942,6 +971,9 @@ def _rebuild_transactions(
                 "Transaction scenario must match exactly one row: "
                 f"{scenario.transaction_id}."
             )
+        if scenario.action == "delete":
+            rebuilt = rebuilt.loc[~mask].copy()
+            continue
         for column, delta in scenario.deltas.items():
             if delta:
                 rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
@@ -988,6 +1020,10 @@ def _transaction_derived_holding_adjustments(
     for row in transaction_diffs.itertuples(index=False):
         transaction_code = str(row.TRAN)
         if transaction_code not in _TRANSACTION_HOLDING_EFFECT_CODES:
+            continue
+        if transaction_code == "rc" and _row_string(row, "SPECIAL_SEC_TYPE") != (
+            "return_of_capital"
+        ):
             continue
         holding_dates = _holding_dates_for_transaction_effect(
             periods,
@@ -1172,17 +1208,31 @@ def _changed_transaction_rows(
         suffixes=("_base", "_current"),
         indicator=True,
     )
-    removed = merged["_merge"].eq("left_only")
-    if bool(removed.any()):
-        unmatched = merged.loc[removed, ["TRANSACTION_ID", "_merge"]].to_dict(
-            "records"
-        )
-        raise ValueError(f"Transaction scenarios must not remove rows: {unmatched}.")
     merged = merged.rename(columns={"_merge": "MERGE_STATUS"})
 
     rows: list[dict[str, object]] = []
     for row in merged.itertuples(index=False):
         merge_status = str(row.MERGE_STATUS)
+        if merge_status == "left_only":
+            context_values = {
+                column: _row_string(row, f"{column}_base")
+                for column in context_columns
+            }
+            rows.append(
+                {
+                    "TRANSACTION_ID": str(row.TRANSACTION_ID),
+                    "PORT": str(row.PORT_base),
+                    "TRANSACTION_DATE": pd.Timestamp(row.TRANSACTION_DATE_base),
+                    "SEC": str(row.SEC_base),
+                    "TRAN": str(row.TRAN_base),
+                    **context_values,
+                    **{
+                        f"{column}_delta": -float(getattr(row, f"{column}_base"))
+                        for column in ("QTY", "PRICE", "AMOUNT", "COMMISSION")
+                    },
+                }
+            )
+            continue
         if merge_status == "right_only":
             context_values = {
                 column: _row_string(row, f"{column}_current")
@@ -2500,6 +2550,45 @@ def _scenario_calendar_density(calendar: pd.DataFrame) -> list[dict[str, object]
             }
         )
     return density_rows
+
+
+def _scenario_readability_matrix(calendar: pd.DataFrame) -> list[dict[str, object]]:
+    """Return a compact scenario story matrix by portfolio period.
+
+    The scenario calendar is the source-of-truth audit layer for the packaged
+    Axys/APX demo. This matrix turns the same rows into a reviewer-facing
+    planning summary so future demo scenarios can be added without crowding a
+    period beyond the intended one-or-two-difference story.
+    """
+    matrix_rows: list[dict[str, object]] = []
+    period_columns = ["portfolio", "from_date", "thru_date"]
+    grouped = calendar.groupby(period_columns, sort=True, dropna=False)
+    for period_key, period_rows in grouped:
+        portfolio, from_date, thru_date = (str(value) for value in period_key)
+        difference_rows = int(period_rows["current_expected_difference_rows"].sum())
+        scenario_keys = sorted(set(period_rows["scenario_key"].astype(str)))
+        scenario_families = sorted(set(period_rows["scenario_family"].astype(str)))
+        primary_securities = sorted(set(period_rows["primary_security"].astype(str)))
+        scenario_notes = sorted(set(period_rows["notes"].astype(str)))
+        matrix_rows.append(
+            {
+                "portfolio": portfolio,
+                "from_date": from_date,
+                "thru_date": thru_date,
+                "expected_difference_rows": difference_rows,
+                "target_max_difference_rows": (
+                    _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
+                ),
+                "within_target": (
+                    difference_rows <= _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
+                ),
+                "scenario_families": scenario_families,
+                "primary_securities": primary_securities,
+                "scenario_keys": scenario_keys,
+                "scenario_notes": scenario_notes,
+            }
+        )
+    return matrix_rows
 
 
 def _audit_period_split_plan(

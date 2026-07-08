@@ -276,7 +276,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         for expected_text in [
             "Current transaction coverage by home",
             "Packaged demo rows",
-            "`by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`",
+            "`by`, `sl`, short-side `ss`/`cs`, `dv`, `in`",
+            "fixed-income accrued-interest `pa`/`sa`",
             "equity/security return-of-capital `rc`",
             "MBS principal-paydown `pd`",
             "external-cash `lo`, and external-cash `wd`",
@@ -284,7 +285,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "Test-only fixtures",
             "`dv` + `by` reinvestment guards",
             "Evidence-blocked backlog",
-            "`ai`, `ss`, `cs`",
+            "`ai`, uppercase reversal rows",
             "ordinary TNOTE2Y\n  interest uses an `in` transaction row",
             "TNOTE5Y `pa`/`sa` rows are packaged",
         ]:
@@ -305,6 +306,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "JPM `rc` return-of-capital",
             "fee-like `dp` transaction",
             "classified from special-security context",
+            "missed/late AAPL `dv` row",
+            "real 2026-05-14 payable-date dividend",
             "TNOTE2Y `in` interest",
             "MBSPOOL `pd` principal-paydown",
             "paired TNOTE5Y `by`/`pa` and",
@@ -919,34 +922,34 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["snapshot_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["snapshot_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 16)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 19)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_scenarios_by_type"],
             {
                 "by": 2,
                 "cs": 1,
                 "dp": 1,
-                "dv": 1,
+                "dv": 3,
                 "in": 1,
                 "li": 1,
                 "lo": 1,
                 "pa": 1,
                 "pd": 1,
-                "rc": 1,
+                "rc": 2,
                 "sa": 1,
                 "sl": 2,
                 "ss": 1,
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 28)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 33)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 6,
                 "cs": 1,
                 "dp": 1,
-                "dv": 1,
+                "dv": 6,
                 "in": 3,
                 "li": 1,
                 "lo": 1,
@@ -1067,16 +1070,22 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             ("INCOME", "2026-02-14", "2026-02-27")
         ]
         income_may_mark = density_by_period[("INCOME", "2026-05-01", "2026-05-08")]
+        income_may_dividend_payable = density_by_period[
+            ("INCOME", "2026-05-09", "2026-05-14")
+        ]
         income_may_income = density_by_period[
-            ("INCOME", "2026-05-09", "2026-05-15")
+            ("INCOME", "2026-05-15", "2026-05-15")
         ]
         income_may_paydown = density_by_period[
             ("INCOME", "2026-05-16", "2026-05-22")
         ]
+        income_may_late_dividend = density_by_period[
+            ("INCOME", "2026-05-23", "2026-05-29")
+        ]
         alpha_may = density_by_period[("ALPHA", "2026-05-01", "2026-05-29")]
         self.assertEqual(balanced_may_mark["current_difference_rows"], 2)
         self.assertFalse(balanced_may_mark["needs_intra_month_split"])
-        self.assertEqual(balanced_may_corrections["current_difference_rows"], 1)
+        self.assertEqual(balanced_may_corrections["current_difference_rows"], 2)
         self.assertFalse(balanced_may_corrections["needs_intra_month_split"])
         self.assertEqual(balanced_may_short["current_difference_rows"], 2)
         self.assertFalse(balanced_may_short["needs_intra_month_split"])
@@ -1086,13 +1095,71 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertFalse(income_february_sell["needs_intra_month_split"])
         self.assertEqual(income_may_mark["current_difference_rows"], 1)
         self.assertFalse(income_may_mark["needs_intra_month_split"])
+        self.assertEqual(income_may_dividend_payable["current_difference_rows"], 1)
+        self.assertFalse(income_may_dividend_payable["needs_intra_month_split"])
         self.assertEqual(income_may_income["current_difference_rows"], 2)
         self.assertFalse(income_may_income["needs_intra_month_split"])
         self.assertEqual(income_may_paydown["current_difference_rows"], 1)
         self.assertFalse(income_may_paydown["needs_intra_month_split"])
+        self.assertEqual(income_may_late_dividend["current_difference_rows"], 1)
+        self.assertFalse(income_may_late_dividend["needs_intra_month_split"])
         self.assertEqual(alpha_may["current_difference_rows"], 2)
         self.assertFalse(alpha_may["needs_intra_month_split"])
         self.assertFalse(any(row["needs_intra_month_split"] for row in density_rows))
+
+    def test_scenario_readability_matrix_names_each_period_story(self) -> None:
+        """The scenario matrix keeps the demo stories reviewable by period."""
+        rebuild_module = _load_rebuild_module()
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+
+        matrix_rows = rebuild_module._scenario_readability_matrix(calendar)
+        matrix_by_period = {
+            (row["portfolio"], row["from_date"], row["thru_date"]): row
+            for row in matrix_rows
+        }
+
+        for row in matrix_rows:
+            with self.subTest(
+                portfolio=row["portfolio"],
+                from_date=row["from_date"],
+                thru_date=row["thru_date"],
+            ):
+                self.assertTrue(row["within_target"])
+                self.assertLessEqual(row["expected_difference_rows"], 2)
+                self.assertTrue(row["scenario_families"])
+                self.assertTrue(row["primary_securities"])
+                self.assertTrue(row["scenario_keys"])
+                self.assertTrue(row["scenario_notes"])
+
+        balanced_short = matrix_by_period[("BALANCED", "2026-05-15", "2026-05-29")]
+        self.assertEqual(balanced_short["scenario_families"], ["short_side_trade"])
+        self.assertEqual(balanced_short["primary_securities"], ["TSLA"])
+        self.assertEqual(balanced_short["expected_difference_rows"], 2)
+
+        income_paydown = matrix_by_period[("INCOME", "2026-05-16", "2026-05-22")]
+        self.assertEqual(income_paydown["scenario_families"], ["principal_paydown"])
+        self.assertEqual(income_paydown["primary_securities"], ["MBSPOOL"])
+        self.assertEqual(income_paydown["expected_difference_rows"], 1)
+        income_dividend_payable = matrix_by_period[
+            ("INCOME", "2026-05-09", "2026-05-14")
+        ]
+        self.assertEqual(
+            income_dividend_payable["scenario_families"],
+            ["missed_late_dividend"],
+        )
+        self.assertEqual(income_dividend_payable["primary_securities"], ["AAPL"])
+        self.assertEqual(income_dividend_payable["expected_difference_rows"], 1)
+        income_late_dividend = matrix_by_period[
+            ("INCOME", "2026-05-23", "2026-05-29")
+        ]
+        self.assertEqual(
+            income_late_dividend["scenario_families"],
+            ["missed_late_dividend"],
+        )
+        self.assertEqual(income_late_dividend["primary_securities"], ["AAPL"])
+        self.assertEqual(income_late_dividend["expected_difference_rows"], 1)
 
     def test_period_split_plan_has_no_remaining_crowded_periods(self) -> None:
         """The split backlog is empty because every demo period is in target."""
@@ -1122,8 +1189,17 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         base_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_a" / "transactions.csv"
         )
-        rebuilt_transactions = rebuild_module._read_packaged_transactions(
+        current_transactions = rebuild_module._read_packaged_transactions(
             axys_directory / "snapshot_b" / "transactions.csv"
+        )
+        scenarios = rebuild_module._load_transaction_scenarios(
+            rebuild_module._DEFAULT_TRANSACTION_SCENARIOS_PATH,
+        )
+        rebuilt_transactions = rebuild_module._rebuild_transactions(
+            "snapshot_b",
+            current_transactions=current_transactions,
+            base_transactions=base_transactions,
+            transaction_scenarios=scenarios,
         )
         periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
 
@@ -1136,7 +1212,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 28)
+        self.assertEqual(len(adjustments), 33)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1195,18 +1271,44 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             deltas={"QTY": 80.0, "MKT_VAL": 80.0, "COST": 80.0},
         )
         self._assert_adjustment(
-            by_scenario["INCOME0604 pd transaction changes ending holding."],
+            by_scenario["INCOME0605 pd transaction changes ending holding."],
             portfolio="INCOME",
             security="MBSPOOL",
             holding_date="2026-05-29",
             deltas={"MKT_VAL": -320.0, "COST": -320.0},
         )
         self._assert_adjustment(
-            by_scenario["INCOME0604 pd transaction changes cash balance."],
+            by_scenario["INCOME0605 pd transaction changes cash balance."],
             portfolio="INCOME",
             security="CASH_USD",
             holding_date="2026-05-29",
             deltas={"QTY": 320.0, "MKT_VAL": 320.0, "COST": 320.0},
+        )
+        dividend_payable_adjustment = next(
+            adjustment
+            for adjustment in adjustments
+            if adjustment.scenario == "INCOME0606 dv transaction changes cash balance."
+            and adjustment.holding_date == "2026-05-14"
+        )
+        self._assert_adjustment(
+            dividend_payable_adjustment,
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-05-14",
+            deltas={"QTY": 220.97, "MKT_VAL": 220.97, "COST": 220.97},
+        )
+        late_dividend_adjustment = next(
+            adjustment
+            for adjustment in adjustments
+            if adjustment.scenario == "INCOME0604 dv transaction changes cash balance."
+            and adjustment.holding_date == "2026-05-29"
+        )
+        self._assert_adjustment(
+            late_dividend_adjustment,
+            portfolio="INCOME",
+            security="CASH_USD",
+            holding_date="2026-05-29",
+            deltas={"QTY": -220.97, "MKT_VAL": -220.97, "COST": -220.97},
         )
         self._assert_adjustment(
             by_scenario["INCOME0303 by transaction changes ending holding."],
@@ -1488,8 +1590,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         periods = pd.read_csv(axys_directory / "snapshot_b" / "portperf.csv")
         scenario_rows: list[dict[str, object]] = []
         for transaction_id, transaction_code, amount, scenario in (
-            ("INCOME0604", "pa", -42.5, "Test-only purchase accrued interest."),
-            ("INCOME0605", "sa", 37.25, "Test-only sale accrued interest."),
+            ("TESTPA", "pa", -42.5, "Test-only purchase accrued interest."),
+            ("TESTSA", "sa", 37.25, "Test-only sale accrued interest."),
         ):
             row: dict[str, object] = {
                 column: ""
@@ -1539,7 +1641,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             transaction_scenarios=scenarios,
         )
         inserted = rebuilt_transactions[
-            rebuilt_transactions["TRANSACTION_ID"].isin(["INCOME0604", "INCOME0605"])
+            rebuilt_transactions["TRANSACTION_ID"].isin(["TESTPA", "TESTSA"])
         ].sort_values("TRANSACTION_ID")
         self.assertEqual(inserted["TRAN"].to_list(), ["pa", "sa"])
         self.assertEqual(inserted["AMOUNT"].astype(float).to_list(), [-42.5, 37.25])
@@ -1553,14 +1655,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
         self._assert_adjustment(
-            by_scenario["INCOME0604 pa transaction changes cash balance."],
+            by_scenario["TESTPA pa transaction changes cash balance."],
             portfolio="INCOME",
             security="CASH_USD",
             holding_date="2026-05-29",
             deltas={"QTY": -42.5, "MKT_VAL": -42.5, "COST": -42.5},
         )
         self._assert_adjustment(
-            by_scenario["INCOME0605 sa transaction changes cash balance."],
+            by_scenario["TESTSA sa transaction changes cash balance."],
             portfolio="INCOME",
             security="CASH_USD",
             holding_date="2026-05-29",

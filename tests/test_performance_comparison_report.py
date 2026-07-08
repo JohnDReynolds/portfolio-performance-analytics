@@ -301,13 +301,20 @@ def _assert_workbook_explained_row_actions(
                 or "changed holdings.market_value" in str(required_setup)
                 or "Input for changed" in str(required_setup)
                 or "Helped explain" in str(required_setup)
-                or "Caused transactions.amount" in str(required_setup)
                 or "transactions.amount to" in str(required_setup)
                 or "holdings.quantity to" in str(required_setup)
-                or "Caused cash-balance" in str(required_setup)
                 or "split factor" in str(required_setup)
             ):
                 test_case.assertEqual(row.get("impact_status"), "Review only")
+                continue
+            if (
+                "Caused transactions.amount" in str(required_setup)
+                or "Caused cash-balance" in str(required_setup)
+            ):
+                test_case.assertIn(
+                    row.get("impact_status"),
+                    {"Review only", "Missing impact method"},
+                )
                 continue
             if (
                 "ending holdings." in str(required_setup)
@@ -329,7 +336,9 @@ def _assert_workbook_explained_row_actions(
                 test_case.assertTrue(
                     "Configured" in setup_text
                     or "shown for review" in setup_text
-                    or "Supporting detail" in setup_text,
+                    or "Supporting detail" in setup_text
+                    or "External flow" in setup_text
+                    or "Add YAML configuration to count it as explained" in setup_text,
                     msg=f"{row.get('review_key')} has unclear setup: {setup_text}",
                 )
                 continue
@@ -529,10 +538,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
             self.assertIn("source-data differences", readme)
             self.assertNotIn("source" + " data", readme)
-            self.assertIn("follow a performance period across CSV artifacts", readme)
             self.assertIn(
-                "`transaction_activity.csv`, `transaction_cross_checks.csv`, and "
-                "`flow_cross_check_reconciliation.csv`",
+                "follow a performance period across the `supporting_files/` "
+                "CSV artifacts",
+                readme,
+            )
+            self.assertIn(
+                "`supporting_files/transaction_activity.csv`, "
+                "`supporting_files/transaction_cross_checks.csv`, and "
+                "`supporting_files/flow_cross_check_reconciliation.csv`",
                 readme,
             )
             self.assertIn(
@@ -540,31 +554,35 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 readme,
             )
             self.assertIn(
-                "`transaction_matching_diagnostics.csv` only when auditing "
-                "transaction row-identity evidence",
+                "`supporting_files/transaction_matching_diagnostics.csv` only "
+                "when auditing transaction row-identity evidence",
                 readme,
             )
             self.assertIn("conservative matching status", readme)
             self.assertIn("does not imply fuzzy transaction linkage", readme)
             self.assertNotIn("cross-check rows may be", readme)
-            self.assertIn("`review_summary.json`", readme)
+            self.assertIn("`supporting_files/review_summary.json`", readme)
             self.assertIn("Modified Dietz vocabulary", readme)
-            self.assertIn("`needs_review_summary.csv`", readme)
+            self.assertIn("`supporting_files/needs_review_summary.csv`", readme)
             self.assertIn("## Audit/Export Files", readme)
-            self.assertIn("`manifest.json`: machine-readable artifact", readme)
+            self.assertIn(
+                "`supporting_files/manifest.json`: machine-readable artifact",
+                readme,
+            )
             self.assertIn("source context", readme)
             self.assertIn("transaction semantics summary", readme)
             self.assertIn(
-                "`needs_review_summary.csv`: top triage table for changed periods",
+                "`supporting_files/needs_review_summary.csv`: top triage table",
                 readme,
             )
             self.assertIn(
-                "`context_evidence_summary.csv`: context-only evidence counts, "
+                "`supporting_files/context_evidence_summary.csv`: context-only "
+                "evidence counts, reviewer priority",
+                readme,
+            )
+            self.assertIn(
+                "`supporting_files/context_evidence.csv`: row-level context evidence, "
                 "reviewer priority",
-                readme,
-            )
-            self.assertIn(
-                "`context_evidence.csv`: row-level context evidence, reviewer priority",
                 readme,
             )
 
@@ -582,12 +600,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertFalse(
                 manifest["options"]["include_reconstruction_diagnostics"]
             )
-            self.assertEqual(manifest["artifacts"]["manifest"], "manifest.json")
+            self.assertEqual(
+                manifest["artifacts"]["manifest"],
+                "supporting_files/manifest.json",
+            )
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
             self.assertEqual(manifest["artifacts"]["readme"], "README.md")
             self.assertEqual(
                 manifest["artifacts"]["review_summary"],
-                "review_summary.json",
+                "supporting_files/review_summary.json",
             )
             self.assertNotIn("report", manifest["artifacts"])
             self.assertEqual(manifest["source_context"]["comparison_path"], None)
@@ -604,48 +625,48 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["period_triage"],
-                "needs_review_summary.csv",
+                "supporting_files/needs_review_summary.csv",
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["formula_input_causes"],
-                "cause_summary.csv",
+                "supporting_files/cause_summary.csv",
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["supporting_context"],
-                "context_evidence_summary.csv",
+                "supporting_files/context_evidence_summary.csv",
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["transaction_diagnostics"],
                 [
-                    "transaction_activity.csv",
-                    "transaction_cross_checks.csv",
-                    "flow_cross_check_reconciliation.csv",
-                    "transaction_matching_diagnostics.csv",
+                    "supporting_files/transaction_activity.csv",
+                    "supporting_files/transaction_cross_checks.csv",
+                    "supporting_files/flow_cross_check_reconciliation.csv",
+                    "supporting_files/transaction_matching_diagnostics.csv",
                 ],
             )
             self.assertNotEqual(
                 manifest["review_entrypoints"]["primary_review"],
-                "transaction_matching_diagnostics.csv",
+                "supporting_files/transaction_matching_diagnostics.csv",
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["audit_trail"],
-                "findings.csv",
+                "supporting_files/findings.csv",
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["review_handoff"],
-                "review_summary.json",
+                "supporting_files/review_summary.json",
             )
             self.assertEqual(
                 manifest["artifacts"]["needs_review_summary"],
-                "needs_review_summary.csv",
+                "supporting_files/needs_review_summary.csv",
             )
             self.assertEqual(
                 manifest["artifacts"]["context_evidence"],
-                "context_evidence.csv",
+                "supporting_files/context_evidence.csv",
             )
             self.assertEqual(
                 manifest["artifacts"]["context_evidence_summary"],
-                "context_evidence_summary.csv",
+                "supporting_files/context_evidence_summary.csv",
             )
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
@@ -755,11 +776,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 needs_review["review_cues"][0],
             )
             self.assertIn(
-                "transaction_activity.csv",
+                "supporting_files/transaction_activity.csv",
                 needs_review["review_detail_artifacts"][0],
             )
             self.assertIn(
-                "context_evidence.csv",
+                "supporting_files/context_evidence.csv",
                 needs_review["review_detail_artifacts"][0],
             )
 
@@ -929,9 +950,13 @@ class TestPerformanceComparisonReport(unittest.TestCase):
         )
         self.assertEqual(plain_transaction_amount.height, 1)
         self.assertIsNone(plain_transaction_amount["estimated_impact"][0])
-        self.assertIn(
-            "transaction_impact_methods.performance.method",
+        self.assertEqual(
             plain_transaction_amount["review_guidance"][0],
+            (
+                "BUY: Caused cash-balance ending holdings.market_value "
+                "to decrease by 100.00. "
+                "Add YAML configuration to count it as explained."
+            ),
         )
 
         rules_findings = compare_snapshots(_RESTATEMENT_TRANSACTION_RULES_PATH)
@@ -1312,11 +1337,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("additively explain each performance period", readme)
             self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
             self.assertIn("complete finding-level audit trail", readme)
-            self.assertIn("follow a performance period across CSV artifacts", readme)
+            self.assertIn(
+                "follow a performance period across the `supporting_files/` "
+                "CSV artifacts",
+                readme,
+            )
             self.assertIn("supplementary transaction and external-flow diagnostics", readme)
             self.assertIn(
-                "`transaction_matching_diagnostics.csv` only when auditing "
-                "transaction row-identity evidence",
+                "`supporting_files/transaction_matching_diagnostics.csv` only "
+                "when auditing transaction row-identity evidence",
                 readme,
             )
             self.assertNotIn("cross-check rows may be", readme)
@@ -1418,6 +1447,15 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Review Key",
                 ],
             )
+            self.assertNotIn(
+                "Row Type",
+                [
+                    _normalized_header(
+                        underlying_causes_sheet.cell(row=1, column=column).value
+                    )
+                    for column in range(1, underlying_causes_sheet.max_column + 1)
+                ],
+            )
             self.assertGreater(underlying_causes_sheet.max_row, 5)
             numeric_source_row = next(
                 row
@@ -1442,6 +1480,36 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 underlying_causes_sheet[f"J{numeric_explained_row}"].number_format,
                 "0.000000",
             )
+            explained_cause_row = next(
+                row
+                for row in range(2, underlying_causes_sheet.max_row + 1)
+                if underlying_causes_sheet[f"J{row}"].value not in (None, "")
+            )
+            self.assertEqual(
+                underlying_causes_sheet[f"J{explained_cause_row}"].fill.fgColor.rgb,
+                "FFFFFF00",
+            )
+            self.assertEqual(
+                underlying_causes_sheet[f"K{explained_cause_row}"].fill.fgColor.rgb,
+                "FFFFFF00",
+            )
+            possible_cause_rows = [
+                row
+                for row in range(2, underlying_causes_sheet.max_row + 1)
+                if str(underlying_causes_sheet[f"K{row}"].value).startswith(
+                    "Possible cause:"
+                )
+            ]
+            if possible_cause_rows:
+                possible_cause_row = possible_cause_rows[0]
+                self.assertEqual(
+                    underlying_causes_sheet[f"K{possible_cause_row}"].fill.fgColor.rgb,
+                    "FFFFE699",
+                )
+                self.assertNotEqual(
+                    underlying_causes_sheet[f"J{possible_cause_row}"].fill.fgColor.rgb,
+                    "FFFFE699",
+                )
             portfolios = {
                 str(underlying_causes_sheet[f"A{row}"].value)
                 for row in range(2, underlying_causes_sheet.max_row + 1)
@@ -1475,7 +1543,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     _normalized_header(
                         findings_sheet.cell(row=1, column=column).value
                     )
-                    for column in range(1, 12)
+                    for column in range(1, 11)
                 ],
                 [
                     "Portfolio",
@@ -1487,7 +1555,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
-                    "Performance Difference Explained",
                     "Explanation",
                 ],
             )
@@ -1605,7 +1672,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             paths["needs_review_summary"].unlink()
             issues = report_bundle_validation_issues(directory)
 
-        self.assertIn("artifact file 'needs_review_summary.csv' is missing", issues)
+        self.assertIn(
+            "artifact file 'supporting_files/needs_review_summary.csv' is missing",
+            issues,
+        )
 
     def test_report_bundle_validation_catches_missing_manifest_key(self) -> None:
         """Bundle validation rejects missing required top-level manifest keys."""

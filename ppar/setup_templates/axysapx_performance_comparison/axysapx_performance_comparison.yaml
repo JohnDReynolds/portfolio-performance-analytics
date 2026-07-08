@@ -109,11 +109,13 @@ files:
   #   CONTRIBUTION.
   #
   # holdings:
-  #   Required. Contains beginning/ending holdings market values used as
-  #   Modified Dietz beginning and ending value inputs. Required fields after
-  #   Axys/APX normalization: portfolio id, security id, holding date, and
-  #   market value. Quantity, price, and accrued interest are useful supporting
-  #   evidence when available.
+  #   Required. Contains beginning/ending holdings values used as Modified
+  #   Dietz beginning and ending value inputs. Required fields after Axys/APX
+  #   normalization: portfolio id, security id, holding date, and market value.
+  #   When accrued interest is present, PPAR adds it to market value for the
+  #   reconstructed beginning/end valuation. When accrued interest is absent or
+  #   blank, it is treated as zero. Quantity and price remain useful supporting
+  #   evidence for explaining why market value changed.
   #   Starter headers: PORT, SEC, HOLDING_DATE, QTY, PRICE, MKT_VAL, ACCRUED.
   #
   # transactions:
@@ -313,6 +315,11 @@ transaction_rules:
       transaction_category: income
       cash_flow_sign: positive
       performance_flow_sign: performance
+    - when:
+        security_type: csus
+      transaction_category: corporate_action
+      cash_flow_sign: none
+      performance_flow_sign: neutral
   pd:
     # Principal paydown is included only with amortizing security context and
     # portfolio cash destination evidence. The existing security-level

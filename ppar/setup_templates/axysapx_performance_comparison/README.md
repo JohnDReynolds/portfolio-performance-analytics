@@ -84,8 +84,8 @@ Output:
 
 - `my_ppar_data/performance_comparison/output/portfolio/report.xlsx`
 - `my_ppar_data/performance_comparison/output/portfolio/report.html`
-- `my_ppar_data/performance_comparison/output/portfolio/manifest.json`
-- `my_ppar_data/performance_comparison/output/portfolio/*.csv`
+- `my_ppar_data/performance_comparison/output/portfolio/supporting_files/manifest.json`
+- `my_ppar_data/performance_comparison/output/portfolio/supporting_files/*.csv`
 
 Run the security comparison from a setup workspace when you want the
 security-period reviewer-facing example:
@@ -98,8 +98,8 @@ Output:
 
 - `my_ppar_data/performance_comparison/output/security/report.xlsx`
 - `my_ppar_data/performance_comparison/output/security/report.html`
-- `my_ppar_data/performance_comparison/output/security/manifest.json`
-- `my_ppar_data/performance_comparison/output/security/*.csv`
+- `my_ppar_data/performance_comparison/output/security/supporting_files/manifest.json`
+- `my_ppar_data/performance_comparison/output/security/supporting_files/*.csv`
 
 Open `report.xlsx` when present. Use `report.html` for browser review, and keep
 the CSV artifacts for supplementary diagnostics and audit traceability. The
@@ -115,6 +115,8 @@ differences from identifiable input differences and other evidence:
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
   defensible performance explanation.
+  Yellow cells are included in explained performance difference. Gold cells are
+  possible causes for remaining unexplained differences.
 - Optional reconstruction diagnostics can add `Reconstruction Summary`,
   `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
@@ -149,7 +151,8 @@ Data used:
   Reviewer-facing explanations preserve the source code rather than uppercasing
   or replacing it with the category.
 - Packaged transaction rows intentionally use only the small user-facing set
-  `by`, `sl`, `dv`, `in`, `pa`, `pd`, `sa`, `rc`, `dp`, `li`, `lo`, and `wd`. The
+  `by`, `sl`, `ss`, `cs`, `dv`, `in`, `pa`, `pd`, `sa`, `rc`, `dp`, `li`, `lo`, and
+  `wd`. The
   packaged `pa` and `sa` rows appear only as fixed-income accrued-interest
   adjuncts paired with TNOTE5Y buy/sell rows. The packaged `rc` row appears only
   as an equity/security return-of-capital row with explicit return-of-capital
@@ -169,11 +172,11 @@ Data used:
 
   | Home | Transaction families |
   | --- | --- |
-  | Packaged demo rows | `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, equity/security return-of-capital `rc`, MBS principal-paydown `pd`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
+  | Packaged demo rows | `by`, `sl`, short-side `ss`/`cs`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, equity/security return-of-capital `rc`, MBS principal-paydown `pd`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. |
   | Packaged split-factor rows | CVNA `splits.csv` row in Snapshot B, used as context evidence for central split processing. |
   | YAML rules reserved for runtime guards | `;` locally materialized corporate-action rows and non-packaged conditional branches for ambiguous flow codes. |
   | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, `pa`/`sa` local-override examples, and `dv` + `by` reinvestment guards. |
-  | Evidence-blocked backlog | `ai`, `ss`, `cs`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
+  | Evidence-blocked backlog | `ai`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
 
   The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
   interest uses an `in` transaction row, MBSPOOL `pd` principal-paydown uses
@@ -233,6 +236,9 @@ Expected workbook:
   - a fully explained INCOME period with a larger fee-like `dp` transaction,
     classified from special-security context, and matching lower `CASH_USD`
     ending value;
+  - two isolated INCOME periods showing a missed/late AAPL `dv` row: Snapshot B
+    adds the real 2026-05-14 payable-date dividend and removes Snapshot A's
+    later 2026-05-23 version;
   - a partly explained BALANCED period where the same AAPL price correction and
     standalone MSFT holding market-value correction explain part of the
     reported portfolio and MSFT security return differences, leaving an
@@ -282,7 +288,7 @@ The workbook uses a small field-role model:
 
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
-| `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. |
+| `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. `holdings.accrued` is added to `holdings.market_value` for reconstructed beginning/end valuation when present. |
 | `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Raw Audit Trail` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
 | `context` | FX rates, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |

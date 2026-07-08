@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     except PpaError as error:
         print(f"Report bundle failed: {error}", file=sys.stderr)
         return 1
-    print(f"Report bundle written to: {bundle_paths['manifest'].parent}")
+    print(f"Report bundle written to: {bundle_paths['readme'].parent}")
     print(f"README written to: {bundle_paths['readme']}")
     if _pc_review_model.REVIEW_WORKBOOK_ARTIFACT in bundle_paths:
         print(

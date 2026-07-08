@@ -2370,7 +2370,7 @@ class TestPackageMetadata(unittest.TestCase):
                     RECONSTRUCTION_STATUS_ALIGNED,
                 )
 
-        tnote_key = ("INCOME", "TNOTE2Y", "2026-05-09", "2026-05-15")
+        tnote_key = ("INCOME", "TNOTE2Y", "2026-05-15", "2026-05-15")
         tnote_holding_key = ("INCOME", "TNOTE2Y", "2026-05-15")
         self.assertNotEqual(
             _float_delta(

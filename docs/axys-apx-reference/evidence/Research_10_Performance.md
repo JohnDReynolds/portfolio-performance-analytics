@@ -601,3 +601,29 @@ This is a defensible demo convention, not public proof of universal native
 Axys/APX report behavior. Production interpretation still needs local evidence
 for holdings signs, cash/proceeds buckets, source/destination fields, and
 reported performance treatment.
+
+## Market Value vs Accrued Interest Addendum Incorporated 2026-07-08
+
+Source: `temp_Axys_APX_Market_Value_vs_Accrued_Interest_Summary.md`.
+
+The July 2026 market-value/accrued-interest research affects Modified Dietz and
+fixed-income performance reconstruction. Public report evidence strongly implies
+that fixed-income Market Value and Accrued Interest are separate appraisal
+concepts. Therefore, a Modified Dietz reconstruction that uses only market value
+may exclude accrued interest unless the extracted market value is site-proven to
+be dirty value.
+
+Performance interpretation:
+
+| Topic | Interpretation | Confidence |
+|---|---|---:|
+| Beginning/end value | For fixed income, performance value should generally include security market value plus accrued interest, plus cash where applicable. | High as performance principle; native Axys/APX formula Unknown |
+| `holdings.market_value` | Public appraisal evidence strongly implies clean market value rather than market value plus accrued. | High / strongly implied |
+| `holdings.accrued` | Should be preserved as a separate performance-reconstruction input when available. | High as data-model guidance |
+| Total position value | Derive as market value plus accrued interest when dirty-value performance reconstruction is required. | High as implementation guidance |
+
+Remaining unknowns: official IMEX field names for accrued interest, whether a
+stored total-value field exists, and exact Axys/APX report formulas for
+portfolio and security performance. Until those are verified, performance
+comparison tooling should make the market-value-versus-accrued assumption
+explicit and preferably configurable.

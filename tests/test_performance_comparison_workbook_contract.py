@@ -159,6 +159,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertNotIn("Browser review surface", html_report)
             self.assertNotIn("Transaction Match Diagnostics", html_report)
             self.assertNotIn("Match Confidence", html_report)
+            self.assertNotIn("pc-value-explained-cause", html_report)
+            self.assertNotIn("pc-value-explained-impact", html_report)
+            self.assertIn("pc-fill-explained-cause", html_report)
+            self.assertIn("pc-fill-possible-cause", html_report)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             review_summary = json.loads(
@@ -204,18 +208,21 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Review Key",
                     ],
                 )
+                self.assertNotIn(
+                    "Row Type",
+                    _header_values(workbook["Performance Difference Causes"]),
+                )
                 self.assertIn(
                     "Performance\nDifference\nExplained",
                     _raw_header_values(workbook["Performance Difference Causes"]),
                 )
                 self.assertEqual(
-                    _header_values(workbook["Raw Audit Trail"])[:12],
+                    _header_values(workbook["Raw Audit Trail"])[:11],
                     [
                         *_COMMON_LEFT_HEADERS,
                         "Snapshot A Value",
                         "Snapshot B Value",
                         "B - A Difference",
-                        "Performance Difference Explained",
                         "Explanation",
                         "Code",
                     ],
@@ -279,9 +286,9 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 balanced_may = partly_explained_rows[0]
                 balanced_may_review_note = str(balanced_may[7])
                 self.assertIn(
-                    "The remaining Unexplained Difference may be due to missing "
-                    "source-data, source-file timing differences, or vendor "
-                    "methodology that does not match the YAML specifications.",
+                    "Possible cause: JPM transactions.amount increased "
+                    "by 200.00 on 2026-05-12. Add YAML configuration to count "
+                    "it as explained.",
                     balanced_may_review_note,
                 )
                 self.assertNotIn(
@@ -358,6 +365,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Caused cash-balance" in str(row[10])
                         or "Caused transactions.amount" in str(row[10])
                         or "split factor" in str(row[10])
+                        or "Add YAML configuration to count it as explained"
+                        in str(row[10])
                         or "transactions.amount to" in str(row[10])
                         or "holdings.quantity to" in str(row[10])
                         or "ending holdings." in str(row[10])
@@ -375,6 +384,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "transactions.price",
                         "transactions.quantity",
                     }.issubset(underlying_fields)
+                )
+                self.assertNotIn(
+                    "Row Type",
+                    _header_values(workbook["Performance Difference Causes"]),
                 )
                 jpm_dividend_row = next(
                     row
@@ -561,7 +574,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertEqual(
                     income_tnote_sell_accrued_guidance,
-                    {"TNOTE5Y ending holdings.accrued increased by 0.02."},
+                    {
+                        "TNOTE5Y beginning holdings.accrued increased by 0.05.",
+                        "TNOTE5Y ending holdings.accrued increased by 0.02.",
+                    },
                 )
                 self.assertFalse(
                     any(
@@ -584,6 +600,21 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
                 raw_fields = {row[4] for row in raw_rows}
                 self.assertNotIn("holdings.cost", raw_fields)
+                self.assertTrue(
+                    any(
+                        row[0] == "BALANCED"
+                        and _workbook_date_text(row[1]) == "2026-05-09"
+                        and _workbook_date_text(row[2]) == "2026-05-14"
+                        and row[4] == "transactions.amount"
+                        and row[5] == "JPM"
+                        and row[9]
+                        == (
+                            "rc: Caused cash-balance ending holdings.market_value "
+                            "to decrease by 200.00."
+                        )
+                        for row in raw_rows
+                    )
+                )
             finally:
                 workbook.close()
 
@@ -605,7 +636,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("explain each security period", readme)
-            self.assertIn("follow a security period across CSV artifacts", readme)
+            self.assertIn(
+                "follow a security period across the `supporting_files/` CSV artifacts",
+                readme,
+            )
             self.assertNotIn("explain each performance period", readme)
 
             workbook = openpyxl.load_workbook(
@@ -681,7 +715,24 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         for row in security_rows
                         if row[7] == "Unexplained"
                     },
-                    {("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30")},
+                    {
+                        ("BALANCED", "JPM", "2026-05-09", "2026-05-14"),
+                        ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"),
+                    },
+                )
+                jpm_possible_cause_row = next(
+                    row
+                    for row in security_rows
+                    if row[0] == "BALANCED"
+                    and row[3] == "JPM"
+                    and _workbook_date_text(row[1]) == "2026-05-09"
+                    and _workbook_date_text(row[2]) == "2026-05-14"
+                )
+                self.assertIn(
+                    "Possible cause: JPM transactions.amount increased "
+                    "by 200.00 on 2026-05-12. Add YAML configuration to count "
+                    "it as explained.",
+                    str(jpm_possible_cause_row[8]),
                 )
                 fully_explained_rows = [
                     row for row in security_rows if row[7] == "Fully Explained"
@@ -760,9 +811,28 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertIsNone(tnote_row[6])
                 raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
                 self.assertNotIn("holdings.cost", {row[4] for row in raw_rows})
+                raw_sort_keys = [
+                    (
+                        row[0],
+                        str(row[1])[:10],
+                        str(row[2])[:10],
+                        str(row[3])[:10],
+                        row[4],
+                        row[5],
+                    )
+                    for row in raw_rows
+                ]
+                self.assertEqual(raw_sort_keys, sorted(raw_sort_keys))
                 underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
                 underlying_sort_keys = [
-                    (row[0], str(row[1])[:10], str(row[2])[:10], row[5], row[4])
+                    (
+                        row[0],
+                        str(row[1])[:10],
+                        str(row[2])[:10],
+                        str(row[3])[:10],
+                        row[4],
+                        row[5],
+                    )
                     for row in underlying_rows
                 ]
                 self.assertEqual(underlying_sort_keys, sorted(underlying_sort_keys))
@@ -788,7 +858,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[4] == "transactions.amount"
                     and row[5] == "TNOTE2Y"
-                    and str(row[1])[:10] == "2026-05-09"
+                    and str(row[1])[:10] == "2026-05-15"
                     and str(row[2])[:10] == "2026-05-15"
                     and str(row[3])[:10] == "2026-05-15"
                 )
@@ -906,9 +976,9 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertEqual(
                 manifest["review_entrypoints"]["return_reconstruction"],
                 [
-                    "reconstruction_summary.csv",
-                    "return_reconstruction_checks.csv",
-                    "security_return_reconstruction_checks.csv",
+                    "supporting_files/reconstruction_summary.csv",
+                    "supporting_files/return_reconstruction_checks.csv",
+                    "supporting_files/security_return_reconstruction_checks.csv",
                 ],
             )
 

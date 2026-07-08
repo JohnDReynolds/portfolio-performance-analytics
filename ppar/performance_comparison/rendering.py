@@ -191,6 +191,28 @@ def html_table_cell(value: object, column: str) -> str:
     return f'<td class="{classes}">{escape_html(format_value(value))}</td>'
 
 
+def html_row_value_classes(row: Mapping[str, object], column: str) -> list[str]:
+    """Return CSS classes derived from a full row and column name.
+
+    Args:
+        row: Table row values keyed by column name.
+        column: Source column name.
+
+    Returns:
+        Additional CSS classes for row-aware styling.
+    """
+    row_type = format_value(row.get("row_type"))
+    if row_type == "Explained Cause" and column in {
+        "row_type",
+        "estimated_impact",
+        "review_guidance",
+    }:
+        return ["pc-fill-explained-cause"]
+    if row_type == "Possible Cause" and column in {"row_type", "review_guidance"}:
+        return ["pc-fill-possible-cause"]
+    return []
+
+
 def html_cell_alignment(value: object) -> str:
     """Return a CSS alignment class for an HTML table value.
 
@@ -610,6 +632,12 @@ tbody tr:hover {
 }
 .pc-status-clear {
   color: var(--pc-status-clear);
+}
+.pc-fill-explained-cause {
+  background: #ffff00;
+}
+.pc-fill-possible-cause {
+  background: #ffe699;
 }
 #needs-review-summary {
   border-left: 4px solid var(--pc-status-review);

@@ -30,6 +30,7 @@ from ppar.performance_comparison.transactions import TransactionsLoader
 
 __all__ = [
     "REPORT_BUNDLE_REQUIRED_ARTIFACTS",
+    "SUPPORTING_FILES_DIRECTORY",
     "report_bundle_contract",
     "report_bundle_manifest",
     "report_bundle_validation_issues",
@@ -39,6 +40,7 @@ __all__ = [
     "write_report_bundle_review_summary",
 ]
 
+SUPPORTING_FILES_DIRECTORY = "supporting_files"
 REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "html_report",
     "readme",
@@ -177,6 +179,7 @@ def write_csv_artifact(table: pl.DataFrame, output_path: Path) -> Path:
     Returns:
         Normalized destination path.
     """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     table.write_csv(output_path)
     return output_path
 
@@ -219,27 +222,36 @@ def write_report_bundle_readme(
         first_review_step,
         f"2. Use {_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET} to see which "
         f"source-data differences additively explain each {review_unit}.",
+        "   It includes explained causes plus supporting evidence, possible causes, "
+        "and Modified Dietz inputs used to review the performance difference.",
+        "   Yellow cells are included in explained performance difference. Gold "
+        "cells are possible causes for remaining unexplained differences.",
         f"3. Use {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} for audit and "
         "troubleshooting; it is the complete finding-level audit trail.",
-        f"4. Use the `review_key` column to follow a {review_unit} across CSV artifacts.",
-        "5. Use `transaction_activity.csv`, `transaction_cross_checks.csv`, and "
-        "`flow_cross_check_reconciliation.csv` for supplementary transaction "
-        "and external-flow diagnostics.",
-        "   Use `transaction_matching_diagnostics.csv` only when auditing "
+        f"4. Use the `review_key` column to follow a {review_unit} across the "
+        f"`{SUPPORTING_FILES_DIRECTORY}/` CSV artifacts.",
+        f"5. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv`, "
+        f"`{SUPPORTING_FILES_DIRECTORY}/transaction_cross_checks.csv`, and "
+        f"`{SUPPORTING_FILES_DIRECTORY}/flow_cross_check_reconciliation.csv` for "
+        "supplementary transaction and external-flow diagnostics.",
+        f"   Use `{SUPPORTING_FILES_DIRECTORY}/transaction_matching_diagnostics.csv` "
+        "only when auditing "
         "transaction row-identity evidence; it reports conservative matching "
         "status and does not imply fuzzy transaction linkage.",
-        "6. Use `review_summary.json` when handing the bundle to another reviewer "
-        "or automation. It names the Modified Dietz vocabulary, entrypoints, "
-        "source context, and transaction-semantics summary in one compact file.",
+        f"6. Use `{SUPPORTING_FILES_DIRECTORY}/review_summary.json` when handing the "
+        "bundle to another reviewer or automation. It names the Modified Dietz "
+        "vocabulary, entrypoints, source context, and transaction-semantics "
+        "summary in one compact file.",
         "",
         "## Audit/Export Files",
         "",
-        "- `findings.csv`: complete finding-level comparison output.",
-        "- `manifest.json`: machine-readable artifact map, source context, "
-        "transaction semantics summary, and row-count metadata.",
-        "- `review_summary.json`: compact reviewer handoff summary with Modified "
-        "Dietz vocabulary, entrypoints, source context, counts, and transaction "
-        "semantics.",
+        f"- `{SUPPORTING_FILES_DIRECTORY}/findings.csv`: complete finding-level "
+        "comparison output.",
+        f"- `{SUPPORTING_FILES_DIRECTORY}/manifest.json`: machine-readable artifact "
+        "map, source context, transaction semantics summary, and row-count metadata.",
+        f"- `{SUPPORTING_FILES_DIRECTORY}/review_summary.json`: compact reviewer "
+        "handoff summary with Modified Dietz vocabulary, entrypoints, source "
+        "context, counts, and transaction semantics.",
         *_report_bundle_readme_table_lines(tables),
     ]
     output_path.write_text("\n".join(lines).rstrip() + "\n", encoding=util.ENCODING)
@@ -270,6 +282,7 @@ def write_report_bundle_manifest(
     comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
+    bundle_root: Path | None = None,
 ) -> Path:
     """Write a report-bundle JSON manifest.
 
@@ -286,6 +299,8 @@ def write_report_bundle_manifest(
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
+        bundle_root: Report bundle root directory used for manifest-relative
+            artifact references. Defaults to the manifest output directory.
 
     Returns:
         Normalized destination path.
@@ -299,7 +314,9 @@ def write_report_bundle_manifest(
         comparison_path=comparison_path,
         artifact_paths=artifact_paths,
         tables=tables,
+        bundle_root=bundle_root or output_path.parent,
     )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding=util.ENCODING,
@@ -322,6 +339,7 @@ def write_report_bundle_review_summary(
         Normalized destination path.
     """
     summary = _report_bundle_review_summary(manifest=manifest)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding=util.ENCODING,
@@ -367,6 +385,7 @@ def report_bundle_manifest(
     comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
+    bundle_root: Path | None = None,
 ) -> dict[str, object]:
     """Return JSON-serializable metadata for a report bundle.
 
@@ -381,11 +400,17 @@ def report_bundle_manifest(
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
+        bundle_root: Report bundle root directory used for manifest-relative
+            artifact references. Defaults to the current directory.
 
     Returns:
         JSON-serializable manifest data.
     """
     suppressed_count = findings.height - active_findings.height
+    artifact_references = _artifact_references(
+        artifact_paths,
+        bundle_root=bundle_root or Path("."),
+    )
     return {
         "bundle_type": "performance_comparison_report",
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
@@ -405,10 +430,7 @@ def report_bundle_manifest(
             active_findings,
             comparison_path=comparison_path,
         ),
-        "artifacts": {
-            name: path.name
-            for name, path in sorted(artifact_paths.items())
-        },
+        "artifacts": artifact_references,
         "tables": {
             "findings": {"rows": findings.height},
             **{
@@ -417,7 +439,7 @@ def report_bundle_manifest(
             },
         },
         "review_entrypoints": _report_bundle_review_entrypoints(
-            artifact_paths,
+            artifact_references,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         ),
     }
@@ -464,13 +486,30 @@ def _report_bundle_transaction_semantics(
     )
 
 
-def _report_bundle_review_entrypoints(
+def _artifact_references(
     artifact_paths: Mapping[str, Path],
+    *,
+    bundle_root: Path,
+) -> dict[str, str]:
+    """Return manifest artifact references relative to the bundle root."""
+    references: dict[str, str] = {}
+    root = bundle_root.resolve()
+    for name, path in sorted(artifact_paths.items()):
+        try:
+            reference = path.resolve().relative_to(root)
+        except ValueError:
+            reference = path.name
+        references[name] = reference.as_posix()
+    return references
+
+
+def _report_bundle_review_entrypoints(
+    artifact_references: Mapping[str, str],
     *,
     include_reconstruction_diagnostics: bool,
 ) -> dict[str, object]:
     """Return the intended first-stop artifacts for reviewer navigation."""
-    artifacts = {name: path.name for name, path in sorted(artifact_paths.items())}
+    artifacts = dict(artifact_references)
     transaction_diagnostics = [
         artifacts[name]
         for name in (
@@ -516,9 +555,9 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
         Human-readable validation issues. An empty list means validation passed.
     """
     bundle_path = Path(bundle_directory)
-    manifest_path = bundle_path / "manifest.json"
+    manifest_path = bundle_path / SUPPORTING_FILES_DIRECTORY / "manifest.json"
     if not manifest_path.exists():
-        return ["manifest.json is missing"]
+        return [f"{SUPPORTING_FILES_DIRECTORY}/manifest.json is missing"]
 
     manifest = _read_report_bundle_manifest(manifest_path)
     if manifest is None:
@@ -570,8 +609,8 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         "top_evidence": "ranked evidence rows shown in the report",
     }
     return [
-        f"- `{name}.csv`: {descriptions.get(name, 'report helper table')} "
-        f"({table.height} row(s))."
+        f"- `{SUPPORTING_FILES_DIRECTORY}/{name}.csv`: "
+        f"{descriptions.get(name, 'report helper table')} ({table.height} row(s))."
         for name, table in sorted(tables.items())
     ]
 

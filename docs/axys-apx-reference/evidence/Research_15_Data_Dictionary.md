@@ -528,9 +528,9 @@ normalized audit-schema candidates, not official Axys/APX field dictionaries.
 | Security master | `security_id`, `security_symbol`, `security_type`, name, CUSIP, ISIN, ticker, asset class, sector, industry, country, currency, multiplier, income type, coupon/frequency, maturity, issue date, factor, user fields, source file/row. |
 | Transactions | Portfolio, transaction ID/code, trade/settle/post dates, security symbol/type, quantity, price, gross/net/cash amount, commission, fees, accrued interest, withholding, source/destination type and symbol, currency, FX, cost date/amount, Perf/CW, Mark to Market, comments, external source ID, source file/row. |
 | Prices | Security symbol/type, price date, price, price source, currency, factor, source file/row. |
-| Positions | Portfolio, as-of date, security symbol/type, quantity, price, market value, accrued income, cost amount, currency, FX, stale flag, source file/row. |
+| Positions | Portfolio, as-of date, security symbol/type, quantity, price, clean market value, accrued income / accrued interest, derived total value, cost amount, currency, FX, stale flag, source file/row. |
 | Position lots | Portfolio, as-of date, security, lot ID, open/acquisition date, quantity, cost, market value, currency, source file/row. |
-| Performance | Portfolio/security/classification/composite identifiers, period dates, level, beginning/ending market value, average weight, return, contribution, external flow, income, fees, source report/row. |
+| Performance | Portfolio/security/classification/composite identifiers, period dates, level, beginning/ending market value, beginning/ending accrued interest when fixed income is in scope, average weight, return, contribution, external flow, income, fees, source report/row. |
 
 ### 21.2 Catalog metadata required for reliability
 

@@ -445,7 +445,8 @@ These tokens are observed in integration workflows. Native cash-balance schema r
 | `Quantity` | Holding/position quantity. | Yes | Yes as report label | Unknown | Yes | Verified in report/export contexts |
 | `Security` | Security name/description in holding/report output. | Yes | Yes | Unknown | Yes | Verified in report/export contexts |
 | `Price` | Holding price. | Yes | Yes as report label | Unknown | Yes | Verified in report contexts |
-| `Market Value` | Holding/account valuation amount. | Yes | Yes | Unknown | Yes | Verified in report contexts |
+| `Market Value` | Holding/account valuation amount; fixed-income appraisal evidence strongly implies clean market value separate from accrued interest. | Yes | Yes | Unknown | Yes | Verified in report contexts; accrued exclusion High / strongly implied |
+| `Accrued Interest` | Fixed-income interest earned but not paid; appraisal evidence shows it separately from Market Value. | Yes as report concept | Yes as report concept | Unknown | Reports | High as separate report concept; native field Unknown |
 | `Pct Assets` | Percent-of-assets label in Axys Portfolio Appraisal sample. | Yes | Unknown | Unknown | Yes | Verified for Axys sample |
 | `Percent of Portfolio` | Percent-of-portfolio label in APX Portfolio Appraisal description. | Unknown | Yes | Unknown | APX report | Verified as APX report label |
 | `Yield` | Yield field in Portfolio Appraisal examples/description. | Yes | Yes | Unknown | Reports | Verified as report label |
@@ -536,8 +537,8 @@ The supplied research verifies product-level performance capability and selected
 | `Avg Wgt` | Average weight. | Unknown | Yes | Unknown | APX reports | Verified as report label |
 | `Return` | Return label for report segment/security/portfolio/benchmark. | Unknown | Yes | Unknown | APX reports | Verified as report label |
 | `Contrib` | Contribution label. | Unknown | Yes | Unknown | APX reports | Verified as report label |
-| Beginning market value | Performance input concept. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
-| Ending market value | Performance input concept. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Beginning market value | Performance input concept. For fixed income, may need accrued interest added when reconstructing dirty-value returns. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
+| Ending market value | Performance input concept. For fixed income, may need accrued interest added when reconstructing dirty-value returns. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Net contributions | Performance input concept. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Gross return | Gross-of-fee return concept. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
 | Net return | Net-of-fee return concept. Exact field name not supplied. | Unknown | Unknown | Unknown | Unknown | Unknown |
@@ -1073,9 +1074,9 @@ from native field claims.
 | Security master | Security ID/symbol/type, names, CUSIP, ISIN, ticker, asset class, sector, industry, country, currency, multiplier, coupon/frequency, maturity, issue date, factor, user fields, source file/row. |
 | Transactions | Portfolio, transaction ID/code, trade/settle/post dates, security symbol/type, quantity, price, gross/net/cash amount, commission, fees, accrued interest, withholding, source/destination type and symbol, currency, FX, cost fields, Perf/CW, Mark to Market, comments, external source ID, source file/row. |
 | Prices | Security symbol/type, price date, price, price source, currency, factor, source file/row. |
-| Positions | Portfolio, as-of date, security symbol/type, quantity, price, market value, accrued income, cost, currency, FX, stale flag, source file/row. |
+| Positions | Portfolio, as-of date, security symbol/type, quantity, price, clean market value, accrued income / accrued interest, derived total value, cost, currency, FX, stale flag, source file/row. |
 | Position lots | Portfolio, as-of date, security, lot ID, open/acquisition date, quantity, cost, market value, currency, source file/row. |
-| Performance | Portfolio/security/classification/composite identifiers, period dates, level, beginning/ending market value, weight, return, contribution, external flow, income, fees, source report/row. |
+| Performance | Portfolio/security/classification/composite identifiers, period dates, level, beginning/ending market value, beginning/ending accrued interest when fixed income is in scope, weight, return, contribution, external flow, income, fees, source report/row. |
 
 Any implementation dictionary should also record extraction mechanism, exact
 source artifact, Axys/APX version, original label, internal token if known, data

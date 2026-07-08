@@ -14,8 +14,11 @@ import yaml
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison.return_reconstruction import (
+    BEGIN_VALUE_B,
+    DERIVED_DENOMINATOR_B,
     DERIVED_RETURN_DIFFERENCE,
     DERIVED_NUMERATOR_B,
+    END_VALUE_B,
     END_VALUE_DIFFERENCE,
     INCOME_B,
     NET_FLOW_DIFFERENCE,
@@ -46,6 +49,7 @@ _INTENTIONAL_PORTFOLIO_DIFFERENT_KEYS = {
     ("INCOME", "2026-04-01", "2026-04-30"),
 }
 _INTENTIONAL_SECURITY_DIFFERENT_KEYS = {
+    ("BALANCED", "JPM", "2026-05-09", "2026-05-14"),
     ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"),
     ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"),
 }
@@ -183,6 +187,129 @@ def _write_reinvestment_pair_fixture(directory: Path) -> Path:
             "dv": {
                 "transaction_category": "income",
                 "cash_flow_sign": "positive",
+                "performance_flow_sign": "performance",
+            },
+        },
+    }
+    path = directory / "comparison.yaml"
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    return path
+
+
+def _write_accrued_value_fixture(
+    directory: Path,
+    *,
+    include_accrued_column: bool,
+) -> Path:
+    """Write a tiny comparison fixture for holdings valuation contracts."""
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        (directory / snapshot_name).mkdir()
+
+    holdings_rows = {
+        "PORT": ["P1", "P1", "P1", "P1"],
+        "SEC": ["BOND1", "CASH_USD", "BOND1", "CASH_USD"],
+        "HOLDING_DATE": [
+            "2025-12-31",
+            "2025-12-31",
+            "2026-01-31",
+            "2026-01-31",
+        ],
+        "QTY": [10.0, 100.0, 10.0, 100.0],
+        "PRICE": [100.0, 1.0, 110.0, 1.0],
+        "MKT_VAL": [1000.0, 100.0, 1100.0, 100.0],
+        "COST": [1000.0, 100.0, 1000.0, 100.0],
+    }
+    if include_accrued_column:
+        holdings_rows["ACCRUED"] = [25.0, None, 30.0, None]
+    holdings = pl.DataFrame(holdings_rows)
+    holdings.write_csv(directory / "snapshot_a" / "holdings.csv")
+    holdings.write_csv(directory / "snapshot_b" / "holdings.csv")
+
+    portperf_rows = {
+        "END_MV": [1230.0 if include_accrued_column else 1200.0],
+        "FLOW": [0.0],
+        "INCOME": [0.0],
+        "GAIN_LOSS": [0.0],
+        "PORTFOLIO_CODE": ["P1"],
+        "FROM_DATE": ["2026-01-01"],
+        "THRU_DATE": ["2026-01-31"],
+        "BEGIN_MV": [1125.0 if include_accrued_column else 1100.0],
+        "PORT_RETURN": [0.0],
+    }
+    pl.DataFrame(portperf_rows).write_csv(directory / "snapshot_a" / "portperf.csv")
+    pl.DataFrame(portperf_rows).write_csv(directory / "snapshot_b" / "portperf.csv")
+
+    begin_weight = 1025.0 / 1125.0 if include_accrued_column else 1000.0 / 1100.0
+    secperf_rows = {
+        "END_MV": [1130.0 if include_accrued_column else 1100.0],
+        "INCOME": [0.0],
+        "GAIN_LOSS": [0.0],
+        "PORTFOLIO_CODE": ["P1"],
+        "SECURITY_ID": ["BOND1"],
+        "FROM_DATE": ["2026-01-01"],
+        "THRU_DATE": ["2026-01-31"],
+        "BEGIN_WEIGHT": [begin_weight],
+        "BEGIN_MV": [1025.0 if include_accrued_column else 1000.0],
+        "SEC_RETURN": [0.0],
+        "CONTRIBUTION": [0.0],
+    }
+    pl.DataFrame(secperf_rows).write_csv(directory / "snapshot_a" / "secperf.csv")
+    pl.DataFrame(secperf_rows).write_csv(directory / "snapshot_b" / "secperf.csv")
+
+    out_of_period_transactions = pl.DataFrame(
+        {
+            "PORT": ["P1"],
+            "SEC": ["BOND1"],
+            "TRANSACTION_DATE": ["2025-01-01"],
+            "TRAN": ["by"],
+            "AMOUNT": [0.0],
+        },
+    )
+    out_of_period_transactions.write_csv(directory / "snapshot_a" / "transactions.csv")
+    out_of_period_transactions.write_csv(directory / "snapshot_b" / "transactions.csv")
+
+    configuration = {
+        "comparison": {"name": "Accrued valuation fixture"},
+        "snapshots": {
+            "a": {"label": "a", "path": "snapshot_a", "vendor": "axys"},
+            "b": {"label": "b", "path": "snapshot_b", "vendor": "axys"},
+        },
+        "files": {
+            "portfolio_performance": "portperf.csv",
+            "security_performance": "secperf.csv",
+            "holdings": "holdings.csv",
+            "transactions": "transactions.csv",
+        },
+        "portfolio_return_reconstruction": {
+            "method": "modified_dietz",
+            "beginning_value_source": "holdings",
+            "ending_value_source": "holdings",
+            "flow_source": "transactions",
+            "flow_timing": "transaction_date",
+            "day_count": "actual_days",
+            "inclusion_rule": "beginning_of_day",
+            "flow_categories": ["external_flow"],
+            "income_categories": ["income"],
+            "return_basis": "net",
+            "sign_convention": "signed_amount",
+        },
+        "security_return_reconstruction": {
+            "method": "modified_dietz",
+            "beginning_value_source": "holdings",
+            "ending_value_source": "holdings",
+            "flow_source": "transactions",
+            "flow_timing": "transaction_date",
+            "day_count": "actual_days",
+            "inclusion_rule": "beginning_of_day",
+            "flow_categories": ["buy", "sell"],
+            "income_categories": ["income"],
+            "return_basis": "net",
+            "sign_convention": "signed_amount",
+        },
+        "transaction_rules": {
+            "by": {
+                "transaction_category": "buy",
+                "cash_flow_sign": "negative",
                 "performance_flow_sign": "performance",
             },
         },
@@ -353,6 +480,48 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
         self.assertEqual(security_row[NET_FLOW_B], 100.0)
         self.assertEqual(security_row[INCOME_B], 100.0)
         self.assertEqual(security_row[DERIVED_NUMERATOR_B], 100.0)
+
+    def test_accrued_is_included_in_reconstructed_holding_values(self) -> None:
+        """Accrued interest is additive in portfolio and security values."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = _write_accrued_value_fixture(
+                Path(directory),
+                include_accrued_column=True,
+            )
+
+            portfolio_checks = portfolio_return_reconstruction_checks(path)
+            security_checks = security_return_reconstruction_checks(path)
+
+        portfolio_row = portfolio_checks.row(0, named=True)
+        self.assertAlmostEqual(portfolio_row[BEGIN_VALUE_B], 1125.0)
+        self.assertAlmostEqual(portfolio_row[END_VALUE_B], 1230.0)
+        self.assertAlmostEqual(portfolio_row[DERIVED_NUMERATOR_B], 105.0)
+        self.assertAlmostEqual(portfolio_row[DERIVED_DENOMINATOR_B], 1125.0)
+
+        security_row = security_checks.row(0, named=True)
+        self.assertAlmostEqual(security_row[BEGIN_VALUE_B], 1025.0)
+        self.assertAlmostEqual(security_row[END_VALUE_B], 1130.0)
+        self.assertAlmostEqual(security_row[DERIVED_NUMERATOR_B], 105.0)
+        self.assertAlmostEqual(security_row[DERIVED_DENOMINATOR_B], 1025.0)
+
+    def test_missing_accrued_column_is_treated_as_zero_value(self) -> None:
+        """Holdings without accrued use market value alone."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = _write_accrued_value_fixture(
+                Path(directory),
+                include_accrued_column=False,
+            )
+
+            portfolio_checks = portfolio_return_reconstruction_checks(path)
+            security_checks = security_return_reconstruction_checks(path)
+
+        portfolio_row = portfolio_checks.row(0, named=True)
+        self.assertAlmostEqual(portfolio_row[BEGIN_VALUE_B], 1100.0)
+        self.assertAlmostEqual(portfolio_row[END_VALUE_B], 1200.0)
+
+        security_row = security_checks.row(0, named=True)
+        self.assertAlmostEqual(security_row[BEGIN_VALUE_B], 1000.0)
+        self.assertAlmostEqual(security_row[END_VALUE_B], 1100.0)
 
     def test_demo_reconstruction_summary_counts_available_checks(self) -> None:
         """Summary table counts portfolio and security reconstruction checks."""

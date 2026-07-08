@@ -372,3 +372,28 @@ one integration workflow but does not prove native Axys holdings storage
 mechanics. Canonical Axys/APX holdings IMEX object names, APX SQL/public-view
 names, complete Portfolio Appraisal columns, holdings date semantics, and
 cash/short/accrual/FX treatment remain Unknown.
+
+## Market Value vs Accrued Interest Addendum Incorporated 2026-07-08
+
+Source: `temp_Axys_APX_Market_Value_vs_Accrued_Interest_Summary.md`.
+
+The July 2026 market-value/accrued-interest research strengthens the fixed-income
+holdings interpretation for Portfolio Appraisal-style output. Public SS&C report
+samples and a public APX Portfolio Appraisal example show fixed-income market
+value and accrued interest as separate report concepts. The report layout
+strongly implies that market value is the clean market value and that accrued
+interest is maintained or displayed separately.
+
+| Conclusion | Confidence | Notes |
+|---|---:|---|
+| Portfolio Appraisal-style reports can present Market Value separately from Accrued Interest for fixed income. | Very High | Supported by SS&C report samples and public APX appraisal output. |
+| Total position value is effectively Market Value plus Accrued Interest for fixed-income appraisal presentation. | High | Strongly implied by report subtotal behavior. |
+| Market Value itself excludes accrued interest. | High / strongly implied | No public evidence found that Market Value already includes accrued interest. |
+| A dedicated stored Total Value field exists. | Unknown | Could be stored or computed at report time. |
+
+Implication: holdings extracts used for performance reconstruction should not
+assume `holdings.market_value` includes accrued interest unless the site extract,
+report definition, or local documentation proves that it does. A fixed-income
+review should preserve both `holdings.market_value` and `holdings.accrued` where
+available, and should derive total position value as market value plus accrued
+interest when the performance method requires dirty value.

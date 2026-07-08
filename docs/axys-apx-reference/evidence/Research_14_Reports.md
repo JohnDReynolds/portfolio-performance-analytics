@@ -646,3 +646,20 @@ delivery exceptions, pre-cycle validation, hosted/cloud package updates, and
 portal delivery as operational/report-production cautions. APX RDL names,
 datasets, stored procedures, report formulas, report-to-IMEX equivalence, and
 stored-versus-recalculated behavior remain Unknown.
+
+## Market Value vs Accrued Interest Report Addendum Incorporated 2026-07-08
+
+Source: `temp_Axys_APX_Market_Value_vs_Accrued_Interest_Summary.md`.
+
+The July 2026 market-value/accrued-interest research adds a specific Portfolio
+Appraisal report interpretation: public SS&C samples and a public APX Portfolio
+Appraisal example show fixed-income Market Value and Accrued Interest as
+separate report concepts. The layout strongly implies that Portfolio Appraisal
+total/subtotal presentation combines market value and accrued interest, while
+Market Value itself remains a clean-value concept.
+
+This is strong report-output evidence, but it is not yet an official IMEX,
+database, public-view, or stored-field specification. Follow-up evidence should
+collect official report formulas, IMEX fields for accrued interest, and any
+site-specific report definitions that distinguish clean market value, accrued
+interest, and total position value.

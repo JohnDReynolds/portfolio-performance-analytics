@@ -99,7 +99,7 @@ flow-category, income-category, return-basis, and sign-convention YAML fields.
 | Source field family | Performance-comparison role |
 | --- | --- |
 | `holdings.market_value` | Performance input for beginning and ending value. |
-| `holdings.accrued` | Performance input when configured as a valuation/accrual amount. |
+| `holdings.accrued` | Additive beginning/ending valuation input when present; missing or blank values are treated as zero. |
 | `transactions.amount` | Performance input for external flows, security-level buy/sell flows, income, fee, and expense examples when YAML classifies the transaction code and any required transaction context. |
 | `transactions.security_type`, `transactions.source_destination_type`, `transactions.source_destination_symbol`, `transactions.special_security_type`, `transactions.special_security_symbol` | Context used by conditional YAML transaction rules. These fields help classify ambiguous Axys/APX-style transaction codes; they are not themselves performance-cause fields. |
 | `holdings.quantity`, `holdings.price` | Supporting inputs for changed holdings value. |
@@ -277,8 +277,8 @@ families:
 
 - `in` transaction rows for ordinary bond or cash interest that is treated as
   performance income; and
-- `holdings.accrued` changes as valuation/performance evidence when the
-  comparison YAML includes accrued interest as a return input; and
+- `holdings.accrued` changes as additive beginning/end valuation inputs when
+  present in holdings extracts; and
 - context-gated `pa`/`sa` transaction rows as fixed-income accrued-interest
   adjuncts paired with TNOTE5Y buy/sell transactions; and
 - context-gated `pd` principal-paydown rows as MBS/amortizing-security

@@ -47,6 +47,11 @@ _REVIEW_DETAIL_ARTIFACTS = "review_detail_artifacts"
 _REVIEW_STATUS_NEEDS_REVIEW = "needs_review"
 _REVIEW_STATUS_MONITOR = "monitor"
 _REVIEW_STATUS_CLEAR = "clear"
+_OPTIONAL_REPORT_BUNDLE_TABLE_ARTIFACTS = (
+    _pc_review_model.RECONSTRUCTION_SUMMARY_ARTIFACT,
+    _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+    _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_ARTIFACT,
+)
 _NEEDS_REVIEW_COLUMNS = (
     _REVIEW_KEY,
     _pc_findings.PORTFOLIO_ID,
@@ -220,7 +225,7 @@ def _html_workbook_sheet_table(sheet: _pc_workbook.ReviewWorkbookSheet) -> str:
     ]
     body_rows = [
         _html_workbook_body_row(row, columns)
-        for row in sheet.table.select(columns).iter_rows(named=True)
+        for row in sheet.table.iter_rows(named=True)
     ]
     return "\n".join(
         [
@@ -260,11 +265,22 @@ def _html_workbook_header_cell(*, column: str, label: str, tooltip: str) -> str:
 
 def _html_workbook_body_row(row: Mapping[str, object], columns: Sequence[str]) -> str:
     """Return one workbook-style HTML table row."""
-    cells = [
-        _pc_rendering.html_table_cell(row[column], column)
-        for column in columns
-    ]
+    cells = [_html_workbook_body_cell(row, column) for column in columns]
     return "<tr>" + "".join(cells) + "</tr>"
+
+
+def _html_workbook_body_cell(row: Mapping[str, object], column: str) -> str:
+    """Return one workbook-style HTML table cell with row-aware classes."""
+    value = row[column]
+    classes = " ".join(
+        [
+            _pc_rendering.html_cell_alignment(value),
+            _pc_rendering.html_column_class(column),
+            *_pc_rendering.html_value_classes(column, value),
+            *_pc_rendering.html_row_value_classes(row, column),
+        ]
+    )
+    return f'<td class="{classes}">{_escape_html(_format_value(value))}</td>'
 
 
 def _write_performance_comparison_html_report(
@@ -365,6 +381,10 @@ def write_performance_comparison_report_bundle(
 
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
+    supporting_files_directory = (
+        bundle_directory / _pc_bundle.SUPPORTING_FILES_DIRECTORY
+    )
+    supporting_files_directory.mkdir(parents=True, exist_ok=True)
     reconstruction_cache = _pc_workbook_tables._WorkbookReconstructionCache(
         comparison_path
     )
@@ -374,6 +394,10 @@ def write_performance_comparison_report_bundle(
         comparison_path=comparison_path,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         _reconstruction_cache=reconstruction_cache,
+    )
+    _remove_legacy_root_supporting_files(
+        bundle_directory,
+        table_names=tables.keys(),
     )
 
     paths: dict[str, Path] = {}
@@ -389,12 +413,12 @@ def write_performance_comparison_report_bundle(
     paths["html_report"] = html_report_path
     paths["findings"] = _pc_bundle.write_csv_artifact(
         findings,
-        bundle_directory / "findings.csv",
+        supporting_files_directory / "findings.csv",
     )
     for name, table in tables.items():
         paths[name] = _pc_bundle.write_csv_artifact(
             table,
-            bundle_directory / f"{name}.csv",
+            supporting_files_directory / f"{name}.csv",
         )
     if include_workbook:
         paths[_REVIEW_WORKBOOK_ARTIFACT] = write_performance_comparison_review_workbook(
@@ -413,9 +437,9 @@ def write_performance_comparison_report_bundle(
         include_workbook=include_workbook,
         comparison_level=comparison_level,
     )
-    manifest_path = bundle_directory / "manifest.json"
+    manifest_path = supporting_files_directory / "manifest.json"
     paths["manifest"] = manifest_path
-    paths["review_summary"] = bundle_directory / "review_summary.json"
+    paths["review_summary"] = supporting_files_directory / "review_summary.json"
     _pc_bundle.write_report_bundle_manifest(
         manifest_path,
         findings=findings,
@@ -426,6 +450,7 @@ def write_performance_comparison_report_bundle(
         comparison_path=comparison_path,
         artifact_paths=paths,
         tables=tables,
+        bundle_root=bundle_directory,
     )
     manifest_data = json.loads(manifest_path.read_text(encoding=util.ENCODING))
     manifest = {str(key): value for key, value in manifest_data.items()}
@@ -440,6 +465,26 @@ def write_performance_comparison_report_bundle(
             None,
         )
     return paths
+
+
+def _remove_legacy_root_supporting_files(
+    bundle_directory: Path,
+    *,
+    table_names: Sequence[str],
+) -> None:
+    """Remove root-level CSV/JSON artifacts from older bundle layouts."""
+    artifact_stems = {
+        "findings",
+        "manifest",
+        "review_summary",
+        *table_names,
+        *_OPTIONAL_REPORT_BUNDLE_TABLE_ARTIFACTS,
+    }
+    for artifact_stem in artifact_stems:
+        for suffix in (".csv", ".json"):
+            legacy_path = bundle_directory / f"{artifact_stem}{suffix}"
+            if legacy_path.is_file():
+                legacy_path.unlink()
 
 
 def _report_bundle_tables(
@@ -759,7 +804,11 @@ def _review_detail_artifacts(
     if context:
         artifacts.extend(["context_evidence_summary.csv", "context_evidence.csv"])
     artifacts.append("findings.csv")
-    return _comma_separated(list(dict.fromkeys(artifacts)))
+    supporting_artifacts = [
+        f"{_pc_bundle.SUPPORTING_FILES_DIRECTORY}/{artifact}"
+        for artifact in dict.fromkeys(artifacts)
+    ]
+    return _comma_separated(supporting_artifacts)
 
 
 def _coverage_points_to_transaction_activity(coverage_row: Mapping[str, object]) -> bool:

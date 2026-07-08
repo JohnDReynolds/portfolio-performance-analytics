@@ -29,12 +29,14 @@ _MINIMUM_COLUMN_WIDTHS = {
     _pc_findings.SNAPSHOT_B_VALUE: 16,
     _pc_findings.DELTA_B_MINUS_A: 16,
     "dataset_field": 18,
+    "row_type": 19,
     "change": 16,
 }
 _DEFAULT_COLUMN_WIDTH_CAP = 12
 _DATE_COLUMN_WIDTH_CAP = 10
 _IDENTIFIER_COLUMN_WIDTH_CAP = 20
 _NARRATIVE_COLUMN_WIDTH_CAP = 30
+_ROW_TYPE_COLUMN_WIDTH_CAP = 18
 _EXPLANATION_COLUMN_WIDTH_CAP = 48
 _KEY_COLUMN_WIDTH_CAP = 22
 _DATE_COLUMNS = {
@@ -127,7 +129,6 @@ REQUIRED_HEADERS = {
         "Snapshot A Value",
         "Snapshot B Value",
         "B - A Difference",
-        "Performance Difference Explained",
         "Explanation",
         "Message",
         "Review Key",
@@ -252,6 +253,16 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
                 start_color="1F4E78",
                 end_color="1F4E78",
             ),
+            "explained_cause_fill": PatternFill(
+                fill_type="solid",
+                start_color="FFFFFF00",
+                end_color="FFFFFF00",
+            ),
+            "possible_cause_fill": PatternFill(
+                fill_type="solid",
+                start_color="FFFFE699",
+                end_color="FFFFE699",
+            ),
             "header_alignment": Alignment(wrap_text=True, vertical="top"),
             "comment_class": Comment,
         },
@@ -273,7 +284,9 @@ def _add_workbook_sheet(
         for column in columns
     ]
     worksheet.append(headers)
-    for row in table.select(columns).iter_rows(named=True):
+    row_type_values: list[object | None] = []
+    for row in table.iter_rows(named=True):
+        row_type_values.append(row.get("row_type"))
         worksheet.append(
             [
                 _workbook_cell_value(row[column], column_name=column)
@@ -289,6 +302,7 @@ def _add_workbook_sheet(
         cell.fill = styles["header_fill"]
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
+    _format_workbook_data_cells(worksheet, columns, row_type_values, styles)
     _format_workbook_columns(worksheet, columns, headers)
 
 
@@ -341,6 +355,40 @@ def _workbook_number_from_text(value: str) -> float | None:
     if numeric_value in {float("inf"), float("-inf")} or numeric_value != numeric_value:
         return None
     return round(numeric_value, 6)
+
+
+def _format_workbook_data_cells(
+    worksheet: Any,
+    columns: Sequence[str],
+    row_type_values: Sequence[object | None],
+    styles: Mapping[str, Any],
+) -> None:
+    """Apply row-level emphasis for reviewer-facing workbook values."""
+    explained_column = _workbook_column_index(columns, "estimated_impact")
+    explanation_column = _workbook_column_index(columns, "review_guidance")
+    for row_offset, row_type_value in enumerate(row_type_values, start=2):
+        if row_type_value == "Explained Cause":
+            for column_index in (explained_column, explanation_column):
+                if column_index is not None:
+                    worksheet.cell(row=row_offset, column=column_index).fill = styles[
+                        "explained_cause_fill"
+                    ]
+        elif row_type_value == "Possible Cause":
+            if explanation_column is not None:
+                worksheet.cell(row=row_offset, column=explanation_column).fill = styles[
+                    "possible_cause_fill"
+                ]
+
+
+def _workbook_column_index(
+    columns: Sequence[str],
+    column_name: str,
+) -> int | None:
+    """Return one-based column index when a workbook column is present."""
+    try:
+        return columns.index(column_name) + 1
+    except ValueError:
+        return None
 
 
 def _format_workbook_columns(
@@ -437,6 +485,8 @@ def _workbook_column_width_cap(column_name: str) -> int:
         return _IDENTIFIER_COLUMN_WIDTH_CAP
     if column_name in _NARRATIVE_COLUMNS:
         return _NARRATIVE_COLUMN_WIDTH_CAP
+    if column_name == "row_type":
+        return _ROW_TYPE_COLUMN_WIDTH_CAP
     if column_name in _KEY_COLUMNS:
         return _KEY_COLUMN_WIDTH_CAP
     return _DEFAULT_COLUMN_WIDTH_CAP

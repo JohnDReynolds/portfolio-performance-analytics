@@ -312,7 +312,7 @@ These entities organize performance research. They are not asserted as Axys/APX 
 | Portfolio/account | Account whose performance is calculated. | Required concept | Required concept | High Confidence |
 | Security | Investment whose return/contribution may be reported. | Required concept | Required concept | High Confidence |
 | Period | Performance date interval. | Required concept | Required concept | High Confidence |
-| Valuation | Beginning/ending market values and possibly accruals. | Required for many return methods | Required for many return methods | Medium Confidence |
+| Valuation | Beginning/ending value inputs; fixed-income dirty value may require market value plus accrued interest. | Required for many return methods | Required for many return methods | Medium Confidence |
 | Transactions/cash flows | External flows, income, fees, trades, corrections. | Performance dependency | Performance dependency | Medium Confidence |
 | Prices | Valuation input and restatement source. | Performance dependency | Performance dependency | Medium Confidence |
 | FX rates | Multi-currency performance dependency. | Unknown details | Unknown details | Unknown |
@@ -320,6 +320,27 @@ These entities organize performance research. They are not asserted as Axys/APX 
 | Benchmark/index | Benchmark returns and relative performance. | Unknown details | Product-level support | APX Verified at capability level; details Unknown |
 | Classification | Asset class, sector, country, region, industry, custom grouping. | Reporting category supported | Reporting category supported | Medium / High depending category |
 | Composite | Group of accounts used for composite/GIPS reporting. | Product-level capability | Product-level capability | Medium Confidence |
+
+### 7.1.1 Fixed-income value basis for Modified Dietz
+
+The July 2026 market-value/accrued-interest research strongly implies that
+Portfolio Appraisal-style Market Value is separate from Accrued Interest for
+fixed-income holdings. For Modified Dietz reconstruction, do not assume that a
+`market_value` field is dirty value unless a site extract, report definition, or
+local specification proves it.
+
+Recommended performance-comparison convention:
+
+| Input | Conservative interpretation |
+|---|---|
+| `holdings.market_value` | Clean market value unless site evidence proves it includes accrued interest. |
+| `holdings.accrued` | Separate fixed-income accrual input. |
+| Dirty / total position value | Derive as `holdings.market_value + holdings.accrued` when the performance method requires accrued interest in beginning/end value. |
+
+This is an implementation rule for reconstruction and audit. Exact native
+Axys/APX portfolio-performance and security-performance formulas remain
+Unknown until official report formulas, IMEX field definitions, or paired
+report/export samples are supplied.
 
 ### 7.2 Stored vs recalculated matrix
 

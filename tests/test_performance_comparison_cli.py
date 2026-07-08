@@ -937,19 +937,20 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn(str(output_directory), result.stdout)
             self.assertTrue((output_directory / "report.html").exists())
             self.assertFalse((output_directory / "report.md").exists())
-            self.assertTrue((output_directory / "findings.csv").exists())
-            self.assertTrue((output_directory / "context_evidence_summary.csv").exists())
-            self.assertTrue((output_directory / "context_evidence.csv").exists())
-            self.assertTrue((output_directory / "impact_coverage.csv").exists())
-            self.assertTrue((output_directory / "manifest.json").exists())
-            self.assertTrue((output_directory / "review_summary.json").exists())
+            supporting_files = output_directory / "supporting_files"
+            self.assertTrue((supporting_files / "findings.csv").exists())
+            self.assertTrue((supporting_files / "context_evidence_summary.csv").exists())
+            self.assertTrue((supporting_files / "context_evidence.csv").exists())
+            self.assertTrue((supporting_files / "impact_coverage.csv").exists())
+            self.assertTrue((supporting_files / "manifest.json").exists())
+            self.assertTrue((supporting_files / "review_summary.json").exists())
             report = (output_directory / "report.html").read_text(encoding="utf-8")
             self.assertIn("<h1>Script Bundle Report</h1>", report)
             self.assertIn("Performance Differences", report)
             self.assertIn("Performance Difference Causes", report)
 
             manifest = json.loads(
-                (output_directory / "manifest.json").read_text(encoding="utf-8")
+                (supporting_files / "manifest.json").read_text(encoding="utf-8")
             )
             self.assertEqual(manifest["counts"]["findings"], 13)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
@@ -957,11 +958,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertEqual(manifest["tables"]["top_evidence"]["rows"], 2)
             self.assertEqual(
                 manifest["artifacts"]["context_evidence"],
-                "context_evidence.csv",
+                "supporting_files/context_evidence.csv",
             )
             self.assertEqual(
                 manifest["artifacts"]["context_evidence_summary"],
-                "context_evidence_summary.csv",
+                "supporting_files/context_evidence_summary.csv",
             )
             self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
 
@@ -987,8 +988,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn(str(output_directory), result.stdout)
             self.assertTrue((output_directory / "report.html").exists())
             self.assertTrue((output_directory / "report.xlsx").exists())
+            supporting_files = output_directory / "supporting_files"
             manifest = json.loads(
-                (output_directory / "manifest.json").read_text(encoding="utf-8")
+                (supporting_files / "manifest.json").read_text(encoding="utf-8")
             )
             self.assertGreater(manifest["counts"]["findings"], 0)
             readme = (output_directory / "README.md").read_text(encoding="utf-8")
@@ -998,11 +1000,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["artifacts"]["review_summary"],
-                "review_summary.json",
+                "supporting_files/review_summary.json",
             )
             self.assertNotIn("report", manifest["artifacts"])
             review_summary = json.loads(
-                (output_directory / "review_summary.json").read_text(encoding="utf-8")
+                (supporting_files / "review_summary.json").read_text(
+                    encoding="utf-8"
+                )
             )
             self.assertEqual(
                 review_summary["review_basis"],
@@ -1082,7 +1086,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output_directory = Path(directory) / "bundle"
             self._write_bundle(output_directory)
-            top_evidence_path = output_directory / "top_evidence.csv"
+            top_evidence_path = (
+                output_directory / "supporting_files" / "top_evidence.csv"
+            )
             header = top_evidence_path.read_text(encoding="utf-8").splitlines()[0]
             top_evidence_path.write_text(header + "\n", encoding="utf-8")
 

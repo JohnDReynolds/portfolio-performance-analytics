@@ -161,6 +161,21 @@ The supplied material identifies several Axys files that are relevant to holding
 | Standard APX Portfolio Appraisal default columns are Unknown. | Unknown | No complete APX report output or guide section supplied. |
 | APX group behavior for Portfolio Appraisal is Unknown. | Unknown | No APX-specific evidence comparable to the Axys CSSI group example. |
 
+### 3.2.1 Market value and accrued interest in appraisal output
+
+The July 2026 market-value/accrued-interest research strengthens a fixed-income
+holdings rule: Portfolio Appraisal-style output should be read as showing market
+value and accrued interest separately when both are present. Public SS&C report
+samples and a public APX Portfolio Appraisal example strongly imply that Market
+Value is clean market value and that accrued interest is a separate line or
+field used in total/subtotal presentation.
+
+For holdings extraction and audit work, do not assume `holdings.market_value`
+already includes accrued interest. Preserve `holdings.accrued` separately when
+available, and derive dirty or total position value as market value plus accrued
+interest when the downstream performance method requires it. A dedicated stored
+Total Value field remains Unknown.
+
 ### 3.3 APX Custodial Integrator position import and reconciliation
 
 The APX Custodial Integrator material provides the strongest APX position-import evidence. This is a third-party integration workflow, not a complete APX native data model.

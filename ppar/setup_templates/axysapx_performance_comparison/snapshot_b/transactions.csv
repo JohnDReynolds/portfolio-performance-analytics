@@ -44,8 +44,10 @@ ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$pty,$cash,,,0.0,0.0,-2000.0,0.0
 BALANCED,2026-05-15,2026-05-15,TSLA,ss,csus,awus,none,,,50.0,422.24,21112.0,0.0
 BALANCED,2026-05-29,2026-05-29,TSLA,cs,csus,$pty,$cash,,,50.0,435.79,-21789.5,0.0
 BALANCED,2026-04-18,2026-04-18,JPM,rc,csus,$pty,$cash,return_of_capital,JPM,0.0,0.0,240.0,0.0
+BALANCED,2026-05-12,2026-05-12,JPM,rc,csus,$pty,$cash,,,0.0,0.0,200.0,0.0
 INCOME,2026-05-18,2026-05-18,MBSPOOL,pd,mbus,$pty,$cash,principal_paydown,MBSPOOL,0.0,0.0,320.0,0.0
 INCOME,2026-02-10,2026-02-10,TNOTE5Y,by,fius,$cash,CASH_USD,,,5.0,98.8,-494.0,0.0
 INCOME,2026-02-10,2026-02-10,TNOTE5Y,pa,fius,$income,$cash,,,0.0,0.0,-42.5,0.0
 INCOME,2026-02-20,2026-02-20,TNOTE5Y,sl,fius,$cash,CASH_USD,,,3.0,98.8,296.4,0.0
 INCOME,2026-02-20,2026-02-20,TNOTE5Y,sa,fius,$income,$cash,,,0.0,0.0,37.25,0.0
+INCOME,2026-05-14,2026-05-14,AAPL,dv,csus,$income,$cash,,,0.0,0.0,220.97,0.0

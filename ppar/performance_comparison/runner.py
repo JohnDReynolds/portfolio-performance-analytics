@@ -18,6 +18,7 @@ from ppar.performance_comparison.findings import (
     FROM_DATE,
     IMPACT_POLICY,
     MESSAGE,
+    PERFORMANCE_FLOW_SIGN,
     PORTFOLIO_ID,
     SECURITY_ID,
     SOURCE_COLUMN,
@@ -29,6 +30,9 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 import ppar.performance_comparison.schema as pc_cols
+from ppar.performance_comparison.transactions import (
+    TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL,
+)
 import ppar.utilities as util
 
 __all__ = [
@@ -107,7 +111,11 @@ def validate_causal_attribution_ready(findings: pl.DataFrame) -> None:
 
     incomplete = coverage.filter(
         ~pl.col(_pc_explain.MISSING_IMPACT_INPUTS).is_in(
-            ("", "modified_dietz cross-check only")
+            (
+                "",
+                "modified_dietz cross-check only",
+                _pc_explain.NEUTRAL_FLOW_IMPACT_METHOD,
+            )
         )
     )
     if incomplete.is_empty():
@@ -195,6 +203,11 @@ def _finding_requires_yaml_policy(row: dict[str, object]) -> bool:
 
 def _finding_has_yaml_policy(row: dict[str, object]) -> bool:
     """Return whether a finding has additive or evidence-only YAML treatment."""
+    if (
+        row.get(DATASET) == pc_cols.TRANSACTIONS
+        and row.get(PERFORMANCE_FLOW_SIGN) == TRANSACTION_PERFORMANCE_FLOW_SIGN_NEUTRAL
+    ):
+        return True
     return any(
         isinstance(row.get(column), str) and bool(str(row.get(column)).strip())
         for column in (IMPACT_POLICY, TRANSACTION_IMPACT_POLICY)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 import datetime as _dt
 from pathlib import Path
 
@@ -54,6 +54,7 @@ _USE_PRIORITY = "_use_priority"
 _CHANGE_LABEL = "change_label"
 _CHANGE = "change"
 _DATASET_FIELD = "dataset_field"
+_ROW_TYPE = "row_type"
 _INPUT_ROLE = "input_role"
 _AS_OF_DATE = "as_of_date"
 _ESTIMATED_IMPACT = "estimated_impact"
@@ -68,6 +69,11 @@ _INPUT_ROLE_INPUT_DRIVER = "Input Driver"
 _INPUT_ROLE_SUPPORTING_EVIDENCE = "Supporting Evidence"
 _INPUT_ROLE_CONTEXT = "Context"
 _INPUT_ROLE_DIAGNOSTIC = "Diagnostic"
+_ROW_TYPE_EXPLAINED_CAUSE = "Explained Cause"
+_ROW_TYPE_POSSIBLE_CAUSE = "Possible Cause"
+_ROW_TYPE_SUPPORTING_EVIDENCE = "Supporting Evidence"
+_ROW_TYPE_FORMULA_INPUT = "Formula Input"
+_ROW_TYPE_REVIEW_CONTEXT = "Review Context"
 _IMPACT_STATUS_ESTIMATED = "Estimated"
 _IMPACT_STATUS_MISSING_METHOD = "Missing impact method"
 _IMPACT_STATUS_MISSING_INPUT = "Missing impact input"
@@ -96,6 +102,11 @@ _WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW = (
     "_workbook_transaction_supports_reconstruction_flow"
 )
 _WORKBOOK_CASH_BALANCE_SECURITY_ID = "_workbook_cash_balance_security_id"
+_WORKBOOK_POSSIBLE_CAUSE_ROW = "_workbook_possible_cause_row"
+_POSSIBLE_CAUSE_COMMENT = "_possible_cause_comment"
+_POSSIBLE_CAUSE_CONFIGURATION_NOTE = (
+    "Add YAML configuration to count it as explained."
+)
 _RECONSTRUCTION_FORMULA_FINDING_CODE = "reconstruction_formula_input"
 _RECONSTRUCTION_BEGINNING_VALUE_FIELD = "beginning_market_value"
 _RECONSTRUCTION_ENDING_VALUE_FIELD = "ending_market_value"
@@ -141,6 +152,10 @@ _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
         pc_cols.PRICE,
         pc_cols.QUANTITY,
     },
+}
+_POSSIBLE_CAUSE_FIELDS = {
+    (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
+    (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
 }
 _format_value = _pc_rendering.format_value
 _with_period_review_key = _pc_review_keys.with_period_review_key
@@ -441,7 +456,7 @@ def _shared_detail_sheets(
                 comparison_path=comparison_path,
                 comparison_level=comparison_level,
             ),
-            columns=_workbook_findings_columns(findings),
+            columns=_workbook_raw_audit_columns(findings),
             labels=_workbook_column_labels(),
         ),
     ]
@@ -468,6 +483,16 @@ def _workbook_portfolio_changes_table(
             reconstruction_cache,
         ),
     )
+    unresolved_keys = _workbook_unresolved_primary_keys_from_rows(
+        coverage.iter_rows(named=True),
+        underlying_totals,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
+    possible_cause_comments = _workbook_possible_cause_comments(
+        findings,
+        unresolved_keys=unresolved_keys,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
     rows = [
         _workbook_performance_change_row(
             {
@@ -475,6 +500,10 @@ def _workbook_portfolio_changes_table(
                 "_underlying_estimated_total": underlying_totals.get(
                     _workbook_period_key(row),
                     0.0,
+                ),
+                _POSSIBLE_CAUSE_COMMENT: possible_cause_comments.get(
+                    _workbook_period_key(row),
+                    "",
                 ),
             }
         )
@@ -657,6 +686,10 @@ def _workbook_performance_comments(
     if _workbook_explanation_status(row) == _STATUS_FULLY_EXPLAINED:
         return ""
 
+    possible_cause_comment = _format_value(row.get(_POSSIBLE_CAUSE_COMMENT))
+    if possible_cause_comment:
+        return possible_cause_comment
+
     missing_inputs = row.get(_pc_explain.MISSING_IMPACT_INPUTS)
     status = row.get(_pc_explain.IMPACT_COVERAGE_STATUS)
     if _has_text(missing_inputs):
@@ -768,6 +801,16 @@ def _workbook_security_changes_table(
     )
     rows: list[dict[str, object]] = []
     if not summary.is_empty():
+        unresolved_keys = _workbook_unresolved_primary_keys_from_rows(
+            summary.iter_rows(named=True),
+            security_totals,
+            comparison_level=comparison_level,
+        )
+        possible_cause_comments = _workbook_possible_cause_comments(
+            findings,
+            unresolved_keys=unresolved_keys,
+            comparison_level=comparison_level,
+        )
         rows = [
             _workbook_security_change_row(
                 {
@@ -775,6 +818,10 @@ def _workbook_security_changes_table(
                     "_underlying_estimated_total": security_totals.get(
                         _workbook_security_period_key(row),
                         0.0,
+                    ),
+                    _POSSIBLE_CAUSE_COMMENT: possible_cause_comments.get(
+                        _workbook_security_period_key(row),
+                        "",
                     ),
                 }
             )
@@ -826,6 +873,124 @@ def _workbook_security_underlying_impact_totals(
             continue
         totals[key] = totals.get(key, 0.0) + estimated_impact
     return totals
+
+
+def _workbook_unresolved_primary_keys_from_rows(
+    rows: Iterable[Mapping[str, object]],
+    underlying_totals: Mapping[tuple[object, ...], float],
+    *,
+    comparison_level: str,
+) -> set[tuple[object, ...]]:
+    """Return changed performance keys that still have an unexplained residual."""
+    unresolved_keys: set[tuple[object, ...]] = set()
+    for row in rows:
+        key = _workbook_primary_key(row, comparison_level)
+        performance_change = _workbook_performance_difference(row)
+        if performance_change is None:
+            continue
+        residual = performance_change - underlying_totals.get(key, 0.0)
+        if abs(residual) > _WORKBOOK_UNEXPLAINED_TOLERANCE:
+            unresolved_keys.add(key)
+    return unresolved_keys
+
+
+def _workbook_possible_cause_comments(
+    findings: pl.DataFrame,
+    *,
+    unresolved_keys: set[tuple[object, ...]],
+    comparison_level: str,
+) -> dict[tuple[object, ...], str]:
+    """Return possible-cause review comments for unresolved performance rows."""
+    possible_comments_by_key: dict[tuple[object, ...], list[str]] = {}
+    for row in _workbook_possible_cause_rows(
+        findings,
+        unresolved_keys=unresolved_keys,
+        comparison_level=comparison_level,
+    ):
+        key = _workbook_primary_key(row, comparison_level)
+        comment = _workbook_possible_cause_row_comment(row)
+        if not comment:
+            continue
+        comments = possible_comments_by_key.setdefault(key, [])
+        if comment not in comments:
+            comments.append(comment)
+    return {
+        key: _workbook_possible_cause_comment(comments)
+        for key, comments in possible_comments_by_key.items()
+    }
+
+
+def _workbook_possible_cause_rows(
+    findings: pl.DataFrame,
+    *,
+    unresolved_keys: set[tuple[object, ...]],
+    comparison_level: str,
+) -> list[dict[str, object]]:
+    """Return unestimated source rows that may explain unresolved differences."""
+    if not unresolved_keys:
+        return []
+    possible_rows: list[dict[str, object]] = []
+    for row in _workbook_ranked_changed_rows_for_level(
+        findings,
+        comparison_level=comparison_level,
+    ):
+        if _workbook_primary_key(row, comparison_level) not in unresolved_keys:
+            continue
+        if not _workbook_is_possible_cause_row(row):
+            continue
+        possible_rows.append(row)
+    return possible_rows
+
+
+def _workbook_is_possible_cause_row(row: Mapping[str, object]) -> bool:
+    """Return whether an unestimated row is a possible residual cause."""
+    if _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT)) is not None:
+        return False
+    if _workbook_has_additive_policy(row):
+        return False
+    field_key = (
+        _format_value(row.get(_pc_findings.DATASET)),
+        _format_value(row.get(_pc_findings.SOURCE_COLUMN)),
+    )
+    return field_key in _POSSIBLE_CAUSE_FIELDS
+
+
+def _workbook_possible_cause_field_name(row: Mapping[str, object]) -> str:
+    """Return ``dataset.field`` text for a possible-cause row."""
+    dataset = _format_value(row.get(_pc_findings.DATASET))
+    source_column = _format_value(row.get(_pc_findings.SOURCE_COLUMN))
+    if (dataset, source_column) not in _POSSIBLE_CAUSE_FIELDS:
+        return ""
+    return f"{dataset}.{source_column}"
+
+
+def _workbook_possible_cause_row_comment(row: Mapping[str, object]) -> str:
+    """Return a row-specific possible-cause sentence fragment."""
+    field_name = _workbook_possible_cause_field_name(row)
+    if not field_name:
+        return ""
+
+    security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+    security_prefix = f"{security_id} " if security_id else ""
+    change_value = _workbook_row_change_value(row)
+    change_direction = _workbook_increased_or_decreased(change_value)
+    change_amount = _workbook_change_amount_text(change_value)
+    input_date = _format_value(row.get(_pc_findings.INPUT_DATE))
+    if input_date:
+        return (
+            f"{security_prefix}{field_name} {change_direction} by "
+            f"{change_amount} on {input_date}."
+        )
+    return f"{security_prefix}{field_name} {change_direction} by {change_amount}."
+
+
+def _workbook_possible_cause_comment(comments: Sequence[str]) -> str:
+    """Return summary-sheet possible-cause wording for unresolved periods."""
+    if not comments:
+        return ""
+    if len(comments) == 1:
+        return f"Possible cause: {comments[0]} {_POSSIBLE_CAUSE_CONFIGURATION_NOTE}"
+    return f"Possible causes: {' '.join(comments)} {_POSSIBLE_CAUSE_CONFIGURATION_NOTE}"
 
 
 def _workbook_portfolio_reconstruction_formula_rows(
@@ -1126,6 +1291,7 @@ def _workbook_portfolio_reconstruction_formula_row(
         _CHANGE_LABEL: f"{role_label} changed",
         _DATASET_FIELD: f"{dataset}.{source_column}",
         _pc_findings.SECURITY_ID: None,
+        _ROW_TYPE: _ROW_TYPE_FORMULA_INPUT,
         _pc_findings.SNAPSHOT_A_VALUE: snapshot_a_value,
         _pc_findings.SNAPSHOT_B_VALUE: snapshot_b_value,
         _CHANGE: difference,
@@ -1177,6 +1343,7 @@ def _workbook_security_reconstruction_formula_row(
         _CHANGE_LABEL: f"{role_label} changed",
         _DATASET_FIELD: f"{dataset}.{source_column}",
         _pc_findings.SECURITY_ID: security_id,
+        _ROW_TYPE: _ROW_TYPE_FORMULA_INPUT,
         _pc_findings.SNAPSHOT_A_VALUE: snapshot_a_value,
         _pc_findings.SNAPSHOT_B_VALUE: snapshot_b_value,
         _CHANGE: difference,
@@ -1485,10 +1652,18 @@ def _workbook_underlying_causes_table(
         _workbook_source_row_key(row, comparison_level)
         for row in attributed_formula_source_rows
     }
-    rows.extend(
-        _workbook_changed_item_row(row, comparison_path=comparison_path)
-        for row in attributed_formula_source_rows
-    )
+    possible_cause_source_keys = {
+        _workbook_source_row_key(row, comparison_level)
+        for row in _workbook_possible_cause_rows(
+            findings,
+            unresolved_keys=unexplained_keys,
+            comparison_level=comparison_level,
+        )
+    }
+    for row in attributed_formula_source_rows:
+        if _workbook_source_row_key(row, comparison_level) in possible_cause_source_keys:
+            row = _workbook_mark_possible_cause_row(row, comparison_level)
+        rows.append(_workbook_changed_item_row(row, comparison_path=comparison_path))
 
     for row in ranked_rows:
         row = _workbook_with_cash_balance_security(
@@ -1501,14 +1676,22 @@ def _workbook_underlying_causes_table(
         if source_row_key in attributed_source_keys:
             continue
         if has_formula_role and _workbook_is_underlying_cause_row(row):
+            support_row = _workbook_formula_support_row(
+                row,
+                comparison_level=comparison_level,
+            )
+            if source_row_key in possible_cause_source_keys:
+                support_row = _workbook_mark_possible_cause_row(
+                    support_row,
+                    comparison_level,
+                )
             workbook_row = _workbook_changed_item_row(
-                _workbook_formula_support_row(
-                    row,
-                    comparison_level=comparison_level,
-                ),
+                support_row,
                 comparison_path=comparison_path,
             )
         elif _workbook_is_underlying_cause_row(row):
+            if source_row_key in possible_cause_source_keys:
+                row = _workbook_mark_possible_cause_row(row, comparison_level)
             workbook_row = _workbook_changed_item_row(
                 row,
                 comparison_path=comparison_path,
@@ -1521,6 +1704,8 @@ def _workbook_underlying_causes_table(
         ):
             if _workbook_is_split_factor_row(row):
                 row = _workbook_split_factor_support_row(row)
+            if source_row_key in possible_cause_source_keys:
+                row = _workbook_mark_possible_cause_row(row, comparison_level)
             workbook_row = _workbook_changed_item_row(
                 _workbook_non_additive_row(row),
                 comparison_path=comparison_path,
@@ -1539,7 +1724,7 @@ def _workbook_underlying_causes_table(
         return _workbook_empty_changed_item_table()
     return _workbook_sorted_table(
         pl.DataFrame(rows, infer_schema_length=None),
-        _workbook_left_review_sort_columns(comparison_level=comparison_level),
+        _workbook_left_review_sort_columns(),
     )
 
 
@@ -1625,7 +1810,8 @@ def _workbook_formula_source_candidates(
             row
             for row in rows
             if row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
-            and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.MARKET_VALUE
+            and row.get(_pc_findings.SOURCE_COLUMN)
+            in {pc_cols.MARKET_VALUE, pc_cols.ACCRUED}
             and _workbook_as_of_date(row) == formula_date
         ]
     if formula_field in {
@@ -2032,6 +2218,29 @@ def _workbook_split_factor_support_row(row: Mapping[str, object]) -> dict[str, o
     return row_dict
 
 
+def _workbook_possible_cause_row(row: Mapping[str, object]) -> dict[str, object]:
+    """Return evidence marked as a possible cause of an unresolved period."""
+    row_dict = dict(row)
+    row_dict[_WORKBOOK_POSSIBLE_CAUSE_ROW] = True
+    return row_dict
+
+
+def _workbook_mark_possible_cause_row(
+    row: Mapping[str, object],
+    comparison_level: str,
+) -> dict[str, object]:
+    """Return a possible-cause row with level-specific review context."""
+    row_dict = _workbook_possible_cause_row(row)
+    if (
+        comparison_level == PORTFOLIO_COMPARISON_LEVEL
+        and row_dict.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
+        and row_dict.get(_pc_findings.SOURCE_COLUMN) == pc_cols.AMOUNT
+    ):
+        row_dict[_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION] = True
+        row_dict = _workbook_non_additive_row(row_dict)
+    return row_dict
+
+
 def _workbook_raw_audit_trail_table(
     findings: pl.DataFrame,
     *,
@@ -2043,8 +2252,18 @@ def _workbook_raw_audit_trail_table(
     if keyed_findings.is_empty():
         return keyed_findings
 
+    source_rows = list(keyed_findings.iter_rows(named=True))
+    cash_security_matches = _workbook_cash_security_matches(
+        source_rows,
+        comparison_level=comparison_level,
+    )
     rows: list[dict[str, object]] = []
-    for row in keyed_findings.iter_rows(named=True):
+    for row in source_rows:
+        row = _workbook_raw_audit_enriched_row(
+            row,
+            cash_security_matches,
+            comparison_level=comparison_level,
+        )
         workbook_row = _workbook_changed_item_row(
             row,
             comparison_path=comparison_path,
@@ -2057,29 +2276,77 @@ def _workbook_raw_audit_trail_table(
         rows.append({**workbook_row, **raw_values})
     return _workbook_sorted_table(
         pl.DataFrame(rows, infer_schema_length=None),
-        _workbook_left_review_sort_columns(comparison_level=comparison_level),
+        _workbook_left_review_sort_columns(),
     )
 
 
-def _workbook_left_review_sort_columns(*, comparison_level: str) -> tuple[str, ...]:
+def _workbook_raw_audit_enriched_row(
+    row: Mapping[str, object],
+    cash_security_matches: Mapping[tuple[object, ...], object],
+    *,
+    comparison_level: str,
+) -> Mapping[str, object]:
+    """Return a Raw Audit Trail row with concrete cash-balance context."""
+    enriched_row = _workbook_with_cash_balance_security(
+        row,
+        cash_security_matches,
+        comparison_level=comparison_level,
+    )
+    if (
+        enriched_row.get(_pc_findings.DATASET) != pc_cols.TRANSACTIONS
+        or enriched_row.get(_pc_findings.SOURCE_COLUMN) != pc_cols.AMOUNT
+    ):
+        return enriched_row
+    if (
+        not enriched_row.get(_WORKBOOK_CASH_BALANCE_SECURITY_ID)
+        and not _workbook_is_possible_cause_row(enriched_row)
+    ):
+        return enriched_row
+    row_dict = dict(enriched_row)
+    row_dict[_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION] = True
+    return _workbook_non_additive_row(row_dict)
+
+
+def _workbook_left_review_sort_columns() -> tuple[str, ...]:
     """Return the shared left-column sort order for review detail sheets."""
-    if comparison_level == SECURITY_COMPARISON_LEVEL:
-        return (
-            _pc_findings.PORTFOLIO_ID,
-            _pc_findings.FROM_DATE,
-            _pc_findings.THRU_DATE,
-            _pc_findings.SECURITY_ID,
-            _pc_findings.DATASET,
-            _pc_findings.SOURCE_COLUMN,
-        )
     return (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
         _pc_findings.THRU_DATE,
-        _pc_findings.DATASET,
-        _pc_findings.SOURCE_COLUMN,
+        _AS_OF_DATE,
+        _DATASET_FIELD,
         _pc_findings.SECURITY_ID,
     )
+
+
+def _workbook_raw_audit_columns(findings: pl.DataFrame) -> tuple[str, ...]:
+    """Return Raw Audit Trail worksheet columns with review key last."""
+    preferred_columns = (
+        _pc_findings.PORTFOLIO_ID,
+        _pc_findings.FROM_DATE,
+        _pc_findings.THRU_DATE,
+        _AS_OF_DATE,
+        _DATASET_FIELD,
+        _pc_findings.SECURITY_ID,
+        _pc_findings.SNAPSHOT_A_VALUE,
+        _pc_findings.SNAPSHOT_B_VALUE,
+        _CHANGE,
+        _REVIEW_GUIDANCE,
+    )
+    remaining_columns = [
+        column
+        for column in findings.columns
+        if column
+        not in {
+            *preferred_columns,
+            _pc_findings.DATASET,
+            _pc_findings.SOURCE_COLUMN,
+            _pc_findings.DELTA_B_MINUS_A,
+            _ESTIMATED_IMPACT,
+            _REVIEW_KEY,
+        }
+    ]
+    return (*preferred_columns, *remaining_columns, _REVIEW_KEY)
 
 
 def _workbook_is_transaction_component_row(row: Mapping[str, object]) -> bool:
@@ -2168,9 +2435,10 @@ def _workbook_cause_family(row: Mapping[str, object]) -> object:
     """Return the broad accounting family for a changed input row."""
     dataset = row.get(_pc_findings.DATASET)
     source_column = row.get(_pc_findings.SOURCE_COLUMN)
+    if dataset == pc_cols.HOLDINGS and source_column == pc_cols.ACCRUED:
+        return "holding_accrued"
     if dataset == pc_cols.HOLDINGS and source_column in {
         pc_cols.MARKET_VALUE,
-        pc_cols.ACCRUED,
         pc_cols.QUANTITY,
         pc_cols.PRICE,
     }:
@@ -2385,6 +2653,12 @@ def _workbook_changed_item_row(
         _CHANGE_LABEL: _workbook_change_label(row),
         _DATASET_FIELD: _workbook_dataset_field(row),
         _pc_findings.SECURITY_ID: row.get(_pc_findings.SECURITY_ID),
+        _ROW_TYPE: _workbook_row_type(
+            row,
+            estimated_impact,
+            row_use,
+            impact_status,
+        ),
         _pc_findings.SNAPSHOT_A_VALUE: row.get(_pc_findings.SNAPSHOT_A_VALUE),
         _pc_findings.SNAPSHOT_B_VALUE: row.get(_pc_findings.SNAPSHOT_B_VALUE),
         _CHANGE: row.get(_pc_findings.DELTA_B_MINUS_A),
@@ -2405,6 +2679,34 @@ def _workbook_changed_item_row(
         _USE_PRIORITY: _workbook_use_priority(row_use),
         _REVIEW_KEY: row.get(_REVIEW_KEY),
     }
+
+
+def _workbook_row_type(
+    row: Mapping[str, object],
+    estimated_impact: float | None,
+    row_use: str,
+    impact_status: str,
+) -> str:
+    """Return the reviewer-facing row type for Performance Difference Causes."""
+    if row.get(_WORKBOOK_POSSIBLE_CAUSE_ROW):
+        return _ROW_TYPE_POSSIBLE_CAUSE
+    if row.get(_pc_findings.FINDING_CODE) == _RECONSTRUCTION_FORMULA_FINDING_CODE:
+        return _ROW_TYPE_FORMULA_INPUT
+    if estimated_impact is not None:
+        return _ROW_TYPE_EXPLAINED_CAUSE
+    if (
+        row.get(_WORKBOOK_SPLIT_FACTOR_SUPPORTS_HOLDING)
+        or row.get(_WORKBOOK_TRANSACTION_FLOW_SUPPORTS_HOLDING)
+        or row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION)
+        or row.get(_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW)
+        or row.get(_WORKBOOK_UNSELECTED_RELATED_ESTIMATE)
+        or impact_status == _IMPACT_STATUS_REVIEW_ONLY
+        or _workbook_input_role(row, estimated_impact) == _INPUT_ROLE_SUPPORTING_EVIDENCE
+    ):
+        return _ROW_TYPE_SUPPORTING_EVIDENCE
+    if row_use == _USE_REVIEW_CONTEXT:
+        return _ROW_TYPE_REVIEW_CONTEXT
+    return _ROW_TYPE_REVIEW_CONTEXT
 
 
 def _workbook_input_role(
@@ -2619,6 +2921,13 @@ def _workbook_review_guidance(
         and source_column in {pc_cols.COMMISSION, pc_cols.PRICE, pc_cols.QUANTITY}
     ):
         return _workbook_transaction_component_explanation(row, source_column)
+    if row.get(_WORKBOOK_POSSIBLE_CAUSE_ROW):
+        return _workbook_possible_cause_review_guidance(row, dataset, source_column)
+    if (
+        _workbook_has_additive_policy(row)
+        and _workbook_impact_status(row, None) == _IMPACT_STATUS_MISSING_INPUT
+    ):
+        return _workbook_missing_impact_input_setup(dataset, source_column)
     if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
         return _workbook_transaction_cash_balance_explanation(row)
     if row.get(_WORKBOOK_TRANSACTION_SUPPORTS_RECONSTRUCTION_FLOW):
@@ -2659,16 +2968,12 @@ def _workbook_review_guidance(
         pc_cols.QUANTITY,
     }:
         return _workbook_holding_detail_explanation(row, source_column)
+    if dataset == pc_cols.TRANSACTIONS:
+        if source_column == pc_cols.AMOUNT:
+            return _workbook_source_row_explanation(row, dataset, source_column)
+        return f"No supported YAML impact method exists yet for {dataset_column}."
     if _workbook_has_additive_policy(row):
         return _workbook_missing_impact_input_setup(dataset, source_column)
-    if dataset == pc_cols.TRANSACTIONS:
-        if source_column != pc_cols.AMOUNT:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        return (
-            "Specify the YAML transaction_impact_methods.performance.method, "
-            "transaction_impact_methods.performance.denominator_source, and "
-            f"transaction_rules for each transaction code in {yaml_path}."
-        )
     if dataset == pc_cols.HOLDINGS:
         if source_column not in {
             pc_cols.MARKET_VALUE,
@@ -2736,6 +3041,38 @@ def _workbook_transaction_reconstruction_flow_guidance(
     if row.get(_pc_findings.TRANSACTION_CATEGORY) == TRANSACTION_CATEGORY_EXTERNAL_FLOW:
         return _workbook_portfolio_external_flow_transaction_explanation(row)
     return _workbook_transaction_cash_balance_explanation(row)
+
+
+def _workbook_possible_cause_review_guidance(
+    row: Mapping[str, object],
+    dataset: str,
+    source_column: str,
+) -> str:
+    """Return concise guidance for evidence that may explain a residual."""
+    if row.get(_WORKBOOK_NON_ADDITIVE_PORTFOLIO_TRANSACTION):
+        explanation = _workbook_transaction_cash_balance_explanation(row)
+    elif dataset == pc_cols.TRANSACTIONS and source_column == pc_cols.AMOUNT:
+        explanation = _workbook_transaction_amount_possible_cause_explanation(row)
+    else:
+        explanation = _workbook_source_row_explanation(row, dataset, source_column)
+    if not explanation:
+        explanation = _workbook_possible_cause_row_comment(row)
+    return f"{explanation} {_POSSIBLE_CAUSE_CONFIGURATION_NOTE}"
+
+
+def _workbook_transaction_amount_possible_cause_explanation(
+    row: Mapping[str, object],
+) -> str:
+    """Return compact possible-cause wording for transaction amount changes."""
+    security_id = _format_value(row.get(_pc_findings.SECURITY_ID))
+    security_prefix = f"{security_id} " if security_id else ""
+    change_value = _workbook_row_change_value(row)
+    return (
+        f"{_workbook_transaction_code_prefix(row)}{security_prefix}"
+        "transactions.amount "
+        f"{_workbook_increased_or_decreased(change_value)} by "
+        f"{_workbook_change_amount_text(change_value)}."
+    )
 
 
 def _workbook_portfolio_external_flow_transaction_explanation(
@@ -2838,6 +3175,15 @@ def _workbook_holding_timing_label(row: Mapping[str, object]) -> str:
     if isinstance(input_date, _dt.date) and input_date == thru_date:
         return "ending"
     return ""
+
+
+def _workbook_is_carry_forward_holding_input(row: Mapping[str, object]) -> bool:
+    """Return whether a row is a prior-period holding value carried forward."""
+    return (
+        row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
+        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.MARKET_VALUE
+        and _workbook_holding_timing_label(row) == "beginning"
+    )
 
 
 def _workbook_transaction_component_explanation(
@@ -3083,7 +3429,9 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _AS_OF_DATE: pl.Date,
             _USE: pl.String,
             _CHANGE_LABEL: pl.String,
+            _DATASET_FIELD: pl.String,
             _pc_findings.SECURITY_ID: pl.String,
+            _ROW_TYPE: pl.String,
             _pc_findings.SNAPSHOT_A_VALUE: pl.String,
             _pc_findings.SNAPSHOT_B_VALUE: pl.String,
             _CHANGE: pl.Float64,
@@ -3250,36 +3598,6 @@ def _workbook_return_reconstruction_summary_columns() -> tuple[str, ...]:
     )
 
 
-def _workbook_findings_columns(findings: pl.DataFrame) -> tuple[str, ...]:
-    """Return reviewer-first Findings worksheet columns with review key last."""
-    preferred_columns = (
-        _pc_findings.PORTFOLIO_ID,
-        _pc_findings.FROM_DATE,
-        _pc_findings.THRU_DATE,
-        _AS_OF_DATE,
-        _DATASET_FIELD,
-        _pc_findings.SECURITY_ID,
-        _pc_findings.SNAPSHOT_A_VALUE,
-        _pc_findings.SNAPSHOT_B_VALUE,
-        _CHANGE,
-        _ESTIMATED_IMPACT,
-        _REVIEW_GUIDANCE,
-    )
-    remaining_columns = [
-        column
-        for column in findings.columns
-        if column
-        not in {
-            *preferred_columns,
-            _pc_findings.DATASET,
-            _pc_findings.SOURCE_COLUMN,
-            _pc_findings.DELTA_B_MINUS_A,
-            _REVIEW_KEY,
-        }
-    ]
-    return (*preferred_columns, *remaining_columns, _REVIEW_KEY)
-
-
 def _workbook_sorted_table(table: pl.DataFrame, columns: Sequence[str]) -> pl.DataFrame:
     """Return a workbook table sorted by available reviewer-facing columns."""
     sort_columns = [column for column in columns if column in table.columns]
@@ -3303,6 +3621,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _USE: "Purpose",
         _CHANGE_LABEL: "What Changed",
         _DATASET_FIELD: "Dataset Field",
+        _ROW_TYPE: "Row Type",
         _CHANGE: "B - A Difference",
         _ESTIMATED_IMPACT: "Performance Difference Explained",
         _IMPACT_STATUS: "Impact Status",
@@ -3420,6 +3739,9 @@ def workbook_column_tooltip(column: str) -> str:
         _USE: "Workbook row category used for sorting and compatibility.",
         _CHANGE_LABEL: "Plain-English changed data item.",
         _DATASET_FIELD: "Changed input field, shown as dataset.field.",
+        _ROW_TYPE: (
+            "Internal reviewer role used for row coloring and sorting."
+        ),
         _CHANGE: "Snapshot B value minus snapshot A value for the compared item.",
         _AS_OF_DATE: (
             "Date represented by the input row. Holding rows use the period Thru Date."

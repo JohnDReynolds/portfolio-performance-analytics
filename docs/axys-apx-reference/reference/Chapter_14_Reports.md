@@ -127,6 +127,19 @@ The supplied research does not include a full Axys report catalog. The following
 | Owner portfolio code | `Portfolio Code` can be added as a Portfolio Appraisal column in the supplied Report Writer example. | Verified |
 | Sample labels | `Quantity`, `Security`, `Price`, `Market Value`, `Pct Assets`, `Yield`, `Portfolio Code`. | Verified for sample |
 
+### 3.3.1 Portfolio Appraisal market value and accrued interest
+
+The July 2026 market-value/accrued-interest research adds an important
+fixed-income reading rule for Portfolio Appraisal-style output. Public SS&C
+samples and a public APX Portfolio Appraisal example show fixed-income Market
+Value and Accrued Interest separately. The layout strongly implies that Market
+Value is clean market value and that accrued interest is a separate report
+concept used in total/subtotal presentation.
+
+This is report-output evidence, not a database, public-view, IMEX, or stored
+formula specification. Report-to-extract reconciliation should preserve both
+Market Value and Accrued Interest when fixed income is in scope.
+
 ### 3.4 Axys AUM / Management Reports
 
 | Item | Description | Confidence |
@@ -265,7 +278,7 @@ These are report labels, not proven database fields.
 | Quantity | Transaction / Portfolio Appraisal examples | Quantity label. | Yes in Axys sample | Yes | Verified as report label |
 | Unit Price | Transaction Summary example | Transaction unit price label. | Unknown | Yes | Verified as report label |
 | Amount | Transaction Summary example | Transaction amount label. | Unknown | Yes | Verified as report label |
-| Market Value | Holdings / business examples | Valuation measure. | Yes in Axys sample | Yes | Verified as label |
+| Market Value | Holdings / business examples | Valuation measure; fixed-income appraisal evidence strongly implies clean market value separate from accrued interest. | Yes in Axys sample | Yes | Verified as label; accrued exclusion High / strongly implied |
 
 ---
 
