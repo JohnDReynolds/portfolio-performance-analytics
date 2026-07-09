@@ -280,7 +280,7 @@ families:
 - `holdings.accrued` changes as additive beginning/end valuation inputs when
   present in holdings extracts; and
 - context-gated `pa`/`sa` transaction rows as fixed-income accrued-interest
-  adjuncts paired with TNOTE5Y buy/sell transactions; and
+  adjuncts paired with 91282Y5Y1 buy/sell transactions; and
 - context-gated `pd` principal-paydown rows as MBS/amortizing-security
   principal flow with portfolio-cash destination evidence.
 

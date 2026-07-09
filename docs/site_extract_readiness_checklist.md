@@ -59,7 +59,7 @@ source.
 
 | Profile | Codes | Candidate Modified Dietz treatment | Required local evidence |
 | --- | --- | --- | --- |
-| `fixed_income_accruals` | `pa`, `sa` | Purchase accrued interest as fee/expense; sale accrued interest as income. The packaged demo includes one paired TNOTE5Y example, while this profile remains useful for local override/onboarding variants. | Bond or accrued-interest context, amount sign, settlement context, and local mapping or REP/report treatment. |
+| `fixed_income_accruals` | `pa`, `sa` | Purchase accrued interest as fee/expense; sale accrued interest as income. The packaged demo includes one paired 91282Y5Y1 example, while this profile remains useful for local override/onboarding variants. | Bond or accrued-interest context, amount sign, settlement context, and local mapping or REP/report treatment. |
 | `ai_margin_interest` | `ai` | Margin or negative interest as fee/expense. | Margin or negative-interest context, amount sign, and local mapping or REP/report treatment. |
 | `rc_return_of_capital` | `rc` | Return of capital as performance income. | Return-of-capital context, security identity, amount sign, and local mapping or REP/report treatment. |
 | `pd_principal_paydown` | `pd` | Principal paydown as performance income. | Bond/MBS/ABS principal-paydown context, cash movement, amount sign, and local mapping or REP/report treatment. |

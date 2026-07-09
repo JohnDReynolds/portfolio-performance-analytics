@@ -51,22 +51,22 @@ _CVNA_SYNTHETIC_RETURN: Final = 0.012
 _CVNA_SPLIT_ADJUSTED_PRICE: Final = 58.00
 _FIXED_INCOME_SLEEVE: Final = (
     (_CASH_IDENTIFIER, "US Dollar Cash", "Cash", 0.40, 0.00025, 1.0, 0.0),
-    ("TBILL13W", "13 Week Treasury Bill", "Treasury Bills", 0.25, 0.0038, 99.35, 0.0),
-    ("TNOTE2Y", "2 Year Treasury Note", "Treasury Notes", 0.15, 0.0032, 100.15, 65.0),
-    ("TNOTE5Y", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027, 98.80, 95.0),
-    ("MBSPOOL", "Agency MBS Pool", "Mortgage-Backed Securities", 0.05, 0.0035, 97.25, 120.0),
+    ("912797AA1", "13 Week Treasury Bill", "Treasury Bills", 0.25, 0.0038, 99.35, 0.0),
+    ("91282Y2Y1", "2 Year Treasury Note", "Treasury Notes", 0.15, 0.0032, 100.15, 65.0),
+    ("91282Y5Y1", "5 Year Treasury Note", "Treasury Notes", 0.15, 0.0027, 98.80, 95.0),
+    ("36225MBS1", "Agency MBS Pool", "Mortgage-Backed Securities", 0.05, 0.0035, 97.25, 120.0),
 )
 _JPM_DIVIDEND_IDENTIFIER: Final = "JPM"
 _JPM_DIVIDEND_EX_DATE: Final = "2026-04-06"
 _JPM_DIVIDEND_PAY_DATE: Final = "2026-04-30"
 _JPM_PRIOR_DIVIDEND_PER_SHARE: Final = 1.40
 _JPM_CURRENT_DIVIDEND_PER_SHARE: Final = 1.50
-_TNOTE2Y_INTEREST_TRANSACTION_ID: Final = "INCOME0603"
-_TNOTE2Y_INTEREST_IDENTIFIER: Final = "TNOTE2Y"
-_TNOTE2Y_INTEREST_DATE: Final = "2026-05-15"
-_TNOTE2Y_INTEREST_PERIOD_END: Final = "2026-05-29"
-_TNOTE2Y_PRIOR_INTEREST_AMOUNT: Final = 1_200.0
-_TNOTE2Y_CURRENT_INTEREST_AMOUNT: Final = 1_280.0
+_INTEREST_NOTE_TRANSACTION_ID: Final = "INCOME0603"
+_INTEREST_NOTE_IDENTIFIER: Final = "91282Y2Y1"
+_INTEREST_NOTE_DATE: Final = "2026-05-15"
+_INTEREST_NOTE_PERIOD_END: Final = "2026-05-29"
+_INTEREST_NOTE_PRIOR_AMOUNT: Final = 1_200.0
+_INTEREST_NOTE_CURRENT_AMOUNT: Final = 1_280.0
 
 
 def main() -> None:
@@ -332,23 +332,23 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         middle_date,
         return_delta=jpm_dividend_delta / _BASE_MARKET_VALUE,
     )
-    # Fully explained: a TNOTE2Y interest receipt was corrected from $1,200
+    # Fully explained: a 91282Y2Y1 interest receipt was corrected from $1,200
     # to $1,280 on the coupon date. The $80 correction increases cash,
     # security income, and reported performance.
-    tnote_interest_delta = _adjust_tnote2y_interest_to_current_amount(
+    tnote_interest_delta = _adjust_interest_note_to_current_amount(
         snapshot["transactions"],
         snapshot["secperf"],
     )
     _adjust_cash_holding(
         snapshot["holdings"],
         "INCOME",
-        _TNOTE2Y_INTEREST_PERIOD_END,
+        _INTEREST_NOTE_PERIOD_END,
         cash_delta=tnote_interest_delta,
     )
     _apply_portfolio_return_delta(
         snapshot["portperf"],
         "INCOME",
-        _TNOTE2Y_INTEREST_PERIOD_END,
+        _INTEREST_NOTE_PERIOD_END,
         return_delta=tnote_interest_delta / _BASE_MARKET_VALUE,
     )
 
@@ -391,14 +391,14 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     tnote_market_value_a = _holding_value(
         snapshot["holdings"],
         "INCOME",
-        "TNOTE2Y",
+        "91282Y2Y1",
         latest_date,
         "MKT_VAL",
     )
     _adjust_holding(
         snapshot["holdings"],
         "INCOME",
-        "TNOTE2Y",
+        "91282Y2Y1",
         target_date=latest_date,
         quantity_multiplier=1.002,
         cost_delta=200.0,
@@ -407,7 +407,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     tnote_market_value_b = _holding_value(
         snapshot["holdings"],
         "INCOME",
-        "TNOTE2Y",
+        "91282Y2Y1",
         latest_date,
         "MKT_VAL",
     )
@@ -415,7 +415,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
         snapshot["secperf"],
         "INCOME",
         latest_date,
-        "TNOTE2Y",
+        "91282Y2Y1",
         return_delta=0.0004,
     )
     _apply_portfolio_return_delta(
@@ -455,7 +455,7 @@ def build_restatement_snapshot(axys: dict[str, pd.DataFrame]) -> dict[str, pd.Da
     _adjust_holding(
         snapshot["holdings"],
         "INCOME",
-        "TNOTE5Y",
+        "91282Y5Y1",
         target_date=middle_date,
         price_delta=0.35,
     )
@@ -793,20 +793,20 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                 )
             if (
                 portfolio_code == "INCOME"
-                and str(period.thru_date.date()) == _TNOTE2Y_INTEREST_PERIOD_END
+                and str(period.thru_date.date()) == _INTEREST_NOTE_PERIOD_END
             ):
                 rows.append(
                     {
-                        "TRANSACTION_ID": _TNOTE2Y_INTEREST_TRANSACTION_ID,
+                        "TRANSACTION_ID": _INTEREST_NOTE_TRANSACTION_ID,
                         "PORT": portfolio_code,
                         "TRANSACTION_DATE": pd.Timestamp(
-                            _TNOTE2Y_INTEREST_DATE
+                            _INTEREST_NOTE_DATE
                         ).date(),
-                        "SETTLE_DATE": pd.Timestamp(_TNOTE2Y_INTEREST_DATE).date(),
-                        "SEC": _TNOTE2Y_INTEREST_IDENTIFIER,
+                        "SETTLE_DATE": pd.Timestamp(_INTEREST_NOTE_DATE).date(),
+                        "SEC": _INTEREST_NOTE_IDENTIFIER,
                         "TRAN": "in",
                         "SEC_TYPE": _security_type_for_transaction(
-                            _TNOTE2Y_INTEREST_IDENTIFIER
+                            _INTEREST_NOTE_IDENTIFIER
                         ),
                         "SRC_DEST_TYPE": "$income",
                         "SRC_DEST_SYMBOL": "$cash",
@@ -814,7 +814,7 @@ def _transactions(performance: pd.DataFrame) -> pd.DataFrame:
                         "SPECIAL_SEC_SYMBOL": "",
                         "QTY": 0.0,
                         "PRICE": 0.0,
-                        "AMOUNT": _TNOTE2Y_PRIOR_INTEREST_AMOUNT,
+                        "AMOUNT": _INTEREST_NOTE_PRIOR_AMOUNT,
                         "COMMISSION": 0.0,
                     }
                 )
@@ -862,9 +862,9 @@ def _security_type_for_transaction(identifier: str) -> str:
     """Return a compact Axys/APX-style security type for demo transaction rows."""
     if identifier == _CASH_IDENTIFIER:
         return "caus"
-    if identifier == "MBSPOOL":
+    if identifier == "36225MBS1":
         return "mbus"
-    if identifier in {"TBILL13W", "TNOTE2Y", "TNOTE5Y"}:
+    if identifier in {"912797AA1", "91282Y2Y1", "91282Y5Y1"}:
         return "fius"
     return "csus"
 
@@ -1052,26 +1052,26 @@ def _adjust_jpm_dividend_to_current_rate(
     return amount_delta
 
 
-def _adjust_tnote2y_interest_to_current_amount(
+def _adjust_interest_note_to_current_amount(
     transactions: pd.DataFrame,
     security_performance: pd.DataFrame,
 ) -> float:
-    """Correct the TNOTE2Y interest transaction and return the amount delta."""
+    """Correct the 91282Y2Y1 interest transaction and return the amount delta."""
     mask = (
-        transactions["TRANSACTION_ID"].eq(_TNOTE2Y_INTEREST_TRANSACTION_ID)
+        transactions["TRANSACTION_ID"].eq(_INTEREST_NOTE_TRANSACTION_ID)
         & transactions["PORT"].eq("INCOME")
     )
     if not bool(mask.any()):
-        raise ValueError("Could not find TNOTE2Y interest transaction.")
+        raise ValueError("Could not find 91282Y2Y1 interest transaction.")
     row_index = transactions.index[mask][0]
     old_amount = float(transactions.loc[row_index, "AMOUNT"])
-    amount_delta = round(_TNOTE2Y_CURRENT_INTEREST_AMOUNT - old_amount, 2)
-    transactions.loc[row_index, "AMOUNT"] = _TNOTE2Y_CURRENT_INTEREST_AMOUNT
+    amount_delta = round(_INTEREST_NOTE_CURRENT_AMOUNT - old_amount, 2)
+    transactions.loc[row_index, "AMOUNT"] = _INTEREST_NOTE_CURRENT_AMOUNT
     _adjust_security_income(
         security_performance,
         "INCOME",
-        _TNOTE2Y_INTEREST_PERIOD_END,
-        _TNOTE2Y_INTEREST_IDENTIFIER,
+        _INTEREST_NOTE_PERIOD_END,
+        _INTEREST_NOTE_IDENTIFIER,
         income_delta=amount_delta,
     )
     return amount_delta
@@ -1387,7 +1387,7 @@ def _accrued_for(identifier: str, market_value: float) -> float:
 
 
 def _income_component(identifier: str, security_return: float) -> float:
-    if identifier in {"MBSPOOL", "TBILL13W", "TNOTE2Y", "TNOTE5Y", _CASH_IDENTIFIER}:
+    if identifier in {"36225MBS1", "912797AA1", "91282Y2Y1", "91282Y5Y1", _CASH_IDENTIFIER}:
         return min(security_return, max(security_return, 0.0))
     return 0.0
 

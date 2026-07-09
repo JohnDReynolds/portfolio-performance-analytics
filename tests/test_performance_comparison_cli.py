@@ -37,8 +37,8 @@ _DEMO_QUIET_PHRASES = (
     "Analytics demo output written to:",
     "Report bundle written to:",
     "Bundle artifacts:",
-    "Portfolio Performance Comparison",
-    "Security Performance Comparison",
+    "Portfolio Performance Audit",
+    "Security Performance Audit",
 )
 
 
@@ -58,7 +58,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Write performance-auditing report bundles"
             ),
             _BUNDLE_MODULE: (
-                "Write a performance comparison review artifact bundle."
+                "Write a performance audit review artifact bundle."
             ),
             _VALIDATE_BUNDLE_MODULE: (
                 "Validate a performance comparison report bundle."

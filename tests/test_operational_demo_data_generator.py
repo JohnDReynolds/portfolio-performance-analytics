@@ -63,7 +63,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertLess(float((weights - 1.0).abs().max()), 1e-12)
         self.assertEqual(
             set(performance[performance["sector"].eq("Cash")]["identifier"]),
-            {"CASH_USD", "MBSPOOL", "TBILL13W", "TNOTE2Y", "TNOTE5Y"},
+            {"CASH_USD", "36225MBS1", "912797AA1", "91282Y2Y1", "91282Y5Y1"},
         )
         self.assertEqual(
             performance[performance["asset_class"].eq("Equity")]["identifier"].nunique(),
@@ -85,7 +85,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertGreater(float(axys["holdings"]["ACCRUED"].max()), 0.0)
         self.assertIn("CASH_USD", set(axys["holdings"]["SEC"]))
         self.assertGreater(len(axys["transactions"]), 0)
-        self.assertIn("TNOTE2Y", set(axys["sec_ref"]["SECURITY_ID"]))
+        self.assertIn("91282Y2Y1", set(axys["sec_ref"]["SECURITY_ID"]))
 
     def test_restatement_snapshot_contains_controlled_differences(self) -> None:
         """Snapshot B includes source-data differences across key datasets."""
@@ -115,7 +115,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_accrued_a = _value(
             snapshot_a["holdings"],
             snapshot_a["holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["holdings"]["SEC"].eq("91282Y2Y1")
             & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
@@ -124,7 +124,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_accrued_b = _value(
             snapshot_b["holdings"],
             snapshot_b["holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["holdings"]["SEC"].eq("91282Y2Y1")
             & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
@@ -133,7 +133,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_quantity_a = _value(
             snapshot_a["holdings"],
             snapshot_a["holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["holdings"]["SEC"].eq("91282Y2Y1")
             & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
@@ -142,7 +142,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_quantity_b = _value(
             snapshot_b["holdings"],
             snapshot_b["holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["holdings"]["SEC"].eq("91282Y2Y1")
             & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
@@ -151,7 +151,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_cost_a = _value(
             snapshot_a["holdings"],
             snapshot_a["holdings"]["PORT"].eq("INCOME")
-            & snapshot_a["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_a["holdings"]["SEC"].eq("91282Y2Y1")
             & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
@@ -160,7 +160,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         tnote_cost_b = _value(
             snapshot_b["holdings"],
             snapshot_b["holdings"]["PORT"].eq("INCOME")
-            & snapshot_b["holdings"]["SEC"].eq("TNOTE2Y")
+            & snapshot_b["holdings"]["SEC"].eq("91282Y2Y1")
             & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),

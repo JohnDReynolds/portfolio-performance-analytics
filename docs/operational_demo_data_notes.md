@@ -40,8 +40,8 @@ The generator currently:
 
 - reads `ppar/setup_templates/generic_analytics/performance/Mega-Cap Alpha Portfolio.csv`;
 - keeps a small set of high-weight equities over recent monthly periods;
-- splits the analytics cash sleeve into `CASH_USD`, `TBILL13W`, `TNOTE2Y`,
-  and `TNOTE5Y` operational securities;
+- splits the analytics cash sleeve into `CASH_USD`, `912797AA1`, `91282Y2Y1`,
+  and `91282Y5Y1` operational securities;
 - creates the ALPHA, BALANCED, and INCOME portfolio variants from the same
   security universe;
 - creates Axys/APX-style `portperf`, `secperf`, `sec_ref`, holdings, and
@@ -102,12 +102,12 @@ data. Snapshot B introduces controlled changes that produce:
   differences;
 - one partly explained ALPHA period with a changed transaction amount plus
   review-only transaction quantity, price, and commission clues;
-- one partly explained INCOME fixed-income period with paired TNOTE5Y
+- one partly explained INCOME fixed-income period with paired 91282Y5Y1
   `by`/`pa` and `sl`/`sa` rows, quantity-driven holding value/accrual evidence,
   and reviewer triage for incomplete or overlapping estimates;
 - related holding-component examples where quantity rows sit beside selected
   market-value rows and cost remains in the `Source Detail`;
-- matching security-level examples for AAPL and TNOTE2Y;
+- matching security-level examples for AAPL and 91282Y2Y1;
 - transaction-rule YAML plus default field-role treatment for performance
   inputs, input components, reported-performance diagnostics, and context fields.
 

@@ -177,7 +177,7 @@ data_audit_checks:
     enabled: true
     only:
       security_id:
-        - MBSPOOL
+        - 36225MBS1
     absolute_tolerance: 1.0
     percent_tolerance: 0.01
     multipliers:
@@ -217,7 +217,7 @@ data_audit_checks:
     enabled: true
     only:
       security_id:
-        - DUPCHK
+        - KO
 
   transaction_amount_rate:
     # Checks same-day same-security transaction amount per unit across
@@ -263,7 +263,7 @@ data_audit_checks:
     enabled: true
     only:
       security_id:
-        - TNOTE5Y
+        - 91282Y5Y1
     absolute_tolerance: 0.000001
     percent_tolerance: 0.5
 
@@ -273,7 +273,7 @@ data_audit_checks:
     enabled: true
     only:
       security_id:
-        - TNOTE5Y
+        - 91282Y5Y1
     absolute_tolerance: 0.00001
     percent_tolerance: 0.5
 

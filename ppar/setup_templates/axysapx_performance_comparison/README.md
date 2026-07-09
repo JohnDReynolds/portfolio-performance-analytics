@@ -142,7 +142,7 @@ Data used:
   transactions, and holdings.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, one CVNA split-processing example,
-  `CASH_USD`, `TBILL13W`, `TNOTE2Y`, and `TNOTE5Y`. `ALPHA` is the closest match
+  `CASH_USD`, `912797AA1`, `91282Y2Y1`, and `91282Y5Y1`. `ALPHA` is the closest match
   to the Mega-Cap Alpha analytics portfolio; `BALANCED` and `INCOME` reuse the
   same securities with larger cash/fixed-income sleeves. CVNA appears only in
   the BALANCED portfolio as a small corporate-action processing example tied to
@@ -159,7 +159,7 @@ Data used:
   `by`, `sl`, `ss`, `cs`, `dv`, `in`, `pa`, `pd`, `sa`, `rc`, `dp`, `li`, `lo`, and
   `wd`. The
   packaged `pa` and `sa` rows appear only as fixed-income accrued-interest
-  adjuncts paired with TNOTE5Y buy/sell rows. The packaged `rc` row appears only
+  adjuncts paired with 91282Y5Y1 buy/sell rows. The packaged `rc` row appears only
   as an equity/security return-of-capital row with explicit return-of-capital
   context and portfolio-cash destination context. The packaged `pd` row appears
   only as an MBS principal-paydown row with portfolio-cash destination context.
@@ -183,10 +183,10 @@ Data used:
   | Test-only fixtures | internal-transfer `li`/`lo` site variants, `dp`/`wd` site variants, `pa`/`sa` local-override examples, and `dv` + `by` reinvestment guards. |
   | Evidence-blocked backlog | `ai`, uppercase reversal rows, and additional corporate actions until source evidence and accounting policy are strong enough. |
 
-  The packaged fixed-income story is intentionally narrow: ordinary TNOTE2Y
-  interest uses an `in` transaction row, MBSPOOL `pd` principal-paydown uses
+  The packaged fixed-income story is intentionally narrow: ordinary 91282Y2Y1
+  interest uses an `in` transaction row, 36225MBS1 `pd` principal-paydown uses
   MBS plus portfolio-cash destination context, accrued-interest
-  restatement uses `holdings.accrued`, and TNOTE5Y `pa`/`sa` rows are packaged
+  restatement uses `holdings.accrued`, and 91282Y5Y1 `pa`/`sa` rows are packaged
   only with paired fixed-income trade context. The packaged demo does not infer
   accrued-interest, margin-interest, or principal-paydown treatment from code
   alone.
@@ -249,10 +249,10 @@ Expected workbook:
     reported portfolio and MSFT security return differences, leaving an
     intentional residual for reviewer triage;
   - a fully explained INCOME period with the same AAPL price correction plus
-    TNOTE2Y `in` interest, MBSPOOL `pd` principal-paydown cash/principal
-    movement, market-value and accrued-interest changes, and related TNOTE2Y
+    91282Y2Y1 `in` interest, 36225MBS1 `pd` principal-paydown cash/principal
+    movement, market-value and accrued-interest changes, and related 91282Y2Y1
     quantity evidence;
-  - a partly explained INCOME period where paired TNOTE5Y `by`/`pa` and
+  - a partly explained INCOME period where paired 91282Y5Y1 `by`/`pa` and
     `sl`/`sa` fixed-income trade/accrued-interest settlement rows affect the
     cash/performance inputs, while separate quantity-driven holding value and
     accrued-value rows remain visible as holding inputs. Incomplete or

@@ -78,7 +78,7 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
         issues = x_ref.x_ref_issues_table(comparison_path)
         pa_rate_issues = issues.filter(
             (issues[x_ref.ISSUE_TYPE] == "pa_sa_rate")
-            & (issues["security_id"] == "TNOTE5Y")
+            & (issues["security_id"] == "91282Y5Y1")
         )
 
         self.assertEqual(pa_rate_issues.height, 2)

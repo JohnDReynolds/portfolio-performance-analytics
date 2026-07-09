@@ -176,9 +176,9 @@ def _write_report_bundle(
         comparison_level=comparison_level,
     )
     title = (
-        "Portfolio Performance Comparison"
+        "Portfolio Performance Audit"
         if comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        else "Security Performance Comparison"
+        else "Security Performance Audit"
     )
     paths = write_performance_comparison_report_bundle(
         findings,

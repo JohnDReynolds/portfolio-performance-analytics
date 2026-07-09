@@ -263,7 +263,7 @@ data_audit_checks:
     enabled: true
     only:
       security_id:
-        - MBSPOOL
+        - 36225MBS1
     percent_tolerance: 0.01
     absolute_tolerance: 1.00
 ```

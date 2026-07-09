@@ -75,11 +75,11 @@ def run_setup(
     overwrite: bool = False,
     include_generic_analytics: bool = False,
 ) -> dict[str, Path | str]:
-    """Create an Axys/APX starter workspace with analytics and comparison folders.
+    """Create an Axys/APX starter workspace with analytics and audit folders.
 
     Args:
         site_directory: Folder that will receive ``analytics`` and
-            ``performance_comparison`` subfolders.
+            ``performance_audit`` subfolders.
         overwrite: Whether to replace existing starter files.
         include_generic_analytics: Whether to copy the maintainer-facing generic
             analytics starter data and tutorial script.
@@ -146,7 +146,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         prog="ppar setup",
         description=(
             "Create an Axys/APX starter workspace with analytics and "
-            "performance-comparison folders."
+            "performance-auditing folders."
         ),
         epilog=(
             "Examples:\n"
@@ -157,7 +157,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "site_directory",
         type=Path,
-        help="Folder that will receive analytics and performance_comparison.",
+        help="Folder that will receive analytics and performance_audit.",
     )
     parser.add_argument(
         "--overwrite",

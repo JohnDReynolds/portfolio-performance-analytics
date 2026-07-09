@@ -185,7 +185,7 @@ useful before, after, or apart from a specific performance restatement review.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Data Audit Issues worksheet | Keep the former `X-Ref Issues` worksheet as `Data Audit Issues` inside Performance Comparison workbooks. | The worksheet remains separate from `Performance Difference Causes` and `Source Detail`, runs on the union of Snapshot A and Snapshot B, and flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. |
+| Data Audit Issues worksheet | Keep the former `X-Ref Issues` worksheet as `Data Audit Issues` inside Performance Audit workbooks. | The worksheet remains separate from `Performance Difference Causes` and `Source Detail`, runs on the union of Snapshot A and Snapshot B, and flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. |
 | Data Auditing marketing | Present Data Auditing as a distinct capability included with Performance Comparison rather than as a technical cross-reference implementation detail. | README/setup docs explain that Performance Comparison includes Data Audit Issues for suspicious source-data relationships such as prices, dividend rates, accrued-interest rates, missing dividends, and holding value math. |
 | Data Audit Summary | Add a summary surface before the detail rows. | Review output shows issue counts by issue type, snapshot, portfolio, and security before reviewers inspect row-level detail. |
 | Standalone Data Auditing workflow | Consider an optional standalone command and workbook, such as `ppar data_audit <site_or_yaml>`, that writes `data_audit.xlsx` and `data_audit.html` without requiring a performance-difference review. | The standalone workflow reuses the same YAML checks and source snapshots, produces a focused audit package, and does not duplicate Performance Comparison attribution logic. |
@@ -1526,10 +1526,10 @@ Status: complete for packaged demo guardrails.
 
 The packaged demo audit now pins the proved fixed-income story:
 
-- `INCOME0603` remains an ordinary `in` transaction on `TNOTE2Y`;
+- `INCOME0603` remains an ordinary `in` transaction on `91282Y2Y1`;
 - the row resolves as performance income;
-- the packaged snapshots include positive `TNOTE2Y` `holdings.accrued` values;
-- paired `pa`/`sa` rows appear only as TNOTE5Y accrued-interest adjuncts with
+- the packaged snapshots include positive `91282Y2Y1` `holdings.accrued` values;
+- paired `pa`/`sa` rows appear only as 91282Y5Y1 accrued-interest adjuncts with
   fixed-income trade context; and
 - `ai` does not appear in packaged transaction files; and
 - `pd` appears only as an MBS principal-paydown row with portfolio-cash
@@ -2738,8 +2738,8 @@ to be a coherent fixed-income scenario, not a pair of copied transaction rows.
 
 Recommended scenario:
 
-- Portfolio/security/month: use the existing `INCOME` portfolio and `TNOTE5Y`
-  or `TNOTE2Y` in one late-period month, preferably May 2026, where the demo
+- Portfolio/security/month: use the existing `INCOME` portfolio and `91282Y5Y1`
+  or `91282Y2Y1` in one late-period month, preferably May 2026, where the demo
   already has fixed-income activity and report readers can compare it with the
   ordinary `in` interest row.
 - Snapshot shape: Snapshot A should represent the control case without the
@@ -2849,7 +2849,7 @@ adjunct mechanism for `pa` and `sa`. The support is intentionally narrow:
 - `pa`/`sa` transaction scenarios do not derive `holdings.accrued` adjustments;
   accrued holdings are quantity/terms driven in the demo rebuild path.
 - Portfolio external-flow weighting still ignores `pa`/`sa`.
-- The packaged Axys/APX demo contains one narrow paired TNOTE5Y `pa`/`sa` story.
+- The packaged Axys/APX demo contains one narrow paired 91282Y5Y1 `pa`/`sa` story.
 
 A focused audit test builds temporary inserted `pa` and `sa` scenario rows and
 verifies the derived cash impacts without treating accrued-interest settlement
@@ -2865,7 +2865,7 @@ portfolio/security `report.html` hashes remained unchanged until Phase 71.
 
 Status: complete for one narrow fixed-income accrued-interest packaged story.
 
-The packaged Axys/APX demo now includes paired TNOTE5Y `by`/`pa` and `sl`/`sa`
+The packaged Axys/APX demo now includes paired 91282Y5Y1 `by`/`pa` and `sl`/`sa`
 rows in Snapshot B. The rows are deliberately scoped:
 
 - `pa` is purchase accrued interest and resolves as fee/expense only with
@@ -2892,7 +2892,7 @@ This phase changed generated report content. The final portfolio/security
 Status: complete for the fixed-income report-reader boundary after the packaged
 `pa`/`sa` promotion.
 
-The report artifacts were reviewed for the INCOME/TNOTE5Y February period. The
+The report artifacts were reviewed for the INCOME/91282Y5Y1 February period. The
 important reader boundary is now pinned in both docs and tests:
 
 - paired `by`/`pa` and `sl`/`sa` rows explain cash/performance input movement;
@@ -3355,10 +3355,10 @@ the two-difference target, and the period split backlog is now empty.
 The simplification kept the demo economics and reviewer stories intact while
 making each period easier to inspect:
 
-- INCOME February separates the TNOTE5Y purchase/accrued-interest pair from
+- INCOME February separates the 91282Y5Y1 purchase/accrued-interest pair from
   the sale/accrued-interest pair;
-- INCOME May separates the AAPL valuation mark, TNOTE2Y income/accrual story,
-  and MBSPOOL principal paydown;
+- INCOME May separates the AAPL valuation mark, 91282Y2Y1 income/accrual story,
+  and 36225MBS1 principal paydown;
 - BALANCED May separates the AAPL valuation/CVNA split story, the MSFT holding
   correction, and the TSLA short-sale/cover-short pair; and
 - the roadmap now treats `rc`, `pd`, `ss`/`cs`, and the CVNA split-processing

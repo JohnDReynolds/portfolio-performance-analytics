@@ -511,7 +511,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.quantity"
-                    and row[5] == "TNOTE5Y"
+                    and row[5] == "91282Y5Y1"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-13"
                 }
@@ -520,21 +520,21 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.quantity"
-                    and row[5] == "TNOTE5Y"
+                    and row[5] == "91282Y5Y1"
                     and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertIn(
                     (
-                        "by: Caused TNOTE5Y transactions.amount to increase "
-                        "and TNOTE5Y holdings.quantity to increase."
+                        "by: Caused 91282Y5Y1 transactions.amount to increase "
+                        "and 91282Y5Y1 holdings.quantity to increase."
                     ),
                     income_tnote_buy_quantity_guidance,
                 )
                 self.assertIn(
                     (
-                        "sl: Caused TNOTE5Y transactions.amount to increase "
-                        "and TNOTE5Y holdings.quantity to decrease."
+                        "sl: Caused 91282Y5Y1 transactions.amount to increase "
+                        "and 91282Y5Y1 holdings.quantity to decrease."
                     ),
                     income_tnote_sell_quantity_guidance,
                 )
@@ -543,7 +543,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "TNOTE5Y"
+                    and row[5] == "91282Y5Y1"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-13"
                 }
@@ -552,7 +552,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "TNOTE5Y"
+                    and row[5] == "91282Y5Y1"
                     and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
@@ -575,7 +575,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "holdings.accrued"
-                    and row[5] == "TNOTE5Y"
+                    and row[5] == "91282Y5Y1"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-13"
                 }
@@ -584,19 +584,19 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "holdings.accrued"
-                    and row[5] == "TNOTE5Y"
+                    and row[5] == "91282Y5Y1"
                     and str(row[1])[:10] == "2026-02-14"
                     and str(row[2])[:10] == "2026-02-27"
                 }
                 self.assertEqual(
                     income_tnote_buy_accrued_guidance,
-                    {"TNOTE5Y ending holdings.accrued increased by 0.05."},
+                    {"91282Y5Y1 ending holdings.accrued increased by 0.05."},
                 )
                 self.assertEqual(
                     income_tnote_sell_accrued_guidance,
                     {
-                        "TNOTE5Y beginning holdings.accrued increased by 0.05.",
-                        "TNOTE5Y ending holdings.accrued increased by 0.02.",
+                        "91282Y5Y1 beginning holdings.accrued increased by 0.05.",
+                        "91282Y5Y1 ending holdings.accrued increased by 0.02.",
                     },
                 )
                 self.assertFalse(
@@ -688,7 +688,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(review_keys)
                 self.assertTrue(any(str(key).endswith("::AAPL") for key in review_keys))
                 self.assertTrue(
-                    any(str(key).endswith("::TNOTE2Y") for key in review_keys)
+                    any(str(key).endswith("::91282Y2Y1") for key in review_keys)
                 )
                 security_rows = _sheet_rows(workbook["Performance Differences"])
                 self.assertEqual(
@@ -703,8 +703,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "CVNA",
                         "JPM",
                         "MSFT",
-                        "TNOTE2Y",
-                        "TNOTE5Y",
+                        "91282Y2Y1",
+                        "91282Y5Y1",
                     },
                 )
                 self.assertEqual(
@@ -737,7 +737,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     },
                     {
                         ("BALANCED", "JPM", "2026-05-09", "2026-05-14"),
-                        ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"),
+                        ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30"),
                     },
                 )
                 jpm_possible_cause_row = next(
@@ -815,7 +815,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     )
                     self.assertIsNone(row[6])
                 tnote_row = next(
-                    row for row in security_rows if row[3] == "TNOTE2Y"
+                    row for row in security_rows if row[3] == "91282Y2Y1"
                 )
                 self.assertEqual(tnote_row[7], "Fully Explained")
                 self.assertAlmostEqual(
@@ -858,7 +858,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(underlying_sort_keys, sorted(underlying_sort_keys))
                 self.assertTrue(
                     {
-                        ("transactions.amount", "TNOTE2Y"),
+                        ("transactions.amount", "91282Y2Y1"),
                         ("holdings.market_value", "AAPL"),
                         ("transactions.amount", "AAPL"),
                     }.issubset(
@@ -867,8 +867,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertTrue(
                     {
-                        ("holdings.market_value", "TNOTE2Y"),
-                        ("holdings.quantity", "TNOTE2Y"),
+                        ("holdings.market_value", "91282Y2Y1"),
+                        ("holdings.quantity", "91282Y2Y1"),
                     }.issubset(
                         {(row[4], row[5]) for row in underlying_rows}
                     )
@@ -877,7 +877,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     row
                     for row in underlying_rows
                     if row[4] == "transactions.amount"
-                    and row[5] == "TNOTE2Y"
+                    and row[5] == "91282Y2Y1"
                     and str(row[1])[:10] == "2026-05-15"
                     and str(row[2])[:10] == "2026-05-15"
                     and str(row[3])[:10] == "2026-05-15"
@@ -885,7 +885,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(str(tnote_interest_row[3])[:10], "2026-05-15")
                 self.assertEqual(
                     tnote_interest_row[10],
-                    "in: The income for TNOTE2Y changed by 80.00.",
+                    "in: The income for 91282Y2Y1 changed by 80.00.",
                 )
                 cash_external_flow_row = next(
                     row

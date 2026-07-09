@@ -231,7 +231,7 @@ _INTENTIONAL_PORTFOLIO_RESIDUALS: Final = {
     ),
     ("INCOME", "2026-05-15", "2026-05-15", "Partly Explained"): (
         "Intentional carry-forward example from the corrected AAPL dividend "
-        "and same-day TNOTE2Y interest/accrual correction."
+        "and same-day 91282Y2Y1 interest/accrual correction."
     ),
 }
 _INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS: Final = {
@@ -248,27 +248,27 @@ _INTENTIONAL_SECURITY_RESIDUALS: Final = {
         "Intentional possible-cause example: a code-only rc transaction remains "
         "neutral review evidence and is not counted as explained performance."
     ),
-    ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30", "Unexplained"): (
+    ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30", "Unexplained"): (
         "Intentional unexplained security example: reported security return "
         "changed while the visible source-data change is cost-only context."
     ),
     ("INCOME", "CASH_USD", "2026-05-09", "2026-05-14", "Unexplained"): (
         "Intentional cash-side residual from the corrected AAPL dividend timing."
     ),
-    ("INCOME", "TNOTE2Y", "2026-05-09", "2026-05-14", "Partly Explained"): (
+    ("INCOME", "91282Y2Y1", "2026-05-09", "2026-05-14", "Partly Explained"): (
         "Intentional carry-forward residual after splitting the May income period."
     ),
     ("INCOME", "AAPL", "2026-05-15", "2026-05-15", "Unexplained"): (
         "Intentional one-day security residual from the dividend timing split."
     ),
-    ("INCOME", "TNOTE2Y", "2026-05-15", "2026-05-15", "Partly Explained"): (
-        "Intentional TNOTE2Y residual from the one-day interest/accrual example."
+    ("INCOME", "91282Y2Y1", "2026-05-15", "2026-05-15", "Partly Explained"): (
+        "Intentional 91282Y2Y1 residual from the one-day interest/accrual example."
     ),
 }
 _INTENTIONAL_SECURITY_RETURN_RESIDUALS: Final = {
     ("BALANCED", "JPM", "2026-05-09", "2026-05-14"): 0.0056216158,
     ("BALANCED", "MSFT", "2026-05-09", "2026-05-14"): 0.002,
-    ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30"): 0.004,
+    ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30"): 0.004,
 }
 _SECURITY_FLOW_CODES: Final = {"by", "pd", "sl"}
 _ACCRUED_INTEREST_ADJUNCT_CODES: Final = {"pa", "sa"}

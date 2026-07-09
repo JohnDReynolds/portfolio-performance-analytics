@@ -9,7 +9,7 @@ with the Axys/APX workspace created by `ppar setup ./my_ppar_data`.
 
 - `axysapx_analytics/`: starter analytics CSVs and YAML copied into
   `my_ppar_data/analytics`.
-- `axysapx_performance_comparison/`: starter performance-comparison snapshots
+- `axysapx_performance_comparison/`: starter performance-auditing snapshots
   and YAML copied into `my_ppar_data/performance_audit`.
 
 ## Generic Analytics Data

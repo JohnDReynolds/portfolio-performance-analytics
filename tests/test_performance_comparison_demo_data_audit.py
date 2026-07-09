@@ -286,8 +286,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "`dv` + `by` reinvestment guards",
             "Evidence-blocked backlog",
             "`ai`, uppercase reversal rows",
-            "ordinary TNOTE2Y\n  interest uses an `in` transaction row",
-            "TNOTE5Y `pa`/`sa` rows are packaged",
+            "ordinary 91282Y2Y1\n  interest uses an `in` transaction row",
+            "91282Y5Y1 `pa`/`sa` rows are packaged",
         ]:
             self.assertIn(expected_text, text)
 
@@ -308,9 +308,9 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "classified from special-security context",
             "missed/late AAPL `dv` row",
             "real 2026-05-14 payable-date dividend",
-            "TNOTE2Y `in` interest",
-            "MBSPOOL `pd` principal-paydown",
-            "paired TNOTE5Y `by`/`pa` and",
+            "91282Y2Y1 `in` interest",
+            "36225MBS1 `pd` principal-paydown",
+            "paired 91282Y5Y1 `by`/`pa` and",
         ]:
             self.assertIn(expected_text, text)
 
@@ -598,7 +598,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 fixed_income_interest = transactions.loc[
                     (transactions["PORT"] == "INCOME")
                     & (transactions["TRANSACTION_DATE"] == "2026-05-15")
-                    & (transactions["SEC"] == "TNOTE2Y")
+                    & (transactions["SEC"] == "91282Y2Y1")
                     & (transactions["TRAN"] == "in")
                 ].iloc[0]
                 self.assertEqual(fixed_income_interest["TRAN"], "in")
@@ -606,14 +606,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     fixed_income_transaction_boundary(fixed_income_interest["TRAN"]),
                     "safe_income",
                 )
-                self.assertEqual(fixed_income_interest["SEC"], "TNOTE2Y")
+                self.assertEqual(fixed_income_interest["SEC"], "91282Y2Y1")
                 self.assertEqual(fixed_income_interest["SEC_TYPE"], "fius")
                 self.assertGreater(fixed_income_interest["AMOUNT"], 0)
 
                 holdings = pd.read_csv(
                     _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "holdings.csv"
                 )
-                fixed_income_holdings = holdings.loc[holdings["SEC"] == "TNOTE2Y"]
+                fixed_income_holdings = holdings.loc[holdings["SEC"] == "91282Y2Y1"]
 
                 self.assertFalse(fixed_income_holdings.empty)
                 self.assertGreater(fixed_income_holdings["ACCRUED"].sum(), 0)
@@ -626,7 +626,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     frame,
                     portfolio="INCOME",
                     transaction_date="2026-05-15",
-                    security="TNOTE2Y",
+                    security="91282Y2Y1",
                     transaction_code="in",
                 )
 
@@ -660,7 +660,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                             frame,
                             portfolio="INCOME",
                             transaction_date=transaction_date,
-                            security="TNOTE5Y",
+                            security="91282Y5Y1",
                             transaction_code=code,
                         )
                         self.assertEqual(
@@ -829,7 +829,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         pd_causes = causes.filter(
             (pl.col("dataset") == pc_cols.TRANSACTIONS)
             & (pl.col("source_column") == pc_cols.AMOUNT)
-            & (pl.col("security_id") == "MBSPOOL")
+            & (pl.col("security_id") == "36225MBS1")
             & pl.col("review_guidance").str.starts_with("pd:")
         )
 
@@ -890,7 +890,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             ("BALANCED", "MSFT", "2026-05-09", "2026-05-14")
         ]
         unexplained = security_statuses[
-            ("INCOME", "TNOTE5Y", "2026-04-01", "2026-04-30")
+            ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30")
         ]
         self.assertEqual(partly_explained["review_status"], "Partly Explained")
         self.assertGreater(abs(partly_explained["estimated_cause_total"]), 0.0)
@@ -1143,7 +1143,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         income_paydown = matrix_by_period[("INCOME", "2026-05-16", "2026-05-22")]
         self.assertEqual(income_paydown["scenario_families"], ["principal_paydown"])
-        self.assertEqual(income_paydown["primary_securities"], ["MBSPOOL"])
+        self.assertEqual(income_paydown["primary_securities"], ["36225MBS1"])
         self.assertEqual(income_paydown["expected_difference_rows"], 1)
         income_dividend_payable = matrix_by_period[
             ("INCOME", "2026-05-09", "2026-05-14")
@@ -1283,7 +1283,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["INCOME0605 pd transaction changes ending holding."],
             portfolio="INCOME",
-            security="MBSPOOL",
+            security="36225MBS1",
             holding_date="2026-05-29",
             deltas={"MKT_VAL": -320.0, "COST": -320.0},
         )
@@ -1323,7 +1323,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["INCOME0303 by transaction changes ending holding."],
             portfolio="INCOME",
-            security="TNOTE5Y",
+            security="91282Y5Y1",
             holding_date="2026-02-27",
             deltas={
                 "QTY": 5.0,
@@ -1349,7 +1349,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["INCOME0305 sl transaction changes ending holding."],
             portfolio="INCOME",
-            security="TNOTE5Y",
+            security="91282Y5Y1",
             holding_date="2026-02-27",
             deltas={
                 "QTY": -3.0,
@@ -1622,7 +1622,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     "PORT": "INCOME",
                     "TRANSACTION_DATE": "2026-05-15",
                     "SETTLE_DATE": "2026-05-15",
-                    "SEC": "TNOTE5Y",
+                    "SEC": "91282Y5Y1",
                     "TRAN": transaction_code,
                     "SEC_TYPE": "fius",
                     "SRC_DEST_TYPE": "$income",

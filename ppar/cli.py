@@ -34,16 +34,19 @@ def main(argv: list[str] | None = None) -> int:
         print(_top_level_help())
         return 0
 
-    args, remaining_args = _argument_parser().parse_known_args(effective_argv)
-    if args.command == "analytics":
+    command = effective_argv[0]
+    remaining_args = effective_argv[1:]
+    if command == "analytics":
         from ppar.analytics import cli as _analytics
 
         return _analytics.main(remaining_args)
-    if args.command == "setup":
+    if command == "setup":
         return _setup.main(remaining_args)
-    if args.command == "performance_audit":
+    if command == "performance_audit":
         return _site_report.main(remaining_args, prog="ppar performance_audit")
-    raise AssertionError(f"Unsupported command: {args.command}")
+
+    _argument_parser().parse_args(effective_argv)
+    raise AssertionError(f"Unsupported command: {command}")
 
 
 def _is_top_level_help_request(argv: list[str]) -> bool:

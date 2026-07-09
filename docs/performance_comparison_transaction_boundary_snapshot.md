@@ -11,7 +11,7 @@ the matrix remains the implementation contract.
 | --- | --- | --- |
 | Packaged formula rows | `by`, `sl`, `dv`, `in` | Covered by packaged demo data and tests. |
 | Fixed-income safe row | `in` | Ordinary interest can be performance income when configured and evidenced. |
-| Fixed-income accrued-interest adjuncts | `pa`, `sa` | Covered in the packaged demo only with fixed-income context and paired TNOTE5Y buy/sell rows; code-only treatment remains unsafe. |
+| Fixed-income accrued-interest adjuncts | `pa`, `sa` | Covered in the packaged demo only with fixed-income context and paired 91282Y5Y1 buy/sell rows; code-only treatment remains unsafe. |
 
 ## Context-Required Rows
 

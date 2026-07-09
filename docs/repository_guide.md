@@ -168,10 +168,10 @@ Current packaged scenario inventory:
 | `JPM` `dv` and `rc` rows | Dividend income plus context-gated return of capital. |
 | `CVNA` split row | Central split-factor context that explains corrected quantity and related market value. |
 | `TSLA` `ss`/`cs` rows | Disclosed synthetic short-sale and cover-short lifecycle using real May 2026 prices. |
-| `TNOTE2Y` `in` row | Ordinary interest income plus related holding/accrual evidence. |
-| `MBSPOOL` `pd` row | MBS principal paydown with portfolio-cash destination evidence. |
-| `TNOTE5Y` `by`/`pa` and `sl`/`sa` rows | Paired fixed-income trade and accrued-interest settlement examples. |
-| `TNOTE5Y` cost-only row | Review evidence that should not become a Modified Dietz cause. |
+| `91282Y2Y1` `in` row | Ordinary interest income plus related holding/accrual evidence. |
+| `36225MBS1` `pd` row | MBS principal paydown with portfolio-cash destination evidence. |
+| `91282Y5Y1` `by`/`pa` and `sl`/`sa` rows | Paired fixed-income trade and accrued-interest settlement examples. |
+| `91282Y5Y1` cost-only row | Review evidence that should not become a Modified Dietz cause. |
 
 ## Common Workflows
 

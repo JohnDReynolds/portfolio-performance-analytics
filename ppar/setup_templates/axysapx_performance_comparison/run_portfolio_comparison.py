@@ -41,7 +41,7 @@ def main() -> None:
     bundle_paths: dict[str, Path] = write_performance_comparison_report_bundle(
         findings,
         OUTPUT_DIRECTORY,
-        title="Portfolio Performance Comparison",
+        title="Portfolio Performance Audit",
         include_workbook=True,
         comparison_path=SPECIFICATIONS_PATH,
         comparison_level=COMPARISON_LEVEL,

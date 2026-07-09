@@ -802,7 +802,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("bond principal schedule reconstruction", roadmap)
         self.assertIn("Phase 10B: Test-Only Ordinary Interest + Accrued Audit", roadmap)
         self.assertIn("`INCOME0603` remains an ordinary `in` transaction", roadmap)
-        self.assertIn("positive `TNOTE2Y` `holdings.accrued` values", roadmap)
+        self.assertIn("positive `91282Y2Y1` `holdings.accrued` values", roadmap)
         self.assertIn(
             "Phase 10C: Principal Paydown / Accrued-Interest Backlog Contract",
             roadmap,
@@ -1813,10 +1813,10 @@ class TestPackageMetadata(unittest.TestCase):
             "Current packaged scenario inventory",
             "`CVNA` split row",
             "`TSLA` `ss`/`cs` rows",
-            "`MBSPOOL` `pd` row",
-            "`TNOTE2Y` `in` row",
-            "`TNOTE5Y` `by`/`pa` and `sl`/`sa` rows",
-            "`TNOTE5Y` cost-only row",
+            "`36225MBS1` `pd` row",
+            "`91282Y2Y1` `in` row",
+            "`91282Y5Y1` `by`/`pa` and `sl`/`sa` rows",
+            "`91282Y5Y1` cost-only row",
             "`JPM` `dv` and `rc` rows",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -1947,9 +1947,9 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("AAPL", holding_ids)
         self.assertIn("NVDA", holding_ids)
         self.assertIn("CASH_USD", holding_ids)
-        self.assertIn("TBILL13W", holding_ids)
-        self.assertIn("TNOTE2Y", holding_ids)
-        self.assertIn("TNOTE5Y", holding_ids)
+        self.assertIn("912797AA1", holding_ids)
+        self.assertIn("91282Y2Y1", holding_ids)
+        self.assertIn("91282Y5Y1", holding_ids)
 
     def test_axys_demo_changed_transactions_have_matching_holdings(self) -> None:
         """Material transaction demo changes have matching month-end holdings evidence."""
@@ -2368,8 +2368,8 @@ class TestPackageMetadata(unittest.TestCase):
                     RECONSTRUCTION_STATUS_ALIGNED,
                 )
 
-        tnote_key = ("INCOME", "TNOTE2Y", "2026-05-15", "2026-05-15")
-        tnote_holding_key = ("INCOME", "TNOTE2Y", "2026-05-15")
+        tnote_key = ("INCOME", "91282Y2Y1", "2026-05-15", "2026-05-15")
+        tnote_holding_key = ("INCOME", "91282Y2Y1", "2026-05-15")
         self.assertNotEqual(
             _float_delta(
                 holdings_a[tnote_holding_key],
