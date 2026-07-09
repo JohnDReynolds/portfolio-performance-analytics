@@ -122,7 +122,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("analytics", result.stdout)
         self.assertIn("setup", result.stdout)
         self.assertIn("performance_audit", result.stdout)
-        self.assertIn("Write performance-auditing reports", result.stdout)
+        self.assertIn("Write Performance Auditing reports", result.stdout)
+        self.assertIn("Write Performance Analytics reports", result.stdout)
+        self.assertLess(
+            result.stdout.index("performance_audit"),
+            result.stdout.index("analytics"),
+        )
         self.assertNotIn("performance_comparison", result.stdout)
         self.assertNotIn("perfcomp", result.stdout)
         self.assertNotIn(
@@ -150,16 +155,18 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn(
-            "PPAR creates Axys/APX analytics and performance-auditing reports.",
-            result.stdout,
-        )
+        self.assertIn("PPAR creates Axys/APX Performance Auditing", result.stdout)
+        self.assertIn("Performance Analytics reports.", result.stdout)
         self.assertIn("First-time setup:", result.stdout)
         self.assertIn("ppar setup ./my_ppar_data", result.stdout)
-        self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
         self.assertIn(
             "ppar performance_audit ./my_ppar_data/performance_audit",
             result.stdout,
+        )
+        self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
+        self.assertLess(
+            result.stdout.index("ppar performance_audit"),
+            result.stdout.index("ppar analytics"),
         )
         self.assertNotIn("usage:", result.stdout)
         self.assertEqual(result.stderr, "")
@@ -199,8 +206,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             readme = (site_directory / "README.md").read_text(encoding="utf-8")
             self.assertIn("PPAR setup complete:", result.stdout)
-            self.assertIn("To run Analytics:", result.stdout)
             self.assertIn("To run Performance Auditing:", result.stdout)
+            self.assertIn("To run Performance Analytics:", result.stdout)
             self.assertIn("To customize with your own data:", result.stdout)
             self.assertIn(
                 f"Refer to the \"Customizing\" section in {site_directory / 'README.md'}",

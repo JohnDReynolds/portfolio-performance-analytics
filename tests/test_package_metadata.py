@@ -571,10 +571,18 @@ class TestPackageMetadata(unittest.TestCase):
                 self.assertNotIn("analytics_demo_outputs", text)
 
     def test_repository_readme_points_axys_users_to_setup(self) -> None:
-        """The top-level performance-comparison path starts with setup."""
+        """The top-level README keeps user-facing workflow terms consistent."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("PPAR uses local Axys/APX data", readme)
+        self.assertIn("PPAR uses local Axys/APX data for two main workflows", readme)
+        self.assertLess(
+            readme.index("## Performance Auditing"),
+            readme.index("## Performance Analytics"),
+        )
+        self.assertIn("**Performance Comparison:**", readme)
+        self.assertIn("**Data Auditing:**", readme)
+        self.assertIn("**Performance Attribution:**", readme)
+        self.assertIn("**Ex-Post Risk:**", readme)
         self.assertIn("## Setup", readme)
         self.assertNotIn("## Quick Setup", readme)
         self.assertIn("ppar setup ./my_ppar_data", readme)

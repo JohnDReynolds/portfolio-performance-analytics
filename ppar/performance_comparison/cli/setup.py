@@ -285,17 +285,18 @@ ppar setup {site_path}
 PPAR runs locally against your Axys/APX exports. The starter files let you try
 the workflow first, then replace the CSVs with your own data.
 
-- Use `analytics/` to explain portfolio performance versus a benchmark.
 - Use `performance_audit/` to explain why reported performance changed between
-  two source-data snapshots.
+  two source-data snapshots and review source-data consistency.
+- Use `analytics/` for Performance Analytics: attribution, contribution, and
+  Ex-Post Risk versus a benchmark.
 
 ## Run The Starter Demo
 
 First, run the starter data exactly as installed:
 
 ```bash
-ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
+ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 ```
 
 Open the files printed by each command.
@@ -312,7 +313,7 @@ ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report 
 Keep the folder shape simple. Replace CSVs first; edit YAML only when filenames,
 headers, transaction codes, or report assumptions differ from the starter.
 
-### Analytics
+### Performance Analytics
 
 1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
 2. Replace `analytics/secperf.csv` with your own security-performance export.
@@ -325,6 +326,10 @@ Performance Auditing compares two snapshots:
 
 - `snapshot_a`: the original or older source-data snapshot.
 - `snapshot_b`: the newer, corrected, or restated source-data snapshot.
+
+It includes Performance Comparison, which explains changed reported
+performance, and Data Auditing, which flags suspicious source-data
+relationships.
 
 Steps:
 
@@ -421,11 +426,11 @@ def _print_success(result: dict[str, Path | str]) -> None:
     """Print a concise user handoff."""
     print(f"PPAR setup complete: {result['site_directory']}")
     print()
-    print("To run Analytics:")
-    print(f"  ppar analytics {result['analytics_directory']}")
-    print()
     print("To run Performance Auditing:")
     print(f"  ppar performance_audit {result['comparison_directory']}")
+    print()
+    print("To run Performance Analytics:")
+    print(f"  ppar analytics {result['analytics_directory']}")
     print()
     if "generic_analytics_directory" in result:
         print("To run Generic Analytics:")

@@ -7,7 +7,7 @@
 #
 # Big picture:
 # - Performance Comparison answers: "Why did my reported performance change?"
-# - Data Audit answers: "Are there suspicious source-data inconsistencies?"
+# - Data Auditing answers: "Are there suspicious source-data inconsistencies?"
 # - It compares two Axys/APX-style source-data snapshots.
 # - It then ties changed performance to changed Modified Dietz inputs:
 #   beginning market value, ending market value, and dated cash flows.

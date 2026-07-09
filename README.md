@@ -1,10 +1,11 @@
 # PPAR
 
-PPAR uses local Axys/APX data to perform two main functions:
+PPAR uses local Axys/APX data for two main workflows:
 
-1. Produce Brinson-Fachler attribution, Carino-smoothed multi-period effects,
-   contribution views, and ex-post risk statistics.
-2. Audit reported performance, source-data changes, and source-data quality.
+1. **Performance Auditing:** review changed reported returns and suspicious
+   source-data relationships.
+2. **Performance Analytics:** produce attribution, contribution, and Ex-Post
+   Risk reports.
 
 PPAR is built for local execution. Your Axys/APX exports stay on your machine or
 inside your environment.
@@ -13,11 +14,55 @@ inside your environment.
 
 ---
 
+## Performance Auditing
+
+Use Performance Auditing when reported returns have changed and you need to know
+why. It compares an original source-data snapshot with a newer or restated
+snapshot, then separates three things:
+
+- changed reported performance;
+- source-data rows that explain the change;
+- suspicious source-data relationships that deserve review.
+
+Performance Auditing includes two related features:
+
+- **Performance Comparison:** explains changed reported performance.
+- **Data Auditing:** flags suspicious source-data relationships such as price
+  ranges, dividend rates, accrued-interest rates, missing dividends, and holding
+  value math.
+
+Typical questions:
+
+- Which portfolio or security returns changed?
+- Which holdings or transactions explain the change?
+- Which differences still need human review?
+- Are there data-quality issues that might explain suspicious results?
+
+<img
+  src="docs/images/readme/PerformanceComparisonPortfolio.jpg"
+  alt="Portfolio performance comparison report"
+  width="100%"
+/>
+
+<img
+  src="docs/images/readme/PerformanceComparisonSecurity.jpg"
+  alt="Security performance comparison report"
+  width="100%"
+/>
+
+The workbook output includes performance differences, explanation rows, data
+audit issues, residual review status, and source detail.
+
+---
+
 ## Performance Analytics
 
-Use Analytics when you want a clean explanation of performance versus a
-benchmark. PPAR produces Brinson-Fachler attribution, Carino-smoothed
-multi-period effects, contribution views, and ex-post risk statistics.
+Use Performance Analytics when you want a clean explanation of performance
+versus a benchmark. It includes:
+
+- **Performance Attribution:** Brinson-Fachler attribution, Carino-smoothed
+  multi-period effects, and contribution views.
+- **Ex-Post Risk:** risk statistics calculated from realized returns.
 
 Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
@@ -98,45 +143,7 @@ Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
   width="100%"
 />
 
-<img src="docs/images/readme/RiskStatistics.jpg" alt="Risk statistics report" width="100%" />
-
----
-
-## Performance Auditing
-
-Use Performance Auditing when reported returns have changed and you need to know
-why. It compares an original source-data snapshot with a newer or restated
-snapshot, then separates three things:
-
-- changed reported performance;
-- source-data rows that explain the change;
-- suspicious source-data relationships that deserve review.
-
-The workbook includes Performance Comparison sheets plus a **Data Audit Issues**
-sheet for price ranges, dividend rates, accrued-interest rates, missing
-dividends, and holding value math.
-
-Typical questions:
-
-- Which portfolio or security returns changed?
-- Which holdings or transactions explain the change?
-- Which differences still need human review?
-- Are there data-quality issues that might explain suspicious results?
-
-<img
-  src="docs/images/readme/PerformanceComparisonPortfolio.jpg"
-  alt="Portfolio performance comparison report"
-  width="100%"
-/>
-
-<img
-  src="docs/images/readme/PerformanceComparisonSecurity.jpg"
-  alt="Security performance comparison report"
-  width="100%"
-/>
-
-The workbook output includes performance differences, explanation rows, data
-audit issues, residual review status, and source detail.
+<img src="docs/images/readme/RiskStatistics.jpg" alt="Ex-post risk report" width="100%" />
 
 ---
 
@@ -153,8 +160,8 @@ ppar setup ./my_ppar_data
 Then run the two workflows:
 
 ```bash
-ppar analytics ./my_ppar_data/analytics
 ppar performance_audit ./my_ppar_data/performance_audit
+ppar analytics ./my_ppar_data/analytics
 ```
 
 Open the files printed by each command.
@@ -164,11 +171,6 @@ The setup folder stays intentionally small:
 ```text
 my_ppar_data/
   README.md
-  analytics/
-    ppar.yaml
-    portperf.csv
-    secperf.csv
-    run_analytics.py
   performance_audit/
     ppar.yaml
     run_portfolio_comparison.py
@@ -183,6 +185,11 @@ my_ppar_data/
       holdings.csv
       transactions.csv
       secperf.csv
+  analytics/
+    ppar.yaml
+    portperf.csv
+    secperf.csv
+    run_analytics.py
 ```
 
 To customize with your own data, replace the starter CSVs and follow the
@@ -199,9 +206,9 @@ The Axys/APX starter path focuses on IMEX-style CSV exports:
 - holdings
 - transactions
 
-Analytics can run from portfolio/security performance exports. Performance
-Auditing uses two source-data snapshots, usually an older/original snapshot
-and a newer/restated snapshot.
+Performance Auditing uses two source-data snapshots, usually an older/original
+snapshot and a newer/restated snapshot. Performance Analytics can run from
+portfolio/security performance exports.
 
 PPAR normalizes those files through YAML so each site can document its own local
 field names, transaction-code treatment, and report assumptions.
@@ -209,17 +216,6 @@ field names, transaction-code treatment, and report assumptions.
 ---
 
 ## Outputs
-
-Analytics writes browser-ready attribution/risk files and chart images:
-
-```text
-analytics/output/
-  security_overall_attribution.html
-  sector_overall_attribution.html
-  sector_cumulative_attribution.html
-  risk_statistics.html
-  *.png
-```
 
 Performance Auditing writes review packages:
 
@@ -229,4 +225,16 @@ performance_audit/output/
   portfolio/report.html
   security/report.xlsx
   security/report.html
+```
+
+Performance Analytics writes browser-ready attribution and Ex-Post Risk files
+and chart images:
+
+```text
+analytics/output/
+  security_overall_attribution.html
+  sector_overall_attribution.html
+  sector_cumulative_attribution.html
+  risk_statistics.html
+  *.png
 ```

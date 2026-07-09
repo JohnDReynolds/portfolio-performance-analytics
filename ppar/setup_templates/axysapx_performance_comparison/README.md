@@ -8,8 +8,8 @@ Axys/APX exports.
 
 ```bash
 ppar setup ./my_ppar_data
-ppar analytics ./my_ppar_data/analytics
 ppar performance_audit ./my_ppar_data/performance_audit
+ppar analytics ./my_ppar_data/analytics
 ```
 
 Open the files printed by each command.
@@ -34,6 +34,10 @@ my_ppar_data/
 
 There is one packaged Axys/APX audit YAML file. Portfolio and security reports
 use the same source snapshots and choose the review level at runtime.
+
+Performance Auditing includes Performance Comparison, which explains changed
+reported performance, and Data Auditing, which flags suspicious source-data
+relationships.
 
 ## Details
 
