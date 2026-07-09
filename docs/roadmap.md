@@ -1,7 +1,7 @@
 # PPAR Roadmap
 
 This is the central roadmap for PPAR. It covers Axys/APX-focused analytics,
-performance comparison, onboarding, user-facing documentation, report evolution,
+performance auditing, onboarding, user-facing documentation, report evolution,
 data auditing, and demo-data guardrails.
 
 Detailed design reference remains in
@@ -19,7 +19,7 @@ Historical demo-generation notes remain in
 Start here when deciding what remains to do:
 
 - **Current Open Items** is the active project backlog across analytics,
-  performance comparison, onboarding, and public-facing documentation.
+  Performance Auditing, onboarding, and public-facing documentation.
 - **Axys/APX Extract Contract Review Map** shows the source-contract path that must
   stay aligned as demo fields or site-extract rules change.
 - **Axys/APX blockers** in [Chapter 01][axys-apx-blockers]
@@ -33,11 +33,12 @@ Start here when deciding what remains to do:
 
 ## Current Status
 
-The current performance-comparison bundle is release-candidate quality for the
-packaged Axys/APX demo scope. The portfolio and security demos generate `report.xlsx`,
-`report.html`, review-summary metadata, manifests, and CSV audit artifacts. The
-generated reports focus on Modified Dietz evidence, source-data differences,
-review-only context, and conservative transaction row identity.
+The current Performance Auditing workflow is release-candidate quality for the
+packaged Axys/APX demo scope. The portfolio and security demos generate
+`report.xlsx`, `report.html`, review-summary metadata, manifests, and CSV audit
+artifacts. The generated reports focus on Modified Dietz evidence, source-data
+differences, Data Audit Issues, review-only context, and conservative
+transaction row identity.
 
 Completed guardrails now cover:
 
@@ -87,17 +88,17 @@ Completed guardrails now cover:
 - the packaged Axys/APX demo is accepted as the future `vendor: axys` preset seed,
   while preset implementation remains future work;
 - `ppar setup` installs optional Python runner scripts beside the workflow data
-  they use, so users can run Analytics and Performance Comparison without the
+  they use, so users can run Analytics and Performance Auditing without the
   CLI when they need scheduler, notebook, or automation entrypoints;
 - `docs/architecture.md` provides a compact system map for commands, package
   boundaries, data flow, setup data, configuration boundaries, and report
   boundaries;
 - `ppar setup` has been dry-run end to end through Analytics and Performance
-  Comparison, including current-directory behavior and generated output clutter
+  Auditing, including current-directory behavior and generated output clutter
   checks;
 - the built wheel exposes only the `ppar` console script, includes the Axys/APX
   starter data needed by setup, excludes generated/source-checkout internals,
-  and runs the installed setup, analytics, and performance-comparison smoke
+  and runs the installed setup, analytics, and performance-auditing smoke
   path;
 - release-readiness checks are documented in the repository guide, with
   `pyproject.toml` as the single package-version authority; the maintainer
@@ -118,24 +119,28 @@ Completed guardrails now cover:
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
 - generated bundle vocabulary, package-resource entrypoints, distribution
-  package-data boundaries, and retired setup/command terminology are validated.
+  package-data boundaries, retired setup/command terminology, Performance Audit
+  README screenshots, and first-run onboarding language are validated.
 
 ## Current Open Items
 
 The remaining work is backlog expansion and targeted release hardening, not
-core Modified Dietz report cleanup. Vendor-preset infrastructure is deliberately
-parked in Eventual Deliverables even though the Axys/APX seed is accepted.
+core Modified Dietz report cleanup. Performance Auditing is the user-facing
+workflow name; Performance Comparison remains the attribution subfeature inside
+that workflow. Vendor-preset infrastructure is deliberately parked in Eventual
+Deliverables even though the Axys/APX seed is accepted.
 
 ### Near-Term Release Hardening
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Documentation freshness | Keep durable docs aligned with current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
+| Documentation freshness | Keep durable docs aligned with Performance Auditing terminology, current sheet names, artifact taxonomy, package-root API boundary, optional diagnostics flow, and the canonical Axys/APX blocker summary. | Metadata tests reject stale reader-path terms, preserve the normal review order, and keep blocker navigation discoverable. |
+| First-run UX | Keep the first five minutes simple: run setup, run Analytics, run Performance Auditing, then replace CSVs. | Main README, setup-installed README, setup console output, and README screenshots tell the same minimal story before detailed configuration guidance. |
 
 Standing maintenance criteria:
 
 - Keep the project-root `README.md` marketing story aligned with generated
-  Analytics and Performance Comparison outputs. Metadata tests now assert that
+  Analytics and Performance Audit outputs. Metadata tests now assert that
   embedded README image references resolve.
 - Remove clearly unused compatibility shims or simplify report/workbook helpers
   only when a small, behavior-preserving change is obvious and covered by tests.
@@ -179,14 +184,14 @@ clearly than the existing packaged and site-variant fixtures.
 
 Data Auditing is the user-facing product name for the source-data consistency
 checks currently configured under `data_audit_checks`. The near-term surface is a
-`Data Audit Issues` worksheet included in Performance Comparison workbooks. The
+`Data Audit Issues` worksheet included in Performance Audit workbooks. The
 longer-term direction is to let this capability stand on its own when it is
 useful before, after, or apart from a specific performance restatement review.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Data Audit Issues worksheet | Keep the former `X-Ref Issues` worksheet as `Data Audit Issues` inside Performance Audit workbooks. | The worksheet remains separate from `Performance Difference Causes` and `Source Detail`, runs on the union of Snapshot A and Snapshot B, and flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. |
-| Data Auditing marketing | Present Data Auditing as a distinct capability included with Performance Comparison rather than as a technical cross-reference implementation detail. | README/setup docs explain that Performance Comparison includes Data Audit Issues for suspicious source-data relationships such as prices, dividend rates, accrued-interest rates, missing dividends, and holding value math. |
+| Data Auditing marketing | Present Data Auditing as a distinct capability included with Performance Auditing rather than as a technical cross-reference implementation detail. | README/setup docs explain that Performance Auditing includes Data Audit Issues for suspicious source-data relationships such as prices, dividend rates, accrued-interest rates, missing dividends, and holding value math. |
 | Data Audit Summary | Add a summary surface before the detail rows. | Review output shows issue counts by issue type, snapshot, portfolio, and security before reviewers inspect row-level detail. |
 | Standalone Data Auditing workflow | Consider an optional standalone command and workbook, such as `ppar data_audit <site_or_yaml>`, that writes `data_audit.xlsx` and `data_audit.html` without requiring a performance-difference review. | The standalone workflow reuses the same YAML checks and source snapshots, produces a focused audit package, and does not duplicate Performance Comparison attribution logic. |
 | Data Audit issue taxonomy | Keep issue types compact and stable. | Issue types use filter-friendly codes such as `duplicate_transactions`, `transaction_amount_rate`, and `missing_dividend`; row explanations carry the reviewer-facing narrative. |

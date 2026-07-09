@@ -971,7 +971,7 @@ class TestPackageMetadata(unittest.TestCase):
 
         self.assertIn("# PPAR Roadmap", roadmap)
         self.assertIn("Axys/APX-focused analytics", roadmap)
-        self.assertIn("performance comparison, onboarding", roadmap)
+        self.assertIn("performance auditing, onboarding", roadmap)
         for heading in (
             "## How To Read This Roadmap",
             "## Current Status",
