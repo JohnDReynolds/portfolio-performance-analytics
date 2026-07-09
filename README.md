@@ -40,13 +40,13 @@ Typical questions:
 
 <img
   src="docs/images/readme/PerformanceComparisonPortfolio.jpg"
-  alt="Portfolio performance comparison report"
+  alt="Portfolio Performance Audit report"
   width="100%"
 />
 
 <img
   src="docs/images/readme/PerformanceComparisonSecurity.jpg"
-  alt="Security performance comparison report"
+  alt="Security Performance Audit report"
   width="100%"
 />
 
@@ -163,6 +163,10 @@ Then run the two workflows:
 ppar performance_audit ./my_ppar_data/performance_audit
 ppar analytics ./my_ppar_data/analytics
 ```
+
+Run Performance Auditing first if reported returns changed or you want to check
+source-data quality. Run Performance Analytics when you want attribution and
+Ex-Post Risk reports.
 
 Open the files printed by each command.
 

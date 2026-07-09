@@ -216,7 +216,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("(created)", result.stdout)
             self.assertNotIn("(written)", result.stdout)
             self.assertTrue((site_directory / "README.md").exists())
-            self.assertIn("## Run The Starter Demo", readme)
+            self.assertIn("## First Run", readme)
             self.assertIn("## Customizing", readme)
             self.assertIn("## Folder Map", readme)
             self.assertIn(
@@ -240,10 +240,15 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 readme,
             )
             self.assertIn("Performance Auditing compares two snapshots", readme)
+            self.assertIn("Start with Performance Auditing", readme)
+            self.assertIn("Start with Performance Analytics", readme)
+            self.assertIn("Output goes here:", readme)
+            self.assertIn("performance_audit/output/portfolio/report.xlsx", readme)
+            self.assertIn("analytics/output/*.html", readme)
             self.assertIn("the original or older source-data snapshot", readme)
             self.assertIn("the newer, corrected, or restated source-data snapshot", readme)
             self.assertLess(
-                readme.index("## Run The Starter Demo"),
+                readme.index("## First Run"),
                 readme.index("## Customizing"),
             )
             self.assertLess(

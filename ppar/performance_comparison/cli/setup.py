@@ -290,7 +290,7 @@ the workflow first, then replace the CSVs with your own data.
 - Use `analytics/` for Performance Analytics: attribution, contribution, and
   Ex-Post Risk versus a benchmark.
 
-## Run The Starter Demo
+## First Run
 
 First, run the starter data exactly as installed:
 
@@ -300,6 +300,16 @@ ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 ```
 
 Open the files printed by each command.
+
+Start with Performance Auditing if reported returns changed or you want to
+check source-data quality. Start with Performance Analytics if you want
+attribution and Ex-Post Risk reports.
+
+Output goes here:
+
+- Performance Auditing: `performance_audit/output/portfolio/report.xlsx` and
+  `performance_audit/output/security/report.xlsx`
+- Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
 
 To create only one Performance Auditing workbook:
 

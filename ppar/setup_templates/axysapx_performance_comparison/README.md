@@ -14,6 +14,16 @@ ppar analytics ./my_ppar_data/analytics
 
 Open the files printed by each command.
 
+Start with Performance Auditing if reported returns changed or you want to
+check source-data quality. Start with Performance Analytics if you want
+attribution and Ex-Post Risk reports.
+
+Output goes here:
+
+- Performance Auditing: `performance_audit/output/portfolio/report.xlsx` and
+  `performance_audit/output/security/report.xlsx`
+- Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
+
 When you are ready to use your own data, open `my_ppar_data/README.md` and
 follow the `Customizing` section. Existing files are kept unless you pass
 `--overwrite`.
