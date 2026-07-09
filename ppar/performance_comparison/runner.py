@@ -1,4 +1,4 @@
-"""Public runner functions for performance comparison workflows."""
+"""Public runner functions for Performance Auditing workflows."""
 
 from __future__ import annotations
 

@@ -1,5 +1,11 @@
 # Performance Comparison Design Notes
 
+Performance Comparison is the attribution sub-feature inside the broader
+Performance Auditing workflow. The public workflow asks whether reported
+performance changed and whether source-data relationships look suspicious. This
+design note focuses on the internal comparison engine that explains changed
+reported performance between two source-data snapshots.
+
 ## Purpose
 
 The performance comparison feature explains why calculated performance for the

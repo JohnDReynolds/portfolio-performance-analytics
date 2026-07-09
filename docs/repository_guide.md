@@ -11,10 +11,10 @@ many disconnected entry points.
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and user-facing outputs. |
 | Architecture map | [`docs/architecture.md`](architecture.md) | Compact map of the installed command surface, package boundaries, data flow, setup data, and report boundary. |
 | Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
-| PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
-| Performance comparison concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep feature notes, YAML vocabulary, report bundle structure, and implementation status. |
+| PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
+| Performance Auditing concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep notes for the Performance Comparison engine inside Performance Auditing, including YAML vocabulary, report bundle structure, and implementation status. |
 | Axys/APX export shape | [`docs/axysapx_common_core_export.md`](axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
-| Packaged Axys/APX demos | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | User-facing Axys/APX analytics and performance comparison demo inputs. |
+| Packaged Axys/APX demos | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | User-facing Axys/APX Performance Auditing and Performance Analytics demo inputs. |
 | Test Axys/APX configs | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Synthetic Axys/APX snapshots, test-focused comparison YAML files, and validation matrix fixtures. |
 | Historical checkpoint notes | [`docs/performance_comparison_checkpoint_notes.md`](performance_comparison_checkpoint_notes.md) | Working notes from earlier implementation sessions; useful context, not durable product documentation. |
 
@@ -25,12 +25,12 @@ many disconnected entry points.
 | `ppar/` | Installable package code. |
 | `ppar/analytics/` | Core analytics engine, analytics column schema, attribution, contribution, and risk calculations. |
 | `ppar/axys/` | Axys/APX-specific ingestion and normalization support. |
-| `ppar/performance_comparison/` | Performance comparison model, loaders, comparison logic, explanation tables, report writers, and workbook export. |
+| `ppar/performance_comparison/` | Internal Performance Comparison engine used by Performance Auditing: loaders, comparison logic, explanation tables, report writers, and workbook export. |
 | `ppar/setup_templates/` | Packaged setup inputs and tutorial scripts shipped with source distributions and wheels. |
-| `ppar/setup_templates/axysapx_performance_comparison/` | Packaged user-facing Axys/APX demo snapshots and comparison YAML files. Use these for demos and review workflows. |
+| `ppar/setup_templates/axysapx_performance_comparison/` | Packaged user-facing Axys/APX Performance Auditing snapshots and YAML files. Use these for demos and review workflows. |
 | `tests/` | Unit, integration, metadata, packaging, and report tests. |
 | `tests/data/` | Test fixtures. These are allowed to be narrower and more surgical than packaged demos. |
-| `scripts/` | Repository-maintenance helpers; Performance Comparison commands live under ppar.performance_comparison.cli. |
+| `scripts/` | Repository-maintenance helpers; internal Performance Auditing commands live under `ppar.performance_comparison.cli`. |
 | `docs/` | Durable project documentation and design notes. |
 | `docs/images/` | Durable documentation images. README-rendered analytics assets live under `docs/images/readme/`. |
 | `_demo_output/` | Generated demo/report output. This is intentionally ignored by Git. |
@@ -42,7 +42,7 @@ many disconnected entry points.
 | [`README.md`](../README.md) | New users | Package overview, installation, public setup commands, and user-facing outputs. |
 | [`docs/architecture.md`](architecture.md) | Maintainers | Compact architecture map for commands, package boundaries, data flow, setup data, and report boundaries. |
 | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
-| [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for analytics, performance comparison, onboarding, reports, and demo-data guardrails. |
+| [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
 | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
 | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, setup-installed Python runners, and expected workbook outputs. |
 | [`tests/data/axys/README.md`](../tests/data/axys/README.md) | Test authors | Synthetic Axys/APX snapshots, test-only comparison YAML files, and validation matrix fixtures. |
@@ -52,21 +52,23 @@ many disconnected entry points.
 
 The `scripts/` directory contains source-checkout maintenance helpers. Those
 helpers may be included in source distributions for maintainers, but they are
-not installed-package demo workflows. Performance Comparison command
+not installed-package demo workflows. Performance Auditing command
 implementations live in `ppar.performance_comparison.cli` and can be run from a
-source checkout with `./.venv/bin/python -m <module>`.
+source checkout with `./.venv/bin/python -m <module>`. The package name still
+uses `performance_comparison` because that is the internal engine for the
+Performance Comparison sub-feature.
 
 | Command Module Or Script | Purpose | Common Use |
 | --- | --- | --- |
 | `scripts/check_release_candidate.py` | Runs the maintained release-candidate demo, setup, and health-check sequence. | `./.venv/bin/python scripts/check_release_candidate.py` |
 | `scripts/check_project.py` | Runs project checks. | `./.venv/bin/python scripts/check_project.py --quick` |
-| `scripts/check_performance_comparison_demo_health.py` | Runs packaged performance-comparison demo guardrails. | `./.venv/bin/python scripts/check_performance_comparison_demo_health.py` |
+| `scripts/check_performance_comparison_demo_health.py` | Runs packaged Performance Auditing demo guardrails. | `./.venv/bin/python scripts/check_performance_comparison_demo_health.py` |
 | `scripts/render_readme_images.py` | Regenerates README images from packaged Mega-Cap analytics demo files. | Documentation image maintenance after analytics demo refresh. |
 | `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
 | `scripts/audit_performance_comparison_demo_data.py` | Wrapper around the packaged demo-data audit. | Backward-compatible audit command. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
 | `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
-| `ppar.performance_comparison.cli.validate_demo_matrix` | Validates performance comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
+| `ppar.performance_comparison.cli.validate_demo_matrix` | Validates Performance Comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch source-data and YAML setup issues before generating reports. |
 
 ## Maintainer Checks
@@ -79,7 +81,7 @@ Useful source-checkout checks:
 ./.venv/bin/python scripts/render_readme_images.py
 ```
 
-To refresh only the Performance Comparison README screenshots:
+To refresh only the Performance Audit README screenshots:
 
 ```bash
 ./.venv/bin/python scripts/render_readme_images.py --only performance-comparison
@@ -91,7 +93,7 @@ The installed command names are declared in `pyproject.toml`.
 
 | Command | Purpose |
 | --- | --- |
-| `ppar` | Top-level user command for setup, analytics, and performance comparison. |
+| `ppar` | Top-level user command for setup, Performance Auditing, and Performance Analytics. |
 
 The source-checkout smoke path uses setup-generated scripts:
 

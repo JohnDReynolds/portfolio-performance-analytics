@@ -215,7 +215,7 @@ def write_report_bundle_readme(
     lines = [
         f"# {_escape_readme_text(title)}",
         "",
-        "This directory is a portable performance-comparison review bundle.",
+        "This directory is a portable Performance Audit review bundle.",
         "",
         "## Recommended Review Order",
         "",
