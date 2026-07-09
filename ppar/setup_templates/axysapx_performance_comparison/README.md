@@ -1,13 +1,24 @@
 # Axys/APX Demo Data
 
-The packaged Axys/APX demo data contains only user-facing demo inputs. Test-only
-performance comparison scenarios live under `tests/data/axys`.
+The packaged Axys/APX demo data is the starter workspace source for
+Performance Auditing. Run it first, then replace the CSVs with your own
+Axys/APX exports.
 
-For onboarding, run setup once to create a local starter workspace:
+## First Run
 
 ```bash
 ppar setup ./my_ppar_data
+ppar analytics ./my_ppar_data/analytics
+ppar performance_audit ./my_ppar_data/performance_audit
 ```
+
+Open the files printed by each command.
+
+When you are ready to use your own data, open `my_ppar_data/README.md` and
+follow the `Customizing` section. Existing files are kept unless you pass
+`--overwrite`.
+
+## Starter Folder
 
 Setup copies starter files into:
 
@@ -21,24 +32,10 @@ my_ppar_data/
     run_security_comparison.py
 ```
 
-The setup command prints the repeatable run commands for the copied folders:
+There is one packaged Axys/APX audit YAML file. Portfolio and security reports
+use the same source snapshots and choose the review level at runtime.
 
-```bash
-ppar analytics ./my_ppar_data/analytics
-ppar performance_audit ./my_ppar_data/performance_audit
-```
-
-Open `my_ppar_data/README.md`, section `Customizing`, when you are ready to
-replace the starter CSV files with your own Axys/APX IMEX or export data.
-Existing files are kept unless you pass `--overwrite`.
-
-## Comparison YAML
-
-There is one packaged Axys/APX comparison YAML file. The portfolio and security demo
-commands use the same operational Mega-Cap source snapshots and choose the
-primary review level at runtime. The demo is meant to serve two user-facing
-purposes: a concise marketing example of the review output, and an onboarding
-example for configuring a new Axys/APX-style site.
+## Details
 
 The packaged CSV files follow the
 [Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
@@ -48,21 +45,10 @@ fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
 [Demo Extract Availability](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
-For a local site, start with setup:
-
-```bash
-ppar setup ./my_ppar_data
-```
-
-The command creates `analytics/ppar.yaml` and
-`performance_audit/ppar.yaml`, copies starter CSV files, and validates the
-portfolio performance-auditing starter. Validation checks the minimum required datasets,
-required normalized columns, and complete YAML treatment for changed source-data
-fields before report bundles are written. Use
-`ppar analytics ./my_ppar_data/analytics` for analytics output and
-`ppar performance_audit ./my_ppar_data/performance_audit` for
-performance-auditing bundles.
-The same validation is available directly through
+Setup creates `analytics/ppar.yaml` and `performance_audit/ppar.yaml`.
+Performance Auditing validation checks minimum required datasets, required normalized columns,
+and complete YAML treatment for changed source-data fields before report bundles are written.
+The same validation is available through
 `ppar.performance_comparison.cli.validate_config` when maintainers need to
 check a YAML file without writing reports.
 
@@ -70,10 +56,9 @@ check a YAML file without writing reports.
 | --- | --- |
 | Workbook demos | `axysapx_performance_comparison.yaml` |
 
-## Recommended User-Facing Demo
+## Optional: Create One Workbook
 
-Run the portfolio comparison from a setup workspace when you want the
-portfolio-period reviewer-facing example:
+Run only the portfolio workbook:
 
 ```bash
 ppar performance_audit ./my_ppar_data/performance_audit --report portfolio
@@ -86,8 +71,7 @@ Output:
 - `my_ppar_data/performance_audit/output/portfolio/supporting_files/manifest.json`
 - `my_ppar_data/performance_audit/output/portfolio/supporting_files/*.csv`
 
-Run the security comparison from a setup workspace when you want the
-security-period reviewer-facing example:
+Run only the security workbook:
 
 ```bash
 ppar performance_audit ./my_ppar_data/performance_audit --report security
@@ -100,8 +84,8 @@ Output:
 - `my_ppar_data/performance_audit/output/security/supporting_files/manifest.json`
 - `my_ppar_data/performance_audit/output/security/supporting_files/*.csv`
 
-Open `report.xlsx` when present. Use `report.html` for browser review, and keep
-the CSV artifacts for supplementary diagnostics and audit traceability. The
+Open `report.xlsx` for review. Use `report.html` for browser review, and keep
+the CSV artifacts for supporting detail and traceability. The
 report is designed for review, not for raw data export. It separates performance
 differences from identifiable input differences and other evidence:
 

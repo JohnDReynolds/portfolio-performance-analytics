@@ -280,52 +280,65 @@ This folder was created by:
 ppar setup {site_path}
 ```
 
-## Run Reports
+## What This Folder Is For
 
-### Analytics
+PPAR runs locally against your Axys/APX exports. The starter files let you try
+the workflow first, then replace the CSVs with your own data.
+
+- Use `analytics/` to explain portfolio performance versus a benchmark.
+- Use `performance_audit/` to explain why reported performance changed between
+  two source-data snapshots.
+
+## Run The Starter Demo
+
+First, run the starter data exactly as installed:
 
 ```bash
 ppar analytics {site_path / _ANALYTICS_DIRECTORY}
-```
-
-### Performance Auditing
-
-```bash
 ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
 ```
 
-To create only one report family:
+Open the files printed by each command.
+
+To create only one Performance Auditing workbook:
 
 ```bash
 ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report portfolio
 ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
 ```
 
-## Customizing
+## Customizing With Your Data
+
+Keep the folder shape simple. Replace CSVs first; edit YAML only when filenames,
+headers, transaction codes, or report assumptions differ from the starter.
 
 ### Analytics
 
-1. Replace `analytics/portperf.csv` with your own portfolio-performance IMEX CSV.
-2. Replace `analytics/secperf.csv` with your own security-performance IMEX CSV.
-3. Edit `analytics/ppar.yaml`.
+1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
+2. Replace `analytics/secperf.csv` with your own security-performance export.
+3. Edit `analytics/ppar.yaml` only if your filenames or headers differ.
 4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
-
-Optional Python example: `analytics/run_analytics.py`.
 
 ### Performance Auditing
 
-1. Replace the CSVs in `performance_audit/snapshot_a` with a snapshot of
-   your own IMEX CSV files.
-2. Replace the CSVs in `performance_audit/snapshot_b` with a newer or
-   restated snapshot of your own IMEX CSV files.
+Performance Auditing compares two snapshots:
+
+- `snapshot_a`: the original or older source-data snapshot.
+- `snapshot_b`: the newer, corrected, or restated source-data snapshot.
+
+Steps:
+
+1. Replace the CSVs in `performance_audit/snapshot_a`.
+2. Replace the CSVs in `performance_audit/snapshot_b`.
 3. Edit `performance_audit/ppar.yaml`.
 4. Run `ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
-If you want to run PPAR from Python instead of using the `ppar` command, see
-the optional Python scripts in each workflow folder.
+## Optional Python Scripts
 
-Optional Python examples:
+The `ppar` command is the normal path. If you want to run the same workflows
+from Python, use:
 
+- `analytics/run_analytics.py`
 - `performance_audit/run_portfolio_comparison.py`
 - `performance_audit/run_security_comparison.py`
 

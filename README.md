@@ -105,24 +105,23 @@ Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 ## Performance Auditing
 
 Use Performance Auditing when reported returns have changed and you need to know
-why. It includes two related review surfaces:
+why. It compares an original source-data snapshot with a newer or restated
+snapshot, then separates three things:
 
-- **Performance Comparison:** compares two source-data snapshots, finds changed
-  performance, and attributes each change to specific changes in transactions
-  and holdings.
-- **Data Audit:** flags suspicious source-data relationships such as price
-  ranges, dividend rates, accrued-interest rates, missing dividends, and holding
-  value math.
+- changed reported performance;
+- source-data rows that explain the change;
+- suspicious source-data relationships that deserve review.
 
-Performance Auditing workbooks include both Performance Comparison sheets and
-the **Data Audit Issues** sheet.
+The workbook includes Performance Comparison sheets plus a **Data Audit Issues**
+sheet for price ranges, dividend rates, accrued-interest rates, missing
+dividends, and holding value math.
 
 Typical questions:
 
-- Did a revised holding market value change the return?
-- Did a transaction correction change the weighted external flows?
-- Which rows explain the performance difference?
-- Which differences are evidence-only or still unexplained?
+- Which portfolio or security returns changed?
+- Which holdings or transactions explain the change?
+- Which differences still need human review?
+- Are there data-quality issues that might explain suspicious results?
 
 <img
   src="docs/images/readme/PerformanceComparisonPortfolio.jpg"
@@ -143,26 +142,24 @@ audit issues, residual review status, and source detail.
 
 ## Setup
 
-Install PPAR and create a local starter workspace:
+Start by creating a local starter workspace. The starter data lets you run the
+full workflow before replacing anything with your own exports.
 
 ```bash
 pip install ppar
 ppar setup ./my_ppar_data
 ```
 
-Run Analytics:
+Then run the two workflows:
 
 ```bash
 ppar analytics ./my_ppar_data/analytics
-```
-
-Run Performance Auditing:
-
-```bash
 ppar performance_audit ./my_ppar_data/performance_audit
 ```
 
-The setup folder is intentionally small:
+Open the files printed by each command.
+
+The setup folder stays intentionally small:
 
 ```text
 my_ppar_data/
@@ -188,8 +185,8 @@ my_ppar_data/
       secperf.csv
 ```
 
-To customize with your own data, refer to the "Customizing" section in
-`./my_ppar_data/README.md`.
+To customize with your own data, replace the starter CSVs and follow the
+`Customizing` section in `./my_ppar_data/README.md`.
 
 ---
 

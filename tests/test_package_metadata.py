@@ -353,10 +353,10 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("CSV artifacts support audit traceability", root_readme)
         self.assertIn("use `report.html` for browser review", axys_readme.lower())
         self.assertIn("CSV artifacts", axys_readme)
-        self.assertIn("audit traceability", axys_readme)
+        self.assertIn("supporting detail and traceability", axys_readme)
         self.assertNotIn("same review model in a browser", root_readme)
         self.assertNotIn("same review model in a browser", axys_readme)
-        self.assertIn("Open `report.xlsx` when present", normalized_axys_readme)
+        self.assertIn("Open `report.xlsx` for review", normalized_axys_readme)
 
     def test_manifest_keeps_source_distribution_resources(self) -> None:
         """The source distribution manifest includes checkout scripts and demo data."""

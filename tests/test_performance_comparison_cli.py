@@ -209,17 +209,17 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("(created)", result.stdout)
             self.assertNotIn("(written)", result.stdout)
             self.assertTrue((site_directory / "README.md").exists())
-            self.assertIn("## Run Reports", readme)
+            self.assertIn("## Run The Starter Demo", readme)
             self.assertIn("## Customizing", readme)
             self.assertIn("## Folder Map", readme)
             self.assertIn(
                 "Replace `analytics/portperf.csv` with your own "
-                "portfolio-performance IMEX CSV.",
+                "portfolio-performance export.",
                 readme,
             )
             self.assertIn(
                 "Replace `analytics/secperf.csv` with your own "
-                "security-performance IMEX CSV.",
+                "security-performance export.",
                 readme,
             )
             self.assertNotIn("PYTHON_TUTORIAL.md", readme)
@@ -229,28 +229,21 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("run_portfolio_comparison.py", readme)
             self.assertIn("run_security_comparison.py", readme)
             self.assertIn(
-                "If you want to run PPAR from Python instead of using",
+                "If you want to run the same workflows",
                 readme,
             )
-            self.assertIn(
-                "with a snapshot of",
-                readme,
-            )
-            self.assertIn("your own IMEX CSV files", readme)
-            self.assertIn(
-                "with a newer or",
-                readme,
-            )
-            self.assertIn("restated snapshot of your own IMEX CSV files", readme)
+            self.assertIn("Performance Auditing compares two snapshots", readme)
+            self.assertIn("the original or older source-data snapshot", readme)
+            self.assertIn("the newer, corrected, or restated source-data snapshot", readme)
             self.assertLess(
-                readme.index("## Run Reports"),
+                readme.index("## Run The Starter Demo"),
                 readme.index("## Customizing"),
             )
             self.assertLess(
                 readme.index("## Customizing"),
                 readme.index("## Folder Map"),
             )
-            self.assertIn("Edit `analytics/ppar.yaml`.", readme)
+            self.assertIn("Edit `analytics/ppar.yaml` only if", readme)
             self.assertIn("Edit `performance_audit/ppar.yaml`.", readme)
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
