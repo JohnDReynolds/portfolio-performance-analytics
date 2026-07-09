@@ -610,7 +610,7 @@ explains:
 - cash-in-lieu rows that should be reviewed separately from the split factor.
 
 For ppar, split evidence is better suited to review evidence or a future
-`X-Ref Issues` worksheet than to default `Performance Difference Causes` unless
+`Data Audit Issues` worksheet than to default `Performance Difference Causes` unless
 the split error actually changes a Modified Dietz input such as holdings market
 value, transaction amount, or reported performance.
 

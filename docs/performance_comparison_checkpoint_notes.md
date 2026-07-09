@@ -21,7 +21,7 @@ The workbook sheets at this checkpoint were:
 - `Performance Difference Causes` sheet: input rows that may explain portfolio
   differences, with `Performance Difference Explained` when ppar has a
   defensible calculation.
-- `Raw Audit Trail` sheet: full finding-level detail.
+- `Source Detail` sheet: full finding-level detail.
 
 Workbook numeric cells were real Excel numbers where possible.
 
@@ -35,7 +35,7 @@ Recent checkpoint work:
 - Stabilized the workbook-first review flow for bundles generated with
   `--include-workbook`.
 - Retired the separate supporting performance-output worksheet.
-- Aligned the `Raw Audit Trail` sheet with the common left-side review columns.
+- Aligned the `Source Detail` sheet with the common left-side review columns.
 - Added `tests/test_performance_comparison_workbook_contract.py` to protect
   workbook sheet names, key headers, stale wording, and numeric cell behavior.
 - Clarified documentation ownership across the root README, repository guide,
@@ -85,9 +85,9 @@ retired. The current smoke path generates demo output from a setup workspace:
 - Keep the workbook action-oriented: "This is the performance difference, and
   this is what explains it."
 - Keep deep diagnostic fields such as `Code` and `Review Rank` in
-  the `Raw Audit Trail` sheet, not in the main action sheets.
+  the `Source Detail` sheet, not in the main action sheets.
 - Use the same left-side sort fields for the `Performance Difference Causes` sheet,
-  and `Raw Audit Trail` sheet: `Portfolio`, `From Date`,
+  and `Source Detail` sheet: `Portfolio`, `From Date`,
   `Thru Date`, `Dataset`, `Source Column`, `Security`.
 
 ## Current Implementation Notes

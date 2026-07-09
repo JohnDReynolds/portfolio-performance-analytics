@@ -112,6 +112,20 @@ REQUIRED_HEADERS = {
         "Explanation",
         "Review Key",
     ),
+    _pc_review_model.X_REF_ISSUES_SHEET: (
+        "Snapshot",
+        "Portfolio",
+        "As Of Date",
+        "Dataset Field",
+        "Security",
+        "Issue Type",
+        "Reference Value",
+        "Observed Value",
+        "Difference",
+        "Tolerance",
+        "Explanation",
+        "Review Key",
+    ),
     _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: (
         "Transaction Match Status",
         "Finding Count",
@@ -119,7 +133,7 @@ REQUIRED_HEADERS = {
         "Match Interpretation",
         "Review Note",
     ),
-    _pc_review_model.RAW_AUDIT_TRAIL_SHEET: (
+    _pc_review_model.SOURCE_DETAIL_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",

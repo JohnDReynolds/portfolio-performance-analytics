@@ -65,7 +65,7 @@ Implemented output helpers:
 User-facing entry point:
 
 - `ppar setup`: creates an Axys/APX starter workspace.
-- `ppar performance_comparison`: writes portfolio and security comparison report
+- `ppar performance_audit`: writes portfolio and security comparison report
   bundles from a configured workspace.
 
 Developer/internal helper commands:
@@ -87,7 +87,7 @@ Current workbook field roles:
   quantity/price/commission. Holding quantity can appear beside a related
   holding market-value input. Transaction quantity, price, and commission may
   appear beside a related `transactions.amount` row, while non-promoted support
-  remains in the `Raw Audit Trail`, so transaction arithmetic is not
+  remains in the `Source Detail`, so transaction arithmetic is not
   double-counted or treated as a rebuilt accounting-system formula.
 - `reported_performance_component`: portfolio/security performance output
   fields such as return, income, gain/loss, contribution, weight, and market
@@ -95,7 +95,7 @@ Current workbook field roles:
   causes.
 - `context`: review-only supporting fields such as holding cost, FX rates,
   security reference fields, and unknown fields. These remain in the
-  `Raw Audit Trail` unless they are direct inputs to a supported performance
+  `Source Detail` unless they are direct inputs to a supported performance
   explanation.
 
 The packaged user-facing performance-comparison demos represent cash as a
@@ -110,13 +110,20 @@ Current report vocabulary:
   and leaves `Unexplained Difference` blank when a row is fully explained.
 - `Performance Difference Causes`: source-data rows that are counted in
   `Explained Difference`.
-- `Raw Audit Trail`: detailed finding rows used for audit and troubleshooting.
+- `Source Detail`: detailed finding rows used for audit and troubleshooting.
 - `transaction_matching_diagnostics.csv`: supplementary transaction row-identity
   counts, confidence, interpretation, and review notes for audit use.
 - `Transaction Code`: the source transaction code from the input file, such as
   an Axys/APX IMEX code.
 - `Transaction Category`: ppar's normalized interpretation of a transaction code
   for comparison logic and reviewer explanations.
+
+Future workbook vocabulary:
+
+- `Data Audit Issues`: consistency issues found inside the union of Snapshot A and
+  Snapshot B. These rows are not additive Modified Dietz causes and are not
+  `Source Detail` findings. They answer a different reviewer question:
+  "Which source-data relationships look internally inconsistent?"
 
 - `ppar.performance_comparison.cli.validate_bundle`: source-checkout command
   for validating an existing report bundle.
@@ -186,6 +193,163 @@ Finding and review classification values are centralized in:
 When a value crosses into Polars tables, CSVs, HTML, XLSX, or YAML, it
 should be serialized as its plain string value. Enum members are primarily for
 construction, validation, and package-internal type clarity.
+
+## Data Audit Issues Worksheet Design
+
+The `Data Audit Issues` worksheet surfaces source-data consistency problems that
+are useful to reviewers but are not themselves performance attribution rows.
+It is the user-facing Data Auditing surface inside Performance Comparison. The
+internal YAML key remains `data_audit_checks` because these checks cross-reference
+related source-data fields.
+
+Purpose:
+
+> Flag source-data relationships that should usually agree, reconcile, or move
+> together, without treating those issues as additive Modified Dietz causes.
+
+This worksheet is deliberately separate from both primary evidence sheets:
+
+- `Performance Difference Causes` explains changed performance.
+- `Source Detail` records row-level A-versus-B differences.
+- `Data Audit Issues` reports consistency checks across source-data relationships,
+  whether or not those checks explain a performance difference.
+
+Checks should run on the union of Snapshot A and Snapshot B. A reviewer should
+be able to see an issue that appears only in Snapshot A, only in Snapshot B, or
+in both snapshots. Include a `Snapshot` column so the report can distinguish
+`Snapshot A`, `Snapshot B`, and, when useful, `A and B`.
+
+Worksheet columns:
+
+```text
+Snapshot
+Portfolio
+As Of Date
+Dataset Field
+Security
+Issue Type
+Reference Value
+Observed Value
+Difference
+Tolerance
+Explanation
+Review Key
+```
+
+### YAML Configuration
+
+Consistency checks need YAML tolerances to avoid noisy output. Price checks are
+the first place where this matters. Transaction prices can vary widely intraday,
+while holdings prices are usually as-of or closing prices and should normally
+have much narrower tolerance.
+
+YAML shape:
+
+```yaml
+data_audit_checks:
+  enabled: true
+
+  dividend_rate:
+    enabled: true
+    only:
+      security_type: stock
+    exclude:
+      portfolio_id:
+        - TEST_PORTFOLIO
+    absolute_tolerance: 0.01
+    percent_tolerance: 0.50
+
+  holding_market_value:
+    enabled: true
+    only:
+      security_id:
+        - MBSPOOL
+    percent_tolerance: 0.01
+    absolute_tolerance: 1.00
+```
+
+Interpretation:
+
+- `data_audit_checks.enabled`: master switch for the Data Audit Issues worksheet.
+- Each issue type is enabled by default when the worksheet is enabled. Set
+  `enabled: false` under one issue type to opt out of that check.
+- `only`: optional exact-match include filters. A row must match every listed
+  field to enter the check.
+- `exclude`: optional exact-match exclude filters. A row is dropped when it
+  matches any listed field.
+- Filter values can be scalars or lists. Field names may be common normalized
+  names such as `security_id`, `security_type`, and `portfolio_id`, or
+  dataset-qualified names such as `holdings.security_type` and
+  `transactions.transaction_code`.
+- Tolerances stay per issue type because noisy fields need different limits.
+- `holding_market_value`: controls checks where
+  `holdings.market_value` should approximately equal
+  `holdings.quantity * holdings.price * multiplier`.
+
+### Initial Checks
+
+Implemented checks should stay high signal, available from the current
+normalized datasets, and easy to explain:
+
+1. `holdings_price_range`: for each snapshot, security, and holding date,
+   compare same-day same-security `holdings.price` values across portfolios.
+2. `transactions_price_range`: for each snapshot, security, and transaction
+   date, compare same-day same-security `transactions.price` values across
+   portfolios.
+3. `holding_market_value`: for each holding row with quantity and price,
+   compare `holdings.market_value` to `holdings.quantity * holdings.price`
+   using configured absolute and percentage tolerances.
+4. `duplicate_transactions`: for each snapshot, flag exact duplicate
+   transaction rows with the same portfolio, date, security, code, amount,
+   quantity, and price.
+5. `transaction_amount_rate`: for each snapshot, security, transaction date,
+   and transaction code, compare `transactions.amount / transactions.quantity`
+   across portfolios.
+6. `dividend_rate`: for each snapshot, security, and dividend date, compare
+   same-day same-security dividend rates across portfolios.
+7. `missing_dividend`: for each snapshot, security, and dividend date where at
+   least one portfolio has a dividend, flag other portfolios that
+   conservatively appear eligible for that dividend. A portfolio qualifies only
+   when it has positive beginning-period quantity, or positive buy activity
+   before the dividend date, and has no pre-dividend transaction activity other
+   than buys.
+8. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
+   same-day same-security purchase-accrued and sale-accrued rates across
+   portfolios.
+9. `holdings_accrued_rate`: for each snapshot, security, and holding date,
+   compare same-day same-security `holdings.accrued` per unit across
+   portfolios.
+
+Defer checks that require extra reference data or more source-system evidence:
+
+- paydown amount/rate checks;
+- bond accrued-interest expectation checks;
+- split factor versus quantity-jump plausibility;
+- cash roll-forward checks.
+
+Those deferred checks are valuable, but they should not be first because they
+can easily imply security-master, dividend-rate, pool-factor, coupon/accrual,
+or cash-ledger data that is not yet part of the normalized source contract.
+
+### Report Semantics
+
+Data Audit issue types use compact codes such as `duplicate_transactions` and
+`transaction_amount_rate`. The worksheet intentionally avoids a severity column;
+the reviewer-facing explanation, values, and tolerance carry the useful context
+without implying false precision.
+
+Do not make Data Audit rows blocking by default. A future YAML option can promote a
+specific check to blocking once the project has enough real-world evidence that
+the check is stable for a site's source-data.
+
+Data Audit issues should not change:
+
+- `Performance Difference Explained`;
+- `Unexplained Difference`;
+- `Performance Difference Causes`;
+- `Source Detail` row counts.
+
+They may be referenced from README/handoff text as a separate review surface.
 
 ## Non-Goals For The First Pass
 
@@ -1681,7 +1845,7 @@ The intended bundle review order starts in the generated report files:
 1. `report.xlsx`, when present, or `report.html` for browser review. Start with
    `Performance Differences`, then use `Performance Difference Causes` to
    understand what explains each portfolio-period difference.
-2. `Raw Audit Trail` / `findings.csv`: complete finding-level audit output for
+2. `Source Detail` / `findings.csv`: complete finding-level audit output for
    troubleshooting and traceability.
 
 The generated artifacts fall into a small taxonomy:
@@ -1752,10 +1916,10 @@ now requires every changed source-data field that ppar knows how to classify to
 be explicitly configured as additive, evidence-only, or suppressed in YAML
 before any report artifacts are written. Unresolved residuals are summarized in
 the `Performance Differences` comments and the full underlying finding detail
-remains in `Raw Audit Trail`; there is no default residual-evidence sheet unless
+remains in `Source Detail`; there is no default residual-evidence sheet unless
 a future diagnostic can identify a real reviewable mechanism.
 Changed periods without any visible cause or promoted evidence row get a
-`no_underlying_causes_found` diagnostic row. The `Raw Audit Trail` sheet
+`no_underlying_causes_found` diagnostic row. The `Source Detail` sheet
 preserves the full finding-level detail, including context rows such as cost and
 reported-performance diagnostics that confirm reporting differences but are not
 root causes.
@@ -1877,7 +2041,7 @@ paired by stable transaction ID, paired by exact singleton fallback, appeared
 in only one snapshot, or were left unpaired because fallback keys were
 ambiguous. Report bundles include this table as
 `transaction_matching_diagnostics.csv`; row-level match status remains visible
-in the raw audit trail, but the normal workbook and HTML review flow do not
+in the source detail, but the normal workbook and HTML review flow do not
 surface a standalone transaction-match section.
 
 Report bundles include `report.html` as the browser view of the same review

@@ -923,18 +923,18 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(snapshots["snapshot_b"]["max_transaction_numeric_delta"], 0.0)
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_field_drift"])
         self.assertEqual(snapshots["snapshot_b"]["max_holdings_numeric_delta"], 0.0)
-        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 19)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_scenario_rows"], 21)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_scenarios_by_type"],
             {
                 "by": 2,
                 "cs": 1,
                 "dp": 1,
-                "dv": 3,
+                "dv": 4,
                 "in": 1,
                 "li": 1,
                 "lo": 1,
-                "pa": 1,
+                "pa": 2,
                 "pd": 1,
                 "rc": 2,
                 "sa": 1,
@@ -943,18 +943,18 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 33)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 35)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 6,
                 "cs": 1,
                 "dp": 1,
-                "dv": 6,
+                "dv": 7,
                 "in": 3,
                 "li": 1,
                 "lo": 1,
-                "pa": 2,
+                "pa": 3,
                 "pd": 4,
                 "rc": 1,
                 "sa": 1,
@@ -963,7 +963,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["holding_scenario_rows"], 8)
+        self.assertEqual(snapshots["snapshot_b"]["holding_scenario_rows"], 9)
         self.assertEqual(
             snapshots["snapshot_b"]["holding_scenarios_by_type"],
             {
@@ -972,6 +972,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "cost_only_correction": 1,
                 "quantity_valuation_correction": 2,
                 "valuation_mark": 3,
+                "x_ref_holdings_accrued_rate": 1,
             },
         )
         self.assertFalse(snapshots["snapshot_b"]["has_transaction_drift"])
@@ -998,6 +999,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "quantity_valuation_correction": 2,
                 "accrual_correction": 1,
                 "cost_only_correction": 1,
+                "x_ref_holdings_accrued_rate": 1,
             },
         )
 
@@ -1213,7 +1215,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 33)
+        self.assertEqual(len(adjustments), 35)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1249,6 +1251,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             security="CASH_USD",
             holding_date="2026-01-30",
             deltas={"QTY": -50.0, "MKT_VAL": -50.0, "COST": -50.0},
+        )
+        self._assert_adjustment(
+            by_scenario["ALPHA0304 pa transaction changes cash balance."],
+            portfolio="ALPHA",
+            security="CASH_USD",
+            holding_date="2026-02-27",
+            deltas={"QTY": -8.0, "MKT_VAL": -8.0, "COST": -8.0},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0502 dv transaction changes cash balance."],
@@ -1376,6 +1385,13 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             security="CASH_USD",
             holding_date="2026-03-31",
             deltas={"QTY": -196.98, "MKT_VAL": -196.98, "COST": -196.98},
+        )
+        self._assert_adjustment(
+            by_scenario["ALPHA0503 dv transaction changes cash balance."],
+            portfolio="ALPHA",
+            security="CASH_USD",
+            holding_date="2026-04-30",
+            deltas={"QTY": 537.01, "MKT_VAL": 537.01, "COST": 537.01},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0203 sl transaction changes ending holding."],

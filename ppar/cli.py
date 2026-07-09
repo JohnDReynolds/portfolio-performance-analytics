@@ -41,8 +41,8 @@ def main(argv: list[str] | None = None) -> int:
         return _analytics.main(remaining_args)
     if args.command == "setup":
         return _setup.main(remaining_args)
-    if args.command in {"performance_comparison", "perfcomp"}:
-        return _site_report.main(remaining_args)
+    if args.command == "performance_audit":
+        return _site_report.main(remaining_args, prog="ppar performance_audit")
     raise AssertionError(f"Unsupported command: {args.command}")
 
 
@@ -59,9 +59,8 @@ def _top_level_help() -> str:
         "commands:\n"
         "  setup                   Create a local PPAR setup folder.\n"
         "  analytics               Write analytics reports from a configured site.\n"
-        "  performance_comparison  "
-        "Write performance-comparison reports from a configured site.\n"
-        "  perfcomp                Alias for performance_comparison.\n"
+        "  performance_audit       "
+        "Write performance-auditing reports from a configured site.\n"
         "\n"
         "options:\n"
         "  -h, --help              Show this help message and exit.\n"
@@ -69,21 +68,21 @@ def _top_level_help() -> str:
         "Examples:\n"
         "  ppar setup ./my_ppar_data\n"
         "  ppar analytics ./my_ppar_data/analytics\n"
-        "  ppar performance_comparison ./my_ppar_data/performance_comparison"
+        "  ppar performance_audit ./my_ppar_data/performance_audit"
     )
 
 
 def _top_level_onboarding() -> str:
     """Return the first-run handoff for users who type ``ppar``."""
     return (
-        "PPAR creates Axys/APX analytics and performance-comparison reports.\n"
+        "PPAR creates Axys/APX analytics and performance-auditing reports.\n"
         "\n"
         "First-time setup:\n"
         "  ppar setup ./my_ppar_data\n"
         "\n"
         "Then run:\n"
         "  ppar analytics ./my_ppar_data/analytics\n"
-        "  ppar performance_comparison ./my_ppar_data/performance_comparison\n"
+        "  ppar performance_audit ./my_ppar_data/performance_audit\n"
         "\n"
         "For command help:\n"
         "  ppar -h"
@@ -100,7 +99,7 @@ def _argument_parser() -> argparse.ArgumentParser:
             "Examples:\n"
             "  ppar setup ./my_ppar_data\n"
             "  ppar analytics ./my_ppar_data/analytics\n"
-            "  ppar performance_comparison ./my_ppar_data/performance_comparison"
+            "  ppar performance_audit ./my_ppar_data/performance_audit"
         ),
         formatter_class=_TopLevelHelpFormatter,
     )
@@ -119,12 +118,8 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Create ppar.yaml and starter folders for a site.",
     )
     subparsers.add_parser(
-        "performance_comparison",
-        help="Write performance-comparison reports from a configured site.",
-    )
-    subparsers.add_parser(
-        "perfcomp",
-        help="Alias for performance_comparison.",
+        "performance_audit",
+        help="Write performance-auditing reports from a configured site.",
     )
     return parser
 

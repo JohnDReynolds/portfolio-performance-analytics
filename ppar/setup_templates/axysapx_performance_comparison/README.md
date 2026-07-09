@@ -16,7 +16,7 @@ my_ppar_data/
   README.md
   analytics/
     run_analytics.py
-  performance_comparison/
+  performance_audit/
     run_portfolio_comparison.py
     run_security_comparison.py
 ```
@@ -25,10 +25,9 @@ The setup command prints the repeatable run commands for the copied folders:
 
 ```bash
 ppar analytics ./my_ppar_data/analytics
-ppar performance_comparison ./my_ppar_data/performance_comparison
+ppar performance_audit ./my_ppar_data/performance_audit
 ```
 
-`ppar perfcomp` is a shorter alias for `ppar performance_comparison`.
 Open `my_ppar_data/README.md`, section `Customizing`, when you are ready to
 replace the starter CSV files with your own Axys/APX IMEX or export data.
 Existing files are kept unless you pass `--overwrite`.
@@ -56,13 +55,13 @@ ppar setup ./my_ppar_data
 ```
 
 The command creates `analytics/ppar.yaml` and
-`performance_comparison/ppar.yaml`, copies starter CSV files, and validates the
-portfolio performance-comparison starter. Validation checks the minimum required datasets,
+`performance_audit/ppar.yaml`, copies starter CSV files, and validates the
+portfolio performance-auditing starter. Validation checks the minimum required datasets,
 required normalized columns, and complete YAML treatment for changed source-data
 fields before report bundles are written. Use
 `ppar analytics ./my_ppar_data/analytics` for analytics output and
-`ppar performance_comparison ./my_ppar_data/performance_comparison` for
-performance-comparison bundles.
+`ppar performance_audit ./my_ppar_data/performance_audit` for
+performance-auditing bundles.
 The same validation is available directly through
 `ppar.performance_comparison.cli.validate_config` when maintainers need to
 check a YAML file without writing reports.
@@ -77,29 +76,29 @@ Run the portfolio comparison from a setup workspace when you want the
 portfolio-period reviewer-facing example:
 
 ```bash
-ppar performance_comparison ./my_ppar_data/performance_comparison --report portfolio
+ppar performance_audit ./my_ppar_data/performance_audit --report portfolio
 ```
 
 Output:
 
-- `my_ppar_data/performance_comparison/output/portfolio/report.xlsx`
-- `my_ppar_data/performance_comparison/output/portfolio/report.html`
-- `my_ppar_data/performance_comparison/output/portfolio/supporting_files/manifest.json`
-- `my_ppar_data/performance_comparison/output/portfolio/supporting_files/*.csv`
+- `my_ppar_data/performance_audit/output/portfolio/report.xlsx`
+- `my_ppar_data/performance_audit/output/portfolio/report.html`
+- `my_ppar_data/performance_audit/output/portfolio/supporting_files/manifest.json`
+- `my_ppar_data/performance_audit/output/portfolio/supporting_files/*.csv`
 
 Run the security comparison from a setup workspace when you want the
 security-period reviewer-facing example:
 
 ```bash
-ppar performance_comparison ./my_ppar_data/performance_comparison --report security
+ppar performance_audit ./my_ppar_data/performance_audit --report security
 ```
 
 Output:
 
-- `my_ppar_data/performance_comparison/output/security/report.xlsx`
-- `my_ppar_data/performance_comparison/output/security/report.html`
-- `my_ppar_data/performance_comparison/output/security/supporting_files/manifest.json`
-- `my_ppar_data/performance_comparison/output/security/supporting_files/*.csv`
+- `my_ppar_data/performance_audit/output/security/report.xlsx`
+- `my_ppar_data/performance_audit/output/security/report.html`
+- `my_ppar_data/performance_audit/output/security/supporting_files/manifest.json`
+- `my_ppar_data/performance_audit/output/security/supporting_files/*.csv`
 
 Open `report.xlsx` when present. Use `report.html` for browser review, and keep
 the CSV artifacts for supplementary diagnostics and audit traceability. The
@@ -117,14 +116,20 @@ differences from identifiable input differences and other evidence:
   defensible performance explanation.
   Yellow cells are included in explained performance difference. Gold cells are
   possible causes for remaining unexplained differences.
+- `Data Audit Issues` sheet: consistency checks across the union of Snapshot A
+  and Snapshot B. The packaged demo includes focused examples for holdings and
+  transaction price ranges, duplicate transactions, transaction amount-rate
+  mismatches, dividend-rate mismatches, fixed-income accrued-interest
+  transaction-rate mismatches, missing dividends, holdings.accrued rate
+  mismatches, and holdings market-value math.
 - Optional reconstruction diagnostics can add `Reconstruction Summary`,
   `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
-- Review-only supporting rows remain in the `Raw Audit Trail`. Transaction
+- Review-only supporting rows remain in the `Source Detail`. Transaction
   quantity, price, and commission rows may also appear on
   `Performance Difference Causes` when they support a changed
   `transactions.amount`.
-- `Raw Audit Trail` sheet: the underlying finding rows used to build the workbook.
+- `Source Detail` sheet: the underlying finding rows used to build the workbook.
   Transaction match status appears here for audit and troubleshooting; the
   separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
   support rather than a main review sheet.
@@ -261,9 +266,9 @@ After generating the workbook demo bundle, validate it with:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  my_ppar_data/performance_comparison/output/portfolio
+  my_ppar_data/performance_audit/output/portfolio
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  my_ppar_data/performance_comparison/output/security
+  my_ppar_data/performance_audit/output/security
 ```
 
 For a full packaged-demo health pass from a source checkout, maintainers can use
@@ -289,9 +294,9 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. `holdings.accrued` is added to `holdings.market_value` for reconstructed beginning/end valuation when present. |
-| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Raw Audit Trail` as support for the related performance input. |
+| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Source Detail` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | FX rates, unsupported fields | Kept in `Raw Audit Trail` unless it is a direct input to a supported performance explanation. |
+| `context` | FX rates, unsupported fields | Kept in `Source Detail` unless it is a direct input to a supported performance explanation. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code
@@ -365,4 +370,4 @@ Current public YAML targets are intentionally narrow:
 - `transaction_impact_methods.external_flow`: optional `modified_dietz`
   cross-checks for external-flow transactions.
 - suppression rules: remove known, intentionally ignored differences from the
-  active review while retaining them in the raw audit trail.
+  active review while retaining them in the source detail.

@@ -824,8 +824,8 @@ cross-reference evidence:
 - missing or incorrect split treatment can create artificial performance or
   holdings differences.
 
-Therefore, split evidence belongs naturally in Raw Audit Trail, review evidence,
-or a future `X-Ref Issues` worksheet unless the split error actually changes a
+Therefore, split evidence belongs naturally in Source Detail, review evidence,
+or a future `Data Audit Issues` worksheet unless the split error actually changes a
 Modified Dietz input such as holdings market value, transaction amount, or
 reported performance.
 

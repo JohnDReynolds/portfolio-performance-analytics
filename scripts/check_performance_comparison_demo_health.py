@@ -70,7 +70,7 @@ def _run_setup_generated_smoke_tests() -> None:
     """
     with tempfile.TemporaryDirectory(prefix="ppar_setup_smoke_") as directory:
         site_directory = Path(directory) / "my_ppar_data"
-        comparison_directory = site_directory / "performance_comparison"
+        comparison_directory = site_directory / "performance_audit"
 
         _run(
             [

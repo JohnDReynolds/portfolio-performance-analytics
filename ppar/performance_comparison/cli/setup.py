@@ -17,7 +17,7 @@ import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _ANALYTICS_DIRECTORY: Final[str] = "analytics"
-_PERFORMANCE_COMPARISON_DIRECTORY: Final[str] = "performance_comparison"
+_PERFORMANCE_COMPARISON_DIRECTORY: Final[str] = "performance_audit"
 _SNAPSHOT_A_DIR: Final[str] = "snapshot_a"
 _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
 _PACKAGED_DEMO_RESOURCE: Final[str] = "ppar.setup_templates"
@@ -288,17 +288,17 @@ ppar setup {site_path}
 ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 ```
 
-### Performance Comparison
+### Performance Auditing
 
 ```bash
-ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
+ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
 ```
 
 To create only one report family:
 
 ```bash
-ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report portfolio
-ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
+ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report portfolio
+ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
 ```
 
 ## Customizing
@@ -312,22 +312,22 @@ ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --re
 
 Optional Python example: `analytics/run_analytics.py`.
 
-### Performance Comparison
+### Performance Auditing
 
-1. Replace the CSVs in `performance_comparison/snapshot_a` with a snapshot of
+1. Replace the CSVs in `performance_audit/snapshot_a` with a snapshot of
    your own IMEX CSV files.
-2. Replace the CSVs in `performance_comparison/snapshot_b` with a newer or
+2. Replace the CSVs in `performance_audit/snapshot_b` with a newer or
    restated snapshot of your own IMEX CSV files.
-3. Edit `performance_comparison/ppar.yaml`.
-4. Run `ppar performance_comparison {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
+3. Edit `performance_audit/ppar.yaml`.
+4. Run `ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
 If you want to run PPAR from Python instead of using the `ppar` command, see
 the optional Python scripts in each workflow folder.
 
 Optional Python examples:
 
-- `performance_comparison/run_portfolio_comparison.py`
-- `performance_comparison/run_security_comparison.py`
+- `performance_audit/run_portfolio_comparison.py`
+- `performance_audit/run_security_comparison.py`
 
 ## Folder Map
 
@@ -338,7 +338,7 @@ Optional Python examples:
     portperf.csv
     secperf.csv
     run_analytics.py
-  performance_comparison/
+  performance_audit/
     ppar.yaml
     run_portfolio_comparison.py
     run_security_comparison.py
@@ -411,8 +411,8 @@ def _print_success(result: dict[str, Path | str]) -> None:
     print("To run Analytics:")
     print(f"  ppar analytics {result['analytics_directory']}")
     print()
-    print("To run Performance Comparison:")
-    print(f"  ppar performance_comparison {result['comparison_directory']}")
+    print("To run Performance Auditing:")
+    print(f"  ppar performance_audit {result['comparison_directory']}")
     print()
     if "generic_analytics_directory" in result:
         print("To run Generic Analytics:")

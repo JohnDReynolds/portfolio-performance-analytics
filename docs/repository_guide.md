@@ -220,13 +220,13 @@ examples that users see in their local setup folder:
 ```bash
 ./.venv/bin/python -m ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics
 ./.venv/bin/python /tmp/ppar_smoke_site/analytics/run_analytics.py
-./.venv/bin/python /tmp/ppar_smoke_site/performance_comparison/run_portfolio_comparison.py
-./.venv/bin/python /tmp/ppar_smoke_site/performance_comparison/run_security_comparison.py
+./.venv/bin/python /tmp/ppar_smoke_site/performance_audit/run_portfolio_comparison.py
+./.venv/bin/python /tmp/ppar_smoke_site/performance_audit/run_security_comparison.py
 ./.venv/bin/python /tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  /tmp/ppar_smoke_site/performance_comparison/output/portfolio
+  /tmp/ppar_smoke_site/performance_audit/output/portfolio
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  /tmp/ppar_smoke_site/performance_comparison/output/security
+  /tmp/ppar_smoke_site/performance_audit/output/security
 ```
 
 Open the generated `report.xlsx` when it is present. Use `report.html` for
@@ -257,7 +257,7 @@ packaged scenario-matrix validation.
 Use this lower-level command when you want to choose a YAML file or output
 directory yourself. Use `--comparison-level security` with the same YAML when
 you want a security-level bundle. The public user-facing path is `ppar setup`
-followed by `ppar performance_comparison`.
+followed by `ppar performance_audit`.
 
 Code that needs to inspect the generated report-bundle handoff surface should
 use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
@@ -395,7 +395,7 @@ Use this pre-publish checklist after the maintainer decides to release:
    ppar --help
    ppar setup /tmp/ppar_release_site
    ppar analytics /tmp/ppar_release_site/analytics
-   ppar performance_comparison /tmp/ppar_release_site/performance_comparison
+   ppar performance_audit /tmp/ppar_release_site/performance_audit
    ```
 8. Push the branch and tag only after the checks above match the intended
    release commit.
@@ -425,7 +425,7 @@ The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
 Both portfolio and security workbooks start with the `Performance Differences`
-sheet, then use `Performance Difference Causes` and `Raw Audit Trail` for the
+sheet, then use `Performance Difference Causes` and `Source Detail` for the
 normal review flow. Explained amounts appear on `Performance Difference Causes`
 sheet rows when ppar has a defensible input-level explanation. The action
 sheets use an `Explanation` column written for reviewers; the raw audit sheet

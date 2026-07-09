@@ -150,6 +150,7 @@ _HOLDING_SCENARIO_TYPES: Final = {
     "quantity_valuation_correction",
     "accrual_correction",
     "cost_only_correction",
+    "x_ref_holdings_accrued_rate",
 }
 _TRANSACTION_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "AMOUNT", "COMMISSION"]
 _TRANSACTION_ID_COLUMN: Final = "TRANSACTION_ID"
@@ -295,11 +296,11 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
         "transaction_scenarios_by_type": {
             "by": 2,
             "dp": 1,
-            "dv": 3,
+            "dv": 4,
             "in": 1,
             "li": 1,
             "lo": 1,
-            "pa": 1,
+            "pa": 2,
             "pd": 1,
             "rc": 2,
             "sa": 1,
@@ -311,11 +312,11 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
         "transaction_derived_holdings_by_type": {
             "by": 6,
             "dp": 1,
-            "dv": 6,
+            "dv": 7,
             "in": 3,
             "li": 1,
             "lo": 1,
-            "pa": 2,
+            "pa": 3,
             "pd": 4,
             "rc": 1,
             "sa": 1,
@@ -330,6 +331,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
             "cost_only_correction": 1,
             "quantity_valuation_correction": 2,
             "valuation_mark": 3,
+            "x_ref_holdings_accrued_rate": 1,
         },
     }
 }
@@ -642,20 +644,20 @@ def rebuild_demo_performance_files(
             holding_scenarios=holding_scenarios,
         )
 
-        rebuilt_secperf = _rebuild_security_performance(
-            snapshot_name,
-            current_secperf,
-            current_portperf,
-            rebuilt_holdings,
-            rebuilt_transactions,
-            security_reconstruction,
-        )
         rebuilt_portperf = _rebuild_portfolio_performance(
             snapshot_name,
             current_portperf,
             rebuilt_holdings,
             rebuilt_transactions,
             portfolio_reconstruction,
+        )
+        rebuilt_secperf = _rebuild_security_performance(
+            snapshot_name,
+            current_secperf,
+            rebuilt_portperf,
+            rebuilt_holdings,
+            rebuilt_transactions,
+            security_reconstruction,
         )
         current_packaged_transactions = current_transactions[_PACKAGED_TRANSACTION_COLUMNS]
         rebuilt_packaged_transactions = rebuilt_transactions[_PACKAGED_TRANSACTION_COLUMNS]
@@ -1584,6 +1586,7 @@ def _validate_holding_scenario_deltas(
         "quantity_valuation_correction": {"QTY", "MKT_VAL", "COST"},
         "accrual_correction": {"QTY", "MKT_VAL", "COST", "ACCRUED"},
         "cost_only_correction": {"COST"},
+        "x_ref_holdings_accrued_rate": {"ACCRUED"},
     }
     allowed_columns = allowed_columns_by_type[scenario_type]
     if not changed_columns.issubset(allowed_columns):

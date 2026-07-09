@@ -1,12 +1,13 @@
 # =========================
-# Axys/APX Performance Comparison Starter Configuration
+# Axys/APX Performance Auditing Starter Configuration
 # =========================
-# This file is copied to your setup folder as performance_comparison/ppar.yaml.
+# This file is copied to your setup folder as performance_audit/ppar.yaml.
 # Treat it as both the configuration file and the onboarding guide for
-# Performance Comparison.
+# Performance Auditing.
 #
 # Big picture:
 # - Performance Comparison answers: "Why did my reported performance change?"
+# - Data Audit answers: "Are there suspicious source-data inconsistencies?"
 # - It compares two Axys/APX-style source-data snapshots.
 # - It then ties changed performance to changed Modified Dietz inputs:
 #   beginning market value, ending market value, and dated cash flows.
@@ -17,7 +18,7 @@
 # 1. Replace CSVs in snapshot_a with the older/original IMEX snapshot.
 # 2. Replace CSVs in snapshot_b with the newer/restated IMEX snapshot.
 # 3. Keep the starter filenames and headers when possible.
-# 4. Run ppar performance_comparison ./my_ppar_data/performance_comparison.
+# 4. Run ppar performance_audit ./my_ppar_data/performance_audit.
 #    The command writes both portfolio and security reports when secperf.csv is
 #    available in both snapshots.
 # 5. Edit this YAML only when validation or report evidence says what to fix.
@@ -46,9 +47,9 @@ comparison:
   # Most users should leave this as portfolio. The production command normally
   # chooses report output with --report and writes both reports by default when
   # portfolio and security source files are available:
-  #   ppar performance_comparison ./my_ppar_data/performance_comparison --report portfolio
-  #   ppar performance_comparison ./my_ppar_data/performance_comparison --report security
-  #   ppar performance_comparison ./my_ppar_data/performance_comparison --report both
+  #   ppar performance_audit ./my_ppar_data/performance_audit --report portfolio
+  #   ppar performance_audit ./my_ppar_data/performance_audit --report security
+  #   ppar performance_audit ./my_ppar_data/performance_audit --report both
   level: portfolio
 
 snapshots:
@@ -144,6 +145,137 @@ files:
   holdings: holdings.csv
   transactions: transactions.csv
   splits: splits.csv
+
+data_audit_checks:
+  # Purpose:
+  #   Writes the "Data Audit Issues" worksheet. These checks are independent
+  #   consistency checks across the union of Snapshot A and Snapshot B. They do
+  #   not change Performance Difference Explained and they are not Source Detail
+  #   rows.
+  #
+  # Review philosophy:
+  #   Start narrow. Add only/exclude filters, tolerances, and market-value
+  #   multipliers before using broad checks on production extracts. The demo
+  #   below intentionally focuses on a few securities so the worksheet remains
+  #   readable.
+  #
+  # Filtering:
+  #   Each issue type is on by default. Set enabled: false under a check to
+  #   turn it off. Use only/exclude for simple exact-match filters. Field names
+  #   may be common names such as security_id and portfolio_id, or
+  #   dataset.field names such as holdings.security_type and
+  #   transactions.transaction_code.
+  enabled: true
+
+  holding_market_value:
+    # Checks whether holdings.market_value is consistent with
+    # holdings.quantity * holdings.price * multiplier. This is useful for
+    # spotting stale prices, missing factors, or unexpected valuation
+    # conventions. Bonds and pooled products may need site-specific
+    # multipliers; for example, some extracts may need 0.01 while this demo's
+    # fixed-income quantities are already price-compatible.
+    enabled: true
+    only:
+      security_id:
+        - MBSPOOL
+    absolute_tolerance: 1.0
+    percent_tolerance: 0.01
+    multipliers:
+      default: 1.0
+      by_security_id: {}
+      by_security_type: {}
+
+  holdings_price_range:
+    # Checks same-day same-security holdings.price values across portfolios.
+    # Closing/as-of holdings prices should usually match tightly unless the
+    # extract intentionally includes portfolio-specific valuation overrides.
+    enabled: true
+    only:
+      security_id:
+        - AAPL
+    absolute_tolerance: 0.01
+    percent_tolerance: 0.05
+
+  transactions_price_range:
+    # Checks same-day same-security transactions.price values across
+    # portfolios. Intraday trades can naturally occur at different prices, so
+    # this tolerance is normally wider than the holdings.price tolerance.
+    enabled: true
+    only:
+      security_id:
+        - AAPL
+      transactions.transaction_code:
+        - by
+    absolute_tolerance: 0.01
+    percent_tolerance: 0.05
+
+  duplicate_transactions:
+    # Checks exact duplicate transaction rows. This is a simple source-data
+    # hygiene check: the same portfolio, date, security, code, amount,
+    # quantity, and price should not usually appear more than once unless the
+    # extract has another durable identifier proving they are separate events.
+    enabled: true
+    only:
+      security_id:
+        - DUPCHK
+
+  transaction_amount_rate:
+    # Checks same-day same-security transaction amount per unit across
+    # portfolios for the same transaction code. This catches amount, decimal,
+    # factor, or unit problems that may not be visible from transactions.price
+    # alone.
+    enabled: true
+    only:
+      security_id:
+        - AAPL
+      transactions.transaction_code:
+        - by
+    absolute_tolerance: 0.01
+    percent_tolerance: 0.05
+
+  dividend_rate:
+    # Checks same-day same-security dividend amount per share across
+    # portfolios. When transactions.quantity is blank or zero, PPAR uses the
+    # next same-portfolio holdings.quantity on or after the dividend date.
+    enabled: true
+    only:
+      security_id:
+        - JPM
+    absolute_tolerance: 0.01
+    percent_tolerance: 0.5
+
+  missing_dividend:
+    # Flags a portfolio that appears to hold a stock through a dividend date
+    # while another portfolio has a same-day dividend for that stock. The rule
+    # is intentionally conservative: the portfolio must have a positive
+    # beginning-period quantity or positive buy activity before the dividend
+    # date, and it must have no pre-dividend transaction activity other than
+    # buys.
+    enabled: true
+    only:
+      security_id:
+        - AAPL
+
+  pa_sa_rate:
+    # Checks same-day same-security purchase-accrued/sale-accrued rates across
+    # portfolios. As with dividends, PPAR uses transaction quantity when
+    # available and otherwise falls back to holdings quantity.
+    enabled: true
+    only:
+      security_id:
+        - TNOTE5Y
+    absolute_tolerance: 0.000001
+    percent_tolerance: 0.5
+
+  holdings_accrued_rate:
+    # Checks same-day same-security holdings.accrued per unit. Use a small
+    # tolerance because real extracts often carry harmless fractional rounding.
+    enabled: true
+    only:
+      security_id:
+        - TNOTE5Y
+    absolute_tolerance: 0.00001
+    percent_tolerance: 0.5
 
 portfolio_return_reconstruction:
   # Purpose:

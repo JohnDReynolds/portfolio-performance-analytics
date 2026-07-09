@@ -535,7 +535,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
-            self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
+            self.assertIn("Source Detail for audit and troubleshooting", readme)
             self.assertIn("source-data differences", readme)
             self.assertNotIn("source" + " data", readme)
             self.assertIn(
@@ -1335,7 +1335,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn("additively explain each performance period", readme)
-            self.assertIn("Raw Audit Trail for audit and troubleshooting", readme)
+            self.assertIn("Source Detail for audit and troubleshooting", readme)
             self.assertIn("complete finding-level audit trail", readme)
             self.assertIn(
                 "follow a performance period across the `supporting_files/` "
@@ -1358,7 +1358,8 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 [
                     "Performance Differences",
                     "Performance Difference Causes",
-                    "Raw Audit Trail",
+                    "Data Audit Issues",
+                    "Source Detail",
                 ],
             )
             self.assertTrue(
@@ -1537,7 +1538,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "PORT_A::2025-05-30::2025-05-30",
             )
 
-            findings_sheet = workbook["Raw Audit Trail"]
+            findings_sheet = workbook["Source Detail"]
             self.assertEqual(
                 [
                     _normalized_header(

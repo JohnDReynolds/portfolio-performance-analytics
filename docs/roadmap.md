@@ -2,7 +2,7 @@
 
 This is the central roadmap for PPAR. It covers Axys/APX-focused analytics,
 performance comparison, onboarding, user-facing documentation, report evolution,
-and demo-data guardrails.
+data auditing, and demo-data guardrails.
 
 Detailed design reference remains in
 [`performance_comparison_design.md`](performance_comparison_design.md).
@@ -60,7 +60,7 @@ Completed guardrails now cover:
   reviewer handoff metadata, audit/export backbone, supplementary diagnostics,
   or opt-in reconstruction diagnostics;
 - default report/workbook review order starts with `Performance Differences`,
-  `Performance Difference Causes`, and `Raw Audit Trail`; optional
+  `Performance Difference Causes`, and `Source Detail`; optional
   reconstruction diagnostics stay opt-in and secondary;
 - durable reader-path docs use current sheet names and reject stale
   `Other Data Differences` / `Residual Evidence` language;
@@ -175,11 +175,28 @@ more packaged rows merely for symmetry. Additional rows should wait until they
 show a nonredundant situation that changes the reviewer conversation more
 clearly than the existing packaged and site-variant fixtures.
 
+### Data Auditing Direction
+
+Data Auditing is the user-facing product name for the source-data consistency
+checks currently configured under `data_audit_checks`. The near-term surface is a
+`Data Audit Issues` worksheet included in Performance Comparison workbooks. The
+longer-term direction is to let this capability stand on its own when it is
+useful before, after, or apart from a specific performance restatement review.
+
+| Area | Deliverable | Exit criteria |
+| --- | --- | --- |
+| Data Audit Issues worksheet | Keep the former `X-Ref Issues` worksheet as `Data Audit Issues` inside Performance Comparison workbooks. | The worksheet remains separate from `Performance Difference Causes` and `Source Detail`, runs on the union of Snapshot A and Snapshot B, and flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. |
+| Data Auditing marketing | Present Data Auditing as a distinct capability included with Performance Comparison rather than as a technical cross-reference implementation detail. | README/setup docs explain that Performance Comparison includes Data Audit Issues for suspicious source-data relationships such as prices, dividend rates, accrued-interest rates, missing dividends, and holding value math. |
+| Data Audit Summary | Add a summary surface before the detail rows. | Review output shows issue counts by issue type, snapshot, portfolio, and security before reviewers inspect row-level detail. |
+| Standalone Data Auditing workflow | Consider an optional standalone command and workbook, such as `ppar data_audit <site_or_yaml>`, that writes `data_audit.xlsx` and `data_audit.html` without requiring a performance-difference review. | The standalone workflow reuses the same YAML checks and source snapshots, produces a focused audit package, and does not duplicate Performance Comparison attribution logic. |
+| Data Audit issue taxonomy | Keep issue types compact and stable. | Issue types use filter-friendly codes such as `duplicate_transactions`, `transaction_amount_rate`, and `missing_dividend`; row explanations carry the reviewer-facing narrative. |
+| Data Audit profiles | Consider simple audit profiles such as `strict`, `normal`, and `quiet`, or documented tolerance presets if profiles feel too heavy. | Profiles or presets adjust tolerances without hiding the resolved YAML behavior from reviewers. |
+| Broader Data Audit checks | Expand checks only when they are high-signal and explainable from available source-data. | Candidate checks include stale prices, missing beginning/end holdings, negative quantity surprises, cash/security flow mismatches, split factor versus quantity-jump plausibility, cash roll-forward checks, and richer accrued-interest or paydown checks when required reference data exists. |
+
 ### Longer-Term Deliverables
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| X-Ref Issues worksheet | Add an `X-Ref Issues` worksheet to performance-comparison workbooks for consistency checks between dataset items that should usually agree or move together, such as same-security intraday prices, dividend rates, bond accruals, and other cross-dataset sanity checks. | The worksheet flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. Each check documents its datasets, matching keys, tolerance, reason, and whether it is warning-only or blocking. |
 | Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys/APX demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
 | Multi-currency model | Add multi-currency source-data examples only when cash-account mapping, FX rates, reporting currency, and Modified Dietz treatment are explicit. | Reports distinguish FX/rate effects from cash-flow and valuation effects without implying vendor methodology that is not evidenced. |
 | Broader extract discovery | Review `docs/axys-apx-reference` for Axys/APX fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
@@ -457,13 +474,13 @@ A future workbook could include:
 Performance Differences
 Performance Difference Causes
 Return Reconstruction Checks
-Raw Audit Trail
+Source Detail
 ```
 
 Current status: the normal user-facing workbook now uses `Performance
-Differences`, `Performance Difference Causes`, and `Raw Audit Trail`.
+Differences`, `Performance Difference Causes`, and `Source Detail`.
 Transaction matching diagnostics remain available in the
-bundle CSVs and raw audit trail rather than as a standalone default sheet.
+bundle CSVs and source detail rather than as a standalone default sheet.
 Reconstruction diagnostic sheets remain opt-in so the default workbook stays
 focused on reviewable performance differences and their source-data causes.
 
@@ -640,7 +657,7 @@ numerator, denominator, and source component inputs.
 - Generate comments from cause/residual patterns, not from free-form inference.
 - Prefer specific worksheet and field references over generic instructions.
 - Keep comments short enough for the workbook, with detailed evidence remaining
-  in `Performance Difference Causes` and `Raw Audit Trail`.
+  in `Performance Difference Causes` and `Source Detail`.
 - Make guidance action-oriented and understandable when formula rows and
   supporting rows overlap.
 
@@ -954,7 +971,7 @@ The packaged demo audit now verifies the user-facing report tables follow the
 source contract:
 
 - `Performance Difference Causes` only contains approved demo source fields;
-- holdings `cost` stays in `Raw Audit Trail`;
+- holdings `cost` stays in `Source Detail`;
 - configured holdings `accrued` changes remain performance-cause rows.
 
 The Axys/APX transaction references should be used to choose careful terminology
@@ -1947,7 +1964,7 @@ a broad case-insensitive equality policy for source identifiers.
 
 Status: complete for the current workbook/report wording.
 
-The visible Raw Audit Trail dataset column now uses `Source Dataset`, while
+The visible Source Detail dataset column now uses `Source Dataset`, while
 prose continues to use the standardized `source-data` term and JSON/API keys
 continue to use `source_data`.
 
@@ -2054,7 +2071,7 @@ Status: complete for generated bundle handoff wording.
 The generated bundle README now makes the review/audit split explicit: start in
 `report.xlsx` when present, use `report.html` for browser review, use
 `Performance Difference Causes` for additive source-data explanations, and use
-`Raw Audit Trail` for audit and troubleshooting. Supplementary transaction and
+`Source Detail` for audit and troubleshooting. Supplementary transaction and
 external-flow diagnostics remain CSV artifacts, while
 `transaction_matching_diagnostics.csv` is positioned specifically as
 transaction row-identity audit support rather than a main review stop.
@@ -2249,7 +2266,7 @@ Status: complete for a first conservative dead-code and artifact-boundary pass.
 The cleanup pass removed a stale workbook helper for the standalone
 `Transaction Match Diagnostics` worksheet, which Phase 28 had already demoted
 from the normal workbook/report flow. Transaction match status labels and
-tooltips remain because those fields still appear on Raw Audit Trail rows and
+tooltips remain because those fields still appear on Source Detail rows and
 in the audit-support CSV.
 
 The artifact review did not identify a safe CSV deletion. Required bundle CSVs
@@ -2293,7 +2310,7 @@ wording.
 The reader-path sweep removed stale durable-doc references to the former
 `Other Data Differences` sheet and aligned the normal workbook/report flow to
 the current default review path: `Performance Differences`, `Performance
-Difference Causes`, and `Raw Audit Trail`. Supplementary CSV diagnostics remain
+Difference Causes`, and `Source Detail`. Supplementary CSV diagnostics remain
 documented as audit and troubleshooting artifacts rather than first-stop review
 surfaces.
 
@@ -2315,7 +2332,7 @@ Status: complete for opt-in reconstruction diagnostics ordering and help text.
 An opt-in bundle generated with `--include-reconstruction-diagnostics` and
 `--include-workbook` now keeps the default reviewer path first in both
 `report.xlsx` and `report.html`: `Performance Differences`, `Performance
-Difference Causes`, and `Raw Audit Trail`. Optional diagnostics follow that
+Difference Causes`, and `Source Detail`. Optional diagnostics follow that
 normal path as `Reconstruction Summary`, `Return Reconstruction Checks`, and
 `Security Return Checks`.
 
@@ -3024,14 +3041,14 @@ generation:
 ```bash
 ppar setup ./my_ppar_data
 ppar analytics ./my_ppar_data/analytics
-ppar performance_comparison ./my_ppar_data/performance_comparison
+ppar performance_audit ./my_ppar_data/performance_audit
 ```
 
-Setup creates separate `analytics` and `performance_comparison` folders, each
+Setup creates separate `analytics` and `performance_audit` folders, each
 with one user-facing `ppar.yaml`. The production performance-comparison command
 writes portfolio and security reports by default when required source files are
 available, and supports `--report portfolio`, `--report security`, or
-`--report both` for explicit selection. `ppar perfcomp` is the short alias.
+`--report both` for explicit selection.
 
 ### Phase 82: Setup Python Runner Scripts
 
@@ -3041,8 +3058,8 @@ Status: refreshed for the current setup site.
 YAML they execute:
 
 - `analytics/run_analytics.py`
-- `performance_comparison/run_portfolio_comparison.py`
-- `performance_comparison/run_security_comparison.py`
+- `performance_audit/run_portfolio_comparison.py`
+- `performance_audit/run_security_comparison.py`
 
 The setup README mentions those scripts only as optional examples. The main
 onboarding path remains the `ppar` command plus heavily documented nearby YAML.
@@ -3137,13 +3154,13 @@ The installed-style flow was dry-run into a temporary site directory:
 ```bash
 ppar setup /tmp/ppar_phase87_site
 ppar analytics /tmp/ppar_phase87_site/analytics
-ppar performance_comparison /tmp/ppar_phase87_site/performance_comparison
+ppar performance_audit /tmp/ppar_phase87_site/performance_audit
 ```
 
 The console output stayed concise: setup prints the two run commands and the
 customization pointer, analytics lists reviewable analytics files, and
 performance comparison lists only the generated workbook paths. Running
-`ppar analytics` or `ppar performance_comparison` from the setup root still
+`ppar analytics` or `ppar performance_audit` from the setup root still
 fails with a useful message, while running those commands from the specific
 workflow folders works.
 
@@ -3180,7 +3197,7 @@ The built wheel was installed into a temporary environment and the installed
 ppar --help
 ppar setup /tmp/ppar_phase88_site
 ppar analytics /tmp/ppar_phase88_site/analytics
-ppar performance_comparison /tmp/ppar_phase88_site/performance_comparison
+ppar performance_audit /tmp/ppar_phase88_site/performance_audit
 ```
 
 The no-deps temporary wheel environment initially lacked `openpyxl`, so workbook
@@ -3254,7 +3271,7 @@ Package-content inspection confirmed:
 
 The built wheel was installed into a temporary environment from `dist/` with
 `--no-deps`. `ppar --help`, `ppar setup`, and `ppar analytics` passed. As
-expected for a no-deps install, `ppar performance_comparison` reported that
+expected for a no-deps install, `ppar performance_audit` reported that
 `openpyxl` is required. Rerunning with the already-installed local dependency
 set available completed both portfolio and security workbook generation.
 

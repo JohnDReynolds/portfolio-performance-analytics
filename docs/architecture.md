@@ -16,7 +16,7 @@ The main user path is:
 
 ```text
 ppar setup <site_directory>
-  -> creates analytics/ and performance_comparison/ starter folders
+  -> creates analytics/ and performance_audit/ starter folders
   -> installs heavily commented ppar.yaml files
   -> copies Axys/APX starter CSV files
 ```
@@ -25,10 +25,8 @@ After setup, users run:
 
 ```bash
 ppar analytics <site_directory>/analytics
-ppar performance_comparison <site_directory>/performance_comparison
+ppar performance_audit <site_directory>/performance_audit
 ```
-
-`ppar perfcomp` is the short alias for `ppar performance_comparison`.
 
 ## Package Map
 
@@ -74,7 +72,7 @@ context unless explicit YAML policy says otherwise.
 | Area | Intended audience | Notes |
 | --- | --- | --- |
 | `ppar/setup_templates/axysapx_analytics` | Installed users and demos | Copied by `ppar setup` into `analytics/`. |
-| `ppar/setup_templates/axysapx_performance_comparison` | Installed users and demos | Copied by `ppar setup` into `performance_comparison/`. |
+| `ppar/setup_templates/axysapx_performance_comparison` | Installed users and demos | Copied by `ppar setup` into `performance_audit/`. |
 | `ppar/setup_templates/generic_analytics` | Maintainers | Feeds README images, analytics regression tests, and demo-data derivation. It is not the primary onboarding path. |
 | `tests/data/axys` | Test authors | Synthetic fixtures for narrow validation and edge-case behavior. |
 | `_demo_output` | Maintainers | Generated local report/image output; not source-data and not shipped as user setup input. |
@@ -114,7 +112,7 @@ is:
 
 1. `Performance Differences`
 2. `Performance Difference Causes`
-3. `Raw Audit Trail`
+3. `Source Detail`
 
 Optional reconstruction diagnostics are secondary. They help debug reported
 returns, but they should not become the first review surface for ordinary users.

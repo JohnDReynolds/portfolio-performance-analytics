@@ -22,6 +22,7 @@ from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import return_reconstruction as _pc_reconstruction
 from ppar.performance_comparison import workbook as _pc_workbook
+from ppar.performance_comparison import x_ref as _pc_x_ref
 from ppar.performance_comparison.modified_dietz import modified_dietz_flow_weight
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
@@ -450,8 +451,15 @@ def _shared_detail_sheets(
             labels=_workbook_column_labels(),
         ),
         _pc_workbook.ReviewWorkbookSheet(
-            artifact_name=_pc_review_model.RAW_AUDIT_TRAIL_ARTIFACT,
-            sheet_name=_pc_review_model.RAW_AUDIT_TRAIL_SHEET,
+            artifact_name=_pc_review_model.X_REF_ISSUES_ARTIFACT,
+            sheet_name=_pc_review_model.X_REF_ISSUES_SHEET,
+            table=_pc_x_ref.x_ref_issues_table(comparison_path),
+            columns=_pc_x_ref.X_REF_ISSUE_COLUMNS,
+            labels=_workbook_column_labels(),
+        ),
+        _pc_workbook.ReviewWorkbookSheet(
+            artifact_name=_pc_review_model.SOURCE_DETAIL_ARTIFACT,
+            sheet_name=_pc_review_model.SOURCE_DETAIL_SHEET,
             table=_workbook_raw_audit_trail_table(
                 findings,
                 comparison_path=comparison_path,
@@ -2090,12 +2098,12 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _REVIEW_NOTE: (
-            'Review the "Raw Audit Trail" sheet. The difference may be due to '
+            'Review the "Source Detail" sheet. The difference may be due to '
             "missing source-data, source-file timing differences, or vendor "
             "methodology that does not match the YAML specifications."
         ),
         _REVIEW_GUIDANCE: (
-            'No identifiable cause was found. Review the "Raw Audit Trail" sheet. '
+            'No identifiable cause was found. Review the "Source Detail" sheet. '
             "The difference may be due to missing source-data, source-file timing "
             "differences, or vendor methodology that does not match the YAML "
             "specifications."
@@ -2287,7 +2295,7 @@ def _workbook_raw_audit_enriched_row(
     *,
     comparison_level: str,
 ) -> Mapping[str, object]:
-    """Return a Raw Audit Trail row with concrete cash-balance context."""
+    """Return a Source Detail row with concrete cash-balance context."""
     enriched_row = _workbook_with_cash_balance_security(
         row,
         cash_security_matches,
@@ -2321,7 +2329,7 @@ def _workbook_left_review_sort_columns() -> tuple[str, ...]:
 
 
 def _workbook_raw_audit_columns(findings: pl.DataFrame) -> tuple[str, ...]:
-    """Return Raw Audit Trail worksheet columns with review key last."""
+    """Return Source Detail worksheet columns with review key last."""
     preferred_columns = (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,
@@ -3613,6 +3621,12 @@ def _workbook_column_labels() -> dict[str, str]:
         _REVIEW_KEY: "Review Key",
         _pc_findings.PORTFOLIO_ID: "Portfolio",
         _pc_findings.SECURITY_ID: "Security",
+        _pc_x_ref.SNAPSHOT: "Snapshot",
+        _pc_x_ref.ISSUE_TYPE: "Issue Type",
+        _pc_x_ref.VALUE_A: "Reference Value",
+        _pc_x_ref.VALUE_B: "Observed Value",
+        _pc_x_ref.DIFFERENCE: "Difference",
+        _pc_x_ref.TOLERANCE: "Tolerance",
         _pc_findings.FROM_DATE: "From Date",
         _pc_findings.THRU_DATE: "Thru Date",
         _PERFORMANCE_CHANGE: "Performance Difference",
@@ -3729,6 +3743,18 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_findings.FROM_DATE: "Beginning date of the affected performance period.",
         _pc_findings.THRU_DATE: "Ending date of the affected performance period.",
         _pc_findings.SECURITY_ID: "Security identifier, when the discrepancy is security-level.",
+        _pc_x_ref.SNAPSHOT: "Snapshot whose internal source-data is being checked.",
+        _pc_x_ref.ISSUE_TYPE: "Type of cross-reference consistency issue.",
+        _pc_x_ref.VALUE_A: (
+            "Expected value or minimum rate found for this consistency check."
+        ),
+        _pc_x_ref.VALUE_B: (
+            "Observed value or maximum rate found for this consistency check."
+        ),
+        _pc_x_ref.DIFFERENCE: "Observed value minus expected value, or maximum rate minus minimum rate.",
+        _pc_x_ref.TOLERANCE: (
+            "Configured threshold before the consistency check raises an issue."
+        ),
         _pc_findings.SEVERITY: "Materiality/severity assigned to this discrepancy.",
         _PERFORMANCE_CHANGE: (
             "Snapshot B reported performance minus snapshot A reported performance."

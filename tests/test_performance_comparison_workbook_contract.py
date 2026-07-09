@@ -24,13 +24,15 @@ _PORTFOLIO_COMPARISON_PATH = Path(
 _EXPECTED_PORTFOLIO_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
+    _pc_review_model.X_REF_ISSUES_SHEET,
+    _pc_review_model.SOURCE_DETAIL_SHEET,
 ]
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
 _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
-    _pc_review_model.RAW_AUDIT_TRAIL_SHEET,
+    _pc_review_model.X_REF_ISSUES_SHEET,
+    _pc_review_model.SOURCE_DETAIL_SHEET,
     _pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
     _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
@@ -136,7 +138,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("Raw Audit Trail", readme)
+            self.assertIn("Source Detail", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("Open `report.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
@@ -217,7 +219,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     _raw_header_values(workbook["Performance Difference Causes"]),
                 )
                 self.assertEqual(
-                    _header_values(workbook["Raw Audit Trail"])[:11],
+                    _header_values(workbook["Source Detail"])[:11],
                     [
                         *_COMMON_LEFT_HEADERS,
                         "Snapshot A Value",
@@ -228,8 +230,25 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    _header_values(workbook["Raw Audit Trail"])[-1],
+                    _header_values(workbook["Source Detail"])[-1],
                     "Review Key",
+                )
+                self.assertEqual(
+                    _header_values(workbook["Data Audit Issues"]),
+                    [
+                        "Snapshot",
+                        "Portfolio",
+                        "As Of Date",
+                        "Dataset Field",
+                        "Security",
+                        "Issue Type",
+                        "Reference Value",
+                        "Observed Value",
+                        "Difference",
+                        "Tolerance",
+                        "Explanation",
+                        "Review Key",
+                    ],
                 )
 
                 portfolio_differences = _column_values(
@@ -306,7 +325,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertNotIn("holdings.cost", income_april_review_note)
                 self.assertNotIn(
-                    'Review the "Raw Audit Trail" sheet',
+                    'Review the "Source Detail" sheet',
                     income_april_review_note,
                 )
                 self.assertTrue(
@@ -334,7 +353,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         and row[10]
                         == (
                             "CASH_USD ending holdings.market_value decreased by "
-                            "2,000.00."
+                            "2,008.00."
                         )
                         for row in alpha_february_rows
                     )
@@ -392,7 +411,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 jpm_dividend_row = next(
                     row
                     for row in underlying_rows
-                    if row[4] == "transactions.amount"
+                    if row[0] == "BALANCED"
+                    and row[4] == "transactions.amount"
                     and row[5] == "JPM"
                     and str(row[1])[:10] == "2026-04-01"
                     and str(row[2])[:10] == "2026-04-30"
@@ -597,7 +617,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     any(guidance.startswith("dv: ") for guidance in transaction_guidance)
                 )
-                raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
+                raw_rows = _sheet_rows(workbook["Source Detail"])
                 raw_fields = {row[4] for row in raw_rows}
                 self.assertNotIn("holdings.cost", raw_fields)
                 self.assertTrue(
@@ -809,7 +829,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     places=6,
                 )
                 self.assertIsNone(tnote_row[6])
-                raw_rows = _sheet_rows(workbook["Raw Audit Trail"])
+                raw_rows = _sheet_rows(workbook["Source Detail"])
                 self.assertNotIn("holdings.cost", {row[4] for row in raw_rows})
                 raw_sort_keys = [
                     (
@@ -897,7 +917,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 jpm_dividend_row = next(
                     row
                     for row in underlying_rows
-                    if row[4] == "transactions.amount"
+                    if row[0] == "BALANCED"
+                    and row[4] == "transactions.amount"
                     and row[5] == "JPM"
                     and str(row[1])[:10] == "2026-04-01"
                     and str(row[2])[:10] == "2026-04-30"
@@ -1000,6 +1021,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 html_report.index(_pc_review_model.RECONSTRUCTION_SUMMARY_SHEET),
             )
             self.assertLess(
-                html_report.index(_pc_review_model.RAW_AUDIT_TRAIL_SHEET),
+                html_report.index(_pc_review_model.SOURCE_DETAIL_SHEET),
                 html_report.index(_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET),
             )

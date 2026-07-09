@@ -49,7 +49,7 @@ def main() -> None:
 
     # Print only the workbook path; the HTML version of the workbook sits in
     # the same output folder.
-    print("Open these files to review performance_comparison output:")
+    print("Open these files to review performance-auditing output:")
     print(f"  {bundle_paths['review_workbook']}")
 
 

@@ -526,11 +526,10 @@ class TestPackageMetadata(unittest.TestCase):
         for expected_text in [
             "ppar setup ./my_ppar_data",
             "ppar analytics ./my_ppar_data/analytics",
-            "ppar performance_comparison ./my_ppar_data/performance_comparison",
-            "ppar perfcomp",
+            "ppar performance_audit ./my_ppar_data/performance_audit",
             "my_ppar_data/",
             "analytics/",
-            "performance_comparison/",
+            "performance_audit/",
             "README.md",
             "run_analytics.py",
             "run_portfolio_comparison.py",
@@ -582,7 +581,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("ppar setup --guide", readme)
         self.assertIn("ppar analytics ./my_ppar_data/analytics", readme)
         self.assertIn(
-            "ppar performance_comparison ./my_ppar_data/performance_comparison",
+            "ppar performance_audit ./my_ppar_data/performance_audit",
             readme,
         )
         self.assertIn("ppar.yaml", readme)
@@ -635,8 +634,7 @@ class TestPackageMetadata(unittest.TestCase):
             "The public installed command is:",
             "ppar setup <site_directory>",
             "ppar analytics <site_directory>/analytics",
-            "ppar performance_comparison <site_directory>/performance_comparison",
-            "`ppar perfcomp` is the short alias",
+            "ppar performance_audit <site_directory>/performance_audit",
             "`ppar.analytics`",
             "`ppar.axys`",
             "`ppar.performance_comparison`",
@@ -646,7 +644,7 @@ class TestPackageMetadata(unittest.TestCase):
             "The YAML files are the main configuration and onboarding surface.",
             "`Performance Differences`",
             "`Performance Difference Causes`",
-            "`Raw Audit Trail`",
+            "`Source Detail`",
             "Keep new docs rare.",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -1049,7 +1047,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("Phase 96: Axys/APX Demo Simplification", roadmap)
         self.assertIn("period split backlog is now empty", roadmap)
         self.assertIn("plausible/defensible examples", roadmap)
-        self.assertIn("X-Ref Issues worksheet", roadmap)
+        self.assertIn("Data Audit Issues worksheet", roadmap)
         self.assertIn("Phase 83: Generic Analytics Disposition", roadmap)
         self.assertIn("not the primary installed-user onboarding path", roadmap)
         self.assertIn("package-root `ppar.performance_comparison` API boundary", roadmap)
@@ -1768,15 +1766,15 @@ class TestPackageMetadata(unittest.TestCase):
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
-            "/tmp/ppar_smoke_site/performance_comparison/run_portfolio_comparison.py",
-            "/tmp/ppar_smoke_site/performance_comparison/run_security_comparison.py",
+            "/tmp/ppar_smoke_site/performance_audit/run_portfolio_comparison.py",
+            "/tmp/ppar_smoke_site/performance_audit/run_security_comparison.py",
             "/tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py",
             "ppar.performance_comparison.cli.validate_bundle",
             "ppar.performance_comparison.cli.validate_config",
             "ppar.performance_comparison.cli.validate_demo_matrix",
             "scripts/check_performance_comparison_demo_health.py",
-            "/tmp/ppar_smoke_site/performance_comparison/output/portfolio",
-            "/tmp/ppar_smoke_site/performance_comparison/output/security",
+            "/tmp/ppar_smoke_site/performance_audit/output/portfolio",
+            "/tmp/ppar_smoke_site/performance_audit/output/security",
             "report.xlsx",
             "report_bundle_contract()",
             "prefer the package-root workflow helpers",
@@ -1784,7 +1782,7 @@ class TestPackageMetadata(unittest.TestCase):
             "package-root exports",
             "`Performance Differences`",
             "`Performance Difference Causes`",
-            "`Raw Audit Trail`",
+            "`Source Detail`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
@@ -1858,7 +1856,7 @@ class TestPackageMetadata(unittest.TestCase):
             "complete YAML treatment",
             "`Performance Differences` sheet",
             "`Performance Difference Causes` sheet",
-            "`Raw Audit Trail` sheet",
+            "`Source Detail` sheet",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",

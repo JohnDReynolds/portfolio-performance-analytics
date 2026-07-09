@@ -39,8 +39,12 @@ INCOME,2026-04-06,2026-04-07,AMZN,dv,csus,$income,$cash,,,0.0,0.0,100.0,0.0
 INCOME,2026-05-06,2026-05-07,AAPL,by,csus,$cash,CASH_USD,,,24.8447,161.0,-4004.95,4.95
 INCOME,2026-05-06,2026-05-07,AMZN,dv,csus,$income,$cash,,,0.0,0.0,100.0,0.0
 INCOME,2026-05-15,2026-05-15,TNOTE2Y,in,fius,$income,$cash,,,0.0,0.0,1280.0,0.0
+DATAAUDIT,2026-03-31,2026-03-31,DUPCHK,by,csus,$cash,$cash,,,0.0,0.0,0.0,0.0
+DATAAUDIT,2026-03-31,2026-03-31,DUPCHK,by,csus,$cash,$cash,,,0.0,0.0,0.0,0.0
+ALPHA,2026-04-06,2026-04-07,JPM,dv,csus,$income,$cash,,,0.0,0.0,537.01,0.0
 BALANCED,2026-03-20,2026-03-20,CASH_USD,li,caus,$pty,$cash,,,0.0,0.0,2500.0,0.0
 ALPHA,2026-02-17,2026-02-17,CASH_USD,lo,caus,$pty,$cash,,,0.0,0.0,-2000.0,0.0
+ALPHA,2026-02-10,2026-02-10,TNOTE5Y,pa,fius,$income,$cash,,,0.0,0.0,-8.0,0.0
 BALANCED,2026-05-15,2026-05-15,TSLA,ss,csus,awus,none,,,50.0,422.24,21112.0,0.0
 BALANCED,2026-05-29,2026-05-29,TSLA,cs,csus,$pty,$cash,,,50.0,435.79,-21789.5,0.0
 BALANCED,2026-04-18,2026-04-18,JPM,rc,csus,$pty,$cash,return_of_capital,JPM,0.0,0.0,240.0,0.0

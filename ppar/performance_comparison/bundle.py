@@ -226,11 +226,13 @@ def write_report_bundle_readme(
         "and Modified Dietz inputs used to review the performance difference.",
         "   Yellow cells are included in explained performance difference. Gold "
         "cells are possible causes for remaining unexplained differences.",
-        f"3. Use {_pc_review_model.RAW_AUDIT_TRAIL_SHEET} for audit and "
+        f"3. Use {_pc_review_model.X_REF_ISSUES_SHEET} to review cross-reference "
+        "consistency checks across the union of Snapshot A and Snapshot B.",
+        f"4. Use {_pc_review_model.SOURCE_DETAIL_SHEET} for audit and "
         "troubleshooting; it is the complete finding-level audit trail.",
-        f"4. Use the `review_key` column to follow a {review_unit} across the "
+        f"5. Use the `review_key` column to follow a {review_unit} across the "
         f"`{SUPPORTING_FILES_DIRECTORY}/` CSV artifacts.",
-        f"5. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv`, "
+        f"6. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv`, "
         f"`{SUPPORTING_FILES_DIRECTORY}/transaction_cross_checks.csv`, and "
         f"`{SUPPORTING_FILES_DIRECTORY}/flow_cross_check_reconciliation.csv` for "
         "supplementary transaction and external-flow diagnostics.",
@@ -238,7 +240,7 @@ def write_report_bundle_readme(
         "only when auditing "
         "transaction row-identity evidence; it reports conservative matching "
         "status and does not imply fuzzy transaction linkage.",
-        f"6. Use `{SUPPORTING_FILES_DIRECTORY}/review_summary.json` when handing the "
+        f"7. Use `{SUPPORTING_FILES_DIRECTORY}/review_summary.json` when handing the "
         "bundle to another reviewer or automation. It names the Modified Dietz "
         "vocabulary, entrypoints, source context, and transaction-semantics "
         "summary in one compact file.",

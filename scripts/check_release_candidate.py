@@ -273,7 +273,7 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
     """Run scripts copied by ``ppar setup`` in a temporary site workspace."""
     with tempfile.TemporaryDirectory(prefix="ppar_release_site_") as directory:
         site_directory = Path(directory) / "my_ppar_data"
-        comparison_directory = site_directory / "performance_comparison"
+        comparison_directory = site_directory / "performance_audit"
 
         runner.run(
             [

@@ -106,7 +106,7 @@ data. Snapshot B introduces controlled changes that produce:
   `by`/`pa` and `sl`/`sa` rows, quantity-driven holding value/accrual evidence,
   and reviewer triage for incomplete or overlapping estimates;
 - related holding-component examples where quantity rows sit beside selected
-  market-value rows and cost remains in the `Raw Audit Trail`;
+  market-value rows and cost remains in the `Source Detail`;
 - matching security-level examples for AAPL and TNOTE2Y;
 - transaction-rule YAML plus default field-role treatment for performance
   inputs, input components, reported-performance diagnostics, and context fields.

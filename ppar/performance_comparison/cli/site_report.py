@@ -1,4 +1,4 @@
-"""Write performance-comparison reports for a configured site folder."""
+"""Write performance-auditing reports for a configured site folder."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from ppar.performance_comparison.specification import (
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _OUTPUT_DIR: Final[str] = "output"
-_DEFAULT_SITE_DIRECTORY: Final[str] = "performance_comparison"
+_DEFAULT_SITE_DIRECTORY: Final[str] = "performance_audit"
 _REPORT_CHOICES: Final[tuple[str, ...]] = (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
@@ -29,7 +29,11 @@ _REPORT_CHOICES: Final[tuple[str, ...]] = (
 )
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    prog: str = "ppar performance_audit",
+) -> int:
     """Run the site report command.
 
     Args:
@@ -39,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
         Process exit code. ``0`` indicates that requested report bundles were
         written.
     """
-    args = _argument_parser().parse_args(argv)
+    args = _argument_parser(prog=prog).parse_args(argv)
     try:
         result = run_report(
             _default_site_directory(args.site_directory),
@@ -85,7 +89,7 @@ def run_report(
     config_path = site_path / _CONFIG_FILE_NAME
     if not config_path.exists():
         raise PpaError(
-            f"{config_path} is missing. Run from the performance_comparison folder "
+            f"{config_path} is missing. Run from the performance_audit folder "
             "or pass the folder. For first-time setup, run: "
             "ppar setup ./my_ppar_data",
             802,
@@ -120,16 +124,19 @@ def run_report(
     return result
 
 
-def _argument_parser() -> argparse.ArgumentParser:
+def _argument_parser(
+    *,
+    prog: str = "ppar performance_audit",
+) -> argparse.ArgumentParser:
     """Return the site report argument parser."""
     parser = argparse.ArgumentParser(
-        prog="ppar performance_comparison",
-        description="Write performance-comparison report bundles for a site setup.",
+        prog=prog,
+        description="Write performance-auditing report bundles for a site setup.",
         epilog=(
             "Examples:\n"
-            "  ppar performance_comparison ./my_ppar_data/performance_comparison\n"
-            "  ppar performance_comparison --report portfolio\n"
-            "  ppar perfcomp --report both"
+            "  ppar performance_audit ./my_ppar_data/performance_audit\n"
+            "  ppar performance_audit --report portfolio\n"
+            "  ppar performance_audit --report both"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -151,7 +158,7 @@ def _argument_parser() -> argparse.ArgumentParser:
 
 
 def _default_site_directory(site_directory: Path | None) -> Path:
-    """Return the explicit or conventional performance-comparison site directory."""
+    """Return the explicit or conventional performance-auditing site directory."""
     if site_directory is not None:
         return site_directory
     return Path.cwd()
@@ -201,7 +208,7 @@ def _is_missing_security_data(error: PpaError) -> bool:
 
 def _print_success(result: dict[str, Any]) -> None:
     """Print a concise user handoff."""
-    print("Open these files to review performance_comparison output:")
+    print("Open these files to review performance-auditing output:")
     for path in result["review_paths"]:
         print(f"  {path}")
     if "security_status" in result:

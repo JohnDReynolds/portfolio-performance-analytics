@@ -4,8 +4,7 @@ PPAR uses local Axys/APX data to perform two main functions:
 
 1. Produce Brinson-Fachler attribution, Carino-smoothed multi-period effects,
    contribution views, and ex-post risk statistics.
-2. Attribute changes in reported performance to underlying changes in holdings
-   and transactions.
+2. Audit reported performance, source-data changes, and source-data quality.
 
 PPAR is built for local execution. Your Axys/APX exports stay on your machine or
 inside your environment.
@@ -103,12 +102,20 @@ Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
 ---
 
-## Performance Comparison
+## Performance Auditing
 
-Use Performance Comparison when reported returns have changed and you need to
-know why. PPAR compares two source-data snapshots, finds changed performance,
-and then attributes each change in performance to specific changes in
-transactions and holdings.
+Use Performance Auditing when reported returns have changed and you need to know
+why. It includes two related review surfaces:
+
+- **Performance Comparison:** compares two source-data snapshots, finds changed
+  performance, and attributes each change to specific changes in transactions
+  and holdings.
+- **Data Audit:** flags suspicious source-data relationships such as price
+  ranges, dividend rates, accrued-interest rates, missing dividends, and holding
+  value math.
+
+Performance Auditing workbooks include both Performance Comparison sheets and
+the **Data Audit Issues** sheet.
 
 Typical questions:
 
@@ -129,8 +136,8 @@ Typical questions:
   width="100%"
 />
 
-The workbook output includes performance differences, explanation rows,
-residual review status, and raw audit trail detail.
+The workbook output includes performance differences, explanation rows, data
+audit issues, residual review status, and source detail.
 
 ---
 
@@ -149,10 +156,10 @@ Run Analytics:
 ppar analytics ./my_ppar_data/analytics
 ```
 
-Run Performance Comparison:
+Run Performance Auditing:
 
 ```bash
-ppar performance_comparison ./my_ppar_data/performance_comparison
+ppar performance_audit ./my_ppar_data/performance_audit
 ```
 
 The setup folder is intentionally small:
@@ -165,7 +172,7 @@ my_ppar_data/
     portperf.csv
     secperf.csv
     run_analytics.py
-  performance_comparison/
+  performance_audit/
     ppar.yaml
     run_portfolio_comparison.py
     run_security_comparison.py
@@ -196,7 +203,7 @@ The Axys/APX starter path focuses on IMEX-style CSV exports:
 - transactions
 
 Analytics can run from portfolio/security performance exports. Performance
-Comparison uses two source-data snapshots, usually an older/original snapshot
+Auditing uses two source-data snapshots, usually an older/original snapshot
 and a newer/restated snapshot.
 
 PPAR normalizes those files through YAML so each site can document its own local
@@ -217,10 +224,10 @@ analytics/output/
   *.png
 ```
 
-Performance Comparison writes review packages:
+Performance Auditing writes review packages:
 
 ```text
-performance_comparison/output/
+performance_audit/output/
   portfolio/report.xlsx
   portfolio/report.html
   security/report.xlsx
