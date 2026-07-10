@@ -34,6 +34,7 @@ from ppar.performance_comparison.findings import (
     PC_PORT_RET,
     SEVERITY_MATERIAL,
 )
+from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
 from ppar.performance_comparison.transaction_summary import (
     transaction_semantics_summary,
 )
@@ -558,6 +559,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "when auditing transaction row-identity evidence",
                 readme,
             )
+
             self.assertIn("conservative matching status", readme)
             self.assertIn("does not imply fuzzy transaction linkage", readme)
             self.assertNotIn("cross-check rows may be", readme)
@@ -845,6 +847,28 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("impact_method", top_evidence.columns)
             self.assertIn("impact_message", top_evidence.columns)
             self.assertEqual(report_bundle_validation_issues(output_directory), [])
+
+    def test_write_report_bundle_reuses_workbook_sheets_for_html_and_xlsx(self) -> None:
+        """Bundle generation avoids rebuilding workbook-style tables twice."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        sheet_builder = _pc_workbook_tables.performance_comparison_review_workbook_sheets
+
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.object(
+                _pc_workbook_tables,
+                "performance_comparison_review_workbook_sheets",
+                wraps=sheet_builder,
+            ) as wrapped_sheet_builder:
+                paths = write_performance_comparison_report_bundle(
+                    findings,
+                    Path(directory) / "bundle",
+                    include_workbook=True,
+                    require_complete_yaml_setup=False,
+                )
+
+        self.assertIn("html_report", paths)
+        self.assertIn("review_workbook", paths)
+        self.assertEqual(wrapped_sheet_builder.call_count, 1)
 
     def test_write_report_bundle_manifest_includes_source_context(self) -> None:
         """Report bundle manifests summarize comparison and extract-contract context."""

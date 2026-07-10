@@ -2808,6 +2808,27 @@ class TestPackageMetadata(unittest.TestCase):
 
         subprocess.run([sys.executable, "-c", command], check=True)
 
+    def test_package_root_does_not_eagerly_load_analytics(self) -> None:
+        """Importing the package root keeps Analytics modules out of startup."""
+        command = (
+            "import sys; import ppar; "
+            "raise SystemExit(1 if 'ppar.analytics' in sys.modules else 0)"
+        )
+
+        subprocess.run([sys.executable, "-c", command], check=True)
+
+    def test_package_root_lazy_analytics_exports_still_work(self) -> None:
+        """Package-root Analytics exports remain available on demand."""
+        command = (
+            "from ppar import Analytics, Attribution, Frequency, RiskStatistics, View; "
+            "raise SystemExit(0 if all("
+            "obj is not None for obj in "
+            "(Analytics, Attribution, Frequency, RiskStatistics, View)"
+            ") else 1)"
+        )
+
+        subprocess.run([sys.executable, "-c", command], check=True)
+
 
 if __name__ == "__main__":
     unittest.main()

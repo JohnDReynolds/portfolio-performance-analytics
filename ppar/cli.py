@@ -5,10 +5,6 @@ from __future__ import annotations
 import argparse
 import sys
 
-# Project imports
-from ppar.performance_comparison.cli import setup as _setup
-from ppar.performance_comparison.cli import site_report as _site_report
-
 
 class _TopLevelHelpFormatter(argparse.RawTextHelpFormatter):
     """Format top-level help with enough room for long command names."""
@@ -41,8 +37,12 @@ def main(argv: list[str] | None = None) -> int:
 
         return _analytics.main(remaining_args)
     if command == "setup":
+        from ppar.performance_comparison.cli import setup as _setup
+
         return _setup.main(remaining_args)
     if command == "performance_audit":
+        from ppar.performance_comparison.cli import site_report as _site_report
+
         return _site_report.main(remaining_args, prog="ppar performance_audit")
 
     _argument_parser().parse_args(effective_argv)

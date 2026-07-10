@@ -245,6 +245,17 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("Output goes here:", readme)
             self.assertIn("performance_audit/output/portfolio/report.xlsx", readme)
             self.assertIn("analytics/output/*.html", readme)
+            first_run_sequence = [
+                "## First Run",
+                f"ppar performance_audit {site_directory / 'performance_audit'}",
+                f"ppar analytics {site_directory / 'analytics'}",
+                "Start with Performance Auditing",
+                "Output goes here:",
+                "## Customizing",
+            ]
+            for before, after in zip(first_run_sequence, first_run_sequence[1:]):
+                with self.subTest(before=before, after=after):
+                    self.assertLess(readme.index(before), readme.index(after))
             self.assertIn("the original or older source-data snapshot", readme)
             self.assertIn("the newer, corrected, or restated source-data snapshot", readme)
             self.assertLess(

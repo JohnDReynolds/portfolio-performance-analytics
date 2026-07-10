@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 # Python imports
+from collections.abc import Iterable
 import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
@@ -220,12 +221,16 @@ def portfolio_return_reconstruction_checks(
 
 def security_return_reconstruction_checks(
     comparison_path: util.PathLike | None,
+    *,
+    active_keys: Iterable[tuple[str, str, dt.date, dt.date]] | None = None,
 ) -> pl.DataFrame:
     """Return security return-reconstruction diagnostics for a comparison YAML.
 
     Args:
         comparison_path: Path to a performance comparison YAML file. ``None``
             returns an empty table because reconstruction needs source-data.
+        active_keys: Optional portfolio/security/period keys to check. When
+            omitted, all configured security performance rows are checked.
 
     Returns:
         Stable Polars table with one row per portfolio-security-period that can
@@ -245,7 +250,7 @@ def security_return_reconstruction_checks(
         return _empty_security_return_reconstruction_checks()
 
     engine = _SecurityReturnReconstructionEngine(specification, reconstruction)
-    return engine.checks()
+    return engine.checks(active_keys=active_keys)
 
 
 def return_reconstruction_summary(
@@ -460,7 +465,11 @@ class _SecurityReturnReconstructionEngine:
         self._holdings_loader = HoldingsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
 
-    def checks(self) -> pl.DataFrame:
+    def checks(
+        self,
+        *,
+        active_keys: Iterable[tuple[str, str, dt.date, dt.date]] | None = None,
+    ) -> pl.DataFrame:
         """Return the configured security reconstruction check table."""
         security_a = self._required_security_performance("a")
         security_b = self._required_security_performance("b")
@@ -470,7 +479,10 @@ class _SecurityReturnReconstructionEngine:
         transactions_b = self._required_transactions("b")
 
         rows = []
-        for key in sorted(_security_period_keys(security_a, security_b)):
+        keys = _security_period_keys(security_a, security_b)
+        if active_keys is not None:
+            keys &= set(active_keys)
+        for key in sorted(keys):
             period_a = _security_row_by_key(security_a, key)
             period_b = _security_row_by_key(security_b, key)
             if period_a is None or period_b is None:

@@ -171,6 +171,10 @@ class _WorkbookReconstructionCache:
         self._comparison_path = comparison_path
         self._portfolio_checks: pl.DataFrame | None = None
         self._security_checks: pl.DataFrame | None = None
+        self._security_checks_by_active_keys: dict[
+            frozenset[tuple[str, str, _dt.date, _dt.date]],
+            pl.DataFrame,
+        ] = {}
         self._summary: pl.DataFrame | None = None
 
     def portfolio_checks(self) -> pl.DataFrame:
@@ -183,8 +187,22 @@ class _WorkbookReconstructionCache:
             )
         return self._portfolio_checks
 
-    def security_checks(self) -> pl.DataFrame:
+    def security_checks(
+        self,
+        active_keys: Iterable[tuple[object, object, object, object]] | None = None,
+    ) -> pl.DataFrame:
         """Return cached security return-reconstruction checks."""
+        if active_keys is not None:
+            reconstruction_keys = _security_reconstruction_active_keys(active_keys)
+            cache_key = frozenset(reconstruction_keys)
+            if cache_key not in self._security_checks_by_active_keys:
+                self._security_checks_by_active_keys[cache_key] = (
+                    _pc_reconstruction.security_return_reconstruction_checks(
+                        self._comparison_path,
+                        active_keys=reconstruction_keys,
+                    )
+                )
+            return self._security_checks_by_active_keys[cache_key]
         if self._security_checks is None:
             self._security_checks = (
                 _pc_reconstruction.security_return_reconstruction_checks(
@@ -202,6 +220,103 @@ class _WorkbookReconstructionCache:
         return self._summary
 
 
+class _WorkbookTableCache:
+    """Cache derived workbook tables for one workbook/report build."""
+
+    def __init__(self, findings: pl.DataFrame) -> None:
+        self._findings = findings
+        self._cause_summary: dict[str, pl.DataFrame] = {}
+        self._primary_coverage: dict[str, pl.DataFrame] = {}
+        self._top_evidence: dict[str, pl.DataFrame] = {}
+        self._ranked_rows: dict[str, list[dict[str, object]]] = {}
+        self._selected_impact_basis_keys: dict[str, set[tuple[object, ...]]] = {}
+        self._performance_input_family_keys: dict[str, set[tuple[object, ...]]] = {}
+        self._active_portfolio_keys: set[tuple[object, object, object]] | None = None
+        self._active_security_keys: set[tuple[object, object, object, object]] | None = None
+
+    def cause_summary(self, comparison_level: str) -> pl.DataFrame:
+        """Return cached cause summary rows for the configured comparison level."""
+        if comparison_level not in self._cause_summary:
+            self._cause_summary[comparison_level] = _workbook_primary_cause_summary(
+                self._findings,
+                comparison_level=comparison_level,
+            )
+        return self._cause_summary[comparison_level]
+
+    def primary_coverage(self, comparison_level: str) -> pl.DataFrame:
+        """Return cached primary coverage rows for the configured comparison level."""
+        if comparison_level not in self._primary_coverage:
+            self._primary_coverage[comparison_level] = _workbook_primary_coverage_summary(
+                self._findings,
+                comparison_level=comparison_level,
+            )
+        return self._primary_coverage[comparison_level]
+
+    def top_evidence(self, comparison_level: str) -> pl.DataFrame:
+        """Return cached top-evidence rows for the configured comparison level."""
+        if comparison_level not in self._top_evidence:
+            self._top_evidence[comparison_level] = _workbook_top_evidence_table(
+                self._findings,
+                comparison_level=comparison_level,
+            )
+        return self._top_evidence[comparison_level]
+
+    def ranked_rows(self, comparison_level: str) -> list[dict[str, object]]:
+        """Return cached ranked workbook evidence rows."""
+        if comparison_level not in self._ranked_rows:
+            self._ranked_rows[comparison_level] = _workbook_ranked_changed_rows_for_level(
+                self._findings,
+                comparison_level=comparison_level,
+                table_cache=self,
+            )
+        return self._ranked_rows[comparison_level]
+
+    def selected_impact_basis_keys(self, comparison_level: str) -> set[tuple[object, ...]]:
+        """Return cached period/impact-basis keys included in explained totals."""
+        if comparison_level not in self._selected_impact_basis_keys:
+            self._selected_impact_basis_keys[comparison_level] = (
+                _workbook_selected_impact_basis_keys(
+                    self._findings,
+                    comparison_level=comparison_level,
+                    table_cache=self,
+                )
+            )
+        return self._selected_impact_basis_keys[comparison_level]
+
+    def performance_input_family_keys(
+        self,
+        comparison_level: str,
+    ) -> set[tuple[object, ...]]:
+        """Return cached cause-family keys with selected performance input rows."""
+        if comparison_level not in self._performance_input_family_keys:
+            self._performance_input_family_keys[comparison_level] = (
+                _workbook_performance_input_family_keys(
+                    self._findings,
+                    comparison_level=comparison_level,
+                    table_cache=self,
+                )
+            )
+        return self._performance_input_family_keys[comparison_level]
+
+    def active_portfolio_keys(self) -> set[tuple[object, object, object]]:
+        """Return cached portfolio-period keys with reported performance changes."""
+        if self._active_portfolio_keys is None:
+            self._active_portfolio_keys = _workbook_active_portfolio_period_keys(
+                self._findings,
+                table_cache=self,
+            )
+        return self._active_portfolio_keys
+
+    def active_security_keys(self) -> set[tuple[object, object, object, object]]:
+        """Return cached security-period keys with reported performance changes."""
+        if self._active_security_keys is None:
+            self._active_security_keys = _workbook_active_security_period_keys(
+                self._findings,
+                table_cache=self,
+            )
+        return self._active_security_keys
+
+
 def _resolved_reconstruction_cache(
     comparison_path: util.PathLike | None,
     reconstruction_cache: _WorkbookReconstructionCache | None,
@@ -210,6 +325,25 @@ def _resolved_reconstruction_cache(
     if reconstruction_cache is not None:
         return reconstruction_cache
     return _WorkbookReconstructionCache(comparison_path)
+
+
+def _security_reconstruction_active_keys(
+    active_keys: Iterable[tuple[object, object, object, object]],
+) -> set[tuple[str, str, _dt.date, _dt.date]]:
+    """Return return-reconstruction security keys from workbook primary keys."""
+    reconstruction_keys: set[tuple[str, str, _dt.date, _dt.date]] = set()
+    for portfolio_id, from_date, thru_date, security_id in active_keys:
+        if not isinstance(from_date, _dt.date) or not isinstance(thru_date, _dt.date):
+            continue
+        reconstruction_keys.add(
+            (
+                str(portfolio_id),
+                str(security_id),
+                from_date,
+                thru_date,
+            )
+        )
+    return reconstruction_keys
 
 
 def write_performance_comparison_review_workbook(
@@ -292,16 +426,19 @@ def performance_comparison_review_workbook_sheets(
     reconstruction_cache = _reconstruction_cache or _WorkbookReconstructionCache(
         comparison_path
     )
+    table_cache = _WorkbookTableCache(active_findings)
     primary_sheet = (
         _security_differences_sheet(
             active_findings,
             comparison_path=comparison_path,
+            table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
         )
         if comparison_level == SECURITY_COMPARISON_LEVEL
         else _portfolio_differences_sheet(
             active_findings,
             comparison_path=comparison_path,
+            table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
         )
     )
@@ -319,8 +456,10 @@ def performance_comparison_review_workbook_sheets(
         *_shared_detail_sheets(
             findings,
             active_findings,
+            primary_changes_table=primary_sheet.table,
             comparison_path=comparison_path,
             comparison_level=comparison_level,
+            table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
         ),
         *diagnostic_sheets,
@@ -387,6 +526,7 @@ def _portfolio_differences_sheet(
     active_findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None,
+    table_cache: _WorkbookTableCache,
     reconstruction_cache: _WorkbookReconstructionCache,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the portfolio-level performance differences sheet."""
@@ -398,6 +538,7 @@ def _portfolio_differences_sheet(
         table=_workbook_portfolio_changes_table(
             active_findings,
             comparison_path=comparison_path,
+            table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
         ),
         columns=_workbook_portfolio_changes_columns(),
@@ -409,6 +550,7 @@ def _security_differences_sheet(
     active_findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None,
+    table_cache: _WorkbookTableCache,
     reconstruction_cache: _WorkbookReconstructionCache,
 ) -> _pc_workbook.ReviewWorkbookSheet:
     """Return the security-level performance differences sheet."""
@@ -421,6 +563,7 @@ def _security_differences_sheet(
             active_findings,
             comparison_path=comparison_path,
             comparison_level=SECURITY_COMPARISON_LEVEL,
+            table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
         ),
         columns=_workbook_security_changes_columns(),
@@ -432,8 +575,10 @@ def _shared_detail_sheets(
     findings: pl.DataFrame,
     active_findings: pl.DataFrame,
     *,
+    primary_changes_table: pl.DataFrame,
     comparison_path: util.PathLike | None,
     comparison_level: str,
+    table_cache: _WorkbookTableCache,
     reconstruction_cache: _WorkbookReconstructionCache,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return detail sheets shared by portfolio and security workflows."""
@@ -445,6 +590,8 @@ def _shared_detail_sheets(
                 active_findings,
                 comparison_path=comparison_path,
                 comparison_level=comparison_level,
+                primary_changes_table=primary_changes_table,
+                table_cache=table_cache,
                 reconstruction_cache=reconstruction_cache,
             ),
             columns=_workbook_underlying_cause_columns(),
@@ -476,17 +623,27 @@ def _workbook_portfolio_changes_table(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
+    table_cache: _WorkbookTableCache | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
     """Return one workbook row per changed portfolio period."""
     coverage = _with_period_review_key(
-        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+        table_cache.primary_coverage(PORTFOLIO_COMPARISON_LEVEL)
+        if table_cache is not None
+        else _pc_explain.portfolio_period_impact_coverage_summary(findings)
     )
     if coverage.is_empty():
         return _workbook_empty_portfolio_changes_table()
+    ranked_rows = (
+        table_cache.ranked_rows(PORTFOLIO_COMPARISON_LEVEL)
+        if table_cache is not None
+        else _workbook_ranked_changed_rows(findings)
+    )
     underlying_totals = _workbook_underlying_impact_totals(
         findings,
         comparison_path=comparison_path,
+        ranked_rows=ranked_rows,
+        table_cache=table_cache,
         reconstruction_cache=_resolved_reconstruction_cache(
             comparison_path,
             reconstruction_cache,
@@ -501,6 +658,7 @@ def _workbook_portfolio_changes_table(
         findings,
         unresolved_keys=unresolved_keys,
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+        ranked_rows=ranked_rows,
     )
     rows = [
         _workbook_performance_change_row(
@@ -528,11 +686,17 @@ def _workbook_underlying_impact_totals(
     findings: pl.DataFrame,
     *,
     comparison_path: util.PathLike | None = None,
+    ranked_rows: Sequence[Mapping[str, object]] | None = None,
+    table_cache: _WorkbookTableCache | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> dict[tuple[object, object, object], float]:
     """Return explained difference totals from underlying input rows."""
     totals: dict[tuple[object, object, object], float] = {}
-    active_keys = _workbook_active_portfolio_period_keys(findings)
+    active_keys = (
+        table_cache.active_portfolio_keys()
+        if table_cache is not None
+        else _workbook_active_portfolio_period_keys(findings)
+    )
     reconstruction_cache = _resolved_reconstruction_cache(
         comparison_path,
         reconstruction_cache,
@@ -552,6 +716,7 @@ def _workbook_underlying_impact_totals(
     for row, estimated_impact in _workbook_selected_underlying_impact_rows(
         findings,
         comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+        ranked_rows=ranked_rows,
     ):
         key = _workbook_period_key(row)
         if key in formula_keys:
@@ -795,14 +960,29 @@ def _workbook_security_changes_table(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    table_cache: _WorkbookTableCache | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
     """Return one workbook row per changed security period."""
-    summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
+    summary = _with_security_review_key(
+        table_cache.primary_coverage(comparison_level)
+        if table_cache is not None
+        else _pc_explain.security_period_summary(findings)
+    )
+    ranked_rows = (
+        table_cache.ranked_rows(comparison_level)
+        if table_cache is not None
+        else _workbook_ranked_changed_rows_for_level(
+            findings,
+            comparison_level=comparison_level,
+        )
+    )
     security_totals = _workbook_security_underlying_impact_totals(
         findings,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        ranked_rows=ranked_rows,
+        table_cache=table_cache,
         reconstruction_cache=_resolved_reconstruction_cache(
             comparison_path,
             reconstruction_cache,
@@ -819,6 +999,7 @@ def _workbook_security_changes_table(
             findings,
             unresolved_keys=unresolved_keys,
             comparison_level=comparison_level,
+            ranked_rows=ranked_rows,
         )
         rows = [
             _workbook_security_change_row(
@@ -850,11 +1031,17 @@ def _workbook_security_underlying_impact_totals(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    ranked_rows: Sequence[Mapping[str, object]] | None = None,
+    table_cache: _WorkbookTableCache | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> dict[tuple[object, object, object, object], float]:
     """Return security-level explained totals from underlying input rows."""
     totals: dict[tuple[object, object, object, object], float] = {}
-    active_keys = _workbook_active_security_period_keys(findings)
+    active_keys = (
+        table_cache.active_security_keys()
+        if table_cache is not None
+        else _workbook_active_security_period_keys(findings)
+    )
     reconstruction_cache = _resolved_reconstruction_cache(
         comparison_path,
         reconstruction_cache,
@@ -874,6 +1061,7 @@ def _workbook_security_underlying_impact_totals(
     for row, estimated_impact in _workbook_selected_underlying_impact_rows(
         findings,
         comparison_level=comparison_level,
+        ranked_rows=ranked_rows,
     ):
         if not _has_text(row.get(_pc_findings.SECURITY_ID)):
             continue
@@ -908,6 +1096,7 @@ def _workbook_possible_cause_comments(
     *,
     unresolved_keys: set[tuple[object, ...]],
     comparison_level: str,
+    ranked_rows: Sequence[Mapping[str, object]] | None = None,
 ) -> dict[tuple[object, ...], str]:
     """Return possible-cause review comments for unresolved performance rows."""
     possible_comments_by_key: dict[tuple[object, ...], list[str]] = {}
@@ -915,6 +1104,7 @@ def _workbook_possible_cause_comments(
         findings,
         unresolved_keys=unresolved_keys,
         comparison_level=comparison_level,
+        ranked_rows=ranked_rows,
     ):
         key = _workbook_primary_key(row, comparison_level)
         comment = _workbook_possible_cause_row_comment(row)
@@ -934,20 +1124,22 @@ def _workbook_possible_cause_rows(
     *,
     unresolved_keys: set[tuple[object, ...]],
     comparison_level: str,
+    ranked_rows: Sequence[Mapping[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     """Return unestimated source rows that may explain unresolved differences."""
     if not unresolved_keys:
         return []
     possible_rows: list[dict[str, object]] = []
-    for row in _workbook_ranked_changed_rows_for_level(
+    source_rows = ranked_rows or _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
-    ):
+    )
+    for row in source_rows:
         if _workbook_primary_key(row, comparison_level) not in unresolved_keys:
             continue
         if not _workbook_is_possible_cause_row(row):
             continue
-        possible_rows.append(row)
+        possible_rows.append(dict(row))
     return possible_rows
 
 
@@ -1054,7 +1246,7 @@ def _workbook_security_reconstruction_formula_rows(
         comparison_path,
         reconstruction_cache,
     )
-    checks = reconstruction_cache.security_checks()
+    checks = reconstruction_cache.security_checks(active_keys=active_keys)
     if checks.is_empty():
         return []
 
@@ -1076,10 +1268,14 @@ def _workbook_security_reconstruction_formula_rows(
 
 def _workbook_active_portfolio_period_keys(
     findings: pl.DataFrame,
+    *,
+    table_cache: _WorkbookTableCache | None = None,
 ) -> set[tuple[object, object, object]]:
     """Return portfolio-period keys with reported portfolio performance differences."""
     summary = _with_period_review_key(
-        _pc_explain.portfolio_period_impact_coverage_summary(findings)
+        table_cache.primary_coverage(PORTFOLIO_COMPARISON_LEVEL)
+        if table_cache is not None
+        else _pc_explain.portfolio_period_impact_coverage_summary(findings)
     )
     return {
         _workbook_period_key(row)
@@ -1089,9 +1285,15 @@ def _workbook_active_portfolio_period_keys(
 
 def _workbook_active_security_period_keys(
     findings: pl.DataFrame,
+    *,
+    table_cache: _WorkbookTableCache | None = None,
 ) -> set[tuple[object, object, object, object]]:
     """Return security-period keys with reported security performance differences."""
-    summary = _with_security_review_key(_pc_explain.security_period_summary(findings))
+    summary = _with_security_review_key(
+        table_cache.primary_coverage(SECURITY_COMPARISON_LEVEL)
+        if table_cache is not None
+        else _pc_explain.security_period_summary(findings)
+    )
     return {
         _workbook_security_period_key(row)
         for row in summary.iter_rows(named=True)
@@ -1457,6 +1659,7 @@ def _workbook_selected_underlying_impact_rows(
     findings: pl.DataFrame,
     *,
     comparison_level: str,
+    ranked_rows: Sequence[Mapping[str, object]] | None = None,
 ) -> list[tuple[dict[str, object], float]]:
     """Return additive impact rows selected for workbook explained totals.
 
@@ -1467,16 +1670,17 @@ def _workbook_selected_underlying_impact_rows(
         them as supporting evidence for changed holdings.
     """
     selected_rows: list[tuple[dict[str, object], float]] = []
-    for row in _workbook_ranked_changed_rows_for_level(
+    source_rows = ranked_rows or _workbook_ranked_changed_rows_for_level(
         findings,
         comparison_level=comparison_level,
-    ):
+    )
+    for row in source_rows:
         if not _workbook_is_underlying_cause_row(row):
             continue
         estimated_impact = _number_or_none(row.get(_pc_explain.ESTIMATED_RETURN_IMPACT))
         if estimated_impact is None:
             continue
-        selected_rows.append((row, estimated_impact))
+        selected_rows.append((dict(row), estimated_impact))
     return selected_rows
 
 
@@ -1574,22 +1778,33 @@ def _workbook_ranked_changed_rows_for_level(
     findings: pl.DataFrame,
     *,
     comparison_level: str,
+    table_cache: _WorkbookTableCache | None = None,
 ) -> list[dict[str, object]]:
     """Return ranked changed rows for one primary comparison level."""
     evidence = _workbook_with_primary_review_key(
-        _workbook_top_evidence_table(findings, comparison_level=comparison_level),
+        table_cache.top_evidence(comparison_level)
+        if table_cache is not None
+        else _workbook_top_evidence_table(findings, comparison_level=comparison_level),
         comparison_level,
     )
     if evidence.is_empty():
         return []
 
-    selected_impact_bases = _workbook_selected_impact_basis_keys(
-        findings,
-        comparison_level=comparison_level,
+    selected_impact_bases = (
+        table_cache.selected_impact_basis_keys(comparison_level)
+        if table_cache is not None
+        else _workbook_selected_impact_basis_keys(
+            findings,
+            comparison_level=comparison_level,
+        )
     )
-    performance_input_keys = _workbook_performance_input_family_keys(
-        findings,
-        comparison_level=comparison_level,
+    performance_input_keys = (
+        table_cache.performance_input_family_keys(comparison_level)
+        if table_cache is not None
+        else _workbook_performance_input_family_keys(
+            findings,
+            comparison_level=comparison_level,
+        )
     )
     rows: list[dict[str, object]] = []
     for row in evidence.iter_rows(named=True):
@@ -1609,6 +1824,8 @@ def _workbook_underlying_causes_table(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    primary_changes_table: pl.DataFrame | None = None,
+    table_cache: _WorkbookTableCache | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
     """Return input rows that may directly explain performance differences."""
@@ -1620,32 +1837,46 @@ def _workbook_underlying_causes_table(
         findings,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
+        primary_changes_table=primary_changes_table,
         reconstruction_cache=reconstruction_cache,
     )
     performance_input_keys = _workbook_performance_input_family_keys(
         findings,
         comparison_level=comparison_level,
+        table_cache=table_cache,
     )
     rows: list[dict[str, object]] = []
     if comparison_level == SECURITY_COMPARISON_LEVEL:
         formula_rows = _workbook_security_reconstruction_formula_rows(
             comparison_path,
-            active_keys=_workbook_active_security_period_keys(findings),
+            active_keys=(
+                table_cache.active_security_keys()
+                if table_cache is not None
+                else _workbook_active_security_period_keys(findings)
+            ),
             reconstruction_cache=reconstruction_cache,
         )
     else:
         formula_rows = _workbook_portfolio_reconstruction_formula_rows(
             comparison_path,
-            active_keys=_workbook_active_portfolio_period_keys(findings),
+            active_keys=(
+                table_cache.active_portfolio_keys()
+                if table_cache is not None
+                else _workbook_active_portfolio_period_keys(findings)
+            ),
             reconstruction_cache=reconstruction_cache,
         )
     formula_keys = {
         _workbook_primary_key(row, comparison_level)
         for row in formula_rows
     }
-    ranked_rows = _workbook_ranked_changed_rows_for_level(
-        findings,
-        comparison_level=comparison_level,
+    ranked_rows = (
+        table_cache.ranked_rows(comparison_level)
+        if table_cache is not None
+        else _workbook_ranked_changed_rows_for_level(
+            findings,
+            comparison_level=comparison_level,
+        )
     )
     cash_security_matches = _workbook_cash_security_matches(
         ranked_rows,
@@ -1667,6 +1898,7 @@ def _workbook_underlying_causes_table(
             findings,
             unresolved_keys=unexplained_keys,
             comparison_level=comparison_level,
+            ranked_rows=ranked_rows,
         )
     }
     for row in attributed_formula_source_rows:
@@ -1727,6 +1959,7 @@ def _workbook_underlying_causes_table(
             findings,
             rows,
             comparison_level=comparison_level,
+            table_cache=table_cache,
         )
     )
     if not rows:
@@ -2060,10 +2293,16 @@ def _workbook_missing_underlying_cause_rows(
     underlying_rows: Sequence[Mapping[str, object]],
     *,
     comparison_level: str,
+    table_cache: _WorkbookTableCache | None = None,
 ) -> list[dict[str, object]]:
     """Return placeholder rows for changed periods without input causes."""
     coverage = _workbook_with_primary_review_key(
-        _workbook_primary_coverage_summary(findings, comparison_level=comparison_level),
+        table_cache.primary_coverage(comparison_level)
+        if table_cache is not None
+        else _workbook_primary_coverage_summary(
+            findings,
+            comparison_level=comparison_level,
+        ),
         comparison_level,
     )
     if coverage.is_empty():
@@ -2122,6 +2361,7 @@ def _workbook_unexplained_primary_keys(
     *,
     comparison_path: util.PathLike | None = None,
     comparison_level: str,
+    primary_changes_table: pl.DataFrame | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> set[tuple[object, ...]]:
     """Return primary review keys with a meaningful unexplained remainder."""
@@ -2129,7 +2369,9 @@ def _workbook_unexplained_primary_keys(
         comparison_path,
         reconstruction_cache,
     )
-    if comparison_level == SECURITY_COMPARISON_LEVEL:
+    if primary_changes_table is not None:
+        summary = primary_changes_table
+    elif comparison_level == SECURITY_COMPARISON_LEVEL:
         summary = _workbook_security_changes_table(
             findings,
             comparison_path=comparison_path,
@@ -2369,11 +2611,16 @@ def _workbook_selected_impact_basis_keys(
     findings: pl.DataFrame,
     *,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+    table_cache: _WorkbookTableCache | None = None,
 ) -> set[tuple[object, ...]]:
     """Return period/impact-basis keys included in Performance Differences totals."""
-    causes = _workbook_primary_cause_summary(
-        findings,
-        comparison_level=comparison_level,
+    causes = (
+        table_cache.cause_summary(comparison_level)
+        if table_cache is not None
+        else _workbook_primary_cause_summary(
+            findings,
+            comparison_level=comparison_level,
+        )
     )
     if causes.is_empty():
         return set()
@@ -2381,7 +2628,9 @@ def _workbook_selected_impact_basis_keys(
     keys: set[tuple[object, ...]] = set()
     del causes
     rows = _workbook_with_primary_review_key(
-        _workbook_top_evidence_table(findings, comparison_level=comparison_level),
+        table_cache.top_evidence(comparison_level)
+        if table_cache is not None
+        else _workbook_top_evidence_table(findings, comparison_level=comparison_level),
         comparison_level,
     )
     grouped_rows: dict[tuple[object, ...], list[dict[str, object]]] = {}
@@ -2408,11 +2657,14 @@ def _workbook_performance_input_family_keys(
     findings: pl.DataFrame,
     *,
     comparison_level: str,
+    table_cache: _WorkbookTableCache | None = None,
 ) -> set[tuple[object, ...]]:
     """Return cause-family keys with selected performance input rows."""
     keys: set[tuple[object, ...]] = set()
     evidence = _workbook_with_primary_review_key(
-        _workbook_top_evidence_table(findings, comparison_level=comparison_level),
+        table_cache.top_evidence(comparison_level)
+        if table_cache is not None
+        else _workbook_top_evidence_table(findings, comparison_level=comparison_level),
         comparison_level,
     )
     for row in evidence.iter_rows(named=True):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 # Python imports
+import datetime as dt
 from pathlib import Path
 import tempfile
 import unittest
@@ -463,6 +464,23 @@ class TestPerformanceComparisonReturnReconstruction(unittest.TestCase):
             alpha_aapl[RECONSTRUCTION_STATUS],
             RECONSTRUCTION_STATUS_ALIGNED,
         )
+
+    def test_security_reconstruction_checks_can_scope_active_keys(self) -> None:
+        """Security reconstruction can limit work to requested review keys."""
+        active_key = ("ALPHA", "AAPL", dt.date(2026, 2, 28), dt.date(2026, 3, 31))
+        full_checks = security_return_reconstruction_checks(_PORTFOLIO_COMPARISON_PATH)
+        scoped_checks = security_return_reconstruction_checks(
+            _PORTFOLIO_COMPARISON_PATH,
+            active_keys=[active_key],
+        )
+
+        self.assertGreater(full_checks.height, scoped_checks.height)
+        self.assertEqual(scoped_checks.height, 1)
+        scoped_row = scoped_checks.row(0, named=True)
+        self.assertEqual(scoped_row["portfolio_id"], "ALPHA")
+        self.assertEqual(scoped_row["security_id"], "AAPL")
+        self.assertEqual(scoped_row["from_date"].isoformat(), "2026-02-28")
+        self.assertEqual(scoped_row["thru_date"].isoformat(), "2026-03-31")
 
     def test_reinvestment_pair_stays_out_of_portfolio_external_flows(self) -> None:
         """A dv/by reinvestment pair is not treated as a portfolio external flow."""

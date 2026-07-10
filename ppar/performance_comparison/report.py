@@ -148,6 +148,7 @@ def _performance_comparison_html_report(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _sheets: Sequence[_pc_workbook.ReviewWorkbookSheet] | None = None,
     _reconstruction_cache: (
         _pc_workbook_tables._WorkbookReconstructionCache | None
     ) = None,
@@ -169,12 +170,14 @@ def _performance_comparison_html_report(
         Complete HTML document string suitable for writing to disk or opening
         in a browser.
     """
-    sheets = _pc_workbook_tables.performance_comparison_review_workbook_sheets(
-        findings,
-        comparison_path=comparison_path,
-        comparison_level=comparison_level,
-        include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-        _reconstruction_cache=_reconstruction_cache,
+    sheets = _sheets or (
+        _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+            findings,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            _reconstruction_cache=_reconstruction_cache,
+        )
     )
     return "\n".join(
         [
@@ -291,6 +294,7 @@ def _write_performance_comparison_html_report(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _sheets: Sequence[_pc_workbook.ReviewWorkbookSheet] | None = None,
     _reconstruction_cache: (
         _pc_workbook_tables._WorkbookReconstructionCache | None
     ) = None,
@@ -321,6 +325,7 @@ def _write_performance_comparison_html_report(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _sheets=_sheets,
         _reconstruction_cache=_reconstruction_cache,
     )
     report_path.write_text(report, encoding=util.ENCODING)
@@ -388,6 +393,17 @@ def write_performance_comparison_report_bundle(
     reconstruction_cache = _pc_workbook_tables._WorkbookReconstructionCache(
         comparison_path
     )
+    workbook_sheets = None
+    if include_workbook:
+        workbook_sheets = (
+            _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+                findings,
+                comparison_path=comparison_path,
+                comparison_level=comparison_level,
+                include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+                _reconstruction_cache=reconstruction_cache,
+            )
+        )
     tables = _report_bundle_tables(
         active_findings,
         top_evidence_limit,
@@ -408,6 +424,7 @@ def write_performance_comparison_report_bundle(
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _sheets=workbook_sheets,
         _reconstruction_cache=reconstruction_cache,
     )
     paths["html_report"] = html_report_path
@@ -421,14 +438,10 @@ def write_performance_comparison_report_bundle(
             supporting_files_directory / f"{name}.csv",
         )
     if include_workbook:
-        paths[_REVIEW_WORKBOOK_ARTIFACT] = write_performance_comparison_review_workbook(
-            findings,
+        paths[_REVIEW_WORKBOOK_ARTIFACT] = _pc_workbook.write_review_workbook_sheets(
+            workbook_sheets or (),
             bundle_directory / _REVIEW_WORKBOOK_FILE_NAME,
-            top_evidence_limit=top_evidence_limit,
-            comparison_path=comparison_path,
-            comparison_level=comparison_level,
-            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-            _reconstruction_cache=reconstruction_cache,
+            column_tooltip=_pc_workbook_tables.workbook_column_tooltip,
         )
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
         bundle_directory / "README.md",
