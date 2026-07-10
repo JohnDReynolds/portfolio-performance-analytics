@@ -287,10 +287,7 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
         )
         runner.run([_VENV_PYTHON, site_directory / "analytics" / "run_analytics.py"])
         runner.run(
-            [_VENV_PYTHON, comparison_directory / "run_portfolio_comparison.py"]
-        )
-        runner.run(
-            [_VENV_PYTHON, comparison_directory / "run_security_comparison.py"]
+            [_VENV_PYTHON, comparison_directory / "run_performance_audit.py"]
         )
         runner.run(
             [

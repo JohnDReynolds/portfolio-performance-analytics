@@ -38,8 +38,7 @@ my_ppar_data/
   analytics/
     run_analytics.py
   performance_audit/
-    run_portfolio_comparison.py
-    run_security_comparison.py
+    run_performance_audit.py
 ```
 
 There is one packaged Axys/APX audit YAML file. Portfolio and security reports

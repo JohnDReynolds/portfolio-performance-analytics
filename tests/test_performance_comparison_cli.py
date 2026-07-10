@@ -233,8 +233,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("Open the files listed in the command output.", readme)
             self.assertNotIn("Start by replacing the starter CSV files", readme)
             self.assertIn("analytics/run_analytics.py", readme)
-            self.assertIn("run_portfolio_comparison.py", readme)
-            self.assertIn("run_security_comparison.py", readme)
+            self.assertIn("run_performance_audit.py", readme)
+            self.assertNotIn("run_portfolio_comparison.py", readme)
+            self.assertNotIn("run_security_comparison.py", readme)
             self.assertIn(
                 "If you want to run the same workflows",
                 readme,
@@ -283,10 +284,13 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("SPECIFICATIONS_PATH", analytics_script)
             self.assertIn("AxysData", analytics_script)
             self.assertIn("to_analytics", analytics_script)
-            self.assertTrue(
+            self.assertTrue((comparison_path / "run_performance_audit.py").exists())
+            self.assertFalse(
                 (comparison_path / "run_portfolio_comparison.py").exists()
             )
-            self.assertTrue((comparison_path / "run_security_comparison.py").exists())
+            self.assertFalse(
+                (comparison_path / "run_security_comparison.py").exists()
+            )
             self.assertFalse((site_directory / "PYTHON_TUTORIAL.md").exists())
             self.assertFalse((site_directory / "generic_analytics").exists())
             self.assertEqual(config["snapshots"]["a"]["path"], "snapshot_a")
@@ -346,8 +350,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             readme_path = site_directory / "README.md"
             analytics_script_path = site_directory / "analytics" / "run_analytics.py"
-            portfolio_script_path = (
-                site_directory / "performance_audit" / "run_portfolio_comparison.py"
+            audit_script_path = (
+                site_directory / "performance_audit" / "run_performance_audit.py"
             )
             analytics_config_path = site_directory / "analytics" / "ppar.yaml"
             comparison_config_path = (
@@ -356,7 +360,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
             custom_readme = "custom readme\n"
             custom_analytics_script = "# custom analytics script\n"
-            custom_portfolio_script = "# custom portfolio script\n"
+            custom_audit_script = "# custom audit script\n"
             custom_analytics_config = (
                 analytics_config_path.read_text(encoding="utf-8")
                 + "\n# custom analytics note\n"
@@ -367,7 +371,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
             readme_path.write_text(custom_readme, encoding="utf-8")
             analytics_script_path.write_text(custom_analytics_script, encoding="utf-8")
-            portfolio_script_path.write_text(custom_portfolio_script, encoding="utf-8")
+            audit_script_path.write_text(custom_audit_script, encoding="utf-8")
             analytics_config_path.write_text(
                 custom_analytics_config,
                 encoding="utf-8",
@@ -390,8 +394,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 custom_analytics_script,
             )
             self.assertEqual(
-                portfolio_script_path.read_text(encoding="utf-8"),
-                custom_portfolio_script,
+                audit_script_path.read_text(encoding="utf-8"),
+                custom_audit_script,
             )
             self.assertEqual(
                 analytics_config_path.read_text(encoding="utf-8"),
@@ -468,10 +472,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 site_directory / "analytics" / "run_analytics.py",
                 site_directory
                 / "performance_audit"
-                / "run_portfolio_comparison.py",
-                site_directory
-                / "performance_audit"
-                / "run_security_comparison.py",
+                / "run_performance_audit.py",
                 site_directory / "generic_analytics" / "run_generic_analytics.py",
             )
             for script_path in script_paths:

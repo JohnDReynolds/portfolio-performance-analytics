@@ -1,14 +1,12 @@
 # PPAR
 
-PPAR uses local Axys/APX data for two main workflows:
+PPAR uses local Axys/APX data for two main workflows: Performance Auditing and
+Performance Analytics.
 
-1. **Performance Auditing:** review changed reported returns and suspicious
-   source-data relationships.
-2. **Performance Analytics:** produce attribution, contribution, and Ex-Post
-   Risk reports.
-
-PPAR is built for local execution. Your Axys/APX exports stay on your machine or
-inside your environment.
+1. Everything runs locally, so your data stays inside your environment.
+2. You can generate standard charts, xlsx, and html output.
+3. Being built in Python, it is highly customizable.  You can automate batch
+   runs and produce custom output in CSV, Pandas, Polars, JSON, and XML formats.
 
 [License](LICENSE)
 
@@ -16,53 +14,41 @@ inside your environment.
 
 ## Performance Auditing
 
-Use Performance Auditing when reported returns have changed and you need to know
-why. It compares an original source-data snapshot with a newer or restated
-snapshot, then separates three things:
+Use Performance Auditing to answer the question: "Why did my reported
+performance change?" It answers this question by:
+1. Determining the differences in reported performance for each
+   time-period/portfolio/security.
+2. Quantitatively attributing these performance differences to changes in the
+   underlying holdings and transaction source-data.
+3. Flagging suspicious source-data relationships such as price ranges, dividend
+   rates, accrued-interest rates, missing dividends, and holding value math.
 
-- changed reported performance;
-- source-data rows that explain the change;
-- suspicious source-data relationships that deserve review.
-
-Performance Auditing includes two related features:
-
-- **Performance Comparison:** explains changed reported performance.
-- **Data Auditing:** flags suspicious source-data relationships such as price
-  ranges, dividend rates, accrued-interest rates, missing dividends, and holding
-  value math.
+It includes:
+- **Performance Comparison:** identify and explain changed performance results.
+- **Data Auditing:** flag suspicious source-data relationships that may need review.
 
 Typical questions:
-
 - Which portfolio or security returns changed?
 - Which holdings or transactions explain the change?
 - Which differences still need human review?
 - Are there data-quality issues that might explain suspicious results?
 
 <img
-  src="docs/images/readme/PerformanceComparisonPortfolio.jpg"
+  src="docs/images/readme/PerformanceAuditPortfolio.jpg"
   alt="Portfolio Performance Audit report"
   width="100%"
 />
-
-<img
-  src="docs/images/readme/PerformanceComparisonSecurity.jpg"
-  alt="Security Performance Audit report"
-  width="100%"
-/>
-
-The workbook output includes performance differences, explanation rows, data
-audit issues, residual review status, and source detail.
 
 ---
 
 ## Performance Analytics
 
-Use Performance Analytics when you want a clean explanation of performance
-versus a benchmark. It includes:
+Use Performance Analytics when you want a clean explanation of portfolio
+performance versus a benchmark. It includes:
 
 - **Performance Attribution:** Brinson-Fachler attribution, Carino-smoothed
   multi-period effects, and contribution views.
-- **Ex-Post Risk:** risk statistics calculated from realized returns.
+- **Ex-Post Risk:** ex-post risk statistics calculated from realized returns.
 
 Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
@@ -149,36 +135,35 @@ Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
 ## Setup
 
-Start by creating a local starter workspace. The starter data lets you run the
-full workflow before replacing anything with your own exports.
+Install the ppar package.
 
 ```bash
 pip install ppar
+```
+
+Create a local starter workspace. It is seeded with demo data that lets you run
+full demos before replacing the demo data with your own data.
+
+```bash
 ppar setup ./my_ppar_data
 ```
 
-Then run the two workflows:
+Run the demos.
 
 ```bash
 ppar performance_audit ./my_ppar_data/performance_audit
 ppar analytics ./my_ppar_data/analytics
 ```
 
-Run Performance Auditing first if reported returns changed or you want to check
-source-data quality. Run Performance Analytics when you want attribution and
-Ex-Post Risk reports.
-
-Open the files printed by each command.
-
-The setup folder stays intentionally small:
+To customize with your own data, follow the `Customizing` section in
+`./my_ppar_data/README.md`.
 
 ```text
 my_ppar_data/
   README.md
   performance_audit/
     ppar.yaml
-    run_portfolio_comparison.py
-    run_security_comparison.py
+    run_performance_audit.py
     snapshot_a/
       portperf.csv
       holdings.csv
@@ -196,14 +181,11 @@ my_ppar_data/
     run_analytics.py
 ```
 
-To customize with your own data, replace the starter CSVs and follow the
-`Customizing` section in `./my_ppar_data/README.md`.
-
 ---
 
 ## Inputs
 
-The Axys/APX starter path focuses on IMEX-style CSV exports:
+The source-data files are typically IMEX-style CSV exports:
 
 - portfolio performance
 - security performance
@@ -211,11 +193,12 @@ The Axys/APX starter path focuses on IMEX-style CSV exports:
 - transactions
 
 Performance Auditing uses two source-data snapshots, usually an older/original
-snapshot and a newer/restated snapshot. Performance Analytics can run from
-portfolio/security performance exports.
+snapshot and a newer/restated snapshot.
 
-PPAR normalizes those files through YAML so each site can document its own local
-field names, transaction-code treatment, and report assumptions.
+Performance Analytics uses portfolio performance and security performance exports.
+
+PPAR normalizes those files through YAML, so each site can configure its own
+local field names, transaction-code treatment, and report assumptions.
 
 ---
 
@@ -231,8 +214,7 @@ performance_audit/output/
   security/report.html
 ```
 
-Performance Analytics writes browser-ready attribution and Ex-Post Risk files
-and chart images:
+Performance Analytics writes attribution and ex-post risk reports and chart images:
 
 ```text
 analytics/output/
@@ -242,3 +224,6 @@ analytics/output/
   risk_statistics.html
   *.png
 ```
+
+The Python API can also return CSV, Pandas, Polars, JSON, and XML formats for
+Analytics result tables.

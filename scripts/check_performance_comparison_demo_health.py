@@ -86,13 +86,7 @@ def _run_setup_generated_smoke_tests() -> None:
         _run(
             [
                 _VENV_PYTHON,
-                comparison_directory / "run_portfolio_comparison.py",
-            ]
-        )
-        _run(
-            [
-                _VENV_PYTHON,
-                comparison_directory / "run_security_comparison.py",
+                comparison_directory / "run_performance_audit.py",
             ]
         )
         _run(

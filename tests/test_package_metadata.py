@@ -537,8 +537,7 @@ class TestPackageMetadata(unittest.TestCase):
             "performance_audit/",
             "README.md",
             "run_analytics.py",
-            "run_portfolio_comparison.py",
-            "run_security_comparison.py",
+            "run_performance_audit.py",
             "Customizing",
             "--overwrite",
         ]:
@@ -551,13 +550,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertTrue(
             Path(
                 "ppar/setup_templates/axysapx_performance_comparison/"
-                "run_portfolio_comparison.py"
-            ).exists()
-        )
-        self.assertTrue(
-            Path(
-                "ppar/setup_templates/axysapx_performance_comparison/"
-                "run_security_comparison.py"
+                "run_performance_audit.py"
             ).exists()
         )
 
@@ -588,10 +581,11 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("**Data Auditing:**", readme)
         self.assertIn("**Performance Attribution:**", readme)
         self.assertIn("**Ex-Post Risk:**", readme)
-        self.assertIn("Run Performance Auditing first", readme)
-        self.assertIn("Run Performance Analytics", readme)
+        self.assertIn("docs/images/readme/PerformanceAuditPortfolio.jpg", readme)
         self.assertIn("alt=\"Portfolio Performance Audit report\"", readme)
-        self.assertIn("alt=\"Security Performance Audit report\"", readme)
+        self.assertNotIn("PerformanceComparisonPortfolio.jpg", readme)
+        self.assertNotIn("PerformanceComparisonSecurity.jpg", readme)
+        self.assertNotIn("DataAuditIssues.jpg", readme)
         self.assertIn("## Setup", readme)
         self.assertNotIn("## Quick Setup", readme)
         self.assertIn("ppar setup ./my_ppar_data", readme)
@@ -1783,8 +1777,7 @@ class TestPackageMetadata(unittest.TestCase):
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
-            "/tmp/ppar_smoke_site/performance_audit/run_portfolio_comparison.py",
-            "/tmp/ppar_smoke_site/performance_audit/run_security_comparison.py",
+            "/tmp/ppar_smoke_site/performance_audit/run_performance_audit.py",
             "/tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py",
             "ppar.performance_comparison.cli.validate_bundle",
             "ppar.performance_comparison.cli.validate_config",
@@ -1892,8 +1885,7 @@ class TestPackageMetadata(unittest.TestCase):
 
         for expected_text in [
             "ppar setup",
-            "run_portfolio_comparison.py",
-            "run_security_comparison.py",
+            "run_performance_audit.py",
             "output/portfolio",
             "output/security",
             "report.xlsx",

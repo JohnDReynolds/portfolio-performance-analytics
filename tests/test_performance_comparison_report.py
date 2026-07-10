@@ -1443,6 +1443,30 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(performance_change_sheet["D2"].number_format, "0.000000")
             self.assertEqual(performance_change_sheet["E2"].number_format, "0.000000")
             self.assertEqual(performance_change_sheet["F2"].number_format, "0.000000")
+            review_needed_row = next(
+                row
+                for row in range(2, performance_change_sheet.max_row + 1)
+                if performance_change_sheet[f"G{row}"].value
+                in {"Partly Explained", "Unexplained"}
+            )
+            for column in ("F", "G", "H"):
+                cell = performance_change_sheet[f"{column}{review_needed_row}"]
+                self.assertEqual(
+                    cell.fill.fgColor.rgb,
+                    "FFFFFF00",
+                )
+            fully_explained_row = next(
+                row
+                for row in range(2, performance_change_sheet.max_row + 1)
+                if performance_change_sheet[f"G{row}"].value == "Fully Explained"
+            )
+            for column in ("F", "G", "H"):
+                self.assertNotEqual(
+                    performance_change_sheet[
+                        f"{column}{fully_explained_row}"
+                    ].fill.fgColor.rgb,
+                    "FFFFFF00",
+                )
             self.assertIsNotNone(performance_change_sheet["A1"].comment)
             assert performance_change_sheet["A1"].comment is not None
             self.assertIn(

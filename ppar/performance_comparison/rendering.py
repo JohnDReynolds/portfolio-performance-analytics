@@ -11,6 +11,8 @@ import html as html_lib
 import polars as pl
 
 RowIdCallback = Callable[[Mapping[str, object], str | None, dict[str, int]], str]
+_REVIEW_NEEDED_STATUSES = {"Partly Explained", "Unexplained"}
+_REVIEW_NEEDED_COLUMNS = {"unexplained_change", "review_status", "review_note"}
 
 
 def html_section(title: str, content: str) -> str:
@@ -210,6 +212,9 @@ def html_row_value_classes(row: Mapping[str, object], column: str) -> list[str]:
         return ["pc-fill-explained-cause"]
     if row_type == "Possible Cause" and column in {"row_type", "review_guidance"}:
         return ["pc-fill-possible-cause"]
+    review_status = format_value(row.get("review_status"))
+    if review_status in _REVIEW_NEEDED_STATUSES and column in _REVIEW_NEEDED_COLUMNS:
+        return ["pc-fill-review-needed"]
     return []
 
 
@@ -634,6 +639,9 @@ tbody tr:hover {
   color: var(--pc-status-clear);
 }
 .pc-fill-explained-cause {
+  background: #ffff00;
+}
+.pc-fill-review-needed {
   background: #ffff00;
 }
 .pc-fill-possible-cause {

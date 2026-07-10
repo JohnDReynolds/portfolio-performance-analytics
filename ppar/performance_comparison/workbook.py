@@ -68,6 +68,8 @@ _KEY_COLUMNS = {
     "review_key",
     "reconstruction_review_key",
 }
+_REVIEW_NEEDED_STATUSES = {"Partly Explained", "Unexplained"}
+_REVIEW_NEEDED_COLUMNS = {"unexplained_change", "review_status", "review_note"}
 _EXCEL_HEADER_LINE_BREAKS = {
     "Performance Difference": "Performance\nDifference",
     "Explained Difference": "Explained\nDifference",
@@ -298,9 +300,9 @@ def _add_workbook_sheet(
         for column in columns
     ]
     worksheet.append(headers)
-    row_type_values: list[object | None] = []
+    row_values: list[Mapping[str, object]] = []
     for row in table.iter_rows(named=True):
-        row_type_values.append(row.get("row_type"))
+        row_values.append(row)
         worksheet.append(
             [
                 _workbook_cell_value(row[column], column_name=column)
@@ -316,7 +318,7 @@ def _add_workbook_sheet(
         cell.fill = styles["header_fill"]
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
-    _format_workbook_data_cells(worksheet, columns, row_type_values, styles)
+    _format_workbook_data_cells(worksheet, columns, row_values, styles)
     _format_workbook_columns(worksheet, columns, headers)
 
 
@@ -374,13 +376,19 @@ def _workbook_number_from_text(value: str) -> float | None:
 def _format_workbook_data_cells(
     worksheet: Any,
     columns: Sequence[str],
-    row_type_values: Sequence[object | None],
+    row_values: Sequence[Mapping[str, object]],
     styles: Mapping[str, Any],
 ) -> None:
     """Apply row-level emphasis for reviewer-facing workbook values."""
     explained_column = _workbook_column_index(columns, "estimated_impact")
     explanation_column = _workbook_column_index(columns, "review_guidance")
-    for row_offset, row_type_value in enumerate(row_type_values, start=2):
+    review_needed_columns = tuple(
+        column_index
+        for column in _REVIEW_NEEDED_COLUMNS
+        if (column_index := _workbook_column_index(columns, column)) is not None
+    )
+    for row_offset, row in enumerate(row_values, start=2):
+        row_type_value = row.get("row_type")
         if row_type_value == "Explained Cause":
             for column_index in (explained_column, explanation_column):
                 if column_index is not None:
@@ -391,6 +399,11 @@ def _format_workbook_data_cells(
             if explanation_column is not None:
                 worksheet.cell(row=row_offset, column=explanation_column).fill = styles[
                     "possible_cause_fill"
+                ]
+        if row.get("review_status") in _REVIEW_NEEDED_STATUSES:
+            for column_index in review_needed_columns:
+                worksheet.cell(row=row_offset, column=column_index).fill = styles[
+                    "explained_cause_fill"
                 ]
 
 

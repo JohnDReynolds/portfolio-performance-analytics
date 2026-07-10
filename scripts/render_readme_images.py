@@ -51,17 +51,16 @@ _RENDER_CONFIG = {
     "CumulativeAttributionByEconomicSector": (5200, 3600),
     "OverallAttributionByEconomicSector": (5200, 3200),
     "RiskStatistics": (3000, 4800),
-    "PerformanceComparisonPortfolio": (3200, 2200),
-    "PerformanceComparisonSecurity": (3200, 2200),
+    "PerformanceAuditPortfolio": (3200, 4400),
 }
-_PERFORMANCE_COMPARISON_HTML = {
-    "PerformanceComparisonPortfolio": (
-        _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
-    ),
-    "PerformanceComparisonSecurity": (
-        _REPO_ROOT / "_demo_output" / "performance_comparison_security" / "report.html"
-    ),
-}
+_PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
+    _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
+)
+_PORTFOLIO_PERFORMANCE_AUDIT_SECTIONS = (
+    ("performance-differences", "Performance Differences"),
+    ("performance-difference-causes", "Performance Difference Causes"),
+    ("data-audit-issues", "Data Audit Issues"),
+)
 
 
 def main() -> None:
@@ -84,7 +83,26 @@ def main() -> None:
             for name, html_path in html_paths.items():
                 _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
         if args.only in ("all", "performance-comparison"):
-            for name, html_path in _performance_comparison_html_inputs().items():
+            html_inputs = {
+                "PerformanceAuditPortfolio": _write_report_sections_input(
+                    _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
+                    temp_dir / "PerformanceAuditPortfolio.html",
+                    sections=_PORTFOLIO_PERFORMANCE_AUDIT_SECTIONS,
+                    title="Portfolio Performance Audit",
+                    extra_style="""
+                    <style>
+                    html,
+                    body {
+                      background: #ffffff;
+                    }
+                    .pc-col-review-key {
+                      display: none;
+                    }
+                    </style>
+                    """,
+                )
+            }
+            for name, html_path in html_inputs.items():
                 _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
 
 
@@ -302,27 +320,83 @@ def _render_cropped_jpg(
     _crop_and_save_jpg(png_path, _IMAGE_DIR / f"{name}.jpg")
 
 
-def _performance_comparison_html_inputs() -> dict[str, Path]:
-    """Return existing performance-comparison report HTML files for screenshots.
+def _write_report_sections_input(
+    source_html_path: Path,
+    destination_html_path: Path,
+    *,
+    sections: Sequence[tuple[str, str]],
+    title: str,
+    extra_style: str = "",
+) -> Path:
+    """Write a temporary HTML page containing selected report sections.
+
+    Args:
+        source_html_path: Existing report HTML file to read.
+        destination_html_path: Temporary HTML file to write.
+        sections: Section HTML ids and titles to extract from the source report.
+        title: Temporary page title.
+        extra_style: Additional CSS to append for README-only presentation.
 
     Returns:
-        Mapping from README image stem to report HTML path.
+        Path to the temporary report-section HTML file.
 
     Raises:
-        FileNotFoundError: If the demo report HTML files have not been generated.
+        FileNotFoundError: If ``source_html_path`` does not exist.
+        ValueError: If a requested section cannot be found.
+        OSError: If source or destination HTML cannot be read or written.
     """
-    missing_paths = [
-        path.relative_to(_REPO_ROOT)
-        for path in _PERFORMANCE_COMPARISON_HTML.values()
-        if not path.exists()
-    ]
-    if missing_paths:
-        missing_list = ", ".join(str(path) for path in missing_paths)
-        raise FileNotFoundError(
-            "Performance-comparison README images require generated report HTML: "
-            f"{missing_list}"
-        )
-    return dict(_PERFORMANCE_COMPARISON_HTML)
+    source_html = source_html_path.read_text(encoding=util.ENCODING)
+    style_html = _html_between(source_html, "<style>", "</style>") or ""
+    section_html = "\n".join(
+        _extract_report_section(source_html, source_html_path, section_id)
+        for section_id, _section_title in sections
+    )
+    destination_html_path.write_text(
+        "\n".join(
+            [
+                "<!doctype html>",
+                "<html>",
+                "<head>",
+                f"<title>{title}</title>",
+                style_html,
+                extra_style,
+                "</head>",
+                "<body>",
+                section_html,
+                "</body>",
+                "</html>",
+            ]
+        ),
+        encoding=util.ENCODING,
+    )
+    return destination_html_path
+
+
+def _extract_report_section(
+    source_html: str,
+    source_html_path: Path,
+    section_id: str,
+) -> str:
+    """Return one report section from a generated HTML report."""
+    section_marker = f'<section class="pc-section" id="{section_id}">'
+    section_start = source_html.find(section_marker)
+    if section_start < 0:
+        raise ValueError(f"{source_html_path} does not contain section {section_id!r}")
+    section_end = source_html.find("</section>", section_start)
+    if section_end < 0:
+        raise ValueError(f"{source_html_path} has an unterminated section {section_id!r}")
+    return source_html[section_start : section_end + len("</section>")]
+
+
+def _html_between(html: str, start_marker: str, end_marker: str) -> str | None:
+    """Return inclusive HTML text between two markers, if present."""
+    start = html.find(start_marker)
+    if start < 0:
+        return None
+    end = html.find(end_marker, start)
+    if end < 0:
+        return None
+    return html[start : end + len(end_marker)]
 
 
 def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:

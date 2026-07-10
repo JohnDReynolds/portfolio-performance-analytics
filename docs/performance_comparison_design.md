@@ -1964,8 +1964,8 @@ name the CSVs most relevant to each changed period.
 
 The packaged Axys/APX fixtures intentionally separate user-facing setup
 templates from validation fixtures. `ppar setup` installs the portfolio and
-security comparison starter files, including `run_portfolio_comparison.py` and
-`run_security_comparison.py`. Those setup-generated scripts write `report.xlsx`,
+security comparison starter file, `run_performance_audit.py`. That setup-generated
+script writes `report.xlsx`,
 `report.html`, CSV artifacts, and a manifest under `output/portfolio` and
 `output/security`.
 

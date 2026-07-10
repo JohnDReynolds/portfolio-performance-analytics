@@ -39,8 +39,7 @@ _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "splits.csv",
 )
 _COMPARISON_TUTORIAL_SCRIPTS: Final[tuple[str, ...]] = (
-    "run_portfolio_comparison.py",
-    "run_security_comparison.py",
+    "run_performance_audit.py",
 )
 
 
@@ -354,8 +353,7 @@ The `ppar` command is the normal path. If you want to run the same workflows
 from Python, use:
 
 - `analytics/run_analytics.py`
-- `performance_audit/run_portfolio_comparison.py`
-- `performance_audit/run_security_comparison.py`
+- `performance_audit/run_performance_audit.py`
 
 ## Folder Map
 
@@ -368,8 +366,7 @@ from Python, use:
     run_analytics.py
   performance_audit/
     ppar.yaml
-    run_portfolio_comparison.py
-    run_security_comparison.py
+    run_performance_audit.py
     snapshot_a/
       portperf.csv
       holdings.csv

@@ -165,6 +165,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertNotIn("pc-value-explained-impact", html_report)
             self.assertIn("pc-fill-explained-cause", html_report)
             self.assertIn("pc-fill-possible-cause", html_report)
+            self.assertIn("pc-fill-review-needed", html_report)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             review_summary = json.loads(

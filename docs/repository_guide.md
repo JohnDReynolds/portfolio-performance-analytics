@@ -222,8 +222,7 @@ examples that users see in their local setup folder:
 ```bash
 ./.venv/bin/python -m ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics
 ./.venv/bin/python /tmp/ppar_smoke_site/analytics/run_analytics.py
-./.venv/bin/python /tmp/ppar_smoke_site/performance_audit/run_portfolio_comparison.py
-./.venv/bin/python /tmp/ppar_smoke_site/performance_audit/run_security_comparison.py
+./.venv/bin/python /tmp/ppar_smoke_site/performance_audit/run_performance_audit.py
 ./.venv/bin/python /tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
   /tmp/ppar_smoke_site/performance_audit/output/portfolio

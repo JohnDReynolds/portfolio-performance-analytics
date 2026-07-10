@@ -3063,8 +3063,7 @@ Status: refreshed for the current setup site.
 YAML they execute:
 
 - `analytics/run_analytics.py`
-- `performance_audit/run_portfolio_comparison.py`
-- `performance_audit/run_security_comparison.py`
+- `performance_audit/run_performance_audit.py`
 
 The setup README mentions those scripts only as optional examples. The main
 onboarding path remains the `ppar` command plus heavily documented nearby YAML.
