@@ -9,6 +9,7 @@ below when you want to customize the standard workflow.
 from __future__ import annotations
 
 # Python imports
+import argparse
 from pathlib import Path
 from typing import Any
 
@@ -28,20 +29,28 @@ SITE_DIRECTORY: Path = Path(__file__).resolve().parent
 SPECIFICATIONS_PATH: Path = SITE_DIRECTORY / "ppar.yaml"
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     """Create analytics output from the local setup-site CSV files.
 
+    Args:
+        argv: Optional command-line arguments excluding the script name.
+
     Returns:
-        None. Review files are written to ``output/`` and listed in the
-        console.
+        Process exit code. ``0`` indicates that review files were written and
+        listed in the console.
     """
+    args = _argument_parser().parse_args(argv)
+
     # Read the same YAML settings used by ``ppar analytics``. Keeping these
     # choices in YAML makes the unchanged script and CLI equivalent.
     settings = _load_analytics_settings()
-    portfolio_code = _required_setting(settings, "portfolio")
-    benchmark_code = _required_setting(settings, "benchmark")
-    frequency = _frequency_from_string(str(settings.get("frequency", "quarterly")))
-    output_directory = SITE_DIRECTORY / str(settings.get("output_directory", "output"))
+    portfolio_code = args.portfolio or _required_setting(settings, "portfolio")
+    benchmark_code = args.benchmark or _required_setting(settings, "benchmark")
+    frequency_value = args.frequency or str(settings.get("frequency", "quarterly"))
+    frequency = _frequency_from_string(frequency_value)
+    output_directory = args.output or (
+        SITE_DIRECTORY / str(settings.get("output_directory", "output"))
+    )
 
     # ``AxysData`` uses the remaining YAML sections to locate and interpret the
     # local IMEX CSV files.
@@ -111,6 +120,33 @@ def main() -> None:
     print("Open these files to review analytics output:")
     for path in written_paths:
         print(f"  {path.resolve()}")
+    return 0
+
+
+def _argument_parser() -> argparse.ArgumentParser:
+    """Return arguments equivalent to the ``ppar analytics`` options."""
+    parser = argparse.ArgumentParser(
+        description="Run Performance Analytics from this Python setup file.",
+    )
+    parser.add_argument(
+        "--portfolio",
+        help="Portfolio code. Defaults to analytics.portfolio in ppar.yaml.",
+    )
+    parser.add_argument(
+        "--benchmark",
+        help="Benchmark portfolio code. Defaults to analytics.benchmark in ppar.yaml.",
+    )
+    parser.add_argument(
+        "-f",
+        "--frequency",
+        help="Reporting frequency: monthly, quarterly, yearly, or m/q/y.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Output directory. Defaults to analytics.output_directory in ppar.yaml.",
+    )
+    return parser
 
 
 def _load_analytics_settings() -> dict[str, Any]:
@@ -179,4 +215,4 @@ def _write_png(output_directory: Path, file_name: str, png: bytes) -> Path:
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

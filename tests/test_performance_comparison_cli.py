@@ -636,6 +636,99 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                         (script_output / relative_path).read_bytes(),
                     )
 
+            cli_override_output = root / "cli_override_output"
+            script_override_output = root / "script_override_output"
+            subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "analytics",
+                    str(cli_analytics),
+                    "--frequency",
+                    "yearly",
+                    "--output",
+                    str(cli_override_output),
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(script_analytics / "run_analytics.py"),
+                    "--frequency",
+                    "yearly",
+                    "--output",
+                    str(script_override_output),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            override_files = {
+                path.relative_to(cli_override_output)
+                for path in cli_override_output.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                override_files,
+                {
+                    path.relative_to(script_override_output)
+                    for path in script_override_output.rglob("*")
+                    if path.is_file()
+                },
+            )
+            for relative_path in override_files:
+                self.assertEqual(
+                    (cli_override_output / relative_path).read_bytes(),
+                    (script_override_output / relative_path).read_bytes(),
+                )
+
+            analytics_help = subprocess.run(
+                [sys.executable, str(script_analytics / "run_analytics.py"), "--help"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            for option in ("--portfolio", "--benchmark", "--frequency", "--output"):
+                self.assertIn(option, analytics_help)
+
+    def test_setup_audit_script_supports_cli_report_option(self) -> None:
+        """The Python audit example supports the CLI report selection option."""
+        with tempfile.TemporaryDirectory() as directory:
+            site = Path(directory) / "site"
+            subprocess.run(
+                _module_command(_PPAR_MODULE, "setup", str(site)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            audit_directory = site / "audit"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(audit_directory / "run_audit.py"),
+                    "--report",
+                    "portfolio",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn("output/portfolio/report.xlsx", result.stdout)
+            self.assertNotIn("output/security/report.xlsx", result.stdout)
+            self.assertTrue((audit_directory / "output" / "portfolio").is_dir())
+            self.assertFalse((audit_directory / "output" / "security").exists())
+
+            audit_help = subprocess.run(
+                [sys.executable, str(audit_directory / "run_audit.py"), "--help"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertIn("--report", audit_help)
+            self.assertIn("{portfolio,security,both}", audit_help)
+
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:
         """Programmatic entrypoints accept string paths as well as ``Path`` values."""
         from ppar.analytics.cli import run_analytics

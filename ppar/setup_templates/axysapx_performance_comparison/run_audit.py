@@ -8,11 +8,14 @@ customize the standard workflow.
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 from typing import Any
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
@@ -58,18 +61,55 @@ REPORTS: tuple[ReportSpec, ...] = (
 )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     """Create the portfolio and security Performance Auditing reports.
 
+    Args:
+        argv: Optional command-line arguments excluding the script name.
+
     Returns:
-        None. Report packages are written under ``output/portfolio/`` and
-        ``output/security/``.
+        Process exit code. ``0`` indicates that the requested reports were
+        written.
     """
-    workbook_paths = [_write_report(report) for report in REPORTS]
+    args = _argument_parser().parse_args(argv)
+    selected_reports = (
+        REPORTS if args.report == "both" else tuple(
+            report for report in REPORTS if report.comparison_level == args.report
+        )
+    )
+    workbook_paths: list[Path] = []
+    security_skipped = False
+    for report in selected_reports:
+        try:
+            workbook_paths.append(_write_report(report))
+        except PpaError as error:
+            if args.report == "both" and _is_missing_security_data(error):
+                security_skipped = True
+                continue
+            print(f"Report failed: {error}", file=sys.stderr)
+            return 1
 
     print("Open these files to review Performance Auditing output:")
     for workbook_path in workbook_paths:
         print(f"  {workbook_path}")
+    if security_skipped:
+        print()
+        print("Security output skipped because files.security_performance is not available.")
+    return 0
+
+
+def _argument_parser() -> argparse.ArgumentParser:
+    """Return arguments equivalent to the ``ppar audit`` options."""
+    parser = argparse.ArgumentParser(
+        description="Run Performance Auditing from this Python setup file.",
+    )
+    parser.add_argument(
+        "--report",
+        choices=(PORTFOLIO_COMPARISON_LEVEL, SECURITY_COMPARISON_LEVEL, "both"),
+        default="both",
+        help="Report family to generate. Defaults to both.",
+    )
+    return parser
 
 
 def _write_report(report: ReportSpec) -> Path:
@@ -95,5 +135,14 @@ def _write_report(report: ReportSpec) -> Path:
     return bundle_paths["review_workbook"]
 
 
+def _is_missing_security_data(error: PpaError) -> bool:
+    """Return whether security output failed because secperf is unavailable."""
+    message = str(error)
+    return (
+        "files.security_performance" in message
+        and ("is required" in message or "is missing" in message)
+    )
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
