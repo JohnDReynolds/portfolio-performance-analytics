@@ -71,7 +71,7 @@ Implemented output helpers:
 User-facing entry point:
 
 - `ppar setup`: creates an Axys/APX starter workspace.
-- `ppar performance_audit`: writes portfolio and security comparison report
+- `ppar audit`: writes portfolio and security comparison report
   bundles from a configured workspace.
 
 Developer/internal helper commands:
@@ -1964,7 +1964,7 @@ name the CSVs most relevant to each changed period.
 
 The packaged Axys/APX fixtures intentionally separate user-facing setup
 templates from validation fixtures. `ppar setup` installs the portfolio and
-security comparison starter file, `run_performance_audit.py`. That setup-generated
+security comparison starter file, `run_audit.py`. That setup-generated
 script writes `report.xlsx`,
 `report.html`, CSV artifacts, and a manifest under `output/portfolio` and
 `output/security`.

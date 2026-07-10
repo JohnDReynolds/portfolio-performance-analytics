@@ -40,10 +40,10 @@ def main(argv: list[str] | None = None) -> int:
         from ppar.performance_comparison.cli import setup as _setup
 
         return _setup.main(remaining_args)
-    if command == "performance_audit":
+    if command == "audit":
         from ppar.performance_comparison.cli import site_report as _site_report
 
-        return _site_report.main(remaining_args, prog="ppar performance_audit")
+        return _site_report.main(remaining_args, prog="ppar audit")
 
     _argument_parser().parse_args(effective_argv)
     raise AssertionError(f"Unsupported command: {command}")
@@ -61,7 +61,7 @@ def _top_level_help() -> str:
         "\n"
         "commands:\n"
         "  setup                   Create a local PPAR setup folder.\n"
-        "  performance_audit       "
+        "  audit                   "
         "Write Performance Auditing reports from a configured site.\n"
         "  analytics               "
         "Write Performance Analytics reports from a configured site.\n"
@@ -71,7 +71,7 @@ def _top_level_help() -> str:
         "\n"
         "Examples:\n"
         "  ppar setup ./my_ppar_data\n"
-        "  ppar performance_audit ./my_ppar_data/performance_audit\n"
+        "  ppar audit ./my_ppar_data/audit\n"
         "  ppar analytics ./my_ppar_data/analytics"
     )
 
@@ -85,7 +85,7 @@ def _top_level_onboarding() -> str:
         "  ppar setup ./my_ppar_data\n"
         "\n"
         "Then run:\n"
-        "  ppar performance_audit ./my_ppar_data/performance_audit\n"
+        "  ppar audit ./my_ppar_data/audit\n"
         "  ppar analytics ./my_ppar_data/analytics\n"
         "\n"
         "For command help:\n"
@@ -103,7 +103,7 @@ def _argument_parser() -> argparse.ArgumentParser:
             "Examples:\n"
             "  ppar setup ./my_ppar_data\n"
             "  ppar analytics ./my_ppar_data/analytics\n"
-            "  ppar performance_audit ./my_ppar_data/performance_audit"
+            "  ppar audit ./my_ppar_data/audit"
         ),
         formatter_class=_TopLevelHelpFormatter,
     )
@@ -122,8 +122,8 @@ def _argument_parser() -> argparse.ArgumentParser:
         help="Create ppar.yaml and starter folders for a site.",
     )
     subparsers.add_parser(
-        "performance_audit",
-        help="Write performance-auditing reports from a configured site.",
+        "audit",
+        help="Write Performance Auditing reports from a configured site.",
     )
     return parser
 

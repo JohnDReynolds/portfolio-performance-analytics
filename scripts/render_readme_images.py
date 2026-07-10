@@ -101,7 +101,7 @@ def main() -> None:
                     _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
                     temp_dir / "PerformanceAuditPortfolio.html",
                     sections=_PORTFOLIO_PERFORMANCE_AUDIT_SECTIONS,
-                    title="Portfolio Performance Audit",
+                    title="Portfolio Performance Auditing",
                     extra_style="""
                     <style>
                     html,

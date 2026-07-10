@@ -10,7 +10,7 @@ many disconnected entry points.
 | --- | --- | --- |
 | Package overview | [`README.md`](../README.md) | Top-level project description, installation, public commands, and user-facing outputs. |
 | Architecture map | [`docs/architecture.md`](architecture.md) | Compact map of the installed command surface, package boundaries, data flow, setup data, and report boundary. |
-| Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
+| Performance Analytics demo refresh | [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | How to regenerate Mega-Cap demo data, update the README story, and refresh README images. |
 | PPAR roadmap | [`docs/roadmap.md`](roadmap.md) | Central forward-looking plan for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
 | Performance Auditing concepts | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Deep notes for the Performance Comparison engine inside Performance Auditing, including YAML vocabulary, report bundle structure, and implementation status. |
 | Axys/APX export shape | [`docs/axysapx_common_core_export.md`](axysapx_common_core_export.md) | Starter Axys/APX export template and field-reference notes. |
@@ -41,7 +41,7 @@ many disconnected entry points.
 | --- | --- | --- |
 | [`README.md`](../README.md) | New users | Package overview, installation, public setup commands, and user-facing outputs. |
 | [`docs/architecture.md`](architecture.md) | Maintainers | Compact architecture map for commands, package boundaries, data flow, setup data, and report boundaries. |
-| [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Analytics demo data-generation, story, and README image refresh workflow. |
+| [`docs/analytics_demo_refresh.md`](analytics_demo_refresh.md) | Maintainers | Performance Analytics demo data-generation, story, and README image refresh workflow. |
 | [`docs/roadmap.md`](roadmap.md) | Maintainers | Central future-work roadmap for Performance Auditing, Performance Analytics, onboarding, reports, and demo-data guardrails. |
 | [`docs/performance_comparison_design.md`](performance_comparison_design.md) | Maintainers | Deep design reference, YAML vocabulary, implementation status, and open design issues. |
 | [`ppar/setup_templates/axysapx_performance_comparison/README.md`](../ppar/setup_templates/axysapx_performance_comparison/README.md) | Demo reviewers | Packaged Axys/APX data/YAML descriptions, setup-installed Python runners, and expected workbook outputs. |
@@ -81,7 +81,7 @@ Useful source-checkout checks:
 ./.venv/bin/python scripts/render_readme_images.py
 ```
 
-To refresh only the Performance Audit README screenshots:
+To refresh only the Performance Auditing README screenshots:
 
 ```bash
 ./.venv/bin/python scripts/render_readme_images.py --only performance-comparison
@@ -222,12 +222,12 @@ examples that users see in their local setup folder:
 ```bash
 ./.venv/bin/python -m ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics
 ./.venv/bin/python /tmp/ppar_smoke_site/analytics/run_analytics.py
-./.venv/bin/python /tmp/ppar_smoke_site/performance_audit/run_performance_audit.py
+./.venv/bin/python /tmp/ppar_smoke_site/audit/run_audit.py
 ./.venv/bin/python /tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  /tmp/ppar_smoke_site/performance_audit/output/portfolio
+  /tmp/ppar_smoke_site/audit/output/portfolio
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  /tmp/ppar_smoke_site/performance_audit/output/security
+  /tmp/ppar_smoke_site/audit/output/security
 ```
 
 Open the generated `report.xlsx` when it is present. Use `report.html` for
@@ -258,7 +258,7 @@ packaged scenario-matrix validation.
 Use this lower-level command when you want to choose a YAML file or output
 directory yourself. Use `--comparison-level security` with the same YAML when
 you want a security-level bundle. The public user-facing path is `ppar setup`
-followed by `ppar performance_audit`.
+followed by `ppar audit`.
 
 Code that needs to inspect the generated report-bundle handoff surface should
 use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
@@ -396,7 +396,7 @@ Use this pre-publish checklist after the maintainer decides to release:
    ppar --help
    ppar setup /tmp/ppar_release_site
    ppar analytics /tmp/ppar_release_site/analytics
-   ppar performance_audit /tmp/ppar_release_site/performance_audit
+   ppar audit /tmp/ppar_release_site/audit
    ```
 8. Push the branch and tag only after the checks above match the intended
    release commit.

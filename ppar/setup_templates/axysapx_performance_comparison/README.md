@@ -8,7 +8,7 @@ Axys/APX exports.
 
 ```bash
 ppar setup ./my_ppar_data
-ppar performance_audit ./my_ppar_data/performance_audit
+ppar audit ./my_ppar_data/audit
 ppar analytics ./my_ppar_data/analytics
 ```
 
@@ -20,8 +20,8 @@ attribution and Ex-Post Risk reports.
 
 Output goes here:
 
-- Performance Auditing: `performance_audit/output/portfolio/report.xlsx` and
-  `performance_audit/output/security/report.xlsx`
+- Performance Auditing: `audit/output/portfolio/report.xlsx` and
+  `audit/output/security/report.xlsx`
 - Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
 
 When you are ready to use your own data, open `my_ppar_data/README.md` and
@@ -37,8 +37,8 @@ my_ppar_data/
   README.md
   analytics/
     run_analytics.py
-  performance_audit/
-    run_performance_audit.py
+  audit/
+    run_audit.py
 ```
 
 There is one packaged Axys/APX audit YAML file. Portfolio and security reports
@@ -58,7 +58,7 @@ fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
 [Demo Extract Availability](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
-Setup creates `analytics/ppar.yaml` and `performance_audit/ppar.yaml`.
+Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
 Performance Auditing validation checks minimum required datasets, required normalized columns,
 and complete YAML treatment for changed source-data fields before report bundles are written.
 The same validation is available through
@@ -74,28 +74,28 @@ check a YAML file without writing reports.
 Run only the portfolio workbook:
 
 ```bash
-ppar performance_audit ./my_ppar_data/performance_audit --report portfolio
+ppar audit ./my_ppar_data/audit --report portfolio
 ```
 
 Output:
 
-- `my_ppar_data/performance_audit/output/portfolio/report.xlsx`
-- `my_ppar_data/performance_audit/output/portfolio/report.html`
-- `my_ppar_data/performance_audit/output/portfolio/supporting_files/manifest.json`
-- `my_ppar_data/performance_audit/output/portfolio/supporting_files/*.csv`
+- `my_ppar_data/audit/output/portfolio/report.xlsx`
+- `my_ppar_data/audit/output/portfolio/report.html`
+- `my_ppar_data/audit/output/portfolio/supporting_files/manifest.json`
+- `my_ppar_data/audit/output/portfolio/supporting_files/*.csv`
 
 Run only the security workbook:
 
 ```bash
-ppar performance_audit ./my_ppar_data/performance_audit --report security
+ppar audit ./my_ppar_data/audit --report security
 ```
 
 Output:
 
-- `my_ppar_data/performance_audit/output/security/report.xlsx`
-- `my_ppar_data/performance_audit/output/security/report.html`
-- `my_ppar_data/performance_audit/output/security/supporting_files/manifest.json`
-- `my_ppar_data/performance_audit/output/security/supporting_files/*.csv`
+- `my_ppar_data/audit/output/security/report.xlsx`
+- `my_ppar_data/audit/output/security/report.html`
+- `my_ppar_data/audit/output/security/supporting_files/manifest.json`
+- `my_ppar_data/audit/output/security/supporting_files/*.csv`
 
 Open `report.xlsx` for review. Use `report.html` for browser review, and keep
 the CSV artifacts for supporting detail and traceability. The
@@ -263,9 +263,9 @@ After generating the workbook demo bundle, validate it with:
 
 ```bash
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  my_ppar_data/performance_audit/output/portfolio
+  my_ppar_data/audit/output/portfolio
 ./.venv/bin/python -m ppar.performance_comparison.cli.validate_bundle \
-  my_ppar_data/performance_audit/output/security
+  my_ppar_data/audit/output/security
 ```
 
 For a full packaged-demo health pass from a source checkout, maintainers can use

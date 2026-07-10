@@ -16,7 +16,7 @@ The main user path is:
 
 ```text
 ppar setup <site_directory>
-  -> creates analytics/ and performance_audit/ starter folders
+  -> creates analytics/ and audit/ starter folders
   -> installs heavily commented ppar.yaml files
   -> copies Axys/APX starter CSV files
 ```
@@ -25,7 +25,7 @@ After setup, users run:
 
 ```bash
 ppar analytics <site_directory>/analytics
-ppar performance_audit <site_directory>/performance_audit
+ppar audit <site_directory>/audit
 ```
 
 ## Package Map
@@ -42,7 +42,7 @@ ppar performance_audit <site_directory>/performance_audit
 PPAR generally treats source files as configured site inputs, not as a hidden
 database.
 
-For Analytics:
+For Performance Analytics:
 
 ```text
 Axys/APX portfolio and security performance CSVs
@@ -72,7 +72,7 @@ context unless explicit YAML policy says otherwise.
 | Area | Intended audience | Notes |
 | --- | --- | --- |
 | `ppar/setup_templates/axysapx_analytics` | Installed users and demos | Copied by `ppar setup` into `analytics/`. |
-| `ppar/setup_templates/axysapx_performance_comparison` | Installed users and demos | Copied by `ppar setup` into `performance_audit/`. |
+| `ppar/setup_templates/axysapx_performance_comparison` | Installed users and demos | Copied by `ppar setup` into `audit/`. |
 | `ppar/setup_templates/generic_analytics` | Maintainers | Feeds README images, analytics regression tests, and demo-data derivation. It is not the primary onboarding path. |
 | `tests/data/axys` | Test authors | Synthetic fixtures for narrow validation and edge-case behavior. |
 | `_demo_output` | Maintainers | Generated local report/image output; not source-data and not shipped as user setup input. |
@@ -81,7 +81,7 @@ context unless explicit YAML policy says otherwise.
 
 The YAML files are the main configuration and onboarding surface.
 
-Analytics YAML answers:
+Performance Analytics YAML answers:
 
 - Where are the portfolio and security performance files?
 - Which columns contain identifiers, dates, returns, weights, and attribution fields?
@@ -103,7 +103,8 @@ differences need an auditable reason.
 
 ## Report Boundary
 
-Analytics outputs are presentation artifacts for portfolio-vs-benchmark review.
+Performance Analytics outputs are presentation artifacts for
+portfolio-vs-benchmark review.
 They emphasize attribution, contribution, cumulative effects, and risk
 statistics.
 

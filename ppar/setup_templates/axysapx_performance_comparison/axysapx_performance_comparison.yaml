@@ -1,7 +1,7 @@
 # =========================
 # Axys/APX Performance Auditing Starter Configuration
 # =========================
-# This file is copied to your setup folder as performance_audit/ppar.yaml.
+# This file is copied to your setup folder as audit/ppar.yaml.
 # Treat it as both the configuration file and the onboarding guide for
 # Performance Auditing.
 #
@@ -18,7 +18,7 @@
 # 1. Replace CSVs in snapshot_a with the older/original IMEX snapshot.
 # 2. Replace CSVs in snapshot_b with the newer/restated IMEX snapshot.
 # 3. Keep the starter filenames and headers when possible.
-# 4. Run ppar performance_audit ./my_ppar_data/performance_audit.
+# 4. Run ppar audit ./my_ppar_data/audit.
 #    The command writes both portfolio and security reports when secperf.csv is
 #    available in both snapshots.
 # 5. Edit this YAML only when validation or report evidence says what to fix.
@@ -47,9 +47,9 @@ comparison:
   # Most users should leave this as portfolio. The production command normally
   # chooses report output with --report and writes both reports by default when
   # portfolio and security source files are available:
-  #   ppar performance_audit ./my_ppar_data/performance_audit --report portfolio
-  #   ppar performance_audit ./my_ppar_data/performance_audit --report security
-  #   ppar performance_audit ./my_ppar_data/performance_audit --report both
+  #   ppar audit ./my_ppar_data/audit --report portfolio
+  #   ppar audit ./my_ppar_data/audit --report security
+  #   ppar audit ./my_ppar_data/audit --report both
   level: portfolio
 
 snapshots:

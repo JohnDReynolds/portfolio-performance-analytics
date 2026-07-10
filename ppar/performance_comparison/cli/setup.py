@@ -17,7 +17,7 @@ import ppar.utilities as util
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _ANALYTICS_DIRECTORY: Final[str] = "analytics"
-_PERFORMANCE_COMPARISON_DIRECTORY: Final[str] = "performance_audit"
+_PERFORMANCE_COMPARISON_DIRECTORY: Final[str] = "audit"
 _SNAPSHOT_A_DIR: Final[str] = "snapshot_a"
 _SNAPSHOT_B_DIR: Final[str] = "snapshot_b"
 _PACKAGED_DEMO_RESOURCE: Final[str] = "ppar.setup_templates"
@@ -39,7 +39,7 @@ _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
     "splits.csv",
 )
 _COMPARISON_TUTORIAL_SCRIPTS: Final[tuple[str, ...]] = (
-    "run_performance_audit.py",
+    "run_audit.py",
 )
 
 
@@ -78,7 +78,7 @@ def run_setup(
 
     Args:
         site_directory: Folder that will receive ``analytics`` and
-            ``performance_audit`` subfolders.
+            ``audit`` subfolders.
         overwrite: Whether to replace existing starter files.
         include_generic_analytics: Whether to copy the maintainer-facing generic
             analytics starter data and tutorial script.
@@ -145,7 +145,7 @@ def _argument_parser() -> argparse.ArgumentParser:
         prog="ppar setup",
         description=(
             "Create an Axys/APX starter workspace with analytics and "
-            "performance-auditing folders."
+            "Performance Auditing folders."
         ),
         epilog=(
             "Examples:\n"
@@ -156,7 +156,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "site_directory",
         type=Path,
-        help="Folder that will receive analytics and performance_audit.",
+        help="Folder that will receive audit and analytics.",
     )
     parser.add_argument(
         "--overwrite",
@@ -301,7 +301,7 @@ performance change?" It answers this question by:
    math.
 
 ```bash
-ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
+ppar audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
 ```
 
 ### Performance Analytics
@@ -328,10 +328,10 @@ Performance Auditing compares two snapshots:
 
 Steps:
 
-1. Replace the CSV data in `performance_audit/snapshot_a`.
-2. Replace the CSV data in `performance_audit/snapshot_b`.
-3. Edit `performance_audit/ppar.yaml`.
-4. Run `ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
+1. Replace the CSV data in `audit/snapshot_a`.
+2. Replace the CSV data in `audit/snapshot_b`.
+3. Edit `audit/ppar.yaml`.
+4. Run `ppar audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
 ### Performance Analytics
 
@@ -348,7 +348,7 @@ If you want to customize the workflows and outputs using your own Python
 scripts, refer to the sample scripts:
 
 - `analytics/run_analytics.py`
-- `performance_audit/run_performance_audit.py`
+- `audit/run_audit.py`
 
 ## Folder Map
 
@@ -359,9 +359,9 @@ scripts, refer to the sample scripts:
     portperf.csv
     secperf.csv
     run_analytics.py
-  performance_audit/
+  audit/
     ppar.yaml
-    run_performance_audit.py
+    run_audit.py
     snapshot_a/
       portperf.csv
       holdings.csv
@@ -429,7 +429,7 @@ def _print_success(result: dict[str, Path | str]) -> None:
     print(f"PPAR setup complete: {result['site_directory']}")
     print()
     print("To run Performance Auditing:")
-    print(f"  ppar performance_audit {result['comparison_directory']}")
+    print(f"  ppar audit {result['comparison_directory']}")
     print()
     print("To run Performance Analytics:")
     print(f"  ppar analytics {result['analytics_directory']}")

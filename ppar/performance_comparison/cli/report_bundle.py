@@ -79,12 +79,12 @@ def main(argv: list[str] | None = None) -> int:
 def _argument_parser() -> argparse.ArgumentParser:
     """Return the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Write a performance audit review artifact bundle.",
+        description="Write a Performance Auditing review artifact bundle.",
     )
     parser.add_argument(
         "comparison_path",
         type=Path,
-        help="Path to a performance audit YAML file.",
+        help="Path to a Performance Auditing YAML file.",
     )
     parser.add_argument(
         "output_directory",
@@ -93,7 +93,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--title",
-        default="Performance Audit Report",
+        default="Performance Auditing Report",
         help="Report title for report.html and optional report.xlsx.",
     )
     parser.add_argument(

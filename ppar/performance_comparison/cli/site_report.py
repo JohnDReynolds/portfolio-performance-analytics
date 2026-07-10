@@ -1,4 +1,4 @@
-"""Write performance-auditing reports for a configured site folder."""
+"""Write Performance Auditing reports for a configured site folder."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from ppar.performance_comparison.specification import (
 
 _CONFIG_FILE_NAME: Final[str] = "ppar.yaml"
 _OUTPUT_DIR: Final[str] = "output"
-_DEFAULT_SITE_DIRECTORY: Final[str] = "performance_audit"
+_DEFAULT_SITE_DIRECTORY: Final[str] = "audit"
 _REPORT_CHOICES: Final[tuple[str, ...]] = (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
@@ -32,7 +32,7 @@ _REPORT_CHOICES: Final[tuple[str, ...]] = (
 def main(
     argv: list[str] | None = None,
     *,
-    prog: str = "ppar performance_audit",
+    prog: str = "ppar audit",
 ) -> int:
     """Run the site report command.
 
@@ -89,7 +89,7 @@ def run_report(
     config_path = site_path / _CONFIG_FILE_NAME
     if not config_path.exists():
         raise PpaError(
-            f"{config_path} is missing. Run from the performance_audit folder "
+            f"{config_path} is missing. Run from the audit folder "
             "or pass the folder. For first-time setup, run: "
             "ppar setup ./my_ppar_data",
             802,
@@ -126,17 +126,17 @@ def run_report(
 
 def _argument_parser(
     *,
-    prog: str = "ppar performance_audit",
+    prog: str = "ppar audit",
 ) -> argparse.ArgumentParser:
     """Return the site report argument parser."""
     parser = argparse.ArgumentParser(
         prog=prog,
-        description="Write performance-auditing report bundles for a site setup.",
+        description="Write Performance Auditing report bundles for a site setup.",
         epilog=(
             "Examples:\n"
-            "  ppar performance_audit ./my_ppar_data/performance_audit\n"
-            "  ppar performance_audit --report portfolio\n"
-            "  ppar performance_audit --report both"
+            "  ppar audit ./my_ppar_data/audit\n"
+            "  ppar audit --report portfolio\n"
+            "  ppar audit --report both"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -158,7 +158,7 @@ def _argument_parser(
 
 
 def _default_site_directory(site_directory: Path | None) -> Path:
-    """Return the explicit or conventional performance-auditing site directory."""
+    """Return the explicit or conventional Performance Auditing site directory."""
     if site_directory is not None:
         return site_directory
     return Path.cwd()
@@ -176,9 +176,9 @@ def _write_report_bundle(
         comparison_level=comparison_level,
     )
     title = (
-        "Portfolio Performance Audit"
+        "Portfolio Performance Auditing Report"
         if comparison_level == PORTFOLIO_COMPARISON_LEVEL
-        else "Security Performance Audit"
+        else "Security Performance Auditing Report"
     )
     paths = write_performance_comparison_report_bundle(
         findings,
@@ -208,7 +208,7 @@ def _is_missing_security_data(error: PpaError) -> bool:
 
 def _print_success(result: dict[str, Any]) -> None:
     """Print a concise user handoff."""
-    print("Open these files to review performance-auditing output:")
+    print("Open these files to review Performance Auditing output:")
     for path in result["review_paths"]:
         print(f"  {path}")
     if "security_status" in result:

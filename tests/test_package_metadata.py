@@ -526,18 +526,18 @@ class TestPackageMetadata(unittest.TestCase):
         for expected_text in [
             "ppar setup ./my_ppar_data",
             "ppar analytics ./my_ppar_data/analytics",
-            "ppar performance_audit ./my_ppar_data/performance_audit",
+            "ppar audit ./my_ppar_data/audit",
             "Output goes here:",
-            "performance_audit/output/portfolio/report.xlsx",
-            "performance_audit/output/security/report.xlsx",
+            "audit/output/portfolio/report.xlsx",
+            "audit/output/security/report.xlsx",
             "analytics/output/*.html",
             "analytics/output/*.png",
             "my_ppar_data/",
             "analytics/",
-            "performance_audit/",
+            "audit/",
             "README.md",
             "run_analytics.py",
-            "run_performance_audit.py",
+            "run_audit.py",
             "Customizing",
             "--overwrite",
         ]:
@@ -550,7 +550,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertTrue(
             Path(
                 "ppar/setup_templates/axysapx_performance_comparison/"
-                "run_performance_audit.py"
+                "run_audit.py"
             ).exists()
         )
 
@@ -582,7 +582,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("**Performance Attribution:**", readme)
         self.assertIn("**Ex-Post Risk:**", readme)
         self.assertIn("docs/images/readme/PerformanceAuditPortfolio.jpg", readme)
-        self.assertIn("alt=\"Portfolio Performance Audit report\"", readme)
+        self.assertIn("alt=\"Portfolio Performance Auditing report\"", readme)
         self.assertNotIn("PerformanceComparisonPortfolio.jpg", readme)
         self.assertNotIn("PerformanceComparisonSecurity.jpg", readme)
         self.assertNotIn("DataAuditIssues.jpg", readme)
@@ -592,7 +592,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertNotIn("ppar setup --guide", readme)
         self.assertIn("ppar analytics ./my_ppar_data/analytics", readme)
         self.assertIn(
-            "ppar performance_audit ./my_ppar_data/performance_audit",
+            "ppar audit ./my_ppar_data/audit",
             readme,
         )
         self.assertIn("ppar.yaml", readme)
@@ -645,7 +645,7 @@ class TestPackageMetadata(unittest.TestCase):
             "The public installed command is:",
             "ppar setup <site_directory>",
             "ppar analytics <site_directory>/analytics",
-            "ppar performance_audit <site_directory>/performance_audit",
+            "ppar audit <site_directory>/audit",
             "`ppar.analytics`",
             "`ppar.axys`",
             "`ppar.performance_comparison`",
@@ -1777,14 +1777,14 @@ class TestPackageMetadata(unittest.TestCase):
             "Yahoo-dependent generic analytics",
             "ppar.cli setup /tmp/ppar_smoke_site --include-generic-analytics",
             "/tmp/ppar_smoke_site/analytics/run_analytics.py",
-            "/tmp/ppar_smoke_site/performance_audit/run_performance_audit.py",
+            "/tmp/ppar_smoke_site/audit/run_audit.py",
             "/tmp/ppar_smoke_site/generic_analytics/run_generic_analytics.py",
             "ppar.performance_comparison.cli.validate_bundle",
             "ppar.performance_comparison.cli.validate_config",
             "ppar.performance_comparison.cli.validate_demo_matrix",
             "scripts/check_performance_comparison_demo_health.py",
-            "/tmp/ppar_smoke_site/performance_audit/output/portfolio",
-            "/tmp/ppar_smoke_site/performance_audit/output/security",
+            "/tmp/ppar_smoke_site/audit/output/portfolio",
+            "/tmp/ppar_smoke_site/audit/output/security",
             "report.xlsx",
             "report_bundle_contract()",
             "prefer the package-root workflow helpers",
@@ -1885,7 +1885,7 @@ class TestPackageMetadata(unittest.TestCase):
 
         for expected_text in [
             "ppar setup",
-            "run_performance_audit.py",
+            "run_audit.py",
             "output/portfolio",
             "output/security",
             "report.xlsx",

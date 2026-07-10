@@ -37,8 +37,8 @@ _DEMO_QUIET_PHRASES = (
     "Analytics demo output written to:",
     "Report bundle written to:",
     "Bundle artifacts:",
-    "Portfolio Performance Audit",
-    "Security Performance Audit",
+    "Portfolio Performance Auditing Report",
+    "Security Performance Auditing Report",
 )
 
 
@@ -55,10 +55,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Write Axys/APX analytics reports"
             ),
             _SITE_REPORT_MODULE: (
-                "Write performance-auditing report bundles"
+                "Write Performance Auditing report bundles"
             ),
             _BUNDLE_MODULE: (
-                "Write a performance audit review artifact bundle."
+                "Write a Performance Auditing review artifact bundle."
             ),
             _VALIDATE_BUNDLE_MODULE: (
                 "Validate a performance comparison report bundle."
@@ -103,9 +103,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
                 if module_name == _SITE_REPORT_MODULE:
                     self.assertIn("--report", result.stdout)
-                    self.assertIn("usage: ppar performance_audit", result.stdout)
+                    self.assertIn("usage: ppar audit", result.stdout)
                     self.assertIn(
-                        "ppar performance_audit ./my_ppar_data/performance_audit",
+                        "ppar audit ./my_ppar_data/audit",
                         result.stdout,
                     )
 
@@ -121,17 +121,17 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("usage: ppar <command> [options]", result.stdout)
         self.assertIn("analytics", result.stdout)
         self.assertIn("setup", result.stdout)
-        self.assertIn("performance_audit", result.stdout)
+        self.assertIn("audit", result.stdout)
         self.assertIn("Write Performance Auditing reports", result.stdout)
         self.assertIn("Write Performance Analytics reports", result.stdout)
         self.assertLess(
-            result.stdout.index("performance_audit"),
+            result.stdout.index("audit"),
             result.stdout.index("analytics"),
         )
         self.assertNotIn("performance_comparison", result.stdout)
         self.assertNotIn("perfcomp", result.stdout)
         self.assertNotIn(
-            "{analytics,setup,performance_audit,performance_comparison,perfcomp}",
+            "{analytics,setup,audit,performance_comparison,perfcomp}",
             result.stdout,
         )
         self.assertNotIn("PPAR command-line tools", result.stdout)
@@ -139,7 +139,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("ppar setup ./my_ppar_data", result.stdout)
         self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
         self.assertIn(
-            "ppar performance_audit ./my_ppar_data/performance_audit",
+            "ppar audit ./my_ppar_data/audit",
             result.stdout,
         )
         self.assertNotIn("Set up and run PPAR reports.", result.stdout)
@@ -160,12 +160,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("First-time setup:", result.stdout)
         self.assertIn("ppar setup ./my_ppar_data", result.stdout)
         self.assertIn(
-            "ppar performance_audit ./my_ppar_data/performance_audit",
+            "ppar audit ./my_ppar_data/audit",
             result.stdout,
         )
         self.assertIn("ppar analytics ./my_ppar_data/analytics", result.stdout)
         self.assertLess(
-            result.stdout.index("ppar performance_audit"),
+            result.stdout.index("ppar audit"),
             result.stdout.index("ppar analytics"),
         )
         self.assertNotIn("usage:", result.stdout)
@@ -201,7 +201,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             analytics_path = site_directory / "analytics"
-            comparison_path = site_directory / "performance_audit"
+            comparison_path = site_directory / "audit"
             config_path = comparison_path / "ppar.yaml"
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             readme = (site_directory / "README.md").read_text(encoding="utf-8")
@@ -234,7 +234,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("Open the files listed in the command output.", readme)
             self.assertNotIn("Start by replacing the starter CSV files", readme)
             self.assertIn("analytics/run_analytics.py", readme)
-            self.assertIn("run_performance_audit.py", readme)
+            self.assertIn("run_audit.py", readme)
             self.assertNotIn("run_portfolio_comparison.py", readme)
             self.assertNotIn("run_security_comparison.py", readme)
             self.assertIn(
@@ -245,7 +245,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             demo_sequence = [
                 "## Demos",
                 "### Performance Auditing",
-                f"ppar performance_audit {site_directory / 'performance_audit'}",
+                f"ppar audit {site_directory / 'audit'}",
                 "### Performance Analytics",
                 f"ppar analytics {site_directory / 'analytics'}",
                 "## Customizing With Your Own Data",
@@ -264,7 +264,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 readme.index("## Folder Map"),
             )
             self.assertIn("Edit `analytics/ppar.yaml` if", readme)
-            self.assertIn("Edit `performance_audit/ppar.yaml`.", readme)
+            self.assertIn("Edit `audit/ppar.yaml`.", readme)
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
             self.assertTrue((analytics_path / "secperf.csv").exists())
@@ -280,7 +280,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("SPECIFICATIONS_PATH", analytics_script)
             self.assertIn("AxysData", analytics_script)
             self.assertIn("to_analytics", analytics_script)
-            self.assertTrue((comparison_path / "run_performance_audit.py").exists())
+            self.assertTrue((comparison_path / "run_audit.py").exists())
             self.assertFalse(
                 (comparison_path / "run_portfolio_comparison.py").exists()
             )
@@ -315,7 +315,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
             self.assertIn("PPAR setup complete:", result.stdout)
             self.assertIn("ppar analytics", result.stdout)
-            self.assertIn("ppar performance_audit", result.stdout)
+            self.assertIn("ppar audit", result.stdout)
             self.assertNotIn("secperf.csv", result.stdout)
             self.assertTrue((site_directory / "analytics").is_dir())
             self.assertFalse((site_directory / "PYTHON_TUTORIAL.md").exists())
@@ -323,14 +323,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 (site_directory / "analytics" / "run_analytics.py").exists()
             )
             self.assertTrue(
-                (site_directory / "performance_audit" / "snapshot_a").is_dir()
+                (site_directory / "audit" / "snapshot_a").is_dir()
             )
             self.assertTrue(
-                (site_directory / "performance_audit" / "snapshot_b").is_dir()
+                (site_directory / "audit" / "snapshot_b").is_dir()
             )
             self.assertTrue((site_directory / "analytics" / "ppar.yaml").exists())
             self.assertTrue(
-                (site_directory / "performance_audit" / "ppar.yaml").exists()
+                (site_directory / "audit" / "ppar.yaml").exists()
             )
             self.assertFalse((site_directory / "output").exists())
 
@@ -347,11 +347,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             readme_path = site_directory / "README.md"
             analytics_script_path = site_directory / "analytics" / "run_analytics.py"
             audit_script_path = (
-                site_directory / "performance_audit" / "run_performance_audit.py"
+                site_directory / "audit" / "run_audit.py"
             )
             analytics_config_path = site_directory / "analytics" / "ppar.yaml"
             comparison_config_path = (
-                site_directory / "performance_audit" / "ppar.yaml"
+                site_directory / "audit" / "ppar.yaml"
             )
 
             custom_readme = "custom readme\n"
@@ -467,8 +467,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             script_paths = (
                 site_directory / "analytics" / "run_analytics.py",
                 site_directory
-                / "performance_audit"
-                / "run_performance_audit.py",
+                / "audit"
+                / "run_audit.py",
                 site_directory / "generic_analytics" / "run_generic_analytics.py",
             )
             for script_path in script_paths:
@@ -485,7 +485,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue(
                 (
                     site_directory
-                    / "performance_audit"
+                    / "audit"
                     / "output"
                     / "portfolio"
                     / "report.xlsx"
@@ -494,7 +494,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue(
                 (
                     site_directory
-                    / "performance_audit"
+                    / "audit"
                     / "output"
                     / "security"
                     / "report.xlsx"
@@ -542,7 +542,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "performance_audit"
+            comparison_directory = site_directory / "audit"
 
             result = subprocess.run(
                 _module_command(
@@ -555,7 +555,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(
-                "Open these files to review performance-auditing output:",
+                "Open these files to review Performance Auditing output:",
                 result.stdout,
             )
             self.assertIn("output/portfolio/report.xlsx", result.stdout)
@@ -589,7 +589,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "performance_audit"
+            comparison_directory = site_directory / "audit"
             (comparison_directory / "snapshot_a" / "secperf.csv").unlink()
             (comparison_directory / "snapshot_b" / "secperf.csv").unlink()
 
@@ -647,7 +647,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            comparison_directory = site_directory / "performance_audit"
+            comparison_directory = site_directory / "audit"
 
             result = subprocess.run(
                 _module_command(
@@ -662,7 +662,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(
-                "Open these files to review performance-auditing output:",
+                "Open these files to review Performance Auditing output:",
                 result.stdout,
             )
             self.assertIn("output/security/report.xlsx", result.stdout)
@@ -737,7 +737,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
         output = stdout.getvalue()
-        self.assertIn("Open these files to review performance-auditing output:", output)
+        self.assertIn("Open these files to review Performance Auditing output:", output)
         self.assertIn("report.xlsx", output)
         self.assertNotIn("report.html", output)
         self.assertNotIn("manifest.json", output)
@@ -764,7 +764,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             comparison_result = subprocess.run(
                 _module_command(
                     _PPAR_MODULE,
-                    "performance_audit",
+                    "audit",
                     "--report",
                     "portfolio",
                 ),
@@ -783,7 +783,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("ppar setup ./my_ppar_data", analytics_result.stderr)
             self.assertIn("Report failed:", comparison_result.stderr)
             self.assertIn(
-                "Run from the performance_audit folder or pass the folder.",
+                "Run from the audit folder or pass the folder.",
                 comparison_result.stderr,
             )
             self.assertIn("ppar setup ./my_ppar_data", comparison_result.stderr)
@@ -799,7 +799,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             )
             analytics_directory = site_directory / "analytics"
-            comparison_directory = site_directory / "performance_audit"
+            comparison_directory = site_directory / "audit"
 
             analytics_result = subprocess.run(
                 _module_command(_PPAR_MODULE, "analytics"),
@@ -811,7 +811,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             comparison_result = subprocess.run(
                 _module_command(
                     _PPAR_MODULE,
-                    "performance_audit",
+                    "audit",
                     "--report",
                     "portfolio",
                 ),
@@ -826,7 +826,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 analytics_result.stdout,
             )
             self.assertIn(
-                "Open these files to review performance-auditing output:",
+                "Open these files to review Performance Auditing output:",
                 comparison_result.stdout,
             )
             self.assertTrue(

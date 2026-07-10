@@ -98,7 +98,7 @@ Completed guardrails now cover:
   checks;
 - the built wheel exposes only the `ppar` console script, includes the Axys/APX
   starter data needed by setup, excludes generated/source-checkout internals,
-  and runs the installed setup, analytics, and performance-auditing smoke
+  and runs the installed setup, analytics, and Performance Auditing smoke
   path;
 - release-readiness checks are documented in the repository guide, with
   `pyproject.toml` as the single package-version authority; the maintainer
@@ -119,7 +119,7 @@ Completed guardrails now cover:
   infrastructure for README images, analytics regression tests, and operational
   demo-data derivation, not as the first-user onboarding path;
 - generated bundle vocabulary, package-resource entrypoints, distribution
-  package-data boundaries, retired setup/command terminology, Performance Audit
+  package-data boundaries, retired setup/command terminology, Performance Auditing
   README screenshots, and first-run onboarding language are validated.
 
 ## Current Open Items
@@ -140,7 +140,7 @@ Deliverables even though the Axys/APX seed is accepted.
 Standing maintenance criteria:
 
 - Keep the project-root `README.md` marketing story aligned with generated
-  Analytics and Performance Audit outputs. Metadata tests now assert that
+  Analytics and Performance Auditing outputs. Metadata tests now assert that
   embedded README image references resolve.
 - Remove clearly unused compatibility shims or simplify report/workbook helpers
   only when a small, behavior-preserving change is obvious and covered by tests.
@@ -184,13 +184,13 @@ clearly than the existing packaged and site-variant fixtures.
 
 Data Auditing is the user-facing product name for the source-data consistency
 checks currently configured under `data_audit_checks`. The near-term surface is a
-`Data Audit Issues` worksheet included in Performance Audit workbooks. The
+`Data Audit Issues` worksheet included in Performance Auditing workbooks. The
 longer-term direction is to let this capability stand on its own when it is
 useful before, after, or apart from a specific performance restatement review.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
-| Data Audit Issues worksheet | Keep the former `X-Ref Issues` worksheet as `Data Audit Issues` inside Performance Audit workbooks. | The worksheet remains separate from `Performance Difference Causes` and `Source Detail`, runs on the union of Snapshot A and Snapshot B, and flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. |
+| Data Audit Issues worksheet | Keep the former `X-Ref Issues` worksheet as `Data Audit Issues` inside Performance Auditing workbooks. | The worksheet remains separate from `Performance Difference Causes` and `Source Detail`, runs on the union of Snapshot A and Snapshot B, and flags reviewer-oriented consistency issues without treating them as additive Modified Dietz causes. |
 | Data Auditing marketing | Present Data Auditing as a distinct capability included with Performance Auditing rather than as a technical cross-reference implementation detail. | README/setup docs explain that Performance Auditing includes Data Audit Issues for suspicious source-data relationships such as prices, dividend rates, accrued-interest rates, missing dividends, and holding value math. |
 | Data Audit Summary | Add a `Data Audit Summary` worksheet before `Data Audit Issues`. | Review output shows simple issue counts by issue type, snapshot, portfolio, and security before reviewers inspect row-level detail. Keep the first version count-only and avoid scoring or prioritization until reviewer feedback proves it is useful. |
 | Standalone Data Auditing workflow | Consider an optional standalone command and workbook, such as `ppar data_audit <site_or_yaml>`, that writes `data_audit.xlsx` and `data_audit.html` without requiring a performance-difference review. | The standalone workflow reuses the same YAML checks and source snapshots, produces a focused audit package, and does not duplicate Performance Comparison attribution logic. |
@@ -3047,10 +3047,10 @@ generation:
 ```bash
 ppar setup ./my_ppar_data
 ppar analytics ./my_ppar_data/analytics
-ppar performance_audit ./my_ppar_data/performance_audit
+ppar audit ./my_ppar_data/audit
 ```
 
-Setup creates separate `analytics` and `performance_audit` folders, each
+Setup creates separate `analytics` and `audit` folders, each
 with one user-facing `ppar.yaml`. The production performance-comparison command
 writes portfolio and security reports by default when required source files are
 available, and supports `--report portfolio`, `--report security`, or
@@ -3064,7 +3064,7 @@ Status: refreshed for the current setup site.
 YAML they execute:
 
 - `analytics/run_analytics.py`
-- `performance_audit/run_performance_audit.py`
+- `audit/run_audit.py`
 
 The setup README mentions those scripts only as optional examples. The main
 onboarding path remains the `ppar` command plus heavily documented nearby YAML.
@@ -3159,13 +3159,13 @@ The installed-style flow was dry-run into a temporary site directory:
 ```bash
 ppar setup /tmp/ppar_phase87_site
 ppar analytics /tmp/ppar_phase87_site/analytics
-ppar performance_audit /tmp/ppar_phase87_site/performance_audit
+ppar audit /tmp/ppar_phase87_site/audit
 ```
 
 The console output stayed concise: setup prints the two run commands and the
 customization pointer, analytics lists reviewable analytics files, and
 performance comparison lists only the generated workbook paths. Running
-`ppar analytics` or `ppar performance_audit` from the setup root still
+`ppar analytics` or `ppar audit` from the setup root still
 fails with a useful message, while running those commands from the specific
 workflow folders works.
 
@@ -3202,7 +3202,7 @@ The built wheel was installed into a temporary environment and the installed
 ppar --help
 ppar setup /tmp/ppar_phase88_site
 ppar analytics /tmp/ppar_phase88_site/analytics
-ppar performance_audit /tmp/ppar_phase88_site/performance_audit
+ppar audit /tmp/ppar_phase88_site/audit
 ```
 
 The no-deps temporary wheel environment initially lacked `openpyxl`, so workbook
@@ -3276,7 +3276,7 @@ Package-content inspection confirmed:
 
 The built wheel was installed into a temporary environment from `dist/` with
 `--no-deps`. `ppar --help`, `ppar setup`, and `ppar analytics` passed. As
-expected for a no-deps install, `ppar performance_audit` reported that
+expected for a no-deps install, `ppar audit` reported that
 `openpyxl` is required. Rerunning with the already-installed local dependency
 set available completed both portfolio and security workbook generation.
 

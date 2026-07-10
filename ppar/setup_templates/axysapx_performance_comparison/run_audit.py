@@ -37,12 +37,12 @@ class ReportSpec:
 REPORTS: tuple[ReportSpec, ...] = (
     ReportSpec(
         comparison_level="portfolio",
-        title="Portfolio Performance Audit",
+        title="Portfolio Performance Auditing Report",
         output_directory=SITE_DIRECTORY / "output" / "portfolio",
     ),
     ReportSpec(
         comparison_level="security",
-        title="Security Performance Audit",
+        title="Security Performance Auditing Report",
         output_directory=SITE_DIRECTORY / "output" / "security",
     ),
 )

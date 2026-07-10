@@ -62,7 +62,7 @@ class TestPerformanceComparisonDemoHealthScript(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                "performance_audit/run_performance_audit.py" in text
+                "audit/run_audit.py" in text
                 for text in command_texts
             )
         )

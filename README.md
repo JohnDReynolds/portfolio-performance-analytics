@@ -35,7 +35,7 @@ Typical questions:
 
 <img
   src="docs/images/readme/PerformanceAuditPortfolio.jpg"
-  alt="Portfolio Performance Audit report"
+  alt="Portfolio Performance Auditing report"
   width="100%"
 />
 
@@ -152,7 +152,7 @@ ppar setup ./my_ppar_data
 Run the demos.
 
 ```bash
-ppar performance_audit ./my_ppar_data/performance_audit
+ppar audit ./my_ppar_data/audit
 ppar analytics ./my_ppar_data/analytics
 ```
 
@@ -162,9 +162,9 @@ To customize the workspace with your own data, follow the `Customizing` section 
 ```text
 my_ppar_data/
   README.md
-  performance_audit/
+  audit/
     ppar.yaml
-    run_performance_audit.py
+    run_audit.py
     snapshot_a/
       portperf.csv
       holdings.csv
@@ -208,7 +208,7 @@ local field names, transaction-code treatment, and report assumptions.
 Performance Auditing writes review packages:
 
 ```text
-performance_audit/output/
+audit/output/
   portfolio/report.xlsx
   portfolio/report.html
   security/report.xlsx
@@ -227,4 +227,4 @@ analytics/output/
 ```
 
 The Python API can also return CSV, Pandas, Polars, JSON, and XML formats for
-Analytics result tables.
+Performance Analytics result tables.
