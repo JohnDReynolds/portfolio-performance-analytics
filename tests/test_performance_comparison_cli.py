@@ -13,6 +13,7 @@ import tempfile
 import unittest
 
 # Third-party imports
+from openpyxl import load_workbook
 import yaml
 
 _RESTATEMENT_COMPARISON_PATH = Path(
@@ -516,6 +517,124 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "risk_statistics.html"
                 ).exists()
             )
+
+    def test_setup_audit_script_matches_default_cli_workflow(self) -> None:
+        """The visible Python example stays equivalent to ``ppar audit``."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cli_site = root / "cli_site"
+            script_site = root / "script_site"
+            for site in (cli_site, script_site):
+                subprocess.run(
+                    _module_command(_PPAR_MODULE, "setup", str(site)),
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+            cli_audit = cli_site / "audit"
+            script_audit = script_site / "audit"
+            subprocess.run(
+                _module_command(_PPAR_MODULE, "audit", str(cli_audit)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                [sys.executable, str(script_audit / "run_audit.py")],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            cli_output = cli_audit / "output"
+            script_output = script_audit / "output"
+            cli_files = {
+                path.relative_to(cli_output)
+                for path in cli_output.rglob("*")
+                if path.is_file()
+            }
+            script_files = {
+                path.relative_to(script_output)
+                for path in script_output.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(cli_files, script_files)
+
+            for report_level in ("portfolio", "security"):
+                with self.subTest(report_level=report_level):
+                    relative_html = Path(report_level) / "report.html"
+                    self.assertEqual(
+                        (cli_output / relative_html).read_text(encoding="utf-8"),
+                        (script_output / relative_html).read_text(encoding="utf-8"),
+                    )
+                    cli_workbook = load_workbook(
+                        cli_output / report_level / "report.xlsx",
+                        read_only=True,
+                        data_only=False,
+                    )
+                    script_workbook = load_workbook(
+                        script_output / report_level / "report.xlsx",
+                        read_only=True,
+                        data_only=False,
+                    )
+                    self.assertEqual(cli_workbook.sheetnames, script_workbook.sheetnames)
+                    for sheet_name in cli_workbook.sheetnames:
+                        self.assertEqual(
+                            list(cli_workbook[sheet_name].values),
+                            list(script_workbook[sheet_name].values),
+                        )
+                    cli_workbook.close()
+                    script_workbook.close()
+
+    def test_setup_analytics_script_matches_default_cli_workflow(self) -> None:
+        """The visible Python example stays equivalent to ``ppar analytics``."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cli_site = root / "cli_site"
+            script_site = root / "script_site"
+            for site in (cli_site, script_site):
+                subprocess.run(
+                    _module_command(_PPAR_MODULE, "setup", str(site)),
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+            cli_analytics = cli_site / "analytics"
+            script_analytics = script_site / "analytics"
+            subprocess.run(
+                _module_command(_PPAR_MODULE, "analytics", str(cli_analytics)),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                [sys.executable, str(script_analytics / "run_analytics.py")],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            cli_output = cli_analytics / "output"
+            script_output = script_analytics / "output"
+            cli_files = {
+                path.relative_to(cli_output)
+                for path in cli_output.rglob("*")
+                if path.is_file()
+            }
+            script_files = {
+                path.relative_to(script_output)
+                for path in script_output.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(cli_files, script_files)
+            for relative_path in cli_files:
+                with self.subTest(relative_path=relative_path.as_posix()):
+                    self.assertEqual(
+                        (cli_output / relative_path).read_bytes(),
+                        (script_output / relative_path).read_bytes(),
+                    )
 
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:
         """Programmatic entrypoints accept string paths as well as ``Path`` values."""
