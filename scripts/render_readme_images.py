@@ -51,8 +51,13 @@ _RENDER_CONFIG = {
     "CumulativeAttributionByEconomicSector": (5200, 3600),
     "OverallAttributionByEconomicSector": (5200, 3200),
     "RiskStatistics": (3000, 4800),
-    "PerformanceAuditPortfolio": (3200, 4400),
+    # This report contains long, wrapping tables. A 1x, browser-sized viewport
+    # keeps the text readable and avoids the very large bitmap produced by a
+    # wide 2x screenshot.
+    "PerformanceAuditPortfolio": (1440, 16000),
 }
+_DEVICE_SCALE_FACTOR_BY_NAME = {"PerformanceAuditPortfolio": 1}
+_MINIMUM_CROPPED_WIDTH_BY_NAME = {"RiskStatistics": 2000}
 _PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
     _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
 )
@@ -82,6 +87,14 @@ def main() -> None:
             html_paths = _write_html_inputs(temp_dir, analytics, sector)
             for name, html_path in html_paths.items():
                 _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
+        if args.only == "risk-statistics":
+            analytics, _sector = _analytics_outputs()
+            html_path = temp_dir / "RiskStatistics.html"
+            html_path.write_text(
+                analytics.get_riskstatistics().to_html(),
+                encoding=util.ENCODING,
+            )
+            _render_cropped_jpg(chrome_path, html_path, temp_dir, "RiskStatistics")
         if args.only in ("all", "performance-comparison"):
             html_inputs = {
                 "PerformanceAuditPortfolio": _write_report_sections_input(
@@ -117,7 +130,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--only",
-        choices=("all", "analytics", "performance-comparison"),
+        choices=("all", "analytics", "risk-statistics", "performance-comparison"),
         default="all",
         help="Limit rendering to one image family. Defaults to all.",
     )
@@ -246,6 +259,7 @@ def _render_png(
     png_path: Path,
     window_size: Sequence[int],
     user_data_dir: Path,
+    device_scale_factor: int = 2,
 ) -> None:
     """Render one HTML file to PNG using headless Chrome.
 
@@ -255,6 +269,7 @@ def _render_png(
         png_path: PNG output path.
         window_size: Browser viewport width and height in pixels.
         user_data_dir: Isolated Chrome profile directory for this render.
+        device_scale_factor: Pixel density at which Chrome captures the page.
 
     Raises:
         subprocess.CalledProcessError: If the Chrome rendering process fails.
@@ -269,7 +284,7 @@ def _render_png(
         "--no-default-browser-check",
         "--disable-sync",
         "--hide-scrollbars",
-        "--force-device-scale-factor=2",
+        f"--force-device-scale-factor={device_scale_factor}",
         f"--user-data-dir={user_data_dir}",
         f"--screenshot={png_path}",
         f"--window-size={window_size[0]},{window_size[1]}",
@@ -279,7 +294,7 @@ def _render_png(
         subprocess.run(
             command,
             check=True,
-            timeout=30,
+            timeout=120,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -316,8 +331,13 @@ def _render_cropped_jpg(
         png_path,
         _RENDER_CONFIG[name],
         user_data_dir,
+        _DEVICE_SCALE_FACTOR_BY_NAME.get(name, 2),
     )
-    _crop_and_save_jpg(png_path, _IMAGE_DIR / f"{name}.jpg")
+    _crop_and_save_jpg(
+        png_path,
+        _IMAGE_DIR / f"{name}.jpg",
+        minimum_width=_MINIMUM_CROPPED_WIDTH_BY_NAME.get(name),
+    )
 
 
 def _write_report_sections_input(
@@ -362,7 +382,9 @@ def _write_report_sections_input(
                 extra_style,
                 "</head>",
                 "<body>",
+                '<main class="pc-report">',
                 section_html,
+                "</main>",
                 "</body>",
                 "</html>",
             ]
@@ -399,12 +421,19 @@ def _html_between(html: str, start_marker: str, end_marker: str) -> str | None:
     return html[start : end + len(end_marker)]
 
 
-def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
+def _crop_and_save_jpg(
+    png_path: Path,
+    jpg_path: Path,
+    *,
+    minimum_width: int | None = None,
+) -> None:
     """Crop screenshot margins and save a high-quality JPEG.
 
     Args:
         png_path: Rendered PNG screenshot to open.
         jpg_path: Destination JPEG path.
+        minimum_width: Smallest retained image width. This prevents narrow
+            reports from being enlarged when displayed at full container width.
 
     Raises:
         OSError: If the source image cannot be opened or the destination image
@@ -419,11 +448,18 @@ def _crop_and_save_jpg(png_path: Path, jpg_path: Path) -> None:
     cropped = image
     if bbox is not None:
         pad = 48
+        left = max(0, bbox[0] - pad)
+        right = min(image.width, bbox[2] + pad)
+        if minimum_width is not None and right - left < minimum_width:
+            extra_width = minimum_width - (right - left)
+            left = max(0, left - extra_width // 2)
+            right = min(image.width, left + minimum_width)
+            left = max(0, right - minimum_width)
         cropped = image.crop(
             (
-                max(0, bbox[0] - pad),
+                left,
                 max(0, bbox[1] - pad),
-                min(image.width, bbox[2] + pad),
+                right,
                 min(image.height, bbox[3] + pad),
             )
         )

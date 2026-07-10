@@ -281,53 +281,43 @@ ppar setup {site_path}
 
 ## What This Folder Is For
 
-PPAR runs locally against your Axys/APX exports. The starter files let you try
-the workflow first, then replace the CSVs with your own data.
+This folder has been seeded with demo data exports from Axys. You can run the
+demos with the seeded data (see "Demos" below), or replace the demo data with
+your own data (see "Customizing With Your Own Data" below).
 
-- Use `performance_audit/` to explain why reported performance changed between
-  two source-data snapshots and review source-data consistency.
-- Use `analytics/` for Performance Analytics: attribution, contribution, and
-  Ex-Post Risk versus a benchmark.
+## Demos
 
-## First Run
+### Performance Auditing
 
-First, run the starter data exactly as installed:
+Use Performance Auditing to answer the question: "Why did my reported
+performance change?" It answers this question by:
+
+1. Determining the differences in reported performance for each time-period,
+   portfolio, and security.
+2. Quantitatively attributing these performance differences to changes in the
+   underlying holdings and transaction source-data.
+3. Flagging suspicious source-data relationships such as price ranges,
+   dividend rates, accrued-interest rates, missing dividends, and holding value
+   math.
 
 ```bash
 ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
-ppar analytics {site_path / _ANALYTICS_DIRECTORY}
 ```
-
-Open the files printed by each command.
-
-Start with Performance Auditing if reported returns changed or you want to
-check source-data quality. Start with Performance Analytics if you want
-attribution and Ex-Post Risk reports.
-
-Output goes here:
-
-- Performance Auditing: `performance_audit/output/portfolio/report.xlsx` and
-  `performance_audit/output/security/report.xlsx`
-- Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
-
-To create only one Performance Auditing workbook:
-
-```bash
-ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report portfolio
-ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY} --report security
-```
-
-## Customizing With Your Data
-
-Keep the folder shape simple. Replace CSVs first; edit YAML only when filenames,
-headers, transaction codes, or report assumptions differ from the starter.
 
 ### Performance Analytics
 
-1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
-2. Replace `analytics/secperf.csv` with your own security-performance export.
-3. Edit `analytics/ppar.yaml` only if your filenames or headers differ.
-4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
+Use Performance Analytics when you want a clean explanation of performance
+versus a benchmark. It includes:
+
+- **Performance Attribution:** Brinson-Fachler attribution, Carino-smoothed
+  multi-period effects, and contribution views.
+- **Ex-Post Risk:** ex-post risk statistics calculated from realized returns.
+
+```bash
+ppar analytics {site_path / _ANALYTICS_DIRECTORY}
+```
+
+## Customizing With Your Own Data
 
 ### Performance Auditing
 
@@ -336,21 +326,26 @@ Performance Auditing compares two snapshots:
 - `snapshot_a`: the original or older source-data snapshot.
 - `snapshot_b`: the newer, corrected, or restated source-data snapshot.
 
-It includes Performance Comparison, which explains changed reported
-performance, and Data Auditing, which flags suspicious source-data
-relationships.
-
 Steps:
 
-1. Replace the CSVs in `performance_audit/snapshot_a`.
-2. Replace the CSVs in `performance_audit/snapshot_b`.
+1. Replace the CSV data in `performance_audit/snapshot_a`.
+2. Replace the CSV data in `performance_audit/snapshot_b`.
 3. Edit `performance_audit/ppar.yaml`.
 4. Run `ppar performance_audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
+### Performance Analytics
+
+Steps:
+
+1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
+2. Replace `analytics/secperf.csv` with your own security-performance export.
+3. Edit `analytics/ppar.yaml` if your filenames or headers differ.
+4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
+
 ## Optional Python Scripts
 
-The `ppar` command is the normal path. If you want to run the same workflows
-from Python, use:
+If you want to customize the workflows and outputs using your own Python
+scripts, refer to the sample scripts:
 
 - `analytics/run_analytics.py`
 - `performance_audit/run_performance_audit.py`
@@ -454,7 +449,7 @@ def _print_success(result: dict[str, Path | str]) -> None:
     print("To customize with your own data:")
     readme_path = Path(result["site_directory"]) / "README.md"
     print(
-        f"  Refer to the \"Customizing\" section in "
+        f"  Refer to the \"Customizing With Your Own Data\" section in "
         f"{readme_path}"
     )
 

@@ -210,14 +210,15 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("To run Performance Analytics:", result.stdout)
             self.assertIn("To customize with your own data:", result.stdout)
             self.assertIn(
-                f"Refer to the \"Customizing\" section in {site_directory / 'README.md'}",
+                f"Refer to the \"Customizing With Your Own Data\" section in "
+                f"{site_directory / 'README.md'}",
                 result.stdout,
             )
             self.assertNotIn("(created)", result.stdout)
             self.assertNotIn("(written)", result.stdout)
             self.assertTrue((site_directory / "README.md").exists())
-            self.assertIn("## First Run", readme)
-            self.assertIn("## Customizing", readme)
+            self.assertIn("## Demos", readme)
+            self.assertIn("## Customizing With Your Own Data", readme)
             self.assertIn("## Folder Map", readme)
             self.assertIn(
                 "Replace `analytics/portperf.csv` with your own "
@@ -237,37 +238,32 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("run_portfolio_comparison.py", readme)
             self.assertNotIn("run_security_comparison.py", readme)
             self.assertIn(
-                "If you want to run the same workflows",
+                "If you want to customize the workflows and outputs",
                 readme,
             )
             self.assertIn("Performance Auditing compares two snapshots", readme)
-            self.assertIn("Start with Performance Auditing", readme)
-            self.assertIn("Start with Performance Analytics", readme)
-            self.assertIn("Output goes here:", readme)
-            self.assertIn("performance_audit/output/portfolio/report.xlsx", readme)
-            self.assertIn("analytics/output/*.html", readme)
-            first_run_sequence = [
-                "## First Run",
+            demo_sequence = [
+                "## Demos",
+                "### Performance Auditing",
                 f"ppar performance_audit {site_directory / 'performance_audit'}",
+                "### Performance Analytics",
                 f"ppar analytics {site_directory / 'analytics'}",
-                "Start with Performance Auditing",
-                "Output goes here:",
-                "## Customizing",
+                "## Customizing With Your Own Data",
             ]
-            for before, after in zip(first_run_sequence, first_run_sequence[1:]):
+            for before, after in zip(demo_sequence, demo_sequence[1:]):
                 with self.subTest(before=before, after=after):
                     self.assertLess(readme.index(before), readme.index(after))
             self.assertIn("the original or older source-data snapshot", readme)
             self.assertIn("the newer, corrected, or restated source-data snapshot", readme)
             self.assertLess(
-                readme.index("## First Run"),
-                readme.index("## Customizing"),
+                readme.index("## Demos"),
+                readme.index("## Customizing With Your Own Data"),
             )
             self.assertLess(
-                readme.index("## Customizing"),
+                readme.index("## Customizing With Your Own Data"),
                 readme.index("## Folder Map"),
             )
-            self.assertIn("Edit `analytics/ppar.yaml` only if", readme)
+            self.assertIn("Edit `analytics/ppar.yaml` if", readme)
             self.assertIn("Edit `performance_audit/ppar.yaml`.", readme)
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())

@@ -3,10 +3,10 @@
 PPAR uses local Axys/APX data for two main workflows: Performance Auditing and
 Performance Analytics.
 
-1. Everything runs locally, so your data stays inside your environment.
-2. You can generate standard charts, xlsx, and html output.
-3. Being built in Python, it is highly customizable.  You can automate batch
+1. You can generate standard charts, xlsx, and html output.
+2. Being built in Python, it is highly customizable.  You can automate batch
    runs and produce custom output in CSV, Pandas, Polars, JSON, and XML formats.
+3. Everything runs locally, so your data stays inside your environment.
 
 [License](LICENSE)
 
@@ -50,18 +50,19 @@ performance versus a benchmark. It includes:
   multi-period effects, and contribution views.
 - **Ex-Post Risk:** ex-post risk statistics calculated from realized returns.
 
-Typical questions from the Mega-Cap Alpha vs Mega-Cap Benchmark demo:
+Typical questions from the below Mega-Cap Alpha vs Mega-Cap Benchmark demo:
 
-- Did Mega-Cap Alpha outperform? Yes. The portfolio returned about 89.3%
-  versus 82.4% for the benchmark, or roughly 684 bps of active return.
+- Did Mega-Cap Alpha outperform the benchmark? Yes. The portfolio returned
+  about 89.3% versus 82.4% for the benchmark, or roughly 684 bps of active
+  return.
 - Was outperformance mostly allocation or selection? Mostly selection. The
   overall sector attribution view shows about 19 bps from allocation and about
   665 bps from selection.
 - Which area drove the result? Information Technology was the largest positive
   contributor, with roughly 351 bps of total attribution effect.
-- Did the portfolio take more risk? Slightly, but risk-adjusted results still
-  improved: Sharpe was about 0.70 versus 0.67, and Sortino was about 1.82
-  versus 1.74.
+- Did the portfolio take more risk than the benchmark? Slightly, but
+  risk-adjusted results still improved: Sharpe was about 0.70 versus 0.67, and
+  Sortino was about 1.82 versus 1.74.
 
 <img
   src="docs/images/readme/OverallAttributionByEconomicSector.png"
@@ -141,8 +142,8 @@ Install the ppar package.
 pip install ppar
 ```
 
-Create a local starter workspace. It is seeded with demo data that lets you run
-full demos before replacing the demo data with your own data.
+Create a local starter workspace. The workspace is seeded with demo data that
+lets you run full demos before replacing the demo data with your own data.
 
 ```bash
 ppar setup ./my_ppar_data
@@ -155,7 +156,7 @@ ppar performance_audit ./my_ppar_data/performance_audit
 ppar analytics ./my_ppar_data/analytics
 ```
 
-To customize with your own data, follow the `Customizing` section in
+To customize the workspace with your own data, follow the `Customizing` section in
 `./my_ppar_data/README.md`.
 
 ```text
