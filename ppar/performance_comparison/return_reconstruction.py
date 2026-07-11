@@ -314,13 +314,30 @@ class _PortfolioReturnReconstructionEngine:
         rows = []
         periods_a = _portfolio_rows_by_key(portfolio_a)
         periods_b = _portfolio_rows_by_key(portfolio_b)
+        holdings_a_by_portfolio = _frames_by_portfolio(holdings_a)
+        holdings_b_by_portfolio = _frames_by_portfolio(holdings_b)
+        transactions_a_by_portfolio = _frames_by_portfolio(transactions_a)
+        transactions_b_by_portfolio = _frames_by_portfolio(transactions_b)
         for key in sorted(set(periods_a) | set(periods_b)):
             period_a = periods_a.get(key)
             period_b = periods_b.get(key)
             if period_a is None or period_b is None:
                 continue
-            inputs_a = self._snapshot_inputs(period_a, holdings_a, transactions_a)
-            inputs_b = self._snapshot_inputs(period_b, holdings_b, transactions_b)
+            portfolio_id = key[0]
+            inputs_a = self._snapshot_inputs(
+                period_a,
+                holdings_a_by_portfolio.get(portfolio_id, holdings_a.clear()),
+                transactions_a_by_portfolio.get(
+                    portfolio_id, transactions_a.clear()
+                ),
+            )
+            inputs_b = self._snapshot_inputs(
+                period_b,
+                holdings_b_by_portfolio.get(portfolio_id, holdings_b.clear()),
+                transactions_b_by_portfolio.get(
+                    portfolio_id, transactions_b.clear()
+                ),
+            )
             rows.append(_reconstruction_row(key, inputs_a, inputs_b, self._tolerance()))
 
         if not rows:
@@ -483,6 +500,10 @@ class _SecurityReturnReconstructionEngine:
         rows = []
         periods_a = _security_rows_by_key(security_a)
         periods_b = _security_rows_by_key(security_b)
+        holdings_a_by_portfolio = _frames_by_portfolio(holdings_a)
+        holdings_b_by_portfolio = _frames_by_portfolio(holdings_b)
+        transactions_a_by_portfolio = _frames_by_portfolio(transactions_a)
+        transactions_b_by_portfolio = _frames_by_portfolio(transactions_b)
         keys = set(periods_a) | set(periods_b)
         if active_keys is not None:
             keys &= set(active_keys)
@@ -491,8 +512,21 @@ class _SecurityReturnReconstructionEngine:
             period_b = periods_b.get(key)
             if period_a is None or period_b is None:
                 continue
-            inputs_a = self._snapshot_inputs(period_a, holdings_a, transactions_a)
-            inputs_b = self._snapshot_inputs(period_b, holdings_b, transactions_b)
+            portfolio_id = key[0]
+            inputs_a = self._snapshot_inputs(
+                period_a,
+                holdings_a_by_portfolio.get(portfolio_id, holdings_a.clear()),
+                transactions_a_by_portfolio.get(
+                    portfolio_id, transactions_a.clear()
+                ),
+            )
+            inputs_b = self._snapshot_inputs(
+                period_b,
+                holdings_b_by_portfolio.get(portfolio_id, holdings_b.clear()),
+                transactions_b_by_portfolio.get(
+                    portfolio_id, transactions_b.clear()
+                ),
+            )
             rows.append(
                 _security_reconstruction_row(
                     key,
@@ -759,6 +793,21 @@ def _security_rows_by_key(
             _date_value(row[pc_cols.THRU_DATE]),
         ): row
         for row in frame.iter_rows(named=True)
+    }
+
+
+def _frames_by_portfolio(frame: pl.DataFrame) -> dict[str, pl.DataFrame]:
+    """Partition a loaded input once for repeated portfolio-level calculations."""
+    if frame.is_empty():
+        return {}
+    partitions = frame.partition_by(
+        pc_cols.PORTFOLIO_ID,
+        as_dict=True,
+        maintain_order=True,
+    )
+    return {
+        str(key[0] if isinstance(key, tuple) else key): partition
+        for key, partition in partitions.items()
     }
 
 

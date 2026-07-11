@@ -225,41 +225,88 @@ class _WorkbookTableCache:
 
     def __init__(self, findings: pl.DataFrame) -> None:
         self._findings = findings
+        self._contribution_candidates: dict[str, pl.DataFrame] = {}
         self._cause_summary: dict[str, pl.DataFrame] = {}
         self._primary_coverage: dict[str, pl.DataFrame] = {}
-        self._top_evidence: dict[str, pl.DataFrame] = {}
+        self._top_evidence: dict[tuple[str, int], pl.DataFrame] = {}
         self._ranked_rows: dict[str, list[dict[str, object]]] = {}
         self._selected_impact_basis_keys: dict[str, set[tuple[object, ...]]] = {}
         self._performance_input_family_keys: dict[str, set[tuple[object, ...]]] = {}
         self._active_portfolio_keys: set[tuple[object, object, object]] | None = None
         self._active_security_keys: set[tuple[object, object, object, object]] | None = None
 
+    def contribution_candidates(self, comparison_level: str) -> pl.DataFrame:
+        """Return cached contribution candidates for one comparison level."""
+        if comparison_level not in self._contribution_candidates:
+            candidates = (
+                _pc_explain.security_period_contribution_candidates(self._findings)
+                if comparison_level == SECURITY_COMPARISON_LEVEL
+                else _pc_explain.portfolio_period_contribution_candidates(
+                    self._findings
+                )
+            )
+            self._contribution_candidates[comparison_level] = candidates
+        return self._contribution_candidates[comparison_level]
+
     def cause_summary(self, comparison_level: str) -> pl.DataFrame:
         """Return cached cause summary rows for the configured comparison level."""
         if comparison_level not in self._cause_summary:
-            self._cause_summary[comparison_level] = _workbook_primary_cause_summary(
-                self._findings,
-                comparison_level=comparison_level,
+            candidates = self.contribution_candidates(comparison_level)
+            self._cause_summary[comparison_level] = (
+                _pc_explain.security_period_cause_summary(
+                    self._findings,
+                    _candidates=candidates,
+                )
+                if comparison_level == SECURITY_COMPARISON_LEVEL
+                else _pc_explain.portfolio_period_cause_summary(
+                    self._findings,
+                    _candidates=candidates,
+                )
             )
         return self._cause_summary[comparison_level]
 
     def primary_coverage(self, comparison_level: str) -> pl.DataFrame:
         """Return cached primary coverage rows for the configured comparison level."""
         if comparison_level not in self._primary_coverage:
-            self._primary_coverage[comparison_level] = _workbook_primary_coverage_summary(
-                self._findings,
-                comparison_level=comparison_level,
+            candidates = self.contribution_candidates(comparison_level)
+            self._primary_coverage[comparison_level] = (
+                _pc_explain.security_period_summary(self._findings)
+                if comparison_level == SECURITY_COMPARISON_LEVEL
+                else _pc_explain.portfolio_period_impact_coverage_summary(
+                    self._findings,
+                    _candidates=candidates,
+                )
             )
         return self._primary_coverage[comparison_level]
 
-    def top_evidence(self, comparison_level: str) -> pl.DataFrame:
+    def top_evidence(
+        self,
+        comparison_level: str,
+        top_evidence_limit: int | None = None,
+    ) -> pl.DataFrame:
         """Return cached top-evidence rows for the configured comparison level."""
-        if comparison_level not in self._top_evidence:
-            self._top_evidence[comparison_level] = _workbook_top_evidence_table(
-                self._findings,
-                comparison_level=comparison_level,
+        limit = (
+            self._findings.height
+            if top_evidence_limit is None
+            else top_evidence_limit
+        )
+        key = comparison_level, limit
+        if key not in self._top_evidence:
+            candidates = self.contribution_candidates(comparison_level)
+            self._top_evidence[key] = (
+                _pc_explain.security_top_evidence_table(
+                    self._findings,
+                    limit,
+                    _candidates=candidates,
+                )
+                if comparison_level == SECURITY_COMPARISON_LEVEL
+                else _pc_explain.top_evidence_table(
+                    self._findings,
+                    limit,
+                    _candidates=candidates,
+                )
             )
-        return self._top_evidence[comparison_level]
+        return self._top_evidence[key]
 
     def ranked_rows(self, comparison_level: str) -> list[dict[str, object]]:
         """Return cached ranked workbook evidence rows."""
@@ -1980,12 +2027,19 @@ def _workbook_formula_source_attributed_rows(
 ) -> list[dict[str, object]]:
     """Return formula impacts allocated onto recognizable source-data rows."""
     rows_by_key: dict[tuple[object, ...], dict[str, object]] = {}
+    source_rows_by_owner = _workbook_source_rows_by_owner(
+        source_rows,
+        comparison_level=comparison_level,
+    )
     for formula_row in formula_rows:
         estimated_impact = _number_or_none(formula_row.get(_ESTIMATED_IMPACT))
         if estimated_impact is None:
             continue
         candidate_rows = _workbook_formula_source_candidates(
-            source_rows,
+            source_rows_by_owner.get(
+                _workbook_formula_owner_key(formula_row, comparison_level),
+                (),
+            ),
             formula_row,
             comparison_level=comparison_level,
         )
@@ -2027,6 +2081,30 @@ def _workbook_formula_source_attributed_rows(
     return list(rows_by_key.values())
 
 
+def _workbook_source_rows_by_owner(
+    source_rows: Sequence[Mapping[str, object]],
+    *,
+    comparison_level: str,
+) -> dict[tuple[object, ...], list[Mapping[str, object]]]:
+    """Index source rows once by their portfolio or security formula owner."""
+    rows_by_owner: dict[tuple[object, ...], list[Mapping[str, object]]] = {}
+    for row in source_rows:
+        key = _workbook_formula_owner_key(row, comparison_level)
+        rows_by_owner.setdefault(key, []).append(row)
+    return rows_by_owner
+
+
+def _workbook_formula_owner_key(
+    row: Mapping[str, object],
+    comparison_level: str,
+) -> tuple[object, ...]:
+    """Return the ownership key used to connect source and formula rows."""
+    portfolio_id = row.get(_pc_findings.PORTFOLIO_ID)
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return portfolio_id, row.get(_pc_findings.SECURITY_ID)
+    return (portfolio_id,)
+
+
 def _workbook_formula_source_candidates(
     source_rows: Sequence[Mapping[str, object]],
     formula_row: Mapping[str, object],
@@ -2036,15 +2114,7 @@ def _workbook_formula_source_candidates(
     """Return source rows that make up one reconstruction formula row."""
     formula_field = formula_row.get(_pc_findings.SOURCE_COLUMN)
     formula_date = formula_row.get(_AS_OF_DATE)
-    rows = [
-        row
-        for row in source_rows
-        if _workbook_formula_source_owner_matches(
-            row,
-            formula_row,
-            comparison_level=comparison_level,
-        )
-    ]
+    rows = source_rows
     if formula_field in {
         _RECONSTRUCTION_BEGINNING_VALUE_FIELD,
         _RECONSTRUCTION_ENDING_VALUE_FIELD,
@@ -2085,24 +2155,6 @@ def _workbook_formula_source_candidates(
             in {TRANSACTION_CATEGORY_FEE_EXPENSE, TRANSACTION_CATEGORY_INCOME}
         ]
     return []
-
-
-def _workbook_formula_source_owner_matches(
-    source_row: Mapping[str, object],
-    formula_row: Mapping[str, object],
-    *,
-    comparison_level: str,
-) -> bool:
-    """Return whether a source row belongs to the formula row owner."""
-    if source_row.get(_pc_findings.PORTFOLIO_ID) != formula_row.get(
-        _pc_findings.PORTFOLIO_ID
-    ):
-        return False
-    if comparison_level != SECURITY_COMPARISON_LEVEL:
-        return True
-    return source_row.get(_pc_findings.SECURITY_ID) == formula_row.get(
-        _pc_findings.SECURITY_ID
-    )
 
 
 def _workbook_same_period(
@@ -2185,21 +2237,65 @@ def _workbook_cash_security_matches(
 ) -> dict[tuple[object, ...], object]:
     """Return transaction source-row keys mapped to matching cash securities."""
     matches: dict[tuple[object, ...], object] = {}
+    cash_holdings_by_period = _workbook_cash_holdings_by_period(source_rows)
     for row in source_rows:
         if (
             row.get(_pc_findings.DATASET) != pc_cols.TRANSACTIONS
             or row.get(_pc_findings.SOURCE_COLUMN) != pc_cols.AMOUNT
         ):
             continue
-        cash_security_id = _workbook_matching_cash_security_id(row, source_rows)
+        cash_security_id = _workbook_matching_cash_security_id(
+            row,
+            cash_holdings_by_period.get(_workbook_cash_transaction_key(row), ()),
+        )
         if cash_security_id:
             matches[_workbook_source_row_key(row, comparison_level)] = cash_security_id
     return matches
 
 
+def _workbook_cash_holdings_by_period(
+    source_rows: Sequence[Mapping[str, object]],
+) -> dict[tuple[object, ...], list[Mapping[str, object]]]:
+    """Index eligible cash holding rows once for transaction matching."""
+    holdings_by_period: dict[
+        tuple[object, ...], list[Mapping[str, object]]
+    ] = {}
+    for row in source_rows:
+        if (
+            row.get(_pc_findings.DATASET) != pc_cols.HOLDINGS
+            or row.get(_pc_findings.SOURCE_COLUMN) != pc_cols.MARKET_VALUE
+            or not _workbook_is_cash_security(row.get(_pc_findings.SECURITY_ID))
+        ):
+            continue
+        holdings_by_period.setdefault(_workbook_cash_period_key(row), []).append(row)
+    return holdings_by_period
+
+
+def _workbook_cash_period_key(row: Mapping[str, object]) -> tuple[object, ...]:
+    """Return the ownership, period, and as-of key for cash matching."""
+    return (
+        row.get(_pc_findings.PORTFOLIO_ID),
+        row.get(_pc_findings.FROM_DATE),
+        row.get(_pc_findings.THRU_DATE),
+        _workbook_as_of_date(row),
+    )
+
+
+def _workbook_cash_transaction_key(
+    row: Mapping[str, object],
+) -> tuple[object, ...]:
+    """Return the cash-holding lookup key for a transaction source row."""
+    return (
+        row.get(_pc_findings.PORTFOLIO_ID),
+        row.get(_pc_findings.FROM_DATE),
+        row.get(_pc_findings.THRU_DATE),
+        row.get(_pc_findings.THRU_DATE),
+    )
+
+
 def _workbook_matching_cash_security_id(
     transaction_row: Mapping[str, object],
-    source_rows: Sequence[Mapping[str, object]],
+    cash_holding_rows: Sequence[Mapping[str, object]],
 ) -> object | None:
     """Return the matching cash holding security for a transaction amount row."""
     transaction_delta = _number_or_none(
@@ -2209,15 +2305,8 @@ def _workbook_matching_cash_security_id(
         return None
     matches = [
         row
-        for row in source_rows
-        if row.get(_pc_findings.PORTFOLIO_ID)
-        == transaction_row.get(_pc_findings.PORTFOLIO_ID)
-        and _workbook_same_period(row, transaction_row)
-        and row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
-        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.MARKET_VALUE
-        and _workbook_as_of_date(row) == transaction_row.get(_pc_findings.THRU_DATE)
-        and _workbook_is_cash_security(row.get(_pc_findings.SECURITY_ID))
-        and _workbook_same_amount(
+        for row in cash_holding_rows
+        if _workbook_same_amount(
             _number_or_none(row.get(_pc_findings.DELTA_B_MINUS_A)),
             transaction_delta,
         )

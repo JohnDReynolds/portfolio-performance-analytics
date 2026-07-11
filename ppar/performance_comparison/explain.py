@@ -4,7 +4,7 @@ from __future__ import annotations
 
 # Python imports
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 import datetime as dt
 
 # Third-party imports
@@ -793,6 +793,8 @@ def security_period_contribution_candidates(
 def top_evidence_table(
     findings: pl.DataFrame,
     top_evidence_limit: int,
+    *,
+    _candidates: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Return top contribution-candidate rows per portfolio period.
 
@@ -805,7 +807,11 @@ def top_evidence_table(
     Returns:
         Ranked contribution-candidate rows limited within each portfolio period.
     """
-    candidates = portfolio_period_contribution_candidates(findings)
+    candidates = (
+        portfolio_period_contribution_candidates(findings)
+        if _candidates is None
+        else _candidates
+    )
     if candidates.is_empty():
         return candidates
 
@@ -822,6 +828,8 @@ def top_evidence_table(
 def security_top_evidence_table(
     findings: pl.DataFrame,
     top_evidence_limit: int,
+    *,
+    _candidates: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Return top contribution-candidate rows per security period.
 
@@ -834,7 +842,11 @@ def security_top_evidence_table(
     Returns:
         Ranked contribution-candidate rows limited within each security period.
     """
-    candidates = security_period_contribution_candidates(findings)
+    candidates = (
+        security_period_contribution_candidates(findings)
+        if _candidates is None
+        else _candidates
+    )
     if candidates.is_empty():
         return candidates
 
@@ -853,6 +865,7 @@ def portfolio_period_cause_summary(
     findings: pl.DataFrame,
     *,
     include_suppressed: bool = False,
+    _candidates: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Return cause-area summaries for portfolio-period return deltas.
 
@@ -867,9 +880,13 @@ def portfolio_period_cause_summary(
         rolls up contribution candidates and intentionally leaves most impact
         estimates blank until defensible calculation rules exist.
     """
-    candidates = portfolio_period_contribution_candidates(
-        findings,
-        include_suppressed=include_suppressed,
+    candidates = (
+        portfolio_period_contribution_candidates(
+            findings,
+            include_suppressed=include_suppressed,
+        )
+        if _candidates is None
+        else _candidates
     )
     if candidates.is_empty():
         return _empty_portfolio_period_cause_summary()
@@ -899,6 +916,7 @@ def security_period_cause_summary(
     findings: pl.DataFrame,
     *,
     include_suppressed: bool = False,
+    _candidates: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Return cause-area summaries for security-period return deltas.
 
@@ -911,9 +929,13 @@ def security_period_cause_summary(
     Returns:
         One row per portfolio/security/period and coarse root-cause area.
     """
-    candidates = security_period_contribution_candidates(
-        findings,
-        include_suppressed=include_suppressed,
+    candidates = (
+        security_period_contribution_candidates(
+            findings,
+            include_suppressed=include_suppressed,
+        )
+        if _candidates is None
+        else _candidates
     )
     if candidates.is_empty():
         return _empty_security_period_cause_summary()
@@ -949,6 +971,7 @@ def portfolio_period_impact_coverage_summary(
     findings: pl.DataFrame,
     *,
     include_suppressed: bool = False,
+    _candidates: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Return estimate-coverage status for each changed portfolio period.
 
@@ -974,16 +997,19 @@ def portfolio_period_impact_coverage_summary(
     causes = portfolio_period_cause_summary(
         findings,
         include_suppressed=include_suppressed,
+        _candidates=_candidates,
     )
     transactions = transaction_activity_summary(
         findings,
         include_suppressed=include_suppressed,
     )
+    causes_by_period = _summary_rows_by_period(causes)
+    transactions_by_period = _summary_rows_by_period(transactions)
     rows = [
         _impact_coverage_summary_row(
             period,
-            _matching_period_rows(causes, period),
-            _matching_period_rows(transactions, period),
+            causes_by_period.get(_summary_period_key(period), []),
+            transactions_by_period.get(_summary_period_key(period), []),
         )
         for period in periods.iter_rows(named=True)
     ]
@@ -2538,19 +2564,21 @@ def _join_unique(values: Iterable[str]) -> str:
     return ", ".join(unique_values)
 
 
-def _matching_period_rows(
+def _summary_period_key(row: Mapping[str, object]) -> tuple[object, object, object]:
+    """Return the portfolio-period key shared by summary tables."""
+    return row[PORTFOLIO_ID], row[FROM_DATE], row[THRU_DATE]
+
+
+def _summary_rows_by_period(
     table: pl.DataFrame,
-    period: dict[str, object],
-) -> list[dict[str, object]]:
-    """Return rows from a summary table that match a portfolio period."""
-    if table.is_empty():
-        return []
-    period_rows = table.filter(
-        (pl.col(PORTFOLIO_ID) == period[PORTFOLIO_ID])
-        & (pl.col(FROM_DATE) == period[FROM_DATE])
-        & (pl.col(THRU_DATE) == period[THRU_DATE])
-    )
-    return list(period_rows.iter_rows(named=True))
+) -> dict[tuple[object, object, object], list[dict[str, object]]]:
+    """Index summary rows once for repeated portfolio-period lookups."""
+    rows_by_period: dict[
+        tuple[object, object, object], list[dict[str, object]]
+    ] = {}
+    for row in table.iter_rows(named=True):
+        rows_by_period.setdefault(_summary_period_key(row), []).append(row)
+    return rows_by_period
 
 
 def _summed_estimated_return_impact(rows: list[dict[str, object]]) -> float | None:

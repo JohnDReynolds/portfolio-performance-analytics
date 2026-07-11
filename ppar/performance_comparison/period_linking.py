@@ -5,7 +5,7 @@ from __future__ import annotations
 # Python imports
 import datetime as dt
 from collections.abc import Mapping
-from typing import Final
+from typing import Final, TypeAlias
 
 # Third-party imports
 import polars as pl
@@ -19,6 +19,27 @@ DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.CASH: pc_cols.CASH_DATE,
     pc_cols.SPLITS: pc_cols.SPLIT_DATE,
 }
+PortfolioPeriodLookup: TypeAlias = Mapping[
+    object, tuple[tuple[dt.date, dt.date], ...]
+]
+
+
+def portfolio_period_lookup(periods: pl.DataFrame) -> PortfolioPeriodLookup:
+    """Index valid periods once by portfolio for repeated evidence linking."""
+    periods_by_portfolio: dict[object, list[tuple[dt.date, dt.date]]] = {}
+    for period in periods.iter_rows(named=True):
+        portfolio_id = period[pc_cols.PORTFOLIO_ID]
+        from_date = period[pc_cols.FROM_DATE]
+        thru_date = period[pc_cols.THRU_DATE]
+        if not isinstance(from_date, dt.date) or not isinstance(thru_date, dt.date):
+            continue
+        periods_by_portfolio.setdefault(portfolio_id, []).append(
+            (from_date, thru_date)
+        )
+    return {
+        portfolio_id: tuple(portfolio_periods)
+        for portfolio_id, portfolio_periods in periods_by_portfolio.items()
+    }
 
 
 def portfolio_periods_from_snapshots(
@@ -69,7 +90,7 @@ def security_periods_from_snapshots(
 def period_context_for_dated_evidence(
     row: Mapping[str, object],
     dataset: str,
-    portfolio_periods: pl.DataFrame | None,
+    portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
 ) -> tuple[object | None, object | None]:
     """Return period context for a dated evidence row.
 
@@ -96,7 +117,7 @@ def period_context_for_dated_evidence(
 def _dated_evidence_period_context(
     row: Mapping[str, object],
     dataset: str,
-    portfolio_periods: pl.DataFrame,
+    portfolio_periods: pl.DataFrame | PortfolioPeriodLookup,
 ) -> tuple[object | None, object | None]:
     """Return the portfolio period containing a dated evidence row."""
     portfolio_id = row.get(pc_cols.PORTFOLIO_ID)
@@ -104,13 +125,13 @@ def _dated_evidence_period_context(
     if portfolio_id is None or not isinstance(evidence_date, dt.date):
         return None, None
 
+    periods = (
+        portfolio_period_lookup(portfolio_periods).get(portfolio_id, ())
+        if isinstance(portfolio_periods, pl.DataFrame)
+        else portfolio_periods.get(portfolio_id, ())
+    )
     candidates: list[tuple[dt.date, dt.date]] = []
-    portfolio_rows = portfolio_periods.filter(pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-    for period in portfolio_rows.iter_rows(named=True):
-        from_date = period[pc_cols.FROM_DATE]
-        thru_date = period[pc_cols.THRU_DATE]
-        if not isinstance(from_date, dt.date) or not isinstance(thru_date, dt.date):
-            continue
+    for from_date, thru_date in periods:
         if from_date <= evidence_date <= thru_date:
             candidates.append((from_date, thru_date))
     if not candidates:

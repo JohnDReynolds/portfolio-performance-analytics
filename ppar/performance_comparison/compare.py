@@ -61,7 +61,9 @@ from ppar.performance_comparison.findings import (
 )
 from ppar.performance_comparison.fx_rates import FxRatesLoader
 from ppar.performance_comparison.period_linking import (
+    PortfolioPeriodLookup,
     period_context_for_dated_evidence,
+    portfolio_period_lookup,
     portfolio_periods_from_snapshots,
 )
 from ppar.performance_comparison.policies import (
@@ -371,7 +373,7 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
-        portfolio_periods = self._portfolio_periods()
+        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
         return_denominators = self._portfolio_period_return_denominators()
         return_weights = self._security_period_return_weights()
         findings = self._row_presence_findings(
@@ -411,7 +413,7 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
-        portfolio_periods = self._portfolio_periods()
+        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
         return_denominators = self._portfolio_period_return_denominators()
         key_columns = self._cash_key_columns(snapshot_a, snapshot_b)
         findings = self._row_presence_findings(
@@ -489,7 +491,7 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
-        portfolio_periods = self._portfolio_periods()
+        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
         holdings_a = self._holdings_loader.load("a")
         holdings_b = self._holdings_loader.load("b")
         findings = self._split_row_presence_findings(
@@ -516,7 +518,7 @@ class PerformanceComparison:
         snapshot_b: pl.DataFrame,
         holdings_a: pl.DataFrame | None,
         holdings_b: pl.DataFrame | None,
-        portfolio_periods: pl.DataFrame,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup,
     ) -> list[Finding]:
         """Return split add/drop findings with portfolio-period context."""
         self._validate_unique_keys(
@@ -566,7 +568,7 @@ class PerformanceComparison:
         code: str,
         message: str,
         snapshot_side: str,
-        portfolio_periods: pl.DataFrame,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup,
     ) -> list[Finding]:
         """Return split presence findings for one snapshot side."""
         source_file = self._source_file(pc_cols.SPLITS)
@@ -627,7 +629,7 @@ class PerformanceComparison:
         self,
         row: Mapping[str, object],
         holdings: pl.DataFrame | None,
-        portfolio_periods: pl.DataFrame,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup,
     ) -> list[tuple[object | None, object | None, object | None]]:
         """Return portfolio-period contexts for a security-level split row."""
         security_id = row.get(pc_cols.SECURITY_ID)
@@ -667,7 +669,7 @@ class PerformanceComparison:
             return []
 
         key_columns = self._transaction_key_columns(snapshot_a, snapshot_b)
-        portfolio_periods = self._portfolio_periods()
+        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
         return_denominators = self._portfolio_period_return_denominators()
         fallback_periods = self._single_changed_portfolio_return_periods()
         findings = self._transaction_row_presence_findings(
@@ -768,7 +770,7 @@ class PerformanceComparison:
         snapshot_a: pl.DataFrame,
         snapshot_b: pl.DataFrame,
         key_columns: tuple[str, ...],
-        portfolio_periods: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
         return_denominators: Mapping[tuple[object, object, object], float] | None,
     ) -> list[Finding]:
         """Return transaction add/drop findings and fallback ambiguity diagnostics."""
@@ -923,7 +925,7 @@ class PerformanceComparison:
         message: str,
         transaction_match_status: TransactionMatchStatus,
         snapshot_side: str,
-        portfolio_periods: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
         return_denominators: Mapping[tuple[object, object, object], float] | None,
     ) -> list[Finding]:
         """Return transaction findings for rows present in only one snapshot."""
@@ -964,7 +966,7 @@ class PerformanceComparison:
         message: str,
         transaction_match_status: TransactionMatchStatus,
         snapshot_side: str,
-        portfolio_periods: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
         return_denominators: Mapping[tuple[object, object, object], float] | None,
     ) -> list[Finding]:
         """Return dated transaction add/drop findings from one source row."""
@@ -1002,7 +1004,7 @@ class PerformanceComparison:
         message: str,
         transaction_match_status: TransactionMatchStatus,
         snapshot_side: str,
-        portfolio_periods: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
         return_denominators: Mapping[tuple[object, object, object], float] | None,
         source_column: str,
     ) -> Finding:
@@ -1211,7 +1213,7 @@ class PerformanceComparison:
         key_columns: tuple[str, ...] = _PORTFOLIO_KEY_COLUMNS,
         compare_columns: dict[str, str] | None = None,
         dataset: str = pc_cols.PORTFOLIO_PERFORMANCE,
-        portfolio_periods: pl.DataFrame | None = None,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None = None,
         security_periods: pl.DataFrame | None = None,
         return_denominators: Mapping[tuple[object, object, object], float] | None = None,
         return_weights: (
@@ -1756,7 +1758,7 @@ class PerformanceComparison:
     def _changed_value_contexts(
         row: Mapping[str, object],
         dataset: str,
-        portfolio_periods: pl.DataFrame | None,
+        portfolio_periods: pl.DataFrame | PortfolioPeriodLookup | None,
         security_periods: pl.DataFrame | None,
         transaction_fallback_periods: (
             Mapping[object, tuple[object | None, object | None]] | None

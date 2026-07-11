@@ -550,8 +550,8 @@ def _report_bundle_tables(
         "transaction_matching_diagnostics": (
             _pc_explain.transaction_matching_diagnostics(active_findings)
         ),
-        "top_evidence": _pc_explain.top_evidence_table(
-            active_findings,
+        "top_evidence": table_cache.top_evidence(
+            PORTFOLIO_COMPARISON_LEVEL,
             top_evidence_limit,
         ),
     }
