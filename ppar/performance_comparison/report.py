@@ -393,23 +393,24 @@ def write_performance_comparison_report_bundle(
     reconstruction_cache = _pc_workbook_tables._WorkbookReconstructionCache(
         comparison_path
     )
-    workbook_sheets = None
-    if include_workbook:
-        workbook_sheets = (
-            _pc_workbook_tables.performance_comparison_review_workbook_sheets(
-                findings,
-                comparison_path=comparison_path,
-                comparison_level=comparison_level,
-                include_reconstruction_diagnostics=include_reconstruction_diagnostics,
-                _reconstruction_cache=reconstruction_cache,
-            )
+    table_cache = _pc_workbook_tables._WorkbookTableCache(active_findings)
+    workbook_sheets = (
+        _pc_workbook_tables.performance_comparison_review_workbook_sheets(
+            findings,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
+            include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+            _reconstruction_cache=reconstruction_cache,
+            _table_cache=table_cache,
         )
+    )
     tables = _report_bundle_tables(
         active_findings,
         top_evidence_limit,
         comparison_path=comparison_path,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         _reconstruction_cache=reconstruction_cache,
+        _table_cache=table_cache,
     )
     _remove_legacy_root_supporting_files(
         bundle_directory,
@@ -509,30 +510,42 @@ def _report_bundle_tables(
     _reconstruction_cache: (
         _pc_workbook_tables._WorkbookReconstructionCache | None
     ) = None,
+    _table_cache: _pc_workbook_tables._WorkbookTableCache | None = None,
 ) -> dict[str, pl.DataFrame]:
     """Return report-bundle tables keyed by artifact stem."""
     reconstruction_cache = _reconstruction_cache or (
         _pc_workbook_tables._WorkbookReconstructionCache(comparison_path)
     )
+    portfolio_period_summary = _pc_explain.portfolio_period_summary(active_findings)
+    table_cache = _table_cache or _pc_workbook_tables._WorkbookTableCache(
+        active_findings
+    )
+    impact_coverage = table_cache.primary_coverage(PORTFOLIO_COMPARISON_LEVEL)
+    residual_status = _residual_status_table(active_findings)
+    transaction_cross_checks = (
+        _pc_explain.portfolio_period_transaction_cross_checks(active_findings)
+    )
+    context_evidence = _context_evidence_table(active_findings)
     tables = {
-        "needs_review_summary": _needs_review_summary_table(active_findings),
-        "portfolio_period_summary": _pc_explain.portfolio_period_summary(
-            active_findings
+        "needs_review_summary": _needs_review_summary_table(
+            active_findings,
+            periods=portfolio_period_summary,
+            coverage=impact_coverage,
+            residual=residual_status,
+            cross_checks=transaction_cross_checks,
+            context=context_evidence,
         ),
-        "cause_summary": _pc_explain.portfolio_period_cause_summary(active_findings),
+        "portfolio_period_summary": portfolio_period_summary,
+        "cause_summary": table_cache.cause_summary(PORTFOLIO_COMPARISON_LEVEL),
         "impact_estimates": _impact_estimate_summary_table(active_findings),
-        "impact_coverage": _pc_explain.portfolio_period_impact_coverage_summary(
-            active_findings
-        ),
+        "impact_coverage": impact_coverage,
         "context_evidence_summary": _context_evidence_summary_table(active_findings),
-        "context_evidence": _context_evidence_table(active_findings),
-        "transaction_cross_checks": (
-            _pc_explain.portfolio_period_transaction_cross_checks(active_findings)
-        ),
+        "context_evidence": context_evidence,
+        "transaction_cross_checks": transaction_cross_checks,
         "flow_cross_check_reconciliation": (
             _pc_explain.portfolio_period_flow_cross_check_reconciliation(active_findings)
         ),
-        "residual_status": _residual_status_table(active_findings),
+        "residual_status": residual_status,
         "transaction_activity": _pc_explain.transaction_activity_summary(active_findings),
         "transaction_matching_diagnostics": (
             _pc_explain.transaction_matching_diagnostics(active_findings)
@@ -605,20 +618,40 @@ def write_performance_comparison_review_workbook(
     )
 
 
-def _needs_review_summary_table(findings: pl.DataFrame) -> pl.DataFrame:
-    """Return reviewer-facing period cues derived from existing summary tables."""
-    periods = _pc_explain.portfolio_period_summary(findings)
+def _needs_review_summary_table(
+    findings: pl.DataFrame,
+    *,
+    periods: pl.DataFrame | None = None,
+    coverage: pl.DataFrame | None = None,
+    residual: pl.DataFrame | None = None,
+    cross_checks: pl.DataFrame | None = None,
+    context: pl.DataFrame | None = None,
+) -> pl.DataFrame:
+    """Return reviewer cues, reusing caller-provided summary tables when available."""
+    periods = (
+        _pc_explain.portfolio_period_summary(findings)
+        if periods is None
+        else periods
+    )
     if periods.is_empty():
         return _empty_needs_review_summary()
 
     coverage_by_period = _period_rows_by_key(
         _pc_explain.portfolio_period_impact_coverage_summary(findings)
+        if coverage is None
+        else coverage
     )
-    residual_by_period = _period_rows_by_key(_residual_status_table(findings))
+    residual_by_period = _period_rows_by_key(
+        _residual_status_table(findings) if residual is None else residual
+    )
     cross_checks_by_period = _period_rows_by_key(
         _pc_explain.portfolio_period_transaction_cross_checks(findings)
+        if cross_checks is None
+        else cross_checks
     )
-    context_by_period = _period_rows_by_key(_context_evidence_table(findings))
+    context_by_period = _period_rows_by_key(
+        _context_evidence_table(findings) if context is None else context
+    )
     rows = [
         _needs_review_summary_row(
             period=period,

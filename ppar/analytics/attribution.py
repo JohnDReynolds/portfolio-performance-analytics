@@ -34,6 +34,7 @@ import ppar.utilities as util
 
 # Constants
 _DEFAULT_OUTPUT_PRECISION = 8
+_MAXIMUM_HTML_ROWS = 1_010
 
 
 class Chart(Enum):
@@ -1154,7 +1155,7 @@ class Attribution:
                 construction fails validation.
         """
         df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
-        if 500 < len(df):
+        if _MAXIMUM_HTML_ROWS < len(df):
             raise PpaError(f"{view.value}, Rows = {len(df)}", 204)
         return html_table.attribution_html(
             df,
@@ -1258,16 +1259,14 @@ class Attribution:
             HtmlTable object for the requested view.
 
         Raises:
-            PpaError: If the requested view has more than 500 rows or view construction
-                fails validation.
+            PpaError: If the requested view has more than 1,010 rows or view
+                construction fails validation.
         """
         df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
 
-        # If there are more than a few hundred lines in an html file, then Attribution.to_html()
-        # can be VERY slow.  This can occur when requesting html for a View that has one line for
-        # each sub-period and classification item.  For instance, if the user requests to see 100
-        # days of 100 securities for View.SUBPERIOD_ATTRIBUTION.
-        if 500 < len(df):
+        # Large HTML tables can be very slow. This commonly occurs for views
+        # containing one row per subperiod and classification item.
+        if _MAXIMUM_HTML_ROWS < len(df):
             raise PpaError(f"{view.value}, Rows = {len(df)}", 204)
 
         return html_table.attribution_table(

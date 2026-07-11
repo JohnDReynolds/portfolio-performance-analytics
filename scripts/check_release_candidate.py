@@ -459,7 +459,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         runner.skip("README image refresh; use --refresh-images.")
 
-    runner.phase(8, "Run project checks")
+    runner.phase(8, "Run temporary large-site scale checks")
+    runner.run([_VENV_PYTHON, "scripts/check_scale.py", "--scale", "10"])
+    runner.complete("Analytics/Audit large-site checks at 10x")
+
+    runner.phase(9, "Run project checks")
     if not args.skip_project_check:
         _run_project_checks(runner, quick=args.quick, build=args.build)
         runner.complete("Project checks")

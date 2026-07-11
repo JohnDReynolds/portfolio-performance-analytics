@@ -3,6 +3,7 @@
 # Python Imports
 import datetime as dt
 import unittest
+from unittest import mock
 
 # Third-Party Imports
 import polars as pl
@@ -12,6 +13,7 @@ from tests import test_utilities as test_util
 
 # Project Imports
 from ppar.analytics import Analytics
+import ppar.analytics.attribution as attribution_module
 from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
 import ppar.errors as errs
@@ -45,6 +47,47 @@ class TestAttributionValidation(unittest.TestCase):
 
         with self.assertRaisesRegex(PpaError, errs.ERRORS[204]):
             analytics.get_attribution().to_html(View.SUBPERIOD_ATTRIBUTION)
+
+    def test_html_row_limit_accepts_1010_and_rejects_1011(self) -> None:
+        """HTML output methods enforce the documented 1,010-row boundary."""
+        analytics = Analytics(
+            test_util.performance_data_path("Magnificent 7"),
+            test_util.performance_data_path("Large-Cap Portfolio"),
+        )
+        attribution = analytics.get_attribution()
+
+        with (
+            mock.patch.object(
+                attribution,
+                "_fetch_dataframe",
+                return_value=pl.DataFrame({"row": range(1_010)}),
+            ),
+            mock.patch.object(
+                attribution_module.html_table,
+                "attribution_html",
+                return_value="html",
+            ),
+            mock.patch.object(
+                attribution_module.html_table,
+                "attribution_table",
+                return_value=mock.sentinel.table,
+            ),
+        ):
+            self.assertEqual(attribution.to_html(View.OVERALL_ATTRIBUTION), "html")
+            self.assertIs(
+                attribution.to_table(View.OVERALL_ATTRIBUTION),
+                mock.sentinel.table,
+            )
+
+        with mock.patch.object(
+            attribution,
+            "_fetch_dataframe",
+            return_value=pl.DataFrame({"row": range(1_011)}),
+        ):
+            for output_method in (attribution.to_html, attribution.to_table):
+                with self.subTest(output_method=output_method.__name__):
+                    with self.assertRaisesRegex(PpaError, errs.ERRORS[204]):
+                        output_method(View.OVERALL_ATTRIBUTION)
 
 
 if __name__ == "__main__":

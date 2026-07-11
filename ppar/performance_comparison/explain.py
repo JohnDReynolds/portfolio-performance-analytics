@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 # Python imports
+from collections import Counter
 from collections.abc import Iterable
 import datetime as dt
 
@@ -401,6 +402,7 @@ PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS = (
     RECONCILIATION_STATUS,
     IMPACT_MESSAGE,
 )
+_FINDINGS_ROW_INDEX = "__ppar_findings_row_index"
 
 
 def portfolio_period_summary(
@@ -433,10 +435,15 @@ def portfolio_period_summary(
         return _empty_portfolio_period_summary()
 
     rows: list[dict[str, object]] = []
+    active_index = _portfolio_period_index(active_findings)
+    all_index = _portfolio_period_index(findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _related_portfolio_period_findings(active_findings, target)
-        related_all = _related_portfolio_period_findings(findings, target)
+        related_active = _indexed_portfolio_period_findings(
+            active_findings, active_index, target
+        )
+        related_all = _indexed_portfolio_period_findings(findings, all_index, target)
         role_counts = _role_summary_counts(related_active)
+        dataset_counts = _column_counts(related_active, DATASET)
         rows.append(
             {
                 PORTFOLIO_ID: target[PORTFOLIO_ID],
@@ -444,18 +451,14 @@ def portfolio_period_summary(
                 THRU_DATE: target[THRU_DATE],
                 PORTFOLIO_RETURN_DELTA: target[DELTA_B_MINUS_A],
                 FINDING_COUNT: related_active.height,
-                PORTFOLIO_FINDING_COUNT: _dataset_count(
-                    related_active,
-                    pc_cols.PORTFOLIO_PERFORMANCE,
+                PORTFOLIO_FINDING_COUNT: dataset_counts.get(
+                    pc_cols.PORTFOLIO_PERFORMANCE, 0
                 ),
                 **role_counts,
-                FX_RATE_FINDING_COUNT: _dataset_count(related_active, pc_cols.FX_RATES),
-                TRANSACTION_FINDING_COUNT: _dataset_count(
-                    related_active,
-                    pc_cols.TRANSACTIONS,
-                ),
-                HOLDING_FINDING_COUNT: _dataset_count(related_active, pc_cols.HOLDINGS),
-                CASH_FINDING_COUNT: _dataset_count(related_active, pc_cols.CASH),
+                FX_RATE_FINDING_COUNT: dataset_counts.get(pc_cols.FX_RATES, 0),
+                TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
+                HOLDING_FINDING_COUNT: dataset_counts.get(pc_cols.HOLDINGS, 0),
+                CASH_FINDING_COUNT: dataset_counts.get(pc_cols.CASH, 0),
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
@@ -493,10 +496,15 @@ def portfolio_period_evidence_breakdown(
         return _empty_portfolio_period_evidence_breakdown()
 
     rows: list[dict[str, object]] = []
+    active_index = _portfolio_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _related_portfolio_period_findings(active_findings, target)
+        related_active = _indexed_portfolio_period_findings(
+            active_findings, active_index, target
+        )
         rows.extend(_evidence_breakdown_rows(target, related_active))
-    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS
+    )
 
 
 def security_period_summary(
@@ -530,10 +538,15 @@ def security_period_summary(
         return _empty_security_period_summary()
 
     rows: list[dict[str, object]] = []
+    active_index = _security_period_index(active_findings)
+    all_index = _security_period_index(findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _related_security_period_findings(active_findings, target)
-        related_all = _related_security_period_findings(findings, target)
+        related_active = _indexed_security_period_findings(
+            active_findings, active_index, target
+        )
+        related_all = _indexed_security_period_findings(findings, all_index, target)
         role_counts = _role_summary_counts(related_active)
+        dataset_counts = _column_counts(related_active, DATASET)
         rows.append(
             {
                 PORTFOLIO_ID: target[PORTFOLIO_ID],
@@ -542,16 +555,12 @@ def security_period_summary(
                 THRU_DATE: target[THRU_DATE],
                 SECURITY_RETURN_DELTA: target[DELTA_B_MINUS_A],
                 FINDING_COUNT: related_active.height,
-                SECURITY_FINDING_COUNT: _dataset_count(
-                    related_active,
-                    pc_cols.SECURITY_PERFORMANCE,
+                SECURITY_FINDING_COUNT: dataset_counts.get(
+                    pc_cols.SECURITY_PERFORMANCE, 0
                 ),
                 **role_counts,
-                TRANSACTION_FINDING_COUNT: _dataset_count(
-                    related_active,
-                    pc_cols.TRANSACTIONS,
-                ),
-                HOLDING_FINDING_COUNT: _dataset_count(related_active, pc_cols.HOLDINGS),
+                TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
+                HOLDING_FINDING_COUNT: dataset_counts.get(pc_cols.HOLDINGS, 0),
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
@@ -589,10 +598,15 @@ def security_period_evidence_breakdown(
         return _empty_security_period_evidence_breakdown()
 
     rows: list[dict[str, object]] = []
+    active_index = _security_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _related_security_period_findings(active_findings, target)
+        related_active = _indexed_security_period_findings(
+            active_findings, active_index, target
+        )
         rows.extend(_security_evidence_breakdown_rows(target, related_active))
-    return pl.DataFrame(rows, infer_schema_length=None).select(SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS
+    )
 
 
 def rank_portfolio_period_evidence(
@@ -626,8 +640,11 @@ def rank_portfolio_period_evidence(
         return _empty_portfolio_period_evidence_ranking()
 
     rows: list[dict[str, object]] = []
+    active_index = _portfolio_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _related_portfolio_period_findings(active_findings, target)
+        related_active = _indexed_portfolio_period_findings(
+            active_findings, active_index, target
+        )
         evidence = related_active.filter(pl.col(EVIDENCE_ROLE) != TARGET_OUTPUT)
         ranked_rows = sorted(
             (
@@ -642,7 +659,9 @@ def rank_portfolio_period_evidence(
 
     if not rows:
         return _empty_portfolio_period_evidence_ranking()
-    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS
+    )
 
 
 def rank_security_period_evidence(
@@ -675,8 +694,11 @@ def rank_security_period_evidence(
         return _empty_portfolio_period_evidence_ranking()
 
     rows: list[dict[str, object]] = []
+    active_index = _security_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _related_security_period_findings(active_findings, target)
+        related_active = _indexed_security_period_findings(
+            active_findings, active_index, target
+        )
         evidence = related_active.filter(pl.col(EVIDENCE_ROLE) != TARGET_OUTPUT)
         ranked_rows = sorted(
             (
@@ -691,7 +713,9 @@ def rank_security_period_evidence(
 
     if not rows:
         return _empty_portfolio_period_evidence_ranking()
-    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS
+    )
 
 
 def portfolio_period_contribution_candidates(
@@ -787,8 +811,12 @@ def top_evidence_table(
 
     rows: list[dict[str, object]] = []
     for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
-        rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
-    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+        rows.extend(
+            group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True)
+        )
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
+    )
 
 
 def security_top_evidence_table(
@@ -813,8 +841,12 @@ def security_top_evidence_table(
     rows: list[dict[str, object]] = []
     group_columns = [PORTFOLIO_ID, SECURITY_ID, FROM_DATE, THRU_DATE]
     for _, group in candidates.group_by(group_columns):
-        rows.extend(group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True))
-    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS)
+        rows.extend(
+            group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True)
+        )
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
+    )
 
 
 def portfolio_period_cause_summary(
@@ -955,7 +987,9 @@ def portfolio_period_impact_coverage_summary(
         )
         for period in periods.iter_rows(named=True)
     ]
-    return pl.DataFrame(rows, infer_schema_length=None).select(PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS)
+    return pl.DataFrame(rows, infer_schema_length=None).select(
+        PORTFOLIO_PERIOD_IMPACT_COVERAGE_COLUMNS
+    )
 
 
 def portfolio_period_transaction_cross_checks(
@@ -1222,11 +1256,92 @@ def _has_suppressed_findings(findings: pl.DataFrame) -> bool:
 
 def _role_summary_counts(findings: pl.DataFrame) -> dict[str, int]:
     """Return standard role count fields for summary tables."""
+    counts = _column_counts(findings, EVIDENCE_ROLE)
     return {
-        DIRECT_INPUT_FINDING_COUNT: _direct_input_count(findings),
-        RELATED_OUTPUT_FINDING_COUNT: _role_count(findings, RELATED_OUTPUT),
-        CONTEXT_FINDING_COUNT: _context_count(findings),
+        DIRECT_INPUT_FINDING_COUNT: counts.get(DIRECT_INPUT, 0),
+        RELATED_OUTPUT_FINDING_COUNT: counts.get(RELATED_OUTPUT, 0),
+        CONTEXT_FINDING_COUNT: counts.get(CONTEXT, 0),
     }
+
+
+def _column_counts(findings: pl.DataFrame, column: str) -> dict[object, int]:
+    """Return value counts without launching another dataframe query."""
+    if findings.is_empty():
+        return {}
+    return dict(Counter(findings.get_column(column).to_list()))
+
+
+def _portfolio_period_index(
+    findings: pl.DataFrame,
+) -> dict[tuple[object, ...], pl.DataFrame]:
+    """Partition findings once for repeated portfolio-period lookups."""
+    if findings.is_empty():
+        return {}
+    return findings.with_row_index(_FINDINGS_ROW_INDEX).partition_by(
+        [PORTFOLIO_ID, FROM_DATE, THRU_DATE],
+        as_dict=True,
+        maintain_order=True,
+    )
+
+
+def _indexed_portfolio_period_findings(
+    findings: pl.DataFrame,
+    index: dict[tuple[object, ...], pl.DataFrame],
+    target: dict[str, object],
+) -> pl.DataFrame:
+    """Return exact-period and undated findings from a partitioned index."""
+    portfolio_id = target[PORTFOLIO_ID]
+    keys = (
+        (portfolio_id, target[FROM_DATE], target[THRU_DATE]),
+        (portfolio_id, None, None),
+    )
+    partitions = [index[key] for key in keys if key in index]
+    if not partitions:
+        return findings.clear()
+    return (
+        pl.concat(partitions, how="vertical")
+        .sort(_FINDINGS_ROW_INDEX)
+        .drop(_FINDINGS_ROW_INDEX)
+    )
+
+
+def _security_period_index(
+    findings: pl.DataFrame,
+) -> dict[tuple[object, ...], pl.DataFrame]:
+    """Partition findings once for repeated security-period lookups."""
+    if findings.is_empty():
+        return {}
+    return findings.with_row_index(_FINDINGS_ROW_INDEX).partition_by(
+        [SECURITY_ID, PORTFOLIO_ID, FROM_DATE, THRU_DATE],
+        as_dict=True,
+        maintain_order=True,
+    )
+
+
+def _indexed_security_period_findings(
+    findings: pl.DataFrame,
+    index: dict[tuple[object, ...], pl.DataFrame],
+    target: dict[str, object],
+) -> pl.DataFrame:
+    """Return related security findings from a partitioned index."""
+    security_id = target[SECURITY_ID]
+    portfolio_id = target[PORTFOLIO_ID]
+    from_date = target[FROM_DATE]
+    thru_date = target[THRU_DATE]
+    keys = (
+        (security_id, portfolio_id, from_date, thru_date),
+        (security_id, None, from_date, thru_date),
+        (security_id, portfolio_id, None, None),
+        (security_id, None, None, None),
+    )
+    partitions = [index[key] for key in keys if key in index]
+    if not partitions:
+        return findings.clear()
+    return (
+        pl.concat(partitions, how="vertical")
+        .sort(_FINDINGS_ROW_INDEX)
+        .drop(_FINDINGS_ROW_INDEX)
+    )
 
 
 def _related_portfolio_period_findings(

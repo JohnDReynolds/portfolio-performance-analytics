@@ -312,9 +312,11 @@ class _PortfolioReturnReconstructionEngine:
         transactions_b = self._required_transactions("b")
 
         rows = []
-        for key in sorted(_portfolio_period_keys(portfolio_a, portfolio_b)):
-            period_a = _row_by_key(portfolio_a, key)
-            period_b = _row_by_key(portfolio_b, key)
+        periods_a = _portfolio_rows_by_key(portfolio_a)
+        periods_b = _portfolio_rows_by_key(portfolio_b)
+        for key in sorted(set(periods_a) | set(periods_b)):
+            period_a = periods_a.get(key)
+            period_b = periods_b.get(key)
             if period_a is None or period_b is None:
                 continue
             inputs_a = self._snapshot_inputs(period_a, holdings_a, transactions_a)
@@ -479,12 +481,14 @@ class _SecurityReturnReconstructionEngine:
         transactions_b = self._required_transactions("b")
 
         rows = []
-        keys = _security_period_keys(security_a, security_b)
+        periods_a = _security_rows_by_key(security_a)
+        periods_b = _security_rows_by_key(security_b)
+        keys = set(periods_a) | set(periods_b)
         if active_keys is not None:
             keys &= set(active_keys)
         for key in sorted(keys):
-            period_a = _security_row_by_key(security_a, key)
-            period_b = _security_row_by_key(security_b, key)
+            period_a = periods_a.get(key)
+            period_b = periods_b.get(key)
             if period_a is None or period_b is None:
                 continue
             inputs_a = self._snapshot_inputs(period_a, holdings_a, transactions_a)
@@ -710,6 +714,20 @@ def _portfolio_period_keys(
     return keys
 
 
+def _portfolio_rows_by_key(
+    frame: pl.DataFrame,
+) -> dict[tuple[str, dt.date, dt.date], dict[str, object]]:
+    """Return portfolio-period rows indexed without repeated frame filters."""
+    return {
+        (
+            str(row[pc_cols.PORTFOLIO_ID]),
+            _date_value(row[pc_cols.FROM_DATE]),
+            _date_value(row[pc_cols.THRU_DATE]),
+        ): row
+        for row in frame.iter_rows(named=True)
+    }
+
+
 def _security_period_keys(
     security_a: pl.DataFrame,
     security_b: pl.DataFrame,
@@ -727,6 +745,21 @@ def _security_period_keys(
                 )
             )
     return keys
+
+
+def _security_rows_by_key(
+    frame: pl.DataFrame,
+) -> dict[tuple[str, str, dt.date, dt.date], dict[str, object]]:
+    """Return security-period rows indexed without repeated frame filters."""
+    return {
+        (
+            str(row[pc_cols.PORTFOLIO_ID]),
+            str(row[pc_cols.SECURITY_ID]),
+            _date_value(row[pc_cols.FROM_DATE]),
+            _date_value(row[pc_cols.THRU_DATE]),
+        ): row
+        for row in frame.iter_rows(named=True)
+    }
 
 
 def _row_by_key(

@@ -739,6 +739,20 @@ def _missing_dividend_issues(
         for row in transaction_rows
         if _text(row.get(pc_cols.TRANSACTION_CODE)).lower() in _DIVIDEND_CODES
     ]
+    holdings_by_security: dict[tuple[str, str], list[Mapping[str, object]]] = {}
+    for row in holding_rows:
+        key = (_text(row.get(SNAPSHOT)), _text(row.get(pc_cols.SECURITY_ID)))
+        holdings_by_security.setdefault(key, []).append(row)
+    transactions_by_position: dict[
+        tuple[str, str, str], list[Mapping[str, object]]
+    ] = {}
+    for row in transaction_rows:
+        key = (
+            _text(row.get(SNAPSHOT)),
+            _text(row.get(pc_cols.PORTFOLIO_ID)),
+            _text(row.get(pc_cols.SECURITY_ID)),
+        )
+        transactions_by_position.setdefault(key, []).append(row)
     dividend_keys = {
         (
             _text(row.get(SNAPSHOT)),
@@ -769,8 +783,8 @@ def _missing_dividend_issues(
         if dividend_date is None or not security_id:
             continue
         for portfolio_id in _held_portfolios(
-            holding_rows,
-            transaction_rows,
+            holdings_by_security.get((snapshot, security_id), ()),
+            transactions_by_position,
             snapshot=snapshot,
             security_id=security_id,
             dividend_date=dividend_date,
@@ -842,7 +856,9 @@ def _missing_dividend_explanation(
 
 def _held_portfolios(
     holding_rows: Iterable[Mapping[str, object]],
-    transaction_rows: Iterable[Mapping[str, object]],
+    transactions_by_position: Mapping[
+        tuple[str, str, str], Iterable[Mapping[str, object]]
+    ],
     *,
     snapshot: str,
     security_id: str,
@@ -851,10 +867,6 @@ def _held_portfolios(
     """Return portfolios that conservatively appear eligible for a dividend."""
     by_portfolio: dict[str, list[Mapping[str, object]]] = {}
     for row in holding_rows:
-        if _text(row.get(SNAPSHOT)) != snapshot:
-            continue
-        if _text(row.get(pc_cols.SECURITY_ID)) != security_id:
-            continue
         portfolio_id = _text(row.get(pc_cols.PORTFOLIO_ID))
         by_portfolio.setdefault(portfolio_id, []).append(row)
 
@@ -872,10 +884,9 @@ def _held_portfolios(
             if not previous_date < dividend_date <= current_date:
                 continue
             if not _missing_dividend_position_qualifies(
-                transaction_rows,
-                snapshot=snapshot,
-                portfolio_id=portfolio_id,
-                security_id=security_id,
+                transactions_by_position.get(
+                    (snapshot, portfolio_id, security_id), ()
+                ),
                 start_date=previous_date,
                 dividend_date=dividend_date,
                 beginning_quantity=_number(previous_row.get(pc_cols.QUANTITY)),
@@ -889,9 +900,6 @@ def _held_portfolios(
 def _missing_dividend_position_qualifies(
     transaction_rows: Iterable[Mapping[str, object]],
     *,
-    snapshot: str,
-    portfolio_id: str,
-    security_id: str,
     start_date: dt.date,
     dividend_date: dt.date,
     beginning_quantity: float | None,
@@ -900,12 +908,6 @@ def _missing_dividend_position_qualifies(
     has_beginning_position = _positive(beginning_quantity)
     has_pre_dividend_buy = False
     for row in transaction_rows:
-        if _text(row.get(SNAPSHOT)) != snapshot:
-            continue
-        if _text(row.get(pc_cols.PORTFOLIO_ID)) != portfolio_id:
-            continue
-        if _text(row.get(pc_cols.SECURITY_ID)) != security_id:
-            continue
         transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
         if transaction_date is None or not start_date < transaction_date < dividend_date:
             continue

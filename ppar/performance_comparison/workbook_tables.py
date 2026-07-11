@@ -405,6 +405,7 @@ def performance_comparison_review_workbook_sheets(
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
     _reconstruction_cache: _WorkbookReconstructionCache | None = None,
+    _table_cache: _WorkbookTableCache | None = None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return review workbook sheet specifications in reviewer-first order.
 
@@ -426,7 +427,7 @@ def performance_comparison_review_workbook_sheets(
     reconstruction_cache = _reconstruction_cache or _WorkbookReconstructionCache(
         comparison_path
     )
-    table_cache = _WorkbookTableCache(active_findings)
+    table_cache = _table_cache or _WorkbookTableCache(active_findings)
     primary_sheet = (
         _security_differences_sheet(
             active_findings,
