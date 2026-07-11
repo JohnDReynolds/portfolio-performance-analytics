@@ -148,6 +148,36 @@ class TestScaleCheck(unittest.TestCase):
         )
         self.assertEqual(expanded["RETURN"].to_list(), [0.01, 0.02] * 3)
 
+    def test_audit_history_expansion_shifts_every_date_column(self) -> None:
+        """Audit history copies keep related performance and source dates aligned."""
+        source = pl.DataFrame(
+            {
+                "PORT": ["P1"],
+                "FROM_DATE": ["2024-01-01"],
+                "THRU_DATE": ["2024-01-31"],
+                "TRANSACTION_DATE": ["2024-01-15"],
+                "SETTLE_DATE": ["2024-01-17"],
+                "AMOUNT": [100.0],
+            }
+        )
+
+        expanded = check_scale._expanded_audit_history_frame(source, 3)
+
+        self.assertEqual(expanded.height, 3)
+        self.assertEqual(
+            expanded["FROM_DATE"].cast(pl.String).to_list(),
+            ["2024-01-01", "2029-01-01", "2034-01-01"],
+        )
+        self.assertEqual(
+            expanded["TRANSACTION_DATE"].cast(pl.String).to_list(),
+            ["2024-01-15", "2029-01-15", "2034-01-15"],
+        )
+        self.assertEqual(
+            expanded["SETTLE_DATE"].cast(pl.String).to_list(),
+            ["2024-01-17", "2029-01-17", "2034-01-17"],
+        )
+        self.assertEqual(expanded["AMOUNT"].to_list(), [100.0] * 3)
+
     def test_scale_summary_displays_consistent_baseline_ratios_and_caps(self) -> None:
         """Every scenario summary exposes the same comparison fields."""
         output = io.StringIO()

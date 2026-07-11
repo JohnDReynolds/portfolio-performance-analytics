@@ -147,7 +147,7 @@ def _scaled_timeout(baseline_elapsed: float, error_ratio: float) -> float:
     return baseline_elapsed * error_ratio
 
 
-# The explicit fields keep the four scenario call sites and terminal output readable.
+# The explicit fields keep the scenario call sites and terminal output readable.
 # pylint: disable-next=too-many-arguments
 def _print_scale_result(
     scenario: str,
@@ -280,6 +280,25 @@ def _expanded_history_frame(source: pl.DataFrame, scale: int) -> pl.DataFrame:
     return pl.concat(copies, how="vertical")
 
 
+def _expanded_audit_history_frame(source: pl.DataFrame, scale: int) -> pl.DataFrame:
+    """Return consistently date-shifted copies of one Audit source table."""
+    date_columns = [column for column in source.columns if column.endswith("_DATE")]
+    if not date_columns:
+        return pl.concat([source] * scale, how="vertical")
+    dated = source.with_columns(
+        [pl.col(column).str.to_date() for column in date_columns]
+    )
+    copies = []
+    for copy_number in range(scale):
+        offset = f"{copy_number * _HISTORY_BLOCK_YEARS}y"
+        copies.append(
+            dated.with_columns(
+                [pl.col(column).dt.offset_by(offset) for column in date_columns]
+            )
+        )
+    return pl.concat(copies, how="vertical")
+
+
 def _prepare_analytics(directory: Path, scale: int) -> tuple[Path, int]:
     """Write one temporary Analytics site and return its secperf row count."""
     shutil.copytree(_ANALYTICS_TEMPLATE, directory)
@@ -312,6 +331,30 @@ def _prepare_audit(directory: Path, scale: int) -> tuple[Path, int]:
             frame.write_csv(path)
             row_count += frame.height
     return directory, row_count
+
+
+def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, set[int]]:
+    """Write a fixed 5x Audit history and return rows and expected years."""
+    shutil.copytree(_AUDIT_TEMPLATE, directory)
+    (directory / "axysapx_performance_comparison.yaml").rename(
+        directory / "ppar.yaml"
+    )
+    row_count = 0
+    expected_years: set[int] = set()
+    for snapshot_name in ("snapshot_a", "snapshot_b"):
+        snapshot = directory / snapshot_name
+        for path in snapshot.glob("*.csv"):
+            expanded = _expanded_audit_history_frame(
+                pl.read_csv(path),
+                _LONG_HISTORY_SCALE,
+            )
+            expanded.write_csv(path)
+            row_count += expanded.height
+            if snapshot_name == "snapshot_a" and path.name == "portperf.csv":
+                expected_years = set(
+                    expanded.get_column("FROM_DATE").dt.year().to_list()
+                )
+    return directory, row_count, expected_years
 
 
 def _prepare_selected_analytics(directory: Path, scale: int) -> tuple[Path, int]:
@@ -501,6 +544,88 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
     return row_count, elapsed
 
 
+def _check_long_history_audit(workspace: Path) -> tuple[int, float]:
+    """Run a fixed 5x date-shifted history through the standard Audit command."""
+    baseline_path = workspace / "audit_history_baseline"
+    site_path = workspace / "audit_long_history"
+    _require_workspace_path(workspace, baseline_path)
+    _require_workspace_path(workspace, site_path)
+    baseline_site, baseline_rows = _prepare_audit(baseline_path, 1)
+    site, row_count, _ = _prepare_long_history_audit(site_path)
+    if row_count != baseline_rows * _LONG_HISTORY_SCALE:
+        raise RuntimeError(
+            "Audit long-history row count differs from the expected 5x history: "
+            f"expected={baseline_rows * _LONG_HISTORY_SCALE}, actual={row_count}."
+        )
+
+    baseline_elapsed = _run(
+        [sys.executable, "-m", "ppar.cli", "audit", baseline_site]
+    )
+    error_ratio = _LONG_HISTORY_SCALE * _SCALING_FAILURE_MULTIPLIER
+    elapsed = _run(
+        [sys.executable, "-m", "ppar.cli", "audit", site],
+        timeout_seconds=_scaled_timeout(baseline_elapsed, error_ratio),
+    )
+    for report_name in ("portfolio", "security"):
+        report_path = site / "output" / report_name
+        baseline_report_path = baseline_site / "output" / report_name
+        _run(
+            [
+                sys.executable,
+                "-m",
+                "ppar.performance_comparison.cli.validate_bundle",
+                report_path,
+            ]
+        )
+        findings = pl.read_csv(
+            report_path / "supporting_files" / "findings.csv",
+            try_parse_dates=True,
+        )
+        baseline_findings = pl.read_csv(
+            baseline_report_path / "supporting_files" / "findings.csv",
+            try_parse_dates=True,
+        )
+        baseline_years = set(
+            baseline_findings.get_column("from_date")
+            .drop_nulls()
+            .dt.year()
+            .to_list()
+        )
+        expected_years = {
+            year + copy_number * _HISTORY_BLOCK_YEARS
+            for year in baseline_years
+            for copy_number in range(_LONG_HISTORY_SCALE)
+        }
+        actual_years = set(
+            findings.get_column("from_date").drop_nulls().dt.year().to_list()
+        )
+        if not expected_years.issubset(actual_years):
+            missing_years = sorted(expected_years - actual_years)
+            raise RuntimeError(
+                f"Audit long-history {report_name} output is missing years: "
+                f"{missing_years}."
+            )
+
+    status, _, warning_ratio, error_ratio = _workload_scaling_result(
+        "Audit long-history",
+        _LONG_HISTORY_SCALE,
+        baseline_elapsed,
+        elapsed,
+    )
+    _print_scale_result(
+        "Audit long-history",
+        _LONG_HISTORY_SCALE,
+        baseline_rows,
+        row_count,
+        baseline_elapsed,
+        elapsed,
+        status=status,
+        warning_cap=f">{warning_ratio:.2f}x",
+        error_cap=f">{error_ratio:.2f}x",
+    )
+    return row_count, elapsed
+
+
 def _check_selected_analytics(workspace: Path) -> tuple[int, float]:
     """Run the 10x selected-workload calculation and verify financial results."""
     baseline_path = workspace / "selected_baseline"
@@ -639,6 +764,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             _check_audit(workspace, args.scale)
             _check_selected_analytics(workspace)
             _check_long_history_analytics(workspace)
+            _check_long_history_audit(workspace)
     except (RuntimeError, subprocess.SubprocessError) as error:
         print(f"Scale checks failed: {error}", file=sys.stderr)
         return 1
