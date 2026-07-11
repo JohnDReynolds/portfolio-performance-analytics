@@ -470,11 +470,11 @@ def _performance_frame(
     thru_date,
 ) -> pd.DataFrame:
     """Return ppar narrow-format performance rows for one period."""
-    frame = holdings[["identifier", "name", "weight"]].copy()
+    frame = holdings[["identifier", "weight"]].copy()
     frame["return"] = frame["identifier"].map(returns)
     frame["from_date"] = from_date
     frame["thru_date"] = thru_date
-    return frame[["from_date", "thru_date", "identifier", "weight", "return", "name"]]
+    return frame[["from_date", "thru_date", "identifier", "weight", "return"]]
 
 
 def _write_outputs(

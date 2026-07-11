@@ -30,6 +30,7 @@ _GENERIC_ANALYTICS_DIRECTORY: Final[str] = "generic_analytics"
 _ANALYTICS_SETUP_FILES: Final[tuple[str, ...]] = (
     "portperf.csv",
     "secperf.csv",
+    "secref.csv",
     "run_analytics.py",
 )
 _PORTFOLIO_SETUP_FILES: Final[tuple[str, ...]] = (
@@ -339,8 +340,9 @@ Steps:
 
 1. Replace `analytics/portperf.csv` with your own portfolio-performance export.
 2. Replace `analytics/secperf.csv` with your own security-performance export.
-3. Edit `analytics/ppar.yaml` if your filenames or headers differ.
-4. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
+3. Replace `analytics/secref.csv` with your own security reference export.
+4. Edit `analytics/ppar.yaml` if your filenames or headers differ.
+5. Run `ppar analytics {site_path / _ANALYTICS_DIRECTORY}`.
 
 ## Optional Python Scripts
 
@@ -358,6 +360,7 @@ scripts, refer to the sample scripts:
     ppar.yaml
     portperf.csv
     secperf.csv
+    secref.csv
     run_analytics.py
   audit/
     ppar.yaml

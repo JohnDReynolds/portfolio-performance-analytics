@@ -481,6 +481,7 @@ class TestPackageMetadata(unittest.TestCase):
             "column override examples",
             "IMEX portfolio-performance export",
             "security-performance export",
+            "secref.csv",
             "Optional portfolio-performance column overrides",
             "Optional security-performance column overrides",
             "mappings",
@@ -1921,6 +1922,7 @@ class TestPackageMetadata(unittest.TestCase):
             "axysapx_analytics.yaml",
             "portperf.csv",
             "secperf.csv",
+            "secref.csv",
         ):
             with self.subTest(resource_path=f"axysapx_analytics/{resource_path}"):
                 self.assertTrue((axysapx_analytics_data / resource_path).is_file())

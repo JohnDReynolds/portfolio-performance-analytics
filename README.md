@@ -179,6 +179,7 @@ my_ppar_data/
     ppar.yaml
     portperf.csv
     secperf.csv
+    secref.csv
     run_analytics.py
 ```
 

@@ -20,6 +20,7 @@ def main() -> None:
     portfolio_path = GENERATED / "performance" / "Generated OEF Alpha Portfolio.csv"
     benchmark_path = GENERATED / "performance" / "Generated OEF Benchmark.csv"
     sector_path = GENERATED / "classifications" / "Generated OEF Economic Sector.csv"
+    security_path = GENERATED / "classifications" / "Generated OEF Security.csv"
     mapping_path = (
         GENERATED
         / "mappings"
@@ -33,7 +34,7 @@ def main() -> None:
         benchmark_classification_name="Security",
         frequency=Frequency.MONTHLY,
     )
-    security_attribution = analytics.get_attribution()
+    security_attribution = analytics.get_attribution("Security", security_path)
     security_overall = security_attribution.to_pandas(View.OVERALL_ATTRIBUTION)
 
     sector_attribution = analytics.get_attribution(

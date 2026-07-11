@@ -231,6 +231,11 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "security-performance export.",
                 readme,
             )
+            self.assertIn(
+                "Replace `analytics/secref.csv` with your own "
+                "security reference export.",
+                readme,
+            )
             self.assertNotIn("PYTHON_TUTORIAL.md", readme)
             self.assertNotIn("Open the files listed in the command output.", readme)
             self.assertNotIn("Start by replacing the starter CSV files", readme)
@@ -269,6 +274,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue((analytics_path / "ppar.yaml").exists())
             self.assertTrue((analytics_path / "portperf.csv").exists())
             self.assertTrue((analytics_path / "secperf.csv").exists())
+            self.assertTrue((analytics_path / "secref.csv").exists())
             self.assertTrue((analytics_path / "run_analytics.py").exists())
             analytics_script = (analytics_path / "run_analytics.py").read_text(
                 encoding="utf-8"
@@ -587,6 +593,80 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     cli_workbook.close()
                     script_workbook.close()
 
+            cli_advanced = root / "cli_advanced"
+            script_advanced = root / "script_advanced"
+            shared_options = [
+                "--report",
+                "portfolio",
+                "--title",
+                "Custom Audit",
+                "--exclude_suppressed",
+                "--include-reconstruction-diagnostics",
+            ]
+            subprocess.run(
+                _module_command(
+                    _PPAR_MODULE,
+                    "audit",
+                    str(cli_audit),
+                    "--output",
+                    str(cli_advanced),
+                    *shared_options,
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(script_audit / "run_audit.py"),
+                    "--output",
+                    str(script_advanced),
+                    *shared_options,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            cli_advanced_files = {
+                path.relative_to(cli_advanced)
+                for path in cli_advanced.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                cli_advanced_files,
+                {
+                    path.relative_to(script_advanced)
+                    for path in script_advanced.rglob("*")
+                    if path.is_file()
+                },
+            )
+            self.assertEqual(
+                (cli_advanced / "portfolio" / "report.html").read_text(
+                    encoding="utf-8"
+                ),
+                (script_advanced / "portfolio" / "report.html").read_text(
+                    encoding="utf-8"
+                ),
+            )
+
+            audit_help = subprocess.run(
+                [sys.executable, str(script_audit / "run_audit.py"), "--help"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            for option in (
+                "--report",
+                "--output",
+                "--title",
+                "--exclude_suppressed",
+                "--include-reconstruction-diagnostics",
+                "--require-causal-attribution",
+                "--allow-incomplete-yaml",
+            ):
+                self.assertIn(option, audit_help)
+
     def test_setup_analytics_script_matches_default_cli_workflow(self) -> None:
         """The visible Python example stays equivalent to ``ppar analytics``."""
         with tempfile.TemporaryDirectory() as directory:
@@ -645,6 +725,22 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     str(cli_analytics),
                     "--frequency",
                     "yearly",
+                    "--from-date",
+                    "2022-01-01",
+                    "--thru-date",
+                    "2025-12-31",
+                    "--classification",
+                    "Security",
+                    "--minimum-acceptable-return",
+                    "0.02",
+                    "--risk-free-rate",
+                    "0.04",
+                    "--confidence-level",
+                    "0.90",
+                    "--portfolio-value",
+                    "250000",
+                    "--currency-symbol",
+                    "EUR",
                     "--output",
                     str(cli_override_output),
                 ),
@@ -658,6 +754,22 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     str(script_analytics / "run_analytics.py"),
                     "--frequency",
                     "yearly",
+                    "--from-date",
+                    "2022-01-01",
+                    "--thru-date",
+                    "2025-12-31",
+                    "--classification",
+                    "Security",
+                    "--minimum-acceptable-return",
+                    "0.02",
+                    "--risk-free-rate",
+                    "0.04",
+                    "--confidence-level",
+                    "0.90",
+                    "--portfolio-value",
+                    "250000",
+                    "--currency-symbol",
+                    "EUR",
                     "--output",
                     str(script_override_output),
                 ],
@@ -690,7 +802,20 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout
-            for option in ("--portfolio", "--benchmark", "--frequency", "--output"):
+            for option in (
+                "--portfolio",
+                "--benchmark",
+                "--frequency",
+                "--output",
+                "--from-date",
+                "--thru-date",
+                "--classification",
+                "--minimum-acceptable-return",
+                "--risk-free-rate",
+                "--confidence-level",
+                "--portfolio-value",
+                "--currency-symbol",
+            ):
                 self.assertIn(option, analytics_help)
 
     def test_setup_audit_script_supports_cli_report_option(self) -> None:

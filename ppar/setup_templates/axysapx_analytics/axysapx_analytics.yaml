@@ -17,7 +17,8 @@
 #   ppar analytics ./my_ppar_data/analytics
 #
 # First site setup:
-# 1. Replace portperf.csv and secperf.csv with IMEX CSVs from your site.
+# 1. Replace portperf.csv, secperf.csv, and secref.csv with IMEX CSVs from your
+#    site.
 # 2. Keep the starter filenames if you can. If names differ, edit the path
 #    settings below.
 # 3. Keep the starter headers if you can. If headers differ, uncomment and edit
@@ -43,6 +44,17 @@ analytics:
   # --output. The command creates this folder when needed.
   output_directory: output
 
+  # Optional one-run assumptions. These use PPAR's library defaults when
+  # omitted and can also be overridden by matching command-line options.
+  # from_date: "2021-06-01"
+  # thru_date: "2026-05-29"
+  # classification: Economic Sector
+  # annual_minimum_acceptable_return: 0.00
+  # annual_risk_free_rate: 0.03
+  # confidence_level: 0.95
+  # portfolio_value: 100000
+  # currency_symbol: "$"
+
 defaults:
   # Required for the starter. These dates limit the performance history loaded
   # from the CSV files. Use full ISO dates: YYYY-MM-DD.
@@ -65,24 +77,22 @@ defaults:
 #
 # security_performance_path:
 #   Security-level performance CSV. For Axys/APX onboarding, start with an IMEX
-#   security-performance export containing security returns, weights,
-#   contribution, and classification columns. Required columns are portfolio or
+#   security-performance export containing security returns, weights, and
+#   contribution. Required columns are portfolio or
 #   account code, security code, from date, thru date, security return, weight,
 #   and contribution.
 #   Starter core headers: FROM_DATE, THRU_DATE, PORTFOLIO_CODE, SECURITY_ID,
 #   BEGIN_WEIGHT, SEC_RETURN, CONTRIBUTION.
-#   Starter classification headers: ASSET_CLASS_CODE, ASSET_CLASS_DESC,
-#   SECTOR_CODE, SECTOR_DESC, COUNTRY_CODE, COUNTRY_DESC, CURRENCY_CODE,
-#   CURRENCY_DESC.
 #
 # security_master_path:
-#   Optional security display/classification lookup. The starter points this at
-#   secperf.csv because Axys/APX security-performance exports often already
-#   include the practical display fields needed for reports. Most onboarding
-#   users should leave this alone.
+#   Security display/classification lookup. The starter uses secref.csv so
+#   descriptive reference data is stored once instead of being repeated for
+#   every security-performance period. Required starter headers are SECURITY_ID,
+#   SECURITY_NAME, ASSET_CLASS_CODE, ASSET_CLASS_DESC, SECTOR_CODE, SECTOR_DESC,
+#   COUNTRY_CODE, COUNTRY_DESC, CURRENCY_CODE, and CURRENCY_DESC.
 portfolio_performance_path: portperf.csv
 security_performance_path: secperf.csv
-security_master_path: secperf.csv
+security_master_path: secref.csv
 
 # Optional portfolio-performance column overrides.
 # Leave this commented out when your CSV uses the starter headers or another
@@ -111,7 +121,7 @@ security_master_path: secperf.csv
 #   contribution: CONTRIBUTION
 
 mappings:
-  # Each mapping names source columns in secperf.csv that classify a security.
+  # Each mapping names source columns in secref.csv that classify a security.
   #
   # classification_column:
   #   Code column used for grouping, sorting, and joins.

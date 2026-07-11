@@ -236,7 +236,10 @@ def _write_html_inputs(
         OSError: If an HTML input file cannot be written.
         PpaError: If construction of demonstration analytics output fails.
     """
-    security = analytics.get_attribution()
+    security = analytics.get_attribution(
+        "Security",
+        _classification_data_source("Security"),
+    )
     html_by_name = {
         "OverallAttributionBySecurity": security.to_html(View.OVERALL_ATTRIBUTION),
         "CumulativeAttributionByEconomicSector": sector.to_html(View.CUMULATIVE_ATTRIBUTION),

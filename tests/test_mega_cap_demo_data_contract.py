@@ -2,6 +2,10 @@
 
 # Python Imports
 from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
 from typing import cast
 import unittest
 
@@ -12,6 +16,7 @@ import pandas as pd
 from ppar.analytics import Analytics
 from ppar.analytics.attribution import View
 from ppar.analytics.cli import _frequency_from_string
+from ppar.analytics.cli import run_analytics
 from ppar.analytics.frequency import Frequency
 from ppar.axys import AxysData
 
@@ -28,6 +33,22 @@ _SECURITY_PATH = f"{_CLASSIFICATION_DIRECTORY}/Security.csv"
 _SECTOR_PATH = f"{_CLASSIFICATION_DIRECTORY}/Economic Sector.csv"
 _MAPPING_PATH = f"{_MAPPING_DIRECTORY}/Security--to--Economic Sector.csv"
 _AXYS_ANALYTICS_YAML = Path("ppar/setup_templates/axysapx_analytics/axysapx_analytics.yaml").resolve()
+_AXYS_ANALYTICS_DIRECTORY = Path("ppar/setup_templates/axysapx_analytics")
+_AXYS_ANALYTICS_SECREF = _AXYS_ANALYTICS_DIRECTORY / "secref.csv"
+_AXYS_ANALYTICS_SECPERF = _AXYS_ANALYTICS_DIRECTORY / "secperf.csv"
+_EXPECTED_ANALYTICS_ARTIFACTS = {
+    "risk_statistics.html",
+    "security_overall_attribution.html",
+    "sector_cumulative_attribution.html",
+    "sector_cumulative_attribution.png",
+    "sector_cumulative_return.png",
+    "sector_heatmap_active_contribution.png",
+    "sector_heatmap_attribution.png",
+    "sector_overall_attribution.html",
+    "sector_overall_attribution.png",
+    "sector_overall_contribution.png",
+    "sector_subperiod_attribution.png",
+}
 
 
 class TestMegaCapDemoDataContract(unittest.TestCase):
@@ -49,6 +70,12 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertEqual(len(portfolio_months), 60)
         self.assertEqual(portfolio_months.tolist(), benchmark_months.tolist())
         self.assertEqual(portfolio_months.tolist(), expected_months.tolist())
+
+    def test_performance_files_do_not_duplicate_security_names(self) -> None:
+        """Security.csv is the sole source of user-facing security names."""
+        expected_columns = ["from_date", "thru_date", "identifier", "weight", "return"]
+        for path in (_PORTFOLIO_PATH, _BENCHMARK_PATH):
+            self.assertEqual(list(pd.read_csv(path, nrows=0).columns), expected_columns)
 
     def test_period_weights_sum_to_one_and_cash_is_present(self) -> None:
         """Every period includes CASH_USD and sums to a complete portfolio."""
@@ -98,7 +125,10 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             benchmark_classification_name="Security",
             frequency=Frequency.MONTHLY,
         )
-        security_attribution = analytics.get_attribution().to_pandas(
+        security_attribution = analytics.get_attribution(
+            "Security",
+            _SECURITY_PATH,
+        ).to_pandas(
             View.OVERALL_ATTRIBUTION
         )
         sector_attribution = analytics.get_attribution(
@@ -116,6 +146,7 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertGreater(portfolio_return, benchmark_return)
         self.assertGreater(portfolio_sharpe, benchmark_sharpe)
         self.assertGreater(len(security_attribution), 0)
+        self.assertIn("Intel Corporation", set(security_attribution["Classification_Name"]))
         self.assertGreater(len(sector_attribution), 0)
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
 
@@ -144,6 +175,67 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             View.OVERALL_ATTRIBUTION
         )
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
+
+    def test_axysapx_analytics_separates_performance_and_reference_fields(self) -> None:
+        """The analytics starter keeps repeated descriptions out of secperf."""
+        secperf_columns = list(pd.read_csv(_AXYS_ANALYTICS_SECPERF, nrows=0).columns)
+        self.assertEqual(
+            secperf_columns,
+            [
+                "FROM_DATE",
+                "THRU_DATE",
+                "PORTFOLIO_CODE",
+                "SECURITY_ID",
+                "BEGIN_WEIGHT",
+                "SEC_RETURN",
+                "CONTRIBUTION",
+            ],
+        )
+
+        reference = pd.read_csv(_AXYS_ANALYTICS_SECREF).set_index("SECURITY_ID")
+        self.assertTrue(reference.index.is_unique)
+        self.assertEqual(reference.loc["AMZN", "SECURITY_NAME"], "Amazon.Com Inc")
+        self.assertEqual(reference.loc["CRM", "SECURITY_NAME"], "Salesforce Inc")
+        self.assertEqual(reference.loc["GE", "SECURITY_NAME"], "Ge Aerospace")
+        self.assertEqual(reference.loc["RTX", "SECURITY_NAME"], "Rtx Corp")
+
+    def test_standard_entrypoints_write_equivalent_semantic_artifacts(self) -> None:
+        """CLI and Python runner write complete reports using reference names."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            site_directory = Path(temporary_directory) / "analytics"
+            shutil.copytree(_AXYS_ANALYTICS_DIRECTORY, site_directory)
+            (site_directory / "axysapx_analytics.yaml").rename(
+                site_directory / "ppar.yaml"
+            )
+            cli_output = Path(temporary_directory) / "cli_output"
+            runner_output = Path(temporary_directory) / "runner_output"
+            run_analytics(
+                site_directory,
+                output_directory=cli_output,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(site_directory / "run_analytics.py"),
+                    "--output",
+                    str(runner_output),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(_artifact_names(cli_output), _EXPECTED_ANALYTICS_ARTIFACTS)
+            self.assertEqual(_artifact_names(runner_output), _EXPECTED_ANALYTICS_ARTIFACTS)
+            _assert_semantic_analytics_output(self, cli_output)
+            _assert_semantic_analytics_output(self, runner_output)
+
+            for file_name in _EXPECTED_ANALYTICS_ARTIFACTS:
+                if file_name.endswith(".html"):
+                    self.assertEqual(
+                        (cli_output / file_name).read_bytes(),
+                        (runner_output / file_name).read_bytes(),
+                    )
 
     def test_demo_frequency_parser_accepts_lenient_values(self) -> None:
         """Analytics demo frequency parsing accepts first-letter shortcuts."""
@@ -218,6 +310,41 @@ def _risk_value(risk: pd.DataFrame, statistic: str, column: str) -> float:
     if row.empty:
         raise AssertionError(f"Missing risk statistic: {statistic}")
     return float(row[column].iloc[0])
+
+
+def _artifact_names(output_directory: Path) -> set[str]:
+    """Return file names written directly to an analytics output directory."""
+    return {path.name for path in output_directory.iterdir() if path.is_file()}
+
+
+def _assert_semantic_analytics_output(
+    test_case: unittest.TestCase,
+    output_directory: Path,
+) -> None:
+    """Assert that generated artifacts contain expected user-facing meaning."""
+    for file_name in _EXPECTED_ANALYTICS_ARTIFACTS:
+        path = output_directory / file_name
+        test_case.assertGreater(path.stat().st_size, 0, file_name)
+        if path.suffix == ".png":
+            test_case.assertEqual(path.read_bytes()[:8], b"\x89PNG\r\n\x1a\n", file_name)
+
+    security_html = (
+        output_directory / "security_overall_attribution.html"
+    ).read_text(encoding="utf-8")
+    sector_html = (
+        output_directory / "sector_overall_attribution.html"
+    ).read_text(encoding="utf-8")
+    risk_html = (output_directory / "risk_statistics.html").read_text(encoding="utf-8")
+
+    test_case.assertIn("Apple Inc", security_html)
+    test_case.assertIn("Amazon.Com Inc", security_html)
+    # Security identifiers remain visible in their own ID column; they must not
+    # leak into the adjacent display-name header when reference lookup fails.
+    test_case.assertNotIn(">AAPL</th>", security_html)
+    test_case.assertIn("Information Technology", sector_html)
+    test_case.assertIn("Mega-Cap Alpha Portfolio", risk_html)
+    test_case.assertIn("Mega-Cap Benchmark", risk_html)
+    test_case.assertIn("Annualized Sharpe Ratio", risk_html)
 
 
 if __name__ == "__main__":
