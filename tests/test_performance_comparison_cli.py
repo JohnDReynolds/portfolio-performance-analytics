@@ -241,6 +241,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertNotIn("Start by replacing the starter CSV files", readme)
             self.assertIn("analytics/run_analytics.py", readme)
             self.assertIn("run_audit.py", readme)
+            self.assertIn("ppar analytics -h", readme)
+            self.assertIn("python analytics/run_analytics.py -h", readme)
+            self.assertIn("ppar audit -h", readme)
+            self.assertIn("python audit/run_audit.py -h", readme)
             self.assertNotIn("run_portfolio_comparison.py", readme)
             self.assertNotIn("run_security_comparison.py", readme)
             self.assertIn(
@@ -287,7 +291,20 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertIn("SPECIFICATIONS_PATH", analytics_script)
             self.assertIn("AxysData", analytics_script)
             self.assertIn("to_analytics", analytics_script)
+            self.assertIn(
+                "same command-line options as ``ppar analytics``",
+                analytics_script,
+            )
+            self.assertIn("``python run_analytics.py -h``", analytics_script)
             self.assertTrue((comparison_path / "run_audit.py").exists())
+            audit_script = (comparison_path / "run_audit.py").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                "same command-line options as ``ppar audit``",
+                audit_script,
+            )
+            self.assertIn("``python run_audit.py -h``", audit_script)
             self.assertFalse(
                 (comparison_path / "run_portfolio_comparison.py").exists()
             )
@@ -819,6 +836,24 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "--currency-symbol",
             ):
                 self.assertIn(option, analytics_help)
+            for yaml_setting in (
+                "YAML analytics.portfolio in ppar.yaml",
+                "YAML analytics.benchmark in ppar.yaml",
+                "YAML analytics.frequency in ppar.yaml",
+                "YAML analytics.output_directory in ppar.yaml",
+                "YAML analytics.from_date",
+                "YAML defaults.from_date in ppar.yaml",
+                "YAML analytics.thru_date",
+                "YAML defaults.thru_date in ppar.yaml",
+                "YAML analytics.classification",
+                "YAML defaults.classification in ppar.yaml",
+                "YAML analytics.annual_minimum_acceptable_return in ppar.yaml",
+                "YAML analytics.annual_risk_free_rate in ppar.yaml",
+                "YAML analytics.confidence_level in ppar.yaml",
+                "YAML analytics.portfolio_value in ppar.yaml",
+                "YAML analytics.currency_symbol in ppar.yaml",
+            ):
+                self.assertIn(yaml_setting, analytics_help)
 
     def test_setup_audit_script_supports_cli_report_option(self) -> None:
         """The Python audit example supports the CLI report selection option."""
@@ -855,6 +890,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             ).stdout
             self.assertIn("--report", audit_help)
             self.assertIn("--no-xlsx", audit_help)
+            self.assertIn(
+                "Use this for faster, lighter runs when HTML and CSV output are sufficient.",
+                audit_help,
+            )
+            self.assertIn(
+                "Use this to focus review output on findings that still require attention.",
+                audit_help,
+            )
             self.assertIn("{portfolio,security,both}", audit_help)
 
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:

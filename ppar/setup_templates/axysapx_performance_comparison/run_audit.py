@@ -4,6 +4,9 @@ The normal command is ``ppar audit ./audit``. This script produces the same
 review bundles while showing the comparison and report-writing steps. PPAR
 handles command-line parsing and validation so the example can focus on the
 auditing workflow.
+
+This script accepts the same command-line options as ``ppar audit``. Run
+``python run_audit.py -h`` to view them.
 """
 
 from __future__ import annotations

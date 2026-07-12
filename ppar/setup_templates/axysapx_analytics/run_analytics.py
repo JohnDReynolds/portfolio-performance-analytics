@@ -4,6 +4,9 @@ The normal command is ``ppar analytics ./analytics``. This script produces the
 same output while showing the important Python objects and calculation steps.
 PPAR handles command-line parsing, YAML precedence, validation, and routine file
 I/O so this example can focus on the financial workflow.
+
+This script accepts the same command-line options as ``ppar analytics``. Run
+``python run_analytics.py -h`` to view them.
 """
 
 from __future__ import annotations

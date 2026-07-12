@@ -260,6 +260,26 @@ class TestScaleCheck(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "1.65x time-ratio error cap"):
             check_scale._sublinear_scaling_result("History", 5, 2.0, 3.31)
 
+    def test_audit_caps_reflect_observed_sublinear_growth(self) -> None:
+        """Audit large-site and long-history caps catch meaningful regressions."""
+        self.assertEqual(
+            check_scale._audit_large_site_scaling_result(100, 1.0, 22.91),
+            ("PASS", 22.91, 27.3, 28.6),
+        )
+        with self.assertRaisesRegex(RuntimeError, "28.60x time-ratio error cap"):
+            check_scale._audit_large_site_scaling_result(100, 1.0, 28.61)
+
+        self.assertEqual(
+            check_scale._audit_history_scaling_result(1.0, 1.61),
+            ("PASS", 1.61, 1.75, 2.0),
+        )
+        self.assertEqual(
+            check_scale._audit_history_scaling_result(1.0, 1.80),
+            ("WARN", 1.8, 1.75, 2.0),
+        )
+        with self.assertRaisesRegex(RuntimeError, "2.00x time-ratio error cap"):
+            check_scale._audit_history_scaling_result(1.0, 2.01)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,6 +24,14 @@ _DEFAULT_SOURCE_PATH: Final = (
     / "performance"
     / "Mega-Cap Alpha Portfolio.csv"
 )
+_DEFAULT_SECURITY_REFERENCE_PATH: Final = (
+    _REPO_ROOT
+    / "ppar"
+    / "setup_templates"
+    / "generic_analytics"
+    / "classifications"
+    / "Security.csv"
+)
 _DEFAULT_OUTPUT_DIRECTORY: Final = (
     _REPO_ROOT / "_demo_output" / "operational_demo_data_generation"
 )
@@ -73,8 +81,14 @@ def main() -> None:
     """Write first-pass operational demo data under ``_demo_output``."""
     args = _parse_args()
     source = pd.read_csv(args.source_path, parse_dates=["from_date", "thru_date"])
+    security_reference = pd.read_csv(
+        args.security_reference_path,
+        header=None,
+        names=["identifier", "name"],
+    )
     performance = derive_operational_performance(
         source,
+        security_reference=security_reference,
         equity_count=args.equity_count,
         period_count=args.period_count,
         cash_sleeve_floor=args.cash_sleeve_floor,
@@ -93,6 +107,7 @@ def main() -> None:
 def derive_operational_performance(
     source: pd.DataFrame,
     *,
+    security_reference: pd.DataFrame,
     equity_count: int = _EQUITY_COUNT,
     period_count: int = _PERIOD_COUNT,
     cash_sleeve_floor: float = _CASH_SLEEVE_FLOOR,
@@ -101,6 +116,8 @@ def derive_operational_performance(
 
     Args:
         source: Packaged Mega-Cap Alpha Portfolio performance rows.
+        security_reference: Security identifiers and display names from the
+            packaged ``Security.csv`` reference file.
         equity_count: Number of high-weight equity names to keep.
         period_count: Number of recent monthly periods to retain.
         cash_sleeve_floor: Minimum visible cash/fixed-income sleeve weight.
@@ -112,10 +129,28 @@ def derive_operational_performance(
     Raises:
         ValueError: If source data is missing required rows or columns.
     """
-    required_columns = {"from_date", "thru_date", "identifier", "weight", "return", "name"}
+    required_columns = {"from_date", "thru_date", "identifier", "weight", "return"}
     missing_columns = required_columns.difference(source.columns)
     if missing_columns:
         raise ValueError(f"Source data is missing columns: {sorted(missing_columns)}")
+    reference_columns = {"identifier", "name"}
+    missing_reference_columns = reference_columns.difference(security_reference.columns)
+    if missing_reference_columns:
+        raise ValueError(
+            "Security reference data is missing columns: "
+            f"{sorted(missing_reference_columns)}"
+        )
+    source = source.merge(
+        security_reference.loc[:, ["identifier", "name"]],
+        on="identifier",
+        how="left",
+        validate="many_to_one",
+    )
+    missing_names = sorted(
+        source.loc[source["name"].isna(), "identifier"].astype(str).unique()
+    )
+    if missing_names:
+        raise ValueError(f"Security reference data is missing names for: {missing_names}")
 
     periods = (
         source[["from_date", "thru_date"]]
@@ -888,6 +923,11 @@ def _jpm_dividend_amount(performance: pd.DataFrame, dividend_per_share: float) -
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-path", type=Path, default=_DEFAULT_SOURCE_PATH)
+    parser.add_argument(
+        "--security-reference-path",
+        type=Path,
+        default=_DEFAULT_SECURITY_REFERENCE_PATH,
+    )
     parser.add_argument("--output-directory", type=Path, default=_DEFAULT_OUTPUT_DIRECTORY)
     parser.add_argument("--equity-count", type=int, default=_EQUITY_COUNT)
     parser.add_argument("--period-count", type=int, default=_PERIOD_COUNT)

@@ -40,6 +40,9 @@ _SCALING_WARNING_MULTIPLIER = 1.05
 _SCALING_FAILURE_MULTIPLIER = 1.10
 _ANALYTICS_SCALING_WARNING_RATIO = 1.05
 _ANALYTICS_SCALING_FAILURE_RATIO = 1.10
+_AUDIT_LARGE_SITE_SCALE_DIVISOR = 4.0
+_AUDIT_HISTORY_WARNING_RATIO = 1.75
+_AUDIT_HISTORY_FAILURE_RATIO = 2.00
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -140,6 +143,52 @@ def _sublinear_scaling_result(
         )
     status = "WARN" if ratio > warning_ratio else "PASS"
     return status, ratio, warning_ratio, error_ratio
+
+
+def _audit_large_site_scaling_result(
+    factor: int,
+    baseline_elapsed: float,
+    scaled_elapsed: float,
+) -> tuple[str, float, float, float]:
+    """Return tighter caps for the observed Audit large-site growth curve."""
+    expected_ratio = 1.0 + factor / _AUDIT_LARGE_SITE_SCALE_DIVISOR
+    warning_ratio = expected_ratio * _SCALING_WARNING_MULTIPLIER
+    error_ratio = expected_ratio * _SCALING_FAILURE_MULTIPLIER
+    if baseline_elapsed <= 0:
+        raise ValueError("Audit large-site baseline time must be greater than zero.")
+    ratio = scaled_elapsed / baseline_elapsed
+    if ratio > error_ratio:
+        raise RuntimeError(
+            f"Audit large-site exceeded the {error_ratio:.2f}x time-ratio error cap: "
+            f"baseline={baseline_elapsed:.2f}s, scaled={scaled_elapsed:.2f}s, "
+            f"ratio={ratio:.2f}x."
+        )
+    status = "WARN" if ratio > warning_ratio else "PASS"
+    return status, ratio, warning_ratio, error_ratio
+
+
+def _audit_history_scaling_result(
+    baseline_elapsed: float,
+    scaled_elapsed: float,
+) -> tuple[str, float, float, float]:
+    """Return fixed caps for the fivefold Audit long-history workload."""
+    if baseline_elapsed <= 0:
+        raise ValueError("Audit long-history baseline time must be greater than zero.")
+    ratio = scaled_elapsed / baseline_elapsed
+    if ratio > _AUDIT_HISTORY_FAILURE_RATIO:
+        raise RuntimeError(
+            "Audit long-history exceeded the "
+            f"{_AUDIT_HISTORY_FAILURE_RATIO:.2f}x time-ratio error cap: "
+            f"baseline={baseline_elapsed:.2f}s, scaled={scaled_elapsed:.2f}s, "
+            f"ratio={ratio:.2f}x."
+        )
+    status = "WARN" if ratio > _AUDIT_HISTORY_WARNING_RATIO else "PASS"
+    return (
+        status,
+        ratio,
+        _AUDIT_HISTORY_WARNING_RATIO,
+        _AUDIT_HISTORY_FAILURE_RATIO,
+    )
 
 
 def _scaled_timeout(baseline_elapsed: float, error_ratio: float) -> float:
@@ -492,8 +541,9 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
     baseline_elapsed = _run(
         [sys.executable, "-m", "ppar.cli", "audit", baseline_site]
     )
-    error_ratio = scale * _SCALING_FAILURE_MULTIPLIER
-    warning_ratio = scale * _SCALING_WARNING_MULTIPLIER
+    expected_ratio = 1.0 + scale / _AUDIT_LARGE_SITE_SCALE_DIVISOR
+    error_ratio = expected_ratio * _SCALING_FAILURE_MULTIPLIER
+    warning_ratio = expected_ratio * _SCALING_WARNING_MULTIPLIER
     timeout_seconds = _scaled_timeout(baseline_elapsed, error_ratio)
     try:
         elapsed = _run(
@@ -524,8 +574,7 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
                     audit_site / "output" / report_name,
                 ]
             )
-    status, _, warning_ratio, error_ratio = _workload_scaling_result(
-        "Audit large-site",
+    status, _, warning_ratio, error_ratio = _audit_large_site_scaling_result(
         scale,
         baseline_elapsed,
         elapsed,
@@ -561,7 +610,7 @@ def _check_long_history_audit(workspace: Path) -> tuple[int, float]:
     baseline_elapsed = _run(
         [sys.executable, "-m", "ppar.cli", "audit", baseline_site]
     )
-    error_ratio = _LONG_HISTORY_SCALE * _SCALING_FAILURE_MULTIPLIER
+    error_ratio = _AUDIT_HISTORY_FAILURE_RATIO
     elapsed = _run(
         [sys.executable, "-m", "ppar.cli", "audit", site],
         timeout_seconds=_scaled_timeout(baseline_elapsed, error_ratio),
@@ -606,9 +655,7 @@ def _check_long_history_audit(workspace: Path) -> tuple[int, float]:
                 f"{missing_years}."
             )
 
-    status, _, warning_ratio, error_ratio = _workload_scaling_result(
-        "Audit long-history",
-        _LONG_HISTORY_SCALE,
+    status, _, warning_ratio, error_ratio = _audit_history_scaling_result(
         baseline_elapsed,
         elapsed,
     )

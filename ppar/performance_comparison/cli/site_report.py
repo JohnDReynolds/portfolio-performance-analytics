@@ -238,7 +238,8 @@ def _argument_parser(
         action="store_true",
         help=(
             "Skip report.xlsx and write report.html plus supporting files. "
-            "Disabled by default."
+            "Use this for faster, lighter runs when HTML and CSV output are "
+            "sufficient. Disabled by default."
         ),
     )
     parser.add_argument(
@@ -246,7 +247,8 @@ def _argument_parser(
         action="store_true",
         help=(
             "Omit findings marked suppressed by ppar.yaml rules from the bundle. "
-            "Source-data is still processed. Disabled by default."
+            "Use this to focus review output on findings that still require "
+            "attention. Source-data is still processed. Disabled by default."
         ),
     )
     parser.add_argument(

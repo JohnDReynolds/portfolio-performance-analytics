@@ -290,16 +290,15 @@ your own data (see "Customizing With Your Own Data" below).
 
 ### Performance Auditing
 
-Use Performance Auditing to answer the question: "Why did my reported
-performance change?" It answers this question by:
+Use Performance Auditing to answer: "Why did my reported performance change?"
 
-1. Determining the differences in reported performance for each time-period,
-   portfolio, and security.
-2. Quantitatively attributing these performance differences to changes in the
-   underlying holdings and transaction source-data.
-3. Flagging suspicious source-data relationships such as price ranges,
-   dividend rates, accrued-interest rates, missing dividends, and holding value
-   math.
+- **Performance Comparison:** identifies changed portfolio and security
+  performance for each time period, quantitatively attributes the differences
+  to changes in holdings and transactions, and highlights anything that needs human
+  review.
+- **Data Auditing:** flags suspicious source-data relationships — including price
+  ranges, dividend rates, accrued-interest rates, and missing dividends — that
+  may indicate data-quality issues.
 
 ```bash
 ppar audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}
@@ -351,6 +350,15 @@ scripts, refer to the sample scripts:
 
 - `analytics/run_analytics.py`
 - `audit/run_audit.py`
+
+View the available command-line options:
+
+```bash
+ppar analytics -h
+python analytics/run_analytics.py -h
+ppar audit -h
+python audit/run_audit.py -h
+```
 
 ## Folder Map
 

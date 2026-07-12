@@ -25,6 +25,14 @@ _SOURCE_PATH = (
     / "performance"
     / "Mega-Cap Alpha Portfolio.csv"
 )
+_SECURITY_REFERENCE_PATH = (
+    _REPO_ROOT
+    / "ppar"
+    / "setup_templates"
+    / "generic_analytics"
+    / "classifications"
+    / "Security.csv"
+)
 
 
 def _load_generator():
@@ -45,11 +53,17 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         """Load generator module and source fixture once for the test class."""
         cls.generator = _load_generator()
         cls.source = pd.read_csv(_SOURCE_PATH, parse_dates=["from_date", "thru_date"])
+        cls.security_reference = pd.read_csv(
+            _SECURITY_REFERENCE_PATH,
+            header=None,
+            names=["identifier", "name"],
+        )
 
     def test_derives_recent_periods_with_cash_and_fixed_income(self) -> None:
         """Generated performance has equities plus split cash/fixed-income rows."""
         performance = self.generator.derive_operational_performance(
             self.source,
+            security_reference=self.security_reference,
             equity_count=8,
             period_count=4,
             cash_sleeve_floor=0.04,
@@ -74,6 +88,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         """Generated Axys-style frames contain expected operational examples."""
         performance = self.generator.derive_operational_performance(
             self.source,
+            security_reference=self.security_reference,
             equity_count=6,
             period_count=3,
         )
@@ -91,6 +106,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         """Snapshot B includes source-data differences across key datasets."""
         performance = self.generator.derive_operational_performance(
             self.source,
+            security_reference=self.security_reference,
             equity_count=8,
             period_count=4,
         )
@@ -219,6 +235,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         """Generated prototype writes source, snapshots, YAMLs, and summary paths."""
         performance = self.generator.derive_operational_performance(
             self.source,
+            security_reference=self.security_reference,
             equity_count=5,
             period_count=3,
         )
@@ -246,6 +263,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         """Generated A/B snapshots run through performance comparison."""
         performance = self.generator.derive_operational_performance(
             self.source,
+            security_reference=self.security_reference,
             equity_count=8,
             period_count=4,
         )

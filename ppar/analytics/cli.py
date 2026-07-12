@@ -222,66 +222,92 @@ def _argument_parser(
         )
     parser.add_argument(
         "--portfolio",
-        help="Portfolio code. Defaults to analytics.portfolio in ppar.yaml.",
+        help="Portfolio code. Defaults to YAML analytics.portfolio in ppar.yaml.",
     )
     parser.add_argument(
         "--benchmark",
-        help="Benchmark portfolio code. Defaults to analytics.benchmark in ppar.yaml.",
+        help="Benchmark code. Defaults to YAML analytics.benchmark in ppar.yaml.",
     )
     parser.add_argument(
         "-f",
         "--frequency",
         help=(
             "Reporting frequency: monthly, quarterly, yearly, or m/q/y. "
-            "Defaults to analytics.frequency in ppar.yaml, then quarterly."
+            "Defaults to YAML analytics.frequency in ppar.yaml, then the "
+            "Python default quarterly."
         ),
     )
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output directory. Defaults to analytics.output_directory in ppar.yaml.",
+        help=(
+            "Output directory. Defaults to YAML analytics.output_directory in "
+            "ppar.yaml, then the Python default output."
+        ),
     )
     parser.add_argument(
         "--from-date",
-        help="Inclusive YYYY-MM-DD start. Defaults to YAML source-date settings.",
+        help=(
+            "Inclusive YYYY-MM-DD start. Defaults to YAML analytics.from_date, "
+            "then YAML defaults.from_date in ppar.yaml."
+        ),
     )
     parser.add_argument(
         "--thru-date",
-        help="Inclusive YYYY-MM-DD end. Defaults to YAML source-date settings.",
+        help=(
+            "Inclusive YYYY-MM-DD end. Defaults to YAML analytics.thru_date, "
+            "then YAML defaults.thru_date in ppar.yaml."
+        ),
     )
     parser.add_argument(
         "--classification",
-        help="Attribution classification. Defaults to the configured YAML classification.",
+        help=(
+            "Attribution classification. Defaults to YAML "
+            "analytics.classification, then YAML defaults.classification in "
+            "ppar.yaml."
+        ),
     )
     parser.add_argument(
         "--minimum-acceptable-return",
         type=float,
         help=(
             "Annual downside-risk target. Defaults to "
-            "analytics.annual_minimum_acceptable_return, then 0.0."
+            "YAML analytics.annual_minimum_acceptable_return in ppar.yaml, "
+            "then the Python default 0.0."
         ),
     )
     parser.add_argument(
         "--risk-free-rate",
         type=float,
         help=(
-            "Annual risk-free rate. Defaults to analytics.annual_risk_free_rate, "
-            "then 0.03."
+            "Annual risk-free rate. Defaults to YAML "
+            "analytics.annual_risk_free_rate in ppar.yaml, then the Python "
+            "default 0.03."
         ),
     )
     parser.add_argument(
         "--confidence-level",
         type=float,
-        help="Value-at-risk confidence. Defaults to analytics.confidence_level, then 0.95.",
+        help=(
+            "Value-at-risk confidence. Defaults to YAML "
+            "analytics.confidence_level in ppar.yaml, then the Python default "
+            "0.95."
+        ),
     )
     parser.add_argument(
         "--portfolio-value",
         type=float,
-        help="Value-at-risk amount. Defaults to analytics.portfolio_value, then 100000.",
+        help=(
+            "Value-at-risk amount. Defaults to YAML analytics.portfolio_value "
+            "in ppar.yaml, then the Python default 100000."
+        ),
     )
     parser.add_argument(
         "--currency-symbol",
-        help="Value-at-risk currency. Defaults to analytics.currency_symbol, then '$'.",
+        help=(
+            "Value-at-risk currency. Defaults to YAML analytics.currency_symbol "
+            "in ppar.yaml, then the Python default '$'."
+        ),
     )
     return parser
 

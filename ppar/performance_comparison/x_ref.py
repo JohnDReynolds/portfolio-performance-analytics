@@ -656,18 +656,21 @@ def _missing_dividend_issues(
     ]
     holdings_by_security: dict[tuple[str, str], list[Mapping[str, object]]] = {}
     for row in holding_rows:
-        key = (_text(row.get(SNAPSHOT)), _text(row.get(pc_cols.SECURITY_ID)))
-        holdings_by_security.setdefault(key, []).append(row)
+        security_key = (
+            _text(row.get(SNAPSHOT)),
+            _text(row.get(pc_cols.SECURITY_ID)),
+        )
+        holdings_by_security.setdefault(security_key, []).append(row)
     transactions_by_position: dict[
         tuple[str, str, str], list[Mapping[str, object]]
     ] = {}
     for row in transaction_rows:
-        key = (
+        position_key = (
             _text(row.get(SNAPSHOT)),
             _text(row.get(pc_cols.PORTFOLIO_ID)),
             _text(row.get(pc_cols.SECURITY_ID)),
         )
-        transactions_by_position.setdefault(key, []).append(row)
+        transactions_by_position.setdefault(position_key, []).append(row)
     dividend_keys = {
         (
             _text(row.get(SNAPSHOT)),
@@ -679,12 +682,12 @@ def _missing_dividend_issues(
     }
     dividend_portfolios_by_key: dict[tuple[str, str, dt.date | None], set[str]] = {}
     for row in dividend_rows:
-        key = (
+        dividend_key = (
             _text(row.get(SNAPSHOT)),
             _text(row.get(pc_cols.SECURITY_ID)),
             _date(row.get(pc_cols.TRANSACTION_DATE)),
         )
-        dividend_portfolios_by_key.setdefault(key, set()).add(
+        dividend_portfolios_by_key.setdefault(dividend_key, set()).add(
             _text(row.get(pc_cols.PORTFOLIO_ID))
         )
 

@@ -18,10 +18,10 @@ Use Performance Auditing to answer: "Why did my reported performance change?"
 
 - **Performance Comparison:** identifies changed portfolio and security
   performance for each time period, quantitatively attributes the differences
-  to holdings and transactions, and highlights anything that still needs human
+  to changes in holdings and transactions, and highlights anything that needs human
   review.
-- **Data Auditing:** flags suspicious source-data relationships—including price
-  ranges, dividend rates, accrued-interest rates, and missing dividends—that
+- **Data Auditing:** flags suspicious source-data relationships — including price
+  ranges, dividend rates, accrued-interest rates, and missing dividends — that
   may indicate data-quality issues.
 
 <img

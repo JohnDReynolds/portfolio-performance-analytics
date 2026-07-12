@@ -35,8 +35,16 @@ class TestSourceLoader(unittest.TestCase):
                 wraps=source_loader.pl.read_csv,
             ) as read_csv:
                 with source_loader.source_frame_cache():
-                    for _ in range(3):
-                        frame = source_loader.read_mapped_csv(
+                    frame = source_loader.read_mapped_csv(
+                        path,
+                        ("security_id",),
+                        "test_dataset",
+                        {"security_id": ("SEC",)},
+                        {},
+                        directory / "comparison.yaml",
+                    )
+                    for _ in range(2):
+                        source_loader.read_mapped_csv(
                             path,
                             ("security_id",),
                             "test_dataset",
