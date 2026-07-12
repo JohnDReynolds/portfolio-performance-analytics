@@ -97,6 +97,15 @@ Output:
 - `my_ppar_data/audit/output/security/supporting_files/manifest.json`
 - `my_ppar_data/audit/output/security/supporting_files/*.csv`
 
+For a large site where HTML and CSV are sufficient, skip Excel creation:
+
+```bash
+ppar audit ./my_ppar_data/audit --no-xlsx
+```
+
+This retains `report.html` and every supporting file while omitting
+`report.xlsx`.
+
 Open `report.xlsx` for review. Use `report.html` for browser review, and keep
 the CSV artifacts for supporting detail and traceability. The
 report is designed for review, not for raw data export. It separates performance
@@ -118,15 +127,15 @@ differences from identifiable input differences and other evidence:
   transaction price ranges, duplicate transactions, transaction amount-rate
   mismatches, dividend-rate mismatches, fixed-income accrued-interest
   transaction-rate mismatches, missing dividends, holdings.accrued rate
-  mismatches, and holdings market-value math.
+  mismatches.
 - Optional reconstruction diagnostics can add `Reconstruction Summary`,
   `Return Reconstruction Checks`, and `Security Return Checks` sheets for
   implementation review, but normal demo output excludes them by default.
-- Review-only supporting rows remain in the `Source Detail`. Transaction
+- Review-only supporting rows remain in `supporting_files/source_detail.csv`. Transaction
   quantity, price, and commission rows may also appear on
   `Performance Difference Causes` when they support a changed
   `transactions.amount`.
-- `Source Detail` sheet: the underlying finding rows used to build the workbook.
+- `supporting_files/source_detail.csv`: reviewer-friendly finding rows used to build the reports.
   Transaction match status appears here for audit and troubleshooting; the
   separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
   support rather than a main review sheet.
@@ -291,9 +300,9 @@ The workbook uses a small field-role model:
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
 | `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. `holdings.accrued` is added to `holdings.market_value` for reconstructed beginning/end valuation when present. |
-| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `Source Detail` as support for the related performance input. |
+| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `supporting_files/source_detail.csv` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | FX rates, unsupported fields | Kept in `Source Detail` unless it is a direct input to a supported performance explanation. |
+| `context` | FX rates, unsupported fields | Kept in `supporting_files/source_detail.csv` unless it is a direct input to a supported performance explanation. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

@@ -656,7 +656,7 @@ class TestPackageMetadata(unittest.TestCase):
             "The YAML files are the main configuration and onboarding surface.",
             "`Performance Differences`",
             "`Performance Difference Causes`",
-            "`Source Detail`",
+            "`supporting_files/source_detail.csv`",
             "Keep new docs rare.",
         ]:
             with self.subTest(expected_text=expected_text):
@@ -1793,7 +1793,7 @@ class TestPackageMetadata(unittest.TestCase):
             "package-root exports",
             "`Performance Differences`",
             "`Performance Difference Causes`",
-            "`Source Detail`",
+            "`supporting_files/source_detail.csv`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",
@@ -1867,7 +1867,7 @@ class TestPackageMetadata(unittest.TestCase):
             "complete YAML treatment",
             "`Performance Differences` sheet",
             "`Performance Difference Causes` sheet",
-            "`Source Detail` sheet",
+            "`supporting_files/source_detail.csv`",
             "`Reconstruction Summary`",
             "`Return Reconstruction Checks`",
             "`Security Return Checks`",

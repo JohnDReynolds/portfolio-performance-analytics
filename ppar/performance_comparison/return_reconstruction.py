@@ -189,6 +189,75 @@ class _SnapshotReturnInputs:
     comments: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class _SnapshotDataIndex:
+    """Precomputed holdings and transaction lookups for one source snapshot."""
+
+    holding_dates: dict[str, tuple[dt.date, ...]]
+    portfolio_values: dict[tuple[str, dt.date], float]
+    security_values: dict[tuple[str, str, dt.date], float]
+    portfolio_transactions: dict[str, tuple[dict[str, object], ...]]
+    security_transactions: dict[
+        tuple[str, str], tuple[dict[str, object], ...]
+    ]
+
+    def begin_date(self, portfolio_id: str, from_date: dt.date) -> dt.date | None:
+        """Return the latest indexed holding date before the period."""
+        dates = self.holding_dates.get(portfolio_id, ())
+        return next((date for date in reversed(dates) if date < from_date), None)
+
+    def end_date(self, portfolio_id: str, thru_date: dt.date) -> dt.date | None:
+        """Return the indexed holding date matching the period end."""
+        if thru_date in self.holding_dates.get(portfolio_id, ()):
+            return thru_date
+        return None
+
+
+def _snapshot_data_index(
+    holdings: pl.DataFrame,
+    transactions: pl.DataFrame,
+) -> _SnapshotDataIndex:
+    """Build all reconstruction lookups in one pass over each input table."""
+    holding_dates: dict[str, set[dt.date]] = {}
+    portfolio_values: dict[tuple[str, dt.date], float] = {}
+    security_values: dict[tuple[str, str, dt.date], float] = {}
+    for row in holdings.iter_rows(named=True):
+        portfolio_id = str(row[pc_cols.PORTFOLIO_ID])
+        security_id = str(row[pc_cols.SECURITY_ID])
+        holding_date = _date_value(row[pc_cols.HOLDING_DATE])
+        value = (_float_or_none(row.get(pc_cols.MARKET_VALUE)) or 0.0) + (
+            _float_or_none(row.get(pc_cols.ACCRUED)) or 0.0
+        )
+        holding_dates.setdefault(portfolio_id, set()).add(holding_date)
+        portfolio_key = portfolio_id, holding_date
+        security_key = portfolio_id, security_id, holding_date
+        portfolio_values[portfolio_key] = portfolio_values.get(portfolio_key, 0.0) + value
+        security_values[security_key] = security_values.get(security_key, 0.0) + value
+
+    portfolio_transactions: dict[str, list[dict[str, object]]] = {}
+    security_transactions: dict[tuple[str, str], list[dict[str, object]]] = {}
+    for row in transactions.iter_rows(named=True):
+        portfolio_id = str(row[pc_cols.PORTFOLIO_ID])
+        security_id = str(row[pc_cols.SECURITY_ID])
+        portfolio_transactions.setdefault(portfolio_id, []).append(row)
+        security_transactions.setdefault((portfolio_id, security_id), []).append(row)
+
+    return _SnapshotDataIndex(
+        holding_dates={
+            portfolio_id: tuple(sorted(dates))
+            for portfolio_id, dates in holding_dates.items()
+        },
+        portfolio_values=portfolio_values,
+        security_values=security_values,
+        portfolio_transactions={
+            key: tuple(rows) for key, rows in portfolio_transactions.items()
+        },
+        security_transactions={
+            key: tuple(rows) for key, rows in security_transactions.items()
+        },
+    )
+
+
 def portfolio_return_reconstruction_checks(
     comparison_path: util.PathLike | None,
 ) -> pl.DataFrame:
@@ -314,30 +383,15 @@ class _PortfolioReturnReconstructionEngine:
         rows = []
         periods_a = _portfolio_rows_by_key(portfolio_a)
         periods_b = _portfolio_rows_by_key(portfolio_b)
-        holdings_a_by_portfolio = _frames_by_portfolio(holdings_a)
-        holdings_b_by_portfolio = _frames_by_portfolio(holdings_b)
-        transactions_a_by_portfolio = _frames_by_portfolio(transactions_a)
-        transactions_b_by_portfolio = _frames_by_portfolio(transactions_b)
+        inputs_a_index = _snapshot_data_index(holdings_a, transactions_a)
+        inputs_b_index = _snapshot_data_index(holdings_b, transactions_b)
         for key in sorted(set(periods_a) | set(periods_b)):
             period_a = periods_a.get(key)
             period_b = periods_b.get(key)
             if period_a is None or period_b is None:
                 continue
-            portfolio_id = key[0]
-            inputs_a = self._snapshot_inputs(
-                period_a,
-                holdings_a_by_portfolio.get(portfolio_id, holdings_a.clear()),
-                transactions_a_by_portfolio.get(
-                    portfolio_id, transactions_a.clear()
-                ),
-            )
-            inputs_b = self._snapshot_inputs(
-                period_b,
-                holdings_b_by_portfolio.get(portfolio_id, holdings_b.clear()),
-                transactions_b_by_portfolio.get(
-                    portfolio_id, transactions_b.clear()
-                ),
-            )
+            inputs_a = self._snapshot_inputs(period_a, inputs_a_index)
+            inputs_b = self._snapshot_inputs(period_b, inputs_b_index)
             rows.append(_reconstruction_row(key, inputs_a, inputs_b, self._tolerance()))
 
         if not rows:
@@ -369,32 +423,30 @@ class _PortfolioReturnReconstructionEngine:
     def _snapshot_inputs(
         self,
         period_row: dict[str, object],
-        holdings: pl.DataFrame,
-        transactions: pl.DataFrame,
+        inputs_index: _SnapshotDataIndex,
     ) -> _SnapshotReturnInputs:
         """Return reconstructed inputs for one snapshot period row."""
         portfolio_id = str(period_row[pc_cols.PORTFOLIO_ID])
         from_date = _date_value(period_row[pc_cols.FROM_DATE])
         thru_date = _date_value(period_row[pc_cols.THRU_DATE])
-        begin_date = _begin_holding_date(holdings, portfolio_id, from_date)
-        end_date = _end_holding_date(holdings, portfolio_id, thru_date)
+        begin_date = inputs_index.begin_date(portfolio_id, from_date)
+        end_date = inputs_index.end_date(portfolio_id, thru_date)
         comments: list[str] = []
 
         begin_value = None
         if begin_date is None:
             comments.append("missing beginning holdings value")
         else:
-            begin_value = _portfolio_holding_value(holdings, portfolio_id, begin_date)
+            begin_value = inputs_index.portfolio_values[(portfolio_id, begin_date)]
 
         end_value = None
         if end_date is None:
             comments.append("missing ending holdings value")
         else:
-            end_value = _portfolio_holding_value(holdings, portfolio_id, end_date)
+            end_value = inputs_index.portfolio_values[(portfolio_id, end_date)]
 
         net_flow, weighted_flow = self._portfolio_flows(
-            transactions,
-            portfolio_id,
+            inputs_index.portfolio_transactions.get(portfolio_id, ()),
             from_date,
             thru_date,
         )
@@ -427,29 +479,24 @@ class _PortfolioReturnReconstructionEngine:
 
     def _portfolio_flows(
         self,
-        transactions: pl.DataFrame,
-        portfolio_id: str,
+        transactions: tuple[dict[str, object], ...],
         from_date: dt.date,
         thru_date: dt.date,
     ) -> tuple[float, float]:
         """Return net and weighted portfolio external flows for a period."""
-        if transactions.is_empty():
+        if not transactions:
             return 0.0, 0.0
-
-        rows = transactions.filter(
-            (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-            & pl.col(pc_cols.TRANSACTION_DATE).is_between(from_date, thru_date)
-            & pl.col(pc_cols.TRANSACTION_CATEGORY).is_in(
-                list(self._reconstruction.flow_categories)
-            )
-        )
         net_flow = 0.0
         weighted_flow = 0.0
-        for row in rows.iter_rows(named=True):
+        for row in transactions:
+            flow_date = _date_value(row[pc_cols.TRANSACTION_DATE])
+            if not from_date <= flow_date <= thru_date:
+                continue
+            if row.get(pc_cols.TRANSACTION_CATEGORY) not in self._reconstruction.flow_categories:
+                continue
             amount = _float_or_none(row.get(pc_cols.AMOUNT))
             if amount is None:
                 continue
-            flow_date = _date_value(row[pc_cols.TRANSACTION_DATE])
             weight = _return_reconstruction_flow_weight(
                 self._reconstruction,
                 from_date=from_date,
@@ -500,10 +547,8 @@ class _SecurityReturnReconstructionEngine:
         rows = []
         periods_a = _security_rows_by_key(security_a)
         periods_b = _security_rows_by_key(security_b)
-        holdings_a_by_portfolio = _frames_by_portfolio(holdings_a)
-        holdings_b_by_portfolio = _frames_by_portfolio(holdings_b)
-        transactions_a_by_portfolio = _frames_by_portfolio(transactions_a)
-        transactions_b_by_portfolio = _frames_by_portfolio(transactions_b)
+        inputs_a_index = _snapshot_data_index(holdings_a, transactions_a)
+        inputs_b_index = _snapshot_data_index(holdings_b, transactions_b)
         keys = set(periods_a) | set(periods_b)
         if active_keys is not None:
             keys &= set(active_keys)
@@ -512,21 +557,8 @@ class _SecurityReturnReconstructionEngine:
             period_b = periods_b.get(key)
             if period_a is None or period_b is None:
                 continue
-            portfolio_id = key[0]
-            inputs_a = self._snapshot_inputs(
-                period_a,
-                holdings_a_by_portfolio.get(portfolio_id, holdings_a.clear()),
-                transactions_a_by_portfolio.get(
-                    portfolio_id, transactions_a.clear()
-                ),
-            )
-            inputs_b = self._snapshot_inputs(
-                period_b,
-                holdings_b_by_portfolio.get(portfolio_id, holdings_b.clear()),
-                transactions_b_by_portfolio.get(
-                    portfolio_id, transactions_b.clear()
-                ),
-            )
+            inputs_a = self._snapshot_inputs(period_a, inputs_a_index)
+            inputs_b = self._snapshot_inputs(period_b, inputs_b_index)
             rows.append(
                 _security_reconstruction_row(
                     key,
@@ -576,27 +608,23 @@ class _SecurityReturnReconstructionEngine:
     def _snapshot_inputs(
         self,
         period_row: dict[str, object],
-        holdings: pl.DataFrame,
-        transactions: pl.DataFrame,
+        inputs_index: _SnapshotDataIndex,
     ) -> _SnapshotReturnInputs:
         """Return reconstructed inputs for one security-period row."""
         portfolio_id = str(period_row[pc_cols.PORTFOLIO_ID])
         security_id = str(period_row[pc_cols.SECURITY_ID])
         from_date = _date_value(period_row[pc_cols.FROM_DATE])
         thru_date = _date_value(period_row[pc_cols.THRU_DATE])
-        begin_date = _begin_holding_date(holdings, portfolio_id, from_date)
-        end_date = _end_holding_date(holdings, portfolio_id, thru_date)
+        begin_date = inputs_index.begin_date(portfolio_id, from_date)
+        end_date = inputs_index.end_date(portfolio_id, thru_date)
         comments: list[str] = []
 
         begin_value = None
         if begin_date is None:
             comments.append("missing beginning holdings value")
         else:
-            begin_value = _security_holding_value(
-                holdings,
-                portfolio_id,
-                security_id,
-                begin_date,
+            begin_value = inputs_index.security_values.get(
+                (portfolio_id, security_id, begin_date)
             )
             if begin_value is None:
                 comments.append("missing beginning security holding")
@@ -605,26 +633,23 @@ class _SecurityReturnReconstructionEngine:
         if end_date is None:
             comments.append("missing ending holdings value")
         else:
-            end_value = _security_holding_value(
-                holdings,
-                portfolio_id,
-                security_id,
-                end_date,
+            end_value = inputs_index.security_values.get(
+                (portfolio_id, security_id, end_date)
             )
             if end_value is None:
                 comments.append("missing ending security holding")
 
         net_flow, weighted_flow = self._security_flows(
-            transactions,
-            portfolio_id,
-            security_id,
+            inputs_index.security_transactions.get(
+                (portfolio_id, security_id), ()
+            ),
             from_date,
             thru_date,
         )
         income = self._security_income(
-            transactions,
-            portfolio_id,
-            security_id,
+            inputs_index.security_transactions.get(
+                (portfolio_id, security_id), ()
+            ),
             from_date,
             thru_date,
         )
@@ -657,32 +682,25 @@ class _SecurityReturnReconstructionEngine:
 
     def _security_flows(
         self,
-        transactions: pl.DataFrame,
-        portfolio_id: str,
-        security_id: str,
+        transactions: tuple[dict[str, object], ...],
         from_date: dt.date,
         thru_date: dt.date,
     ) -> tuple[float, float]:
         """Return net and weighted security-level buy/sell flows for a period."""
-        if transactions.is_empty():
+        if not transactions:
             return 0.0, 0.0
-
-        rows = transactions.filter(
-            (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-            & (pl.col(pc_cols.SECURITY_ID) == security_id)
-            & pl.col(pc_cols.TRANSACTION_DATE).is_between(from_date, thru_date)
-            & pl.col(pc_cols.TRANSACTION_CATEGORY).is_in(
-                list(self._reconstruction.flow_categories)
-            )
-        )
         net_flow = 0.0
         weighted_flow = 0.0
-        for row in rows.iter_rows(named=True):
+        for row in transactions:
+            flow_date = _date_value(row[pc_cols.TRANSACTION_DATE])
+            if not from_date <= flow_date <= thru_date:
+                continue
+            if row.get(pc_cols.TRANSACTION_CATEGORY) not in self._reconstruction.flow_categories:
+                continue
             amount = _float_or_none(row.get(pc_cols.AMOUNT))
             if amount is None:
                 continue
             security_flow = -amount
-            flow_date = _date_value(row[pc_cols.TRANSACTION_DATE])
             weight = _return_reconstruction_flow_weight(
                 self._reconstruction,
                 from_date=from_date,
@@ -695,26 +713,20 @@ class _SecurityReturnReconstructionEngine:
 
     def _security_income(
         self,
-        transactions: pl.DataFrame,
-        portfolio_id: str,
-        security_id: str,
+        transactions: tuple[dict[str, object], ...],
         from_date: dt.date,
         thru_date: dt.date,
     ) -> float:
         """Return performance income transactions for one security-period."""
-        if transactions.is_empty():
+        if not transactions:
             return 0.0
-
-        rows = transactions.filter(
-            (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-            & (pl.col(pc_cols.SECURITY_ID) == security_id)
-            & pl.col(pc_cols.TRANSACTION_DATE).is_between(from_date, thru_date)
-            & pl.col(pc_cols.TRANSACTION_CATEGORY).is_in(
-                list(self._reconstruction.income_categories)
-            )
-        )
         income = 0.0
-        for row in rows.iter_rows(named=True):
+        for row in transactions:
+            transaction_date = _date_value(row[pc_cols.TRANSACTION_DATE])
+            if not from_date <= transaction_date <= thru_date:
+                continue
+            if row.get(pc_cols.TRANSACTION_CATEGORY) not in self._reconstruction.income_categories:
+                continue
             amount = _float_or_none(row.get(pc_cols.AMOUNT))
             if amount is not None:
                 income += amount
@@ -794,124 +806,6 @@ def _security_rows_by_key(
         ): row
         for row in frame.iter_rows(named=True)
     }
-
-
-def _frames_by_portfolio(frame: pl.DataFrame) -> dict[str, pl.DataFrame]:
-    """Partition a loaded input once for repeated portfolio-level calculations."""
-    if frame.is_empty():
-        return {}
-    partitions = frame.partition_by(
-        pc_cols.PORTFOLIO_ID,
-        as_dict=True,
-        maintain_order=True,
-    )
-    return {
-        str(key[0] if isinstance(key, tuple) else key): partition
-        for key, partition in partitions.items()
-    }
-
-
-def _row_by_key(
-    frame: pl.DataFrame,
-    key: tuple[str, dt.date, dt.date],
-) -> dict[str, object] | None:
-    """Return a portfolio-period row by key, or ``None`` when absent."""
-    portfolio_id, from_date, thru_date = key
-    rows = frame.filter(
-        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-        & (pl.col(pc_cols.FROM_DATE) == from_date)
-        & (pl.col(pc_cols.THRU_DATE) == thru_date)
-    )
-    if rows.is_empty():
-        return None
-    return rows.row(0, named=True)
-
-
-def _security_row_by_key(
-    frame: pl.DataFrame,
-    key: tuple[str, str, dt.date, dt.date],
-) -> dict[str, object] | None:
-    """Return a security-period row by key, or ``None`` when absent."""
-    portfolio_id, security_id, from_date, thru_date = key
-    rows = frame.filter(
-        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-        & (pl.col(pc_cols.SECURITY_ID) == security_id)
-        & (pl.col(pc_cols.FROM_DATE) == from_date)
-        & (pl.col(pc_cols.THRU_DATE) == thru_date)
-    )
-    if rows.is_empty():
-        return None
-    return rows.row(0, named=True)
-
-
-def _begin_holding_date(
-    holdings: pl.DataFrame,
-    portfolio_id: str,
-    from_date: dt.date,
-) -> dt.date | None:
-    """Return the latest available holding date before a period starts."""
-    rows = holdings.filter(
-        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-        & (pl.col(pc_cols.HOLDING_DATE) < from_date)
-    )
-    if rows.is_empty():
-        return None
-    return _date_value(rows.select(pl.max(pc_cols.HOLDING_DATE)).item())
-
-
-def _end_holding_date(
-    holdings: pl.DataFrame,
-    portfolio_id: str,
-    thru_date: dt.date,
-) -> dt.date | None:
-    """Return the holding date used as ending value for a period."""
-    rows = holdings.filter(
-        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-        & (pl.col(pc_cols.HOLDING_DATE) == thru_date)
-    )
-    if rows.is_empty():
-        return None
-    return thru_date
-
-
-def _portfolio_holding_value(
-    holdings: pl.DataFrame,
-    portfolio_id: str,
-    holding_date: dt.date,
-) -> float:
-    """Return portfolio holding value including accrued interest."""
-    rows = holdings.filter(
-        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-        & (pl.col(pc_cols.HOLDING_DATE) == holding_date)
-    )
-    value_expression = pl.col(pc_cols.MARKET_VALUE).cast(pl.Float64).fill_null(0.0)
-    if pc_cols.ACCRUED in rows.columns:
-        value_expression = value_expression + pl.col(pc_cols.ACCRUED).cast(
-            pl.Float64
-        ).fill_null(0.0)
-    return float(rows.select(value_expression.sum()).item())
-
-
-def _security_holding_value(
-    holdings: pl.DataFrame,
-    portfolio_id: str,
-    security_id: str,
-    holding_date: dt.date,
-) -> float | None:
-    """Return one security holding value including accrued interest."""
-    rows = holdings.filter(
-        (pl.col(pc_cols.PORTFOLIO_ID) == portfolio_id)
-        & (pl.col(pc_cols.SECURITY_ID) == security_id)
-        & (pl.col(pc_cols.HOLDING_DATE) == holding_date)
-    )
-    if rows.is_empty():
-        return None
-    value_expression = pl.col(pc_cols.MARKET_VALUE).cast(pl.Float64).fill_null(0.0)
-    if pc_cols.ACCRUED in rows.columns:
-        value_expression = value_expression + pl.col(pc_cols.ACCRUED).cast(
-            pl.Float64
-        ).fill_null(0.0)
-    return float(rows.select(value_expression.sum()).item())
 
 
 def _return_reconstruction_flow_weight(

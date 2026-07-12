@@ -33,7 +33,6 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
             {
                 "duplicate_transactions",
                 "dividend_rate",
-                "holding_market_value",
                 "holdings_price_range",
                 "missing_dividend",
                 "transaction_amount_rate",
@@ -232,37 +231,6 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
         self.assertEqual(
             set(amount_rate_issues.get_column("portfolio_id").to_list()),
             {"P1", "P2"},
-        )
-
-    def test_x_ref_issues_honor_holding_market_value_multiplier(self) -> None:
-        """Configured multipliers avoid false issues for bond price conventions."""
-        with tempfile.TemporaryDirectory() as directory:
-            comparison_path = _write_site(
-                Path(directory),
-                holdings_rows=[
-                    "P1,BOND,2026-02-28,100000,99,99000,0",
-                    "P2,BOND,2026-02-28,100000,99,990,0",
-                ],
-                transaction_rows=[],
-                x_ref_config="""
-                data_audit_checks:
-                  holding_market_value:
-                    multipliers:
-                      default: 1.0
-                      by_security_id:
-                        BOND: 0.01
-                """,
-            )
-
-            issues = x_ref.x_ref_issues_table(comparison_path)
-            market_value_issues = issues.filter(
-                issues[x_ref.ISSUE_TYPE] == "holding_market_value"
-            )
-
-        self.assertEqual(market_value_issues.height, 2)
-        self.assertEqual(
-            set(market_value_issues.get_column("portfolio_id").to_list()),
-            {"P2"},
         )
 
     def test_x_ref_issue_type_can_be_disabled(self) -> None:

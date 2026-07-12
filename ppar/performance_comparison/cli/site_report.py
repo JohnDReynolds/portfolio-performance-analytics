@@ -15,6 +15,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison import x_ref as _pc_x_ref
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
     SECURITY_COMPARISON_LEVEL,
@@ -41,6 +42,7 @@ class AuditRunSettings:
     include_reconstruction_diagnostics: bool
     require_causal_attribution: bool
     allow_incomplete_yaml: bool
+    include_workbook: bool
 
 
 def main(
@@ -67,7 +69,8 @@ def main(
             exclude_suppressed=args.exclude_suppressed,
             include_reconstruction_diagnostics=args.include_reconstruction_diagnostics,
             require_causal_attribution=args.require_causal_attribution,
-            allow_incomplete_yaml=args.allow_incomplete_yaml,
+        allow_incomplete_yaml=args.allow_incomplete_yaml,
+        include_workbook=not args.no_xlsx,
         )
     except PpaError as error:
         print(f"Report failed: {error}", file=sys.stderr)
@@ -88,6 +91,7 @@ def run_report(
     include_reconstruction_diagnostics: bool = False,
     require_causal_attribution: bool = False,
     allow_incomplete_yaml: bool = False,
+    include_workbook: bool = True,
 ) -> dict[str, Any]:
     """Write one or more report bundles for a configured site folder.
 
@@ -106,6 +110,8 @@ def run_report(
             must be complete.
         allow_incomplete_yaml: Whether diagnostic output may bypass the complete
             YAML setup guardrail.
+        include_workbook: Whether to write ``report.xlsx`` in addition to HTML
+            and supporting files.
 
     Returns:
         Paths for the site folder, config file, and generated review artifacts.
@@ -138,6 +144,7 @@ def run_report(
         "review_paths": [],
     }
     output_root = output_directory or site_path / _OUTPUT_DIR
+    x_ref_issues = _pc_x_ref.x_ref_issues_table(config_path)
     if report in ("both", PORTFOLIO_COMPARISON_LEVEL):
         result["portfolio_report_paths"] = _write_report_bundle(
             config_path,
@@ -149,6 +156,8 @@ def run_report(
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
             require_causal_attribution=require_causal_attribution,
             allow_incomplete_yaml=allow_incomplete_yaml,
+            _x_ref_issues=x_ref_issues,
+            include_workbook=include_workbook,
         )
         result["review_paths"].extend(result["portfolio_report_paths"])
     if report in ("both", SECURITY_COMPARISON_LEVEL):
@@ -163,6 +172,8 @@ def run_report(
                 include_reconstruction_diagnostics=include_reconstruction_diagnostics,
                 require_causal_attribution=require_causal_attribution,
                 allow_incomplete_yaml=allow_incomplete_yaml,
+                _x_ref_issues=x_ref_issues,
+                include_workbook=include_workbook,
             )
             result["review_paths"].extend(result["security_report_paths"])
         except PpaError as error:
@@ -219,6 +230,14 @@ def _argument_parser(
     parser.add_argument(
         "--title",
         help="Visible report title. Defaults to the standard portfolio/security title.",
+    )
+    parser.add_argument(
+        "--no-xlsx",
+        action="store_true",
+        help=(
+            "Skip report.xlsx and write report.html plus supporting files. "
+            "Disabled by default."
+        ),
     )
     parser.add_argument(
         "--exclude_suppressed",
@@ -285,6 +304,7 @@ def script_run_settings(
         ),
         require_causal_attribution=arguments.require_causal_attribution,
         allow_incomplete_yaml=arguments.allow_incomplete_yaml,
+        include_workbook=not arguments.no_xlsx,
     )
 
 
@@ -304,6 +324,8 @@ def _write_report_bundle(
     include_reconstruction_diagnostics: bool,
     require_causal_attribution: bool,
     allow_incomplete_yaml: bool,
+    _x_ref_issues: Any,
+    include_workbook: bool,
 ) -> list[Path]:
     """Write one report bundle and return the primary workbook path."""
     findings = compare_snapshots(
@@ -322,20 +344,21 @@ def _write_report_bundle(
         output_directory,
         title=report_title,
         top_evidence_limit=top_evidence_limit,
-        include_workbook=True,
+        include_workbook=include_workbook,
         require_complete_yaml_setup=not allow_incomplete_yaml,
         require_causal_attribution=require_causal_attribution,
         comparison_path=config_path,
         comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
+        _x_ref_issues=_x_ref_issues,
     )
     workbook = paths.get("review_workbook")
-    if workbook is None:
+    if include_workbook and workbook is None:
         raise PpaError(f"Report bundle did not write report.xlsx in {output_directory}.", 999)
     html_report = paths.get("html_report")
     if html_report is None:
         raise PpaError(f"Report bundle did not write report.html in {output_directory}.", 999)
-    return [workbook]
+    return [workbook] if workbook is not None else [html_report]
 
 
 def _is_missing_security_data(error: PpaError) -> bool:

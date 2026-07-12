@@ -16,6 +16,7 @@ from ppar.performance_comparison import (
     write_performance_comparison_report_bundle,
 )
 from ppar.performance_comparison import review_model as _pc_review_model
+from ppar.performance_comparison import workbook_tables as _pc_workbook_tables
 
 _PORTFOLIO_COMPARISON_PATH = Path(
     "ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml"
@@ -25,14 +26,12 @@ _EXPECTED_PORTFOLIO_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
     _pc_review_model.X_REF_ISSUES_SHEET,
-    _pc_review_model.SOURCE_DETAIL_SHEET,
 ]
 _EXPECTED_SECURITY_SHEETS = list(_EXPECTED_PORTFOLIO_SHEETS)
 _EXPECTED_DIAGNOSTIC_SHEETS = [
     _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET,
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET,
     _pc_review_model.X_REF_ISSUES_SHEET,
-    _pc_review_model.SOURCE_DETAIL_SHEET,
     _pc_review_model.RECONSTRUCTION_SUMMARY_SHEET,
     _pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET,
     _pc_review_model.SECURITY_RETURN_RECONSTRUCTION_CHECKS_SHEET,
@@ -138,7 +137,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             )
 
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertIn("Source Detail", readme)
+            self.assertIn("supporting_files/source_detail.csv", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
             self.assertNotIn("Open `report.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
@@ -219,21 +218,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     "Performance\nDifference\nExplained",
                     _raw_header_values(workbook["Performance Difference Causes"]),
                 )
-                self.assertEqual(
-                    _header_values(workbook["Source Detail"])[:11],
-                    [
-                        *_COMMON_LEFT_HEADERS,
-                        "Snapshot A Value",
-                        "Snapshot B Value",
-                        "B - A Difference",
-                        "Explanation",
-                        "Code",
-                    ],
-                )
-                self.assertEqual(
-                    _header_values(workbook["Source Detail"])[-1],
-                    "Review Key",
-                )
+                self.assertNotIn("Source Detail", workbook.sheetnames)
                 self.assertEqual(
                     _header_values(workbook["Data Audit Issues"]),
                     [
@@ -326,7 +311,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 )
                 self.assertNotIn("holdings.cost", income_april_review_note)
                 self.assertNotIn(
-                    'Review the "Source Detail" sheet',
+                    "Review `supporting_files/source_detail.csv`",
                     income_april_review_note,
                 )
                 self.assertTrue(
@@ -618,7 +603,11 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     any(guidance.startswith("dv: ") for guidance in transaction_guidance)
                 )
-                raw_rows = _sheet_rows(workbook["Source Detail"])
+                raw_table = _pc_workbook_tables._workbook_raw_audit_trail_table(
+                    findings,
+                    comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                ).select(_pc_workbook_tables._workbook_raw_audit_columns(findings))
+                raw_rows = list(raw_table.iter_rows())
                 raw_fields = {row[4] for row in raw_rows}
                 self.assertNotIn("holdings.cost", raw_fields)
                 self.assertTrue(
@@ -830,7 +819,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     places=6,
                 )
                 self.assertIsNone(tnote_row[6])
-                raw_rows = _sheet_rows(workbook["Source Detail"])
+                raw_table = _pc_workbook_tables._workbook_raw_audit_trail_table(
+                    findings,
+                    comparison_path=_PORTFOLIO_COMPARISON_PATH,
+                    comparison_level="security",
+                ).select(_pc_workbook_tables._workbook_raw_audit_columns(findings))
+                raw_rows = list(raw_table.iter_rows())
                 self.assertNotIn("holdings.cost", {row[4] for row in raw_rows})
                 raw_sort_keys = [
                     (
@@ -1021,7 +1015,4 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ),
                 html_report.index(_pc_review_model.RECONSTRUCTION_SUMMARY_SHEET),
             )
-            self.assertLess(
-                html_report.index(_pc_review_model.SOURCE_DETAIL_SHEET),
-                html_report.index(_pc_review_model.RETURN_RECONSTRUCTION_CHECKS_SHEET),
-            )
+            self.assertNotIn(_pc_review_model.SOURCE_DETAIL_SHEET, html_report)

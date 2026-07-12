@@ -453,6 +453,7 @@ def performance_comparison_review_workbook_sheets(
     include_reconstruction_diagnostics: bool = False,
     _reconstruction_cache: _WorkbookReconstructionCache | None = None,
     _table_cache: _WorkbookTableCache | None = None,
+    _x_ref_issues: pl.DataFrame | None = None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return review workbook sheet specifications in reviewer-first order.
 
@@ -509,6 +510,7 @@ def performance_comparison_review_workbook_sheets(
             comparison_level=comparison_level,
             table_cache=table_cache,
             reconstruction_cache=reconstruction_cache,
+            x_ref_issues=_x_ref_issues,
         ),
         *diagnostic_sheets,
     )
@@ -628,6 +630,7 @@ def _shared_detail_sheets(
     comparison_level: str,
     table_cache: _WorkbookTableCache,
     reconstruction_cache: _WorkbookReconstructionCache,
+    x_ref_issues: pl.DataFrame | None,
 ) -> tuple[_pc_workbook.ReviewWorkbookSheet, ...]:
     """Return detail sheets shared by portfolio and security workflows."""
     detail_sheets = [
@@ -648,19 +651,12 @@ def _shared_detail_sheets(
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name=_pc_review_model.X_REF_ISSUES_ARTIFACT,
             sheet_name=_pc_review_model.X_REF_ISSUES_SHEET,
-            table=_pc_x_ref.x_ref_issues_table(comparison_path),
-            columns=_pc_x_ref.X_REF_ISSUE_COLUMNS,
-            labels=_workbook_column_labels(),
-        ),
-        _pc_workbook.ReviewWorkbookSheet(
-            artifact_name=_pc_review_model.SOURCE_DETAIL_ARTIFACT,
-            sheet_name=_pc_review_model.SOURCE_DETAIL_SHEET,
-            table=_workbook_raw_audit_trail_table(
-                findings,
-                comparison_path=comparison_path,
-                comparison_level=comparison_level,
+            table=(
+                _pc_x_ref.x_ref_issues_table(comparison_path)
+                if x_ref_issues is None
+                else x_ref_issues
             ),
-            columns=_workbook_raw_audit_columns(findings),
+            columns=_pc_x_ref.X_REF_ISSUE_COLUMNS,
             labels=_workbook_column_labels(),
         ),
     ]
@@ -2427,12 +2423,13 @@ def _workbook_missing_underlying_cause_row(
         _ESTIMATED_IMPACT: None,
         _IMPACT_STATUS: _IMPACT_STATUS_REVIEW_ONLY,
         _REVIEW_NOTE: (
-            'Review the "Source Detail" sheet. The difference may be due to '
+            "Review `supporting_files/source_detail.csv`. The difference may be due to "
             "missing source-data, source-file timing differences, or vendor "
             "methodology that does not match the YAML specifications."
         ),
         _REVIEW_GUIDANCE: (
-            'No identifiable cause was found. Review the "Source Detail" sheet. '
+            "No identifiable cause was found. Review "
+            "`supporting_files/source_detail.csv`. "
             "The difference may be due to missing source-data, source-file timing "
             "differences, or vendor methodology that does not match the YAML "
             "specifications."
@@ -2627,7 +2624,7 @@ def _workbook_raw_audit_enriched_row(
     *,
     comparison_level: str,
 ) -> Mapping[str, object]:
-    """Return a Source Detail row with concrete cash-balance context."""
+    """Return a source-detail row with concrete cash-balance context."""
     enriched_row = _workbook_with_cash_balance_security(
         row,
         cash_security_matches,
@@ -2661,7 +2658,7 @@ def _workbook_left_review_sort_columns() -> tuple[str, ...]:
 
 
 def _workbook_raw_audit_columns(findings: pl.DataFrame) -> tuple[str, ...]:
-    """Return Source Detail worksheet columns with review key last."""
+    """Return source-detail presentation columns with review key last."""
     preferred_columns = (
         _pc_findings.PORTFOLIO_ID,
         _pc_findings.FROM_DATE,

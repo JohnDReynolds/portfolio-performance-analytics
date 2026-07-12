@@ -344,6 +344,7 @@ def write_performance_comparison_report_bundle(
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
+    _x_ref_issues: pl.DataFrame | None = None,
 ) -> dict[str, Path]:
     """Write a reproducible report bundle.
 
@@ -402,12 +403,14 @@ def write_performance_comparison_report_bundle(
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
             _reconstruction_cache=reconstruction_cache,
             _table_cache=table_cache,
+            _x_ref_issues=_x_ref_issues,
         )
     )
     tables = _report_bundle_tables(
         active_findings,
         top_evidence_limit,
         comparison_path=comparison_path,
+        comparison_level=comparison_level,
         include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         _reconstruction_cache=reconstruction_cache,
         _table_cache=table_cache,
@@ -506,6 +509,7 @@ def _report_bundle_tables(
     top_evidence_limit: int,
     *,
     comparison_path: util.PathLike | None = None,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     include_reconstruction_diagnostics: bool = False,
     _reconstruction_cache: (
         _pc_workbook_tables._WorkbookReconstructionCache | None
@@ -541,6 +545,11 @@ def _report_bundle_tables(
         "impact_coverage": impact_coverage,
         "context_evidence_summary": _context_evidence_summary_table(active_findings),
         "context_evidence": context_evidence,
+        "source_detail": _pc_workbook_tables._workbook_raw_audit_trail_table(
+            active_findings,
+            comparison_path=comparison_path,
+            comparison_level=comparison_level,
+        ),
         "transaction_cross_checks": transaction_cross_checks,
         "flow_cross_check_reconciliation": (
             _pc_explain.portfolio_period_flow_cross_check_reconciliation(active_findings)

@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
                 findings,
                 settings.output_directory / report.comparison_level,
                 title=settings.title or report.title,
-                include_workbook=True,
+                include_workbook=settings.include_workbook,
                 require_complete_yaml_setup=not settings.allow_incomplete_yaml,
                 require_causal_attribution=settings.require_causal_attribution,
                 comparison_path=SPECIFICATIONS_PATH,
@@ -105,7 +105,8 @@ def main(argv: list[str] | None = None) -> int:
                     settings.include_reconstruction_diagnostics
                 ),
             )
-            workbook_paths.append(bundle_paths["review_workbook"])
+            review_path = bundle_paths.get("review_workbook") or bundle_paths["html_report"]
+            workbook_paths.append(review_path)
         except PpaError as error:
             # The default "both" run remains useful for portfolio-only sites.
             if settings.report == "both" and is_missing_security_data(error):

@@ -402,7 +402,6 @@ PORTFOLIO_PERIOD_FLOW_CROSS_CHECK_RECONCILIATION_COLUMNS = (
     RECONCILIATION_STATUS,
     IMPACT_MESSAGE,
 )
-_FINDINGS_ROW_INDEX = "__ppar_findings_row_index"
 
 
 def portfolio_period_summary(
@@ -645,11 +644,11 @@ def rank_portfolio_period_evidence(
         related_active = _indexed_portfolio_period_findings(
             active_findings, active_index, target
         )
-        evidence = related_active.filter(pl.col(EVIDENCE_ROLE) != TARGET_OUTPUT)
         ranked_rows = sorted(
             (
                 _ranked_evidence_row(target, finding)
-                for finding in evidence.iter_rows(named=True)
+                for finding in related_active.iter_rows(named=True)
+                if finding[EVIDENCE_ROLE] != TARGET_OUTPUT
             ),
             key=_portfolio_period_evidence_sort_key,
         )
@@ -699,11 +698,11 @@ def rank_security_period_evidence(
         related_active = _indexed_security_period_findings(
             active_findings, active_index, target
         )
-        evidence = related_active.filter(pl.col(EVIDENCE_ROLE) != TARGET_OUTPUT)
         ranked_rows = sorted(
             (
                 _ranked_evidence_row(target, finding)
-                for finding in evidence.iter_rows(named=True)
+                for finding in related_active.iter_rows(named=True)
+                if finding[EVIDENCE_ROLE] != TARGET_OUTPUT
             ),
             key=_portfolio_period_evidence_sort_key,
         )
@@ -815,12 +814,10 @@ def top_evidence_table(
     if candidates.is_empty():
         return candidates
 
-    rows: list[dict[str, object]] = []
-    for _, group in candidates.group_by([PORTFOLIO_ID, FROM_DATE, THRU_DATE]):
-        rows.extend(
-            group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True)
-        )
-    return pl.DataFrame(rows, infer_schema_length=None).select(
+    # REVIEW_RANK is assigned within each portfolio period when candidates are
+    # constructed, so this single filter is equivalent to sorting and taking
+    # the head of every group separately.
+    return candidates.filter(pl.col(REVIEW_RANK) <= top_evidence_limit).select(
         PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
     )
 
@@ -850,13 +847,9 @@ def security_top_evidence_table(
     if candidates.is_empty():
         return candidates
 
-    rows: list[dict[str, object]] = []
-    group_columns = [PORTFOLIO_ID, SECURITY_ID, FROM_DATE, THRU_DATE]
-    for _, group in candidates.group_by(group_columns):
-        rows.extend(
-            group.sort(REVIEW_RANK).head(top_evidence_limit).iter_rows(named=True)
-        )
-    return pl.DataFrame(rows, infer_schema_length=None).select(
+    # REVIEW_RANK is assigned within each security period when candidates are
+    # constructed, so this single filter replaces one eager sort per group.
+    return candidates.filter(pl.col(REVIEW_RANK) <= top_evidence_limit).select(
         PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
     )
 
@@ -1299,20 +1292,20 @@ def _column_counts(findings: pl.DataFrame, column: str) -> dict[object, int]:
 
 def _portfolio_period_index(
     findings: pl.DataFrame,
-) -> dict[tuple[object, ...], pl.DataFrame]:
-    """Partition findings once for repeated portfolio-period lookups."""
+) -> dict[tuple[object, ...], list[int]]:
+    """Index finding row numbers once for portfolio-period lookups."""
     if findings.is_empty():
         return {}
-    return findings.with_row_index(_FINDINGS_ROW_INDEX).partition_by(
-        [PORTFOLIO_ID, FROM_DATE, THRU_DATE],
-        as_dict=True,
-        maintain_order=True,
-    )
+    index: dict[tuple[object, ...], list[int]] = {}
+    columns = findings.select(PORTFOLIO_ID, FROM_DATE, THRU_DATE)
+    for row_number, key in enumerate(columns.iter_rows()):
+        index.setdefault(key, []).append(row_number)
+    return index
 
 
 def _indexed_portfolio_period_findings(
     findings: pl.DataFrame,
-    index: dict[tuple[object, ...], pl.DataFrame],
+    index: dict[tuple[object, ...], list[int]],
     target: dict[str, object],
 ) -> pl.DataFrame:
     """Return exact-period and undated findings from a partitioned index."""
@@ -1321,32 +1314,32 @@ def _indexed_portfolio_period_findings(
         (portfolio_id, target[FROM_DATE], target[THRU_DATE]),
         (portfolio_id, None, None),
     )
-    partitions = [index[key] for key in keys if key in index]
-    if not partitions:
-        return findings.clear()
-    return (
-        pl.concat(partitions, how="vertical")
-        .sort(_FINDINGS_ROW_INDEX)
-        .drop(_FINDINGS_ROW_INDEX)
+    row_numbers = sorted(
+        row_number
+        for key in keys
+        for row_number in index.get(key, ())
     )
+    if not row_numbers:
+        return findings.clear()
+    return findings[row_numbers]
 
 
 def _security_period_index(
     findings: pl.DataFrame,
-) -> dict[tuple[object, ...], pl.DataFrame]:
-    """Partition findings once for repeated security-period lookups."""
+) -> dict[tuple[object, ...], list[int]]:
+    """Index finding row numbers once for security-period lookups."""
     if findings.is_empty():
         return {}
-    return findings.with_row_index(_FINDINGS_ROW_INDEX).partition_by(
-        [SECURITY_ID, PORTFOLIO_ID, FROM_DATE, THRU_DATE],
-        as_dict=True,
-        maintain_order=True,
-    )
+    index: dict[tuple[object, ...], list[int]] = {}
+    columns = findings.select(SECURITY_ID, PORTFOLIO_ID, FROM_DATE, THRU_DATE)
+    for row_number, key in enumerate(columns.iter_rows()):
+        index.setdefault(key, []).append(row_number)
+    return index
 
 
 def _indexed_security_period_findings(
     findings: pl.DataFrame,
-    index: dict[tuple[object, ...], pl.DataFrame],
+    index: dict[tuple[object, ...], list[int]],
     target: dict[str, object],
 ) -> pl.DataFrame:
     """Return related security findings from a partitioned index."""
@@ -1360,14 +1353,14 @@ def _indexed_security_period_findings(
         (security_id, portfolio_id, None, None),
         (security_id, None, None, None),
     )
-    partitions = [index[key] for key in keys if key in index]
-    if not partitions:
-        return findings.clear()
-    return (
-        pl.concat(partitions, how="vertical")
-        .sort(_FINDINGS_ROW_INDEX)
-        .drop(_FINDINGS_ROW_INDEX)
+    row_numbers = sorted(
+        row_number
+        for key in keys
+        for row_number in index.get(key, ())
     )
+    if not row_numbers:
+        return findings.clear()
+    return findings[row_numbers]
 
 
 def _related_portfolio_period_findings(

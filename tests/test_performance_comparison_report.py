@@ -403,6 +403,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "manifest",
                     "review_summary",
                     "findings",
+                    "source_detail",
                     "needs_review_summary",
                     "portfolio_period_summary",
                     "cause_summary",
@@ -512,6 +513,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(set(paths), expected_keys)
             for path in paths.values():
                 self.assertTrue(path.exists(), path)
+            expected_source_detail = _workbook_raw_audit_trail_table(findings)
+            self.assertEqual(
+                paths["source_detail"].read_text(encoding="utf-8"),
+                expected_source_detail.write_csv(),
+            )
             self.assertNotIn("report", paths)
             self.assertFalse((output_directory / "report.md").exists())
             html_report = paths["html_report"].read_text(encoding="utf-8")
@@ -525,6 +531,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertNotIn("Browser review surface", html_report)
             self.assertIn("Performance Differences", html_report)
             self.assertIn("Performance Difference Causes", html_report)
+            self.assertNotIn("<h2>Source Detail</h2>", html_report)
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("# Bundle Restatement", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
@@ -536,7 +543,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("Start with Performance Differences", readme)
             self.assertIn("Use Performance Difference Causes", readme)
             self.assertIn("explain each performance period", readme)
-            self.assertIn("Source Detail for audit and troubleshooting", readme)
+            self.assertIn(
+                "`supporting_files/source_detail.csv` for audit and troubleshooting",
+                readme,
+            )
             self.assertIn("source-data differences", readme)
             self.assertNotIn("source" + " data", readme)
             self.assertIn(
@@ -1359,8 +1369,11 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("## Audit/Export Files", readme)
             self.assertIn("explain each performance period", readme)
             self.assertIn("additively explain each performance period", readme)
-            self.assertIn("Source Detail for audit and troubleshooting", readme)
-            self.assertIn("complete finding-level audit trail", readme)
+            self.assertIn(
+                "`supporting_files/source_detail.csv` for audit and troubleshooting",
+                readme,
+            )
+            self.assertIn("reviewer-friendly finding-level audit trail", readme)
             self.assertIn(
                 "follow a performance period across the `supporting_files/` "
                 "CSV artifacts",
@@ -1383,7 +1396,6 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "Performance Differences",
                     "Performance Difference Causes",
                     "Data Audit Issues",
-                    "Source Detail",
                 ],
             )
             self.assertTrue(
@@ -1586,34 +1598,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 "PORT_A::2025-05-30::2025-05-30",
             )
 
-            findings_sheet = workbook["Source Detail"]
-            self.assertEqual(
-                [
-                    _normalized_header(
-                        findings_sheet.cell(row=1, column=column).value
-                    )
-                    for column in range(1, 11)
-                ],
-                [
-                    "Portfolio",
-                    "From Date",
-                    "Thru Date",
-                    "As Of Date",
-                    "Dataset Field",
-                    "Security",
-                    "Snapshot A Value",
-                    "Snapshot B Value",
-                    "B - A Difference",
-                    "Explanation",
-                ],
-            )
-            self.assertEqual(
-                _normalized_header(
-                    findings_sheet.cell(row=1, column=findings_sheet.max_column).value
-                ),
-                "Review Key",
-            )
-            self.assertIsNotNone(findings_sheet["A1"].comment)
+            self.assertNotIn("Source Detail", workbook.sheetnames)
 
     def test_write_review_workbook_reports_missing_openpyxl(self) -> None:
         """Workbook export fails clearly when the workbook dependency is absent."""

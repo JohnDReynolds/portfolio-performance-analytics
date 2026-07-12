@@ -21,7 +21,7 @@ performance change?" It answers this question by:
 2. Quantitatively attributing these performance differences to changes in the
    underlying holdings and transaction source-data.
 3. Flagging suspicious source-data relationships such as price ranges, dividend
-   rates, accrued-interest rates, missing dividends, and holding value math.
+   rates, accrued-interest rates, and missing dividends.
 
 It includes:
 - **Performance Comparison:** identify and explain changed performance results.

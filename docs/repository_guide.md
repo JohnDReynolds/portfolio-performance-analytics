@@ -426,7 +426,8 @@ The generated bundle README is not source documentation. It describes one
 specific output directory after a bundle is written.
 
 Both portfolio and security workbooks start with the `Performance Differences`
-sheet, then use `Performance Difference Causes` and `Source Detail` for the
+sheet, then use `Performance Difference Causes` and
+`supporting_files/source_detail.csv` for the
 normal review flow. Explained amounts appear on `Performance Difference Causes`
 sheet rows when ppar has a defensible input-level explanation. The action
 sheets use an `Explanation` column written for reviewers; the raw audit sheet

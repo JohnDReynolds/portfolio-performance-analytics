@@ -601,6 +601,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "--title",
                 "Custom Audit",
                 "--exclude_suppressed",
+                "--no-xlsx",
                 "--include-reconstruction-diagnostics",
             ]
             subprocess.run(
@@ -660,6 +661,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "--report",
                 "--output",
                 "--title",
+                "--no-xlsx",
                 "--exclude_suppressed",
                 "--include-reconstruction-diagnostics",
                 "--require-causal-attribution",
@@ -852,6 +854,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 text=True,
             ).stdout
             self.assertIn("--report", audit_help)
+            self.assertIn("--no-xlsx", audit_help)
             self.assertIn("{portfolio,security,both}", audit_help)
 
     def test_public_python_entrypoints_accept_string_site_directories(self) -> None:

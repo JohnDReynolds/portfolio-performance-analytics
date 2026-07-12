@@ -47,6 +47,7 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "manifest",
     "review_summary",
     "findings",
+    "source_detail",
     "needs_review_summary",
     "portfolio_period_summary",
     "cause_summary",
@@ -228,8 +229,8 @@ def write_report_bundle_readme(
         "cells are possible causes for remaining unexplained differences.",
         f"3. Use {_pc_review_model.X_REF_ISSUES_SHEET} to review cross-reference "
         "consistency checks across the union of Snapshot A and Snapshot B.",
-        f"4. Use {_pc_review_model.SOURCE_DETAIL_SHEET} for audit and "
-        "troubleshooting; it is the complete finding-level audit trail.",
+        f"4. Use `{SUPPORTING_FILES_DIRECTORY}/source_detail.csv` for audit and "
+        "troubleshooting; it is the reviewer-friendly finding-level audit trail.",
         f"5. Use the `review_key` column to follow a {review_unit} across the "
         f"`{SUPPORTING_FILES_DIRECTORY}/` CSV artifacts.",
         f"6. Use `{SUPPORTING_FILES_DIRECTORY}/transaction_activity.csv`, "
@@ -249,6 +250,8 @@ def write_report_bundle_readme(
         "",
         f"- `{SUPPORTING_FILES_DIRECTORY}/findings.csv`: complete finding-level "
         "comparison output.",
+        f"- `{SUPPORTING_FILES_DIRECTORY}/source_detail.csv`: reviewer-friendly "
+        "finding-level audit trail formerly rendered in HTML and XLSX.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/manifest.json`: machine-readable artifact "
         "map, source context, transaction semantics summary, and row-count metadata.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/review_summary.json`: compact reviewer "

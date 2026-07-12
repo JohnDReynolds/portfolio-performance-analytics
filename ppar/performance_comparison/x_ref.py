@@ -1,7 +1,7 @@
 """Cross-reference consistency checks for performance-comparison reports.
 
-The checks in this module are intentionally separate from the Source Detail.
-Source Detail rows explain changed source rows between Snapshot A and Snapshot B;
+The checks in this module are intentionally separate from ``source_detail.csv``.
+Source-detail rows explain changed source rows between Snapshot A and Snapshot B;
 Data Audit Issues look for internally inconsistent source-data across the union
 of both snapshots.
 """
@@ -38,7 +38,6 @@ REVIEW_KEY: Final[str] = "review_key"
 
 ISSUE_DUPLICATE_TRANSACTIONS: Final[str] = "duplicate_transactions"
 ISSUE_DIVIDEND_RATE: Final[str] = "dividend_rate"
-ISSUE_HOLDING_MARKET_VALUE: Final[str] = "holding_market_value"
 ISSUE_HOLDINGS_ACCRUED_RATE: Final[str] = "holdings_accrued_rate"
 ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = "holdings_price_range"
 ISSUE_MISSING_DIVIDEND: Final[str] = "missing_dividend"
@@ -155,7 +154,6 @@ def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     rows.extend(_transaction_amount_rate_issues(transactions, config))
     rows.extend(_holding_price_range_issues(holdings, config))
     rows.extend(_transaction_price_range_issues(transactions, config))
-    rows.extend(_holding_market_value_issues(holdings, config))
     rows.extend(_same_day_rate_issues(transactions, holdings, config))
     rows.extend(_missing_dividend_issues(holdings, transactions, config))
     rows.extend(_holdings_accrued_rate_issues(holdings, config))
@@ -382,52 +380,6 @@ def _transaction_amount_rate(row: Mapping[str, object]) -> float | None:
     return abs(amount) / abs(quantity)
 
 
-def _holding_market_value_issues(
-    holdings: Iterable[pl.DataFrame],
-    config: Mapping[str, object],
-) -> list[dict[str, object]]:
-    """Return holdings.market_value math consistency issues."""
-    check_name = "holding_market_value"
-    if not _check_enabled(config, check_name):
-        return []
-
-    tolerance = _tolerance(config, check_name)
-    check_config = _check_config(config, check_name)
-    rows: list[dict[str, object]] = []
-    for frame in holdings:
-        for row in frame.iter_rows(named=True):
-            if not _row_allowed(row, config, check_name):
-                continue
-            quantity = _number(row.get(pc_cols.QUANTITY))
-            price = _number(row.get(pc_cols.PRICE))
-            market_value = _number(row.get(pc_cols.MARKET_VALUE))
-            if quantity is None or price is None or market_value is None:
-                continue
-            multiplier = _market_value_multiplier(row, check_config)
-            expected_value = quantity * price * multiplier
-            difference = market_value - expected_value
-            if abs(difference) <= tolerance.threshold(expected_value):
-                continue
-            rows.append(
-                _issue_row(
-                    snapshot=_text(row.get(SNAPSHOT)),
-                    portfolio_id=_text(row.get(pc_cols.PORTFOLIO_ID)),
-                    as_of_date=_date(row.get(pc_cols.HOLDING_DATE)),
-                    dataset_field="holdings.market_value",
-                    security_id=_text(row.get(pc_cols.SECURITY_ID)),
-                    issue_type=ISSUE_HOLDING_MARKET_VALUE,
-                    value_a=expected_value,
-                    value_b=market_value,
-                    difference=difference,
-                    tolerance=tolerance.description(),
-                    explanation=(
-                        _holding_market_value_explanation(multiplier)
-                    ),
-                )
-            )
-    return rows
-
-
 def _holding_price_range_issues(
     holdings: Iterable[pl.DataFrame],
     config: Mapping[str, object],
@@ -539,43 +491,6 @@ def _price_range_issues(
                 )
             )
     return rows
-
-
-def _market_value_multiplier(
-    row: Mapping[str, object],
-    config: Mapping[str, object],
-) -> float:
-    """Return the holdings.market_value multiplier for a holding row."""
-    multipliers = config.get("multipliers", {})
-    if not isinstance(multipliers, Mapping):
-        return _float_config(config, "multiplier", 1.0)
-
-    security_type = _text(row.get(pc_cols.SECURITY_TYPE)).lower()
-    security_id = _text(row.get(pc_cols.SECURITY_ID)).lower()
-    by_security_id = multipliers.get("by_security_id", {})
-    if isinstance(by_security_id, Mapping) and security_id:
-        for raw_security_id, raw_multiplier in by_security_id.items():
-            if str(raw_security_id).strip().lower() == security_id:
-                multiplier = _number(raw_multiplier)
-                if multiplier is not None:
-                    return multiplier
-    by_security_type = multipliers.get("by_security_type", {})
-    if isinstance(by_security_type, Mapping) and security_type:
-        for raw_type, raw_multiplier in by_security_type.items():
-            if str(raw_type).strip().lower() == security_type:
-                multiplier = _number(raw_multiplier)
-                if multiplier is not None:
-                    return multiplier
-    default_multiplier = _number(multipliers.get("default"))
-    return default_multiplier if default_multiplier is not None else 1.0
-
-
-def _holding_market_value_explanation(multiplier: float) -> str:
-    """Return a concise explanation for a holdings.market_value math issue."""
-    formula = "holdings.quantity * holdings.price"
-    if multiplier != 1.0:
-        formula = f"{formula} * {multiplier:g}"
-    return f"holdings.market_value differs from {formula}."
 
 
 def _same_day_rate_issues(
@@ -774,6 +689,9 @@ def _missing_dividend_issues(
         )
 
     rows: list[dict[str, object]] = []
+    held_portfolios_by_dividend: dict[
+        tuple[str, str, dt.date], tuple[str, ...]
+    ] = {}
     for dividend_row in dividend_rows:
         if not _row_allowed(dividend_row, config, check_name):
             continue
@@ -782,13 +700,16 @@ def _missing_dividend_issues(
         dividend_date = _date(dividend_row.get(pc_cols.TRANSACTION_DATE))
         if dividend_date is None or not security_id:
             continue
-        for portfolio_id in _held_portfolios(
-            holdings_by_security.get((snapshot, security_id), ()),
-            transactions_by_position,
-            snapshot=snapshot,
-            security_id=security_id,
-            dividend_date=dividend_date,
-        ):
+        dividend_key = snapshot, security_id, dividend_date
+        if dividend_key not in held_portfolios_by_dividend:
+            held_portfolios_by_dividend[dividend_key] = _held_portfolios(
+                holdings_by_security.get((snapshot, security_id), ()),
+                transactions_by_position,
+                snapshot=snapshot,
+                security_id=security_id,
+                dividend_date=dividend_date,
+            )
+        for portfolio_id in held_portfolios_by_dividend[dividend_key]:
             if (
                 snapshot,
                 portfolio_id,

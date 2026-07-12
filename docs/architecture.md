@@ -113,7 +113,7 @@ is:
 
 1. `Performance Differences`
 2. `Performance Difference Causes`
-3. `Source Detail`
+3. `supporting_files/source_detail.csv`
 
 Optional reconstruction diagnostics are secondary. They help debug reported
 returns, but they should not become the first review surface for ordinary users.
