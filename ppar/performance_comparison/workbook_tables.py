@@ -3974,7 +3974,7 @@ def _workbook_column_labels() -> dict[str, str]:
         _AS_OF_DATE: "As Of Date",
         _USE: "Purpose",
         _CHANGE_LABEL: "What Changed",
-        _DATASET_FIELD: "Dataset Field",
+        _DATASET_FIELD: "Dataset.Field",
         _ROW_TYPE: "Row Type",
         _CHANGE: "B - A Difference",
         _ESTIMATED_IMPACT: "Performance Difference Explained",

@@ -1404,20 +1404,46 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     for sheet_name in workbook.sheetnames
                 )
             )
-            self.assertTrue(
-                all(
-                    workbook[sheet_name].column_dimensions[
-                        workbook[sheet_name].cell(row=1, column=column).column_letter
-                    ].width
-                    <= 50
-                    for sheet_name in workbook.sheetnames
-                    for column in range(1, workbook[sheet_name].max_column + 1)
-                )
-            )
             performance_change_sheet = workbook["Performance Differences"]
             self.assertEqual(performance_change_sheet.column_dimensions["B"].width, 12)
             self.assertEqual(performance_change_sheet.column_dimensions["H"].width, 32)
-            self.assertEqual(performance_change_sheet.column_dimensions["I"].width, 24)
+            data_audit_sheet = workbook["Data Audit Issues"]
+            data_audit_headers = [
+                _normalized_header(cell.value) for cell in data_audit_sheet[1]
+            ]
+            for header in ("Issue Type", "Tolerance"):
+                column_index = data_audit_headers.index(header) + 1
+                column_letter = data_audit_sheet.cell(
+                    row=1,
+                    column=column_index,
+                ).column_letter
+                expected_width = max(
+                    len(str(data_audit_sheet.cell(row=row, column=column_index).value or ""))
+                    for row in range(1, data_audit_sheet.max_row + 1)
+                )
+                expected_width = (expected_width + 2) * 0.85
+                self.assertEqual(
+                    data_audit_sheet.column_dimensions[column_letter].width,
+                    expected_width,
+                )
+            explanation_column = data_audit_headers.index("Explanation") + 1
+            explanation_letter = data_audit_sheet.cell(
+                row=1,
+                column=explanation_column,
+            ).column_letter
+            self.assertEqual(
+                data_audit_sheet.column_dimensions[explanation_letter].width,
+                60,
+            )
+            self.assertTrue(
+                all(
+                    data_audit_sheet.cell(
+                        row=row,
+                        column=explanation_column,
+                    ).alignment.wrap_text
+                    for row in range(2, data_audit_sheet.max_row + 1)
+                )
+            )
             underlying_causes_sheet = workbook["Performance Difference Causes"]
             self.assertEqual(underlying_causes_sheet.column_dimensions["E"].width, 22)
             self.assertEqual(underlying_causes_sheet.column_dimensions["K"].width, 50)
@@ -1439,18 +1465,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(performance_change_sheet["G1"].value, "Status")
             self.assertEqual(performance_change_sheet["H1"].value, "Comments")
-            self.assertEqual(
-                _normalized_header(performance_change_sheet["I1"].value),
-                "Review Key",
-            )
-            self.assertEqual(
-                [performance_change_sheet[f"I{row}"].value for row in range(2, 5)],
-                [
-                    "PORT_A::2025-05-30::2025-05-30",
-                    "PORT_B::2025-05-30::2025-05-30",
-                    "PORT_C::2025-05-30::2025-05-30",
-                ],
-            )
+            self.assertEqual(performance_change_sheet.max_column, 8)
             self.assertEqual(performance_change_sheet.max_row, 4)
             self.assertEqual(performance_change_sheet["D2"].number_format, "0.000000")
             self.assertEqual(performance_change_sheet["E2"].number_format, "0.000000")
@@ -1491,21 +1506,20 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     _normalized_header(
                         underlying_causes_sheet.cell(row=1, column=column).value
                     )
-                    for column in range(1, 13)
+                    for column in range(1, 12)
                 ],
                 [
                     "Portfolio",
                     "From Date",
                     "Thru Date",
                     "As Of Date",
-                    "Dataset Field",
+                    "Dataset.Field",
                     "Security",
                     "Snapshot A Value",
                     "Snapshot B Value",
                     "B - A Difference",
                     "Performance Difference Explained",
                     "Explanation",
-                    "Review Key",
                 ],
             )
             self.assertNotIn(
@@ -1581,22 +1595,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
             self.assertTrue(any(setup in (None, "") for setup in required_setup))
-            self.assertEqual(
-                _normalized_header(
-                    underlying_causes_sheet.cell(
-                        row=1,
-                        column=underlying_causes_sheet.max_column,
-                    ).value
-                ),
-                "Review Key",
-            )
-            self.assertEqual(
-                [
-                    underlying_causes_sheet[f"L{row}"].value
-                    for row in range(2, min(5, underlying_causes_sheet.max_row) + 1)
-                ][0],
-                "PORT_A::2025-05-30::2025-05-30",
-            )
+            self.assertEqual(underlying_causes_sheet.max_column, 11)
 
             self.assertNotIn("Source Detail", workbook.sheetnames)
 

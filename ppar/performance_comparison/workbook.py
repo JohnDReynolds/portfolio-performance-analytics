@@ -68,13 +68,19 @@ _KEY_COLUMNS = {
     "review_key",
     "reconstruction_review_key",
 }
+_DATA_AUDIT_AUTO_FIT_COLUMNS = {
+    "issue_type",
+    "tolerance",
+}
+_DATA_AUDIT_AUTO_FIT_WIDTH_FACTOR = 0.85
+_DATA_AUDIT_EXPLANATION_WIDTH = 60
 _REVIEW_NEEDED_STATUSES = {"Partly Explained", "Unexplained"}
 _REVIEW_NEEDED_COLUMNS = {"unexplained_change", "review_status", "review_note"}
 _EXCEL_HEADER_LINE_BREAKS = {
     "Performance Difference": "Performance\nDifference",
     "Explained Difference": "Explained\nDifference",
     "Unexplained Difference": "Unexplained\nDifference",
-    "Dataset Field": "Dataset\nField",
+    "Dataset.Field": "Dataset.Field",
     "Source Dataset": "Source\nDataset",
     "Input Field": "Input\nField",
     "Snapshot A Value": "Snapshot A\nValue",
@@ -98,27 +104,25 @@ REQUIRED_HEADERS = {
         "Unexplained Difference",
         "Status",
         "Comments",
-        "Review Key",
     ),
     _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET: (
         "Portfolio",
         "From Date",
         "Thru Date",
         "As Of Date",
-        "Dataset Field",
+        "Dataset.Field",
         "Security",
         "Snapshot A Value",
         "Snapshot B Value",
         "B - A Difference",
         "Performance Difference Explained",
         "Explanation",
-        "Review Key",
     ),
     _pc_review_model.X_REF_ISSUES_SHEET: (
         "Snapshot",
         "Portfolio",
         "As Of Date",
-        "Dataset Field",
+        "Dataset.Field",
         "Security",
         "Issue Type",
         "Reference Value",
@@ -126,7 +130,6 @@ REQUIRED_HEADERS = {
         "Difference",
         "Tolerance",
         "Explanation",
-        "Review Key",
     ),
     _pc_review_model.TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: (
         "Transaction Match Status",
@@ -140,14 +143,13 @@ REQUIRED_HEADERS = {
         "From Date",
         "Thru Date",
         "As Of Date",
-        "Dataset Field",
+        "Dataset.Field",
         "Security",
         "Snapshot A Value",
         "Snapshot B Value",
         "B - A Difference",
         "Explanation",
         "Message",
-        "Review Key",
     ),
 }
 
@@ -280,6 +282,7 @@ def _load_openpyxl() -> tuple[type[Any], dict[str, Any]]:
                 end_color="FFFFE699",
             ),
             "header_alignment": Alignment(wrap_text=True, vertical="top"),
+            "wrapped_alignment": Alignment(wrap_text=True, vertical="top"),
             "comment_class": Comment,
         },
     )
@@ -319,14 +322,36 @@ def _add_workbook_sheet(
         cell.alignment = styles["header_alignment"]
         cell.comment = styles["comment_class"](column_tooltip(column_name), "ppar")
     _format_workbook_data_cells(worksheet, columns, row_values, styles)
+    _format_data_audit_explanation(worksheet, columns, styles)
     _format_workbook_columns(worksheet, columns, headers)
+
+
+def _format_data_audit_explanation(
+    worksheet: Any,
+    columns: Sequence[str],
+    styles: Mapping[str, Any],
+) -> None:
+    """Wrap the bounded Explanation column on the Data Audit Issues sheet."""
+    if worksheet.title != _pc_review_model.X_REF_ISSUES_SHEET:
+        return
+    explanation_column = _workbook_column_index(columns, "explanation")
+    if explanation_column is None:
+        return
+    for row_index in range(2, worksheet.max_row + 1):
+        worksheet.cell(row=row_index, column=explanation_column).alignment = styles[
+            "wrapped_alignment"
+        ]
 
 
 def _workbook_sheet_columns(sheet: ReviewWorkbookSheet) -> tuple[str, ...]:
     """Return columns for a workbook sheet, preserving configured order."""
     if sheet.columns is not None:
-        return tuple(column for column in sheet.columns if column in sheet.table.columns)
-    return tuple(sheet.table.columns)
+        return tuple(
+            column
+            for column in sheet.columns
+            if column in sheet.table.columns and column not in _KEY_COLUMNS
+        )
+    return tuple(column for column in sheet.table.columns if column not in _KEY_COLUMNS)
 
 
 def _workbook_column_label(column: str, labels: Mapping[str, str] | None) -> str:
@@ -446,11 +471,28 @@ def _format_workbook_columns(
                 (int, float),
             ):
                 cell.number_format = WORKBOOK_NUMBER_FORMAT
-        worksheet.column_dimensions[column_letter].width = _workbook_column_width(
-            column_name,
-            header,
-            max_width,
-        )
+        if (
+            worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
+            and column_name == "explanation"
+        ):
+            worksheet.column_dimensions[column_letter].width = (
+                _DATA_AUDIT_EXPLANATION_WIDTH
+            )
+        elif (
+            worksheet.title == _pc_review_model.X_REF_ISSUES_SHEET
+            and column_name in _DATA_AUDIT_AUTO_FIT_COLUMNS
+        ):
+            worksheet.column_dimensions[column_letter].width = min(
+                (max(max_width, len(_normalize_header(header))) + 2)
+                * _DATA_AUDIT_AUTO_FIT_WIDTH_FACTOR,
+                255,
+            )
+        else:
+            worksheet.column_dimensions[column_letter].width = _workbook_column_width(
+                column_name,
+                header,
+                max_width,
+            )
 
 
 def _is_workbook_numeric_column(column_name: str) -> bool:

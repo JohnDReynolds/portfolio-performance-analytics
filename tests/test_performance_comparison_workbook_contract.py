@@ -41,7 +41,7 @@ _COMMON_LEFT_HEADERS = [
     "From Date",
     "Thru Date",
     "As Of Date",
-    "Dataset Field",
+    "Dataset.Field",
     "Security",
 ]
 _IDENTIFIABLE_LEFT_HEADERS = [
@@ -49,7 +49,7 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "From Date",
     "Thru Date",
     "As Of Date",
-    "Dataset Field",
+    "Dataset.Field",
     "Security",
 ]
 _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
@@ -143,7 +143,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertNotIn("same review model in a browser", readme)
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("source-data differences", readme)
-            self.assertIn("Dataset Field", html_report)
+            self.assertIn("Dataset.Field", html_report)
+            self.assertNotIn(">Review Key</th>", html_report)
             self.assertNotIn("Source Dataset", html_report)
             self.assertNotIn("Source-Data Dataset", html_report)
             self.assertIn(
@@ -195,7 +196,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Unexplained Difference",
                         "Status",
                         "Comments",
-                        "Review Key",
                     ],
                 )
                 self.assertEqual(
@@ -207,7 +207,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "B - A Difference",
                         "Performance Difference Explained",
                         "Explanation",
-                        "Review Key",
                     ],
                 )
                 self.assertNotIn(
@@ -225,7 +224,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Snapshot",
                         "Portfolio",
                         "As Of Date",
-                        "Dataset Field",
+                        "Dataset.Field",
                         "Security",
                         "Issue Type",
                         "Reference Value",
@@ -233,7 +232,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Difference",
                         "Tolerance",
                         "Explanation",
-                        "Review Key",
                     ],
                 )
 
@@ -671,14 +669,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Unexplained Difference",
                         "Status",
                         "Comments",
-                        "Review Key",
                     ],
-                )
-                review_keys = _column_values(workbook["Performance Differences"], "J")
-                self.assertTrue(review_keys)
-                self.assertTrue(any(str(key).endswith("::AAPL") for key in review_keys))
-                self.assertTrue(
-                    any(str(key).endswith("::91282Y2Y1") for key in review_keys)
                 )
                 security_rows = _sheet_rows(workbook["Performance Differences"])
                 self.assertEqual(
@@ -749,7 +740,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 ]
                 self.assertTrue(fully_explained_rows)
                 for row in fully_explained_rows:
-                    with self.subTest(review_key=row[9]):
+                    with self.subTest(portfolio=row[0], security=row[3]):
                         self.assertAlmostEqual(
                             _numeric_value(row[4]),
                             _numeric_value(row[5]),
@@ -942,10 +933,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "reported performance."
                     ),
                 )
-                self.assertEqual(
-                    _header_comment(differences_sheet, "Review Key"),
-                    "Stable performance-period key used to connect workbook rows.",
-                )
+                self.assertNotIn("Review Key", _header_values(differences_sheet))
                 self.assertEqual(
                     _header_comment(differences_sheet, "Status"),
                     "Reviewer triage status for this performance difference.",

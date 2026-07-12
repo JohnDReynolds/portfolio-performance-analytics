@@ -253,7 +253,12 @@ def _workbook_sheet_available_columns(
 ) -> list[str]:
     """Return display columns present in a workbook sheet table."""
     requested_columns = sheet.columns or tuple(sheet.table.columns)
-    return [column for column in requested_columns if column in sheet.table.columns]
+    review_key_columns = {"review_key", "reconstruction_review_key"}
+    return [
+        column
+        for column in requested_columns
+        if column in sheet.table.columns and column not in review_key_columns
+    ]
 
 
 def _html_workbook_header_cell(*, column: str, label: str, tooltip: str) -> str:
