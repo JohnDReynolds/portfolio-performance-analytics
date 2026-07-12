@@ -28,7 +28,6 @@ from ppar.performance_comparison import (
     write_performance_comparison_review_workbook,
 )
 from ppar.performance_comparison import schema as pc_cols
-from ppar.performance_comparison import report as _pc_report
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
     PC_PORT_MV,
@@ -1953,29 +1952,3 @@ def _section(report: str, start: str, end: str) -> str:
 
 if __name__ == "__main__":
     unittest.main()
-    def test_html_source_values_use_compact_two_to_six_decimal_format(self) -> None:
-        """HTML source values retain useful precision without padded zeros."""
-        for value, expected in (
-            (16000.0, "16000.00"),
-            (161.15, "161.15"),
-            (1.1372, "1.1372"),
-            (0.001495, "0.001495"),
-            (0.000037, "0.000037"),
-            (-0.0, "0.00"),
-        ):
-            with self.subTest(value=value):
-                self.assertEqual(
-                    _pc_report._html_workbook_value(
-                        value,
-                        "snapshot_a_value",
-                    ),
-                    expected,
-                )
-        self.assertEqual(
-            _pc_report._html_workbook_value(12.5, "performance_change"),
-            "12.500000",
-        )
-        self.assertEqual(
-            _pc_report._html_workbook_value(-2008.0, "change"),
-            "-2008.00",
-        )
