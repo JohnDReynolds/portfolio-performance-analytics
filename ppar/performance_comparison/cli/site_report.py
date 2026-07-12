@@ -15,6 +15,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison import source_loader
 from ppar.performance_comparison import x_ref as _pc_x_ref
 from ppar.performance_comparison.specification import (
     PORTFOLIO_COMPARISON_LEVEL,
@@ -80,6 +81,7 @@ def main(
     return 0
 
 
+@source_loader.source_frame_cache()
 def run_report(
     site_directory: Path | str,
     *,

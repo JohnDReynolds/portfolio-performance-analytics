@@ -14,24 +14,15 @@ Performance Analytics.
 
 ## Performance Auditing
 
-Use Performance Auditing to answer the question: "Why did my reported
-performance change?" It answers this question by:
-1. Determining the differences in reported performance for each
-   time-period/portfolio/security.
-2. Quantitatively attributing these performance differences to changes in the
-   underlying holdings and transaction source-data.
-3. Flagging suspicious source-data relationships such as price ranges, dividend
-   rates, accrued-interest rates, and missing dividends.
+Use Performance Auditing to answer: "Why did my reported performance change?"
 
-It includes:
-- **Performance Comparison:** identify and explain changed performance results.
-- **Data Auditing:** flag suspicious source-data relationships that may need review.
-
-Typical questions:
-- Which portfolio or security returns changed?
-- Which holdings or transactions explain the change?
-- Which differences still need human review?
-- Are there data-quality issues that might explain suspicious results?
+- **Performance Comparison:** identifies changed portfolio and security
+  performance for each time period, quantitatively attributes the differences
+  to holdings and transactions, and highlights anything that still needs human
+  review.
+- **Data Auditing:** flags suspicious source-data relationships—including price
+  ranges, dividend rates, accrued-interest rates, and missing dividends—that
+  may indicate data-quality issues.
 
 <img
   src="docs/images/readme/PerformanceAuditPortfolio.jpg"

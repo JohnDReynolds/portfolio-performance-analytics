@@ -4,6 +4,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 # Third-party imports
 import polars as pl
@@ -20,6 +21,42 @@ from ppar.performance_comparison.specification import PerformanceComparisonSpeci
 
 class TestSourceLoader(unittest.TestCase):
     """Verify shared CSV alias resolution behavior."""
+
+    def test_source_frame_cache_reads_each_physical_csv_once(self) -> None:
+        """One audit-run scope reuses a raw CSV across loader requests."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            path = directory / "source.csv"
+            pl.DataFrame({"SEC": ["S1"]}).write_csv(path)
+
+            with mock.patch.object(
+                source_loader.pl,
+                "read_csv",
+                wraps=source_loader.pl.read_csv,
+            ) as read_csv:
+                with source_loader.source_frame_cache():
+                    for _ in range(3):
+                        frame = source_loader.read_mapped_csv(
+                            path,
+                            ("security_id",),
+                            "test_dataset",
+                            {"security_id": ("SEC",)},
+                            {},
+                            directory / "comparison.yaml",
+                        )
+
+                with source_loader.source_frame_cache():
+                    source_loader.read_mapped_csv(
+                        path,
+                        ("security_id",),
+                        "test_dataset",
+                        {"security_id": ("SEC",)},
+                        {},
+                        directory / "comparison.yaml",
+                    )
+
+            self.assertEqual(read_csv.call_count, 2)
+            self.assertEqual(frame.to_dicts(), [{"security_id": "S1"}])
 
     def test_schema_mapping_overrides_default_aliases(self) -> None:
         """Referenced schema mappings are honored before built-in defaults."""

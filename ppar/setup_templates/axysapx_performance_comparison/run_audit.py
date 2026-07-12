@@ -20,6 +20,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.cli.site_report import (
     is_missing_security_data,
     script_run_settings,
@@ -50,6 +51,7 @@ REPORTS = (
 )
 
 
+@source_loader.source_frame_cache()
 def main(argv: list[str] | None = None) -> int:
     """Run the visible Python equivalent of ``ppar audit``."""
     # ---------------------------------------------------------------------

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 # Python imports
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import TypeAlias
 
@@ -20,6 +23,12 @@ from ppar.errors import PpaError
 import ppar.utilities as util
 
 ColumnAliases: TypeAlias = dict[str, tuple[str, ...]]
+_SourceFrameCache: TypeAlias = dict[Path, pl.DataFrame]
+
+_SOURCE_FRAME_CACHE: ContextVar[_SourceFrameCache | None] = ContextVar(
+    "performance_comparison_source_frame_cache",
+    default=None,
+)
 
 _SCHEMA_COLUMN_SECTIONS = {
     pc_cols.PORTFOLIO_PERFORMANCE: "portfolio_performance_columns",
@@ -50,6 +59,40 @@ _SCHEMA_COLUMN_KEYS: dict[str, dict[str, str]] = {
 }
 
 
+@contextmanager
+def source_frame_cache() -> Iterator[None]:
+    """Reuse each raw CSV frame within one performance-comparison run.
+
+    Nested scopes share their parent's cache. The cache owns only untouched raw
+    CSV frames; callers continue to apply their own aliases, projections,
+    validation, and business rules to derived frames.
+
+    Yields:
+        Control to the report or script run using the cache.
+    """
+    existing_cache = _SOURCE_FRAME_CACHE.get()
+    if existing_cache is not None:
+        yield
+        return
+
+    token = _SOURCE_FRAME_CACHE.set({})
+    try:
+        yield
+    finally:
+        _SOURCE_FRAME_CACHE.reset(token)
+
+
+def _read_source_csv(path: util.PathLike) -> pl.DataFrame:
+    """Read a raw CSV once in the active source-frame cache scope."""
+    resolved_path = Path(path).expanduser().resolve()
+    cache = _SOURCE_FRAME_CACHE.get()
+    if cache is None:
+        return pl.read_csv(resolved_path)
+    if resolved_path not in cache:
+        cache[resolved_path] = pl.read_csv(resolved_path)
+    return cache[resolved_path]
+
+
 def csv_to_internal_mappings(
     path: util.PathLike,
     dataset_name: str,
@@ -73,7 +116,26 @@ def csv_to_internal_mappings(
         PpaError: If a required normalized column is missing or if any
             normalized column resolves to multiple source columns.
     """
-    available_columns = set(pl.read_csv(path, n_rows=0).columns)
+    available_columns = set(_read_source_csv(path).columns)
+    return _mappings_from_available_columns(
+        path,
+        dataset_name,
+        required_aliases,
+        optional_aliases,
+        specification_path,
+        available_columns,
+    )
+
+
+def _mappings_from_available_columns(
+    path: util.PathLike,
+    dataset_name: str,
+    required_aliases: ColumnAliases,
+    optional_aliases: ColumnAliases,
+    specification_path: util.PathLike,
+    available_columns: set[str],
+) -> dict[str, str]:
+    """Resolve normalized mappings from columns already read from a CSV."""
     mappings: dict[str, str] = {}
     missing_columns: list[str] = []
 
@@ -140,19 +202,21 @@ def read_mapped_csv(
     Raises:
         PpaError: If column mappings cannot be resolved unambiguously.
     """
-    mappings = csv_to_internal_mappings(
+    source_frame = _read_source_csv(path)
+    mappings = _mappings_from_available_columns(
         path,
         dataset_name,
         required_aliases,
         optional_aliases,
         specification_path,
+        set(source_frame.columns),
     )
     selected_columns = [
         column_name
         for column_name in columns
         if column_name in mappings.values()
     ]
-    return pl.read_csv(path).rename(mappings).select(selected_columns)
+    return source_frame.rename(mappings).select(selected_columns)
 
 
 def read_schema_mapped_csv(
