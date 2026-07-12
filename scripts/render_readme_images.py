@@ -61,13 +61,6 @@ _MINIMUM_CROPPED_WIDTH_BY_NAME = {"RiskStatistics": 2000}
 _PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
     _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
 )
-_PORTFOLIO_PERFORMANCE_AUDIT_SECTIONS = (
-    ("performance-differences", "Performance Differences"),
-    ("performance-difference-causes", "Performance Difference Causes"),
-    ("data-audit-issues", "Data Audit Issues"),
-)
-
-
 def main() -> None:
     """Render all README table screenshots.
 
@@ -96,27 +89,12 @@ def main() -> None:
             )
             _render_cropped_jpg(chrome_path, html_path, temp_dir, "RiskStatistics")
         if args.only in ("all", "performance-comparison"):
-            html_inputs = {
-                "PerformanceAuditPortfolio": _write_report_sections_input(
-                    _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
-                    temp_dir / "PerformanceAuditPortfolio.html",
-                    sections=_PORTFOLIO_PERFORMANCE_AUDIT_SECTIONS,
-                    title="Portfolio Performance Auditing",
-                    extra_style="""
-                    <style>
-                    html,
-                    body {
-                      background: #ffffff;
-                    }
-                    .pc-col-review-key {
-                      display: none;
-                    }
-                    </style>
-                    """,
-                )
-            }
-            for name, html_path in html_inputs.items():
-                _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
+            _render_cropped_jpg(
+                chrome_path,
+                _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
+                temp_dir,
+                "PerformanceAuditPortfolio",
+            )
 
 
 def _parse_args() -> argparse.Namespace:
@@ -341,87 +319,6 @@ def _render_cropped_jpg(
         _IMAGE_DIR / f"{name}.jpg",
         minimum_width=_MINIMUM_CROPPED_WIDTH_BY_NAME.get(name),
     )
-
-
-def _write_report_sections_input(
-    source_html_path: Path,
-    destination_html_path: Path,
-    *,
-    sections: Sequence[tuple[str, str]],
-    title: str,
-    extra_style: str = "",
-) -> Path:
-    """Write a temporary HTML page containing selected report sections.
-
-    Args:
-        source_html_path: Existing report HTML file to read.
-        destination_html_path: Temporary HTML file to write.
-        sections: Section HTML ids and titles to extract from the source report.
-        title: Temporary page title.
-        extra_style: Additional CSS to append for README-only presentation.
-
-    Returns:
-        Path to the temporary report-section HTML file.
-
-    Raises:
-        FileNotFoundError: If ``source_html_path`` does not exist.
-        ValueError: If a requested section cannot be found.
-        OSError: If source or destination HTML cannot be read or written.
-    """
-    source_html = source_html_path.read_text(encoding=util.ENCODING)
-    style_html = _html_between(source_html, "<style>", "</style>") or ""
-    section_html = "\n".join(
-        _extract_report_section(source_html, source_html_path, section_id)
-        for section_id, _section_title in sections
-    )
-    destination_html_path.write_text(
-        "\n".join(
-            [
-                "<!doctype html>",
-                "<html>",
-                "<head>",
-                f"<title>{title}</title>",
-                style_html,
-                extra_style,
-                "</head>",
-                "<body>",
-                '<main class="pc-report">',
-                section_html,
-                "</main>",
-                "</body>",
-                "</html>",
-            ]
-        ),
-        encoding=util.ENCODING,
-    )
-    return destination_html_path
-
-
-def _extract_report_section(
-    source_html: str,
-    source_html_path: Path,
-    section_id: str,
-) -> str:
-    """Return one report section from a generated HTML report."""
-    section_marker = f'<section class="pc-section" id="{section_id}">'
-    section_start = source_html.find(section_marker)
-    if section_start < 0:
-        raise ValueError(f"{source_html_path} does not contain section {section_id!r}")
-    section_end = source_html.find("</section>", section_start)
-    if section_end < 0:
-        raise ValueError(f"{source_html_path} has an unterminated section {section_id!r}")
-    return source_html[section_start : section_end + len("</section>")]
-
-
-def _html_between(html: str, start_marker: str, end_marker: str) -> str | None:
-    """Return inclusive HTML text between two markers, if present."""
-    start = html.find(start_marker)
-    if start < 0:
-        return None
-    end = html.find(end_marker, start)
-    if end < 0:
-        return None
-    return html[start : end + len(end_marker)]
 
 
 def _crop_and_save_jpg(
