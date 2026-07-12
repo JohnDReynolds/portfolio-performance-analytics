@@ -54,7 +54,7 @@ _RENDER_CONFIG = {
     # This report contains long, wrapping tables. A 1x, browser-sized viewport
     # keeps the text readable and avoids the very large bitmap produced by a
     # wide 2x screenshot.
-    "PerformanceAuditPortfolio": (1440, 16000),
+    "PerformanceAuditPortfolio": (1100, 20000),
 }
 _DEVICE_SCALE_FACTOR_BY_NAME = {"PerformanceAuditPortfolio": 1}
 _MINIMUM_CROPPED_WIDTH_BY_NAME = {"RiskStatistics": 2000}

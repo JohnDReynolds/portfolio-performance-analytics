@@ -102,6 +102,12 @@ _CONTEXT_EVIDENCE_COLUMNS = (
 _CONTEXT_NO_IMPACT_TREATMENT = "context only; not included in return-impact estimates"
 _REVIEW_WORKBOOK_ARTIFACT = _pc_workbook.REVIEW_WORKBOOK_ARTIFACT
 _REVIEW_WORKBOOK_FILE_NAME = _pc_workbook.REVIEW_WORKBOOK_FILE_NAME
+_COMPACT_SOURCE_VALUE_COLUMNS = {
+    _pc_findings.SNAPSHOT_A_VALUE,
+    _pc_findings.SNAPSHOT_B_VALUE,
+    _pc_findings.DELTA_B_MINUS_A,
+    "change",
+}
 _html_section = _pc_rendering.html_section
 _html_review_key_row_id = _pc_rendering.html_review_key_row_id
 _html_id_token = _pc_rendering.html_id_token
@@ -283,7 +289,24 @@ def _html_workbook_body_cell(row: Mapping[str, object], column: str) -> str:
             *_pc_rendering.html_row_value_classes(row, column),
         ]
     )
-    return f'<td class="{classes}">{_escape_html(_format_value(value))}</td>'
+    return f'<td class="{classes}">{_escape_html(_html_workbook_value(value, column))}</td>'
+
+
+def _html_workbook_value(value: object, column: str) -> str:
+    """Return an HTML-only display value for a workbook-style report cell."""
+    if (
+        column not in _COMPACT_SOURCE_VALUE_COLUMNS
+        or isinstance(value, bool)
+        or not isinstance(value, (int, float))
+    ):
+        return _format_value(value)
+
+    formatted = f"{float(value):.6f}"
+    if formatted in {"0.000000", "-0.000000"}:
+        return "0.00"
+    whole, fraction = formatted.split(".")
+    compact_fraction = fraction.rstrip("0")
+    return f"{whole}.{compact_fraction.ljust(2, '0')}"
 
 
 def _write_performance_comparison_html_report(

@@ -421,7 +421,7 @@ body {
   line-height: 1.35;
 }
 .pc-report {
-  max-width: 1360px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 18px 22px 28px;
 }
@@ -586,6 +586,65 @@ th.pc-col-estimated-impact {
   line-height: 1.15;
   min-width: 82px;
   white-space: normal;
+}
+#performance-differences table,
+#performance-difference-causes table {
+  table-layout: fixed;
+}
+#performance-differences .pc-col-portfolio-id {
+  width: 68px;
+}
+#performance-differences .pc-col-from-date,
+#performance-differences .pc-col-thru-date {
+  width: 74px;
+}
+#performance-differences .pc-col-performance-change,
+#performance-differences .pc-col-estimated-cause-total,
+#performance-differences .pc-col-unexplained-change {
+  width: 82px;
+}
+#performance-differences .pc-col-review-status {
+  width: 86px;
+}
+#performance-differences .pc-col-review-note {
+  overflow-wrap: anywhere;
+  width: 250px;
+}
+#performance-differences .pc-col-review-key {
+  overflow-wrap: anywhere;
+  width: 115px;
+}
+#performance-difference-causes .pc-col-portfolio-id {
+  width: 62px;
+}
+#performance-difference-causes .pc-col-from-date,
+#performance-difference-causes .pc-col-thru-date,
+#performance-difference-causes .pc-col-as-of-date {
+  width: 68px;
+}
+#performance-difference-causes .pc-col-dataset-field {
+  overflow-wrap: anywhere;
+  width: 100px;
+}
+#performance-difference-causes .pc-col-security-id {
+  overflow-wrap: anywhere;
+  width: 72px;
+}
+#performance-difference-causes .pc-col-snapshot-a-value,
+#performance-difference-causes .pc-col-snapshot-b-value,
+#performance-difference-causes .pc-col-change {
+  width: 78px;
+}
+#performance-difference-causes .pc-col-estimated-impact {
+  width: 82px;
+}
+#performance-difference-causes .pc-col-review-guidance {
+  overflow-wrap: anywhere;
+  width: 205px;
+}
+#performance-difference-causes .pc-col-review-key {
+  overflow-wrap: anywhere;
+  width: 105px;
 }
 th.pc-col-from-date,
 th.pc-col-thru-date,
