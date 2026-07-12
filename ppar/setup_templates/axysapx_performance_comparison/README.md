@@ -124,7 +124,7 @@ differences from identifiable input differences and other evidence:
   possible causes for remaining unexplained differences.
 - `Data Audit Issues` sheet: consistency checks across the union of Snapshot A
   and Snapshot B. The packaged demo includes focused examples for holdings and
-  transaction price ranges, duplicate transactions, transaction amount-rate
+  transaction price ranges, duplicate transactions,
   mismatches, dividend-rate mismatches, fixed-income accrued-interest
   transaction-rate mismatches, missing dividends, holdings.accrued rate
   mismatches.

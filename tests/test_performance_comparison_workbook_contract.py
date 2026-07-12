@@ -41,7 +41,7 @@ _COMMON_LEFT_HEADERS = [
     "From Date",
     "Thru Date",
     "As Of Date",
-    "Dataset Field",
+    "Dataset.Field",
     "Security",
 ]
 _IDENTIFIABLE_LEFT_HEADERS = [
@@ -49,7 +49,7 @@ _IDENTIFIABLE_LEFT_HEADERS = [
     "From Date",
     "Thru Date",
     "As Of Date",
-    "Dataset Field",
+    "Dataset.Field",
     "Security",
 ]
 _EXPECTED_NON_FULLY_EXPLAINED_PORTFOLIO_ROWS = {
@@ -143,7 +143,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertNotIn("same review model in a browser", readme)
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("source-data differences", readme)
-            self.assertIn("Dataset Field", html_report)
+            self.assertIn("Dataset.Field", html_report)
             self.assertNotIn("Source Dataset", html_report)
             self.assertNotIn("Source-Data Dataset", html_report)
             self.assertIn(
@@ -202,8 +202,8 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     _header_values(workbook["Performance Difference Causes"])[:13],
                     [
                         *_IDENTIFIABLE_LEFT_HEADERS,
-                        "Snapshot A Value",
-                        "Snapshot B Value",
+                        "Snapshot A",
+                        "Snapshot B",
                         "B - A Difference",
                         "Performance Difference Explained",
                         "Explanation",
@@ -225,7 +225,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         "Snapshot",
                         "Portfolio",
                         "As Of Date",
-                        "Dataset Field",
+                        "Dataset.Field",
                         "Security",
                         "Issue Type",
                         "Reference Value",
