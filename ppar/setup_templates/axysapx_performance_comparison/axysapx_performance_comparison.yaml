@@ -200,6 +200,20 @@ data_audit_checks:
       security_id:
         - KO
 
+  transaction_amount_rate:
+    # Checks same-day same-security transaction amount per unit across
+    # portfolios for the same transaction code. This catches amount, decimal,
+    # factor, or unit problems that may not be visible from transactions.price
+    # alone.
+    enabled: true
+    only:
+      security_id:
+        - AAPL
+      transactions.transaction_code:
+        - by
+    absolute_tolerance: 0.01
+    percent_tolerance: 0.05
+
   dividend_rate:
     # Checks same-day same-security dividend amount per share across
     # portfolios. When transactions.quantity is blank or zero, PPAR uses the

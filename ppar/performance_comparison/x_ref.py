@@ -42,6 +42,7 @@ ISSUE_HOLDINGS_ACCRUED_RATE: Final[str] = "holdings_accrued_rate"
 ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = "holdings_price_range"
 ISSUE_MISSING_DIVIDEND: Final[str] = "missing_dividend"
 ISSUE_PA_SA_RATE: Final[str] = "pa_sa_rate"
+ISSUE_TRANSACTION_AMOUNT_RATE: Final[str] = "transaction_amount_rate"
 ISSUE_TRANSACTIONS_PRICE_RANGE: Final[str] = "transactions_price_range"
 
 X_REF_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
@@ -150,6 +151,7 @@ def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     )
     rows: list[dict[str, object]] = []
     rows.extend(_duplicate_transaction_issues(transactions, config))
+    rows.extend(_transaction_amount_rate_issues(transactions, config))
     rows.extend(_holding_price_range_issues(holdings, config))
     rows.extend(_transaction_price_range_issues(transactions, config))
     rows.extend(_same_day_rate_issues(transactions, holdings, config))
@@ -302,6 +304,80 @@ def _duplicate_transaction_issues(
                 )
             )
     return rows
+
+
+def _transaction_amount_rate_issues(
+    transactions: Iterable[pl.DataFrame],
+    config: Mapping[str, object],
+) -> list[dict[str, object]]:
+    """Return same-day same-security transaction amount-per-unit issues."""
+    check_name = ISSUE_TRANSACTION_AMOUNT_RATE
+    if not _check_enabled(config, check_name):
+        return []
+
+    tolerance = _tolerance(config, check_name)
+    groups: dict[tuple[str, dt.date, str, str], list[Mapping[str, object]]] = {}
+    for frame in transactions:
+        for row in frame.iter_rows(named=True):
+            if not _row_allowed(row, config, check_name):
+                continue
+            transaction_date = _date(row.get(pc_cols.TRANSACTION_DATE))
+            security_id = _text(row.get(pc_cols.SECURITY_ID))
+            transaction_code = _text(row.get(pc_cols.TRANSACTION_CODE)).lower()
+            snapshot = _text(row.get(SNAPSHOT))
+            rate = _transaction_amount_rate(row)
+            if (
+                transaction_date is None
+                or rate is None
+                or not security_id
+                or not transaction_code
+            ):
+                continue
+            groups.setdefault(
+                (snapshot, transaction_date, security_id, transaction_code),
+                [],
+            ).append(row)
+
+    rows: list[dict[str, object]] = []
+    for (snapshot, transaction_date, security_id, code), group_rows in groups.items():
+        rates = [_transaction_amount_rate(group_row) for group_row in group_rows]
+        numeric_rates = [rate for rate in rates if rate is not None]
+        if len(numeric_rates) < 2:
+            continue
+        minimum_rate = min(numeric_rates)
+        maximum_rate = max(numeric_rates)
+        difference = maximum_rate - minimum_rate
+        if difference <= tolerance.threshold(maximum_rate):
+            continue
+        for group_row in group_rows:
+            rows.append(
+                _issue_row(
+                    snapshot=snapshot,
+                    portfolio_id=_text(group_row.get(pc_cols.PORTFOLIO_ID)),
+                    as_of_date=transaction_date,
+                    dataset_field="transactions.amount",
+                    security_id=security_id,
+                    issue_type=ISSUE_TRANSACTION_AMOUNT_RATE,
+                    value_a=minimum_rate,
+                    value_b=maximum_rate,
+                    difference=difference,
+                    tolerance=tolerance.description(),
+                    explanation=(
+                        f"{code}: Same-day same-security transactions.amount "
+                        f"per unit differs across portfolios for {security_id}."
+                    ),
+                )
+            )
+    return rows
+
+
+def _transaction_amount_rate(row: Mapping[str, object]) -> float | None:
+    """Return absolute transaction amount per absolute transaction quantity."""
+    amount = _number(row.get(pc_cols.AMOUNT))
+    quantity = _number(row.get(pc_cols.QUANTITY))
+    if amount is None or quantity is None or quantity == 0:
+        return None
+    return abs(amount) / abs(quantity)
 
 
 def _holding_price_range_issues(

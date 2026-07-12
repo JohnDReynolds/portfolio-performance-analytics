@@ -35,6 +35,7 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 "dividend_rate",
                 "holdings_price_range",
                 "missing_dividend",
+                "transaction_amount_rate",
                 "transactions_price_range",
                 "holdings_accrued_rate",
                 "pa_sa_rate",
@@ -202,6 +203,34 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                 "Duplicate transaction rows have the same portfolio, date, "
                 "security, code, amount, quantity, and price."
             },
+        )
+
+    def test_x_ref_issues_detect_transaction_amount_rates(self) -> None:
+        """Transaction amount-rate checks compare amount per unit by code."""
+        with tempfile.TemporaryDirectory() as directory:
+            comparison_path = _write_site(
+                Path(directory),
+                holdings_rows=[],
+                transaction_rows=[
+                    "P1,2026-02-15,,ABC,by,stock,$cash,CASH_USD,,,10,10,-100,0",
+                    "P2,2026-02-15,,ABC,by,stock,$cash,CASH_USD,,,10,10,-110,0",
+                ],
+                x_ref_config="""
+                data_audit_checks:
+                  transaction_amount_rate:
+                    percent_tolerance: 1.0
+                """,
+            )
+
+            issues = x_ref.x_ref_issues_table(comparison_path)
+            amount_rate_issues = issues.filter(
+                issues[x_ref.ISSUE_TYPE] == "transaction_amount_rate"
+            )
+
+        self.assertEqual(amount_rate_issues.height, 4)
+        self.assertEqual(
+            set(amount_rate_issues.get_column("portfolio_id").to_list()),
+            {"P1", "P2"},
         )
 
     def test_x_ref_issue_type_can_be_disabled(self) -> None:

@@ -294,18 +294,21 @@ normalized datasets, and easy to explain:
 3. `duplicate_transactions`: for each snapshot, flag exact duplicate
    transaction rows with the same portfolio, date, security, code, amount,
    quantity, and price.
-4. `dividend_rate`: for each snapshot, security, and dividend date, compare
+4. `transaction_amount_rate`: for each snapshot, security, transaction date,
+   and transaction code, compare `transactions.amount / transactions.quantity`
+   across portfolios.
+5. `dividend_rate`: for each snapshot, security, and dividend date, compare
    same-day same-security dividend rates across portfolios.
-5. `missing_dividend`: for each snapshot, security, and dividend date where at
+6. `missing_dividend`: for each snapshot, security, and dividend date where at
    least one portfolio has a dividend, flag other portfolios that
    conservatively appear eligible for that dividend. A portfolio qualifies only
    when it has positive beginning-period quantity, or positive buy activity
    before the dividend date, and has no pre-dividend transaction activity other
    than buys.
-6. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
+7. `pa_sa_rate`: for each snapshot, security, and transaction date, compare
    same-day same-security purchase-accrued and sale-accrued rates across
    portfolios.
-7. `holdings_accrued_rate`: for each snapshot, security, and holding date,
+8. `holdings_accrued_rate`: for each snapshot, security, and holding date,
    compare same-day same-security `holdings.accrued` per unit across
    portfolios.
 
@@ -323,7 +326,7 @@ or cash-ledger data that is not yet part of the normalized source contract.
 ### Report Semantics
 
 Data Audit issue types use compact codes such as `duplicate_transactions` and
-`transactions_price_range`. The worksheet intentionally avoids a severity column;
+`transaction_amount_rate`. The worksheet intentionally avoids a severity column;
 the reviewer-facing explanation, values, and tolerance carry the useful context
 without implying false precision.
 

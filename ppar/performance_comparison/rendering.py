@@ -537,10 +537,8 @@ body {
   color: var(--pc-muted);
 }
 .pc-table-wrap {
-  box-sizing: border-box;
   overflow-x: auto;
   margin-top: 6px;
-  padding-right: 6px;
 }
 .pc-table-meta {
   color: var(--pc-muted);
@@ -564,7 +562,6 @@ caption {
 th,
 td {
   border: 1px solid var(--pc-border);
-  box-sizing: border-box;
   padding: 4px 6px;
   vertical-align: top;
 }
@@ -591,8 +588,7 @@ th.pc-col-estimated-impact {
   white-space: normal;
 }
 #performance-differences table,
-#performance-difference-causes table,
-#data-audit-issues table {
+#performance-difference-causes table {
   table-layout: fixed;
 }
 #performance-differences .pc-col-portfolio-id {
@@ -637,34 +633,18 @@ th.pc-col-estimated-impact {
 #performance-difference-causes .pc-col-snapshot-a-value,
 #performance-difference-causes .pc-col-snapshot-b-value,
 #performance-difference-causes .pc-col-change {
-  width: 72px;
+  width: 78px;
 }
 #performance-difference-causes .pc-col-estimated-impact {
-  width: 78px;
+  width: 82px;
 }
 #performance-difference-causes .pc-col-review-guidance {
   overflow-wrap: anywhere;
-  width: 220px;
+  width: 205px;
 }
 #performance-difference-causes .pc-col-review-key {
   overflow-wrap: anywhere;
   width: 105px;
-}
-#data-audit-issues .pc-col-dataset-field {
-  overflow-wrap: anywhere;
-  width: 78px;
-}
-#data-audit-issues .pc-col-issue-type {
-  overflow-wrap: anywhere;
-  width: 94px;
-}
-#data-audit-issues .pc-col-tolerance {
-  overflow-wrap: anywhere;
-  width: 126px;
-}
-#data-audit-issues .pc-col-explanation {
-  overflow-wrap: anywhere;
-  width: 238px;
 }
 th.pc-col-from-date,
 th.pc-col-thru-date,
