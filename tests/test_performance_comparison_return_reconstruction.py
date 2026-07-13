@@ -64,7 +64,7 @@ def _write_reinvestment_pair_fixture(directory: Path) -> Path:
     holdings_a = pl.DataFrame(
         {
             "PORT": ["P1", "P1", "P1", "P1"],
-            "SEC": ["AAPL", "CASH_USD", "AAPL", "CASH_USD"],
+            "SEC": ["AAPL", "CASHUSD", "AAPL", "CASHUSD"],
             "HOLDING_DATE": [
                 "2025-12-31",
                 "2025-12-31",
@@ -208,7 +208,7 @@ def _write_accrued_value_fixture(
 
     holdings_rows = {
         "PORT": ["P1", "P1", "P1", "P1"],
-        "SEC": ["BOND1", "CASH_USD", "BOND1", "CASH_USD"],
+        "SEC": ["BOND1", "CASHUSD", "BOND1", "CASHUSD"],
         "HOLDING_DATE": [
             "2025-12-31",
             "2025-12-31",

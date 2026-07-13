@@ -17,6 +17,13 @@ from ppar.performance_comparison import (
     PerformanceComparisonSpecification,
     TransactionsLoader,
     compare_snapshots,
+    portfolio_period_cause_summary,
+)
+from ppar.performance_comparison.explain import (
+    IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
+    IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+    ROOT_CAUSE_FX_RATE,
+    ROOT_CAUSE_TRANSACTION_ACTIVITY,
 )
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.config_validation import validate_config
@@ -97,9 +104,12 @@ _PACKAGED_TRANSACTION_COLUMNS = [
     "SRC_DEST_SYMBOL",
     "SPECIAL_SEC_TYPE",
     "SPECIAL_SEC_SYMBOL",
+    "CURRENCY",
+    "BASE_CURRENCY",
     "QTY",
     "PRICE",
     "AMOUNT",
+    "BASE_AMOUNT",
     "COMMISSION",
 ]
 
@@ -108,8 +118,10 @@ _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.PRICE),
     (pc_cols.HOLDINGS, pc_cols.QUANTITY),
+    (pc_cols.FX_RATES, pc_cols.FX_RATE),
     (pc_cols.SPLITS, pc_cols.SPLIT_FACTOR),
     (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
+    (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT),
     (pc_cols.TRANSACTIONS, pc_cols.COMMISSION),
     (pc_cols.TRANSACTIONS, pc_cols.PRICE),
     (pc_cols.TRANSACTIONS, pc_cols.QUANTITY),
@@ -211,7 +223,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "not official Axys/APX native schemas",
             "portperf.csv",
             "secperf.csv",
-            "CASH_USD",
+            "CASHUSD",
             "transaction_rules",
         ]:
             self.assertIn(expected_text, normalized_text)
@@ -300,8 +312,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             "`wd` external-withdrawal amount restatement",
             "AAPL `by` transaction amount",
             "MSFT `sl` transaction",
-            "inserted `li` row on `CASH_USD`",
-            "inserted `lo` row on `CASH_USD`",
+            "inserted `li` row on `CASHUSD`",
+            "inserted `lo` row on `CASHUSD`",
             "JPM `dv` dividend amount",
             "JPM `rc` return-of-capital",
             "fee-like `dp` transaction",
@@ -474,14 +486,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                         frame,
                         portfolio="ALPHA",
                         transaction_date="2026-01-20",
-                        security="CASH_USD",
+                        security="CASHUSD",
                         transaction_code="wd",
                     ),
                     "INCOME0203": _transaction_row(
                         frame,
                         portfolio="INCOME",
                         transaction_date="2026-01-20",
-                        security="CASH_USD",
+                        security="CASHUSD",
                         transaction_code="dp",
                     ),
                 }
@@ -490,7 +502,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                         frame,
                         portfolio="ALPHA",
                         transaction_date="2026-02-17",
-                        security="CASH_USD",
+                        security="CASHUSD",
                         transaction_code="lo",
                     )
 
@@ -690,7 +702,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             frame,
             portfolio="ALPHA",
             transaction_date="2026-01-20",
-            security="CASH_USD",
+            security="CASHUSD",
             transaction_code="wd",
         )
 
@@ -713,7 +725,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             frame,
             portfolio="INCOME",
             transaction_date="2026-01-20",
-            security="CASH_USD",
+            security="CASHUSD",
             transaction_code="dp",
         )
 
@@ -943,14 +955,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 35)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 36)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 6,
                 "cs": 1,
                 "dp": 1,
-                "dv": 7,
+                "dv": 8,
                 "in": 3,
                 "li": 1,
                 "lo": 1,
@@ -1215,7 +1227,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 35)
+        self.assertEqual(len(adjustments), 36)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1227,56 +1239,56 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["ALPHA0203 wd transaction changes cash balance."],
             portfolio="ALPHA",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-01-30",
             deltas={"QTY": -1500.0, "MKT_VAL": -1500.0, "COST": -1500.0},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0603 ss transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": 21112.0, "MKT_VAL": 21112.0, "COST": 21112.0},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0604 cs transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": -21789.5, "MKT_VAL": -21789.5, "COST": -21789.5},
         )
         self._assert_adjustment(
             by_scenario["INCOME0203 dp transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-01-30",
             deltas={"QTY": -50.0, "MKT_VAL": -50.0, "COST": -50.0},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0304 pa transaction changes cash balance."],
             portfolio="ALPHA",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-02-27",
             deltas={"QTY": -8.0, "MKT_VAL": -8.0, "COST": -8.0},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0502 dv transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-04-30",
             deltas={"QTY": 117.07, "MKT_VAL": 117.07, "COST": 117.07},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0503 rc transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-04-30",
             deltas={"QTY": 240.0, "MKT_VAL": 240.0, "COST": 240.0},
         )
         self._assert_adjustment(
             by_scenario["INCOME0603 in transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": 80.0, "MKT_VAL": 80.0, "COST": 80.0},
         )
@@ -1290,7 +1302,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["INCOME0605 pd transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": 320.0, "MKT_VAL": 320.0, "COST": 320.0},
         )
@@ -1303,7 +1315,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             dividend_payable_adjustment,
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-14",
             deltas={"QTY": 220.97, "MKT_VAL": 220.97, "COST": 220.97},
         )
@@ -1316,7 +1328,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             late_dividend_adjustment,
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": -220.97, "MKT_VAL": -220.97, "COST": -220.97},
         )
@@ -1335,14 +1347,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["INCOME0303 by transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-02-27",
             deltas={"QTY": -494.0, "MKT_VAL": -494.0, "COST": -494.0},
         )
         self._assert_adjustment(
             by_scenario["INCOME0304 pa transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-02-27",
             deltas={"QTY": -42.5, "MKT_VAL": -42.5, "COST": -42.5},
         )
@@ -1361,14 +1373,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["INCOME0305 sl transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-02-27",
             deltas={"QTY": 296.4, "MKT_VAL": 296.4, "COST": 296.4},
         )
         self._assert_adjustment(
             by_scenario["INCOME0306 sa transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-02-27",
             deltas={"QTY": 37.25, "MKT_VAL": 37.25, "COST": 37.25},
         )
@@ -1382,14 +1394,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["ALPHA0401 by transaction changes cash balance."],
             portfolio="ALPHA",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-03-31",
             deltas={"QTY": -196.98, "MKT_VAL": -196.98, "COST": -196.98},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0503 dv transaction changes cash balance."],
             portfolio="ALPHA",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-04-30",
             deltas={"QTY": 537.01, "MKT_VAL": 537.01, "COST": 537.01},
         )
@@ -1403,21 +1415,21 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["BALANCED0203 sl transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-01-30",
             deltas={"QTY": 226.0, "MKT_VAL": 226.0, "COST": 226.0},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0403 li transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-03-31",
             deltas={"QTY": 2500.0, "MKT_VAL": 2500.0, "COST": 2500.0},
         )
         self._assert_adjustment(
             by_scenario["ALPHA0303 lo transaction changes cash balance."],
             portfolio="ALPHA",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-02-27",
             deltas={"QTY": -2000.0, "MKT_VAL": -2000.0, "COST": -2000.0},
         )
@@ -1438,7 +1450,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         rebuild_module = _load_rebuild_module()
         columns = ",".join(rebuild_module._HOLDING_SCENARIO_COLUMNS)
         row = (
-            "snapshot_a,cash_balance_correction,ALPHA,CASH_USD,2026-01-30,"
+            "snapshot_a,cash_balance_correction,ALPHA,CASHUSD,2026-01-30,"
             "1,0,1,1,0,Invalid base adjustment\n"
         )
 
@@ -1532,7 +1544,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     "PORT": "BALANCED",
                     "TRANSACTION_DATE": "2026-03-20",
                     "SETTLE_DATE": "2026-03-20",
-                    "SEC": "CASH_USD",
+                    "SEC": "CASHUSD",
                     "TRAN": transaction_code,
                     "SEC_TYPE": "caus",
                     "SRC_DEST_TYPE": "$pty",
@@ -1584,14 +1596,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["BALANCED0403 li transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-03-31",
             deltas={"QTY": 2500.0, "MKT_VAL": 2500.0, "COST": 2500.0},
         )
         self._assert_adjustment(
             by_scenario["BALANCED0404 lo transaction changes cash balance."],
             portfolio="BALANCED",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-03-31",
             deltas={"QTY": -900.0, "MKT_VAL": -900.0, "COST": -900.0},
         )
@@ -1674,17 +1686,65 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self._assert_adjustment(
             by_scenario["TESTPA pa transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": -42.5, "MKT_VAL": -42.5, "COST": -42.5},
         )
         self._assert_adjustment(
             by_scenario["TESTSA sa transaction changes cash balance."],
             portfolio="INCOME",
-            security="CASH_USD",
+            security="CASHUSD",
             holding_date="2026-05-29",
             deltas={"QTY": 37.25, "MKT_VAL": 37.25, "COST": 37.25},
         )
+
+    def test_packaged_demo_multicurrency_cash_and_base_fields(self) -> None:
+        """Packaged fixtures expose exact cash IDs and explicit base values."""
+        holdings = pd.read_csv(_PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "holdings.csv")
+        transactions = pd.read_csv(
+            _PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "transactions.csv"
+        )
+        self.assertTrue({"CASHUSD", "CASHEUR", "CASHGBP"}.issubset(set(holdings["SEC"])))
+        self.assertTrue({"EUR", "GBP"}.issubset(set(transactions["CURRENCY"])))
+        self.assertIn("BASE_AMOUNT", transactions.columns)
+        self.assertIn("BASE_MKT_VAL", holdings.columns)
+
+    def test_packaged_demo_explains_eur_transaction_and_gbp_rate(self) -> None:
+        """Foreign transaction and FX changes reach Explained Difference."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+        summary = portfolio_period_cause_summary(findings).filter(
+            (pl.col("portfolio_id") == "BALANCED")
+            & (pl.col("from_date") == pl.date(2026, 4, 1))
+        )
+        impact_by_cause = {
+            row["root_cause_area"]: row
+            for row in summary.iter_rows(named=True)
+        }
+        self.assertEqual(
+            impact_by_cause[ROOT_CAUSE_FX_RATE]["impact_basis"],
+            IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
+        )
+        self.assertEqual(
+            impact_by_cause[ROOT_CAUSE_TRANSACTION_ACTIVITY]["impact_basis"],
+            IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
+        )
+        self.assertIsNotNone(
+            impact_by_cause[ROOT_CAUSE_FX_RATE]["estimated_return_impact"]
+        )
+        workbook_causes = _workbook_underlying_causes_table(
+            findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        )
+        explained_fields = set(
+            workbook_causes.filter(pl.col("estimated_impact").is_not_null())[
+                "dataset_field"
+            ]
+        )
+        self.assertIn("fx_rates.fx_rate", explained_fields)
+        self.assertIn("transactions.base_amount", explained_fields)
 
     def _assert_adjustment(
         self,

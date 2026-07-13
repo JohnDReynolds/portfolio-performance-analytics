@@ -2118,10 +2118,27 @@ def _workbook_formula_source_candidates(
         return [
             row
             for row in rows
-            if row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
-            and row.get(_pc_findings.SOURCE_COLUMN)
-            in {pc_cols.MARKET_VALUE, pc_cols.ACCRUED}
-            and _workbook_as_of_date(row) == formula_date
+            if (
+                (
+                    (
+                        row.get(_pc_findings.DATASET) == pc_cols.HOLDINGS
+                        and row.get(_pc_findings.SOURCE_COLUMN)
+                        in {pc_cols.MARKET_VALUE, pc_cols.ACCRUED}
+                        and not _workbook_has_evidence_only_policy(row)
+                    )
+                    or (
+                        row.get(_pc_findings.DATASET) == pc_cols.FX_RATES
+                        and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.FX_RATE
+                    )
+                )
+                and _workbook_as_of_date(row) == formula_date
+            )
+            or (
+                formula_field == _RECONSTRUCTION_ENDING_VALUE_FIELD
+                and row.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
+                and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.BASE_AMOUNT
+                and _workbook_same_period(row, formula_row)
+            )
         ]
     if formula_field in {
         _RECONSTRUCTION_NET_FLOW_FIELD,
@@ -2137,7 +2154,7 @@ def _workbook_formula_source_candidates(
             for row in rows
             if _workbook_same_period(row, formula_row)
             and row.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
-            and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.AMOUNT
+            and _workbook_is_effective_transaction_amount(row)
             and row.get(_pc_findings.TRANSACTION_CATEGORY) in flow_categories
         ]
     if formula_field == _RECONSTRUCTION_INCOME_FIELD:
@@ -2146,11 +2163,19 @@ def _workbook_formula_source_candidates(
             for row in rows
             if _workbook_same_period(row, formula_row)
             and row.get(_pc_findings.DATASET) == pc_cols.TRANSACTIONS
-            and row.get(_pc_findings.SOURCE_COLUMN) == pc_cols.AMOUNT
+            and _workbook_is_effective_transaction_amount(row)
             and row.get(_pc_findings.TRANSACTION_CATEGORY)
             in {TRANSACTION_CATEGORY_FEE_EXPENSE, TRANSACTION_CATEGORY_INCOME}
         ]
     return []
+
+
+def _workbook_is_effective_transaction_amount(row: Mapping[str, object]) -> bool:
+    """Return whether a row is the transaction amount used in base returns."""
+    source_column = row.get(_pc_findings.SOURCE_COLUMN)
+    if source_column == pc_cols.BASE_AMOUNT:
+        return True
+    return source_column == pc_cols.AMOUNT and not _workbook_has_evidence_only_policy(row)
 
 
 def _workbook_same_period(
@@ -2349,6 +2374,9 @@ def _workbook_formula_source_basis(
     """Return source-row basis used to allocate one formula impact."""
     formula_field = formula_row.get(_pc_findings.SOURCE_COLUMN)
     delta = _number_or_none(source_row.get(_pc_findings.DELTA_B_MINUS_A)) or 0.0
+    if source_row.get(_pc_findings.DATASET) == pc_cols.FX_RATES:
+        exposure = _number_or_none(source_row.get(_pc_findings.IMPACT_INPUT_VALUE)) or 0.0
+        return delta * exposure
     if formula_field == _RECONSTRUCTION_WEIGHTED_FLOW_FIELD:
         return delta * _workbook_source_flow_weight(source_row)
     return delta
@@ -4090,7 +4118,9 @@ def workbook_column_tooltip(column: str) -> str:
         _pc_x_ref.VALUE_B: (
             "Observed value or maximum rate found for this consistency check."
         ),
-        _pc_x_ref.DIFFERENCE: "Observed value minus expected value, or maximum rate minus minimum rate.",
+        _pc_x_ref.DIFFERENCE: (
+            "Observed value minus expected value, or maximum rate minus minimum rate."
+        ),
         _pc_x_ref.TOLERANCE: (
             "Configured threshold before the consistency check raises an issue."
         ),

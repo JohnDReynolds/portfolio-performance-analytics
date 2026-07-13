@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Python imports
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
@@ -225,7 +225,10 @@ def _snapshot_data_index(
         portfolio_id = str(row[pc_cols.PORTFOLIO_ID])
         security_id = str(row[pc_cols.SECURITY_ID])
         holding_date = _date_value(row[pc_cols.HOLDING_DATE])
-        value = (_float_or_none(row.get(pc_cols.MARKET_VALUE)) or 0.0) + (
+        market_value = row.get(pc_cols.BASE_MARKET_VALUE)
+        if market_value is None:
+            market_value = row.get(pc_cols.MARKET_VALUE)
+        value = (_float_or_none(market_value) or 0.0) + (
             _float_or_none(row.get(pc_cols.ACCRUED)) or 0.0
         )
         holding_dates.setdefault(portfolio_id, set()).add(holding_date)
@@ -494,7 +497,7 @@ class _PortfolioReturnReconstructionEngine:
                 continue
             if row.get(pc_cols.TRANSACTION_CATEGORY) not in self._reconstruction.flow_categories:
                 continue
-            amount = _float_or_none(row.get(pc_cols.AMOUNT))
+            amount = _transaction_base_amount(row)
             if amount is None:
                 continue
             weight = _return_reconstruction_flow_weight(
@@ -697,7 +700,7 @@ class _SecurityReturnReconstructionEngine:
                 continue
             if row.get(pc_cols.TRANSACTION_CATEGORY) not in self._reconstruction.flow_categories:
                 continue
-            amount = _float_or_none(row.get(pc_cols.AMOUNT))
+            amount = _transaction_base_amount(row)
             if amount is None:
                 continue
             security_flow = -amount
@@ -727,7 +730,7 @@ class _SecurityReturnReconstructionEngine:
                 continue
             if row.get(pc_cols.TRANSACTION_CATEGORY) not in self._reconstruction.income_categories:
                 continue
-            amount = _float_or_none(row.get(pc_cols.AMOUNT))
+            amount = _transaction_base_amount(row)
             if amount is not None:
                 income += amount
         return income
@@ -1123,6 +1126,14 @@ def _date_value(value: object) -> dt.date:
     if isinstance(value, dt.date):
         return value
     raise TypeError(f"Expected date value, got {type(value)!r}.")
+
+
+def _transaction_base_amount(row: Mapping[str, object]) -> float | None:
+    """Return an explicit base amount when present, otherwise local amount."""
+    base_amount = _float_or_none(row.get(pc_cols.BASE_AMOUNT))
+    if base_amount is not None:
+        return base_amount
+    return _float_or_none(row.get(pc_cols.AMOUNT))
 
 
 def _float_or_none(value: object) -> float | None:

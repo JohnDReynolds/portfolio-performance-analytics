@@ -193,14 +193,16 @@ preset semantics.
 
 ## Cash-Balance Policy
 
-`CASH_USD` is a normalized demo cash-balance holding. It should not be described
+`CASHUSD`, `CASHEUR`, and `CASHGBP` are normalized demo cash-balance holdings.
+They should not be described
 as native Axys/APX cash storage. When a transaction amount affects cash but the
 source row does not prove the exact cash security, user-facing explanations may
 refer to the changed `holdings` cash-balance.
 
-The packaged demo currently uses one USD cash-balance holding. A future
-multi-currency demo should make cash-account mapping explicit before assigning
-transaction effects to a specific cash security.
+The packaged demo maps USD, EUR, and GBP transaction effects explicitly to
+those three cash securities. Foreign rows carry local currency plus explicit
+portfolio-base values; this normalized contract does not assert native Axys/APX
+field names or cash-account storage.
 
 ## Date Policy
 
@@ -267,7 +269,7 @@ external flow, transfer, fee/expense, or performance transaction.
 
 The packaged contribution and deliver-out examples are modeled as new inserted
 transaction scenarios, not as numeric mutations of unrelated existing
-transactions. The contribution uses an Axys/APX-style `li` row on `CASH_USD` with
+transactions. The contribution uses an Axys/APX-style `li` row on `CASHUSD` with
 `SRC_DEST_TYPE=$pty`, `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero
 quantity/price/commission, and explicit YAML semantics that classify it as an
 external capital inflow from that context. The deliver-out uses the same

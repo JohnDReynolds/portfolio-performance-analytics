@@ -105,7 +105,7 @@ Current workbook field roles:
   explanation.
 
 The packaged user-facing performance-comparison demos represent cash as a
-`CASH_USD` row in the holdings file rather than as a separate `cash.csv` file.
+`CASHUSD` row in the holdings file rather than as a separate `cash.csv` file.
 The generic comparison engine still supports a normalized `cash` dataset for
 other integrations and test fixtures.
 
@@ -1227,7 +1227,7 @@ materiality:
 suppressions:
   - code: pc-sec-ret
     portfolio_id: PORT_SMALL
-    security_id: CASH_USD
+    security_id: CASHUSD
     thru_date: 2024-12-31
     reason: Known cash restatement below audit scope.
 ```
@@ -1502,15 +1502,14 @@ Implemented period-linking rules:
 - When more than one configured portfolio period contains the source date, the
   finding links to the narrowest containing period for that portfolio.
 - Unmatched dated evidence keeps null period fields.
-- `fx_rates` findings intentionally remain unlinked for now. FX linkage needs
-  currency exposure context from holdings, cash, transactions, portfolio
-  currency, or valuation data. A rate row alone is not enough to identify the
-  affected portfolio period conservatively.
+- Portfolio-specific `fx_rates` rows link by `portfolio_id` and `rate_date`.
+  They support an estimate only when both snapshots provide the same explicit
+  `local_exposure`; a rate row without that exposure remains review evidence.
 
 These rules are intentionally asymmetric. Price rows can be linked through
 security-period output because they share a security identifier and date. FX
-rates need currency exposure context that is not guaranteed by
-`security_performance`.
+  rates need an explicit portfolio identifier and local exposure; ppar does not
+  infer either from `security_performance`.
 
 ## Current Limits
 
@@ -1524,8 +1523,8 @@ The current evidence model is useful, but it should not be overstated.
   sort the audit trail but do not quantify causal contribution.
 - Prices often lack portfolio identifiers, but they can be linked through
   security-performance periods when `security_performance` is available. FX
-  rates often lack both portfolio identifiers and exposure context, so they
-  remain unlinked until a conservative exposure linker exists.
+  rates without explicit portfolio and exposure context remain unlinked and
+  unestimated.
 - Transaction matching depends on stable keys. With `transaction_id`, changed
   amounts can be reported as changed transactions. Without it, conservative
   fallback matching may report one drop and one add rather than guessing two
@@ -1751,10 +1750,13 @@ Current supported impact estimates:
      supported additive transaction field so quantity, price, commission, and
      amount are not double-counted.
 12. FX rate evidence:
-   - `fx_rate_impact_methods.fx_rate.method: evidence_only` marks changed FX
-     rates as intentional review evidence.
-   - It does not create `estimated_return_impact`; additive FX attribution
-     needs portfolio currency exposure linkage.
+   - `fx_rate_impact_methods.fx_rate.method:
+     rate_delta_times_local_exposure_over_return_denominator` estimates the
+     effect only for a portfolio-linked rate with unchanged explicit local
+     exposure in both snapshots.
+   - The formula is a normalized ppar screening method, not a statement of
+     Axys/APX calculation mechanics. Missing or changed exposure yields no
+     estimate.
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
 
@@ -1791,9 +1793,9 @@ First contribution estimates should start only where the math is defensible:
   Otherwise these rows should remain ranked review evidence with `impact_basis`
   set to `no_estimate`.
 - FX evidence: FX rate changes should not receive a portfolio-period return
-  impact unless they can be linked to affected currency exposure, valuation, or
-  transactions. Use `fx_rate_impact_methods.fx_rate.method: evidence_only` to
-  document known review-only FX rate differences.
+  impact unless they carry an explicit portfolio and unchanged local exposure.
+  Use `fx_rate_impact_methods.fx_rate.method: evidence_only` for sources that
+  cannot meet that contract.
 
 Contribution ranking should not require every finding to receive an estimate.
 A mixed output is acceptable: some rows may have `estimated_return_impact`, and

@@ -33,7 +33,7 @@ The March 2024 holdings snapshot uses March 28, 2024 because U.S. equity markets
 were closed on March 29, 2024 for Good Friday.
 
 Cash and derivative rows from the source holdings are aggregated into
-`CASH_USD`, mapped to the `Cash` sector. `CASH_USD` uses BIL adjusted monthly
+`CASHUSD`, mapped to the `Cash` sector. `CASHUSD` uses BIL adjusted monthly
 returns as its cash-return proxy.
 
 ## Refresh Notes

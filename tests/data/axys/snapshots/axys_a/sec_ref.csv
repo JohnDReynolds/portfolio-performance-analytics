@@ -31,7 +31,7 @@ CUSIP,SECURITY_ID,TICKER,SECURITY_NAME,ISIN,INDUSTRY_CODE,INDUSTRY_DESC,SECTOR_C
 912810UN6,912810UN6,,US Treasury Bond 4.875% 08/15/2045,,,Government Bond,,,US,,TREASURY,,USD,
 91282CQU8,91282CQU8,,US Treasury Note 5Y 05/31/2031,,,Government Bond,,,US,,TREASURY,,USD,
 91282CQM6,91282CQM6,,US Treasury Note 2Y 05/31/2028,,,Government Bond,,,US,,TREASURY,,USD,
-,CASH_USD,,US Dollar Cash,,,Cash,,,US,,CASH,,USD,
+,CASHUSD,,US Dollar Cash,,,Cash,,,US,,CASH,,USD,
 00000001A,S001,S001,Synthetic Security S001,US0000000001,SEMI,Semiconductors,TECH,Technology,CA,Canada,EQ,Equity,CAD,Canadian Dollar
 00000002A,S002,S002,Synthetic Security S002,US0000000002,PHAR,Pharmaceuticals,HLTH,Health Care,GB,United Kingdom,EQ,Equity,GBP,Pound Sterling
 00000003A,S003,S003,Synthetic Security S003,US0000000003,MEDD,Medical Devices,HLTH,Health Care,JP,Japan,EQ,Equity,JPY,Japanese Yen

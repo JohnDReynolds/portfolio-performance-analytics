@@ -19,6 +19,7 @@ import polars as pl
 from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
+    FxRateImpactMethod,
     HoldingImpactMethod,
     PriceImpactMethod,
     TransactionImpactMethod,
@@ -69,6 +70,7 @@ __all__ = [
     "IMPACT_POLICY_HOLDING_MARKET_VALUE",
     "IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE",
     "IMPACT_POLICY_PRICE_WEIGHTED",
+    "IMPACT_POLICY_FX_RATE_EXPOSURE",
     "IMPACT_POLICY_SECURITY_CONTRIBUTION",
     "IMPACT_POLICY_SECURITY_RETURN_WEIGHTED",
     "TRANSACTION_IMPACT_POLICY",
@@ -163,11 +165,17 @@ IMPACT_POLICY_HOLDING_ACCRUED = (
 )
 IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
     "holding_quantity:"
-    f"{HoldingImpactMethod.QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR.value}"
+    + HoldingImpactMethod[
+        "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
+    ].value
 )
 IMPACT_POLICY_PRICE_WEIGHTED = (
     "price_weighted:"
     f"{PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value}"
+)
+IMPACT_POLICY_FX_RATE_EXPOSURE = (
+    "fx_rate:"
+    f"{FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value}"
 )
 IMPACT_POLICY_SECURITY_CONTRIBUTION = (
     f"security_contribution:{ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value}"

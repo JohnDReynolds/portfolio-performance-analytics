@@ -15,7 +15,11 @@ from ppar.performance_comparison.specification import PerformanceComparisonSpeci
 import ppar.utilities as util
 
 
-_OPTIONAL_KEY_COLUMNS = (pc_cols.RATE_SOURCE, pc_cols.RATE_TYPE)
+_OPTIONAL_KEY_COLUMNS = (
+    pc_cols.PORTFOLIO_ID,
+    pc_cols.RATE_SOURCE,
+    pc_cols.RATE_TYPE,
+)
 
 
 def _validate_required_values(
@@ -165,7 +169,7 @@ class FxRatesLoader:
         )
         frame = source_loader.require_numeric_columns(
             frame,
-            columns=(pc_cols.FX_RATE,),
+            columns=(pc_cols.FX_RATE, pc_cols.LOCAL_EXPOSURE),
             dataset_name=pc_cols.FX_RATES,
             path=path,
             specification_path=self._specification.path,

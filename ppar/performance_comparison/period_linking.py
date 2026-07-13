@@ -18,6 +18,7 @@ DATED_EVIDENCE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
     pc_cols.CASH: pc_cols.CASH_DATE,
     pc_cols.SPLITS: pc_cols.SPLIT_DATE,
+    pc_cols.FX_RATES: pc_cols.RATE_DATE,
 }
 PortfolioPeriodLookup: TypeAlias = Mapping[
     object, tuple[tuple[dt.date, dt.date], ...]

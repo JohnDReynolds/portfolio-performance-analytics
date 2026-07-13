@@ -14,7 +14,7 @@ Axys/APX-demo review.
 The operational demos should eventually include:
 
 - a handful of Mega-Cap Alpha Portfolio equities;
-- `CASH_USD` cash-holding rows;
+- `CASHUSD` cash-holding rows;
 - a few T-bill and T-note style instruments with accrued interest;
 - six monthly periods;
 - three small portfolios (`ALPHA`, `BALANCED`, and `INCOME`);
@@ -40,7 +40,7 @@ The generator currently:
 
 - reads `ppar/setup_templates/generic_analytics/performance/Mega-Cap Alpha Portfolio.csv`;
 - keeps a small set of high-weight equities over recent monthly periods;
-- splits the analytics cash sleeve into `CASH_USD`, `912797AA1`, `91282Y2Y1`,
+- splits the analytics cash sleeve into `CASHUSD`, `912797AA1`, `91282Y2Y1`,
   and `91282Y5Y1` operational securities;
 - creates the ALPHA, BALANCED, and INCOME portfolio variants from the same
   security universe;

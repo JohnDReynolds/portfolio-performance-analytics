@@ -159,7 +159,7 @@ def _write_no_id_transaction_date_move_specification(directory: Path) -> Path:
         (snapshot_path / "transactions.csv").write_text(
             "PORT,SEC,TRADE_DATE,SETTLE_DATE,TRAN,QTY,PRICE,AMOUNT,"
             "CASH_FLOW_SIGN,PERFORMANCE_FLOW_SIGN\n"
-            f"PORT_A,CASH_USD,{transaction_date},{transaction_date},cf,0,0,"
+            f"PORT_A,CASHUSD,{transaction_date},{transaction_date},cf,0,0,"
             "-1000.00,negative,external\n",
             encoding="utf-8",
         )

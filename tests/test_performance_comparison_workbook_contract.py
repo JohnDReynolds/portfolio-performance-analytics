@@ -354,10 +354,10 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertTrue(
                     any(
                         row[4] == "holdings.market_value"
-                        and row[5] == "CASH_USD"
+                        and row[5] == "CASHUSD"
                         and row[10]
                         == (
-                            "CASH_USD ending holdings.market_value decreased by "
+                            "CASHUSD ending holdings.market_value decreased by "
                             "2,008.00."
                         )
                         for row in alpha_february_rows
@@ -379,6 +379,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Input for changed" in str(row[10])
                         or "related performance input" in str(row[10])
                         or "changed transactions.amount" in str(row[10])
+                        or "transactions.base_amount" in str(row[10])
                         or "changed holdings.market_value" in str(row[10])
                         or "calculated portfolio-return difference" in str(row[10])
                         or "Configured transaction impact method is present" in str(row[10])
@@ -395,6 +396,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "holdings.quantity to" in str(row[10])
                         or "ending holdings." in str(row[10])
                         or "beginning holdings." in str(row[10])
+                        or "Review-only evidence" in str(row[10])
                         for row in underlying_rows
                     )
                 )
@@ -436,7 +438,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "CASH_USD"
+                    and row[5] == "CASHUSD"
                     and str(row[1])[:10] == "2026-01-01"
                     and str(row[2])[:10] == "2026-01-30"
                 )
@@ -452,7 +454,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     for row in underlying_rows
                     if row[0] == "ALPHA"
                     and row[4] == "transactions.amount"
-                    and row[5] == "CASH_USD"
+                    and row[5] == "CASHUSD"
                     and str(row[1])[:10] == "2026-01-31"
                     and str(row[2])[:10] == "2026-02-27"
                 )
@@ -701,12 +703,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     {row[3] for row in security_rows},
                     {
                         "AAPL",
-                        "CASH_USD",
+                        "CASHUSD",
                         "CVNA",
                         "JPM",
                         "MSFT",
                         "91282Y2Y1",
                         "91282Y5Y1",
+                        "SAP.DE",
+                        "SHEL.L",
+                        "CASHEUR",
                     },
                 )
                 self.assertEqual(
@@ -898,28 +903,28 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     row
                     for row in underlying_rows
                     if row[4] == "transactions.amount"
-                    and row[5] == "CASH_USD"
+                    and row[5] == "CASHUSD"
                     and str(row[1])[:10] == "2026-02-28"
                     and str(row[2])[:10] == "2026-03-31"
                     and str(row[3])[:10] == "2026-03-20"
                 )
                 self.assertEqual(
                     cash_external_flow_row[10],
-                    "li: The external flow for CASH_USD changed by 2,500.00.",
+                    "li: The external flow for CASHUSD changed by 2,500.00.",
                 )
                 cash_fee_row = next(
                     row
                     for row in underlying_rows
                     if row[0] == "INCOME"
                     and row[4] == "transactions.amount"
-                    and row[5] == "CASH_USD"
+                    and row[5] == "CASHUSD"
                     and str(row[1])[:10] == "2026-01-01"
                     and str(row[2])[:10] == "2026-01-30"
                     and str(row[3])[:10] == "2026-01-20"
                 )
                 self.assertEqual(
                     cash_fee_row[10],
-                    "dp: The fee/expense for CASH_USD changed by 50.00.",
+                    "dp: The fee/expense for CASHUSD changed by 50.00.",
                 )
                 jpm_dividend_row = next(
                     row

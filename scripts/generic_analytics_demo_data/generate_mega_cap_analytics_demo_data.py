@@ -46,7 +46,7 @@ SECTOR_ALIASES: Final = {
     "Communication": "Communication Services",
     "Communications": "Communication Services",
 }
-CASH_IDENTIFIER: Final = "CASH_USD"
+CASH_IDENTIFIER: Final = "CASHUSD"
 CASH_RETURN_PROXY: Final = "BIL"
 
 

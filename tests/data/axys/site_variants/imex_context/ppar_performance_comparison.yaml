@@ -56,7 +56,7 @@ transaction_rules:
       performance_flow_sign: neutral
   wd:
     - when:
-        security_id: CASH_USD
+        security_id: CASHUSD
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: external_flow

@@ -27,6 +27,7 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_CASH_BALANCE,
     IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
+    IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
@@ -66,6 +67,7 @@ from ppar.performance_comparison.findings import (
 from ppar.performance_comparison.methods import (
     CashImpactMethod,
     ContributionImpactMethod,
+    FxRateImpactMethod,
     ModifiedDietzDoubleCountPolicy,
     HoldingImpactMethod,
     PriceImpactMethod,
@@ -175,6 +177,7 @@ IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE = (
 IMPACT_BASIS_SECURITY_CONTRIBUTION = "security_contribution"
 IMPACT_BASIS_SECURITY_RETURN_WEIGHTED = "security_return_weighted"
 IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT = "transaction_performance_amount"
+IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE = "fx_rate_local_exposure"
 IMPACT_BASIS_SECURITY_TRANSACTION_FLOW = "security_transaction_flow"
 IMPACT_CONFIDENCE_LOW = "low"
 IMPACT_CONFIDENCE_MEDIUM = "medium"
@@ -189,6 +192,9 @@ IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
 )
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
+)
+IMPACT_METHOD_FX_RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_DENOMINATOR = (
+    FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value
 )
 IMPACT_METHOD_SECURITY_TRANSACTION_FLOW_MODIFIED_DIETZ = (
     TransactionImpactMethod.MODIFIED_DIETZ.value
@@ -1914,6 +1920,28 @@ def _no_security_return_estimate() -> dict[str, object]:
 def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
     """Return the first-pass contribution-impact fields for one evidence row."""
     delta = row[DELTA_B_MINUS_A]
+    if _is_fx_rate_local_exposure_impact_candidate(row):
+        delta_float = _number_value(delta)
+        exposure = _number_value(row[IMPACT_INPUT_VALUE])
+        denominator = _number_value(row[RETURN_DENOMINATOR])
+        assert delta_float is not None
+        assert exposure is not None
+        assert denominator is not None
+        return {
+            ESTIMATED_RETURN_IMPACT: delta_float * exposure / denominator,
+            IMPACT_BASIS: IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
+            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
+            IMPACT_METHOD: (
+                IMPACT_METHOD_FX_RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_DENOMINATOR
+            ),
+            IMPACT_MESSAGE: (
+                "Approximate impact uses the FX-rate delta multiplied by the "
+                "unchanged snapshot A local-currency exposure, divided by the "
+                "portfolio return denominator. This is a normalized ppar "
+                "screening estimate, not an assertion about Axys calculation "
+                "mechanics."
+            ),
+        }
     if (
         row[DATASET] == pc_cols.SECURITY_PERFORMANCE
         and row[SOURCE_COLUMN] == pc_cols.CONTRIBUTION
@@ -2136,7 +2164,7 @@ def _is_transaction_performance_amount_impact_candidate(
     cash_flow_sign = row.get(CASH_FLOW_SIGN)
     return (
         row[DATASET] == pc_cols.TRANSACTIONS
-        and row[SOURCE_COLUMN] == pc_cols.AMOUNT
+        and row[SOURCE_COLUMN] in {pc_cols.AMOUNT, pc_cols.BASE_AMOUNT}
         and row.get(TRANSACTION_IMPACT_POLICY)
         in {
             TRANSACTION_IMPACT_POLICY_PERFORMANCE_AMOUNT_DELTA,
@@ -2153,6 +2181,22 @@ def _is_transaction_performance_amount_impact_candidate(
         and isinstance(denominator, (int, float))
         and not isinstance(denominator, bool)
         and float(denominator) != 0.0
+    )
+
+
+def _is_fx_rate_local_exposure_impact_candidate(row: dict[str, object]) -> bool:
+    """Return whether an FX-rate row supports an exposure-linked estimate."""
+    delta = _number_value(row.get(DELTA_B_MINUS_A))
+    exposure = _number_value(row.get(IMPACT_INPUT_VALUE))
+    denominator = _number_value(row.get(RETURN_DENOMINATOR))
+    return (
+        row.get(DATASET) == pc_cols.FX_RATES
+        and row.get(SOURCE_COLUMN) == pc_cols.FX_RATE
+        and row.get(IMPACT_POLICY) == IMPACT_POLICY_FX_RATE_EXPOSURE
+        and delta is not None
+        and exposure is not None
+        and denominator is not None
+        and denominator != 0.0
     )
 
 
@@ -2270,8 +2314,13 @@ def _transaction_performance_amount_impact_message(row: dict[str, object]) -> st
     source_text = tx_diagnostics.readable_transaction_semantics_source(
         semantics_source
     )
+    amount_basis = (
+        "explicit base-currency transaction amount delta"
+        if row.get(SOURCE_COLUMN) == pc_cols.BASE_AMOUNT
+        else "source-signed transaction amount delta"
+    )
     return (
-        "Approximate impact uses the source-signed transaction amount delta "
+        f"Approximate impact uses the {amount_basis} "
         "divided by the return denominator. Applies only when normalized "
         "sign/flow semantics mark the transaction as performance-affecting. "
         f"Transaction semantics source: {source_text}."
@@ -2633,6 +2682,8 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_SECURITY_RETURN_WEIGHTED
     if IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD in bases:
         return IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD
+    if IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE in bases:
+        return IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE
     if IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT in bases:
         return IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT
     if IMPACT_BASIS_HOLDING_MARKET_VALUE in bases:

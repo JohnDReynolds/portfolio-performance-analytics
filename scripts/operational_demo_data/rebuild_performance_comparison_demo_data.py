@@ -78,6 +78,7 @@ _PORTPERF_COLUMNS: Final = [
     "THRU_DATE",
     "BEGIN_MV",
     "PORT_RETURN",
+    "BASE_CURRENCY",
 ]
 _SECPERF_COLUMNS: Final = [
     "END_MV",
@@ -91,6 +92,8 @@ _SECPERF_COLUMNS: Final = [
     "BEGIN_MV",
     "SEC_RETURN",
     "CONTRIBUTION",
+    "CURRENCY",
+    "BASE_CURRENCY",
 ]
 _SECPERF_NUMERIC_COLUMNS: Final = [
     "END_MV",
@@ -109,11 +112,18 @@ _PORTPERF_NUMERIC_COLUMNS: Final = [
     "BEGIN_MV",
     "PORT_RETURN",
 ]
-_PACKAGED_HOLDINGS_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "MKT_VAL", "ACCRUED"]
+_PACKAGED_HOLDINGS_NUMERIC_COLUMNS: Final = [
+    "QTY",
+    "PRICE",
+    "MKT_VAL",
+    "BASE_MKT_VAL",
+    "ACCRUED",
+]
 _INTERNAL_HOLDINGS_NUMERIC_COLUMNS: Final = [
     "QTY",
     "PRICE",
     "MKT_VAL",
+    "BASE_MKT_VAL",
     "COST",
     "ACCRUED",
 ]
@@ -121,6 +131,8 @@ _PACKAGED_HOLDINGS_COLUMNS: Final = [
     "PORT",
     "SEC",
     "HOLDING_DATE",
+    "CURRENCY",
+    "BASE_CURRENCY",
     *_PACKAGED_HOLDINGS_NUMERIC_COLUMNS,
 ]
 _HOLDING_SCENARIO_COLUMNS: Final = [
@@ -152,7 +164,13 @@ _HOLDING_SCENARIO_TYPES: Final = {
     "cost_only_correction",
     "x_ref_holdings_accrued_rate",
 }
-_TRANSACTION_NUMERIC_COLUMNS: Final = ["QTY", "PRICE", "AMOUNT", "COMMISSION"]
+_TRANSACTION_NUMERIC_COLUMNS: Final = [
+    "QTY",
+    "PRICE",
+    "AMOUNT",
+    "BASE_AMOUNT",
+    "COMMISSION",
+]
 _TRANSACTION_ID_COLUMN: Final = "TRANSACTION_ID"
 _TRANSACTION_SOURCE_COLUMNS: Final = [
     "PORT",
@@ -165,6 +183,8 @@ _TRANSACTION_SOURCE_COLUMNS: Final = [
     "SRC_DEST_SYMBOL",
     "SPECIAL_SEC_TYPE",
     "SPECIAL_SEC_SYMBOL",
+    "CURRENCY",
+    "BASE_CURRENCY",
 ]
 _PACKAGED_TRANSACTION_COLUMNS: Final = [
     *_TRANSACTION_SOURCE_COLUMNS,
@@ -179,6 +199,7 @@ _TRANSACTION_SCENARIO_COLUMNS: Final = [
     "QTY_delta",
     "PRICE_delta",
     "AMOUNT_delta",
+    "BASE_AMOUNT_delta",
     "COMMISSION_delta",
     "scenario",
 ]
@@ -252,7 +273,7 @@ _INTENTIONAL_SECURITY_RESIDUALS: Final = {
         "Intentional unexplained security example: reported security return "
         "changed while the visible source-data change is cost-only context."
     ),
-    ("INCOME", "CASH_USD", "2026-05-09", "2026-05-14", "Unexplained"): (
+    ("INCOME", "CASHUSD", "2026-05-09", "2026-05-14", "Unexplained"): (
         "Intentional cash-side residual from the corrected AAPL dividend timing."
     ),
     ("INCOME", "91282Y2Y1", "2026-05-09", "2026-05-14", "Partly Explained"): (
@@ -290,7 +311,12 @@ _TRANSACTION_HOLDING_EFFECT_CODES: Final = {
     "ss",
     "cs",
 }
-_CASH_SECURITY_ID: Final = "CASH_USD"
+_CASH_SECURITY_IDS: Final = {
+    "USD": "CASHUSD",
+    "EUR": "CASHEUR",
+    "GBP": "CASHGBP",
+}
+_CASH_SECURITY_ID: Final = _CASH_SECURITY_IDS["USD"]
 _EXPECTED_SCENARIO_COVERAGE: Final = {
     "snapshot_b": {
         "transaction_scenarios_by_type": {
@@ -312,7 +338,7 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
         "transaction_derived_holdings_by_type": {
             "by": 6,
             "dp": 1,
-            "dv": 7,
+            "dv": 8,
             "in": 3,
             "li": 1,
             "lo": 1,
@@ -609,7 +635,11 @@ def rebuild_demo_performance_files(
 
     snapshots: list[dict[str, object]] = []
     base_snapshot_directory = axys_directory / _BASE_SNAPSHOT_DIRECTORY
-    base_holdings = _with_internal_cost(pd.read_csv(base_snapshot_directory / "holdings.csv"))
+    base_holdings = _with_internal_cost(
+        _with_multicurrency_holdings(
+            pd.read_csv(base_snapshot_directory / "holdings.csv")
+        )
+    )
     base_transactions = _read_packaged_transactions(
         base_snapshot_directory / "transactions.csv"
     )
@@ -617,9 +647,19 @@ def rebuild_demo_performance_files(
     transaction_scenarios = _load_transaction_scenarios(transaction_scenarios_path)
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
         snapshot_directory = axys_directory / snapshot_name
-        current_secperf = pd.read_csv(snapshot_directory / "secperf.csv")
-        current_portperf = pd.read_csv(snapshot_directory / "portperf.csv")
-        holdings = _with_internal_cost(pd.read_csv(snapshot_directory / "holdings.csv"))
+        current_secperf = _with_performance_currencies(
+            pd.read_csv(snapshot_directory / "secperf.csv"),
+            security_level=True,
+        )
+        current_portperf = _with_performance_currencies(
+            pd.read_csv(snapshot_directory / "portperf.csv"),
+            security_level=False,
+        )
+        holdings = _with_internal_cost(
+            _with_multicurrency_holdings(
+                pd.read_csv(snapshot_directory / "holdings.csv")
+            )
+        )
         current_transactions = _read_packaged_transactions(
             snapshot_directory / "transactions.csv"
         )
@@ -803,6 +843,16 @@ def _rebuild_holdings(
         for column, delta in scenario.deltas.items():
             if delta:
                 rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
+    fx_restatement = (
+        rebuilt["PORT"].eq("BALANCED")
+        & rebuilt["SEC"].eq("SHEL.L")
+        & rebuilt["HOLDING_DATE"].astype(str).eq("2026-04-30")
+    )
+    if int(fx_restatement.sum()) != 1:
+        raise ValueError("Multi-currency FX restatement must match one holding row.")
+    rebuilt.loc[fx_restatement, "BASE_MKT_VAL"] = (
+        rebuilt.loc[fx_restatement, "BASE_MKT_VAL"].astype(float) + 320.0
+    )
     return _rounded_holdings(rebuilt[current_holdings.columns])
 
 
@@ -843,7 +893,201 @@ def _read_packaged_transactions(path: Path) -> pd.DataFrame:
     The rebuild scenario CSV still uses deterministic IDs as internal fixture
     handles so the demo derivation remains auditable.
     """
-    return _with_internal_transaction_ids(pd.read_csv(path))
+    return _with_internal_transaction_ids(
+        _with_multicurrency_transactions(pd.read_csv(path))
+    )
+
+
+def _with_multicurrency_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Return demo holdings with explicit local and base-currency values."""
+    rows = holdings.copy()
+    if "CURRENCY" not in rows.columns:
+        rows["CURRENCY"] = "USD"
+    if "BASE_CURRENCY" not in rows.columns:
+        rows["BASE_CURRENCY"] = "USD"
+    if "BASE_MKT_VAL" not in rows.columns:
+        rows["BASE_MKT_VAL"] = rows["MKT_VAL"]
+
+    currencies = {
+        "SAP.DE": "EUR",
+        "CASHEUR": "EUR",
+        "SHEL.L": "GBP",
+        "CASHGBP": "GBP",
+    }
+    rows.loc[rows["SEC"].isin(currencies), "CURRENCY"] = rows.loc[
+        rows["SEC"].isin(currencies), "SEC"
+    ].map(currencies)
+    balanced_dates = sorted(rows.loc[rows["PORT"].eq("BALANCED"), "HOLDING_DATE"].unique())
+    existing_keys = set(zip(rows["PORT"], rows["SEC"], rows["HOLDING_DATE"], strict=True))
+    additions: list[dict[str, object]] = []
+    for date_index, holding_date in enumerate(balanced_dates):
+        eur_rate = 1.08 + 0.002 * date_index
+        gbp_rate = 1.26 + 0.002 * date_index
+        local_values = {
+            "SAP.DE": (200.0, 100.0, 20_000.0, "EUR", eur_rate),
+            "CASHEUR": (5_000.0, 1.0, 5_000.0, "EUR", eur_rate),
+            "SHEL.L": (480.0, 25.0, 12_000.0, "GBP", gbp_rate),
+            "CASHGBP": (4_000.0, 1.0, 4_000.0, "GBP", gbp_rate),
+        }
+        for security, (quantity, price, market_value, currency, rate) in (
+            local_values.items()
+        ):
+            if ("BALANCED", security, holding_date) in existing_keys:
+                continue
+            additions.append(
+                {
+                    "PORT": "BALANCED",
+                    "SEC": security,
+                    "HOLDING_DATE": holding_date,
+                    "CURRENCY": currency,
+                    "BASE_CURRENCY": "USD",
+                    "QTY": quantity,
+                    "PRICE": price,
+                    "MKT_VAL": market_value,
+                    "BASE_MKT_VAL": round(market_value * rate, 2),
+                    "ACCRUED": 0.0,
+                }
+            )
+    if additions:
+        rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
+    return rows
+
+
+def _with_multicurrency_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Return demo transactions with base amounts and foreign-currency examples."""
+    rows = transactions.copy()
+    if "CURRENCY" not in rows.columns:
+        rows["CURRENCY"] = "USD"
+    if "BASE_CURRENCY" not in rows.columns:
+        rows["BASE_CURRENCY"] = "USD"
+    if "BASE_AMOUNT" not in rows.columns:
+        rows["BASE_AMOUNT"] = rows["AMOUNT"]
+
+    examples = [
+        {
+            "PORT": "BALANCED",
+            "TRANSACTION_DATE": "2026-01-12",
+            "SETTLE_DATE": "2026-01-14",
+            "SEC": "SAP.DE",
+            "TRAN": "by",
+            "SEC_TYPE": "cseu",
+            "SRC_DEST_TYPE": "$cash",
+            "SRC_DEST_SYMBOL": "CASHEUR",
+            "SPECIAL_SEC_TYPE": "",
+            "SPECIAL_SEC_SYMBOL": "",
+            "CURRENCY": "EUR",
+            "BASE_CURRENCY": "USD",
+            "QTY": 20.0,
+            "PRICE": 100.0,
+            "AMOUNT": -2_000.0,
+            "BASE_AMOUNT": -2_180.0,
+            "COMMISSION": 0.0,
+        },
+        {
+            "PORT": "BALANCED",
+            "TRANSACTION_DATE": "2026-02-16",
+            "SETTLE_DATE": "2026-02-18",
+            "SEC": "SHEL.L",
+            "TRAN": "sl",
+            "SEC_TYPE": "csgb",
+            "SRC_DEST_TYPE": "$cash",
+            "SRC_DEST_SYMBOL": "CASHGBP",
+            "SPECIAL_SEC_TYPE": "",
+            "SPECIAL_SEC_SYMBOL": "",
+            "CURRENCY": "GBP",
+            "BASE_CURRENCY": "USD",
+            "QTY": 40.0,
+            "PRICE": 25.0,
+            "AMOUNT": 1_000.0,
+            "BASE_AMOUNT": 1_270.0,
+            "COMMISSION": 0.0,
+        },
+        {
+            "PORT": "BALANCED",
+            "TRANSACTION_DATE": "2026-04-15",
+            "SETTLE_DATE": "2026-04-15",
+            "SEC": "SAP.DE",
+            "TRAN": "dv",
+            "SEC_TYPE": "cseu",
+            "SRC_DEST_TYPE": "$income",
+            "SRC_DEST_SYMBOL": "CASHEUR",
+            "SPECIAL_SEC_TYPE": "",
+            "SPECIAL_SEC_SYMBOL": "",
+            "CURRENCY": "EUR",
+            "BASE_CURRENCY": "USD",
+            "QTY": 0.0,
+            "PRICE": 0.0,
+            "AMOUNT": 120.0,
+            "BASE_AMOUNT": 129.6,
+            "COMMISSION": 0.0,
+        },
+    ]
+    keys = set(
+        zip(
+            rows["PORT"],
+            rows["TRANSACTION_DATE"].astype(str),
+            rows["SEC"],
+            rows["TRAN"],
+            strict=True,
+        )
+    )
+    additions = [
+        row
+        for row in examples
+        if (row["PORT"], row["TRANSACTION_DATE"], row["SEC"], row["TRAN"]) not in keys
+    ]
+    if additions:
+        rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
+    return rows
+
+
+def _with_performance_currencies(
+    performance: pd.DataFrame,
+    *,
+    security_level: bool,
+) -> pd.DataFrame:
+    """Return performance targets with explicit reporting currencies."""
+    rows = performance.copy()
+    rows["BASE_CURRENCY"] = "USD"
+    if security_level:
+        security_currency = {
+            "SAP.DE": "EUR",
+            "CASHEUR": "EUR",
+            "SHEL.L": "GBP",
+            "CASHGBP": "GBP",
+        }
+        balanced_periods = rows.loc[
+            rows["PORTFOLIO_CODE"].eq("BALANCED"), ["FROM_DATE", "THRU_DATE"]
+        ].drop_duplicates()
+        existing_keys = set(
+            zip(
+                rows["PORTFOLIO_CODE"],
+                rows["SECURITY_ID"],
+                rows["FROM_DATE"],
+                rows["THRU_DATE"],
+                strict=True,
+            )
+        )
+        additions: list[dict[str, object]] = []
+        for period in balanced_periods.itertuples(index=False):
+            for security in security_currency:
+                key = ("BALANCED", security, period.FROM_DATE, period.THRU_DATE)
+                if key in existing_keys:
+                    continue
+                additions.append(
+                    {
+                        "PORTFOLIO_CODE": "BALANCED",
+                        "SECURITY_ID": security,
+                        "FROM_DATE": period.FROM_DATE,
+                        "THRU_DATE": period.THRU_DATE,
+                        **{column: 0.0 for column in _SECPERF_NUMERIC_COLUMNS},
+                        "BASE_CURRENCY": "USD",
+                    }
+                )
+        if additions:
+            rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
+        rows["CURRENCY"] = rows["SECURITY_ID"].map(security_currency).fillna("USD")
+    return rows
 
 
 def _with_internal_cost(holdings: pd.DataFrame) -> pd.DataFrame:
@@ -889,6 +1133,28 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
 
     rows = transactions.copy()
     rows.insert(0, _TRANSACTION_ID_COLUMN, _derived_transaction_ids(rows))
+    multicurrency_ids = {
+        ("BALANCED", "2026-01-12", "SAP.DE", "by"): "MC_BAL_EUR_BUY",
+        ("BALANCED", "2026-02-16", "SHEL.L", "sl"): "MC_BAL_GBP_SELL",
+        ("BALANCED", "2026-04-15", "SAP.DE", "dv"): "MC_BAL_EUR_DIV",
+    }
+    transaction_keys = list(
+        zip(
+            rows["PORT"],
+            rows["TRANSACTION_DATE"].astype(str),
+            rows["SEC"],
+            rows["TRAN"],
+            strict=True,
+        )
+    )
+    rows[_TRANSACTION_ID_COLUMN] = [
+        multicurrency_ids.get(key, identifier)
+        for key, identifier in zip(
+            transaction_keys,
+            rows[_TRANSACTION_ID_COLUMN],
+            strict=True,
+        )
+    ]
     return rows
 
 
@@ -979,6 +1245,16 @@ def _rebuild_transactions(
         for column, delta in scenario.deltas.items():
             if delta:
                 rebuilt.loc[mask, column] = rebuilt.loc[mask, column].astype(float) + delta
+    eur_dividend = (
+        rebuilt["PORT"].eq("BALANCED")
+        & rebuilt["TRANSACTION_DATE"].astype(str).eq("2026-04-15")
+        & rebuilt["SEC"].eq("SAP.DE")
+        & rebuilt["TRAN"].eq("dv")
+    )
+    if int(eur_dividend.sum()) != 1:
+        raise ValueError("Multi-currency demo dividend must match exactly one row.")
+    rebuilt.loc[eur_dividend, "AMOUNT"] = 150.0
+    rebuilt.loc[eur_dividend, "BASE_AMOUNT"] = 162.0
     return _rounded_transactions(rebuilt[current_transactions.columns])
 
 
@@ -988,6 +1264,7 @@ def _rounded_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
     rounded["QTY"] = rounded["QTY"].astype(float).round(4)
     rounded["PRICE"] = rounded["PRICE"].astype(float).round(4)
     rounded["AMOUNT"] = rounded["AMOUNT"].astype(float).round(2)
+    rounded["BASE_AMOUNT"] = rounded["BASE_AMOUNT"].astype(float).round(2)
     rounded["COMMISSION"] = rounded["COMMISSION"].astype(float).round(2)
     return rounded
 
@@ -1055,6 +1332,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=f"{row.TRANSACTION_ID} by transaction changes cash balance.",
                     )
                 )
@@ -1065,6 +1344,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=f"{row.TRANSACTION_ID} ss transaction changes cash balance.",
                     )
                 )
@@ -1075,6 +1356,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=f"{row.TRANSACTION_ID} cs transaction changes cash balance.",
                     )
                 )
@@ -1100,6 +1383,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=f"{row.TRANSACTION_ID} sl transaction changes cash balance.",
                     )
                 )
@@ -1126,6 +1411,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=(
                             f"{row.TRANSACTION_ID} {transaction_code} transaction "
                             "changes cash balance."
@@ -1154,6 +1441,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=f"{row.TRANSACTION_ID} pd transaction changes cash balance.",
                     )
                 )
@@ -1164,6 +1453,8 @@ def _transaction_derived_holding_adjustments(
                         portfolio=str(row.PORT),
                         holding_date=holding_date,
                         cash_delta=float(row.AMOUNT_delta),
+                        base_cash_delta=float(row.BASE_AMOUNT_delta),
+                        cash_security=_cash_security_for_transaction(row),
                         scenario=(
                             f"{row.TRANSACTION_ID} {transaction_code} transaction "
                             "changes cash balance."
@@ -1187,6 +1478,7 @@ def _changed_transaction_rows(
         "QTY",
         "PRICE",
         "AMOUNT",
+        "BASE_AMOUNT",
         "COMMISSION",
     ]
     context_columns = [
@@ -1197,6 +1489,8 @@ def _changed_transaction_rows(
             "SRC_DEST_SYMBOL",
             "SPECIAL_SEC_TYPE",
             "SPECIAL_SEC_SYMBOL",
+            "CURRENCY",
+            "BASE_CURRENCY",
         )
         if column in base_transactions.columns and column in current_transactions.columns
     ]
@@ -1230,7 +1524,7 @@ def _changed_transaction_rows(
                     **context_values,
                     **{
                         f"{column}_delta": -float(getattr(row, f"{column}_base"))
-                        for column in ("QTY", "PRICE", "AMOUNT", "COMMISSION")
+                        for column in _TRANSACTION_NUMERIC_COLUMNS
                     },
                 }
             )
@@ -1250,7 +1544,7 @@ def _changed_transaction_rows(
                     **context_values,
                     **{
                         f"{column}_delta": float(getattr(row, f"{column}_current"))
-                        for column in ("QTY", "PRICE", "AMOUNT", "COMMISSION")
+                        for column in _TRANSACTION_NUMERIC_COLUMNS
                     },
                 }
             )
@@ -1286,7 +1580,7 @@ def _changed_transaction_rows(
         deltas = {
             column: float(getattr(row, f"{column}_current"))
             - float(getattr(row, f"{column}_base"))
-            for column in ("QTY", "PRICE", "AMOUNT", "COMMISSION")
+            for column in _TRANSACTION_NUMERIC_COLUMNS
         }
         if not any(deltas.values()):
             continue
@@ -1406,6 +1700,7 @@ def _security_trade_adjustment(
             "QTY": quantity_delta,
             "PRICE": 0.0,
             "MKT_VAL": market_value_delta,
+            "BASE_MKT_VAL": market_value_delta,
             "COST": cost_delta,
             "ACCRUED": accrued_delta,
         },
@@ -1444,6 +1739,7 @@ def _principal_paydown_adjustment(
             "QTY": 0.0,
             "PRICE": 0.0,
             "MKT_VAL": principal_delta,
+            "BASE_MKT_VAL": principal_delta,
             "COST": principal_delta,
             "ACCRUED": 0.0,
         },
@@ -1457,24 +1753,36 @@ def _cash_adjustment(
     portfolio: str,
     holding_date: str,
     cash_delta: float,
+    base_cash_delta: float,
+    cash_security: str,
     scenario: str,
 ) -> HoldingScenarioAdjustment:
     """Return the cash holding impact for a changed cash-affecting transaction."""
     return HoldingScenarioAdjustment(
         snapshot=snapshot,
         portfolio=portfolio,
-        security=_CASH_SECURITY_ID,
+        security=cash_security,
         holding_date=holding_date,
         scenario_type="transaction_derived",
         deltas={
             "QTY": cash_delta,
             "PRICE": 0.0,
             "MKT_VAL": cash_delta,
+            "BASE_MKT_VAL": base_cash_delta,
             "COST": cash_delta,
             "ACCRUED": 0.0,
         },
         scenario=scenario,
     )
+
+
+def _cash_security_for_transaction(row: object) -> str:
+    """Return the currency-specific cash security for a transaction diff row."""
+    source_symbol = _row_string(row, "SRC_DEST_SYMBOL")
+    if source_symbol in _CASH_SECURITY_IDS.values():
+        return source_symbol
+    currency = _row_string(row, "CURRENCY") or "USD"
+    return _CASH_SECURITY_IDS.get(currency, "CASHUSD")
 
 
 def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
@@ -1503,6 +1811,7 @@ def _load_holding_scenarios(path: Path) -> HoldingScenarioSet:
             f"{_HOLDING_SCENARIO_COLUMNS}. "
             f"Missing={missing_columns}; extra={extra_columns}."
         )
+    scenarios["BASE_MKT_VAL_delta"] = scenarios["MKT_VAL_delta"]
 
     key_nulls = scenarios[_HOLDING_SCENARIO_KEY].isna().any(axis=1)
     if bool(key_nulls.any()):
@@ -1581,10 +1890,21 @@ def _validate_holding_scenario_deltas(
     """
     changed_columns = {column for column, delta in deltas.items() if delta}
     allowed_columns_by_type = {
-        "valuation_mark": {"PRICE", "MKT_VAL"},
-        "cash_balance_correction": {"QTY", "MKT_VAL", "COST"},
-        "quantity_valuation_correction": {"QTY", "MKT_VAL", "COST"},
-        "accrual_correction": {"QTY", "MKT_VAL", "COST", "ACCRUED"},
+        "valuation_mark": {"PRICE", "MKT_VAL", "BASE_MKT_VAL"},
+        "cash_balance_correction": {"QTY", "MKT_VAL", "BASE_MKT_VAL", "COST"},
+        "quantity_valuation_correction": {
+            "QTY",
+            "MKT_VAL",
+            "BASE_MKT_VAL",
+            "COST",
+        },
+        "accrual_correction": {
+            "QTY",
+            "MKT_VAL",
+            "BASE_MKT_VAL",
+            "COST",
+            "ACCRUED",
+        },
         "cost_only_correction": {"COST"},
         "x_ref_holdings_accrued_rate": {"ACCRUED"},
     }
@@ -1611,6 +1931,42 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
             invalid.
     """
     scenarios = pd.read_csv(path, keep_default_na=False)
+    legacy_columns = [
+        column
+        for column in _TRANSACTION_SCENARIO_COLUMNS
+        if column
+        not in {"CURRENCY", "BASE_CURRENCY", "BASE_AMOUNT", "BASE_AMOUNT_delta"}
+    ]
+    if tuple(scenarios.columns) not in {
+        tuple(_TRANSACTION_SCENARIO_COLUMNS),
+        tuple(legacy_columns),
+    }:
+        raise ValueError(
+            "Transaction scenario CSV columns must exactly match either the "
+            f"current or legacy fixture columns. Actual={list(scenarios.columns)}."
+        )
+    if "CURRENCY" not in scenarios.columns:
+        scenarios["CURRENCY"] = "USD"
+    else:
+        scenarios["CURRENCY"] = scenarios["CURRENCY"].replace("", "USD")
+    if "BASE_CURRENCY" not in scenarios.columns:
+        scenarios["BASE_CURRENCY"] = "USD"
+    else:
+        scenarios["BASE_CURRENCY"] = scenarios["BASE_CURRENCY"].replace("", "USD")
+    if "BASE_AMOUNT" not in scenarios.columns:
+        scenarios["BASE_AMOUNT"] = scenarios["AMOUNT"]
+    else:
+        scenarios["BASE_AMOUNT"] = scenarios["BASE_AMOUNT"].where(
+            scenarios["BASE_AMOUNT"].astype(str).str.strip().ne(""),
+            scenarios["AMOUNT"],
+        )
+    if "BASE_AMOUNT_delta" not in scenarios.columns:
+        scenarios["BASE_AMOUNT_delta"] = scenarios["AMOUNT_delta"]
+    else:
+        scenarios["BASE_AMOUNT_delta"] = scenarios["BASE_AMOUNT_delta"].where(
+            scenarios["BASE_AMOUNT_delta"].astype(str).str.strip().ne(""),
+            scenarios["AMOUNT_delta"],
+        )
     missing_columns = [
         column
         for column in _TRANSACTION_SCENARIO_COLUMNS
@@ -1874,7 +2230,7 @@ def _rounded_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
     rounded = holdings.copy()
     rounded["QTY"] = rounded["QTY"].astype(float).round(4)
     rounded["PRICE"] = rounded["PRICE"].astype(float).round(4)
-    for column in ("MKT_VAL", "COST", "ACCRUED"):
+    for column in ("MKT_VAL", "BASE_MKT_VAL", "COST", "ACCRUED"):
         rounded[column] = rounded[column].astype(float).round(2)
     return rounded
 
@@ -2120,7 +2476,9 @@ def _holding_values(holdings: pd.DataFrame) -> pd.DataFrame:
     """Return holdings with normalized dates and total holding value."""
     values = holdings.copy()
     values["HOLDING_DATE"] = pd.to_datetime(values["HOLDING_DATE"])
-    values["HOLDING_VALUE"] = values["MKT_VAL"].astype(float) + values["ACCRUED"].astype(float)
+    values["HOLDING_VALUE"] = values["BASE_MKT_VAL"].astype(float) + values[
+        "ACCRUED"
+    ].astype(float)
     return values
 
 
@@ -2129,7 +2487,8 @@ def _prepared_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
     prepared = transactions.copy()
     prepared["TRANSACTION_DATE"] = pd.to_datetime(prepared["TRANSACTION_DATE"])
     prepared["TRAN"] = prepared["TRAN"].astype(str)
-    prepared["AMOUNT"] = prepared["AMOUNT"].astype(float)
+    prepared["LOCAL_AMOUNT"] = prepared["AMOUNT"].astype(float)
+    prepared["AMOUNT"] = prepared["BASE_AMOUNT"].astype(float)
     return prepared
 
 

@@ -21,7 +21,7 @@ BLK,Blackrock Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
 BMY,Bristol Myers Squibb,EQ,Equity,HC,Health Care,US,United States,USD,US Dollar
 BRKB,Berkshire Hathaway Inc Class B,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
 C,Citigroup Inc,EQ,Equity,FI,Financials,US,United States,USD,US Dollar
-CASH_USD,US Dollar Cash,CASH,Cash,CA,Cash,US,United States,USD,US Dollar
+CASHUSD,US Dollar Cash,CASH,Cash,CA,Cash,US,United States,USD,US Dollar
 CAT,Caterpillar Inc,EQ,Equity,IN,Industrials,US,United States,USD,US Dollar
 CHTR,Charter Communications Inc Class A,EQ,Equity,CO,Communication Services,US,United States,USD,US Dollar
 CL,Colgate-Palmolive,EQ,Equity,CS,Consumer Staples,US,United States,USD,US Dollar

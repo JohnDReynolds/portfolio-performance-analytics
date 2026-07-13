@@ -24,6 +24,7 @@ The two packaged snapshots currently use the same file layouts:
 - `portperf.csv`
 - `secperf.csv`
 - `transactions.csv`
+- `fx_rates.csv`
 - `splits.csv`
 
 ## Confidence Labels
@@ -67,9 +68,12 @@ Use this matrix as an implementation planning aid:
 | holdings | `PORT` | Portfolio/account identifier. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Core portfolio/client identifier in position and appraisal workflows. |
 | holdings | `SEC` | Security identifier. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Security identifiers are supported by CI/security-resolution and report evidence. |
 | holdings | `HOLDING_DATE` | As-of date for holdings. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Position exports and appraisal reports are inherently as-of-date based. |
+| holdings | `CURRENCY` | Local currency of the holding row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| holdings | `BASE_CURRENCY` | Portfolio reporting currency used for the holding row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 | holdings | `QTY` | Quantity, shares, or units. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Quantity is directly supported by transaction and appraisal report evidence. |
 | holdings | `PRICE` | Market price used for valuation. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Price import/export evidence and appraisal/report labels support availability. |
 | holdings | `MKT_VAL` | Market value. | High | High | Position/appraisal evidence in Chapter_06_Holdings.md, Chapter_12_Imex.md, Chapter_13_Rep.md, and axysapx_common_core_export.md. | Confirm exact local IMEX profile and field name. | Market value appears in report evidence and is a core position/appraisal value. |
+| holdings | `BASE_MKT_VAL` | Holding market value translated to portfolio base currency. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 | holdings | `ACCRUED` | Accrued income or accrued interest. | Medium | Medium | Fixed-income/accrual handling is documented as performance-sensitive; common-core holdings reference treats accrued income as plausible. | Confirm accrued-income field, date basis, and fixed-income treatment. | Common for fixed-income holdings, but exact export/report field requires validation. |
 
 
@@ -87,6 +91,7 @@ Use this matrix as an implementation planning aid:
 | portfolio performance | `THRU_DATE` | Period end date. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Report parameters reliably provide the period; structured export field names require validation. |
 | portfolio performance | `BEGIN_MV` | Beginning market value. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Likely reportable; exact IMEX object/field remains unproven. |
 | portfolio performance | `PORT_RETURN` | Portfolio return. | Medium / Unknown | High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior. | Performance-history IMEX fields are not established; REP is preferred for report-tie values. |
+| portfolio performance | `BASE_CURRENCY` | Portfolio reporting currency for the performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 
 
 ### `secperf.csv`
@@ -104,6 +109,8 @@ Use this matrix as an implementation planning aid:
 | security performance | `BEGIN_MV` | Beginning market value for security row. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether values come from security performance, appraisal, or custom REP output. | Likely reportable; exact IMEX field remains unproven. |
 | security performance | `SEC_RETURN` | Security return. | Medium / Unknown | High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Performance-history IMEX fields are not established; REP is preferred for report-tie values. |
 | security performance | `CONTRIBUTION` | Security contribution to return. | Low / Medium | Medium / High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Contribution reports are supported, but exact Axys/APX security-contribution export requires validation. |
+| security performance | `CURRENCY` | Local currency of the security performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| security performance | `BASE_CURRENCY` | Portfolio reporting currency for the security performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 
 
 ### `transactions.csv`
@@ -120,10 +127,27 @@ Use this matrix as an implementation planning aid:
 | transactions | `SRC_DEST_SYMBOL` | Source/destination symbol for ambiguous flows. | Medium | Low / Medium | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Observed transaction translation/integration field, not guaranteed in every posted export. |
 | transactions | `SPECIAL_SEC_TYPE` | Special security type for fee or special handling. | Medium | Low | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Supported in integration evidence; standard report exposure is uncertain. |
 | transactions | `SPECIAL_SEC_SYMBOL` | Special security symbol for fee or special handling. | Medium | Low | Observed CI/Axys/APX transaction translation context in Chapter_05_Transactions.md and Chapter_12_Imex.md; required for ambiguous external-flow handling. | Confirm whether local IMEX exposes this context on posted transaction exports.; Use REP, a custom report, or another source if IMEX cannot expose it. | Supported in integration evidence; standard report exposure is uncertain. |
+| transactions | `CURRENCY` | Local currency of the transaction amount. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| transactions | `BASE_CURRENCY` | Portfolio reporting currency for the transaction. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 | transactions | `QTY` | Transaction quantity. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Quantity appears in transaction and report evidence. |
 | transactions | `PRICE` | Transaction price. | High | High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Price appears in transaction and report evidence. |
 | transactions | `AMOUNT` | Net amount, proceeds, or cash amount. | High | Medium / High | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Core transaction amount is likely available, though report labels can vary. |
+| transactions | `BASE_AMOUNT` | Transaction amount translated to portfolio base currency. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 | transactions | `COMMISSION` | Commission. | Medium | Medium | Transaction import/export and report evidence in Chapter_05_Transactions.md, Chapter_12_Imex.md, and Chapter_13_Rep.md. | Confirm exact posted-transaction export fields and sign convention. | Supported in CI parameter evidence; report/profile availability should be validated. |
+
+
+### `fx_rates.csv`
+
+| Dataset | Demo column | Normalized meaning | IMEX confidence | REP confidence | Evidence basis | Open questions | Comments |
+|---|---|---|---|---|---|---|---|
+| FX rates | `PORT` | Portfolio/account identifier for exposure linkage. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `FROM_CURRENCY` | Local currency converted by the rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `TO_CURRENCY` | Portfolio base currency produced by the rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `RATE_DATE` | Effective date of the FX rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `FX_RATE` | Units of base currency per unit of local currency. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `RATE_SOURCE` | Provenance label for the normalized FX rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `RATE_TYPE` | Rate convention such as closing or average. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| FX rates | `LOCAL_EXPOSURE` | Local-currency exposure explicitly linked to the portfolio and rate. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 
 
 ### `splits.csv`
@@ -152,9 +176,12 @@ These names are candidate aliases for local discovery. They are not assertions t
 | holdings | `PORT` | PORT, Portfolio, Portfolio Code, Account | Portfolio, Account | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `SEC` | SEC, Security, Symbol, Security ID | Security, Symbol, Security ID | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `HOLDING_DATE` | Date, As Of Date, Holding Date | As Of Date, Report Date | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
+| holdings | `CURRENCY` | Currency, Local Currency | Currency, Local Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| holdings | `BASE_CURRENCY` | Base Currency, Portfolio Currency | Base Currency, Reporting Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 | holdings | `QTY` | QTY, Quantity, Shares, Units | Quantity, Shares, Units | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `PRICE` | PRICE, Price, Market Price | Price, Market Price | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | holdings | `MKT_VAL` | MKT_VAL, Market Value, MarketVal | Market Value | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
+| holdings | `BASE_MKT_VAL` | Base Market Value, Reporting Market Value | Base Market Value, Reporting Market Value | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 | holdings | `ACCRUED` | ACCRUED, Accrued Interest, Accrued Income | Accrued Interest, Accrued Income | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 
 
@@ -172,6 +199,7 @@ These names are candidate aliases for local discovery. They are not assertions t
 | portfolio performance | `THRU_DATE` | Thru Date, Through Date, End Date | Thru Date, Ending Date | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `BEGIN_MV` | Beginning Market Value, Begin Market Value | Beginning Market Value, Begin MV | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `PORT_RETURN` | Return, Portfolio Return | Portfolio Return, Total Return | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
+| portfolio performance | `BASE_CURRENCY` | Base Currency, Portfolio Currency | Base Currency, Reporting Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 
 
 ### `secperf.csv` Name Candidates
@@ -189,6 +217,8 @@ These names are candidate aliases for local discovery. They are not assertions t
 | security performance | `BEGIN_MV` | Beginning Market Value, Begin Market Value | Beginning Market Value, Begin MV | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | security performance | `SEC_RETURN` | Return, Security Return | Security Return, Total Return | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | security performance | `CONTRIBUTION` | Contribution, Contribution to Return | Contribution, Contribution to Return | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
+| security performance | `CURRENCY` | Currency, Security Currency | Currency, Security Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| security performance | `BASE_CURRENCY` | Base Currency, Portfolio Currency | Base Currency, Reporting Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 
 
 ### `transactions.csv` Name Candidates
@@ -205,10 +235,27 @@ These names are candidate aliases for local discovery. They are not assertions t
 | transactions | `SRC_DEST_SYMBOL` | Source/Destination Symbol, Src Dest Symbol | Source/Destination Symbol | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
 | transactions | `SPECIAL_SEC_TYPE` | Special Security Type, Special Sec Type | Special Security Type | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
 | transactions | `SPECIAL_SEC_SYMBOL` | Special Security Symbol, Special Sec Symbol | Special Security Symbol | Normalized Demo Only | Normalized demo header retained for ppar consistency; native Axys/APX naming is not established by the local corpus. |
+| transactions | `CURRENCY` | Currency, Transaction Currency | Currency, Transaction Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| transactions | `BASE_CURRENCY` | Base Currency, Portfolio Currency | Base Currency, Reporting Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 | transactions | `QTY` | QTY, Quantity, Shares, Units | Quantity, Shares, Units | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `PRICE` | PRICE, Price | Price | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
 | transactions | `AMOUNT` | Amount, Net Amount, Cash Amount | Amount, Net Amount, Cash Amount | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
+| transactions | `BASE_AMOUNT` | Base Amount, Reporting Amount | Base Amount, Reporting Amount | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 | transactions | `COMMISSION` | Commission, Commissions | Commission | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
+
+
+### `fx_rates.csv` Name Candidates
+
+| Dataset | Demo column | Candidate Axys/APX export names | Candidate report labels | Name confidence | Notes |
+|---|---|---|---|---|---|
+| FX rates | `PORT` | Portfolio, Account | Portfolio, Account | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `FROM_CURRENCY` | From Currency, Local Currency | From Currency, Local Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `TO_CURRENCY` | To Currency, Base Currency | To Currency, Base Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `RATE_DATE` | Rate Date, Price Date | Rate Date, As Of Date | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `FX_RATE` | FX Rate, Exchange Rate | FX Rate, Exchange Rate | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `RATE_SOURCE` | Rate Source, Price Source | Rate Source, Price Source | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `RATE_TYPE` | Rate Type, Price Type | Rate Type, Price Type | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
+| FX rates | `LOCAL_EXPOSURE` | Local Exposure, Local Market Value | Local Exposure, Local Market Value | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 
 
 ### `splits.csv` Name Candidates
@@ -239,9 +286,12 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | holdings | `PORT` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
 | holdings | `SEC` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
 | holdings | `HOLDING_DATE` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| holdings | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 | holdings | `QTY` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
 | holdings | `PRICE` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
 | holdings | `MKT_VAL` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `BASE_MKT_VAL` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 | holdings | `ACCRUED` | IMEX or REP | Local discovery required | No | Yes | Accrued income can affect performance reconciliation, so validate the field before running accrual-sensitive comparisons. |
 
 
@@ -259,6 +309,7 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | portfolio performance | `THRU_DATE` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
 | portfolio performance | `BEGIN_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
 | portfolio performance | `PORT_RETURN` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 
 
 ### `secperf.csv` Source Strategy
@@ -276,6 +327,8 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | security performance | `BEGIN_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
 | security performance | `SEC_RETURN` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
 | security performance | `CONTRIBUTION` | REP preferred | Local discovery required | No | No | Attribution-style values are report-sensitive; do not assume IMEX availability. |
+| security performance | `CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| security performance | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 
 
 ### `transactions.csv` Source Strategy
@@ -292,10 +345,27 @@ This matrix translates availability confidence into implementation guidance. `Bl
 | transactions | `SRC_DEST_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
 | transactions | `SPECIAL_SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
 | transactions | `SPECIAL_SEC_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| transactions | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 | transactions | `QTY` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `PRICE` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 | transactions | `AMOUNT` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `BASE_AMOUNT` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 | transactions | `COMMISSION` | IMEX then REP cross-check | REP preferred | No | No | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+
+
+### `fx_rates.csv` Source Strategy
+
+| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
+|---|---|---|---|---|---|---|
+| FX rates | `PORT` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `FROM_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `TO_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `RATE_DATE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `FX_RATE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `RATE_SOURCE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `RATE_TYPE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `LOCAL_EXPOSURE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
 
 
 ### `splits.csv` Source Strategy

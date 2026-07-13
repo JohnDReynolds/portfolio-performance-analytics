@@ -27,6 +27,7 @@ _DEFAULT_OUTPUT_PATH: Final = (
 )
 _DATASET_LABELS: Final[dict[str, str]] = {
     "holdings.csv": "holdings",
+    "fx_rates.csv": "FX rates",
     "portperf.csv": "portfolio performance",
     "sec_ref.csv": "security master",
     "secperf.csv": "security performance",
@@ -143,7 +144,8 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "`ppar/setup_templates/axysapx_performance_comparison/snapshot_b`",
         "Status: Draft confidence matrix generated from the packaged YAML contract.",
         "",
-        "<!-- GENERATED FROM ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml. -->",
+        "<!-- GENERATED FROM ppar/setup_templates/axysapx_performance_comparison/"
+        "demo_extract_availability.yaml. -->",
         "<!-- Run scripts/render_demo_extract_availability.py after editing the YAML. -->",
         "",
         "---",
@@ -155,7 +157,8 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
         "and/or REP-style report extracts.",
         "",
         "The machine-readable source of truth is "
-        "`ppar/setup_templates/axysapx_performance_comparison/demo_extract_availability.yaml`. Tests verify "
+        "`ppar/setup_templates/axysapx_performance_comparison/"
+        "demo_extract_availability.yaml`. Tests verify "
         "that the YAML covers every packaged comparison demo CSV header and "
         "that this contract is current.",
         "",

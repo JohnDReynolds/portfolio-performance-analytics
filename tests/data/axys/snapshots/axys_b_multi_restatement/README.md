@@ -23,7 +23,7 @@ Files:
 - classification_lookup.csv: lookup-table classification source
 - unreachable_target_secperf.csv: intentionally unreconcilable validation rows
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
-- holdings.csv: month-end holding snapshots, including CASH_USD
+- holdings.csv: month-end holding snapshots, including CASHUSD
 - fx_rates.csv: daily FX rates
 - cash.csv: month-end cash balances by portfolio/currency
 
@@ -41,4 +41,4 @@ Intentional event coverage:
 - DIV dividend transactions
 - INT Treasury interest transactions
 - SPLIT sample split transaction
-- CASH_USD cash rows
+- CASHUSD cash rows

@@ -160,8 +160,8 @@ class TestPerformanceComparisonXRefIssues(unittest.TestCase):
                     "P2,ABC,2026-02-28,100,10.25,1025,0",
                 ],
                 transaction_rows=[
-                    "P1,2026-02-15,,ABC,by,stock,$cash,CASH_USD,,,10,10.00,-100,0",
-                    "P2,2026-02-15,,ABC,by,stock,$cash,CASH_USD,,,10,10.50,-105,0",
+                    "P1,2026-02-15,,ABC,by,stock,$cash,CASHUSD,,,10,10.00,-100,0",
+                    "P2,2026-02-15,,ABC,by,stock,$cash,CASHUSD,,,10,10.50,-105,0",
                 ],
                 x_ref_config="""
                 data_audit_checks:

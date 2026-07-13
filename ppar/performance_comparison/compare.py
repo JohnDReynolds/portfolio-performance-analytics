@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 import datetime as dt
+import math
 from collections.abc import Mapping
 from typing import Any, Final, cast
 
@@ -20,6 +21,8 @@ from ppar.performance_comparison.findings import (
     CONTEXT,
     DIRECT_INPUT,
     EvidenceRole,
+    IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
+    IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
     RELATED_OUTPUT,
     TARGET_OUTPUT,
@@ -126,7 +129,8 @@ _CASH_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.CASH_DATE,
     pc_cols.CURRENCY,
 )
-_FX_RATE_KEY_COLUMNS: Final[tuple[str, str, str, str, str]] = (
+_FX_RATE_KEY_COLUMNS: Final[tuple[str, ...]] = (
+    pc_cols.PORTFOLIO_ID,
     pc_cols.FROM_CURRENCY,
     pc_cols.TO_CURRENCY,
     pc_cols.RATE_DATE,
@@ -171,6 +175,7 @@ _HOLDINGS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.QUANTITY: PC_HOLD_QTY,
     pc_cols.PRICE: PC_PRICE,
     pc_cols.MARKET_VALUE: PC_HOLD_MV,
+    pc_cols.BASE_MARKET_VALUE: PC_HOLD_MV,
     pc_cols.COST: PC_HOLD_COST,
     pc_cols.ACCRUED: PC_HOLD_ACCR,
 }
@@ -186,6 +191,7 @@ _SPLITS_COMPARE_COLUMNS: Final[dict[str, str]] = {
 }
 _TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.AMOUNT: PC_TXN_AMT,
+    pc_cols.BASE_AMOUNT: PC_TXN_AMT,
     pc_cols.QUANTITY: PC_TXN_QTY,
     pc_cols.PRICE: PC_TXN_PRICE,
     pc_cols.COMMISSION: PC_TXN_COMM,
@@ -220,6 +226,7 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.CONTRIBUTION: "contribution",
     pc_cols.QUANTITY: "quantity",
     pc_cols.MARKET_VALUE: "market_value",
+    pc_cols.BASE_MARKET_VALUE: "market_value",
     pc_cols.COST: "market_value",
     pc_cols.ACCRUED: "market_value",
     pc_cols.CASH_BALANCE: "market_value",
@@ -227,6 +234,7 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.SPLIT_FACTOR: "split_factor",
     pc_cols.FX_RATE: "fx_rate",
     pc_cols.AMOUNT: "market_value",
+    pc_cols.BASE_AMOUNT: "market_value",
     pc_cols.COMMISSION: "market_value",
 }
 
@@ -452,6 +460,8 @@ class PerformanceComparison:
         if snapshot_a is None or snapshot_b is None:
             return []
 
+        portfolio_periods = self._portfolio_periods()
+        return_denominators = self._portfolio_period_return_denominators()
         key_columns = self._optional_key_columns(
             snapshot_a,
             snapshot_b,
@@ -474,6 +484,8 @@ class PerformanceComparison:
                 key_columns,
                 _FX_RATE_COMPARE_COLUMNS,
                 pc_cols.FX_RATES,
+                portfolio_periods,
+                return_denominators=return_denominators,
             )
         )
         return findings
@@ -1134,11 +1146,17 @@ class PerformanceComparison:
         findings: list[Finding] = []
         for row in joined.iter_rows(named=True):
             for column in shared_columns:
+                if (
+                    dataset == pc_cols.TRANSACTIONS
+                    and column == pc_cols.BASE_AMOUNT
+                    and row.get(pc_cols.CURRENCY) == row.get(pc_cols.BASE_CURRENCY)
+                ):
+                    continue
                 snapshot_a_value = row[column]
                 snapshot_b_value = row[f"{column}_b"]
                 if snapshot_a_value == snapshot_b_value:
                     continue
-                impact_policy = self._impact_policy(dataset, column)
+                impact_policy = self._row_impact_policy(row, dataset, column)
                 transaction_impact_policy = self._transaction_impact_policy(
                     row,
                     dataset,
@@ -1251,6 +1269,12 @@ class PerformanceComparison:
                 transaction_fallback_periods,
             )
             for column in shared_columns:
+                if (
+                    dataset == pc_cols.TRANSACTIONS
+                    and column == pc_cols.BASE_AMOUNT
+                    and row.get(pc_cols.CURRENCY) == row.get(pc_cols.BASE_CURRENCY)
+                ):
+                    continue
                 snapshot_a_value = row[column]
                 snapshot_b_value = row[f"{column}_b"]
                 delta = self._numeric_delta(snapshot_a_value, snapshot_b_value)
@@ -1259,7 +1283,7 @@ class PerformanceComparison:
                 if abs(delta) <= self._tolerance(column):
                     continue
                 for portfolio_id, from_date, thru_date in finding_contexts:
-                    impact_policy = self._impact_policy(dataset, column)
+                    impact_policy = self._row_impact_policy(row, dataset, column)
                     transaction_impact_policy = self._transaction_impact_policy(
                         row,
                         dataset,
@@ -1545,6 +1569,12 @@ class PerformanceComparison:
         """Return YAML-configured transaction impact policy for a row."""
         if dataset != pc_cols.TRANSACTIONS:
             return None
+        if (
+            source_column == pc_cols.AMOUNT
+            and row.get(pc_cols.BASE_AMOUNT) is not None
+            and row.get(pc_cols.CURRENCY) != row.get(pc_cols.BASE_CURRENCY)
+        ):
+            return f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}transactions.amount_local"
         if _field_roles.is_input_component(dataset, source_column):
             policy = self._transaction_impact_policies.get(source_column)
             if policy is not None:
@@ -1682,7 +1712,13 @@ class PerformanceComparison:
         """Return beginning market value for approximate return impacts."""
         if dataset != pc_cols.PORTFOLIO_PERFORMANCE:
             if (
-                dataset in {pc_cols.HOLDINGS, pc_cols.TRANSACTIONS, pc_cols.CASH}
+                dataset
+                in {
+                    pc_cols.HOLDINGS,
+                    pc_cols.TRANSACTIONS,
+                    pc_cols.CASH,
+                    pc_cols.FX_RATES,
+                }
                 and portfolio_id is not None
                 and from_date is not None
                 and thru_date is not None
@@ -1736,6 +1772,22 @@ class PerformanceComparison:
         impact_policy: object | None,
     ) -> float | None:
         """Return method-specific input value used for impact estimates."""
+        if (
+            dataset == pc_cols.FX_RATES
+            and source_column == pc_cols.FX_RATE
+            and impact_policy == IMPACT_POLICY_FX_RATE_EXPOSURE
+        ):
+            exposure_a = row.get(pc_cols.LOCAL_EXPOSURE)
+            exposure_b = row.get(f"{pc_cols.LOCAL_EXPOSURE}_b")
+            if (
+                isinstance(exposure_a, bool)
+                or isinstance(exposure_b, bool)
+                or not isinstance(exposure_a, (int, float))
+                or not isinstance(exposure_b, (int, float))
+                or not math.isclose(float(exposure_a), float(exposure_b))
+            ):
+                return None
+            return float(exposure_a)
         if (
             dataset != pc_cols.HOLDINGS
             or source_column != pc_cols.QUANTITY
@@ -1990,7 +2042,14 @@ class PerformanceComparison:
         transaction_impact_policy: object | None,
     ) -> EvidenceRole:
         """Return the evidence role for one changed-value finding."""
-        if _field_roles.is_context(dataset, source_column):
+        del transaction_impact_policy
+        if (
+            _field_roles.is_context(dataset, source_column)
+            or (
+                dataset == pc_cols.FX_RATES
+                and _is_evidence_only_policy_label(impact_policy)
+            )
+        ):
             return CONTEXT
         return self._evidence_role(code, dataset, source_column)
 
@@ -2064,3 +2123,22 @@ class PerformanceComparison:
         if policy is not None:
             return policy
         return None
+
+    def _row_impact_policy(
+        self,
+        row: Mapping[str, object],
+        dataset: str,
+        source_column: str,
+    ) -> str | None:
+        """Return an impact policy adjusted for local-currency holding fields."""
+        if (
+            dataset == pc_cols.HOLDINGS
+            and source_column in {pc_cols.QUANTITY, pc_cols.MARKET_VALUE}
+            and row.get(pc_cols.BASE_MARKET_VALUE) is not None
+            and row.get(pc_cols.CURRENCY) != row.get(pc_cols.BASE_CURRENCY)
+        ):
+            return (
+                f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
+                f"holdings.{source_column}_local"
+            )
+        return self._impact_policy(dataset, source_column)

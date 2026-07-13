@@ -165,8 +165,8 @@ Current packaged scenario inventory:
 | --- | --- |
 | `AAPL` price and buy rows | Equity valuation and buy-transaction amount examples. |
 | `MSFT` sale rows | Sale amount, quantity, price, and commission evidence. |
-| `CASH_USD` `wd`, `li`, and `lo` rows | Context-gated external cash-flow examples. |
-| `CASH_USD` `dp` row | Fee-like expense classified from special-security context. |
+| `CASHUSD` `wd`, `li`, and `lo` rows | Context-gated external cash-flow examples. |
+| `CASHUSD` `dp` row | Fee-like expense classified from special-security context. |
 | `JPM` `dv` and `rc` rows | Dividend income plus context-gated return of capital. |
 | `CVNA` split row | Central split-factor context that explains corrected quantity and related market value. |
 | `TSLA` `ss`/`cs` rows | Disclosed synthetic short-sale and cover-short lifecycle using real May 2026 prices. |

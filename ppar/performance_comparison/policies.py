@@ -15,6 +15,7 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_CASH_BALANCE,
     IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
+    IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
     IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
@@ -105,6 +106,9 @@ _CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD: Final[str] = (
     CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _FX_RATE_EVIDENCE_ONLY_METHOD: Final[str] = FxRateImpactMethod.EVIDENCE_ONLY.value
+_FX_RATE_EXPOSURE_METHOD: Final[str] = (
+    FxRateImpactMethod.RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_RETURN_DENOMINATOR.value
+)
 _FLOW_TIMING_KEY: Final[str] = "flow_timing"
 _DAY_COUNT_KEY: Final[str] = "day_count"
 _INCLUSION_RULE_KEY: Final[str] = "inclusion_rule"
@@ -192,6 +196,12 @@ _FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _METHOD_KEY,
     }
 )
+_FX_RATE_EXPOSURE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        _METHOD_KEY,
+        _DENOMINATOR_SOURCE_KEY,
+    }
+)
 _MODIFIED_DIETZ_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _FLOW_TIMING_KEY: _MODIFIED_DIETZ_FLOW_TIMINGS,
     _DAY_COUNT_KEY: _MODIFIED_DIETZ_DAY_COUNTS,
@@ -239,7 +249,13 @@ _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
     pc_cols.CASH: frozenset({pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}),
     pc_cols.FX_RATES: frozenset({pc_cols.FX_RATE}),
     pc_cols.HOLDINGS: frozenset(
-        {pc_cols.QUANTITY, pc_cols.MARKET_VALUE, pc_cols.COST, pc_cols.ACCRUED}
+        {
+            pc_cols.QUANTITY,
+            pc_cols.MARKET_VALUE,
+            pc_cols.BASE_MARKET_VALUE,
+            pc_cols.COST,
+            pc_cols.ACCRUED,
+        }
     ),
     pc_cols.SPLITS: frozenset({pc_cols.SPLIT_FACTOR}),
     pc_cols.TRANSACTIONS: frozenset(
@@ -1023,6 +1039,23 @@ def _fx_rate_impact_policies(
         pc_cols.FX_RATE,
         fx_rate_value,
     )
+    method = policy.get(_METHOD_KEY)
+    if method == _FX_RATE_EXPOSURE_METHOD:
+        _validate_policy_keys(
+            specification,
+            _FX_RATE_IMPACT_METHODS_KEY,
+            pc_cols.FX_RATE,
+            policy,
+            _FX_RATE_EXPOSURE_REQUIRED_KEYS,
+        )
+        _validate_allowed_policy_values(
+            specification,
+            _FX_RATE_IMPACT_METHODS_KEY,
+            pc_cols.FX_RATE,
+            policy,
+            {_DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"})},
+        )
+        return {pc_cols.FX_RATE: IMPACT_POLICY_FX_RATE_EXPOSURE}
     _validate_policy_keys(
         specification,
         _FX_RATE_IMPACT_METHODS_KEY,

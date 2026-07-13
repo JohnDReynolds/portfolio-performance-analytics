@@ -749,7 +749,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("source/destination symbol", roadmap)
         self.assertIn("REP/report\n  semantic fields", roadmap)
         self.assertIn("context, not from an ambiguous code alone", roadmap)
-        self.assertIn("generated ending `CASH_USD` holding", roadmap)
+        self.assertIn("generated ending `CASHUSD` holding", roadmap)
         self.assertIn("portfolio Modified Dietz\n  reconstruction", roadmap)
         self.assertIn("without double-counting", roadmap)
         self.assertIn("Implemented contribution recipe", roadmap)
@@ -1960,7 +1960,7 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
         self.assertIn("AAPL", holding_ids)
         self.assertIn("NVDA", holding_ids)
-        self.assertIn("CASH_USD", holding_ids)
+        self.assertIn("CASHUSD", holding_ids)
         self.assertIn("912797AA1", holding_ids)
         self.assertIn("91282Y2Y1", holding_ids)
         self.assertIn("91282Y5Y1", holding_ids)
@@ -1994,8 +1994,8 @@ class TestPackageMetadata(unittest.TestCase):
                 security = transaction_a["SEC"]
                 holding_a = holdings_a[(portfolio, security, holding_date)]
                 holding_b = holdings_b[(portfolio, security, holding_date)]
-                cash_a = holdings_a[(portfolio, "CASH_USD", holding_date)]
-                cash_b = holdings_b[(portfolio, "CASH_USD", holding_date)]
+                cash_a = holdings_a[(portfolio, "CASHUSD", holding_date)]
+                cash_b = holdings_b[(portfolio, "CASHUSD", holding_date)]
 
                 quantity_delta = _float_delta(transaction_a, transaction_b, "QTY")
                 amount_delta = _float_delta(transaction_a, transaction_b, "AMOUNT")
@@ -2057,11 +2057,11 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
-        transaction_key = ("INCOME", "2026-01-20", "CASH_USD", "dp")
-        cash_holding_key = ("INCOME", "CASH_USD", "2026-01-30")
+        transaction_key = ("INCOME", "2026-01-20", "CASHUSD", "dp")
+        cash_holding_key = ("INCOME", "CASHUSD", "2026-01-30")
         cash_performance_key = (
             "INCOME",
-            "CASH_USD",
+            "CASHUSD",
             "2026-01-01",
             "2026-01-30",
         )
@@ -2128,11 +2128,11 @@ class TestPackageMetadata(unittest.TestCase):
         axys_demo_data = files("ppar.setup_templates") / "axysapx_performance_comparison"
         snapshot_a = Path(str(axys_demo_data / "snapshot_a"))
         snapshot_b = Path(str(axys_demo_data / "snapshot_b"))
-        transaction_key = ("ALPHA", "2026-01-20", "CASH_USD", "wd")
-        cash_holding_key = ("ALPHA", "CASH_USD", "2026-01-30")
+        transaction_key = ("ALPHA", "2026-01-20", "CASHUSD", "wd")
+        cash_holding_key = ("ALPHA", "CASHUSD", "2026-01-30")
         cash_performance_key = (
             "ALPHA",
-            "CASH_USD",
+            "CASHUSD",
             "2026-01-01",
             "2026-01-30",
         )

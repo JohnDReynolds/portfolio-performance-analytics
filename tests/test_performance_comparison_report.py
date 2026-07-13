@@ -343,6 +343,9 @@ def _assert_workbook_explained_row_actions(
                     msg=f"{row.get('review_key')} has unclear setup: {setup_text}",
                 )
                 continue
+            if row.get("impact_status") == "Review only":
+                test_case.assertIn("review", str(required_setup).lower())
+                continue
             test_case.assertEqual(row.get("impact_status"), "Missing impact method")
             setup_text = str(required_setup)
             test_case.assertTrue(

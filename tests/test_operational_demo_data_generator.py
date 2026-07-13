@@ -77,7 +77,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertLess(float((weights - 1.0).abs().max()), 1e-12)
         self.assertEqual(
             set(performance[performance["sector"].eq("Cash")]["identifier"]),
-            {"CASH_USD", "36225MBS1", "912797AA1", "91282Y2Y1", "91282Y5Y1"},
+            {"CASHUSD", "36225MBS1", "912797AA1", "91282Y2Y1", "91282Y5Y1"},
         )
         self.assertEqual(
             performance[performance["asset_class"].eq("Equity")]["identifier"].nunique(),
@@ -98,7 +98,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         self.assertNotIn("cash", axys)
         self.assertIn("transactions", axys)
         self.assertGreater(float(axys["holdings"]["ACCRUED"].max()), 0.0)
-        self.assertIn("CASH_USD", set(axys["holdings"]["SEC"]))
+        self.assertIn("CASHUSD", set(axys["holdings"]["SEC"]))
         self.assertGreater(len(axys["transactions"]), 0)
         self.assertIn("91282Y2Y1", set(axys["sec_ref"]["SECURITY_ID"]))
 
@@ -185,7 +185,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         cash_market_value_a = _value(
             snapshot_a["holdings"],
             snapshot_a["holdings"]["PORT"].eq("ALPHA")
-            & snapshot_a["holdings"]["SEC"].eq("CASH_USD")
+            & snapshot_a["holdings"]["SEC"].eq("CASHUSD")
             & snapshot_a["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),
@@ -194,7 +194,7 @@ class TestOperationalDemoDataGenerator(unittest.TestCase):
         cash_market_value_b = _value(
             snapshot_b["holdings"],
             snapshot_b["holdings"]["PORT"].eq("ALPHA")
-            & snapshot_b["holdings"]["SEC"].eq("CASH_USD")
+            & snapshot_b["holdings"]["SEC"].eq("CASHUSD")
             & snapshot_b["holdings"]["HOLDING_DATE"].astype(str).eq(
                 str(latest_date)
             ),

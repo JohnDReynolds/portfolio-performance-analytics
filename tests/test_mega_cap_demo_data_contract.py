@@ -78,13 +78,13 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
             self.assertEqual(list(pd.read_csv(path, nrows=0).columns), expected_columns)
 
     def test_period_weights_sum_to_one_and_cash_is_present(self) -> None:
-        """Every period includes CASH_USD and sums to a complete portfolio."""
+        """Every period includes CASHUSD and sums to a complete portfolio."""
         for path in (_PORTFOLIO_PATH, _BENCHMARK_PATH):
             performance = _read_performance(path)
             period_weight_sums = performance.groupby(["from_date", "thru_date"])[
                 "weight"
             ].sum()
-            cash_rows = performance[performance["identifier"].eq("CASH_USD")]
+            cash_rows = performance[performance["identifier"].eq("CASHUSD")]
 
             self.assertLess(float((period_weight_sums - 1.0).abs().max()), 1e-12)
             self.assertEqual(len(cash_rows), 60)
@@ -109,10 +109,10 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertTrue(identifiers.issubset(set(securities["identifier"])))
         self.assertTrue(identifiers.issubset(set(mappings["identifier"])))
         self.assertTrue(set(mappings["sector"]).issubset(set(sectors["sector"])))
-        self.assertIn("CASH_USD", set(securities["identifier"]))
+        self.assertIn("CASHUSD", set(securities["identifier"]))
         self.assertIn("Cash", set(sectors["name"]))
         self.assertEqual(
-            mappings.loc[mappings["identifier"].eq("CASH_USD"), "sector"].item(),
+            mappings.loc[mappings["identifier"].eq("CASHUSD"), "sector"].item(),
             "CA",
         )
 

@@ -387,6 +387,7 @@ class TransactionsLoader:
                 pc_cols.QUANTITY,
                 pc_cols.PRICE,
                 pc_cols.AMOUNT,
+                pc_cols.BASE_AMOUNT,
                 pc_cols.COMMISSION,
             ),
             dataset_name=pc_cols.TRANSACTIONS,

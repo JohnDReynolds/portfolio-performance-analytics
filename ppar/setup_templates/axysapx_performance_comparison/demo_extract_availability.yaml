@@ -17,6 +17,22 @@ confidence_labels:
   low_medium: Between low and medium; possible and plausible, but not proven as a standard field.
   low: Possible through customization or site-specific configuration, but not enough to rely on.
   unknown: Not established by the local Axys/APX reference corpus.
+normalized_multicurrency_defaults: &normalized_multicurrency_defaults
+  imex_confidence: unknown
+  rep_confidence: low_medium
+  comments: Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation.
+  basis: The research supports multi-currency concepts but does not prove this exact export field or normalized layout.
+  open_questions:
+  - Confirm the local source, field label, currency basis, and date semantics.
+  candidate_axys_names: [Currency-related local field]
+  candidate_report_labels: [Currency-related report field]
+  name_confidence: inferred_alias
+  name_notes: Normalized demo name only; confirm the exact local Axys/APX label.
+  preferred_source: local_discovery_required
+  fallback_source: rep_preferred
+  requires_context_for_semantics: false
+  blocking_if_missing: true
+  source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
 datasets:
   holdings.csv:
     columns:
@@ -92,6 +108,16 @@ datasets:
         blocking_if_missing: true
         source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
           REP extract.
+      CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Local currency of the holding row.
+        candidate_axys_names: [Currency, Local Currency]
+        candidate_report_labels: [Currency, Local Currency]
+      BASE_CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Portfolio reporting currency used for the holding row.
+        candidate_axys_names: [Base Currency, Portfolio Currency]
+        candidate_report_labels: [Base Currency, Reporting Currency]
       QTY:
         normalized_meaning: Quantity, shares, or units.
         imex_confidence: high
@@ -162,6 +188,11 @@ datasets:
         blocking_if_missing: true
         source_strategy_notes: Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style
           REP extract.
+      BASE_MKT_VAL:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Holding market value translated to portfolio base currency.
+        candidate_axys_names: [Base Market Value, Reporting Market Value]
+        candidate_report_labels: [Base Market Value, Reporting Market Value]
       ACCRUED:
         normalized_meaning: Accrued income or accrued interest.
         imex_confidence: medium
@@ -419,6 +450,11 @@ datasets:
         blocking_if_missing: true
         source_strategy_notes: Prefer report output because the local corpus does not prove native performance IMEX object
           names or calculation basis.
+      BASE_CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Portfolio reporting currency for the performance row.
+        candidate_axys_names: [Base Currency, Portfolio Currency]
+        candidate_report_labels: [Base Currency, Reporting Currency]
   secperf.csv:
     columns:
       END_MV:
@@ -674,6 +710,16 @@ datasets:
         requires_context_for_semantics: false
         blocking_if_missing: false
         source_strategy_notes: Attribution-style values are report-sensitive; do not assume IMEX availability.
+      CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Local currency of the security performance row.
+        candidate_axys_names: [Currency, Security Currency]
+        candidate_report_labels: [Currency, Security Currency]
+      BASE_CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Portfolio reporting currency for the security performance row.
+        candidate_axys_names: [Base Currency, Portfolio Currency]
+        candidate_report_labels: [Base Currency, Reporting Currency]
   transactions.csv:
     columns:
       PORT:
@@ -911,6 +957,16 @@ datasets:
         blocking_if_missing: true
         source_strategy_notes: Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and
           use REP, a custom report, or another local source.
+      CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Local currency of the transaction amount.
+        candidate_axys_names: [Currency, Transaction Currency]
+        candidate_report_labels: [Currency, Transaction Currency]
+      BASE_CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Portfolio reporting currency for the transaction.
+        candidate_axys_names: [Base Currency, Portfolio Currency]
+        candidate_report_labels: [Base Currency, Reporting Currency]
       QTY:
         normalized_meaning: Transaction quantity.
         imex_confidence: high
@@ -981,6 +1037,11 @@ datasets:
         blocking_if_missing: true
         source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
           sign-convention validation.
+      BASE_AMOUNT:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Transaction amount translated to portfolio base currency.
+        candidate_axys_names: [Base Amount, Reporting Amount]
+        candidate_report_labels: [Base Amount, Reporting Amount]
       COMMISSION:
         normalized_meaning: Commission.
         imex_confidence: medium
@@ -1002,6 +1063,48 @@ datasets:
         blocking_if_missing: false
         source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
           sign-convention validation.
+  fx_rates.csv:
+    columns:
+      PORT:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Portfolio/account identifier for exposure linkage.
+        candidate_axys_names: [Portfolio, Account]
+        candidate_report_labels: [Portfolio, Account]
+      FROM_CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Local currency converted by the rate.
+        candidate_axys_names: [From Currency, Local Currency]
+        candidate_report_labels: [From Currency, Local Currency]
+      TO_CURRENCY:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Portfolio base currency produced by the rate.
+        candidate_axys_names: [To Currency, Base Currency]
+        candidate_report_labels: [To Currency, Base Currency]
+      RATE_DATE:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Effective date of the FX rate.
+        candidate_axys_names: [Rate Date, Price Date]
+        candidate_report_labels: [Rate Date, As Of Date]
+      FX_RATE:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Units of base currency per unit of local currency.
+        candidate_axys_names: [FX Rate, Exchange Rate]
+        candidate_report_labels: [FX Rate, Exchange Rate]
+      RATE_SOURCE:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Provenance label for the normalized FX rate.
+        candidate_axys_names: [Rate Source, Price Source]
+        candidate_report_labels: [Rate Source, Price Source]
+      RATE_TYPE:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Rate convention such as closing or average.
+        candidate_axys_names: [Rate Type, Price Type]
+        candidate_report_labels: [Rate Type, Price Type]
+      LOCAL_EXPOSURE:
+        <<: *normalized_multicurrency_defaults
+        normalized_meaning: Local-currency exposure explicitly linked to the portfolio and rate.
+        candidate_axys_names: [Local Exposure, Local Market Value]
+        candidate_report_labels: [Local Exposure, Local Market Value]
   splits.csv:
     columns:
       SEC:

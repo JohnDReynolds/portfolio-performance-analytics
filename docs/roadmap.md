@@ -207,7 +207,7 @@ useful before, after, or apart from a specific performance restatement review.
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
 | Richer APX demo | Create a second APX-oriented demo that starts from the packaged Axys/APX demo story but adds richer fields from the Axys/APX research only when they materially change validation, logic, Modified Dietz treatment, or user-facing reports. | The APX demo has its own source contract, data/YAML, generated reports, and tests. Added fields such as source/destination context or multi-currency data must affect comparison behavior or reviewer output. |
-| Multi-currency model | Add multi-currency source-data examples only when cash-account mapping, FX rates, reporting currency, and Modified Dietz treatment are explicit. | Reports distinguish FX/rate effects from cash-flow and valuation effects without implying vendor methodology that is not evidenced. |
+| Multi-currency expansion | Extend the implemented USD-base EUR/GBP demo only after validating additional quote conventions, portfolio currencies, and source mappings. | Reports continue to separate FX/rate effects from cash-flow and valuation effects without implying unevidenced vendor methodology. |
 | Broader extract discovery | Review `docs/axys-apx-reference` for Axys/APX fields that justify new comparison behavior. | Candidate fields are accepted only with confidence notes, source-contract metadata, and a clear effect on validation or report output. |
 
 ### Eventual Deliverables
@@ -1000,8 +1000,8 @@ valuation, and accrual amount rules become deterministic.
 The current guardrail tests pin the accounting impact of each supported simple
 transaction type:
 
-- `wd` and fee-like `dp` reduce ending `CASH_USD` holdings;
-- `dv` and `in` increase ending `CASH_USD` holdings;
+- `wd` and fee-like `dp` reduce ending `CASHUSD` holdings;
+- `dv` and `in` increase ending `CASHUSD` holdings;
 - `by` increases the traded security holding and reduces cash;
 - `sl` reduces the traded security holding and increases cash;
 - the packaged CVNA split-processing correction demonstrates a realistic
@@ -1116,7 +1116,7 @@ the withdrawal example. Before adding any additional external-flow variant to
   context, not from an ambiguous code alone, and preserves the correct
   `external_flow` cash/performance signs;
 - cash and holdings: the transaction-derived cash movement reconciles to the
-  generated ending `CASH_USD` holding for the affected period;
+  generated ending `CASHUSD` holding for the affected period;
 - return reconstruction: `portperf.csv` and the portfolio Modified Dietz
   reconstruction agree on net external flow, weighted flow, and return impact;
 - report behavior: workbook and CSV artifacts explain the changed contribution
@@ -1129,7 +1129,7 @@ Implemented contribution recipe:
 
 - add the contribution as an inserted transaction scenario, not by mutating an
   unrelated base transaction row;
-- use an Axys/APX-style `li` row on `CASH_USD` with `SRC_DEST_TYPE=$pty`,
+- use an Axys/APX-style `li` row on `CASHUSD` with `SRC_DEST_TYPE=$pty`,
   `SRC_DEST_SYMBOL=$cash`, positive `AMOUNT`, zero quantity/price/commission,
   and same-day settlement unless site evidence says otherwise;
 - let the rebuild script derive snapshot B `transactions.csv`, ending cash
@@ -2692,13 +2692,13 @@ unchanged.
 Status: complete for one packaged external-cash `lo` promotion.
 
 The packaged Axys/APX demo now includes a single Snapshot B inserted `lo` row for
-`ALPHA` February 2026. The row uses `CASH_USD`, `$pty/$cash`
+`ALPHA` February 2026. The row uses `CASHUSD`, `$pty/$cash`
 source/destination context, a negative amount, zero quantity/price/commission,
 and same-day settlement. The scenario is intentionally framed as an external
 cash deliver-out, not as a generic withdrawal and not as evidence that `lo` is
 safe by code alone.
 
-The rebuild pipeline derives the matching lower `CASH_USD` ending holding,
+The rebuild pipeline derives the matching lower `CASHUSD` ending holding,
 portfolio performance row, and reconstruction diagnostics from the scenario.
 The YAML rule remains conditional: `lo` is an external flow only when reviewed
 external-party context is present, while internal-transfer branches stay

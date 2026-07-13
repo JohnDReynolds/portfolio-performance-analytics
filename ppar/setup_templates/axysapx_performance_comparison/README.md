@@ -58,6 +58,13 @@ fields, optional local-enrichment fields, and internal scenario/rebuild fields.
 For field-by-field IMEX and REP availability confidence, see
 [Demo Extract Availability](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
+The demo includes normalized USD-base multi-currency examples: `SAP.DE` and
+`CASHEUR` in EUR, `SHEL.L` and `CASHGBP` in GBP, and `CASHUSD` in USD. Local
+amounts/market values are paired with explicit base-currency values. A changed
+EUR dividend and a changed GBP/USD rate reach Explained Difference separately.
+The FX estimate is a ppar screening formula using an explicit unchanged local
+exposure; it is not a claim about proprietary Axys/APX calculation mechanics.
+
 Setup creates `analytics/ppar.yaml` and `audit/ppar.yaml`.
 Performance Auditing validation checks minimum required datasets, required normalized columns,
 and complete YAML treatment for changed source-data fields before report bundles are written.
@@ -149,7 +156,7 @@ Data used:
   transactions, and holdings.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, one CVNA split-processing example,
-  `CASH_USD`, `912797AA1`, `91282Y2Y1`, and `91282Y5Y1`. `ALPHA` is the closest match
+  `CASHUSD`, `912797AA1`, `91282Y2Y1`, and `91282Y5Y1`. `ALPHA` is the closest match
   to the Mega-Cap Alpha analytics portfolio; `BALANCED` and `INCOME` reuse the
   same securities with larger cash/fixed-income sleeves. CVNA appears only in
   the BALANCED portfolio as a small corporate-action processing example tied to
@@ -228,25 +235,25 @@ Expected workbook:
   Dietz returns agree with reported return differences and where they do not.
 - The controlled restatement includes:
   - a fully explained ALPHA period with AAPL price/security-return changes and
-    `CASH_USD` holding changes;
+    `CASHUSD` holding changes;
   - an ALPHA `wd` external-withdrawal amount restatement visible in the return
     reconstruction check;
   - a fully explained ALPHA period with a changed AAPL `by` transaction amount,
     changed AAPL holding quantity/market value, and related transaction
     quantity, price, and commission support rows;
-  - a fully explained ALPHA period with an inserted `lo` row on `CASH_USD` for
+  - a fully explained ALPHA period with an inserted `lo` row on `CASHUSD` for
     an external cash deliver-out;
   - a fully explained BALANCED period with a changed MSFT `sl` transaction
     amount and related quantity, price, and commission support rows;
   - a fully explained BALANCED period with a JPM `dv` dividend amount change;
   - a context-gated BALANCED period with a JPM `rc` return-of-capital row;
-  - a fully explained BALANCED period with an inserted `li` row on `CASH_USD`
+  - a fully explained BALANCED period with an inserted `li` row on `CASHUSD`
     for an external cash contribution;
   - a fully explained BALANCED period where Snapshot A missed the CVNA
     5-for-1 split quantity adjustment while both snapshots use split-adjusted
     ending prices, so Snapshot B corrects CVNA ending quantity and market value;
   - a fully explained INCOME period with a larger fee-like `dp` transaction,
-    classified from special-security context, and matching lower `CASH_USD`
+    classified from special-security context, and matching lower `CASHUSD`
     ending value;
   - two isolated INCOME periods showing a missed/late AAPL `dv` row: Snapshot B
     adds the real 2026-05-14 payable-date dividend and removes Snapshot A's

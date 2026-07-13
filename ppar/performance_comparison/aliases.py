@@ -31,6 +31,7 @@ PORTFOLIO_PERFORMANCE_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.GAIN_LOSS: ("GAIN_LOSS", "GL", "GAIN", "REAL_UNREAL_GL"),
     pc_cols.PERIOD_ID: ("PERIOD_ID",),
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
+    pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
 }
 
 SECURITY_PERFORMANCE_REQUIRED_ALIASES: Final[ColumnAliases] = {
@@ -56,6 +57,7 @@ SECURITY_PERFORMANCE_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.GAIN_LOSS: ("GAIN_LOSS", "GL", "GAIN", "REAL_UNREAL_GL"),
     pc_cols.PERIOD_ID: ("PERIOD_ID",),
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
+    pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CURR", "BASE_CCY"),
 }
 
 SPLITS_REQUIRED_ALIASES: Final[ColumnAliases] = {
@@ -75,6 +77,12 @@ FX_RATES_REQUIRED_ALIASES: Final[ColumnAliases] = {
     pc_cols.FX_RATE: ("FX_RATE", "RATE", "EXCHANGE_RATE"),
 }
 FX_RATES_OPTIONAL_ALIASES: Final[ColumnAliases] = {
+    pc_cols.PORTFOLIO_ID: PORTFOLIO_PERFORMANCE_REQUIRED_ALIASES[pc_cols.PORTFOLIO_ID],
+    pc_cols.LOCAL_EXPOSURE: (
+        "LOCAL_EXPOSURE",
+        "LOCAL_MARKET_VALUE",
+        "LOCAL_MV",
+    ),
     pc_cols.RATE_SOURCE: ("RATE_SOURCE", "SOURCE", "SRC", "VENDOR"),
     pc_cols.RATE_TYPE: ("RATE_TYPE",),
 }
@@ -138,8 +146,10 @@ TRANSACTIONS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.QUANTITY: ("QUANTITY", "QTY", "UNITS", "SHARES"),
     pc_cols.PRICE: ("PRICE", "PX", "TRADE_PRICE"),
     pc_cols.AMOUNT: ("AMOUNT", "AMT", "NET_AMOUNT", "NET_AMT"),
+    pc_cols.BASE_AMOUNT: ("BASE_AMOUNT", "BASE_AMT", "AMOUNT_BASE"),
     pc_cols.COMMISSION: ("COMMISSION", "COMM", "COMMISH"),
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
+    pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
     pc_cols.BROKER: ("BROKER", "BRKR", "BROKER_CODE"),
 }
 
@@ -152,9 +162,15 @@ HOLDINGS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.QUANTITY: ("QUANTITY", "QTY", "UNITS", "SHARES"),
     pc_cols.PRICE: ("PRICE", "PX", "MARKET_PRICE"),
     pc_cols.MARKET_VALUE: ("MARKET_VALUE", "MV", "MKT_VAL"),
+    pc_cols.BASE_MARKET_VALUE: (
+        "BASE_MARKET_VALUE",
+        "BASE_MV",
+        "BASE_MKT_VAL",
+    ),
     pc_cols.COST: ("COST", "COST_BASIS", "BOOK_COST", "TAX_COST", "ORIG_COST"),
     pc_cols.ACCRUED: ("ACCRUED", "ACCRUED_INCOME", "ACCRUED_INT", "ACCRUAL"),
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
+    pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
 }
 
 CASH_REQUIRED_ALIASES: Final[ColumnAliases] = {

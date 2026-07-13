@@ -144,6 +144,7 @@ files:
   security_performance: secperf.csv
   holdings: holdings.csv
   transactions: transactions.csv
+  fx_rates: fx_rates.csv
   splits: splits.csv
 
 data_audit_checks:
@@ -489,7 +490,7 @@ transaction_rules:
     # Withdrawal is external only for a cash row with reviewed external-party
     # context; sweep-like rows remain neutral transfer.
     - when:
-        security_id: CASH_USD
+        security_id: CASHUSD
         source_destination_type: $pty
         source_destination_symbol: $cash
       transaction_category: external_flow
@@ -539,6 +540,14 @@ security_return_impact_methods:
     day_count: actual_days
     inclusion_rule: beginning_of_day
 
+fx_rate_impact_methods:
+  # PPAR-normalized demo method. This does not claim Axys/APX uses this formula.
+  # It estimates the base-return effect of a changed rate only when both
+  # snapshots provide the same explicit local-currency exposure.
+  fx_rate:
+    method: rate_delta_times_local_exposure_over_return_denominator
+    denominator_source: begin_market_value
+
 evidence_only_impact_methods:
   # Purpose:
   #   Names source-data fields that are intentionally review context, not
@@ -549,6 +558,10 @@ evidence_only_impact_methods:
     method: evidence_only
     source_fields:
       - split_factor
+  holdings:
+    method: evidence_only
+    source_fields:
+      - base_market_value
 
 tolerances:
   # Purpose:

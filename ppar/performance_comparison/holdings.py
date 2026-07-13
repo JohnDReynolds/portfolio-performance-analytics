@@ -68,6 +68,7 @@ class HoldingsLoader:
                 pc_cols.QUANTITY,
                 pc_cols.PRICE,
                 pc_cols.MARKET_VALUE,
+                pc_cols.BASE_MARKET_VALUE,
                 pc_cols.COST,
                 pc_cols.ACCRUED,
             ),

@@ -43,6 +43,8 @@ __all__ = [
     "BEGIN_MARKET_VALUE",
     "END_MARKET_VALUE",
     "MARKET_VALUE",
+    "BASE_MARKET_VALUE",
+    "BASE_CURRENCY",
     "FLOW",
     "INCOME",
     "GAIN_LOSS",
@@ -64,6 +66,8 @@ __all__ = [
     "TRANSACTION_SEMANTICS_SOURCE",
     "QUANTITY",
     "AMOUNT",
+    "BASE_AMOUNT",
+    "LOCAL_EXPOSURE",
     "COMMISSION",
     "BROKER",
     "COST",
@@ -130,6 +134,8 @@ ASSET_CLASS = "asset_class"
 BEGIN_MARKET_VALUE = "begin_market_value"
 END_MARKET_VALUE = "end_market_value"
 MARKET_VALUE = "market_value"
+BASE_MARKET_VALUE = "base_market_value"
+BASE_CURRENCY = "base_currency"
 FLOW = "flow"
 INCOME = "income"
 GAIN_LOSS = "gain_loss"
@@ -151,6 +157,8 @@ PERFORMANCE_FLOW_SIGN = "performance_flow_sign"
 TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 QUANTITY = "quantity"
 AMOUNT = "amount"
+BASE_AMOUNT = "base_amount"
+LOCAL_EXPOSURE = "local_exposure"
 COMMISSION = "commission"
 BROKER = "broker"
 COST = "cost"
@@ -173,6 +181,7 @@ PORTFOLIO_PERFORMANCE_OPTIONAL_COLUMNS = (
     GAIN_LOSS,
     PERIOD_ID,
     CURRENCY,
+    BASE_CURRENCY,
 )
 
 PORTFOLIO_PERFORMANCE_COLUMNS = (
@@ -198,6 +207,7 @@ SECURITY_PERFORMANCE_OPTIONAL_COLUMNS = (
     GAIN_LOSS,
     PERIOD_ID,
     CURRENCY,
+    BASE_CURRENCY,
 )
 
 SECURITY_PERFORMANCE_COLUMNS = (
@@ -229,6 +239,8 @@ FX_RATES_REQUIRED_COLUMNS = (
 )
 
 FX_RATES_OPTIONAL_COLUMNS = (
+    PORTFOLIO_ID,
+    LOCAL_EXPOSURE,
     RATE_SOURCE,
     RATE_TYPE,
 )
@@ -260,8 +272,10 @@ TRANSACTIONS_OPTIONAL_COLUMNS = (
     QUANTITY,
     PRICE,
     AMOUNT,
+    BASE_AMOUNT,
     COMMISSION,
     CURRENCY,
+    BASE_CURRENCY,
     BROKER,
 )
 
@@ -280,9 +294,11 @@ HOLDINGS_OPTIONAL_COLUMNS = (
     QUANTITY,
     PRICE,
     MARKET_VALUE,
+    BASE_MARKET_VALUE,
     COST,
     ACCRUED,
     CURRENCY,
+    BASE_CURRENCY,
 )
 
 HOLDINGS_COLUMNS = (

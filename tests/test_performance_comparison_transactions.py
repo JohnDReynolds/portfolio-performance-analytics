@@ -712,7 +712,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 "wd": [
                     {
                         "when": {
-                            "security_id": "CASH_USD",
+                            "security_id": "CASHUSD",
                             "source_destination_type": "$pty",
                             "source_destination_symbol": "$cash",
                         },
@@ -757,12 +757,12 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             rows = {
                 "PORT": ["P1", "P1", "P1", "P1", "P1"],
-                "SEC": ["CASH_USD", "CASH_USD", "AAPL", "AAPL", "CASH_USD"],
+                "SEC": ["CASHUSD", "CASHUSD", "AAPL", "AAPL", "CASHUSD"],
                 "TRANSACTION_DATE": ["2025-01-31"] * 5,
                 "TRAN": ["wd", "wd", "li", "lo", "dp"],
                 "SEC_TYPE": ["cash", "cash", "eq", "eq", "cash"],
                 "SRC_DEST_TYPE": ["$pty", "$sweep", "$pty", "$pty", "$pty"],
-                "SRC_DEST_SYMBOL": ["$cash", "CASH_USD", "$cash", "$cash", "$cash"],
+                "SRC_DEST_SYMBOL": ["$cash", "CASHUSD", "$cash", "$cash", "$cash"],
                 "SPECIAL_SEC_TYPE": ["", "", "", "", "exus"],
                 "SPECIAL_SEC_SYMBOL": ["", "", "", "", "custfee"],
             }
@@ -1301,7 +1301,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             rows = {
                 "PORT": ["P1", "P1", "P1", "P1"],
-                "SEC": ["CASH_USD", "CASH_USD", "CASH_USD", "CASH_USD"],
+                "SEC": ["CASHUSD", "CASHUSD", "CASHUSD", "CASHUSD"],
                 "TRANSACTION_DATE": ["2025-01-31"] * 4,
                 "TRAN": ["li", "lo", "dp", "wd"],
                 "TRANSACTION_CATEGORY": [
@@ -1486,7 +1486,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 "wd": [
                     {
                         "when": {
-                            "security_id": "CASH_USD",
+                            "security_id": "CASHUSD",
                             "source_destination_type": "$pty",
                             "source_destination_symbol": "$cash",
                         },
@@ -1500,7 +1500,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 pl.DataFrame(
                     {
                         "PORT": ["P1"],
-                        "SEC": ["CASH_USD"],
+                        "SEC": ["CASHUSD"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["wd"],
                     }
@@ -1552,7 +1552,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 "wd": [
                     {
                         "when": {
-                            "security_id": "CASH_USD",
+                            "security_id": "CASHUSD",
                             "source_destination_type": "$pty",
                             "source_destination_symbol": "$cash",
                         },
@@ -1564,7 +1564,7 @@ class TestTransactionsLoader(unittest.TestCase):
             }
             rows = {
                 "PORT": ["P1", "P1"],
-                "SEC": ["CASH_USD", "CASH_USD"],
+                "SEC": ["CASHUSD", "CASHUSD"],
                 "TRANSACTION_DATE": ["2025-01-31", "2025-01-31"],
                 "TRAN": ["dp", "wd"],
                 "SRC_DEST_TYPE": ["$pty", "$vendor"],
@@ -1606,7 +1606,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 pl.DataFrame(
                     {
                         "PORT": ["P1"],
-                        "SEC": ["CASH_USD"],
+                        "SEC": ["CASHUSD"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["wd"],
                     }
@@ -1647,7 +1647,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 pl.DataFrame(
                     {
                         "PORT": ["P1"],
-                        "SEC": ["CASH_USD"],
+                        "SEC": ["CASHUSD"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["wd"],
                         "SRC_DEST_TYPE": ["$pty"],
@@ -1695,7 +1695,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 pl.DataFrame(
                     {
                         "PORT": ["P1"],
-                        "SEC": ["CASH_USD"],
+                        "SEC": ["CASHUSD"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["li"],
                         "SRC_DEST_TYPE": [" $PTY "],
@@ -1809,7 +1809,7 @@ class TestTransactionsLoader(unittest.TestCase):
                 pl.DataFrame(
                     {
                         "PORT": ["P1"],
-                        "SEC": ["CASH_USD"],
+                        "SEC": ["CASHUSD"],
                         "TRANSACTION_DATE": ["2025-01-31"],
                         "TRAN": ["wd"],
                     }
