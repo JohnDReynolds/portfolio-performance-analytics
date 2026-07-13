@@ -23,6 +23,8 @@ import tempfile
 from typing import Sequence
 
 # Third-Party Imports
+from lxml import html as lxml_html
+from lxml.html import HtmlElement
 from PIL import Image, ImageChops
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -58,9 +60,48 @@ _RENDER_CONFIG = {
 }
 _DEVICE_SCALE_FACTOR_BY_NAME = {"PerformanceAuditPortfolio": 1}
 _MINIMUM_CROPPED_WIDTH_BY_NAME = {"RiskStatistics": 2000}
+_EXPECTED_HTML_MARKER_BY_NAME = {
+    "OverallAttributionBySecurity": "Overall Attribution by Security",
+    "CumulativeAttributionByEconomicSector": "Cumulative Attribution by Economic Sector",
+    "OverallAttributionByEconomicSector": "Overall Attribution by Economic Sector",
+    "RiskStatistics": "Ex-Post Risk Statistics",
+    "PerformanceAuditPortfolio": "Performance Differences",
+}
+_FORBIDDEN_HTML_MARKER_BY_NAME = {
+    "OverallAttributionBySecurity": "Portfolio Differences",
+    "CumulativeAttributionByEconomicSector": "Portfolio Differences",
+    "OverallAttributionByEconomicSector": "Portfolio Differences",
+    "RiskStatistics": "Portfolio Differences",
+}
+_MINIMUM_IMAGE_SIZE_BY_NAME = {
+    "OverallAttributionBySecurity": (2000, 1000),
+    "CumulativeAttributionByEconomicSector": (2500, 1000),
+    "OverallAttributionByEconomicSector": (1800, 900),
+    "RiskStatistics": (1500, 2000),
+    "PerformanceAuditPortfolio": (1200, 1000),
+}
+_PERFORMANCE_AUDIT_SCENARIOS = {
+    ("ALPHA", "2026-01-31", "2026-02-27"),
+    ("ALPHA", "2026-05-01", "2026-05-29"),
+    ("BALANCED", "2026-04-01", "2026-04-30"),
+    ("BALANCED", "2026-05-09", "2026-05-14"),
+    ("INCOME", "2026-01-01", "2026-01-30"),
+    ("INCOME", "2026-02-28", "2026-03-31"),
+    ("INCOME", "2026-04-01", "2026-04-30"),
+}
+_PERFORMANCE_AUDIT_ISSUE_TYPES = {
+    "missing_dividend",
+    "holdings_accrued_rate",
+    "pa_sa_rate",
+    "transactions_price_range",
+    "dividend_rate",
+    "holdings_price_range",
+}
 _PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
     _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
 )
+
+
 def main() -> None:
     """Render all README table screenshots.
 
@@ -89,9 +130,14 @@ def main() -> None:
             )
             _render_cropped_jpg(chrome_path, html_path, temp_dir, "RiskStatistics")
         if args.only in ("all", "performance-comparison"):
+            preview_html_path = temp_dir / "PerformanceAuditPortfolio.html"
+            _write_performance_audit_preview(
+                _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
+                preview_html_path,
+            )
             _render_cropped_jpg(
                 chrome_path,
-                _PORTFOLIO_PERFORMANCE_AUDIT_HTML,
+                preview_html_path,
                 temp_dir,
                 "PerformanceAuditPortfolio",
             )
@@ -230,8 +276,52 @@ def _write_html_inputs(
         html_path = temp_dir / f"{name}.html"
         with io.open(html_path, "w", encoding=util.ENCODING, newline="\n") as file:
             file.write(html)
+        if name == "OverallAttributionBySecurity":
+            _write_security_attribution_preview(html_path)
         html_paths[name] = html_path
     return html_paths
+
+
+def _write_security_attribution_preview(html_path: Path) -> None:
+    """Trim the README-only Security table while retaining its Total row."""
+    document = lxml_html.document_fromstring(html_path.read_text(encoding=util.ENCODING))
+    tables = document.xpath("//table")
+    if len(tables) != 1:
+        raise ValueError(f"Security attribution preview expected one table, found {len(tables)}")
+    body = tables[0].xpath("./tbody")
+    if len(body) != 1:
+        raise ValueError("Security attribution preview is missing its table body")
+    rows = body[0].xpath("./tr")
+    if len(rows) <= 21:
+        raise ValueError("Security attribution preview does not have enough rows to trim")
+
+    security_rows = rows[:-1]
+    total_row = rows[-1]
+    retained_rows = [*security_rows[:10], *security_rows[-10:]]
+    for row in rows:
+        body[0].remove(row)
+    for row in retained_rows[:10]:
+        body[0].append(row)
+    body[0].append(_security_ellipsis_row())
+    for row in retained_rows[10:]:
+        body[0].append(row)
+    body[0].append(total_row)
+
+    html_path.write_text(
+        lxml_html.tostring(document, encoding="unicode", doctype="<!doctype html>"),
+        encoding=util.ENCODING,
+    )
+
+
+def _security_ellipsis_row() -> HtmlElement:
+    """Return the explanatory omission row used by the Security preview."""
+    row = lxml_html.Element("tr")
+    cell = lxml_html.Element("td")
+    cell.set("colspan", "14")
+    cell.set("style", "font-style: italic; text-align: center;")
+    cell.text = "… additional securities not shown …"
+    row.append(cell)
+    return row
 
 
 def _render_png(
@@ -302,9 +392,12 @@ def _render_cropped_jpg(
     Raises:
         subprocess.CalledProcessError: If the Chrome rendering process fails.
         OSError: If temporary or generated image files cannot be read or
-            written.
+            written, or if validation rejects the source or rendered image.
     """
+    _validate_html_source(html_path, name)
     png_path = temp_dir / f"{name}.png"
+    temporary_jpg_path = temp_dir / f"{name}.jpg"
+    destination_jpg_path = _IMAGE_DIR / f"{name}.jpg"
     user_data_dir = temp_dir / f"{name}_chrome_profile"
     _render_png(
         chrome_path,
@@ -314,11 +407,116 @@ def _render_cropped_jpg(
         user_data_dir,
         _DEVICE_SCALE_FACTOR_BY_NAME.get(name, 2),
     )
-    _crop_and_save_jpg(
+    image_size = _crop_and_save_jpg(
         png_path,
-        _IMAGE_DIR / f"{name}.jpg",
+        temporary_jpg_path,
         minimum_width=_MINIMUM_CROPPED_WIDTH_BY_NAME.get(name),
     )
+    _validate_image_size(name, image_size)
+    temporary_jpg_path.replace(destination_jpg_path)
+    print(
+        f"{destination_jpg_path.relative_to(_REPO_ROOT)} "
+        f"{image_size[0]}x{image_size[1]}"
+    )
+
+
+def _write_performance_audit_preview(source_path: Path, destination_path: Path) -> None:
+    """Write a shorter README preview without modifying the native report."""
+    document = lxml_html.document_fromstring(source_path.read_text(encoding=util.ENCODING))
+    differences = document.get_element_by_id("performance-differences")
+    causes = document.get_element_by_id("performance-difference-causes")
+    issues = document.get_element_by_id("data-audit-issues")
+
+    _retain_scenario_rows(differences)
+    _retain_scenario_rows(causes)
+    _retain_one_row_per_issue_type(issues)
+    destination_path.write_text(
+        lxml_html.tostring(document, encoding="unicode", doctype="<!doctype html>"),
+        encoding=util.ENCODING,
+    )
+
+
+def _retain_scenario_rows(section: HtmlElement) -> None:
+    """Retain rows belonging to the selected complete review scenarios."""
+    kept_rows = 0
+    retained_scenarios: set[tuple[str, str, str]] = set()
+    for row in section.xpath(".//tbody/tr"):
+        values = [_normalized_cell_text(cell) for cell in row.xpath("./td")]
+        scenario = (values[0], values[1], values[2])
+        if scenario in _PERFORMANCE_AUDIT_SCENARIOS:
+            kept_rows += 1
+            retained_scenarios.add(scenario)
+        else:
+            row.getparent().remove(row)
+    if retained_scenarios != _PERFORMANCE_AUDIT_SCENARIOS:
+        missing = sorted(_PERFORMANCE_AUDIT_SCENARIOS - retained_scenarios)
+        raise ValueError(f"Performance Audit preview is missing scenarios: {missing}")
+    _set_section_row_count(section, kept_rows)
+
+
+def _retain_one_row_per_issue_type(section: HtmlElement) -> None:
+    """Retain one issue per type connected to a displayed review scenario."""
+    retained_issue_types: set[str] = set()
+    for row in section.xpath(".//tbody/tr"):
+        values = [_normalized_cell_text(cell) for cell in row.xpath("./td")]
+        issue_type = values[5]
+        if (
+            issue_type in _PERFORMANCE_AUDIT_ISSUE_TYPES
+            and issue_type not in retained_issue_types
+            and _issue_matches_selected_scenario(values)
+        ):
+            retained_issue_types.add(issue_type)
+        else:
+            row.getparent().remove(row)
+    if retained_issue_types != _PERFORMANCE_AUDIT_ISSUE_TYPES:
+        missing = sorted(_PERFORMANCE_AUDIT_ISSUE_TYPES - retained_issue_types)
+        raise ValueError(f"Performance Audit preview is missing issue types: {missing}")
+    _set_section_row_count(section, len(retained_issue_types))
+
+
+def _issue_matches_selected_scenario(values: Sequence[str]) -> bool:
+    """Return whether one Data Audit row belongs to a selected period."""
+    portfolio_id = values[1]
+    as_of_date = values[2]
+    return any(
+        portfolio_id == scenario_portfolio
+        and from_date <= as_of_date <= thru_date
+        for scenario_portfolio, from_date, thru_date in _PERFORMANCE_AUDIT_SCENARIOS
+    )
+
+
+def _normalized_cell_text(cell: HtmlElement) -> str:
+    """Return one HTML table cell as normalized plain text."""
+    return " ".join(cell.text_content().split())
+
+
+def _set_section_row_count(section: HtmlElement, row_count: int) -> None:
+    """Update a report section's visible row-count label."""
+    labels = section.xpath('.//p[contains(@class, "pc-table-meta")]')
+    if labels:
+        labels[0].text = f"Rows: {row_count}"
+
+
+def _validate_html_source(html_path: Path, name: str) -> None:
+    """Reject an HTML source that does not match its requested image."""
+    html = html_path.read_text(encoding=util.ENCODING)
+    expected_marker = _EXPECTED_HTML_MARKER_BY_NAME[name]
+    forbidden_marker = _FORBIDDEN_HTML_MARKER_BY_NAME.get(name)
+    if expected_marker not in html:
+        raise OSError(f"{name} source HTML is missing {expected_marker!r}")
+    if forbidden_marker is not None and forbidden_marker in html:
+        raise OSError(f"{name} source HTML unexpectedly contains {forbidden_marker!r}")
+
+
+def _validate_image_size(name: str, image_size: tuple[int, int]) -> None:
+    """Reject a rendered image that is implausibly small for its report."""
+    minimum_width, minimum_height = _MINIMUM_IMAGE_SIZE_BY_NAME[name]
+    width, height = image_size
+    if width < minimum_width or height < minimum_height:
+        raise OSError(
+            f"{name} rendered at {width}x{height}; expected at least "
+            f"{minimum_width}x{minimum_height}"
+        )
 
 
 def _crop_and_save_jpg(
@@ -326,7 +524,7 @@ def _crop_and_save_jpg(
     jpg_path: Path,
     *,
     minimum_width: int | None = None,
-) -> None:
+) -> tuple[int, int]:
     """Crop screenshot margins and save a high-quality JPEG.
 
     Args:
@@ -334,6 +532,9 @@ def _crop_and_save_jpg(
         jpg_path: Destination JPEG path.
         minimum_width: Smallest retained image width. This prevents narrow
             reports from being enlarged when displayed at full container width.
+
+    Returns:
+        Width and height of the cropped JPEG.
 
     Raises:
         OSError: If the source image cannot be opened or the destination image
@@ -365,7 +566,7 @@ def _crop_and_save_jpg(
         )
 
     cropped.save(jpg_path, quality=95, optimize=True)
-    print(f"{jpg_path.relative_to(_REPO_ROOT)} {cropped.width}x{cropped.height}")
+    return cropped.width, cropped.height
 
 
 def _find_chrome() -> str:

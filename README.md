@@ -1,7 +1,7 @@
-# PPAR
+# PPAR - Portfolio Performance Auditing & Analytics Reporting
 
-PPAR uses local Axys/APX data for two main workflows: Performance Auditing and
-Performance Analytics.
+PPAR is a Python package that uses local Axys/APX data for two main workflows:
+Performance Auditing and Performance Analytics.
 
 1. You can generate standard charts, xlsx, and html output.
 2. Being built in Python, it is highly customizable.  You can automate batch
@@ -21,7 +21,7 @@ Use Performance Auditing to answer: "Why did my reported performance change?"
   to changes in holdings and transactions, and highlights anything that needs human
   review.
 - **Data Auditing:** flags suspicious source-data relationships — including price
-  ranges, dividend rates, accrued-interest rates, and missing dividends — that
+  ranges, dividend rates, accrued-interest rates, splits, and missing dividends — that
   may indicate data-quality issues.
 
 <img
