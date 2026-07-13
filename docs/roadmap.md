@@ -3412,6 +3412,23 @@ the full project check completed with wheel and source-distribution build
 validation. No tag was moved and no artifact was published as part of this
 phase.
 
+### Phase 98: Release Record Consolidation And Tag Alignment
+
+Status: complete for the local `v0.1.5` release boundary.
+
+The Phase 97 implementation is isolated in commit `e11466f` (`Name performance
+audit artifacts`). A build-qualified release-candidate pass from that committed
+source completed the packaged demo-data audit, extract-availability check,
+portfolio/security bundle generation and validation, setup-installed runner
+smoke, scenario-matrix validation, 10x scale smoke, full project checks, and
+wheel/source-distribution build validation.
+
+This release-record commit is the final local `v0.1.5` source boundary. The
+working tree is clean, and the local tag points to this commit rather than the
+older pre-Phase-97 checkpoint. A read-only remote check confirms that no remote
+`v0.1.5` tag exists. No branch or tag was pushed and no distribution artifact
+was published as part of this phase.
+
 ## Guiding Principle
 
 Do not casually rebuild an accounting system.
