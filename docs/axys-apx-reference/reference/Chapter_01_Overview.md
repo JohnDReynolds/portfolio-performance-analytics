@@ -43,7 +43,7 @@ performance-comparison features:
 | IMEX object names and field lists are not authoritative. | A generic Axys/APX connector that tells users exactly which IMEX objects and fields to export. | [Chapter_12_Imex.md](Chapter_12_Imex.md), [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md). | Versioned IMEX manuals, live IMEX catalog, and sample Axys/APX exports. |
 | REP, SSRS, and report definitions are missing. | Standard report-extraction recipes and precise report-to-source-data reconciliation. | [Chapter_13_Rep.md](Chapter_13_Rep.md), [Chapter_14_Reports.md](Chapter_14_Reports.md), [Chapter_10_Performance.md](Chapter_10_Performance.md). | Axys `.REP` files, APX RDL/SSRS definitions, report catalogs, parameters, and sample outputs. |
 | APX SQL/public-view/API access paths are under-evidenced. | Direct APX database or API connectors that assume supported tables, public views, stored accounting functions, or REST coverage. | [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md), [Chapter_16_Glossary.md](Chapter_16_Glossary.md). | APX schema/public-view documentation, stored function signatures, API documentation, support terms, and sanitized metadata samples. |
-| Multi-currency, fixed-income, and corporate-action behavior remains under-evidenced. | Richer Axys/APX demos, FX attribution, principal paydown/accrual automation, splits, reorganizations, and other corporate-action performance treatment. | [Chapter_07_Cash.md](Chapter_07_Cash.md), [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_09_Corporate_Actions.md](Chapter_09_Corporate_Actions.md), [Chapter_10_Performance.md](Chapter_10_Performance.md). | Multi-currency reports/exports, FX examples, fixed-income reports, accrual/principal examples, and real corporate-action samples. |
+| Multi-currency, fixed-income, and corporate-action behavior remains under-evidenced. | Richer Axys/APX demos, FX attribution, principal paydown/accrual automation, splits, reorganizations, and other corporate-action performance treatment. | [Chapter_07_Cash.md](Chapter_07_Cash.md), [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_09_Corporate_Actions.md](Chapter_09_Corporate_Actions.md), [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_17_Multi_Currency.md](Chapter_17_Multi_Currency.md). | Multi-currency reports/exports, FX examples, fixed-income reports, accrual/principal examples, and real corporate-action samples. |
 
 These blockers do not prevent the current product direction. A configurable
 performance-comparison workflow can still compare two source-data snapshots,
@@ -70,6 +70,9 @@ Use this index to jump to the chapters that most directly connect to a topic:
 - REP — report extraction and report-source context: [Chapter_13_Rep.md](Chapter_13_Rep.md).
 - Reports — report families and report-label caution: [Chapter_14_Reports.md](Chapter_14_Reports.md).
 - Data dictionary and glossary — field-level vocabulary and terminology: [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
+- Multi-currency — Axys capability evidence, audit-adapter boundaries, and
+  unresolved native mechanics:
+  [Chapter_17_Multi_Currency.md](Chapter_17_Multi_Currency.md).
 - Contracts — implementation aids: [contracts/transaction_semantics_matrix.md](../contracts/transaction_semantics_matrix.md) for conservative transaction classification rules and [contracts/demo_extract_availability.md](../contracts/demo_extract_availability.md) for packaged-demo extract availability.
 
 ## Chapter dependency map
@@ -86,7 +89,7 @@ Choose the path that fits your immediate question:
 
 - If you are new to the topic, start with [Chapter_02_Axys_Architecture.md](Chapter_02_Axys_Architecture.md), [Chapter_03_APX_Architecture.md](Chapter_03_APX_Architecture.md), and [Chapter_12_Imex.md](Chapter_12_Imex.md) for the big picture.
 - If you need to understand transactions, start with [Chapter_04_Security_Master.md](Chapter_04_Security_Master.md), [Chapter_05_Transactions.md](Chapter_05_Transactions.md), [Chapter_06_Holdings.md](Chapter_06_Holdings.md), and [Chapter_07_Cash.md](Chapter_07_Cash.md).
-- If you are focused on performance or reporting, start with [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_11_Classifications.md](Chapter_11_Classifications.md), [Chapter_13_Rep.md](Chapter_13_Rep.md), and [Chapter_14_Reports.md](Chapter_14_Reports.md).
+- If you are focused on performance or reporting, start with [Chapter_08_Pricing.md](Chapter_08_Pricing.md), [Chapter_10_Performance.md](Chapter_10_Performance.md), [Chapter_11_Classifications.md](Chapter_11_Classifications.md), [Chapter_13_Rep.md](Chapter_13_Rep.md), [Chapter_14_Reports.md](Chapter_14_Reports.md), and [Chapter_17_Multi_Currency.md](Chapter_17_Multi_Currency.md) for currency-specific boundaries.
 - If you are looking up a term or field, start with [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) and [Chapter_16_Glossary.md](Chapter_16_Glossary.md).
 - If you are implementing ppar demo rules, use the contracts after reading the relevant chapters. They are cross-cutting aids, not replacement vendor documentation.
 
@@ -183,7 +186,9 @@ This overview uses only the supplied completed repository chapters. No external 
 
 ## 2. Repository Structure
 
-The repository is organized into subject chapters and matching research files. The supplied source material for this overview includes chapters 02 through 16.
+The repository is organized into subject chapters and matching research files.
+The supplied source material for this overview includes chapters 02 through
+17.
 
 | Chapter | Subject | Primary Purpose | Current Evidence Status |
 |---|---|---|---|
@@ -203,6 +208,7 @@ The repository is organized into subject chapters and matching research files. T
 | `Chapter_14_Reports.md` | Reports | Axys and APX report families, APX named reports, report-label cautions. | Supplied. |
 | `Chapter_15_Data_Dictionary.md` | Data dictionary | Cross-repository field, token, file, utility, report-label, and artifact index. | Supplied. |
 | `Chapter_16_Glossary.md` | Glossary | Repository term definitions and ambiguity notes. | Supplied. |
+| `Chapter_17_Multi_Currency.md` | Multi-currency | Axys capability evidence, normalized audit-adapter boundaries, cash-provenance confidence, and unresolved native currency mechanics. | Supplied; native mechanics remain mostly Unknown. |
 | `../contracts/transaction_semantics_matrix.md` | Transaction semantics contract | Implementation-facing transaction classification, matching, and coverage matrix for ppar demo/test work. | Cross-cutting aid; not an official vendor code manual. |
 | `../contracts/demo_extract_availability.md` | Demo extract availability contract | Generated confidence matrix for whether packaged demo datasets and columns are likely obtainable through Axys IMEX or REP-style extracts. | Generated from YAML; not an official schema. |
 
@@ -799,6 +805,7 @@ This chapter is based on the following supplied repository material only.
 | `Chapter_14_Reports.md` | Report families, APX named reports, report-label cautions. |
 | `Chapter_15_Data_Dictionary.md` | Cross-repository field, token, artifact, report, and dictionary consolidation. |
 | `Chapter_16_Glossary.md` | Repository term definitions, ambiguities, and implementation notes. |
+| `Chapter_17_Multi_Currency.md` | Multi-currency evidence, safe audit-adapter behavior, and blocked native mechanics. |
 | `../contracts/transaction_semantics_matrix.md` | Implementation-facing transaction classification and coverage matrix for ppar demo/test work. |
 | `../contracts/demo_extract_availability.md` | Generated packaged-demo extract availability matrix. |
 

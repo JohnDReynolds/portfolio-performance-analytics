@@ -37,6 +37,7 @@ contracts and YAML files as implementation contracts, not as vendor manuals.
 | Split factors, corporate actions, reorganizations, and ACA/Reorg evidence | [Chapter_09_Corporate_Actions.md](reference/Chapter_09_Corporate_Actions.md) | [Research_09_Corporate_Actions.md](evidence/Research_09_Corporate_Actions.md) |
 | Dataset, file, and field definitions | [Chapter_15_Data_Dictionary.md](reference/Chapter_15_Data_Dictionary.md) | Relevant `Research_*.md` file |
 | Terms and conceptual vocabulary | [Chapter_16_Glossary.md](reference/Chapter_16_Glossary.md) | Relevant subject chapter |
+| Multi-currency capability, FX evidence, and implementation boundaries | [Chapter_17_Multi_Currency.md](reference/Chapter_17_Multi_Currency.md) | [Research_17_Multi_Currency.md](evidence/Research_17_Multi_Currency.md) and [Research_17A_Multi_Currency_Cash_Provenance.md](evidence/Research_17A_Multi_Currency_Cash_Provenance.md) |
 
 ## Main Reference Chapters
 
@@ -49,6 +50,9 @@ starting points are:
   transaction codes, posting context, and source-data classification boundaries.
 - [Chapter_10_Performance.md](reference/Chapter_10_Performance.md) for
   performance inputs, outputs, report labels, and methodology boundaries.
+- [Chapter_17_Multi_Currency.md](reference/Chapter_17_Multi_Currency.md) for
+  Axys currency evidence, a conservative audit-adapter boundary, and the native
+  mechanics that remain unknown.
 - [Chapter_15_Data_Dictionary.md](reference/Chapter_15_Data_Dictionary.md) and
   [Chapter_16_Glossary.md](reference/Chapter_16_Glossary.md) for field,
   artifact, dataset, and conceptual vocabulary.

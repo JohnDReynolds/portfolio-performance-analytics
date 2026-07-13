@@ -81,6 +81,11 @@ the target performance dataset:
 | `cash` | Cash rows are used as source-data evidence. | `portfolio_id`, `cash_date` |
 | `fx_rates` | FX-rate rows are used as source-data evidence. | `from_currency`, `to_currency`, `rate_date`, `fx_rate` |
 
+Normalized FX rows must provide nonblank pair currencies and dates and a finite,
+strictly positive rate. Pair/date rows must also be unique within the available
+`rate_source` and `rate_type` provenance. These are ppar input-integrity rules,
+not claims about Axys quote conventions or native FX storage.
+
 Configured required datasets must exist in both snapshots. If a required source
 file is missing, if a required normalized column cannot be resolved from the
 source header and schema aliases, or if a required source column is ambiguous,

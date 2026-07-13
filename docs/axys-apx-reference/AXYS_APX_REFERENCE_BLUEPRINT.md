@@ -137,6 +137,7 @@ explanation into the relevant chapter and leave the research file as provenance.
     reference/Chapter_14_Reports.md
     reference/Chapter_15_Data_Dictionary.md
     reference/Chapter_16_Glossary.md
+    reference/Chapter_17_Multi_Currency.md
     evidence/Research_02_Axys_Architecture.md
     evidence/Research_03_APX_Architecture.md
     evidence/Research_04_Security_Master.md
@@ -152,6 +153,8 @@ explanation into the relevant chapter and leave the research file as provenance.
     evidence/Research_14_Reports.md
     evidence/Research_15_Data_Dictionary.md
     evidence/Research_16_Glossary.md
+    evidence/Research_17_Multi_Currency.md
+    evidence/Research_17A_Multi_Currency_Cash_Provenance.md
     contracts/demo_extract_availability.md
     contracts/transaction_semantics_matrix.md
     contracts/transaction_semantics_matrix.yaml

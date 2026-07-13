@@ -30,6 +30,13 @@ provenance.
 | [Research_14_Reports.md](Research_14_Reports.md) | `../reference/Chapter_14_Reports.md` |
 | [Research_15_Data_Dictionary.md](Research_15_Data_Dictionary.md) | `../reference/Chapter_15_Data_Dictionary.md` |
 | [Research_16_Glossary.md](Research_16_Glossary.md) | `../reference/Chapter_16_Glossary.md` |
+| [Research_17_Multi_Currency.md](Research_17_Multi_Currency.md) | `../reference/Chapter_17_Multi_Currency.md` |
+| [Research_17A_Multi_Currency_Cash_Provenance.md](Research_17A_Multi_Currency_Cash_Provenance.md) | `../reference/Chapter_17_Multi_Currency.md`, especially cash-provenance inference boundaries |
 
 There is no `Research_01` file because `Chapter_01_Overview.md` is an
 orientation chapter rather than a source-domain research chapter.
+
+The Chapter 17 evidence consists of two research intakes because the first
+focused primarily on cash provenance and the follow-up tested the broader Axys
+multi-currency implementation questions. Both are retained so their different
+scope and citation limitations remain visible.

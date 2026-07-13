@@ -148,6 +148,123 @@ class TestFxRatesLoader(unittest.TestCase):
             self.assertTrue(str(context.exception).startswith("Error 502"))
             self.assertIn("Ambiguous fx rates", str(context.exception))
 
+    def test_nonpositive_rate_raises_error_502(self) -> None:
+        """FX rates must be finite and strictly positive."""
+        for invalid_rate in (0.0, -1.0, float("nan"), float("inf")):
+            with self.subTest(invalid_rate=invalid_rate):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    directory = Path(temp_dir)
+                    configuration = _minimal_specification(directory)
+                    configuration["files"] = {
+                        "portfolio_performance": "portperf.csv",
+                        "fx_rates": "fx_rates.csv",
+                    }
+                    for snapshot_name in ("snapshot_a", "snapshot_b"):
+                        pl.DataFrame(
+                            {
+                                "FROM_CCY": ["EUR"],
+                                "TO_CCY": ["USD"],
+                                "RATE_DATE": ["2025-01-31"],
+                                "FX_RATE": [invalid_rate],
+                            }
+                        ).write_csv(directory / snapshot_name / "fx_rates.csv")
+                    path = _write_yaml(directory, configuration)
+                    specification = PerformanceComparisonSpecification(path)
+
+                    with self.assertRaises(PpaError) as context:
+                        FxRatesLoader(specification).load("a")
+
+                    message = str(context.exception)
+                    self.assertTrue(message.startswith("Error 502"))
+                    self.assertIn("finite positive rates", message)
+
+    def test_blank_currency_raises_error_502(self) -> None:
+        """FX pair currencies must be present and nonblank."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "fx_rates": "fx_rates.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "FROM_CCY": [" "],
+                        "TO_CCY": ["USD"],
+                        "RATE_DATE": ["2025-01-31"],
+                        "FX_RATE": [1.1],
+                    }
+                ).write_csv(directory / snapshot_name / "fx_rates.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                FxRatesLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 502"))
+            self.assertIn("from_currency", message)
+            self.assertIn("blank value", message)
+
+    def test_duplicate_pair_date_source_type_raises_error_112(self) -> None:
+        """Duplicate normalized FX identities are rejected during loading."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "fx_rates": "fx_rates.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "FROM_CCY": ["EUR", "EUR"],
+                        "TO_CCY": ["USD", "USD"],
+                        "RATE_DATE": ["2025-01-31", "2025-01-31"],
+                        "FX_RATE": [1.1, 1.2],
+                        "SOURCE": ["CLIENT", "CLIENT"],
+                        "RATE_TYPE": ["SPOT", "SPOT"],
+                    }
+                ).write_csv(directory / snapshot_name / "fx_rates.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            with self.assertRaises(PpaError) as context:
+                FxRatesLoader(specification).load("a")
+
+            message = str(context.exception)
+            self.assertTrue(message.startswith("Error 112"))
+            self.assertIn("duplicate rows", message)
+
+    def test_distinct_rate_sources_can_share_pair_and_date(self) -> None:
+        """Source provenance distinguishes otherwise identical FX keys."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "fx_rates": "fx_rates.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                pl.DataFrame(
+                    {
+                        "FROM_CCY": ["EUR", "EUR"],
+                        "TO_CCY": ["USD", "USD"],
+                        "RATE_DATE": ["2025-01-31", "2025-01-31"],
+                        "FX_RATE": [1.1, 1.2],
+                        "SOURCE": ["CLIENT_A", "CLIENT_B"],
+                        "RATE_TYPE": ["SPOT", "SPOT"],
+                    }
+                ).write_csv(directory / snapshot_name / "fx_rates.csv")
+            path = _write_yaml(directory, configuration)
+            specification = PerformanceComparisonSpecification(path)
+
+            frame = FxRatesLoader(specification).load("a")
+
+            assert frame is not None
+            self.assertEqual(frame.height, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

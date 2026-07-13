@@ -27,3 +27,4 @@ templates.
 | [Chapter_14_Reports.md](Chapter_14_Reports.md) | What report families and report labels are relevant to source-data extraction? |
 | [Chapter_15_Data_Dictionary.md](Chapter_15_Data_Dictionary.md) | Where are field, token, artifact, and dataset terms defined? |
 | [Chapter_16_Glossary.md](Chapter_16_Glossary.md) | Where are conceptual terms and ambiguity notes defined? |
+| [Chapter_17_Multi_Currency.md](Chapter_17_Multi_Currency.md) | Which Axys multi-currency facts are supported, what can an audit adapter safely consume, and which native mechanics remain unknown? |

@@ -525,6 +525,12 @@ columns when useful.
 balances. Currency exposure belongs in holdings, cash, transactions, or
 valuation datasets.
 
+Required FX values must be complete, and `fx_rate` must be finite and strictly
+positive. A normalized row is unique by currency pair, rate date, and any
+available rate-source/rate-type provenance. These are source-integrity rules;
+they do not establish an Axys-native quote direction, reciprocal convention, or
+rate-selection method.
+
 `transactions` required columns:
 
 - `portfolio_id`
