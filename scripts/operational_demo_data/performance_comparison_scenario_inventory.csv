@@ -1,0 +1,33 @@
+scenario_key,protection_reason
+transaction:ALPHA0203:Withdrawal correction increases external cash outflow.,Intentional demo scenario; removal requires explicit inventory review.
+holding:ALPHA:91282Y5Y1:2026-01-30:91282Y5Y1 holdings.accrued uses a different same-day rate for Data Audit review.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:ALPHA0303:Deliver-out restatement adds external cash outflow.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:ALPHA0304:91282Y5Y1 purchase-accrued row uses a different same-day rate for Data Audit review.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:ALPHA0401:AAPL buy correction changes quantity price commission and amount.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:ALPHA0503:JPM dividend row uses a different same-day rate for Data Audit review.,Intentional demo scenario; removal requires explicit inventory review.
+holding:ALPHA:AAPL:2026-05-29:AAPL price correction changes ending market value.,Intentional demo scenario; removal requires explicit inventory review.
+holding:ALPHA:CASHUSD:2026-05-29:Cash-balance correction increases ending cash.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0203:MSFT sell correction changes quantity price commission and amount.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0403:Contribution restatement adds external cash inflow.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0502:JPM dividend correction increases cash income.,Intentional demo scenario; removal requires explicit inventory review.
+multicurrency:BALANCED:SAP.DE:2026-04-15:EUR dividend correction,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0503:JPM return-of-capital row adds security-level cash income.,Intentional demo scenario; removal requires explicit inventory review.
+multicurrency:BALANCED:SHEL.L:2026-04-30:GBP FX correction,Intentional demo scenario; removal requires explicit inventory review.
+holding:BALANCED:AAPL:2026-03-31:AAPL price correction changes ending market value.,Intentional demo scenario; removal requires explicit inventory review.
+holding:BALANCED:CVNA:2026-05-08:CVNA 5-for-1 split correction changes ending quantity and market value.,Intentional demo scenario; removal requires explicit inventory review.
+holding:BALANCED:MSFT:2026-05-14:MSFT holding quantity correction changes market value.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0605:JPM code-only return-of-capital row remains neutral possible-cause evidence.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0603:TSLA short sale uses real 2026-05-15 close price in a synthetic short-side demo.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:BALANCED0604:TSLA cover short uses real 2026-05-29 close price in a synthetic short-side demo.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0203:Fee correction increases cash expense.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0303:91282Y5Y1 purchase leg paired with purchase accrued interest.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0304:91282Y5Y1 purchase accrued interest settlement.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0305:91282Y5Y1 sale leg paired with sale accrued interest.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0306:91282Y5Y1 sale accrued interest settlement.,Intentional demo scenario; removal requires explicit inventory review.
+holding:INCOME:91282Y5Y1:2026-04-30:91282Y5Y1 cost-only correction remains review evidence.,Intentional demo scenario; removal requires explicit inventory review.
+holding:INCOME:AAPL:2026-05-08:AAPL price correction changes ending market value.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0606:AAPL dividend corrected to real 2026-05-14 payable date.,Intentional demo scenario; removal requires explicit inventory review.
+holding:INCOME:91282Y2Y1:2026-05-15:91282Y2Y1 interest and accrual correction changes ending holding.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0603:91282Y2Y1 interest correction increases cash income.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0605:36225MBS1 principal paydown returns mortgage principal to cash.,Intentional demo scenario; removal requires explicit inventory review.
+transaction:INCOME0604:AAPL late dividend row is removed from corrected snapshot.,Intentional demo scenario; removal requires explicit inventory review.

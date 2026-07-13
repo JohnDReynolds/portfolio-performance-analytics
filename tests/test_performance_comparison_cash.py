@@ -80,6 +80,44 @@ class TestCashLoader(unittest.TestCase):
 
             self.assertIsNone(CashLoader(specification).load("a"))
 
+    def test_base_value_alias_loads_as_base_market_value(self) -> None:
+        """Cash BASE_VALUE is an explicit portfolio-base-currency value."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "cash": "cash.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                pl.DataFrame(
+                    {
+                        "PORTFOLIO_CODE": ["P1"],
+                        "FROM_DATE": ["2025-01-01"],
+                        "THRU_DATE": ["2025-01-31"],
+                        "PORT_RETURN": [0.01],
+                        "BASE_CURRENCY": ["USD"],
+                    }
+                ).write_csv(snapshot_path / "portperf.csv")
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "CASH_DATE": ["2025-01-31"],
+                        "CURRENCY": ["EUR"],
+                        "MARKET_VALUE": [100.0],
+                        "BASE_VALUE": [110.0],
+                    }
+                ).write_csv(snapshot_path / "cash.csv")
+            path = _write_yaml(directory, configuration)
+
+            frame = CashLoader(PerformanceComparisonSpecification(path)).load("a")
+
+        assert frame is not None
+        self.assertEqual(frame[pc_cols.MARKET_VALUE].to_list(), [100.0])
+        self.assertEqual(frame[pc_cols.BASE_MARKET_VALUE].to_list(), [110.0])
+        self.assertEqual(frame[pc_cols.BASE_CURRENCY].to_list(), ["USD"])
+
     def test_missing_optional_cash_returns_none(self) -> None:
         """Missing optional cash files do not block loading."""
         with tempfile.TemporaryDirectory() as temp_dir:

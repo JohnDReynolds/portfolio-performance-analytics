@@ -11,6 +11,8 @@ The packaged-demo source boundary is defined in
 Historical demo-generation notes remain in
 [`operational_demo_data_notes.md`](operational_demo_data_notes.md) and
 [`../scripts/generic_analytics_demo_data/GENERATION_NOTES.md`](../scripts/generic_analytics_demo_data/GENERATION_NOTES.md).
+The active safety-net program and audited enforcement baseline are defined in
+the [safety invariant catalog](performance_comparison_safety_invariants.md).
 
 [axys-apx-blockers]: axys-apx-reference/reference/Chapter_01_Overview.md#axysapx-blockers
 
@@ -134,6 +136,23 @@ workflow name; Performance Comparison remains the attribution subfeature inside
 that workflow. Vendor-preset infrastructure is deliberately parked in Eventual
 Deliverables even though the Axys/APX seed is accepted.
 
+### Safety-Net Implementation Program
+
+Phase 1 is complete: the twelve invariants now have stable identifiers, scoped
+guarantees, failure classifications, current-control inventories, and explicit
+gaps. The executable catalog lives in
+`ppar.performance_comparison.safety_invariants`; the design and implementation
+sequence live in
+[`performance_comparison_safety_invariants.md`](performance_comparison_safety_invariants.md).
+
+Remaining sequence:
+
+1. Phase 2 — conservation of explanations (`SN-01` through `SN-03`);
+2. Phase 3 — financial input integrity (`SN-04`, `SN-06`, and `SN-07`);
+3. Phase 4 — lineage and policy coverage (`SN-05` and `SN-12`);
+4. Phase 5 — demo preservation and isolation (`SN-08` and `SN-09`); and
+5. Phase 6 — report parity and determinism (`SN-10` and `SN-11`).
+
 ### Near-Term Release Hardening
 
 | Area | Deliverable | Exit criteria |
@@ -214,6 +233,7 @@ useful before, after, or apart from a specific performance restatement review.
 
 | Area | Deliverable | Exit criteria |
 | --- | --- | --- |
+| Axys/APX integration reference | Publish or package a curated reference for the Axys/APX administrator, report writer, consultant, or developer who must design the site's IMEX/REP extracts. Keep ordinary `ppar setup` onboarding concise and do not copy the full research archive into every starter workspace. | The reference has a stable location available to installed-package users, clearly separates PPAR guidance from official SS&C documentation, includes extract requirements, likely IMEX/REP paths, candidate aliases, transaction-context safeguards, multi-currency boundaries, and explicit Unknowns, and is linked as optional advanced help from the starter README. |
 | Windows setup validation | Try the full setup on a Windows machine. | From a clean Windows environment, install the package, run `ppar setup`, then successfully run the generated Analytics and Performance Auditing demos using the installed starter workspace. Record and address any Windows-specific path, shell, rendering, or dependency issues. |
 | Historical classifications | Support effective-dated security names and classifications even though Axys/APX does not provide a native historical-classification model. | Define an explicit effective-date source contract, deterministic handling for gaps and overlaps, period-correct joins, validation and reporting behavior, and tests proving that attribution uses the classification effective for each performance period. |
 | Vendor YAML presets | Add an explicit vendor preset keyword, such as `vendor: axys`, that expands to the accepted packaged Axys/APX demo YAML semantics behind the scenes while still allowing site YAML to override, suppress, or extend preset rules. | Preset expansion is documented, inspectable, and test-covered. The resolved effective YAML can be printed or exported for audit. Overrides have deterministic precedence. The preset does not imply universal Axys/APX behavior; it is versioned, tied to the accepted packaged Axys/APX demo/source contract, and still fails hard when required site-specific context is missing. |
@@ -3371,8 +3391,10 @@ making each period easier to inspect:
   the sale/accrued-interest pair;
 - INCOME May separates the AAPL valuation mark, 91282Y2Y1 income/accrual story,
   and 36225MBS1 principal paydown;
-- BALANCED May separates the AAPL valuation/CVNA split story, the MSFT holding
-  correction, and the TSLA short-sale/cover-short pair; and
+- BALANCED March isolates the AAPL valuation mark, while BALANCED May separates
+  the CVNA split story, the MSFT holding correction, and the TSLA
+  short-sale/cover-short pair without hiding inherited Modified Dietz inputs;
+  and
 - the roadmap now treats `rc`, `pd`, `ss`/`cs`, and the CVNA split-processing
   correction as scoped packaged-demo examples rather than merely future
   candidates.

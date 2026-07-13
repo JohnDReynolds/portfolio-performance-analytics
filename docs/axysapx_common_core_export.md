@@ -1,78 +1,46 @@
 # Axys/APX Common-Core Export Reference
 
-This note sketches a common-core Axys/APX export shape for analytics and
-performance-comparison demos. It is a starter reference, not a generic Axys/APX
-implementation contract.
+This note sketches a PPAR-normalized Axys/APX extract shape for analytics and
+performance auditing. It is an extraction-planning aid, not an official
+Axys/APX schema, executable export recipe, or generic implementation contract.
 
 See [Performance Comparison Design Notes](performance_comparison_design.md) for
 the broader comparison model, implemented checkpoint, YAML semantics, and report
 bundle workflow that can consume these normalized export shapes.
 
-Axys/APX installations vary by site. Treat the IMEX profile names, dataset names,
-field mnemonics, date syntax, and portfolio-list syntax below as placeholders
-that must be adapted to the local installation. Some firms may export these
-datasets through REP/Replang reports instead of IMEX profiles.
+Axys/APX installations vary by site. The current evidence does not establish a
+universal IMEX object catalog, performance object names, field mnemonics,
+profile names, command syntax, or REP layouts. In particular, `portperf.csv`
+and `secperf.csv` are PPAR-normalized filenames, not verified native object or
+profile names.
 
-## IMEX Template
+## Extraction Planning Worksheet
 
-```bat
-REM ============================================================
-REM Axys/APX common-core IMEX export script - TEMPLATE ONLY
-REM Not guaranteed generic across Axys/APX installations.
-REM Variances:
-REM   1. IMEX profile names are site-specific.
-REM   2. Dataset/file aliases may differ.
-REM   3. Field mnemonics may differ.
-REM   4. Date/portfolio parameter syntax may differ.
-REM   5. Some firms export via REP/replang instead of IMEX profiles.
-REM ============================================================
+Use this table when speaking with an Axys/APX administrator or report writer.
+Do not turn it into an IMEX command script until the local installation proves
+the exact object/profile names, fields, parameters, and date/currency basis.
 
-SET AXYS_IMEX=C:\Axys3\IMEX.EXE
-SET OUTDIR=C:\AxysExports\CommonCore
-SET PORTLIST=C:\AxysExports\portfolios.txt
-SET START_DATE=2026-02-01
-SET END_DATE=2026-02-28
-
-REM ---- Portfolio-level performance: official control total
-REM Expected dataset/profile: portperf
-"%AXYS_IMEX%" EXPORT PROFILE=PORTPERF_COMMON PORTLIST="%PORTLIST%" START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\portperf.csv"
-
-REM ---- Security-level performance: explains portfolio return
-REM Expected dataset/profile: secperf
-"%AXYS_IMEX%" EXPORT PROFILE=SECPERF_COMMON PORTLIST="%PORTLIST%" START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\secperf.csv"
-
-REM ---- Security master / sec-ref
-REM Site variance: may be called sec, sec-ref, security, security master.
-"%AXYS_IMEX%" EXPORT PROFILE=SECREF_COMMON OUT="%OUTDIR%\sec_ref.csv"
-
-REM ---- Transactions
-REM Site variance: transaction source may be posted transactions,
-REM trade blotter, or a REP/replang transaction ledger.
-"%AXYS_IMEX%" EXPORT PROFILE=TRANSACTIONS_COMMON PORTLIST="%PORTLIST%" START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\transactions.csv"
-
-REM ---- Holdings / holdings
-REM Site variance: may export holding file, appraisal report, or holdings report.
-"%AXYS_IMEX%" EXPORT PROFILE=HOLDINGS_COMMON PORTLIST="%PORTLIST%" DATE=%END_DATE% OUT="%OUTDIR%\holdings.csv"
-
-REM ---- FX rates
-REM Optional for single-currency firms.
-"%AXYS_IMEX%" EXPORT PROFILE=FX_COMMON START=%START_DATE% END=%END_DATE% OUT="%OUTDIR%\fx_rates.csv"
-
-REM ---- Cash balances
-REM Often derivable from holdings if cash is represented as security rows.
-"%AXYS_IMEX%" EXPORT PROFILE=CASH_COMMON PORTLIST="%PORTLIST%" DATE=%END_DATE% OUT="%OUTDIR%\cash.csv"
-```
+| PPAR dataset | Practical first source | Local questions to resolve |
+| --- | --- | --- |
+| `portperf.csv` | REP performance report preferred. | Which report reproduces the reported portfolio return? Is the value stored or report-calculated? What are its date, currency, and gross/net bases? |
+| `secperf.csv` | REP security-performance or attribution report preferred. | Does it provide security return and portfolio/security keys? Do weights and contributions foot to the portfolio report? |
+| `holdings.csv` | IMEX positions/holdings export or REP appraisal report. | Are values local or portfolio-base? Is accrued income included in market value or stated separately? Can both beginning and ending dates be produced? |
+| `transactions.csv` | IMEX transaction export first; REP/custom report fallback. | Are transaction code, amount, security, and economic date present? For ambiguous codes, are source/destination and special-security fields available? |
+| `fx_rates.csv` | Validated REP, FX/price, or other controlled local source. | What is the quote convention, effective date, source, rate type, portfolio base currency, and linked local exposure? |
+| `splits.csv` | `split.inf` or an equivalent local split-factor export. | Is the factor a multiplier or inverse? Which date is represented? |
+| `sec_ref.csv` | IMEX security-information export or security-master report. | Which identifier is stable, and which classification/currency fields are current rather than historical? |
 
 ## Starter Field Reference
 
-These tables describe likely Axys/APX source fields and common aliases for the
-normalized datasets used by ppar. They are intentionally conservative reference
-notes. A local `axysapx_column_mappings.yaml` file remains authoritative when a
-site uses different field names.
+These tables list candidate source or report labels that a local export may use
+for values normalized by PPAR. They do not establish official Axys/APX field
+names. Confidence describes availability of the underlying value, not confidence
+that the candidate label is exact. The local extract and PPAR column mapping
+remain authoritative.
 
 ### Portfolio Performance
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
 | `portperf` | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | `portperf` | `DATE` | `period_end_date` | `AS_OF_DATE`, `PERIOD_END` | High |
@@ -85,7 +53,7 @@ site uses different field names.
 
 ### Security Performance
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
 | `secperf` | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | `secperf` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
@@ -100,7 +68,7 @@ site uses different field names.
 
 ### Security Master
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
 | `sec-ref` | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
 | `sec-ref` | `DESC` | `security_description` | `DESCRIPTION`, `NAME`, `SEC_DESC` | High |
@@ -115,7 +83,7 @@ site uses different field names.
 
 ### Transactions
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
 | transactions | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | transactions | `DATE` | `trade_date` | `TRADE_DATE`, `TRD_DATE` | High |
@@ -128,32 +96,32 @@ site uses different field names.
 | transactions | `COMMISSION` | `commission` | `COMM`, `COMMISH` | Medium |
 | transactions | `BROKER` | `broker` | `BRKR`, `BROKER_CODE` | Low/Medium |
 
-### Holdings And Holdings
+### Holdings
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
-| holdings / holdings | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| holdings / holdings | `DATE` | `as_of_date` | `AS_OF_DATE`, `HOLDING_DATE` | High |
-| holdings / holdings | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
-| holdings / holdings | `QTY` | `quantity` | `QUANTITY`, `SHARES`, `UNITS` | High |
-| holdings / holdings | `PRICE` | `price` | `PX`, `MARKET_PRICE` | High |
-| holdings / holdings | `MV` | `market_value` | `MKT_VAL`, `MARKET_VALUE`, `VALUE` | High |
-| holdings / holdings | `COST` | `cost_basis` | `BOOK_COST`, `TAX_COST`, `ORIG_COST` | Medium |
-| holdings / holdings | `ACCRUED` | `accrued_income` | `ACCRUED_INT`, `ACCRUAL` | Medium |
-| holdings / holdings | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
+| holdings | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
+| holdings | `DATE` | `as_of_date` | `AS_OF_DATE`, `HOLDING_DATE` | High |
+| holdings | `SEC` | `security_id` | `SECURITY`, `SEC_ID`, `SECNO` | High |
+| holdings | `QTY` | `quantity` | `QUANTITY`, `SHARES`, `UNITS` | High |
+| holdings | `PRICE` | `price` | `PX`, `MARKET_PRICE` | High |
+| holdings | `MV` | `market_value` | `MKT_VAL`, `MARKET_VALUE`, `VALUE` | High |
+| holdings | `COST` | `cost_basis` | `BOOK_COST`, `TAX_COST`, `ORIG_COST` | Medium |
+| holdings | `ACCRUED` | `accrued_income` | `ACCRUED_INT`, `ACCRUAL` | Medium |
+| holdings | `CURRENCY` | `currency_code` | `CURR`, `CCY` | Medium |
 
 ### FX Rates
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
-| FX / currency | `DATE` | `fx_rate_date` | `AS_OF_DATE`, `RATE_DATE` | High |
-| FX / currency | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `FROM_CCY` | High |
-| FX / currency | `BASE_CURRENCY` | `base_currency_code` | `BASE_CURR`, `BASE_CCY`, `TO_CCY` | Medium |
-| FX / currency | `RATE` | `fx_rate` | `FX_RATE`, `EXCH_RATE`, `EXCHANGE_RATE` | High |
+| FX / currency | `DATE` | `fx_rate_date` | `AS_OF_DATE`, `RATE_DATE` | Unknown pending local discovery |
+| FX / currency | `CURRENCY` | `currency_code` | `CURR`, `CCY`, `FROM_CCY` | Unknown pending local discovery |
+| FX / currency | `BASE_CURRENCY` | `base_currency_code` | `BASE_CURR`, `BASE_CCY`, `TO_CCY` | Unknown pending local discovery |
+| FX / currency | `RATE` | `fx_rate` | `FX_RATE`, `EXCH_RATE`, `EXCHANGE_RATE` | Unknown pending local discovery |
 
 ### Cash
 
-| Axys/APX Native Dataset | Most Common Native Field | Canonical Meaning | Alias Native Field Names | Confidence |
+| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
 | --- | --- | --- | --- | --- |
 | cash | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
 | cash | `DATE` | `as_of_date` | `AS_OF_DATE`, `BALANCE_DATE` | High |

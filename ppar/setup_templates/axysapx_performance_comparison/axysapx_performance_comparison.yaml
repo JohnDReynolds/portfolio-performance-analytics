@@ -85,61 +85,82 @@ snapshots:
     schema: axysapx_column_mappings.yaml
 
 files:
-  # Required source files inside each snapshot folder.
+  # Extraction checklist for users replacing the starter CSVs.
+  #
+  # The three labels below are deliberately narrow:
+  #   Required: needed to make Fully Explained possible in the ordinary
+  #     portfolio comparison.
+  #   Required only when applicable: needed only for the named feature or data
+  #     condition, such as security comparison, multi-currency, separately
+  #     stated accrued income, or ambiguous transaction codes.
+  #   Optional: safe to omit; its absence alone does not prevent Fully
+  #     Explained.
   #
   # Rename these only if your site uses different filenames. Header differences
   # are handled by the Axys/APX vendor mapping and source-column validation,
   # not by changing filenames.
   #
+  # Currency naming rule:
+  #   In holdings, transactions, and cash, an unqualified monetary field is in
+  #   the row CURRENCY. A BASE_ field is the translated value in portfolio
+  #   BASE_CURRENCY. Portfolio/security performance monetary fields are
+  #   inherently in portfolio BASE_CURRENCY and therefore stay unprefixed.
+  #   FX_RATE is TO_CURRENCY units per one FROM_CURRENCY unit. Do not introduce
+  #   LOCAL_ duplicates; row currency is already the detailed-data default.
+  #
   # portfolio_performance:
-  #   Required for portfolio-level comparison. Contains reported portfolio
-  #   returns and portfolio-level performance extract values. Required fields
-  #   after Axys/APX normalization: portfolio id, from date, thru date, and
-  #   portfolio return.
-  #   Starter headers: PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN,
-  #   BEGIN_MV, END_MV, FLOW, INCOME, and GAIN_LOSS.
+  #   Required fields: PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN.
+  #   Required only when applicable: BASE_CURRENCY for multi-currency work. It
+  #   is authoritative when supplied; PPAR fills missing holdings/transaction
+  #   base currency from it and rejects contradictory row values.
+  #   Optional fields: BEGIN_MV, END_MV, FLOW, INCOME, GAIN_LOSS. They are
+  #   compared when present but are not needed for Fully Explained.
+  #   Likely source: REP performance report. The current evidence does not
+  #   verify a native performance IMEX object.
   #
   # security_performance:
-  #   Optional for the first portfolio-only onboarding pass, but required for
-  #   security-level comparison. If absent, portfolio reports still run and the
-  #   command skips security output. Required fields after Axys/APX
-  #   normalization: portfolio id, security id, from date, thru date, and
-  #   security return.
-  #   Starter headers: PORTFOLIO_CODE, SECURITY_ID, FROM_DATE, THRU_DATE,
-  #   SEC_RETURN, BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, and
-  #   CONTRIBUTION.
+  #   Required only when applicable: the file is needed for security-level
+  #   comparison, with PORTFOLIO_CODE, SECURITY_ID, FROM_DATE, THRU_DATE, and
+  #   SEC_RETURN. It is not needed for portfolio-only audit.
+  #   Optional fields: BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, and
+  #   CONTRIBUTION. They are compared when present.
+  #   Likely source: REP security-performance or attribution report. The
+  #   current evidence does not verify a native performance IMEX object.
   #
   # holdings:
-  #   Required. Contains beginning/ending holdings values used as Modified
-  #   Dietz beginning and ending value inputs. Required fields after Axys/APX
-  #   normalization: portfolio id, security id, holding date, and market value.
-  #   When accrued interest is present, PPAR adds it to market value for the
-  #   reconstructed beginning/end valuation. When accrued interest is absent or
-  #   blank, it is treated as zero. Quantity and price remain useful supporting
-  #   evidence for explaining why market value changed.
-  #   Starter headers: PORT, SEC, HOLDING_DATE, QTY, PRICE, MKT_VAL, ACCRUED.
+  #   Required fields: PORT, SEC, HOLDING_DATE, MKT_VAL, with rows for the
+  #   beginning and ending dates of every comparison period.
+  #   Required only when applicable: CURRENCY, BASE_CURRENCY, and BASE_MKT_VAL
+  #   for multi-currency holdings; ACCRUED when it is stated separately from
+  #   MKT_VAL and affects valuation; BASE_ACCRUED when a nonzero foreign
+  #   ACCRUED value participates in Modified Dietz.
+  #   Optional fields: QTY and PRICE.
+  #   Likely source: IMEX positions/holdings export or REP appraisal report.
   #
   # transactions:
-  #   Required. Contains dated transaction rows used to classify external flows,
-  #   income, fees, buys, sells, transfers, and evidence-only activity.
-  #   Required fields after Axys/APX normalization: portfolio id, transaction
-  #   date, transaction code, security id, and amount. Quantity, price,
-  #   commission, security type, and source/destination fields make the report
-  #   more useful and help resolve ambiguous transaction codes.
-  #   Starter core headers: PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT.
-  #   Useful context headers: SETTLE_DATE, SEC_TYPE, SRC_DEST_TYPE,
-  #   SRC_DEST_SYMBOL, SPECIAL_SEC_TYPE, SPECIAL_SEC_SYMBOL, QTY, PRICE,
-  #   COMMISSION.
+  #   Required fields: PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT.
+  #   Required only when applicable: SEC_TYPE, SRC_DEST_TYPE, SRC_DEST_SYMBOL,
+  #   SPECIAL_SEC_TYPE, and SPECIAL_SEC_SYMBOL when ambiguous DP, LI, LO, or WD
+  #   codes can appear; CURRENCY, BASE_CURRENCY, and BASE_AMOUNT for foreign
+  #   amounts.
+  #   Optional fields: SETTLE_DATE, QTY, PRICE, COMMISSION.
+  #   Likely source: IMEX transaction export. Use REP/custom output or another
+  #   reviewed source if IMEX omits the context needed for ambiguous codes.
+  #
+  # fx_rates:
+  #   Required only when applicable: to explain a changed FX rate itself, use
+  #   PORT, FROM_CURRENCY, TO_CURRENCY, RATE_DATE, FX_RATE, and LOCAL_EXPOSURE.
+  #   RATE_SOURCE and RATE_TYPE are required only when pair/date alone does not
+  #   identify one controlled series. Otherwise this entire file is optional.
+  #   Likely source: local discovery is required; use a validated REP extract,
+  #   FX/price source, or other controlled rate source.
   #
   # splits:
-  #   Optional but recommended when your Axys/APX extract process can export
-  #   security-level split factors. Axys evidence indicates normal split
-  #   handling is driven by central split-factor data such as split.inf, not by
-  #   ordinary portfolio transaction rows. Required fields after normalization:
-  #   security id, split date, and split factor. This is context evidence only;
-  #   it explains why holdings.quantity may change, but it is not an external
-  #   cash flow and does not directly enter Modified Dietz.
-  #   Starter headers: SEC, SPLIT_DATE, SPLIT_FACTOR.
+  #   Optional fields: SEC, SPLIT_DATE, SPLIT_FACTOR. Split factors can explain
+  #   a quantity change, but they do not directly enter the current Modified
+  #   Dietz explanation formula.
+  #   Likely source: split.inf or a local split-factor export; REP/custom output
+  #   only if it exposes equivalent factors.
   portfolio_performance: portperf.csv
   security_performance: secperf.csv
   holdings: holdings.csv
@@ -540,28 +561,21 @@ security_return_impact_methods:
     day_count: actual_days
     inclusion_rule: beginning_of_day
 
-fx_rate_impact_methods:
-  # PPAR-normalized demo method. This does not claim Axys/APX uses this formula.
-  # It estimates the base-return effect of a changed rate only when both
-  # snapshots provide the same explicit local-currency exposure.
-  fx_rate:
-    method: rate_delta_times_local_exposure_over_return_denominator
-    denominator_source: begin_market_value
-
 evidence_only_impact_methods:
   # Purpose:
   #   Names source-data fields that are intentionally review context, not
   #   additive Modified Dietz causes. Split factors explain why holdings
-  #   quantities changed, but the actual performance input remains ending
-  #   holdings.market_value.
+  #   quantities changed, but the actual performance input remains the ending
+  #   holding value. FX rates support changed base-currency values; the changed
+  #   holdings.base_market_value or transactions.base_amount row is counted.
   splits:
     method: evidence_only
     source_fields:
       - split_factor
-  holdings:
+  fx_rates:
     method: evidence_only
     source_fields:
-      - base_market_value
+      - fx_rate
 
 tolerances:
   # Purpose:

@@ -6,7 +6,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 import datetime as dt
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Final
 
 # Third-party imports
@@ -15,6 +14,7 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison.currency_basis import base_currency_monetary_value
 from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.modified_dietz import modified_dietz_flow_weight
 from ppar.performance_comparison.methods import ReturnReconstructionMethod
@@ -225,12 +225,19 @@ def _snapshot_data_index(
         portfolio_id = str(row[pc_cols.PORTFOLIO_ID])
         security_id = str(row[pc_cols.SECURITY_ID])
         holding_date = _date_value(row[pc_cols.HOLDING_DATE])
-        market_value = row.get(pc_cols.BASE_MARKET_VALUE)
-        if market_value is None:
-            market_value = row.get(pc_cols.MARKET_VALUE)
-        value = (_float_or_none(market_value) or 0.0) + (
-            _float_or_none(row.get(pc_cols.ACCRUED)) or 0.0
+        market_value = _required_base_currency_value(
+            row,
+            local_field=pc_cols.MARKET_VALUE,
+            base_field=pc_cols.BASE_MARKET_VALUE,
+            dataset=pc_cols.HOLDINGS,
         )
+        accrued = _required_base_currency_value(
+            row,
+            local_field=pc_cols.ACCRUED,
+            base_field=pc_cols.BASE_ACCRUED,
+            dataset=pc_cols.HOLDINGS,
+        )
+        value = (market_value or 0.0) + (accrued or 0.0)
         holding_dates.setdefault(portfolio_id, set()).add(holding_date)
         portfolio_key = portfolio_id, holding_date
         security_key = portfolio_id, security_id, holding_date
@@ -506,6 +513,8 @@ class _PortfolioReturnReconstructionEngine:
                 thru_date=thru_date,
                 flow_date=flow_date,
             )
+            if weight is None:
+                continue
             net_flow += amount
             weighted_flow += amount * weight
         return net_flow, weighted_flow
@@ -710,6 +719,8 @@ class _SecurityReturnReconstructionEngine:
                 thru_date=thru_date,
                 flow_date=flow_date,
             )
+            if weight is None:
+                continue
             net_flow += security_flow
             weighted_flow += security_flow * weight
         return net_flow, weighted_flow
@@ -817,7 +828,7 @@ def _return_reconstruction_flow_weight(
     from_date: dt.date,
     thru_date: dt.date,
     flow_date: dt.date,
-) -> float:
+) -> float | None:
     """Return the flow weight for the configured reconstruction method."""
     if reconstruction.method == ReturnReconstructionMethod.SIMPLE_DIETZ.value:
         return 0.0
@@ -1129,11 +1140,49 @@ def _date_value(value: object) -> dt.date:
 
 
 def _transaction_base_amount(row: Mapping[str, object]) -> float | None:
-    """Return an explicit base amount when present, otherwise local amount."""
-    base_amount = _float_or_none(row.get(pc_cols.BASE_AMOUNT))
-    if base_amount is not None:
-        return base_amount
-    return _float_or_none(row.get(pc_cols.AMOUNT))
+    """Return a transaction amount that is safe for base-currency returns."""
+    return _required_base_currency_value(
+        row,
+        local_field=pc_cols.AMOUNT,
+        base_field=pc_cols.BASE_AMOUNT,
+        dataset=pc_cols.TRANSACTIONS,
+    )
+
+
+def _required_base_currency_value(
+    row: Mapping[str, object],
+    *,
+    local_field: str,
+    base_field: str,
+    dataset: str,
+) -> float | None:
+    """Return a Modified Dietz monetary input or reject an unsafe fallback.
+
+    Raises:
+        PpaError: If a nonzero row-currency value needs translation but its
+            explicit portfolio-base-currency counterpart is missing.
+    """
+    value = base_currency_monetary_value(
+        row,
+        local_field=local_field,
+        base_field=base_field,
+    )
+    if value is not None:
+        return value
+    local_value = _float_or_none(row.get(local_field))
+    if local_value is None:
+        return None
+    if local_value == 0.0:
+        return 0.0
+    portfolio_id = row.get(pc_cols.PORTFOLIO_ID)
+    security_id = row.get(pc_cols.SECURITY_ID)
+    raise PpaError(
+        "Modified Dietz requires portfolio-base-currency monetary inputs. "
+        f"{dataset}.{local_field} is stated in {row.get(pc_cols.CURRENCY)!r} "
+        f"for portfolio {portfolio_id!r}, security {security_id!r}, but "
+        f"{dataset}.{base_field} in {row.get(pc_cols.BASE_CURRENCY)!r} is missing.",
+        504,
+    )
 
 
 def _float_or_none(value: object) -> float | None:

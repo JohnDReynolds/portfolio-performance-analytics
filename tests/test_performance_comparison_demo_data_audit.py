@@ -20,7 +20,6 @@ from ppar.performance_comparison import (
     portfolio_period_cause_summary,
 )
 from ppar.performance_comparison.explain import (
-    IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
     IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
     ROOT_CAUSE_FX_RATE,
     ROOT_CAUSE_TRANSACTION_ACTIVITY,
@@ -65,16 +64,12 @@ _PACKAGED_COMPARISON_PATH = (
     / "axysapx_performance_comparison"
     / "axysapx_performance_comparison.yaml"
 )
-_DEMO_SOURCE_CONTRACT_PATH = (
-    _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
-)
+_DEMO_SOURCE_CONTRACT_PATH = _REPO_ROOT / "docs" / "performance_comparison_demo_source_contract.md"
 _PACKAGED_AXYS_DIRECTORY = (
     _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )
 _PACKAGED_AXYS_README_PATH = _PACKAGED_AXYS_DIRECTORY / "README.md"
-_DEMO_EXTRACT_AVAILABILITY_PATH = (
-    _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
-)
+_DEMO_EXTRACT_AVAILABILITY_PATH = _PACKAGED_AXYS_DIRECTORY / "demo_extract_availability.yaml"
 _PACKAGED_DEMO_TRANSACTION_CODES = {
     "by",
     "sl",
@@ -115,6 +110,7 @@ _PACKAGED_TRANSACTION_COLUMNS = [
 
 _PERFORMANCE_DIFFERENCE_CAUSE_FIELDS = {
     (pc_cols.HOLDINGS, pc_cols.ACCRUED),
+    (pc_cols.HOLDINGS, pc_cols.BASE_MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.PRICE),
     (pc_cols.HOLDINGS, pc_cols.QUANTITY),
@@ -203,9 +199,7 @@ def _resolved_transaction_semantics(row: dict[str, object]) -> dict[str, object]
         pc_cols.TRANSACTION_CATEGORY: row[pc_cols.TRANSACTION_CATEGORY],
         pc_cols.CASH_FLOW_SIGN: row[pc_cols.CASH_FLOW_SIGN],
         pc_cols.PERFORMANCE_FLOW_SIGN: row[pc_cols.PERFORMANCE_FLOW_SIGN],
-        pc_cols.TRANSACTION_SEMANTICS_SOURCE: row[
-            pc_cols.TRANSACTION_SEMANTICS_SOURCE
-        ],
+        pc_cols.TRANSACTION_SEMANTICS_SOURCE: row[pc_cols.TRANSACTION_SEMANTICS_SOURCE],
     }
 
 
@@ -229,9 +223,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             self.assertIn(expected_text, normalized_text)
 
         for expected_text in [
-            "mandatory product inputs",
-            "realistic packaged-demo fields",
-            "optional local-enrichment fields",
+            "required only when applicable",
+            "safe to omit; absence alone does not prevent fully explained",
             "internal scenario/rebuild fields",
         ]:
             self.assertIn(expected_text, normalized_lower_text)
@@ -264,9 +257,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         for snapshot_directory in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot_directory=snapshot_directory):
                 transactions = pd.read_csv(
-                    _PACKAGED_AXYS_DIRECTORY
-                    / snapshot_directory
-                    / "transactions.csv",
+                    _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv",
                     nrows=0,
                 )
 
@@ -330,15 +321,11 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         """Setup snapshots stay focused on source CSV files."""
         for snapshot_name in ("snapshot_a", "snapshot_b"):
             with self.subTest(snapshot_name=snapshot_name):
-                self.assertFalse(
-                    (_PACKAGED_AXYS_DIRECTORY / snapshot_name / "README.md").exists()
-                )
+                self.assertFalse((_PACKAGED_AXYS_DIRECTORY / snapshot_name / "README.md").exists())
 
     def test_packaged_demo_extract_availability_covers_current_headers(self) -> None:
         """Every packaged Axys/APX demo CSV field has extraction-confidence metadata."""
-        availability = yaml.safe_load(
-            _DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8")
-        )
+        availability = yaml.safe_load(_DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8"))
         self.assertIsInstance(availability, dict)
 
         labels = set(availability["confidence_labels"])
@@ -346,8 +333,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         source_strategy_labels = set(availability["source_strategy_labels"])
         datasets = availability["datasets"]
         expected_files = {
-            path.name
-            for path in (_PACKAGED_AXYS_DIRECTORY / "snapshot_a").glob("*.csv")
+            path.name for path in (_PACKAGED_AXYS_DIRECTORY / "snapshot_a").glob("*.csv")
         }
         self.assertEqual(set(datasets), expected_files)
 
@@ -414,11 +400,46 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             self.assertTrue(metadata["requires_context_for_semantics"])
             self.assertTrue(metadata["blocking_if_missing"])
 
+    def test_packaged_demo_extraction_requirements_cover_each_field_once(self) -> None:
+        """The user-facing extraction checklist is exhaustive and unambiguous."""
+        availability = yaml.safe_load(_DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8"))
+        datasets = availability["datasets"]
+
+        for file_name, dataset in datasets.items():
+            with self.subTest(file_name=file_name):
+                requirements = dataset["extraction_requirements"]
+                self.assertIn(
+                    requirements["dataset"],
+                    {"required", "required_only_when_applicable", "optional"},
+                )
+                self.assertTrue(str(requirements["reason"]).strip())
+                self.assertTrue(str(requirements["likely_source"]).strip())
+                categorized_fields = [
+                    *requirements["required"],
+                    *requirements["required_only_when_applicable"],
+                    *requirements["optional"],
+                ]
+                self.assertEqual(len(categorized_fields), len(set(categorized_fields)))
+                self.assertEqual(set(categorized_fields), set(dataset["columns"]))
+                for condition in requirements["required_only_when_applicable"].values():
+                    self.assertTrue(str(condition).strip())
+
+        self.assertEqual(
+            datasets["portperf.csv"]["extraction_requirements"]["optional"],
+            ["BEGIN_MV", "END_MV", "FLOW", "INCOME", "GAIN_LOSS"],
+        )
+        self.assertEqual(
+            datasets["holdings.csv"]["extraction_requirements"]["required"],
+            ["PORT", "SEC", "HOLDING_DATE", "MKT_VAL"],
+        )
+        self.assertEqual(
+            datasets["secperf.csv"]["extraction_requirements"]["dataset"],
+            "required_only_when_applicable",
+        )
+
     def test_packaged_demo_gain_loss_metadata_stays_report_style_context(self) -> None:
         """GAIN_LOSS remains report-style performance context, not a native claim."""
-        availability = yaml.safe_load(
-            _DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8")
-        )
+        availability = yaml.safe_load(_DEMO_EXTRACT_AVAILABILITY_PATH.read_text(encoding="utf-8"))
         datasets = availability["datasets"]
 
         for file_name in ("portperf.csv", "secperf.csv"):
@@ -458,14 +479,10 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 _PACKAGED_AXYS_DIRECTORY / snapshot_directory / "transactions.csv"
             )
             observed_codes.update(
-                str(code).strip()
-                for code in transactions["TRAN"].dropna()
-                if str(code).strip()
+                str(code).strip() for code in transactions["TRAN"].dropna() if str(code).strip()
             )
 
-        configuration = yaml.safe_load(
-            _PACKAGED_COMPARISON_PATH.read_text(encoding="utf-8")
-        )
+        configuration = yaml.safe_load(_PACKAGED_COMPARISON_PATH.read_text(encoding="utf-8"))
         configured_codes = set(configuration["transaction_rules"].keys())
 
         self.assertTrue(observed_codes.issubset(configured_codes))
@@ -515,9 +532,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                     _resolved_transaction_semantics(resolved_rows["ALPHA0203"]),
                     {
                         pc_cols.TRANSACTION_CODE: "wd",
-                        pc_cols.TRANSACTION_CATEGORY: (
-                            TRANSACTION_CATEGORY_EXTERNAL_FLOW
-                        ),
+                        pc_cols.TRANSACTION_CATEGORY: (TRANSACTION_CATEGORY_EXTERNAL_FLOW),
                         pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
                         pc_cols.PERFORMANCE_FLOW_SIGN: (
                             TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
@@ -546,9 +561,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                         _resolved_transaction_semantics(resolved_rows["ALPHA0303"]),
                         {
                             pc_cols.TRANSACTION_CODE: "lo",
-                            pc_cols.TRANSACTION_CATEGORY: (
-                                TRANSACTION_CATEGORY_EXTERNAL_FLOW
-                            ),
+                            pc_cols.TRANSACTION_CATEGORY: (TRANSACTION_CATEGORY_EXTERNAL_FLOW),
                             pc_cols.CASH_FLOW_SIGN: TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
                             pc_cols.PERFORMANCE_FLOW_SIGN: (
                                 TRANSACTION_PERFORMANCE_FLOW_SIGN_EXTERNAL
@@ -579,9 +592,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             observed_codes = set(transactions["TRAN"].astype(str))
 
             self.assertTrue(
-                observed_codes.isdisjoint(
-                    _REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES
-                )
+                observed_codes.isdisjoint(_REAL_WORLD_EVIDENCE_REQUIRED_TRANSACTION_CODES)
             )
 
     def test_packaged_demo_fixed_income_boundary_stays_evidenced(self) -> None:
@@ -598,9 +609,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 )
                 observed_codes = set(transactions["TRAN"].astype(str))
 
-                disallowed_backlog_codes = (
-                    FIXED_INCOME_BACKLOG_TRANSACTION_CODES - {"pd"}
-                )
+                disallowed_backlog_codes = FIXED_INCOME_BACKLOG_TRANSACTION_CODES - {"pd"}
                 self.assertTrue(observed_codes.isdisjoint(disallowed_backlog_codes))
                 if snapshot_key == "b":
                     self.assertIn("pa", observed_codes)
@@ -776,8 +785,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         causes = _workbook_underlying_causes_table(findings)
         accrued_causes = causes.filter(
-            (pl.col("dataset") == pc_cols.HOLDINGS)
-            & (pl.col("source_column") == pc_cols.ACCRUED)
+            (pl.col("dataset") == pc_cols.HOLDINGS) & (pl.col("source_column") == pc_cols.ACCRUED)
         )
 
         self.assertGreater(accrued_causes.height, 0)
@@ -824,10 +832,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(rc_causes.height, 1)
         self.assertEqual(
             rc_causes["review_guidance"][0],
-            (
-                "rc: Caused cash-balance ending holdings.market_value "
-                "to increase by 240.00."
-            ),
+            ("rc: Caused cash-balance ending holdings.market_value " "to increase by 240.00."),
         )
 
     def test_packaged_demo_pd_row_explains_principal_paydown_cash_effect(self) -> None:
@@ -848,10 +853,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(pd_causes.height, 1)
         self.assertEqual(
             pd_causes["review_guidance"][0],
-            (
-                "pd: Caused cash-balance ending holdings.market_value "
-                "to increase by 320.00."
-            ),
+            ("pd: Caused cash-balance ending holdings.market_value " "to increase by 320.00."),
         )
 
     def test_packaged_demo_intentional_review_status_examples(self) -> None:
@@ -898,12 +900,8 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             for row in security_changes.iter_rows(named=True)
         }
 
-        partly_explained = security_statuses[
-            ("BALANCED", "MSFT", "2026-05-09", "2026-05-14")
-        ]
-        unexplained = security_statuses[
-            ("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30")
-        ]
+        partly_explained = security_statuses[("BALANCED", "MSFT", "2026-05-09", "2026-05-14")]
+        unexplained = security_statuses[("INCOME", "91282Y5Y1", "2026-04-01", "2026-04-30")]
         self.assertEqual(partly_explained["review_status"], "Partly Explained")
         self.assertGreater(abs(partly_explained["estimated_cause_total"]), 0.0)
         self.assertGreater(abs(partly_explained["unexplained_change"]), 0.0)
@@ -955,20 +953,20 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
                 "wd": 1,
             },
         )
-        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 36)
+        self.assertEqual(snapshots["snapshot_b"]["transaction_derived_holding_rows"], 42)
         self.assertEqual(
             snapshots["snapshot_b"]["transaction_derived_holdings_by_type"],
             {
                 "by": 6,
                 "cs": 1,
                 "dp": 1,
-                "dv": 8,
+                "dv": 13,
                 "in": 3,
                 "li": 1,
                 "lo": 1,
                 "pa": 3,
                 "pd": 4,
-                "rc": 1,
+                "rc": 2,
                 "sa": 1,
                 "sl": 4,
                 "ss": 1,
@@ -1056,6 +1054,56 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         self.assertEqual(issues, [])
 
+    def test_protected_inventory_matches_every_named_demo_scenario(self) -> None:
+        """Every current scenario is independently protected against removal."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+
+        issues = rebuild_module._audit_protected_scenario_inventory(
+            inventory=inventory,
+            calendar=calendar,
+        )
+
+        self.assertEqual(issues, [])
+        self.assertIn(
+            "transaction:BALANCED0403:Contribution restatement adds external cash inflow.",
+            set(inventory["scenario_key"]),
+        )
+
+    def test_protected_inventory_detects_removed_or_unregistered_scenarios(self) -> None:
+        """Deleting or adding a calendar story without inventory review fails."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+        removed_calendar = calendar.iloc[1:].copy()
+        unregistered_calendar = pd.concat(
+            [calendar, calendar.iloc[[0]].assign(scenario_key="transaction:NEW:Unregistered.")],
+            ignore_index=True,
+        )
+
+        removed_issues = rebuild_module._audit_protected_scenario_inventory(
+            inventory=inventory,
+            calendar=removed_calendar,
+        )
+        unregistered_issues = rebuild_module._audit_protected_scenario_inventory(
+            inventory=inventory,
+            calendar=unregistered_calendar,
+        )
+
+        self.assertTrue(any("disappeared" in issue.detail for issue in removed_issues))
+        self.assertTrue(
+            any("not protected" in issue.detail for issue in unregistered_issues)
+        )
+
     def test_scenario_calendar_density_confirms_simplified_periods(self) -> None:
         """The calendar confirms every demo period is within the density target."""
         rebuild_module = _load_rebuild_module()
@@ -1065,41 +1113,27 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         density_rows = rebuild_module._scenario_calendar_density(calendar)
         density_by_period = {
-            (row["portfolio"], row["from_date"], row["thru_date"]): row
-            for row in density_rows
+            (row["portfolio"], row["from_date"], row["thru_date"]): row for row in density_rows
         }
 
-        balanced_may_mark = density_by_period[
-            ("BALANCED", "2026-05-01", "2026-05-08")
+        balanced_march_mark = density_by_period[
+            ("BALANCED", "2026-02-28", "2026-03-31")
         ]
-        balanced_may_corrections = density_by_period[
-            ("BALANCED", "2026-05-09", "2026-05-14")
-        ]
-        balanced_may_short = density_by_period[
-            ("BALANCED", "2026-05-15", "2026-05-29")
-        ]
-        income_february_buy = density_by_period[
-            ("INCOME", "2026-01-31", "2026-02-13")
-        ]
-        income_february_sell = density_by_period[
-            ("INCOME", "2026-02-14", "2026-02-27")
-        ]
+        balanced_may_mark = density_by_period[("BALANCED", "2026-05-01", "2026-05-08")]
+        balanced_may_corrections = density_by_period[("BALANCED", "2026-05-09", "2026-05-14")]
+        balanced_may_short = density_by_period[("BALANCED", "2026-05-15", "2026-05-29")]
+        income_february_buy = density_by_period[("INCOME", "2026-01-31", "2026-02-13")]
+        income_february_sell = density_by_period[("INCOME", "2026-02-14", "2026-02-27")]
         income_may_mark = density_by_period[("INCOME", "2026-05-01", "2026-05-08")]
-        income_may_dividend_payable = density_by_period[
-            ("INCOME", "2026-05-09", "2026-05-14")
-        ]
-        income_may_income = density_by_period[
-            ("INCOME", "2026-05-15", "2026-05-15")
-        ]
-        income_may_paydown = density_by_period[
-            ("INCOME", "2026-05-16", "2026-05-22")
-        ]
-        income_may_late_dividend = density_by_period[
-            ("INCOME", "2026-05-23", "2026-05-29")
-        ]
+        income_may_dividend_payable = density_by_period[("INCOME", "2026-05-09", "2026-05-14")]
+        income_may_income = density_by_period[("INCOME", "2026-05-15", "2026-05-15")]
+        income_may_paydown = density_by_period[("INCOME", "2026-05-16", "2026-05-22")]
+        income_may_late_dividend = density_by_period[("INCOME", "2026-05-23", "2026-05-29")]
         alpha_may = density_by_period[("ALPHA", "2026-05-01", "2026-05-29")]
-        self.assertEqual(balanced_may_mark["current_difference_rows"], 2)
+        self.assertEqual(balanced_may_mark["current_difference_rows"], 1)
         self.assertFalse(balanced_may_mark["needs_intra_month_split"])
+        self.assertEqual(balanced_march_mark["current_difference_rows"], 1)
+        self.assertFalse(balanced_march_mark["needs_intra_month_split"])
         self.assertEqual(balanced_may_corrections["current_difference_rows"], 2)
         self.assertFalse(balanced_may_corrections["needs_intra_month_split"])
         self.assertEqual(balanced_may_short["current_difference_rows"], 2)
@@ -1122,6 +1156,124 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertFalse(alpha_may["needs_intra_month_split"])
         self.assertFalse(any(row["needs_intra_month_split"] for row in density_rows))
 
+    def test_balanced_april_has_one_new_story_and_keeps_inherited_inputs(self) -> None:
+        """Each April period has one new story without hiding inherited inputs."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+        causes = _workbook_underlying_causes_table(
+            findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        ).filter(
+            (pl.col("portfolio_id") == "BALANCED")
+            & pl.col("from_date").cast(pl.String).str.starts_with("2026-04")
+        )
+        expected_story_security = {
+            ("2026-04-01", "2026-04-10"): "JPM",
+            ("2026-04-11", "2026-04-16"): "SAP.DE",
+            ("2026-04-17", "2026-04-24"): "JPM",
+            ("2026-04-25", "2026-04-30"): "SHEL.L",
+        }
+        for period, expected_security in expected_story_security.items():
+            from_date, thru_date = period
+            period_rows = causes.filter(
+                (pl.col("from_date").cast(pl.String) == from_date)
+                & (pl.col("thru_date").cast(pl.String) == thru_date)
+            )
+            support_securities = set(
+                period_rows.filter(
+                    pl.col("dataset").is_in([pc_cols.FX_RATES, pc_cols.TRANSACTIONS])
+                )["security_id"]
+            )
+            self.assertEqual(support_securities, {expected_security})
+            self.assertGreaterEqual(
+                period_rows.filter(pl.col("estimated_impact").is_not_null()).height,
+                1,
+            )
+            inherited_rows = period_rows.filter(
+                pl.col("as_of_date") < pl.col("from_date")
+            )
+            for guidance in inherited_rows["review_guidance"]:
+                self.assertIn("Inherited beginning-value difference", guidance)
+
+    def test_march_contribution_is_standalone_and_fully_explained(self) -> None:
+        """The restored contribution remains visible without affecting April."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+        portfolio_changes = _workbook_portfolio_changes_table(
+            findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        ).filter(pl.col("portfolio_id") == "BALANCED_CONTRIBUTION")
+        causes = _workbook_underlying_causes_table(
+            findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        ).filter(pl.col("portfolio_id") == "BALANCED_CONTRIBUTION")
+
+        self.assertEqual(portfolio_changes.height, 1)
+        self.assertEqual(portfolio_changes["review_status"][0], "Fully Explained")
+        self.assertEqual(
+            causes.filter(
+                (pl.col("dataset") == pc_cols.TRANSACTIONS)
+                & (pl.col("source_column") == pc_cols.AMOUNT)
+                & pl.col("review_guidance").str.starts_with("li:")
+            ).height,
+            1,
+        )
+        self.assertEqual(
+            set(causes["from_date"].cast(pl.String)),
+            {"2026-03-01"},
+        )
+
+    def test_balanced_periods_keep_inherited_inputs_and_isolate_new_stories(self) -> None:
+        """BALANCED keeps AAPL and CVNA in separate periods without hiding inputs."""
+        findings = compare_snapshots(
+            _PACKAGED_COMPARISON_PATH,
+            require_causal_attribution=True,
+        )
+        causes = _workbook_underlying_causes_table(
+            findings,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        )
+        balanced_may = causes.filter(
+            (pl.col("portfolio_id") == "BALANCED")
+            & (pl.col("from_date") == pl.date(2026, 5, 1))
+            & (pl.col("thru_date") == pl.date(2026, 5, 8))
+        )
+        aapl_march = causes.filter(
+            (pl.col("portfolio_id") == "BALANCED")
+            & (pl.col("from_date") == pl.date(2026, 2, 28))
+            & (pl.col("thru_date") == pl.date(2026, 3, 31))
+        )
+
+        self.assertNotIn("AAPL", set(balanced_may["security_id"]))
+        self.assertIn("CVNA", set(balanced_may["security_id"]))
+        inherited = balanced_may.filter(pl.col("as_of_date") < pl.col("from_date"))
+        self.assertTrue(
+            {"CASHEUR", "SHEL.L", "CASHUSD"}.issubset(set(inherited["security_id"]))
+        )
+        for guidance in inherited.filter(pl.col("dataset") == pc_cols.HOLDINGS)[
+            "review_guidance"
+        ]:
+            self.assertIn("input to Modified Dietz", guidance)
+        self.assertEqual(set(aapl_march["security_id"]), {"AAPL"})
+
+    def test_generated_multicurrency_stories_match_calendar(self) -> None:
+        """Generated multi-currency causes agree with their calendar securities."""
+        rebuild_module = _load_rebuild_module()
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+
+        issues = rebuild_module._audit_generated_causal_story_coverage(
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+            calendar=calendar,
+        )
+
+        self.assertEqual(issues, [])
+
     def test_scenario_readability_matrix_names_each_period_story(self) -> None:
         """The scenario matrix keeps the demo stories reviewable by period."""
         rebuild_module = _load_rebuild_module()
@@ -1131,8 +1283,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
 
         matrix_rows = rebuild_module._scenario_readability_matrix(calendar)
         matrix_by_period = {
-            (row["portfolio"], row["from_date"], row["thru_date"]): row
-            for row in matrix_rows
+            (row["portfolio"], row["from_date"], row["thru_date"]): row for row in matrix_rows
         }
 
         for row in matrix_rows:
@@ -1157,18 +1308,14 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         self.assertEqual(income_paydown["scenario_families"], ["principal_paydown"])
         self.assertEqual(income_paydown["primary_securities"], ["36225MBS1"])
         self.assertEqual(income_paydown["expected_difference_rows"], 1)
-        income_dividend_payable = matrix_by_period[
-            ("INCOME", "2026-05-09", "2026-05-14")
-        ]
+        income_dividend_payable = matrix_by_period[("INCOME", "2026-05-09", "2026-05-14")]
         self.assertEqual(
             income_dividend_payable["scenario_families"],
             ["missed_late_dividend"],
         )
         self.assertEqual(income_dividend_payable["primary_securities"], ["AAPL"])
         self.assertEqual(income_dividend_payable["expected_difference_rows"], 1)
-        income_late_dividend = matrix_by_period[
-            ("INCOME", "2026-05-23", "2026-05-29")
-        ]
+        income_late_dividend = matrix_by_period[("INCOME", "2026-05-23", "2026-05-29")]
         self.assertEqual(
             income_late_dividend["scenario_families"],
             ["missed_late_dividend"],
@@ -1227,7 +1374,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         by_scenario = {adjustment.scenario: adjustment for adjustment in adjustments}
 
-        self.assertEqual(len(adjustments), 36)
+        self.assertEqual(len(adjustments), 42)
         self.assertNotIn(
             "BALANCED0503 ; transaction changes cash balance.",
             by_scenario,
@@ -1421,7 +1568,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         )
         self._assert_adjustment(
             by_scenario["BALANCED0403 li transaction changes cash balance."],
-            portfolio="BALANCED",
+            portfolio="BALANCED_CONTRIBUTION",
             security="CASHUSD",
             holding_date="2026-03-31",
             deltas={"QTY": 2500.0, "MKT_VAL": 2500.0, "COST": 2500.0},
@@ -1492,8 +1639,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
         """Transaction scenario rows must target derived snapshots."""
         rebuild_module = _load_rebuild_module()
         row: dict[str, object] = {
-            column: ""
-            for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
+            column: "" for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
         }
         row.update(
             {
@@ -1533,8 +1679,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             ("BALANCED0404", "lo", -900, "Test-only withdrawal insertion."),
         ):
             row: dict[str, object] = {
-                column: ""
-                for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
+                column: "" for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
             }
             row.update(
                 {
@@ -1623,8 +1768,7 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             ("TESTSA", "sa", 37.25, "Test-only sale accrued interest."),
         ):
             row: dict[str, object] = {
-                column: ""
-                for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
+                column: "" for column in rebuild_module._TRANSACTION_SCENARIO_COLUMNS
             }
             row.update(
                 {
@@ -1701,50 +1845,60 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
     def test_packaged_demo_multicurrency_cash_and_base_fields(self) -> None:
         """Packaged fixtures expose exact cash IDs and explicit base values."""
         holdings = pd.read_csv(_PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "holdings.csv")
-        transactions = pd.read_csv(
-            _PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "transactions.csv"
-        )
+        transactions = pd.read_csv(_PACKAGED_AXYS_DIRECTORY / "snapshot_a" / "transactions.csv")
         self.assertTrue({"CASHUSD", "CASHEUR", "CASHGBP"}.issubset(set(holdings["SEC"])))
         self.assertTrue({"EUR", "GBP"}.issubset(set(transactions["CURRENCY"])))
         self.assertIn("BASE_AMOUNT", transactions.columns)
         self.assertIn("BASE_MKT_VAL", holdings.columns)
 
-    def test_packaged_demo_explains_eur_transaction_and_gbp_rate(self) -> None:
-        """Foreign transaction and FX changes reach Explained Difference."""
+    def test_packaged_demo_counts_base_values_and_links_fx_support(self) -> None:
+        """Foreign base values are counted while the changed FX rate is support."""
         findings = compare_snapshots(
             _PACKAGED_COMPARISON_PATH,
             require_causal_attribution=True,
         )
         summary = portfolio_period_cause_summary(findings).filter(
-            (pl.col("portfolio_id") == "BALANCED")
-            & (pl.col("from_date") == pl.date(2026, 4, 1))
+            (pl.col("portfolio_id") == "BALANCED") & (pl.col("from_date") == pl.date(2026, 4, 25))
         )
-        impact_by_cause = {
-            row["root_cause_area"]: row
-            for row in summary.iter_rows(named=True)
+        impact_by_cause = {row["root_cause_area"]: row for row in summary.iter_rows(named=True)}
+        self.assertEqual(impact_by_cause[ROOT_CAUSE_FX_RATE]["impact_basis"], "no_estimate")
+        self.assertIsNone(impact_by_cause[ROOT_CAUSE_FX_RATE]["estimated_return_impact"])
+        transaction_summary = portfolio_period_cause_summary(findings).filter(
+            (pl.col("portfolio_id") == "BALANCED") & (pl.col("from_date") == pl.date(2026, 4, 11))
+        )
+        transaction_causes = {
+            row["root_cause_area"]: row for row in transaction_summary.iter_rows(named=True)
         }
         self.assertEqual(
-            impact_by_cause[ROOT_CAUSE_FX_RATE]["impact_basis"],
-            IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
-        )
-        self.assertEqual(
-            impact_by_cause[ROOT_CAUSE_TRANSACTION_ACTIVITY]["impact_basis"],
+            transaction_causes[ROOT_CAUSE_TRANSACTION_ACTIVITY]["impact_basis"],
             IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
-        )
-        self.assertIsNotNone(
-            impact_by_cause[ROOT_CAUSE_FX_RATE]["estimated_return_impact"]
         )
         workbook_causes = _workbook_underlying_causes_table(
             findings,
             comparison_path=_PACKAGED_COMPARISON_PATH,
         )
         explained_fields = set(
-            workbook_causes.filter(pl.col("estimated_impact").is_not_null())[
-                "dataset_field"
-            ]
+            workbook_causes.filter(pl.col("estimated_impact").is_not_null())["dataset_field"]
         )
-        self.assertIn("fx_rates.fx_rate", explained_fields)
-        self.assertIn("transactions.base_amount", explained_fields)
+        self.assertIn("holdings.base_market_value", explained_fields)
+        self.assertNotIn("fx_rates.fx_rate", explained_fields)
+        fx_support = workbook_causes.filter(
+            (pl.col("dataset") == pc_cols.FX_RATES) & (pl.col("source_column") == pc_cols.FX_RATE)
+        )
+        self.assertEqual(
+            fx_support["from_date"].cast(pl.String).to_list(),
+            ["2026-04-25", "2026-05-01"],
+        )
+        self.assertEqual(fx_support["security_id"].to_list(), ["SHEL.L", "SHEL.L"])
+        for guidance in fx_support["review_guidance"]:
+            self.assertIn(
+                "GBP-to-USD FX rate changed from 1.268 to 1.288 USD per GBP",
+                guidance,
+            )
+            self.assertIn(
+                "SHEL.L holdings.base_market_value shows the counted USD effect",
+                guidance,
+            )
 
     def _assert_adjustment(
         self,

@@ -270,6 +270,45 @@ class TestTransactionsLoader(unittest.TestCase):
         self.assertEqual(target_row[pc_cols.QUANTITY], 200.0)
         self.assertEqual(target_row[pc_cols.BROKER], "INIT")
 
+    def test_conflicting_transaction_base_currency_raises_error_504(self) -> None:
+        """Transaction currency cannot contradict its portfolio currency."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "transactions": "transactions.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                pl.DataFrame(
+                    {
+                        "PORTFOLIO_CODE": ["P1"],
+                        "FROM_DATE": ["2025-01-01"],
+                        "THRU_DATE": ["2025-01-31"],
+                        "PORT_RETURN": [0.01],
+                        "BASE_CURRENCY": ["USD"],
+                    }
+                ).write_csv(snapshot_path / "portperf.csv")
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "TRANSACTION_DATE": ["2025-01-15"],
+                        "SEC": ["S1"],
+                        "TRAN": ["by"],
+                        "BASE_CURRENCY": ["EUR"],
+                        "AMOUNT": [-100.0],
+                    }
+                ).write_csv(snapshot_path / "transactions.csv")
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaises(PpaError) as context:
+                TransactionsLoader(PerformanceComparisonSpecification(path)).load("a")
+
+        message = str(context.exception)
+        self.assertTrue(message.startswith("Error 504"))
+        self.assertIn("authoritative portfolio_performance", message)
+
     def test_transaction_category_is_inferred_from_transaction_code(self) -> None:
         """Transaction codes are labeled with conservative normalized categories."""
         specification = PerformanceComparisonSpecification(_BASELINE_COMPARISON_PATH)

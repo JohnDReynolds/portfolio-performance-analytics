@@ -252,6 +252,14 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 readme,
             )
             self.assertIn("Performance Auditing compares two snapshots", readme)
+            self.assertIn("#### Getting Data from Axys/APX", readme)
+            self.assertIn("Start with the comments under `files:`", readme)
+            self.assertIn("use a REP performance or attribution", readme)
+            self.assertIn("try IMEX first", readme)
+            self.assertIn("source/destination and special-security context", readme)
+            self.assertIn("PPAR-normalized examples", readme)
+            self.assertEqual(readme.count("fx_rates.csv"), 2)
+            self.assertEqual(readme.count("splits.csv"), 2)
             demo_sequence = [
                 "## Demos",
                 "### Performance Auditing",
@@ -1538,7 +1546,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn("Contribution impact methods: none", result.stdout)
         self.assertIn("Cash impact methods: none", result.stdout)
-        self.assertIn("FX rate impact methods: fx_rate", result.stdout)
+        self.assertIn("FX rate impact methods: none", result.stdout)
+        self.assertIn("Evidence-only impact methods: fx_rates, splits", result.stdout)
         self.assertIn("Transaction rules configured: 15", result.stdout)
         self.assertIn("Transaction impact methods: external_flow, performance", result.stdout)
         self.assertIn("Transaction files checked: 2", result.stdout)
@@ -1593,7 +1602,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         )
 
         self.assertIn("Config validation passed:", result.stdout)
-        self.assertIn("Transaction codes without YAML rules: BUY, DIV, INT, SELL, SPLIT", result.stdout)
+        self.assertIn(
+            "Transaction codes without YAML rules: BUY, DIV, INT, SELL, SPLIT",
+            result.stdout,
+        )
         self.assertEqual(result.stderr, "")
 
     def test_validate_config_cli_module_reports_invalid_yaml_contract(self) -> None:

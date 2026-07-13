@@ -62,6 +62,8 @@ from ppar.performance_comparison.findings import (
     PC_SEC_ADD,
     PC_SEC_CONTR,
     PC_SEC_DROP,
+    PC_SEC_FLOW,
+    PC_SEC_MV,
     PC_SEC_RET,
     PC_SEC_WGT,
     PC_TXN_ADD,
@@ -71,7 +73,6 @@ from ppar.performance_comparison.findings import (
     PC_TXN_DROP,
     PC_TXN_PRICE,
     PC_TXN_QTY,
-    RELATED_OUTPUT,
     RETURN_DENOMINATOR,
     RETURN_WEIGHT,
     SECURITY_ID,
@@ -877,6 +878,18 @@ class TestPerformanceComparison(unittest.TestCase):
             and finding[SECURITY_ID] == "AAPL"
             and finding[SOURCE_COLUMN] == pc_cols.CONTRIBUTION
         ]
+        aapl_market_value_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_SEC_MV
+            and finding[SECURITY_ID] == "AAPL"
+        ]
+        aapl_flow_findings = [
+            finding
+            for finding in finding_dicts
+            if finding[FINDING_CODE] == PC_SEC_FLOW
+            and finding[SECURITY_ID] == "AAPL"
+        ]
         add_findings = [
             finding
             for finding in finding_dicts
@@ -905,6 +918,8 @@ class TestPerformanceComparison(unittest.TestCase):
             cast(float, aapl_contribution_findings[0][DELTA_B_MINUS_A]),
             0.00058425,
         )
+        self.assertGreaterEqual(len(aapl_market_value_findings), 1)
+        self.assertGreaterEqual(len(aapl_flow_findings), 1)
         self.assertEqual(len(add_findings), 1)
         self.assertEqual(len(drop_findings), 1)
 

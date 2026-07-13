@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 import datetime as dt
+import math
 from pathlib import Path
 from typing import Any
 
@@ -208,10 +209,143 @@ def write_review_workbook_sheets(
     for sheet in sheets:
         _add_workbook_sheet(workbook, sheet, styles, column_tooltip)
 
+    _assert_written_portfolio_explanations_reconcile(workbook)
+
     workbook_path = Path(output_path)
     workbook_path.parent.mkdir(parents=True, exist_ok=True)
     workbook.save(workbook_path)
     return workbook_path
+
+
+def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
+    """Raise unless fully explained portfolio cells reconcile after serialization.
+
+    Raises:
+        PpaError: If the values that will be written to the two reviewer-facing
+            worksheets no longer foot at the workbook's six-decimal precision.
+    """
+    summary_name = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
+    causes_name = _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
+    if summary_name not in workbook.sheetnames or causes_name not in workbook.sheetnames:
+        return
+    summary = workbook[summary_name]
+    causes = workbook[causes_name]
+    summary_columns = _worksheet_column_indexes(summary)
+    # Security workbooks reconcile at a different grain. This invariant is the
+    # portfolio-period contract between the two sheets named by the reviewer.
+    if "Security" in summary_columns:
+        return
+    cause_columns = _worksheet_column_indexes(causes)
+    required_summary = {
+        "Portfolio",
+        "From Date",
+        "Thru Date",
+        "Performance Difference",
+        "Explained Difference",
+        "Unexplained Difference",
+        "Status",
+    }
+    required_causes = {
+        "Portfolio",
+        "From Date",
+        "Thru Date",
+        "Performance Difference Explained",
+    }
+    if not required_summary.issubset(summary_columns) or not required_causes.issubset(
+        cause_columns
+    ):
+        return
+
+    cause_impacts: dict[tuple[object, object, object], list[float]] = {}
+    for row_index in range(2, causes.max_row + 1):
+        key = _worksheet_period_key(causes, cause_columns, row_index)
+        impact = causes.cell(
+            row=row_index,
+            column=cause_columns["Performance Difference Explained"],
+        ).value
+        if isinstance(impact, (int, float)) and not isinstance(impact, bool):
+            cause_impacts.setdefault(key, []).append(float(impact))
+
+    for row_index in range(2, summary.max_row + 1):
+        status = summary.cell(row=row_index, column=summary_columns["Status"]).value
+        if status != "Fully Explained":
+            continue
+        key = _worksheet_period_key(summary, summary_columns, row_index)
+        explained = _worksheet_numeric_value(
+            summary,
+            summary_columns["Explained Difference"],
+            row_index,
+        )
+        performance = _worksheet_numeric_value(
+            summary,
+            summary_columns["Performance Difference"],
+            row_index,
+        )
+        cause_total = round(math.fsum(cause_impacts.get(key, [])), 6)
+        if cause_total != round(explained, 6):
+            raise PpaError(
+                "Written workbook explanation invariant failed for "
+                f"{key[0]} {key[1]} through {key[2]}: Performance Difference "
+                f"Causes sum {cause_total:.6f} does not equal Explained Difference "
+                f"{explained:.6f}.",
+                999,
+            )
+        if round(performance, 6) != round(explained, 6):
+            raise PpaError(
+                "Written workbook Fully Explained invariant failed for "
+                f"{key[0]} {key[1]} through {key[2]}: Performance Difference "
+                f"{performance:.6f} does not equal Explained Difference "
+                f"{explained:.6f}.",
+                999,
+            )
+        unexplained = summary.cell(
+            row=row_index,
+            column=summary_columns["Unexplained Difference"],
+        ).value
+        if unexplained not in {None, 0}:
+            raise PpaError(
+                "Written workbook Fully Explained invariant failed for "
+                f"{key[0]} {key[1]} through {key[2]}: Unexplained Difference "
+                "is not zero.",
+                999,
+            )
+
+
+def _worksheet_column_indexes(worksheet: Any) -> dict[str, int]:
+    """Return one-based worksheet column indexes by normalized header."""
+    indexes: dict[str, int] = {}
+    for cell in worksheet[1]:
+        if isinstance(cell.value, str):
+            indexes[cell.value.replace("\n", " ")] = cell.column
+    return indexes
+
+
+def _worksheet_period_key(
+    worksheet: Any,
+    columns: Mapping[str, int],
+    row_index: int,
+) -> tuple[object, object, object]:
+    """Return a portfolio-period key from serialized worksheet cells."""
+    return (
+        worksheet.cell(row=row_index, column=columns["Portfolio"]).value,
+        worksheet.cell(row=row_index, column=columns["From Date"]).value,
+        worksheet.cell(row=row_index, column=columns["Thru Date"]).value,
+    )
+
+
+def _worksheet_numeric_value(
+    worksheet: Any,
+    column_index: int,
+    row_index: int,
+) -> float:
+    """Return a required numeric worksheet cell or raise a logic error."""
+    value = worksheet.cell(row=row_index, column=column_index).value
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    raise PpaError(
+        f"Written workbook explanation invariant found nonnumeric value {value!r}.",
+        999,
+    )
 
 
 def workbook_artifact_issues(

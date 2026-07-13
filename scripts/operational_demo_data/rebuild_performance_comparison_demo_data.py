@@ -41,6 +41,7 @@ from ppar.performance_comparison.specification import (
 from ppar.performance_comparison.workbook_tables import (
     _workbook_portfolio_changes_table,
     _workbook_security_changes_table,
+    _workbook_underlying_causes_table,
 )
 
 
@@ -48,9 +49,7 @@ _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
 _DEFAULT_AXYS_DIRECTORY: Final = (
     _REPO_ROOT / "ppar" / "setup_templates" / "axysapx_performance_comparison"
 )
-_DEFAULT_COMPARISON_PATH: Final = (
-    _DEFAULT_AXYS_DIRECTORY / "axysapx_performance_comparison.yaml"
-)
+_DEFAULT_COMPARISON_PATH: Final = _DEFAULT_AXYS_DIRECTORY / "axysapx_performance_comparison.yaml"
 _DEFAULT_HOLDING_SCENARIOS_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_holding_scenarios.csv"
 )
@@ -59,6 +58,9 @@ _DEFAULT_TRANSACTION_SCENARIOS_PATH: Final = (
 )
 _DEFAULT_SCENARIO_CALENDAR_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_scenario_calendar.csv"
+)
+_DEFAULT_SCENARIO_INVENTORY_PATH: Final = (
+    Path(__file__).resolve().parent / "performance_comparison_scenario_inventory.csv"
 )
 _DEFAULT_PERIOD_SPLIT_PLAN_PATH: Final = (
     Path(__file__).resolve().parent / "performance_comparison_period_split_plan.csv"
@@ -73,7 +75,6 @@ _PORTPERF_COLUMNS: Final = [
     "INCOME",
     "GAIN_LOSS",
     "PORTFOLIO_CODE",
-    "PORTFOLIO_NAME",
     "FROM_DATE",
     "THRU_DATE",
     "BEGIN_MV",
@@ -92,8 +93,6 @@ _SECPERF_COLUMNS: Final = [
     "BEGIN_MV",
     "SEC_RETURN",
     "CONTRIBUTION",
-    "CURRENCY",
-    "BASE_CURRENCY",
 ]
 _SECPERF_NUMERIC_COLUMNS: Final = [
     "END_MV",
@@ -218,12 +217,32 @@ _SCENARIO_CALENDAR_COLUMNS: Final = [
     "notes",
 ]
 _SCENARIO_CALENDAR_KEY: Final = "scenario_key"
-_SCENARIO_CALENDAR_SOURCES: Final = {"holding", "transaction"}
+_SCENARIO_CALENDAR_SOURCES: Final = {"holding", "multicurrency", "transaction"}
 _SCENARIO_CALENDAR_NUMERIC_COLUMNS: Final = [
     "current_expected_difference_rows",
     "future_max_expected_differences",
 ]
+_SCENARIO_INVENTORY_COLUMNS: Final = ["scenario_key", "protection_reason"]
 _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS: Final = 2
+_BALANCED_APRIL_PERIOD: Final = ("2026-04-01", "2026-04-30")
+_BALANCED_APRIL_SUBPERIODS: Final = (
+    ("2026-04-01", "2026-04-10"),
+    ("2026-04-11", "2026-04-16"),
+    ("2026-04-17", "2026-04-24"),
+    ("2026-04-25", "2026-04-30"),
+)
+_CONTRIBUTION_DEMO_PORTFOLIO: Final = "BALANCED_CONTRIBUTION"
+_CONTRIBUTION_DEMO_BASELINE_PERIOD: Final = ("2026-02-01", "2026-02-28")
+_CONTRIBUTION_DEMO_PERIOD: Final = ("2026-03-01", "2026-03-31")
+_CONTRIBUTION_DEMO_HOLDINGS: Final = (
+    ("2026-02-28", 100_000.0),
+    ("2026-03-31", 101_000.0),
+)
+_RETIRED_DEMO_PORTFOLIOS: Final = {"BALANCED_AAPL"}
+_MULTICURRENCY_SCENARIO_CALENDAR_KEYS: Final = {
+    "multicurrency:BALANCED:SAP.DE:2026-04-15:EUR dividend correction": 1,
+    "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP FX correction": 1,
+}
 _PERIOD_SPLIT_PLAN_COLUMNS: Final = [
     "scenario_key",
     "portfolio",
@@ -338,13 +357,13 @@ _EXPECTED_SCENARIO_COVERAGE: Final = {
         "transaction_derived_holdings_by_type": {
             "by": 6,
             "dp": 1,
-            "dv": 8,
+            "dv": 13,
             "in": 3,
             "li": 1,
             "lo": 1,
             "pa": 3,
             "pd": 4,
-            "rc": 1,
+            "rc": 2,
             "sa": 1,
             "sl": 4,
             "ss": 1,
@@ -422,9 +441,7 @@ class HoldingScenarioSet:
     def for_snapshot(self, snapshot: str) -> tuple[HoldingScenarioAdjustment, ...]:
         """Return scenario adjustments for one snapshot in file order."""
         return tuple(
-            adjustment
-            for adjustment in self.adjustments
-            if adjustment.snapshot == snapshot
+            adjustment for adjustment in self.adjustments if adjustment.snapshot == snapshot
         )
 
 
@@ -464,9 +481,7 @@ class TransactionScenarioSet:
     def for_snapshot(self, snapshot: str) -> tuple[TransactionScenarioAdjustment, ...]:
         """Return transaction adjustments for one snapshot in file order."""
         return tuple(
-            adjustment
-            for adjustment in self.adjustments
-            if adjustment.snapshot == snapshot
+            adjustment for adjustment in self.adjustments if adjustment.snapshot == snapshot
         )
 
 
@@ -486,6 +501,7 @@ def main() -> int:
         holding_scenarios_path=args.holding_scenarios_path,
         transaction_scenarios_path=args.transaction_scenarios_path,
         scenario_calendar_path=args.scenario_calendar_path,
+        scenario_inventory_path=args.scenario_inventory_path,
         period_split_plan_path=args.period_split_plan_path,
     )
     scenario_calendar = _load_scenario_calendar(args.scenario_calendar_path)
@@ -516,6 +532,7 @@ def audit_demo_data(
     holding_scenarios_path: Path = _DEFAULT_HOLDING_SCENARIOS_PATH,
     transaction_scenarios_path: Path = _DEFAULT_TRANSACTION_SCENARIOS_PATH,
     scenario_calendar_path: Path = _DEFAULT_SCENARIO_CALENDAR_PATH,
+    scenario_inventory_path: Path = _DEFAULT_SCENARIO_INVENTORY_PATH,
     period_split_plan_path: Path = _DEFAULT_PERIOD_SPLIT_PLAN_PATH,
 ) -> list[AuditIssue]:
     """Return packaged demo-data audit issues.
@@ -530,6 +547,8 @@ def audit_demo_data(
             adjustments.
         scenario_calendar_path: CSV mapping intentional scenario rows to the
             demo periods they are meant to explain.
+        scenario_inventory_path: CSV protecting every intentional named
+            scenario from silent removal or replacement.
         period_split_plan_path: CSV mapping crowded period scenario rows to
             proposed intra-month periods.
 
@@ -588,19 +607,127 @@ def audit_demo_data(
         _audit_scenario_calendar(
             calendar=_load_scenario_calendar(scenario_calendar_path),
             holding_scenarios=_load_holding_scenarios(holding_scenarios_path),
-            transaction_scenarios=_load_transaction_scenarios(
-                transaction_scenarios_path
-            ),
+            transaction_scenarios=_load_transaction_scenarios(transaction_scenarios_path),
             axys_directory=axys_directory,
         )
     )
     scenario_calendar = _load_scenario_calendar(scenario_calendar_path)
+    issues.extend(
+        _audit_protected_scenario_inventory(
+            inventory=_load_scenario_inventory(scenario_inventory_path),
+            calendar=scenario_calendar,
+        )
+    )
+    issues.extend(
+        _audit_generated_causal_story_coverage(
+            comparison_path=comparison_path,
+            calendar=scenario_calendar,
+        )
+    )
     issues.extend(
         _audit_period_split_plan(
             plan=_load_period_split_plan(period_split_plan_path),
             calendar=scenario_calendar,
         )
     )
+    return issues
+
+
+def _audit_protected_scenario_inventory(
+    *,
+    inventory: pd.DataFrame,
+    calendar: pd.DataFrame,
+) -> list[AuditIssue]:
+    """Return issues when a named demo scenario is removed or left unprotected."""
+    protected_keys = set(inventory["scenario_key"].astype(str))
+    calendar_keys = set(calendar["scenario_key"].astype(str))
+    issues = [
+        AuditIssue(
+            check="protected_scenario_inventory",
+            detail=f"Protected demo scenario disappeared: {scenario_key}.",
+        )
+        for scenario_key in sorted(protected_keys - calendar_keys)
+    ]
+    issues.extend(
+        AuditIssue(
+            check="protected_scenario_inventory",
+            detail=(
+                "Demo scenario is not protected by the independent inventory: "
+                f"{scenario_key}."
+            ),
+        )
+        for scenario_key in sorted(calendar_keys - protected_keys)
+    )
+    return issues
+
+
+def _audit_generated_causal_story_coverage(
+    *,
+    comparison_path: Path,
+    calendar: pd.DataFrame,
+) -> list[AuditIssue]:
+    """Return issues for report-visible causal securities absent from the calendar.
+
+    This closes the gap that allowed hard-coded multi-currency scenarios to
+    bypass the hand-maintained scenario files and overcrowd a demo period.
+    """
+    findings = compare_snapshots(
+        comparison_path,
+        require_causal_attribution=True,
+    )
+    causes = _workbook_underlying_causes_table(
+        findings,
+        comparison_path=comparison_path,
+    )
+    expected_by_period: dict[tuple[str, str, str], set[str]] = {}
+    for row in calendar.itertuples(index=False):
+        if str(row.scenario_source) != "multicurrency":
+            continue
+        period_key = (str(row.portfolio), str(row.from_date), str(row.thru_date))
+        expected_by_period.setdefault(period_key, set()).add(str(row.primary_security))
+
+    story_securities: dict[tuple[str, str, str], set[str]] = {}
+    explained_cash: dict[tuple[str, str, str], set[str]] = {}
+    for row in causes.iter_rows(named=True):
+        security = str(row.get("security_id") or "")
+        if not security:
+            continue
+        period_key = (
+            str(row["portfolio_id"]),
+            row["from_date"].isoformat(),
+            row["thru_date"].isoformat(),
+        )
+        dataset = str(row.get("dataset") or "")
+        estimated_impact = row.get("estimated_impact")
+        is_cash = security.startswith("CASH")
+        if dataset in {"fx_rates", "transactions"} and not is_cash:
+            story_securities.setdefault(period_key, set()).add(security)
+        elif estimated_impact is not None and not is_cash:
+            story_securities.setdefault(period_key, set()).add(security)
+        elif estimated_impact is not None and is_cash:
+            explained_cash.setdefault(period_key, set()).add(security)
+
+    issues: list[AuditIssue] = []
+    for period_key in sorted(expected_by_period):
+        actual_securities = story_securities.get(period_key) or explained_cash.get(
+            period_key, set()
+        )
+        unexpected = actual_securities - expected_by_period.get(period_key, set())
+        if not unexpected:
+            continue
+        portfolio, from_date, thru_date = period_key
+        issues.append(
+            AuditIssue(
+                check="generated_causal_story_coverage",
+                portfolio=portfolio,
+                from_date=from_date,
+                thru_date=thru_date,
+                detail=(
+                    "Generated report contains causal securities missing from "
+                    f"the scenario calendar: {', '.join(sorted(unexpected))}."
+                ),
+            )
+        )
     return issues
 
 
@@ -636,33 +763,25 @@ def rebuild_demo_performance_files(
     snapshots: list[dict[str, object]] = []
     base_snapshot_directory = axys_directory / _BASE_SNAPSHOT_DIRECTORY
     base_holdings = _with_internal_cost(
-        _with_multicurrency_holdings(
-            pd.read_csv(base_snapshot_directory / "holdings.csv")
-        )
+        _with_multicurrency_holdings(pd.read_csv(base_snapshot_directory / "holdings.csv"))
     )
-    base_transactions = _read_packaged_transactions(
-        base_snapshot_directory / "transactions.csv"
-    )
+    base_transactions = _read_packaged_transactions(base_snapshot_directory / "transactions.csv")
     holding_scenarios = _load_holding_scenarios(holding_scenarios_path)
     transaction_scenarios = _load_transaction_scenarios(transaction_scenarios_path)
     for snapshot_name in _SNAPSHOT_DIRECTORIES:
         snapshot_directory = axys_directory / snapshot_name
-        current_secperf = _with_performance_currencies(
+        current_secperf = _with_multicurrency_performance_rows(
             pd.read_csv(snapshot_directory / "secperf.csv"),
             security_level=True,
         )
-        current_portperf = _with_performance_currencies(
+        current_portperf = _with_multicurrency_performance_rows(
             pd.read_csv(snapshot_directory / "portperf.csv"),
             security_level=False,
         )
         holdings = _with_internal_cost(
-            _with_multicurrency_holdings(
-                pd.read_csv(snapshot_directory / "holdings.csv")
-            )
+            _with_multicurrency_holdings(pd.read_csv(snapshot_directory / "holdings.csv"))
         )
-        current_transactions = _read_packaged_transactions(
-            snapshot_directory / "transactions.csv"
-        )
+        current_transactions = _read_packaged_transactions(snapshot_directory / "transactions.csv")
         rebuilt_transactions = _rebuild_transactions(
             snapshot_name,
             current_transactions=current_transactions,
@@ -729,9 +848,7 @@ def rebuild_demo_performance_files(
         has_performance_drift = (
             secperf_delta > _CHECK_TOLERANCE or portperf_delta > _CHECK_TOLERANCE
         )
-        has_transaction_drift = (
-            transaction_delta > _CHECK_TOLERANCE or has_transaction_field_drift
-        )
+        has_transaction_drift = transaction_delta > _CHECK_TOLERANCE or has_transaction_field_drift
         has_holdings_drift = holdings_delta > _CHECK_TOLERANCE
         if write:
             _write_packaged_transactions(
@@ -763,9 +880,7 @@ def rebuild_demo_performance_files(
                 "transaction_derived_holdings_by_type": (
                     _transaction_derived_holding_type_counts(transaction_adjustments)
                 ),
-                "holding_scenario_rows": len(
-                    holding_scenarios.for_snapshot(snapshot_name)
-                ),
+                "holding_scenario_rows": len(holding_scenarios.for_snapshot(snapshot_name)),
                 "holding_scenarios_by_type": _holding_scenario_type_counts(
                     holding_scenarios.for_snapshot(snapshot_name)
                 ),
@@ -893,14 +1008,12 @@ def _read_packaged_transactions(path: Path) -> pd.DataFrame:
     The rebuild scenario CSV still uses deterministic IDs as internal fixture
     handles so the demo derivation remains auditable.
     """
-    return _with_internal_transaction_ids(
-        _with_multicurrency_transactions(pd.read_csv(path))
-    )
+    return _with_internal_transaction_ids(_with_demo_transactions(pd.read_csv(path)))
 
 
 def _with_multicurrency_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
     """Return demo holdings with explicit local and base-currency values."""
-    rows = holdings.copy()
+    rows = holdings.loc[~holdings["PORT"].isin(_RETIRED_DEMO_PORTFOLIOS)].copy()
     if "CURRENCY" not in rows.columns:
         rows["CURRENCY"] = "USD"
     if "BASE_CURRENCY" not in rows.columns:
@@ -929,9 +1042,7 @@ def _with_multicurrency_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
             "SHEL.L": (480.0, 25.0, 12_000.0, "GBP", gbp_rate),
             "CASHGBP": (4_000.0, 1.0, 4_000.0, "GBP", gbp_rate),
         }
-        for security, (quantity, price, market_value, currency, rate) in (
-            local_values.items()
-        ):
+        for security, (quantity, price, market_value, currency, rate) in local_values.items():
             if ("BALANCED", security, holding_date) in existing_keys:
                 continue
             additions.append(
@@ -950,11 +1061,61 @@ def _with_multicurrency_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
             )
     if additions:
         rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
+    return _with_contribution_demo_holdings(_with_balanced_april_holding_dates(rows))
+
+
+def _with_contribution_demo_holdings(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Return holdings with an isolated March contribution demonstration."""
+    rows = holdings.copy()
+    existing_keys = set(zip(rows["PORT"], rows["SEC"], rows["HOLDING_DATE"], strict=True))
+    additions: list[dict[str, object]] = []
+    for holding_date, market_value in _CONTRIBUTION_DEMO_HOLDINGS:
+        key = (_CONTRIBUTION_DEMO_PORTFOLIO, "CASHUSD", holding_date)
+        if key in existing_keys:
+            continue
+        additions.append(
+            {
+                "PORT": _CONTRIBUTION_DEMO_PORTFOLIO,
+                "SEC": "CASHUSD",
+                "HOLDING_DATE": holding_date,
+                "CURRENCY": "USD",
+                "BASE_CURRENCY": "USD",
+                "QTY": market_value,
+                "PRICE": 1.0,
+                "MKT_VAL": market_value,
+                "BASE_MKT_VAL": market_value,
+                "ACCRUED": 0.0,
+            }
+        )
+    if additions:
+        rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
     return rows
 
 
-def _with_multicurrency_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
-    """Return demo transactions with base amounts and foreign-currency examples."""
+def _with_balanced_april_holding_dates(holdings: pd.DataFrame) -> pd.DataFrame:
+    """Clone BALANCED month-end holdings onto the new April subperiod ends."""
+    rows = holdings.copy()
+    source_date = _BALANCED_APRIL_PERIOD[1]
+    source_rows = rows.loc[
+        rows["PORT"].eq("BALANCED") & rows["HOLDING_DATE"].astype(str).eq(source_date)
+    ]
+    if source_rows.empty:
+        return rows
+    existing_dates = set(rows.loc[rows["PORT"].eq("BALANCED"), "HOLDING_DATE"].astype(str))
+    additions: list[pd.DataFrame] = []
+    for _, thru_date in _BALANCED_APRIL_SUBPERIODS[:-1]:
+        if thru_date in existing_dates:
+            continue
+        addition = source_rows.copy()
+        addition["HOLDING_DATE"] = thru_date
+        additions.append(addition)
+    if additions:
+        rows = pd.concat([rows, *additions], ignore_index=True)
+    return rows
+
+
+def _with_demo_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Return transactions with baseline semantics and foreign-currency examples."""
     rows = transactions.copy()
     if "CURRENCY" not in rows.columns:
         rows["CURRENCY"] = "USD"
@@ -1041,53 +1202,121 @@ def _with_multicurrency_transactions(transactions: pd.DataFrame) -> pd.DataFrame
     return rows
 
 
-def _with_performance_currencies(
+def _with_multicurrency_performance_rows(
     performance: pd.DataFrame,
     *,
     security_level: bool,
 ) -> pd.DataFrame:
-    """Return performance targets with explicit reporting currencies."""
-    rows = performance.copy()
-    rows["BASE_CURRENCY"] = "USD"
-    if security_level:
-        security_currency = {
-            "SAP.DE": "EUR",
-            "CASHEUR": "EUR",
-            "SHEL.L": "GBP",
-            "CASHGBP": "GBP",
-        }
-        balanced_periods = rows.loc[
-            rows["PORTFOLIO_CODE"].eq("BALANCED"), ["FROM_DATE", "THRU_DATE"]
-        ].drop_duplicates()
-        existing_keys = set(
-            zip(
-                rows["PORTFOLIO_CODE"],
-                rows["SECURITY_ID"],
-                rows["FROM_DATE"],
-                rows["THRU_DATE"],
-                strict=True,
-            )
+    """Return performance targets with required multi-currency demo rows."""
+    retained_performance = performance.loc[
+        ~performance["PORTFOLIO_CODE"].isin(_RETIRED_DEMO_PORTFOLIOS)
+    ].copy()
+    rows = _with_contribution_demo_performance_rows(
+        _with_balanced_april_performance_periods(retained_performance),
+        security_level=security_level,
+    )
+    if not security_level:
+        rows["BASE_CURRENCY"] = "USD"
+        return rows
+
+    multicurrency_securities = ("SAP.DE", "CASHEUR", "SHEL.L", "CASHGBP")
+    balanced_periods = rows.loc[
+        rows["PORTFOLIO_CODE"].eq("BALANCED"), ["FROM_DATE", "THRU_DATE"]
+    ].drop_duplicates()
+    existing_keys = set(
+        zip(
+            rows["PORTFOLIO_CODE"],
+            rows["SECURITY_ID"],
+            rows["FROM_DATE"],
+            rows["THRU_DATE"],
+            strict=True,
         )
-        additions: list[dict[str, object]] = []
-        for period in balanced_periods.itertuples(index=False):
-            for security in security_currency:
-                key = ("BALANCED", security, period.FROM_DATE, period.THRU_DATE)
-                if key in existing_keys:
-                    continue
-                additions.append(
-                    {
-                        "PORTFOLIO_CODE": "BALANCED",
-                        "SECURITY_ID": security,
-                        "FROM_DATE": period.FROM_DATE,
-                        "THRU_DATE": period.THRU_DATE,
-                        **{column: 0.0 for column in _SECPERF_NUMERIC_COLUMNS},
-                        "BASE_CURRENCY": "USD",
-                    }
-                )
-        if additions:
-            rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
-        rows["CURRENCY"] = rows["SECURITY_ID"].map(security_currency).fillna("USD")
+    )
+    additions: list[dict[str, object]] = []
+    for period in balanced_periods.itertuples(index=False):
+        for security in multicurrency_securities:
+            key = ("BALANCED", security, period.FROM_DATE, period.THRU_DATE)
+            if key in existing_keys:
+                continue
+            additions.append(
+                {
+                    "PORTFOLIO_CODE": "BALANCED",
+                    "SECURITY_ID": security,
+                    "FROM_DATE": period.FROM_DATE,
+                    "THRU_DATE": period.THRU_DATE,
+                    **{column: 0.0 for column in _SECPERF_NUMERIC_COLUMNS},
+                }
+            )
+    if additions:
+        rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
     return rows
+
+
+def _with_contribution_demo_performance_rows(
+    performance: pd.DataFrame,
+    *,
+    security_level: bool,
+) -> pd.DataFrame:
+    """Return performance targets with one self-contained contribution period."""
+    rows = performance.copy()
+    additions: list[dict[str, object]] = []
+    for from_date, thru_date in (
+        _CONTRIBUTION_DEMO_BASELINE_PERIOD,
+        _CONTRIBUTION_DEMO_PERIOD,
+    ):
+        portfolio_mask = (
+            rows["PORTFOLIO_CODE"].eq(_CONTRIBUTION_DEMO_PORTFOLIO)
+            & rows["FROM_DATE"].astype(str).eq(from_date)
+            & rows["THRU_DATE"].astype(str).eq(thru_date)
+        )
+        if security_level:
+            portfolio_mask &= rows["SECURITY_ID"].eq("CASHUSD")
+        if bool(portfolio_mask.any()):
+            continue
+        addition: dict[str, object] = {
+            "PORTFOLIO_CODE": _CONTRIBUTION_DEMO_PORTFOLIO,
+            "FROM_DATE": from_date,
+            "THRU_DATE": thru_date,
+            **{
+                column: 0.0
+                for column in (
+                    _SECPERF_NUMERIC_COLUMNS
+                    if security_level
+                    else _PORTPERF_NUMERIC_COLUMNS
+                )
+            },
+            "BEGIN_MV": 100_000.0,
+        }
+        if security_level:
+            addition["SECURITY_ID"] = "CASHUSD"
+        if "BASE_CURRENCY" in rows.columns:
+            addition["BASE_CURRENCY"] = "USD"
+        additions.append(addition)
+    if additions:
+        rows = pd.concat([rows, pd.DataFrame(additions)], ignore_index=True)
+    return rows
+
+
+def _with_balanced_april_performance_periods(performance: pd.DataFrame) -> pd.DataFrame:
+    """Replace the crowded BALANCED April period with four readable periods."""
+    rows = performance.copy()
+    from_date, thru_date = _BALANCED_APRIL_PERIOD
+    source_mask = (
+        rows["PORTFOLIO_CODE"].eq("BALANCED")
+        & rows["FROM_DATE"].astype(str).eq(from_date)
+        & rows["THRU_DATE"].astype(str).eq(thru_date)
+    )
+    source_rows = rows.loc[source_mask]
+    if source_rows.empty:
+        return rows
+    rows = rows.loc[~source_mask].copy()
+    additions: list[pd.DataFrame] = []
+    for subperiod_from, subperiod_thru in _BALANCED_APRIL_SUBPERIODS:
+        addition = source_rows.copy()
+        addition["FROM_DATE"] = subperiod_from
+        addition["THRU_DATE"] = subperiod_thru
+        additions.append(addition)
+    return pd.concat([rows, *additions], ignore_index=True)
 
 
 def _with_internal_cost(holdings: pd.DataFrame) -> pd.DataFrame:
@@ -1121,9 +1350,7 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
         return transactions.copy()
 
     missing_columns = [
-        column
-        for column in _PACKAGED_TRANSACTION_COLUMNS
-        if column not in transactions.columns
+        column for column in _PACKAGED_TRANSACTION_COLUMNS if column not in transactions.columns
     ]
     if missing_columns:
         raise ValueError(
@@ -1134,6 +1361,12 @@ def _with_internal_transaction_ids(transactions: pd.DataFrame) -> pd.DataFrame:
     rows = transactions.copy()
     rows.insert(0, _TRANSACTION_ID_COLUMN, _derived_transaction_ids(rows))
     multicurrency_ids = {
+        (
+            _CONTRIBUTION_DEMO_PORTFOLIO,
+            "2026-03-20",
+            "CASHUSD",
+            "li",
+        ): "BALANCED0403",
         ("BALANCED", "2026-01-12", "SAP.DE", "by"): "MC_BAL_EUR_BUY",
         ("BALANCED", "2026-02-16", "SHEL.L", "sl"): "MC_BAL_GBP_SELL",
         ("BALANCED", "2026-04-15", "SAP.DE", "dv"): "MC_BAL_EUR_DIV",
@@ -1236,8 +1469,7 @@ def _rebuild_transactions(
         mask = rebuilt["TRANSACTION_ID"].eq(scenario.transaction_id)
         if int(mask.sum()) != 1:
             raise ValueError(
-                "Transaction scenario must match exactly one row: "
-                f"{scenario.transaction_id}."
+                "Transaction scenario must match exactly one row: " f"{scenario.transaction_id}."
             )
         if scenario.action == "delete":
             rebuilt = rebuilt.loc[~mask].copy()
@@ -1321,8 +1553,7 @@ def _transaction_derived_holding_adjustments(
                         holding_date=holding_date,
                         quantity_delta=float(row.QTY_delta),
                         scenario=(
-                            f"{row.TRANSACTION_ID} by transaction changes "
-                            "ending holding."
+                            f"{row.TRANSACTION_ID} by transaction changes " "ending holding."
                         ),
                     )
                 )
@@ -1372,8 +1603,7 @@ def _transaction_derived_holding_adjustments(
                         holding_date=holding_date,
                         quantity_delta=-float(row.QTY_delta),
                         scenario=(
-                            f"{row.TRANSACTION_ID} sl transaction changes "
-                            "ending holding."
+                            f"{row.TRANSACTION_ID} sl transaction changes " "ending holding."
                         ),
                     )
                 )
@@ -1399,8 +1629,7 @@ def _transaction_derived_holding_adjustments(
                         holding_date=holding_date,
                         quantity_delta=float(row.QTY_delta),
                         scenario=(
-                            f"{row.TRANSACTION_ID} ; transaction changes "
-                            "ending holding."
+                            f"{row.TRANSACTION_ID} ; transaction changes " "ending holding."
                         ),
                     )
                 )
@@ -1430,8 +1659,7 @@ def _transaction_derived_holding_adjustments(
                         holding_date=holding_date,
                         principal_delta=principal_delta,
                         scenario=(
-                            f"{row.TRANSACTION_ID} pd transaction changes "
-                            "ending holding."
+                            f"{row.TRANSACTION_ID} pd transaction changes " "ending holding."
                         ),
                     )
                 )
@@ -1511,8 +1739,7 @@ def _changed_transaction_rows(
         merge_status = str(row.MERGE_STATUS)
         if merge_status == "left_only":
             context_values = {
-                column: _row_string(row, f"{column}_base")
-                for column in context_columns
+                column: _row_string(row, f"{column}_base") for column in context_columns
             }
             rows.append(
                 {
@@ -1531,8 +1758,7 @@ def _changed_transaction_rows(
             continue
         if merge_status == "right_only":
             context_values = {
-                column: _row_string(row, f"{column}_current")
-                for column in context_columns
+                column: _row_string(row, f"{column}_current") for column in context_columns
             }
             rows.append(
                 {
@@ -1644,10 +1870,7 @@ def _holding_dates_for_transaction_effect(
         & pd.to_datetime(periods["THRU_DATE"]).ge(primary_timestamp)
     ].copy()
     holding_dates = sorted(
-        {
-            pd.Timestamp(thru_date).date().isoformat()
-            for thru_date in period_rows["THRU_DATE"]
-        }
+        {pd.Timestamp(thru_date).date().isoformat() for thru_date in period_rows["THRU_DATE"]}
     )
     if primary_holding_date not in holding_dates:
         raise ValueError(
@@ -1934,8 +2157,7 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
     legacy_columns = [
         column
         for column in _TRANSACTION_SCENARIO_COLUMNS
-        if column
-        not in {"CURRENCY", "BASE_CURRENCY", "BASE_AMOUNT", "BASE_AMOUNT_delta"}
+        if column not in {"CURRENCY", "BASE_CURRENCY", "BASE_AMOUNT", "BASE_AMOUNT_delta"}
     ]
     if tuple(scenarios.columns) not in {
         tuple(_TRANSACTION_SCENARIO_COLUMNS),
@@ -1968,14 +2190,10 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
             scenarios["AMOUNT_delta"],
         )
     missing_columns = [
-        column
-        for column in _TRANSACTION_SCENARIO_COLUMNS
-        if column not in scenarios.columns
+        column for column in _TRANSACTION_SCENARIO_COLUMNS if column not in scenarios.columns
     ]
     extra_columns = [
-        column
-        for column in scenarios.columns
-        if column not in _TRANSACTION_SCENARIO_COLUMNS
+        column for column in scenarios.columns if column not in _TRANSACTION_SCENARIO_COLUMNS
     ]
     if missing_columns or extra_columns:
         raise ValueError(
@@ -1989,9 +2207,7 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
         raise ValueError("Transaction scenario rows must not have blank key values.")
     duplicate_keys = scenarios.duplicated(_TRANSACTION_SCENARIO_KEY, keep=False)
     if bool(duplicate_keys.any()):
-        duplicates = scenarios.loc[
-            duplicate_keys, _TRANSACTION_SCENARIO_KEY
-        ].to_dict("records")
+        duplicates = scenarios.loc[duplicate_keys, _TRANSACTION_SCENARIO_KEY].to_dict("records")
         raise ValueError(f"Duplicate transaction scenario keys are not allowed: {duplicates}.")
 
     supported_snapshots = set(_SNAPSHOT_DIRECTORIES) - {_BASE_SNAPSHOT_DIRECTORY}
@@ -2044,19 +2260,14 @@ def _load_transaction_scenarios(path: Path) -> TransactionScenarioSet:
                 "SEC_TYPE",
             ]
             blank_columns = [
-                column
-                for column in required_insert_columns
-                if not str(row[column]).strip()
+                column for column in required_insert_columns if not str(row[column]).strip()
             ]
             if blank_columns:
                 raise ValueError(
                     "Inserted transaction scenarios require transaction values: "
                     f"{row['TRANSACTION_ID']}; missing={blank_columns}."
                 )
-            values = {
-                column: str(row[column])
-                for column in _TRANSACTION_SOURCE_COLUMNS
-            }
+            values = {column: str(row[column]) for column in _TRANSACTION_SOURCE_COLUMNS}
             values["TRANSACTION_ID"] = str(row["TRANSACTION_ID"])
             values.update(
                 {
@@ -2122,9 +2333,7 @@ def _load_scenario_calendar(path: Path) -> pd.DataFrame:
         ].to_dict("records")
         raise ValueError(f"Duplicate scenario calendar keys are not allowed: {duplicates}.")
 
-    unknown_sources = sorted(
-        set(calendar["scenario_source"]) - _SCENARIO_CALENDAR_SOURCES
-    )
+    unknown_sources = sorted(set(calendar["scenario_source"]) - _SCENARIO_CALENDAR_SOURCES)
     if unknown_sources:
         raise ValueError(
             "Scenario calendar source must be one of "
@@ -2146,11 +2355,8 @@ def _load_scenario_calendar(path: Path) -> pd.DataFrame:
     calendar = calendar.copy()
     for column in _SCENARIO_CALENDAR_NUMERIC_COLUMNS:
         calendar[column] = converted_counts[column].astype(int)
-    invalid_counts = (
-        calendar["current_expected_difference_rows"] <= 0
-    ) | (
-        calendar["future_max_expected_differences"]
-        < calendar["current_expected_difference_rows"]
+    invalid_counts = (calendar["current_expected_difference_rows"] <= 0) | (
+        calendar["future_max_expected_differences"] < calendar["current_expected_difference_rows"]
     )
     if bool(invalid_counts.any()):
         raise ValueError(
@@ -2158,6 +2364,37 @@ def _load_scenario_calendar(path: Path) -> pd.DataFrame:
             "the current expected row count."
         )
     return calendar
+
+
+def _load_scenario_inventory(path: Path) -> pd.DataFrame:
+    """Return the independent inventory of protected named demo scenarios.
+
+    Args:
+        path: CSV containing every scenario key that must remain registered.
+
+    Returns:
+        Validated protected scenario rows in file order.
+
+    Raises:
+        ValueError: If columns are unexpected or keys/reasons are blank or
+            duplicated.
+    """
+    inventory = pd.read_csv(path, keep_default_na=False)
+    if list(inventory.columns) != _SCENARIO_INVENTORY_COLUMNS:
+        raise ValueError(
+            "Scenario inventory CSV columns must exactly match "
+            f"{_SCENARIO_INVENTORY_COLUMNS}; actual={list(inventory.columns)}."
+        )
+    blank_rows = inventory[_SCENARIO_INVENTORY_COLUMNS].map(
+        lambda value: not str(value).strip()
+    )
+    if bool(blank_rows.any().any()):
+        raise ValueError("Scenario inventory keys and protection reasons must not be blank.")
+    duplicate_keys = inventory.duplicated(["scenario_key"], keep=False)
+    if bool(duplicate_keys.any()):
+        duplicates = inventory.loc[duplicate_keys, ["scenario_key"]].to_dict("records")
+        raise ValueError(f"Duplicate protected scenario keys are not allowed: {duplicates}.")
+    return inventory
 
 
 def _load_period_split_plan(path: Path) -> pd.DataFrame:
@@ -2178,9 +2415,7 @@ def _load_period_split_plan(path: Path) -> pd.DataFrame:
     missing_columns = [
         column for column in _PERIOD_SPLIT_PLAN_COLUMNS if column not in plan.columns
     ]
-    extra_columns = [
-        column for column in plan.columns if column not in _PERIOD_SPLIT_PLAN_COLUMNS
-    ]
+    extra_columns = [column for column in plan.columns if column not in _PERIOD_SPLIT_PLAN_COLUMNS]
     if missing_columns or extra_columns:
         raise ValueError(
             "Period split plan CSV columns must exactly match "
@@ -2426,9 +2661,11 @@ def _rebuild_portfolio_performance(
 def _with_intentional_portfolio_return_residuals(portperf: pd.DataFrame) -> pd.DataFrame:
     """Return portfolio performance with explicit reported-return residuals."""
     adjusted = portperf.copy()
-    for (portfolio, from_date, thru_date), residual in (
-        _INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS.items()
-    ):
+    for (
+        portfolio,
+        from_date,
+        thru_date,
+    ), residual in _INTENTIONAL_PORTFOLIO_RETURN_RESIDUALS.items():
         mask = (
             adjusted["PORTFOLIO_CODE"].eq(portfolio)
             & adjusted["FROM_DATE"].eq(from_date)
@@ -2448,9 +2685,12 @@ def _with_intentional_portfolio_return_residuals(portperf: pd.DataFrame) -> pd.D
 def _with_intentional_security_return_residuals(secperf: pd.DataFrame) -> pd.DataFrame:
     """Return security performance with explicit reported-return residuals."""
     adjusted = secperf.copy()
-    for (portfolio, security, from_date, thru_date), residual in (
-        _INTENTIONAL_SECURITY_RETURN_RESIDUALS.items()
-    ):
+    for (
+        portfolio,
+        security,
+        from_date,
+        thru_date,
+    ), residual in _INTENTIONAL_SECURITY_RETURN_RESIDUALS.items():
         mask = (
             adjusted["PORTFOLIO_CODE"].eq(portfolio)
             & adjusted["SECURITY_ID"].eq(security)
@@ -2476,9 +2716,9 @@ def _holding_values(holdings: pd.DataFrame) -> pd.DataFrame:
     """Return holdings with normalized dates and total holding value."""
     values = holdings.copy()
     values["HOLDING_DATE"] = pd.to_datetime(values["HOLDING_DATE"])
-    values["HOLDING_VALUE"] = values["BASE_MKT_VAL"].astype(float) + values[
-        "ACCRUED"
-    ].astype(float)
+    values["HOLDING_VALUE"] = values["BASE_MKT_VAL"].astype(float) + values["ACCRUED"].astype(
+        float
+    )
     return values
 
 
@@ -2534,9 +2774,7 @@ def _security_holding_value(
         & holdings["HOLDING_DATE"].eq(holding_date)
     ]
     if rows.empty:
-        raise ValueError(
-            f"Missing holding for {portfolio_code}/{security_id} on {holding_date}."
-        )
+        raise ValueError(f"Missing holding for {portfolio_code}/{security_id} on {holding_date}.")
     return float(rows["HOLDING_VALUE"].sum())
 
 
@@ -2707,9 +2945,7 @@ def _audit_visible_portfolio_residuals(comparison_path: Path) -> list[AuditIssue
         if status == "Fully Explained":
             unexplained = float(row["unexplained_change"] or 0.0)
             if abs(unexplained) > _RETURN_TOLERANCE:
-                issues.append(
-                    _portfolio_residual_issue(row, "Fully explained row has residual.")
-                )
+                issues.append(_portfolio_residual_issue(row, "Fully explained row has residual."))
             continue
         key = (
             str(row["portfolio_id"]),
@@ -2741,9 +2977,7 @@ def _audit_visible_security_residuals(comparison_path: Path) -> list[AuditIssue]
         unexplained = float(row["unexplained_change"] or 0.0)
         if status == "Fully Explained":
             if abs(unexplained) > _RETURN_TOLERANCE:
-                issues.append(
-                    _security_residual_issue(row, "Fully explained row has residual.")
-                )
+                issues.append(_security_residual_issue(row, "Fully explained row has residual."))
             continue
         key = (
             str(row["portfolio_id"]),
@@ -2825,6 +3059,7 @@ def _audit_scenario_calendar(
     for adjustment in holding_scenarios.adjustments:
         key = _holding_scenario_calendar_key(adjustment)
         expected_counts[key] = expected_counts.get(key, 0) + 1
+    expected_counts.update(_MULTICURRENCY_SCENARIO_CALENDAR_KEYS)
 
     calendar_counts = {
         str(row.scenario_key): int(row.current_expected_difference_rows)
@@ -2889,9 +3124,7 @@ def _scenario_calendar_density(calendar: pd.DataFrame) -> list[dict[str, object]
     grouped = calendar.groupby(period_columns, sort=True, dropna=False)
     for period_key, period_rows in grouped:
         portfolio, from_date, thru_date = (str(value) for value in period_key)
-        current_difference_rows = int(
-            period_rows["current_expected_difference_rows"].sum()
-        )
+        current_difference_rows = int(period_rows["current_expected_difference_rows"].sum())
         scenario_families = sorted(set(period_rows["scenario_family"].astype(str)))
         primary_securities = sorted(set(period_rows["primary_security"].astype(str)))
         density_rows.append(
@@ -2900,12 +3133,9 @@ def _scenario_calendar_density(calendar: pd.DataFrame) -> list[dict[str, object]
                 "from_date": from_date,
                 "thru_date": thru_date,
                 "current_difference_rows": current_difference_rows,
-                "target_max_difference_rows": (
-                    _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
-                ),
+                "target_max_difference_rows": (_SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS),
                 "needs_intra_month_split": (
-                    current_difference_rows
-                    > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
+                    current_difference_rows > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
                 ),
                 "scenario_families": scenario_families,
                 "primary_securities": primary_securities,
@@ -2938,12 +3168,8 @@ def _scenario_readability_matrix(calendar: pd.DataFrame) -> list[dict[str, objec
                 "from_date": from_date,
                 "thru_date": thru_date,
                 "expected_difference_rows": difference_rows,
-                "target_max_difference_rows": (
-                    _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
-                ),
-                "within_target": (
-                    difference_rows <= _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
-                ),
+                "target_max_difference_rows": (_SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS),
+                "within_target": (difference_rows <= _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS),
                 "scenario_families": scenario_families,
                 "primary_securities": primary_securities,
                 "scenario_keys": scenario_keys,
@@ -2960,10 +3186,7 @@ def _audit_period_split_plan(
 ) -> list[AuditIssue]:
     """Return issues for an invalid intra-month period split backlog."""
     issues: list[AuditIssue] = []
-    calendar_by_key = {
-        str(row.scenario_key): row
-        for row in calendar.itertuples(index=False)
-    }
+    calendar_by_key = {str(row.scenario_key): row for row in calendar.itertuples(index=False)}
     planned_keys = set(plan["scenario_key"].astype(str))
     for key in sorted(planned_keys - set(calendar_by_key)):
         issues.append(
@@ -3031,17 +3254,13 @@ def _audit_period_split_plan(
                     from_date=str(row.planned_from_date),
                     thru_date=str(row.planned_thru_date),
                     detail=(
-                        "Planned period must stay inside current period: "
-                        f"{row.scenario_key}."
+                        "Planned period must stay inside current period: " f"{row.scenario_key}."
                     ),
                 )
             )
 
     for row in _scenario_period_split_plan_summary(plan):
-        if (
-            int(row["planned_difference_rows"])
-            > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS
-        ):
+        if int(row["planned_difference_rows"]) > _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS:
             issues.append(
                 AuditIssue(
                     check="period_split_plan",
@@ -3072,9 +3291,7 @@ def _audit_period_split_plan_overlaps(plan: pd.DataFrame) -> list[AuditIssue]:
     current_period_columns = ["portfolio", "current_from_date", "current_thru_date"]
     grouped = planned_periods.groupby(current_period_columns, sort=True, dropna=False)
     for current_period, current_rows in grouped:
-        portfolio, current_from_date, current_thru_date = (
-            str(value) for value in current_period
-        )
+        portfolio, current_from_date, current_thru_date = (str(value) for value in current_period)
         sorted_rows = current_rows.assign(
             _planned_from=pd.to_datetime(current_rows["planned_from_date"]),
             _planned_thru=pd.to_datetime(current_rows["planned_thru_date"]),
@@ -3113,8 +3330,7 @@ def _crowded_scenario_calendar_keys(calendar: pd.DataFrame) -> set[str]:
     return {
         str(row.scenario_key)
         for row in calendar.itertuples(index=False)
-        if (str(row.portfolio), str(row.from_date), str(row.thru_date))
-        in crowded_periods
+        if (str(row.portfolio), str(row.from_date), str(row.thru_date)) in crowded_periods
     }
 
 
@@ -3124,17 +3340,13 @@ def _scenario_period_split_plan_summary(plan: pd.DataFrame) -> list[dict[str, ob
     period_columns = ["portfolio", "planned_from_date", "planned_thru_date"]
     grouped = plan.groupby(period_columns, sort=True, dropna=False)
     for period_key, period_rows in grouped:
-        portfolio, planned_from_date, planned_thru_date = (
-            str(value) for value in period_key
-        )
+        portfolio, planned_from_date, planned_thru_date = (str(value) for value in period_key)
         summary_rows.append(
             {
                 "portfolio": portfolio,
                 "planned_from_date": planned_from_date,
                 "planned_thru_date": planned_thru_date,
-                "planned_difference_rows": int(
-                    period_rows["planned_difference_rows"].sum()
-                ),
+                "planned_difference_rows": int(period_rows["planned_difference_rows"].sum()),
                 "scenario_keys": sorted(set(period_rows["scenario_key"].astype(str))),
             }
         )
@@ -3180,8 +3392,7 @@ def _portfolio_residual_issue(row: dict[str, object], detail: str) -> AuditIssue
         from_date=row["from_date"].isoformat(),
         thru_date=row["thru_date"].isoformat(),
         detail=(
-            f"{detail} Status={row['review_status']}; "
-            f"unexplained={row['unexplained_change']}."
+            f"{detail} Status={row['review_status']}; " f"unexplained={row['unexplained_change']}."
         ),
     )
 
@@ -3284,6 +3495,15 @@ def _parse_args() -> argparse.Namespace:
         help=(
             "CSV file mapping intentional scenario rows to the demo periods "
             "they are meant to explain."
+        ),
+    )
+    parser.add_argument(
+        "--scenario-inventory-path",
+        type=Path,
+        default=_DEFAULT_SCENARIO_INVENTORY_PATH,
+        help=(
+            "Independent CSV inventory that prevents intentional named demo "
+            "scenarios from being silently removed."
         ),
     )
     parser.add_argument(

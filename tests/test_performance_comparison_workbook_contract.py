@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 # Python imports
+import datetime as dt
 import importlib
 import json
 from pathlib import Path
@@ -10,7 +11,11 @@ import tempfile
 from typing import Any
 import unittest
 
+# Third-party imports
+import polars as pl
+
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
@@ -135,6 +140,75 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unsupported comparison level"):
             _pc_review_model.audit_file_stem("account")
 
+    def test_portfolio_explanation_invariant_rejects_arithmetic_mismatch(self) -> None:
+        """Cause impacts must equal the portfolio-period explained difference."""
+        primary = pl.DataFrame(
+            [
+                {
+                    "portfolio_id": "TEST",
+                    "from_date": dt.date(2026, 1, 1),
+                    "thru_date": dt.date(2026, 1, 31),
+                    "performance_change": 0.01,
+                    "estimated_cause_total": 0.01,
+                    "review_status": "Fully Explained",
+                }
+            ]
+        )
+        causes = pl.DataFrame(
+            [
+                {
+                    "portfolio_id": "TEST",
+                    "from_date": dt.date(2026, 1, 1),
+                    "thru_date": dt.date(2026, 1, 31),
+                    "estimated_impact": 0.009,
+                }
+            ]
+        )
+
+        with self.assertRaisesRegex(PpaError, "causes total"):
+            # pylint: disable=protected-access
+            _pc_workbook_tables._assert_portfolio_explanation_invariants(
+                primary,
+                causes,
+                (),
+            )
+
+    def test_portfolio_explanation_invariant_rejects_missing_dietz_component(
+        self,
+    ) -> None:
+        """A beginning-value effect cannot vanish even when totals still foot."""
+        period = {
+            "portfolio_id": "TEST",
+            "from_date": dt.date(2026, 1, 1),
+            "thru_date": dt.date(2026, 1, 31),
+        }
+        primary = pl.DataFrame(
+            [
+                {
+                    **period,
+                    "performance_change": 0.01,
+                    "estimated_cause_total": 0.01,
+                    "review_status": "Fully Explained",
+                }
+            ]
+        )
+        causes = pl.DataFrame([{**period, "estimated_impact": 0.01}])
+        formula_rows = [
+            {
+                **period,
+                "source_column": "beginning_market_value",
+                "estimated_impact": 0.01,
+            }
+        ]
+
+        with self.assertRaisesRegex(PpaError, "beginning_market_value"):
+            # pylint: disable=protected-access
+            _pc_workbook_tables._assert_portfolio_explanation_invariants(
+                primary,
+                causes,
+                formula_rows,
+            )
+
     def test_review_workbook_contract_remains_reviewer_oriented(self) -> None:
         """Generated workbook uses stable, action-oriented sheets and columns."""
         openpyxl: Any = importlib.import_module("openpyxl")
@@ -189,9 +263,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             self.assertIn("pc-fill-review-needed", html_report)
 
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
-            review_summary = json.loads(
-                paths["review_summary"].read_text(encoding="utf-8")
-            )
+            review_summary = json.loads(paths["review_summary"].read_text(encoding="utf-8"))
             for summary in (manifest, review_summary):
                 transaction_semantics = summary["transaction_semantics"]
                 self.assertIn("by", transaction_semantics["observed_codes"])
@@ -264,7 +336,15 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 portfolio_codes = {row[0] for row in portfolio_rows}
                 statuses = {row[6] for row in portfolio_rows}
                 self.assertTrue(portfolio_differences)
-                self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
+                self.assertEqual(
+                    portfolio_codes,
+                    {
+                        "ALPHA",
+                        "BALANCED",
+                        "BALANCED_CONTRIBUTION",
+                        "INCOME",
+                    },
+                )
                 self.assertEqual(
                     statuses,
                     {"Fully Explained", "Partly Explained", "Unexplained"},
@@ -272,9 +352,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 partly_explained_rows = [
                     row for row in portfolio_rows if row[6] == "Partly Explained"
                 ]
-                unexplained_rows = [
-                    row for row in portfolio_rows if row[6] == "Unexplained"
-                ]
+                unexplained_rows = [row for row in portfolio_rows if row[6] == "Unexplained"]
                 self.assertEqual(
                     {
                         (
@@ -344,6 +422,24 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     "0.000000",
                 )
                 underlying_rows = _sheet_rows(workbook["Performance Difference Causes"])
+                cause_totals: dict[tuple[object, object, object], float] = {}
+                for cause_row in underlying_rows:
+                    cause_key = cause_row[0], cause_row[1], cause_row[2]
+                    explained_value = cause_row[9]
+                    if explained_value is None:
+                        continue
+                    cause_totals[cause_key] = cause_totals.get(
+                        cause_key,
+                        0.0,
+                    ) + _numeric_value(explained_value)
+                for portfolio_row in portfolio_rows:
+                    if portfolio_row[6] != "Fully Explained":
+                        continue
+                    period_key = portfolio_row[0], portfolio_row[1], portfolio_row[2]
+                    self.assertEqual(
+                        round(cause_totals.get(period_key, 0.0), 6),
+                        round(_numeric_value(portfolio_row[4]), 6),
+                    )
                 alpha_february_rows = [
                     row
                     for row in underlying_rows
@@ -356,10 +452,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         row[4] == "holdings.market_value"
                         and row[5] == "CASHUSD"
                         and row[10]
-                        == (
-                            "CASHUSD ending holdings.market_value decreased by "
-                            "2,008.00."
-                        )
+                        == ("CASHUSD ending holdings.market_value decreased by " "2,008.00.")
                         for row in alpha_february_rows
                     )
                 )
@@ -372,10 +465,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "No additive underlying cause" in str(row[10])
                         or "No identifiable cause" in str(row[10])
                         or "shown for review" in str(row[10])
-                        or (
-                            '"Performance Differences"."Explained Difference"'
-                            in str(row[10])
-                        )
+                        or ('"Performance Differences"."Explained Difference"' in str(row[10]))
                         or "Input for changed" in str(row[10])
                         or "related performance input" in str(row[10])
                         or "changed transactions.amount" in str(row[10])
@@ -390,13 +480,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         or "Caused cash-balance" in str(row[10])
                         or "Caused transactions.amount" in str(row[10])
                         or "split factor" in str(row[10])
-                        or "Add YAML configuration to count it as explained"
-                        in str(row[10])
+                        or "Add YAML configuration to count it as explained" in str(row[10])
                         or "transactions.amount to" in str(row[10])
                         or "holdings.quantity to" in str(row[10])
                         or "ending holdings." in str(row[10])
                         or "beginning holdings." in str(row[10])
                         or "Review-only evidence" in str(row[10])
+                        or "FX rate changed" in str(row[10])
                         for row in underlying_rows
                     )
                 )
@@ -422,7 +512,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and row[4] == "transactions.amount"
                     and row[5] == "JPM"
                     and str(row[1])[:10] == "2026-04-01"
-                    and str(row[2])[:10] == "2026-04-30"
+                    and str(row[2])[:10] == "2026-04-10"
                     and str(row[10]).startswith("dv:")
                 )
                 self.assertEqual(str(jpm_dividend_row[3])[:10], "2026-04-06")
@@ -602,7 +692,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     income_tnote_sell_accrued_guidance,
                     {
-                        "91282Y5Y1 beginning holdings.accrued increased by 0.05.",
+                        (
+                            "Inherited beginning-value difference from the preceding "
+                            "period: 91282Y5Y1 beginning holdings.accrued increased by "
+                            "0.05. This value is retained because it is an input to "
+                            "Modified Dietz."
+                        ),
                         "91282Y5Y1 ending holdings.accrued increased by 0.02.",
                     },
                 )
@@ -610,8 +705,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     any(
                         guidance.startswith(("pa:", "sa:"))
                         for guidance in (
-                            income_tnote_buy_accrued_guidance
-                            | income_tnote_sell_accrued_guidance
+                            income_tnote_buy_accrued_guidance | income_tnote_sell_accrued_guidance
                         )
                     )
                 )
@@ -697,7 +791,12 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 security_rows = _sheet_rows(workbook["Performance Differences"])
                 self.assertEqual(
                     {row[0] for row in security_rows},
-                    {"ALPHA", "BALANCED", "INCOME"},
+                    {
+                        "ALPHA",
+                        "BALANCED",
+                        "BALANCED_CONTRIBUTION",
+                        "INCOME",
+                    },
                 )
                 self.assertEqual(
                     {row[3] for row in security_rows},
@@ -790,7 +889,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertIsNone(aapl_trade_row[6])
                 aapl_price_periods = {
                     ("ALPHA", "2026-05-01", "2026-05-29"),
-                    ("BALANCED", "2026-05-01", "2026-05-08"),
+                    ("BALANCED", "2026-02-28", "2026-03-31"),
                     ("INCOME", "2026-05-01", "2026-05-08"),
                 }
                 self.assertTrue(
@@ -821,9 +920,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         places=6,
                     )
                     self.assertIsNone(row[6])
-                tnote_row = next(
-                    row for row in security_rows if row[3] == "91282Y2Y1"
-                )
+                tnote_row = next(row for row in security_rows if row[3] == "91282Y2Y1")
                 self.assertEqual(tnote_row[7], "Fully Explained")
                 self.assertAlmostEqual(
                     _numeric_value(tnote_row[4]),
@@ -873,17 +970,13 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         ("transactions.amount", "91282Y2Y1"),
                         ("holdings.market_value", "AAPL"),
                         ("transactions.amount", "AAPL"),
-                    }.issubset(
-                        {(row[4], row[5]) for row in underlying_rows}
-                    )
+                    }.issubset({(row[4], row[5]) for row in underlying_rows})
                 )
                 self.assertTrue(
                     {
                         ("holdings.market_value", "91282Y2Y1"),
                         ("holdings.quantity", "91282Y2Y1"),
-                    }.issubset(
-                        {(row[4], row[5]) for row in underlying_rows}
-                    )
+                    }.issubset({(row[4], row[5]) for row in underlying_rows})
                 )
                 tnote_interest_row = next(
                     row
@@ -898,19 +991,6 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 self.assertEqual(
                     tnote_interest_row[10],
                     "in: The income for 91282Y2Y1 changed by 80.00.",
-                )
-                cash_external_flow_row = next(
-                    row
-                    for row in underlying_rows
-                    if row[4] == "transactions.amount"
-                    and row[5] == "CASHUSD"
-                    and str(row[1])[:10] == "2026-02-28"
-                    and str(row[2])[:10] == "2026-03-31"
-                    and str(row[3])[:10] == "2026-03-20"
-                )
-                self.assertEqual(
-                    cash_external_flow_row[10],
-                    "li: The external flow for CASHUSD changed by 2,500.00.",
                 )
                 cash_fee_row = next(
                     row
@@ -933,7 +1013,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                     and row[4] == "transactions.amount"
                     and row[5] == "JPM"
                     and str(row[1])[:10] == "2026-04-01"
-                    and str(row[2])[:10] == "2026-04-30"
+                    and str(row[2])[:10] == "2026-04-10"
                     and str(row[10]).startswith("dv:")
                 )
                 self.assertEqual(
@@ -954,10 +1034,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
 
                 self.assertEqual(
                     _header_comment(differences_sheet, "Performance Difference"),
-                    (
-                        "Snapshot B reported performance minus snapshot A "
-                        "reported performance."
-                    ),
+                    ("Snapshot B reported performance minus snapshot A " "reported performance."),
                 )
                 self.assertNotIn("Review Key", _header_values(differences_sheet))
                 self.assertEqual(
@@ -969,10 +1046,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                         causes_sheet,
                         "Performance Difference Explained",
                     ),
-                    (
-                        "Decimal performance difference explained by this "
-                        "underlying input row."
-                    ),
+                    ("Decimal performance difference explained by this " "underlying input row."),
                 )
             finally:
                 workbook_with_comments.close()
@@ -1000,9 +1074,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
                 paths,
             )
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
-            self.assertTrue(
-                manifest["options"]["include_reconstruction_diagnostics"]
-            )
+            self.assertTrue(manifest["options"]["include_reconstruction_diagnostics"])
             self.assertEqual(
                 manifest["review_entrypoints"]["return_reconstruction"],
                 [
@@ -1024,9 +1096,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
 
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertLess(
-                html_report.index(
-                    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET
-                ),
+                html_report.index(_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_SHEET),
                 html_report.index(_pc_review_model.RECONSTRUCTION_SUMMARY_SHEET),
             )
             self.assertNotIn(_pc_review_model.SOURCE_DETAIL_SHEET, html_report)

@@ -46,27 +46,29 @@ those details as verified Axys/APX facts.
 | `portperf.csv` | Reported portfolio-period performance target used for comparison. | `portperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 | `secperf.csv` | Reported security-period performance target used for comparison. | `secperf` is a normalized demo dataset name, not a verified native Axys/APX object name. |
 
-## Field Boundary Taxonomy
+## Extraction Requirement Labels
 
-The packaged demo keeps four field groups separate:
+User-facing extraction guidance uses only three labels:
 
-- **Mandatory product inputs**: fields ppar needs to compare Modified Dietz
-  performance, such as period dates, beginning/ending market value, return,
-  holdings value, and transaction amount when transaction rules classify the
-  row.
-- **Realistic packaged-demo fields**: Axys/APX-style or report-style fields that
-  are defensible in the local research corpus and useful for the packaged
-  review story, such as transaction dates, security identifiers, transaction
-  codes, quantity, price, commission, accrued interest, and portfolio or
-  security performance values.
-- **Optional local-enrichment fields**: fields ppar can use when a client site
-  can provide them, but that the packaged demo does not assume as typical Axys/APX
-  output. Stable transaction IDs are the main example.
-- **Internal scenario/rebuild fields**: deterministic fixture handles used by
-  demo-generation scripts. These may include `TRANSACTION_ID`, but they must
-  not leak into the user-facing packaged Axys/APX transaction CSVs.
+- **Required**: needed to make Fully Explained possible in the ordinary
+  portfolio comparison.
+- **Required only when applicable**: needed for a named feature or data
+  condition, such as security comparison, multi-currency, separately stated
+  accrued income, or ambiguous transaction codes.
+- **Optional**: safe to omit; absence alone does not prevent Fully Explained.
 
-## Minimum Source-Data Contract
+The exhaustive field checklist lives in comments under `files:` in the
+packaged comparison YAML and in the generated
+[PPAR Axys/APX Extract Requirements and Source Guidance](axys-apx-reference/contracts/demo_extract_availability.md).
+Internal scenario/rebuild fields are a fixture-maintenance boundary, not a
+fourth extraction category. They must not leak into user-facing extracts.
+
+## Minimum Source-Data Contract (Runtime Structural Minimum)
+
+This section describes loader validation after a dataset is configured. It is
+not the user-facing Fully Explained extraction checklist above. A field can be
+structurally optional to the loader yet still be required to calculate a
+particular explanation.
 
 The comparison YAML must identify the source datasets ppar is allowed to read
 from both Snapshot A and Snapshot B. The selected comparison level determines
@@ -79,7 +81,20 @@ the target performance dataset:
 | `holdings` | Portfolio or security return reconstruction is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date` |
 | `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
 | `cash` | Cash rows are used as source-data evidence. | `portfolio_id`, `cash_date` |
-| `fx_rates` | FX-rate rows are used as source-data evidence. | `from_currency`, `to_currency`, `rate_date`, `fx_rate` |
+| `fx_rates` | Optional evidence links a rate change to a counted base-currency value. | `from_currency`, `to_currency`, `rate_date`, `fx_rate`; add `portfolio_id` and `local_exposure` for report linkage |
+
+Currency basis follows the normalized field name and dataset scope. In
+holdings, transactions, and cash, unqualified monetary fields use the row
+`currency`; `base_` fields use portfolio `base_currency`. Portfolio/security
+performance monetary fields are inherently base-currency values and remain
+unprefixed. `fx_rates.fx_rate` is `to_currency` units per one `from_currency`
+unit. PPAR does not create parallel `local_` names because row currency is the
+detailed-data default.
+
+Modified Dietz never treats an explicitly foreign unqualified value as base
+currency. Foreign holdings, accrued income, transactions, and cash must supply
+the applicable `base_market_value`, `base_accrued`, `base_amount`, or base cash
+value before that amount can be counted.
 
 Normalized FX rows must provide nonblank pair currencies and dates and a finite,
 strictly positive rate. Pair/date rows must also be unique within the available
@@ -118,6 +133,39 @@ path when a site can provide them, but the local Axys/APX research corpus does
 not prove a durable native transaction identifier as typical Axys/APX REP/IMEX
 output. The packaged demo therefore exercises the conservative no-ID path.
 
+## Scenario Preservation Contract
+
+Every intentional transaction, holding, and multi-currency demo story is named
+in `scripts/operational_demo_data/performance_comparison_scenario_calendar.csv`
+and independently protected in
+`performance_comparison_scenario_inventory.csv` in the same directory. The
+rebuild audit fails if a protected scenario disappears or if a new scenario is
+added without inventory registration. Removing or replacing a scenario must
+therefore be an explicit, separately reviewable inventory change; matching only
+the old transaction-type counts is not sufficient.
+
+The March `BALANCED0403` contribution restatement uses the standalone
+`BALANCED_CONTRIBUTION` portfolio. This preserves a real `li` external-flow and
+Modified Dietz explanation without carrying that cash difference into later
+BALANCED periods.
+
+No beginning value, ending value, flow, income, or related source evidence may
+be removed from reviewer-facing causes merely because it originated in an
+earlier period. If it participates directly or indirectly in Modified Dietz, it
+remains visible. Beginning-value rows carried from the preceding period are
+explicitly labeled as inherited. Demo stories that would otherwise introduce
+two unrelated new changes in one period use separate periods within an existing
+portfolio. For example, BALANCED March isolates the AAPL valuation mark while
+BALANCED's first May period retains the CVNA split and all inherited
+beginning-value effects.
+
+This rule is protected independently from arithmetic reconciliation. Every
+changed Modified Dietz formula component must be represented in `Performance
+Difference Causes`, even if no more granular source row is available in that
+period. Separately, the counted cause rows must sum to `Explained Difference`,
+and every `Fully Explained` period must reconcile to its reported performance
+difference. Report generation fails on either violation.
+
 ## Axys/APX Demo Completion Gate
 
 The packaged Axys/APX demo is the accepted future seed for an Axys/APX vendor YAML
@@ -126,8 +174,8 @@ turning it into hidden runtime product policy too early.
 
 The demo can be considered complete enough to seed `vendor: axys` only when:
 
-- packaged CSV fields are limited to mandatory product inputs, realistic
-  packaged-demo fields, and documented local-enrichment examples;
+- packaged CSV fields are limited to the documented extraction checklist and
+  reviewed local-enrichment examples;
 - internal scenario/rebuild fields, including fixture transaction identifiers,
   do not appear in user-facing packaged CSVs;
 - the comparison YAML has stable transaction semantics, field-impact methods,
@@ -181,7 +229,7 @@ Freeze-packet evidence map:
 | Packaged transaction families are `by`, `sl`, `dv`, `in`, fixed-income accrued-interest `pa`/`sa`, fee-like `dp`, external-cash `li`, external-cash `lo`, and external-cash `wd`. | `snapshot_a/transactions.csv`, `snapshot_b/transactions.csv`, packaged Axys/APX README coverage table, comparison YAML transaction-rule comments, fixed-income boundary helpers, and demo data audit tests. |
 | `;` remains a guardrail-only YAML rule. | Packaged transaction CSVs contain no `;` rows; the comparison YAML keeps the rule as defensive/reserved semantics; site-variant and matrix tests cover non-packaged corporate-action behavior. |
 | Ambiguous `dp`, `li`, `lo`, and `wd` rows remain context-gated. | Packaged transaction CSVs include source/destination and special-security context columns; the packaged extract contract requires those context fields; `validate_config` reports ambiguous-flow enforcement as enabled. |
-| Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and field boundary taxonomy document stable IDs as optional local-enrichment fields. |
+| Packaged transaction rows omit stable transaction identifiers. | Packaged transaction CSV headers omit `TRANSACTION_ID`; the README and extraction guidance document stable IDs as optional local enrichment. |
 | Fee-like `dp` assumes net-of-fees reported performance. | The comparison YAML and packaged README both state the net-of-fees assumption and warn that gross-of-fees performance needs a separate return-basis policy. |
 | Report examples intentionally include Fully Explained, Partly Explained, and Unexplained cases. | The packaged README describes the controlled restatement story; generated portfolio and security report bundles are rebuilt and validated by `scripts/check_performance_comparison_demo_health.py`. |
 | Settlement-date and unsupported corporate-action differences remain review evidence. | The field-role contract classifies `transactions.settle_date` as review evidence, while the transaction semantics matrix and demo matrix tests keep unsupported corporate actions outside additive Modified Dietz treatment. |

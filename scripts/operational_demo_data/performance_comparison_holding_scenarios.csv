@@ -2,7 +2,7 @@ snapshot,scenario_type,PORT,SEC,HOLDING_DATE,QTY_delta,PRICE_delta,MKT_VAL_delta
 snapshot_b,valuation_mark,ALPHA,AAPL,2026-05-29,0.0,1.61,1566.03,0.0,0.0,AAPL price correction changes ending market value.
 snapshot_b,cash_balance_correction,ALPHA,CASHUSD,2026-05-29,1500.0,0.0,1500.0,1500.0,0.0,Cash-balance correction increases ending cash.
 snapshot_b,x_ref_holdings_accrued_rate,ALPHA,91282Y5Y1,2026-01-30,0.0,0.0,0.0,0.0,0.05,91282Y5Y1 holdings.accrued uses a different same-day rate for Data Audit review.
-snapshot_b,valuation_mark,BALANCED,AAPL,2026-05-08,0.0,1.61,1370.27,0.0,0.0,AAPL price correction changes ending market value.
+snapshot_b,valuation_mark,BALANCED,AAPL,2026-03-31,0.0,1.61,1582.88,0.0,0.0,AAPL price correction changes ending market value.
 snapshot_b,quantity_valuation_correction,BALANCED,MSFT,2026-05-14,2.7842,0.0,317.41,312.64,0.0,MSFT holding quantity correction changes market value.
 snapshot_b,quantity_valuation_correction,BALANCED,CVNA,2026-05-08,112.0028,0.0,6496.16,6398.72,0.0,CVNA 5-for-1 split correction changes ending quantity and market value.
 snapshot_b,valuation_mark,INCOME,AAPL,2026-05-08,0.0,1.61,1109.28,0.0,0.0,AAPL price correction changes ending market value.

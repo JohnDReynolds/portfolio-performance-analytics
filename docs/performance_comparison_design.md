@@ -14,6 +14,9 @@ same portfolio and period changed between two source-data extraction dates.
 This document is the deep design/reference note. Active forward-looking work is
 tracked in the central
 [`PPAR Roadmap`](roadmap.md).
+The maintainer-facing safety guarantees and their audited enforcement baseline
+are defined in
+[`Performance Auditing Safety Invariants`](performance_comparison_safety_invariants.md).
 
 The core question is:
 
@@ -85,11 +88,12 @@ Developer/internal helper commands:
 Current workbook field roles:
 
 - `performance_input`: source fields that directly feed return calculation,
-  such as `holdings.market_value`, `holdings.accrued`, and
+  such as `holdings.market_value`, `holdings.base_market_value`,
+  `holdings.accrued`, and
   `transactions.amount`. These can receive `Performance Difference Explained`
   values when the required denominator or weight inputs are available.
 - `input_component`: fields that explain or reconcile a performance input, such
-  as holding quantity/price and transaction
+  as holding quantity/price, FX rates, and transaction
   quantity/price/commission. Holding quantity can appear beside a related
   holding market-value input. Transaction quantity, price, and commission may
   appear beside a related `transactions.amount` row, while non-promoted support
@@ -99,7 +103,7 @@ Current workbook field roles:
   fields such as return, income, gain/loss, contribution, weight, and market
   value. These remain reporting diagnostics and are not treated as underlying
   causes.
-- `context`: review-only supporting fields such as holding cost, FX rates,
+- `context`: review-only supporting fields such as holding cost,
   security reference fields, and unknown fields. These remain in the
   `supporting_files/source_detail.csv` unless they are direct inputs to a supported performance
   explanation.
@@ -123,6 +127,14 @@ Current report vocabulary:
   an Axys/APX IMEX code.
 - `Transaction Category`: ppar's normalized interpretation of a transaction code
   for comparison logic and reviewer explanations.
+
+Report construction enforces this vocabulary as an arithmetic invariant. For
+every portfolio period, the sum of `Performance Difference Explained` in the
+causes table must equal `Explained Difference` in the main table. A `Fully
+Explained` period must also have equal performance and explained differences
+and zero unexplained difference. The checks run before workbook construction
+and again on the serialized six-decimal workbook cells; a mismatch stops report
+generation as an unexpected logic error.
 
 Future workbook vocabulary:
 
@@ -1070,8 +1082,9 @@ The first-pass role model should remain intentionally small:
 - `security_performance`: `related_output` in the global portfolio-period
   model. In a local security-period view, the security return change is the
   local `target_output`.
-- `fx_rates`: `direct_input` because exchange-rate changes can drive translated
-  values and returns.
+- `fx_rates`: `input_component` because a rate change explains a translated
+  base value; the changed base market value or base transaction amount is the
+  direct input counted in performance attribution.
 - `transactions`: `direct_input` because activity, cash flow, quantity, price,
   and amount changes can drive performance inputs.
 - `holdings`: `direct_input` because quantity, market value, price, and
@@ -1484,6 +1497,32 @@ Current output layers:
   `target_output`, while other security performance findings remain
   `related_output`.
 
+Portfolio performance is the authoritative source of portfolio base currency.
+When it is available, holdings, transactions, and cash inherit a missing row-level
+base currency from the portfolio and fail validation if they contradict it.
+Security-performance beginning/ending market value, income, and gain/loss are
+compared as related reported-output diagnostics alongside return, weight, and
+contribution.
+
+Normalized monetary names use one currency-basis rule:
+
+- unqualified monetary fields in holdings, transactions, and cash use the row
+  `currency`;
+- `base_` monetary fields in those detailed datasets use portfolio
+  `base_currency`;
+- monetary fields in portfolio/security performance datasets are inherently
+  in portfolio base currency and remain unprefixed; and
+- `fx_rates.fx_rate` is `to_currency` units per one `from_currency` unit.
+
+PPAR does not add `local_` duplicates because row currency is already the
+detailed-data default. A detailed unqualified value may enter Modified Dietz
+without translation only when row and base currencies are equal (or when a
+legacy single-currency extract omits both currency fields). A nonzero foreign
+holding market value, accrued balance, transaction amount, or cash value must
+provide `base_market_value`, `base_accrued`, `base_amount`, or the applicable
+base-cash value. Missing translation fails reconstruction rather than silently
+treating local currency as base currency.
+
 This is intentionally not a final report format. It gives callers stable
 building blocks for CSV, HTML, XLSX, or portfolio-period bridge reports without
 committing the project to presentation details too early.
@@ -1599,10 +1638,11 @@ price_impact_methods:
   price:
     method: price_delta_over_snapshot_a_price_times_weight
     weight_source: snapshot_a_weight
-fx_rate_impact_methods:
-  fx_rate:
-    method: evidence_only
 evidence_only_impact_methods:
+  fx_rates:
+    method: evidence_only
+    source_fields:
+      - fx_rate
   holdings:
     method: evidence_only
     source_fields:
@@ -1750,13 +1790,12 @@ Current supported impact estimates:
      supported additive transaction field so quantity, price, commission, and
      amount are not double-counted.
 12. FX rate evidence:
-   - `fx_rate_impact_methods.fx_rate.method:
-     rate_delta_times_local_exposure_over_return_denominator` estimates the
-     effect only for a portfolio-linked rate with unchanged explicit local
-     exposure in both snapshots.
-   - The formula is a normalized ppar screening method, not a statement of
-     Axys/APX calculation mechanics. Missing or changed exposure yields no
-     estimate.
+   - The FX-rate row does not receive `estimated_return_impact` because the
+     rate is not a separate Modified Dietz input.
+   - When `rate delta * unchanged local exposure` matches one changed
+     `holdings.base_market_value` or `transactions.base_amount` row, the report
+     links the FX rate to that security as supporting evidence. The base-value
+     row receives the counted impact.
 All other rows use `impact_basis = no_estimate` until a defensible method,
 denominator, and linkage are available.
 
@@ -1792,10 +1831,9 @@ First contribution estimates should start only where the math is defensible:
   configured period.
   Otherwise these rows should remain ranked review evidence with `impact_basis`
   set to `no_estimate`.
-- FX evidence: FX rate changes should not receive a portfolio-period return
-  impact unless they carry an explicit portfolio and unchanged local exposure.
-  Use `fx_rate_impact_methods.fx_rate.method: evidence_only` for sources that
-  cannot meet that contract.
+- FX evidence: FX rate changes do not receive a separate portfolio-period
+  return impact. Configure them as evidence-only and use an explicit portfolio
+  and unchanged local exposure to link them to the counted base-currency value.
 
 Contribution ranking should not require every finding to receive an estimate.
 A mixed output is acceptable: some rows may have `estimated_return_impact`, and

@@ -94,11 +94,9 @@ _HOLDING_ACCRUED_DELTA_METHOD: Final[str] = (
     HoldingImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _HOLDING_EVIDENCE_ONLY_METHOD: Final[str] = HoldingImpactMethod.EVIDENCE_ONLY.value
-_HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = (
-    HoldingImpactMethod[
-        "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
-    ].value
-)
+_HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = HoldingImpactMethod[
+    "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
+].value
 _PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD: Final[str] = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
@@ -269,9 +267,7 @@ _PORTFOLIO_SOURCE_FIELD_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _SOURCE_FIELDS_KEY,
     }
 )
-_SECURITY_CONTRIBUTION_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {_METHOD_KEY}
-)
+_SECURITY_CONTRIBUTION_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({_METHOD_KEY})
 _SECURITY_RETURN_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
@@ -290,6 +286,7 @@ _PORTFOLIO_SOURCE_FIELD_ALLOWED_SOURCE_FIELDS: Final[frozenset[str]] = frozenset
         pc_cols.GAIN_LOSS,
     }
 )
+
 
 @dataclass(frozen=True)
 class _TransactionImpactPolicy:
@@ -352,10 +349,7 @@ def _transaction_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_TRANSACTION_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_TRANSACTION_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -492,10 +486,7 @@ def _security_return_impact_policies(
         )
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_SECURITY_RETURN_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_SECURITY_RETURN_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -560,10 +551,7 @@ def _contribution_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_CONTRIBUTION_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_CONTRIBUTION_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -634,10 +622,7 @@ def _holding_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_HOLDING_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_HOLDING_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -659,6 +644,7 @@ def _holding_impact_policies(
 
     policies: dict[str, str] = {
         pc_cols.MARKET_VALUE: IMPACT_POLICY_HOLDING_MARKET_VALUE,
+        pc_cols.BASE_MARKET_VALUE: IMPACT_POLICY_HOLDING_MARKET_VALUE,
         pc_cols.ACCRUED: IMPACT_POLICY_HOLDING_ACCRUED,
         pc_cols.QUANTITY: IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
         pc_cols.COST: _evidence_only_impact_policy_label(
@@ -830,6 +816,7 @@ def _validated_holding_evidence_only_policy(
         source_column,
     )
 
+
 def _price_impact_policies(
     specification: PerformanceComparisonSpecification,
 ) -> dict[str, str]:
@@ -851,10 +838,7 @@ def _price_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_PRICE_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_PRICE_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -924,10 +908,7 @@ def _cash_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_CASH_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_CASH_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -1007,10 +988,7 @@ def _fx_rate_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_FX_RATE_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -1099,10 +1077,7 @@ def _evidence_only_impact_policies(
         return {}
     if not isinstance(methods_value, dict):
         raise PpaError(
-            (
-                f"{specification.path}: {_EVIDENCE_ONLY_IMPACT_METHODS_KEY} "
-                "must be a mapping."
-            ),
+            (f"{specification.path}: {_EVIDENCE_ONLY_IMPACT_METHODS_KEY} " "must be a mapping."),
             504,
         )
 
@@ -1293,9 +1268,7 @@ def _validated_security_contribution_policy(
         _VENDOR_CONTRIBUTION_DELTA_METHOD,
     )
     return {
-        (pc_cols.SECURITY_PERFORMANCE, pc_cols.CONTRIBUTION): (
-            IMPACT_POLICY_SECURITY_CONTRIBUTION
-        )
+        (pc_cols.SECURITY_PERFORMANCE, pc_cols.CONTRIBUTION): (IMPACT_POLICY_SECURITY_CONTRIBUTION)
     }
 
 
@@ -1358,10 +1331,7 @@ def _require_policy_mapping(
     if isinstance(policy_value, dict):
         return policy_value
     raise PpaError(
-        (
-            f"{specification.path}: {root_key}.{policy_key} "
-            "must be a mapping."
-        ),
+        (f"{specification.path}: {root_key}.{policy_key} " "must be a mapping."),
         504,
     )
 
@@ -1561,10 +1531,7 @@ def _validated_security_transaction_flow_policy(
     if unsupported_keys:
         unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
         raise PpaError(
-            (
-                f"{specification.path}: {policy_path} has unsupported keys: "
-                f"{unsupported}."
-            ),
+            (f"{specification.path}: {policy_path} has unsupported keys: " f"{unsupported}."),
             504,
         )
 
@@ -1572,10 +1539,7 @@ def _validated_security_transaction_flow_policy(
     if missing_keys:
         missing = ", ".join(sorted(str(key) for key in missing_keys))
         raise PpaError(
-            (
-                f"{specification.path}: {policy_path} is missing required keys: "
-                f"{missing}."
-            ),
+            (f"{specification.path}: {policy_path} is missing required keys: " f"{missing}."),
             504,
         )
 
@@ -1593,10 +1557,7 @@ def _validated_security_transaction_flow_policy(
         if value not in allowed_values:
             allowed = ", ".join(sorted(allowed_values))
             raise PpaError(
-                (
-                    f"{specification.path}: {policy_path}.{key} must be one of: "
-                    f"{allowed}."
-                ),
+                (f"{specification.path}: {policy_path}.{key} must be one of: " f"{allowed}."),
                 504,
             )
 

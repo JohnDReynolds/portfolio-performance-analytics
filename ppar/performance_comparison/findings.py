@@ -48,6 +48,8 @@ __all__ = [
     "INPUT_DATE",
     "SOURCE_FILE",
     "SOURCE_COLUMN",
+    "FROM_CURRENCY",
+    "TO_CURRENCY",
     "TRANSACTION_CODE",
     "TRANSACTION_CATEGORY",
     "CASH_FLOW_SIGN",
@@ -89,6 +91,8 @@ __all__ = [
     "PC_SEC_RET",
     "PC_SEC_WGT",
     "PC_SEC_CONTR",
+    "PC_SEC_MV",
+    "PC_SEC_FLOW",
     "PC_SEC_ADD",
     "PC_SEC_DROP",
     "PC_REF_ID",
@@ -137,6 +141,8 @@ THRU_DATE = "thru_date"
 INPUT_DATE = "input_date"
 SOURCE_FILE = "source_file"
 SOURCE_COLUMN = "source_column"
+FROM_CURRENCY = "from_currency"
+TO_CURRENCY = "to_currency"
 TRANSACTION_CODE = "transaction_code"
 TRANSACTION_CATEGORY = "transaction_category"
 CASH_FLOW_SIGN = "cash_flow_sign"
@@ -208,6 +214,8 @@ PC_PORT_FLOW: Final[str] = "PC-PORT-FLOW"
 PC_SEC_RET: Final[str] = "PC-SEC-RET"
 PC_SEC_WGT: Final[str] = "PC-SEC-WGT"
 PC_SEC_CONTR: Final[str] = "PC-SEC-CONTR"
+PC_SEC_MV: Final[str] = "PC-SEC-MV"
+PC_SEC_FLOW: Final[str] = "PC-SEC-FLOW"
 PC_SEC_ADD: Final[str] = "PC-SEC-ADD"
 PC_SEC_DROP: Final[str] = "PC-SEC-DROP"
 PC_REF_ID: Final[str] = "PC-REF-ID"
@@ -305,6 +313,8 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     INPUT_DATE,
     SOURCE_FILE,
     SOURCE_COLUMN,
+    FROM_CURRENCY,
+    TO_CURRENCY,
     TRANSACTION_CODE,
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
@@ -344,6 +354,8 @@ class Finding:
         source_file: Optional configured source file associated with the
             finding.
         source_column: Optional normalized column associated with the finding.
+        from_currency: Optional local/source currency for FX-rate findings.
+        to_currency: Optional quote/base currency for FX-rate findings.
         transaction_code: Optional source transaction code for transaction
             findings.
         transaction_category: Optional normalized transaction category for
@@ -387,6 +399,8 @@ class Finding:
     input_date: object | None = None
     source_file: str | None = None
     source_column: str | None = None
+    from_currency: object | None = None
+    to_currency: object | None = None
     transaction_code: object | None = None
     transaction_category: object | None = None
     cash_flow_sign: object | None = None
@@ -421,6 +435,8 @@ class Finding:
             INPUT_DATE: self.input_date,
             SOURCE_FILE: self.source_file,
             SOURCE_COLUMN: self.source_column,
+            FROM_CURRENCY: self.from_currency,
+            TO_CURRENCY: self.to_currency,
             TRANSACTION_CODE: _string_value_or_none(self.transaction_code),
             TRANSACTION_CATEGORY: _string_value_or_none(self.transaction_category),
             CASH_FLOW_SIGN: _string_value_or_none(self.cash_flow_sign),

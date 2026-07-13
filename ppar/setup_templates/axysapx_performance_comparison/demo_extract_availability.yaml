@@ -35,6 +35,17 @@ normalized_multicurrency_defaults: &normalized_multicurrency_defaults
   source_strategy_notes: Validate the local extract and currency basis against a report sample before use.
 datasets:
   holdings.csv:
+    extraction_requirements:
+      dataset: required
+      reason: Beginning and ending base-currency values provide the Modified Dietz valuation inputs used to explain a changed return.
+      likely_source: IMEX positions/holdings export or a REP appraisal report.
+      required: [PORT, SEC, HOLDING_DATE, MKT_VAL]
+      required_only_when_applicable:
+        CURRENCY: Required for holdings whose local currency differs from the portfolio base currency.
+        BASE_CURRENCY: Required for multi-currency portfolios unless a validated portfolio-level source supplies it.
+        BASE_MKT_VAL: Required when MKT_VAL is local-currency rather than portfolio-base value.
+        ACCRUED: Required when accrued income is stated separately from MKT_VAL and affects beginning or ending value.
+      optional: [QTY, PRICE]
     columns:
       PORT:
         normalized_meaning: Portfolio/account identifier.
@@ -218,6 +229,14 @@ datasets:
         source_strategy_notes: Accrued income can affect performance reconciliation, so validate the field before running
           accrual-sensitive comparisons.
   portperf.csv:
+    extraction_requirements:
+      dataset: required
+      reason: The portfolio, period, and reported return define the performance difference PPAR must explain.
+      likely_source: REP performance report preferred; a native performance IMEX object is not verified by the current evidence.
+      required: [PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN]
+      required_only_when_applicable:
+        BASE_CURRENCY: Required when the portfolio contains holdings or transactions outside its reporting currency.
+      optional: [BEGIN_MV, END_MV, FLOW, INCOME, GAIN_LOSS]
     columns:
       END_MV:
         normalized_meaning: Ending market value.
@@ -335,28 +354,6 @@ datasets:
         requires_context_for_semantics: false
         blocking_if_missing: true
         source_strategy_notes: Portfolio identifier must be present regardless of the extract source.
-      PORTFOLIO_NAME:
-        normalized_meaning: Portfolio/account display name.
-        imex_confidence: medium
-        rep_confidence: high
-        comments: Likely available from account/report output; exact IMEX field is site-specific.
-        basis: Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie
-          values.
-        open_questions:
-        - Confirm whether a local IMEX performance object exists or use REP output.
-        candidate_axys_names:
-        - Portfolio Name
-        - Account Name
-        candidate_report_labels:
-        - Portfolio Name
-        - Account Name
-        name_confidence: report_label_inferred
-        name_notes: Report-style label candidates are more credible than native IMEX names for this field.
-        preferred_source: rep_preferred
-        fallback_source: imex_or_rep
-        requires_context_for_semantics: false
-        blocking_if_missing: false
-        source_strategy_notes: Useful context, but not required for core performance attribution.
       FROM_DATE:
         normalized_meaning: Period start date.
         imex_confidence: medium
@@ -452,10 +449,17 @@ datasets:
           names or calculation basis.
       BASE_CURRENCY:
         <<: *normalized_multicurrency_defaults
-        normalized_meaning: Portfolio reporting currency for the performance row.
+        normalized_meaning: Authoritative portfolio reporting currency for the performance row.
         candidate_axys_names: [Base Currency, Portfolio Currency]
         candidate_report_labels: [Base Currency, Reporting Currency]
   secperf.csv:
+    extraction_requirements:
+      dataset: required_only_when_applicable
+      reason: Required only when the user wants security-level differences to reach Fully Explained; portfolio-only audit does not need this file.
+      likely_source: REP security-performance or attribution report preferred; a native performance IMEX object is not verified by the current evidence.
+      required: [PORTFOLIO_CODE, SECURITY_ID, FROM_DATE, THRU_DATE, SEC_RETURN]
+      required_only_when_applicable: {}
+      optional: [BEGIN_MV, END_MV, BEGIN_WEIGHT, INCOME, GAIN_LOSS, CONTRIBUTION]
     columns:
       END_MV:
         normalized_meaning: Ending market value for security row.
@@ -710,17 +714,22 @@ datasets:
         requires_context_for_semantics: false
         blocking_if_missing: false
         source_strategy_notes: Attribution-style values are report-sensitive; do not assume IMEX availability.
-      CURRENCY:
-        <<: *normalized_multicurrency_defaults
-        normalized_meaning: Local currency of the security performance row.
-        candidate_axys_names: [Currency, Security Currency]
-        candidate_report_labels: [Currency, Security Currency]
-      BASE_CURRENCY:
-        <<: *normalized_multicurrency_defaults
-        normalized_meaning: Portfolio reporting currency for the security performance row.
-        candidate_axys_names: [Base Currency, Portfolio Currency]
-        candidate_report_labels: [Base Currency, Reporting Currency]
   transactions.csv:
+    extraction_requirements:
+      dataset: required
+      reason: Dated, classified amounts are needed to explain changed external flows, income, fees, and security activity.
+      likely_source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context.
+      required: [PORT, TRANSACTION_DATE, SEC, TRAN, AMOUNT]
+      required_only_when_applicable:
+        SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
+        SRC_DEST_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
+        SRC_DEST_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
+        SPECIAL_SEC_TYPE: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
+        SPECIAL_SEC_SYMBOL: Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.
+        CURRENCY: Required for transaction amounts stated in a currency other than portfolio base currency.
+        BASE_CURRENCY: Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.
+        BASE_AMOUNT: Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction.
+      optional: [SETTLE_DATE, QTY, PRICE, COMMISSION]
     columns:
       PORT:
         normalized_meaning: Portfolio/account identifier.
@@ -1064,6 +1073,15 @@ datasets:
         source_strategy_notes: Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and
           sign-convention validation.
   fx_rates.csv:
+    extraction_requirements:
+      dataset: optional
+      reason: Optional supporting evidence that can link a rate change to a counted base-currency value.
+      likely_source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled rate source.
+      required: [PORT, FROM_CURRENCY, TO_CURRENCY, RATE_DATE, FX_RATE, LOCAL_EXPOSURE]
+      required_only_when_applicable:
+        RATE_SOURCE: Required when pair and date do not uniquely identify one controlled rate series.
+        RATE_TYPE: Required when pair and date do not uniquely identify one controlled rate convention.
+      optional: []
     columns:
       PORT:
         <<: *normalized_multicurrency_defaults
@@ -1106,6 +1124,13 @@ datasets:
         candidate_axys_names: [Local Exposure, Local Market Value]
         candidate_report_labels: [Local Exposure, Local Market Value]
   splits.csv:
+    extraction_requirements:
+      dataset: optional
+      reason: Split factors add review context but do not directly enter the current Modified Dietz explanation formula.
+      likely_source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent factors.
+      required: []
+      required_only_when_applicable: {}
+      optional: [SEC, SPLIT_DATE, SPLIT_FACTOR]
     columns:
       SEC:
         normalized_meaning: Security identifier for the split-factor row.

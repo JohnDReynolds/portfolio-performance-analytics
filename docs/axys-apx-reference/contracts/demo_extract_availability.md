@@ -1,4 +1,4 @@
-# Demo Extract Availability Contract
+# PPAR Axys/APX Extract Requirements and Source Guidance
 
 Repository: AXYS / APX Reference Repository
 Scope: `ppar/setup_templates/axysapx_performance_comparison/snapshot_a` and
@@ -59,6 +59,26 @@ Use this matrix as an implementation planning aid:
 - Performance fields are rated more conservatively for IMEX because the local reference corpus does not contain an official performance IMEX object dictionary.
 - Transaction source/destination and special-security fields are rated as integration-context fields. The corpus supports them in transaction translation workflows, but not as guaranteed columns in every posted-transaction export.
 
+## What You Need to Extract
+
+This is the user-facing checklist for making **Fully Explained** possible. It intentionally uses only three labels:
+
+- **Required**: needed for the ordinary portfolio comparison.
+- **Required only when applicable**: needed only for the named feature or data condition.
+- **Optional**: safe to omit; its absence alone does not prevent Fully Explained.
+
+These labels describe extraction needs. They are separate from PPAR's internal validation and evidence-role rules.
+
+| Dataset | Dataset requirement | Why / likely source | Required fields (when dataset applies) | Required only when applicable | Optional fields |
+|---|---|---|---|---|---|
+| `holdings.csv` | Required | Beginning and ending base-currency values provide the Modified Dietz valuation inputs used to explain a changed return. Likely source: IMEX positions/holdings export or a REP appraisal report. | `PORT`, `SEC`, `HOLDING_DATE`, `MKT_VAL` | `CURRENCY` — Required for holdings whose local currency differs from the portfolio base currency.<br>`BASE_CURRENCY` — Required for multi-currency portfolios unless a validated portfolio-level source supplies it.<br>`BASE_MKT_VAL` — Required when MKT_VAL is local-currency rather than portfolio-base value.<br>`ACCRUED` — Required when accrued income is stated separately from MKT_VAL and affects beginning or ending value. | `QTY`, `PRICE` |
+| `portperf.csv` | Required | The portfolio, period, and reported return define the performance difference PPAR must explain. Likely source: REP performance report preferred; a native performance IMEX object is not verified by the current evidence. | `PORTFOLIO_CODE`, `FROM_DATE`, `THRU_DATE`, `PORT_RETURN` | `BASE_CURRENCY` — Required when the portfolio contains holdings or transactions outside its reporting currency. | `BEGIN_MV`, `END_MV`, `FLOW`, `INCOME`, `GAIN_LOSS` |
+| `secperf.csv` | Required only when applicable | Required only when the user wants security-level differences to reach Fully Explained; portfolio-only audit does not need this file. Likely source: REP security-performance or attribution report preferred; a native performance IMEX object is not verified by the current evidence. | `PORTFOLIO_CODE`, `SECURITY_ID`, `FROM_DATE`, `THRU_DATE`, `SEC_RETURN` | None | `BEGIN_MV`, `END_MV`, `BEGIN_WEIGHT`, `INCOME`, `GAIN_LOSS`, `CONTRIBUTION` |
+| `transactions.csv` | Required | Dated, classified amounts are needed to explain changed external flows, income, fees, and security activity. Likely source: IMEX transaction export first; use REP/custom output or another reviewed source when IMEX omits transaction-semantics context. | `PORT`, `TRANSACTION_DATE`, `SEC`, `TRAN`, `AMOUNT` | `SEC_TYPE` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SRC_DEST_TYPE` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SRC_DEST_SYMBOL` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SPECIAL_SEC_TYPE` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`SPECIAL_SEC_SYMBOL` — Required by the packaged guard when ambiguous DP, LI, LO, or WD codes can appear.<br>`CURRENCY` — Required for transaction amounts stated in a currency other than portfolio base currency.<br>`BASE_CURRENCY` — Required for multi-currency portfolios unless the authoritative portfolio-performance row supplies it.<br>`BASE_AMOUNT` — Required when AMOUNT is local-currency rather than the portfolio-base amount used by return reconstruction. | `SETTLE_DATE`, `QTY`, `PRICE`, `COMMISSION` |
+| `fx_rates.csv` | Optional | Optional supporting evidence that can link a rate change to a counted base-currency value. Likely source: Local discovery is required; use a validated REP extract, FX/price source, or other controlled rate source. | `PORT`, `FROM_CURRENCY`, `TO_CURRENCY`, `RATE_DATE`, `FX_RATE`, `LOCAL_EXPOSURE` | `RATE_SOURCE` — Required when pair and date do not uniquely identify one controlled rate series.<br>`RATE_TYPE` — Required when pair and date do not uniquely identify one controlled rate convention. | None |
+| `splits.csv` | Optional | Split factors add review context but do not directly enter the current Modified Dietz explanation formula. Likely source: Direct split.inf or local split-factor export; use REP/custom output only when it exposes equivalent factors. | None | None | `SEC`, `SPLIT_DATE`, `SPLIT_FACTOR` |
+
+
 ## Availability Matrix
 
 ### `holdings.csv`
@@ -86,12 +106,11 @@ Use this matrix as an implementation planning aid:
 | portfolio performance | `INCOME` | Period income component. | Low / Medium | Medium | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior. | Likely reportable, but basis and inclusion rules require validation. |
 | portfolio performance | `GAIN_LOSS` | Period gain/loss component. | Low / Medium | Medium | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior. | Report evidence supports gain/loss labels; exact performance component is report-dependent. |
 | portfolio performance | `PORTFOLIO_CODE` | Portfolio/account identifier. | High | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Core identifier. |
-| portfolio performance | `PORTFOLIO_NAME` | Portfolio/account display name. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Likely available from account/report output; exact IMEX field is site-specific. |
 | portfolio performance | `FROM_DATE` | Period start date. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Report parameters reliably provide the period; structured export field names require validation. |
 | portfolio performance | `THRU_DATE` | Period end date. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Report parameters reliably provide the period; structured export field names require validation. |
 | portfolio performance | `BEGIN_MV` | Beginning market value. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether a local IMEX performance object exists or use REP output. | Likely reportable; exact IMEX object/field remains unproven. |
 | portfolio performance | `PORT_RETURN` | Portfolio return. | Medium / Unknown | High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, gross/net basis, and stored-vs-report-calculated behavior. | Performance-history IMEX fields are not established; REP is preferred for report-tie values. |
-| portfolio performance | `BASE_CURRENCY` | Portfolio reporting currency for the performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
+| portfolio performance | `BASE_CURRENCY` | Authoritative portfolio reporting currency for the performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 
 
 ### `secperf.csv`
@@ -109,8 +128,6 @@ Use this matrix as an implementation planning aid:
 | security performance | `BEGIN_MV` | Beginning market value for security row. | Medium | High | Chapter_10_Performance.md treats portfolio performance as a report/extract boundary and prefers REP for report-tie values. | Confirm whether values come from security performance, appraisal, or custom REP output. | Likely reportable; exact IMEX field remains unproven. |
 | security performance | `SEC_RETURN` | Security return. | Medium / Unknown | High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Performance-history IMEX fields are not established; REP is preferred for report-tie values. |
 | security performance | `CONTRIBUTION` | Security contribution to return. | Low / Medium | Medium / High | Performance chapter and report evidence support the concept, but the local corpus does not prove a native IMEX performance object/field. | Confirm methodology, contribution basis, and stored-vs-report-calculated behavior. | Contribution reports are supported, but exact Axys/APX security-contribution export requires validation. |
-| security performance | `CURRENCY` | Local currency of the security performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
-| security performance | `BASE_CURRENCY` | Portfolio reporting currency for the security performance row. | Unknown | Low / Medium | The research supports multi-currency concepts but does not prove this exact export field or normalized layout. | Confirm the local source, field label, currency basis, and date semantics. | Normalized PPAR multi-currency demo field; exact Axys/APX source and label require local validation. |
 
 
 ### `transactions.csv`
@@ -194,7 +211,6 @@ These names are candidate aliases for local discovery. They are not assertions t
 | portfolio performance | `INCOME` | Income | Income | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `GAIN_LOSS` | Gain/Loss, Gain Loss | Gain/Loss, Realized/Unrealized Gain/Loss | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `PORTFOLIO_CODE` | PORT, Portfolio, Portfolio Code, Account | Portfolio, Account | Inferred Alias | Candidate aliases only; confirm against the local IMEX profile, REP output, or vendor field dictionary. |
-| portfolio performance | `PORTFOLIO_NAME` | Portfolio Name, Account Name | Portfolio Name, Account Name | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `FROM_DATE` | From Date, Start Date | From Date, Beginning Date | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `THRU_DATE` | Thru Date, Through Date, End Date | Thru Date, Ending Date | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | portfolio performance | `BEGIN_MV` | Beginning Market Value, Begin Market Value | Beginning Market Value, Begin MV | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
@@ -217,8 +233,6 @@ These names are candidate aliases for local discovery. They are not assertions t
 | security performance | `BEGIN_MV` | Beginning Market Value, Begin Market Value | Beginning Market Value, Begin MV | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | security performance | `SEC_RETURN` | Return, Security Return | Security Return, Total Return | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
 | security performance | `CONTRIBUTION` | Contribution, Contribution to Return | Contribution, Contribution to Return | Report Label Inferred | Report-style label candidates are more credible than native IMEX names for this field. |
-| security performance | `CURRENCY` | Currency, Security Currency | Currency, Security Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
-| security performance | `BASE_CURRENCY` | Base Currency, Portfolio Currency | Base Currency, Reporting Currency | Inferred Alias | Normalized demo name only; confirm the exact local Axys/APX label. |
 
 
 ### `transactions.csv` Name Candidates
@@ -269,7 +283,7 @@ These names are candidate aliases for local discovery. They are not assertions t
 
 ## Source Strategy Matrix
 
-This matrix translates availability confidence into implementation guidance. `Blocking if missing` means ppar should not silently proceed for that field in a workflow that depends on the corresponding dataset.
+This matrix translates availability confidence into implementation guidance about where each value is most likely to come from. Extraction requirements are defined only by the three-category checklist above; internal runtime guard flags are intentionally not shown here.
 
 | Label | Meaning |
 |---|---|
@@ -281,100 +295,97 @@ This matrix translates availability confidence into implementation guidance. `Bl
 
 ### `holdings.csv` Source Strategy
 
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| holdings | `PORT` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `SEC` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `HOLDING_DATE` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| holdings | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| holdings | `QTY` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `PRICE` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `MKT_VAL` | IMEX or REP | REP preferred | No | Yes | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
-| holdings | `BASE_MKT_VAL` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| holdings | `ACCRUED` | IMEX or REP | Local discovery required | No | Yes | Accrued income can affect performance reconciliation, so validate the field before running accrual-sensitive comparisons. |
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| holdings | `PORT` | IMEX or REP | REP preferred | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `SEC` | IMEX or REP | REP preferred | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `HOLDING_DATE` | IMEX or REP | REP preferred | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| holdings | `BASE_CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| holdings | `QTY` | IMEX or REP | REP preferred | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `PRICE` | IMEX or REP | REP preferred | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `MKT_VAL` | IMEX or REP | REP preferred | Holdings reconstruction can use either validated position/appraisal IMEX output or an appraisal-style REP extract. |
+| holdings | `BASE_MKT_VAL` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| holdings | `ACCRUED` | IMEX or REP | Local discovery required | Accrued income can affect performance reconciliation, so validate the field before running accrual-sensitive comparisons. |
 
 
 ### `portperf.csv` Source Strategy
 
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| portfolio performance | `END_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `FLOW` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `INCOME` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `GAIN_LOSS` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `PORTFOLIO_CODE` | IMEX or REP | REP preferred | No | Yes | Portfolio identifier must be present regardless of the extract source. |
-| portfolio performance | `PORTFOLIO_NAME` | REP preferred | IMEX or REP | No | No | Useful context, but not required for core performance attribution. |
-| portfolio performance | `FROM_DATE` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `THRU_DATE` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `BEGIN_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `PORT_RETURN` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| portfolio performance | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| portfolio performance | `END_MV` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `FLOW` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `INCOME` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `GAIN_LOSS` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `PORTFOLIO_CODE` | IMEX or REP | REP preferred | Portfolio identifier must be present regardless of the extract source. |
+| portfolio performance | `FROM_DATE` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `THRU_DATE` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `BEGIN_MV` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `PORT_RETURN` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| portfolio performance | `BASE_CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
 
 
 ### `secperf.csv` Source Strategy
 
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| security performance | `END_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `INCOME` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `GAIN_LOSS` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `PORTFOLIO_CODE` | IMEX or REP | REP preferred | No | Yes | Portfolio and security identifiers must be present regardless of the extract source. |
-| security performance | `SECURITY_ID` | IMEX or REP | REP preferred | No | Yes | Portfolio and security identifiers must be present regardless of the extract source. |
-| security performance | `FROM_DATE` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `THRU_DATE` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `BEGIN_WEIGHT` | REP preferred | Local discovery required | No | No | Attribution-style values are report-sensitive; do not assume IMEX availability. |
-| security performance | `BEGIN_MV` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `SEC_RETURN` | REP preferred | Local discovery required | No | Yes | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
-| security performance | `CONTRIBUTION` | REP preferred | Local discovery required | No | No | Attribution-style values are report-sensitive; do not assume IMEX availability. |
-| security performance | `CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| security performance | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| security performance | `END_MV` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `INCOME` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `GAIN_LOSS` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `PORTFOLIO_CODE` | IMEX or REP | REP preferred | Portfolio and security identifiers must be present regardless of the extract source. |
+| security performance | `SECURITY_ID` | IMEX or REP | REP preferred | Portfolio and security identifiers must be present regardless of the extract source. |
+| security performance | `FROM_DATE` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `THRU_DATE` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `BEGIN_WEIGHT` | REP preferred | Local discovery required | Attribution-style values are report-sensitive; do not assume IMEX availability. |
+| security performance | `BEGIN_MV` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `SEC_RETURN` | REP preferred | Local discovery required | Prefer report output because the local corpus does not prove native performance IMEX object names or calculation basis. |
+| security performance | `CONTRIBUTION` | REP preferred | Local discovery required | Attribution-style values are report-sensitive; do not assume IMEX availability. |
 
 
 ### `transactions.csv` Source Strategy
 
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| transactions | `PORT` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `TRANSACTION_DATE` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `SETTLE_DATE` | IMEX then REP cross-check | REP preferred | No | No | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `SEC` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `TRAN` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SRC_DEST_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SRC_DEST_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SPECIAL_SEC_TYPE` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `SPECIAL_SEC_SYMBOL` | Local discovery required | REP preferred | Yes | Yes | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
-| transactions | `CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| transactions | `BASE_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| transactions | `QTY` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `PRICE` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `AMOUNT` | IMEX then REP cross-check | REP preferred | No | Yes | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
-| transactions | `BASE_AMOUNT` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| transactions | `COMMISSION` | IMEX then REP cross-check | REP preferred | No | No | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| transactions | `PORT` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `TRANSACTION_DATE` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `SETTLE_DATE` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `SEC` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `TRAN` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `SEC_TYPE` | Local discovery required | REP preferred | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SRC_DEST_TYPE` | Local discovery required | REP preferred | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SRC_DEST_SYMBOL` | Local discovery required | REP preferred | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SPECIAL_SEC_TYPE` | Local discovery required | REP preferred | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `SPECIAL_SEC_SYMBOL` | Local discovery required | REP preferred | Required for ambiguous Axys/APX flow semantics. If IMEX does not expose this context, stop and use REP, a custom report, or another local source. |
+| transactions | `CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| transactions | `BASE_CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| transactions | `QTY` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `PRICE` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `AMOUNT` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
+| transactions | `BASE_AMOUNT` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| transactions | `COMMISSION` | IMEX then REP cross-check | REP preferred | Transaction core fields are IMEX-suitable, with REP useful for report-facing cross-checks and sign-convention validation. |
 
 
 ### `fx_rates.csv` Source Strategy
 
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| FX rates | `PORT` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `FROM_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `TO_CURRENCY` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `RATE_DATE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `FX_RATE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `RATE_SOURCE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `RATE_TYPE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
-| FX rates | `LOCAL_EXPOSURE` | Local discovery required | REP preferred | No | Yes | Validate the local extract and currency basis against a report sample before use. |
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| FX rates | `PORT` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `FROM_CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `TO_CURRENCY` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `RATE_DATE` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `FX_RATE` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `RATE_SOURCE` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `RATE_TYPE` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
+| FX rates | `LOCAL_EXPOSURE` | Local discovery required | REP preferred | Validate the local extract and currency basis against a report sample before use. |
 
 
 ### `splits.csv` Source Strategy
 
-| Dataset | Demo column | Preferred source | Fallback source | Context required | Blocking if missing | Notes |
-|---|---|---|---|---|---|---|
-| split factors | `SEC` | IMEX or REP | Local discovery required | No | No | Prefer a direct split.inf/exported split-factor source; use REP/custom reports only if they expose security-level split factors. |
-| split factors | `SPLIT_DATE` | IMEX or REP | Local discovery required | No | No | Validate the local date basis before comparing split factors to holdings and prices. |
-| split factors | `SPLIT_FACTOR` | IMEX or REP | Local discovery required | No | No | Treat split factors as context evidence explaining holdings changes, not as cash-flow transactions. |
+| Dataset | Demo column | Preferred source | Fallback source | Notes |
+|---|---|---|---|---|
+| split factors | `SEC` | IMEX or REP | Local discovery required | Prefer a direct split.inf/exported split-factor source; use REP/custom reports only if they expose security-level split factors. |
+| split factors | `SPLIT_DATE` | IMEX or REP | Local discovery required | Validate the local date basis before comparing split factors to holdings and prices. |
+| split factors | `SPLIT_FACTOR` | IMEX or REP | Local discovery required | Treat split factors as context evidence explaining holdings changes, not as cash-flow transactions. |
 
 
 ## Practical Extraction Guidance

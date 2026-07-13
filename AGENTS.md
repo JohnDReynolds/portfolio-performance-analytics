@@ -2,6 +2,18 @@
 
 Apply these conventions when modifying or creating code in this project.
 
+## Model Reasoning Guidance
+
+- Default to GPT-5.6 Sol Medium.
+- Before beginning work that would materially benefit from High or Extra High
+  reasoning, notify the user and recommend the appropriate level with a one-sentence
+  explanation.
+- Recommend High for difficult, cross-cutting design, financial logic, debugging, or
+  invariant work.
+- Recommend Extra High only for exceptionally difficult problems with substantial
+  ambiguity or interacting edge cases.
+- Do not recommend changing levels for routine implementation.
+
 ## Style And Quality
 
 - Follow PEP 8 unless an established project-specific convention intentionally differs.

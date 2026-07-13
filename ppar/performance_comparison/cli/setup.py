@@ -333,6 +333,32 @@ Steps:
 3. Edit `audit/ppar.yaml`.
 4. Run `ppar audit {site_path / _PERFORMANCE_COMPARISON_DIRECTORY}`.
 
+#### Getting Data from Axys/APX
+
+Start with the comments under `files:` in `audit/ppar.yaml`. They classify every
+starter field as **Required**, **Required only when applicable**, or
+**Optional**. Required is intentionally narrow: data needed to make Fully
+Explained possible.
+
+The most defensible source plan from the currently available Axys/APX evidence
+is:
+
+- Portfolio and security reported returns: use a REP performance or attribution
+  report. PPAR does not assume that a native performance IMEX object exists.
+- Holdings: use an IMEX positions/holdings export or a REP appraisal report.
+- Transactions: try IMEX first. If `dp`, `li`, `lo`, or `wd` rows can occur, the
+  extract must include the source/destination and special-security context named
+  in `audit/ppar.yaml`; otherwise use REP, a custom report, or another reviewed
+  source.
+- FX rates: needed only when a changed FX rate itself must be explained. Use a
+  locally validated REP, FX/price, or other controlled rate source.
+- Split factors: optional review information, usually from `split.inf` or an
+  equivalent local export.
+
+The starter CSV names and headers are PPAR-normalized examples, not guaranteed
+native Axys/APX schemas. Confirm the exact local object, report, field names,
+date basis, currency basis, and return basis before relying on an extract.
+
 ### Performance Analytics
 
 Steps:
@@ -378,11 +404,15 @@ python audit/run_audit.py -h
       holdings.csv
       transactions.csv
       secperf.csv
+      fx_rates.csv
+      splits.csv
     snapshot_b/
       portperf.csv
       holdings.csv
       transactions.csv
       secperf.csv
+      fx_rates.csv
+      splits.csv
 ```
 """
 

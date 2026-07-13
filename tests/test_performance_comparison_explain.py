@@ -1318,13 +1318,13 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(row[PORTFOLIO_ID], "PORT_A")
         self.assertEqual(row[SECURITY_ID], "AAPL")
         self.assertAlmostEqual(row[SECURITY_RETURN_DELTA], 0.01)
-        self.assertEqual(row[SECURITY_FINDING_COUNT], 3)
+        self.assertEqual(row[SECURITY_FINDING_COUNT], 5)
         self.assertEqual(row[DIRECT_INPUT_FINDING_COUNT], 6)
-        self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 3)
+        self.assertEqual(row[RELATED_OUTPUT_FINDING_COUNT], 5)
         self.assertEqual(row[CONTEXT_FINDING_COUNT], 1)
         self.assertEqual(row[HOLDING_FINDING_COUNT], 4)
         self.assertEqual(row[TRANSACTION_FINDING_COUNT], 3)
-        self.assertEqual(row[FINDING_COUNT], 10)
+        self.assertEqual(row[FINDING_COUNT], 12)
         self.assertFalse(row[HAS_SUPPRESSED_FINDINGS])
 
     def test_security_period_summary_tracks_suppressed_related_evidence(self) -> None:
@@ -1335,10 +1335,10 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         audit_summary = security_period_summary(findings, include_suppressed=True)
 
         self.assertTrue(active_summary.row(0, named=True)[HAS_SUPPRESSED_FINDINGS])
-        self.assertEqual(active_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 2)
-        self.assertEqual(audit_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 3)
-        self.assertEqual(active_summary.row(0, named=True)[FINDING_COUNT], 9)
-        self.assertEqual(audit_summary.row(0, named=True)[FINDING_COUNT], 10)
+        self.assertEqual(active_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 4)
+        self.assertEqual(audit_summary.row(0, named=True)[RELATED_OUTPUT_FINDING_COUNT], 5)
+        self.assertEqual(active_summary.row(0, named=True)[FINDING_COUNT], 11)
+        self.assertEqual(audit_summary.row(0, named=True)[FINDING_COUNT], 12)
 
     def test_security_period_summary_returns_stable_empty_table(self) -> None:
         """No security return deltas produce an empty stable summary."""
@@ -1364,7 +1364,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         self.assertEqual(breakdown.height, 8)
         self.assertEqual(_breakdown_count(breakdown, TARGET_OUTPUT, None), 1)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, None), 6)
-        self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 2)
+        self.assertEqual(_breakdown_count(breakdown, RELATED_OUTPUT, None), 4)
         self.assertEqual(_breakdown_count(breakdown, CONTEXT, None), 1)
         self.assertEqual(
             _breakdown_count(breakdown, TARGET_OUTPUT, "security_performance"),
@@ -1372,7 +1372,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
         )
         self.assertEqual(
             _breakdown_count(breakdown, RELATED_OUTPUT, "security_performance"),
-            2,
+            4,
         )
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "transactions"), 3)
         self.assertEqual(_breakdown_count(breakdown, DIRECT_INPUT, "holdings"), 3)
@@ -1389,8 +1389,8 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
 
         self.assertEqual(_breakdown_count(active_breakdown, TARGET_OUTPUT, None), 0)
         self.assertEqual(_breakdown_count(audit_breakdown, TARGET_OUTPUT, None), 1)
-        self.assertEqual(_breakdown_count(active_breakdown, RELATED_OUTPUT, None), 2)
-        self.assertEqual(_breakdown_count(audit_breakdown, RELATED_OUTPUT, None), 2)
+        self.assertEqual(_breakdown_count(active_breakdown, RELATED_OUTPUT, None), 4)
+        self.assertEqual(_breakdown_count(audit_breakdown, RELATED_OUTPUT, None), 4)
 
     def test_security_period_evidence_breakdown_returns_stable_empty_table(self) -> None:
         """No security return deltas produce an empty security breakdown table."""

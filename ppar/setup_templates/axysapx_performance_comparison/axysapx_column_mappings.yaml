@@ -13,6 +13,12 @@
 #   infer.
 # - Fields ending in "_column" contain Axys/APX export column names.
 # - Unknown fields are rejected so spelling mistakes fail loudly.
+# - In detailed holdings/transactions/cash data, unqualified monetary fields
+#   use the row currency; BASE_ fields use portfolio base currency.
+# - Portfolio/security performance monetary fields are inherently in portfolio
+#   base currency and remain unprefixed.
+# - FX_RATE means TO_CURRENCY units per one FROM_CURRENCY unit.
+# - Do not create LOCAL_ duplicates; row currency is the detailed-data default.
 
 
 # =========================
@@ -51,11 +57,11 @@ portfolio_performance_path: snapshot_a/portperf.csv
 #   # Axys/APX account code.
 #   portfolio_code: PORTFOLIO_CODE
 #
-#   # Axys/APX account name.
-#   portfolio_name: PORTFOLIO_NAME
-#
 #   # Portfolio return for the period.
 #   portfolio_return: PORT_RETURN
+#
+#   # Authoritative portfolio reporting currency.
+#   base_currency: BASE_CURRENCY
 
 
 # =========================

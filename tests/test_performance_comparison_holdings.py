@@ -72,6 +72,117 @@ class TestHoldingsLoader(unittest.TestCase):
         self.assertAlmostEqual(target_row[pc_cols.MARKET_VALUE], 52971.24)
         self.assertEqual(target_row[pc_cols.CURRENCY], "USD")
 
+    def test_portfolio_base_currency_fills_missing_holding_value(self) -> None:
+        """Portfolio performance supplies authoritative holding base currency."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "holdings": "holdings.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                pl.DataFrame(
+                    {
+                        "PORTFOLIO_CODE": ["P1"],
+                        "FROM_DATE": ["2025-01-01"],
+                        "THRU_DATE": ["2025-01-31"],
+                        "PORT_RETURN": [0.01],
+                        "BASE_CURRENCY": ["usd"],
+                    }
+                ).write_csv(snapshot_path / "portperf.csv")
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "HOLDING_DATE": ["2025-01-31"],
+                        "CURRENCY": ["EUR"],
+                        "MKT_VAL": [100.0],
+                    }
+                ).write_csv(snapshot_path / "holdings.csv")
+            path = _write_yaml(directory, configuration)
+
+            frame = HoldingsLoader(PerformanceComparisonSpecification(path)).load("a")
+
+        assert frame is not None
+        self.assertEqual(frame[pc_cols.BASE_CURRENCY].to_list(), ["USD"])
+
+    def test_base_accrued_alias_loads_as_base_currency_value(self) -> None:
+        """Foreign accrued income can supply an explicit base counterpart."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "holdings": "holdings.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                pl.DataFrame(
+                    {
+                        "PORTFOLIO_CODE": ["P1"],
+                        "FROM_DATE": ["2025-01-01"],
+                        "THRU_DATE": ["2025-01-31"],
+                        "PORT_RETURN": [0.01],
+                        "BASE_CURRENCY": ["USD"],
+                    }
+                ).write_csv(snapshot_path / "portperf.csv")
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "HOLDING_DATE": ["2025-01-31"],
+                        "CURRENCY": ["EUR"],
+                        "ACCRUED": [10.0],
+                        "BASE_ACCRUED_INCOME": [11.0],
+                    }
+                ).write_csv(snapshot_path / "holdings.csv")
+            path = _write_yaml(directory, configuration)
+
+            frame = HoldingsLoader(PerformanceComparisonSpecification(path)).load("a")
+
+        assert frame is not None
+        self.assertEqual(frame[pc_cols.ACCRUED].to_list(), [10.0])
+        self.assertEqual(frame[pc_cols.BASE_ACCRUED].to_list(), [11.0])
+
+    def test_conflicting_portfolio_base_currencies_raise_error_504(self) -> None:
+        """One portfolio cannot declare multiple authoritative currencies."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configuration = _minimal_specification(directory)
+            configuration["files"] = {
+                "portfolio_performance": "portperf.csv",
+                "holdings": "holdings.csv",
+            }
+            for snapshot_name in ("snapshot_a", "snapshot_b"):
+                snapshot_path = directory / snapshot_name
+                pl.DataFrame(
+                    {
+                        "PORTFOLIO_CODE": ["P1", "P1"],
+                        "FROM_DATE": ["2025-01-01", "2025-02-01"],
+                        "THRU_DATE": ["2025-01-31", "2025-02-28"],
+                        "PORT_RETURN": [0.01, 0.02],
+                        "BASE_CURRENCY": ["USD", "EUR"],
+                    }
+                ).write_csv(snapshot_path / "portperf.csv")
+                pl.DataFrame(
+                    {
+                        "PORT": ["P1"],
+                        "SEC": ["S1"],
+                        "HOLDING_DATE": ["2025-01-31"],
+                        "MKT_VAL": [100.0],
+                    }
+                ).write_csv(snapshot_path / "holdings.csv")
+            path = _write_yaml(directory, configuration)
+
+            with self.assertRaises(PpaError) as context:
+                HoldingsLoader(PerformanceComparisonSpecification(path)).load("a")
+
+        message = str(context.exception)
+        self.assertTrue(message.startswith("Error 504"))
+        self.assertIn("one base_currency per portfolio", message)
+
     def test_omitted_positions_returns_none(self) -> None:
         """Holdings are optional when omitted from YAML."""
         with tempfile.TemporaryDirectory() as temp_dir:

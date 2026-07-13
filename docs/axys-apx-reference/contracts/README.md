@@ -17,7 +17,7 @@ complete vendor schema.
 |---|---|
 | [transaction_semantics_matrix.md](transaction_semantics_matrix.md) | You need the narrative rules behind local transaction-code classification. |
 | [transaction_semantics_matrix.yaml](transaction_semantics_matrix.yaml) | You need machine-readable transaction semantics for validation or tests. |
-| [demo_extract_availability.md](demo_extract_availability.md) | You need the generated summary of packaged-demo dataset and column availability. |
+| [demo_extract_availability.md](demo_extract_availability.md) | You need PPAR's generated extract requirements, likely source paths, and packaged-demo column availability. |
 | [templates/site_extract_contract.yaml](templates/site_extract_contract.yaml) | You need a broad site-level source-data contract starting point. |
 | [templates/site_extract_contract_imex_context.yaml](templates/site_extract_contract_imex_context.yaml) | You need an IMEX-focused site-contract example. |
 | [templates/site_extract_contract_rep_semantics.yaml](templates/site_extract_contract_rep_semantics.yaml) | You need a REP/report-focused site-contract example. |

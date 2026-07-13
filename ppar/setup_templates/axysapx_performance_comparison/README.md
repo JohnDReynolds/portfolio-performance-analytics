@@ -53,10 +53,12 @@ relationships.
 The packaged CSV files follow the
 [Performance Comparison Demo Source Contract](../../../../docs/performance_comparison_demo_source_contract.md).
 They are normalized demo extracts, not official Axys/APX native schemas.
-The source contract separates mandatory product inputs, realistic packaged-demo
-fields, optional local-enrichment fields, and internal scenario/rebuild fields.
-For field-by-field IMEX and REP availability confidence, see
-[Demo Extract Availability](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
+The audit YAML comments and extract-availability contract use three practical
+extraction labels: **Required**, **Required only when applicable**, and
+**Optional**. Required is intentionally narrow: data needed to make Fully
+Explained possible. For field-by-field requirements and IMEX/REP availability
+confidence, see
+[PPAR Axys/APX Extract Requirements and Source Guidance](../../../../docs/axys-apx-reference/contracts/demo_extract_availability.md).
 
 The demo includes normalized USD-base multi-currency examples: `SAP.DE` and
 `CASHEUR` in EUR, `SHEL.L` and `CASHGBP` in GBP, and `CASHUSD` in USD. Local
@@ -127,7 +129,9 @@ differences from identifiable input differences and other evidence:
 - `Performance Difference Causes` sheet: input rows such as holdings, transactions,
   and FX rates. `B - A Difference` shows the raw input-value difference, and
   `Performance Difference Explained` appears only when ppar can calculate a
-  defensible performance explanation.
+  defensible performance explanation. A changed FX rate is supporting evidence;
+  the linked `holdings.base_market_value` or `transactions.base_amount` row carries
+  the counted amount.
   Yellow cells are included in explained performance difference. Gold cells are
   possible causes for remaining unexplained differences.
 - `Data Audit Issues` sheet: consistency checks across the union of Snapshot A
@@ -154,6 +158,17 @@ Data used:
 - Snapshot B: `snapshot_b`
 - Files: Axys/APX-style portfolio performance, security performance,
   transactions, and holdings.
+- `portperf.csv.BASE_CURRENCY` is authoritative for each portfolio. PPAR fills
+  missing row-level base currency from it and rejects contradictory holdings or
+  transaction/cash values. Security-performance rows do not repeat currency metadata.
+- Currency names follow one rule: unqualified monetary fields in holdings,
+  transactions, and cash use the row `CURRENCY`; `BASE_` fields use portfolio
+  `BASE_CURRENCY`; portfolio/security performance monetary fields are already
+  base-currency values and remain unprefixed. `FX_RATE` is `TO_CURRENCY` units
+  per one `FROM_CURRENCY` unit. PPAR does not create `LOCAL_` duplicates.
+- Foreign values cannot silently enter Modified Dietz. A nonzero foreign
+  `MKT_VAL`, `ACCRUED`, transaction `AMOUNT`, or cash value needs its explicit
+  `BASE_` counterpart before it can be counted.
 - Scope: three operational portfolios (`ALPHA`, `BALANCED`, and `INCOME`), six
   monthly periods, ten mega-cap equities, one CVNA split-processing example,
   `CASHUSD`, `912797AA1`, `91282Y2Y1`, and `91282Y5Y1`. `ALPHA` is the closest match
@@ -307,10 +322,10 @@ The workbook uses a small field-role model:
 
 | Role | Typical fields | Workbook treatment |
 | --- | --- | --- |
-| `performance_input` | `holdings.market_value`, `holdings.accrued`, `transactions.amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. `holdings.accrued` is added to `holdings.market_value` for reconstructed beginning/end valuation when present. |
-| `input_component` | `holdings.quantity`, `holdings.price`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `supporting_files/source_detail.csv` as support for the related performance input. |
-| `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | FX rates, unsupported fields | Kept in `supporting_files/source_detail.csv` unless it is a direct input to a supported performance explanation. |
+| `performance_input` | `holdings.market_value`, `holdings.base_market_value`, `holdings.accrued`, `holdings.base_accrued`, `transactions.amount`, `transactions.base_amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. An unqualified detailed value is counted only when its row currency equals base currency; otherwise its explicit `base_` counterpart is counted. |
+| `input_component` | `holdings.quantity`, `holdings.price`, `fx_rates.fx_rate`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `supporting_files/source_detail.csv` as support for the related performance input. |
+| `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Compared and kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
+| `context` | holding cost, unsupported fields | Kept in `supporting_files/source_detail.csv` as review context. |
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

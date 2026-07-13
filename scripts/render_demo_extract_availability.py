@@ -19,11 +19,7 @@ _DEFAULT_CONTRACT_PATH: Final = (
     / "demo_extract_availability.yaml"
 )
 _DEFAULT_OUTPUT_PATH: Final = (
-    _REPO_ROOT
-    / "docs"
-    / "axys-apx-reference"
-    / "contracts"
-    / "demo_extract_availability.md"
+    _REPO_ROOT / "docs" / "axys-apx-reference" / "contracts" / "demo_extract_availability.md"
 )
 _DATASET_LABELS: Final[dict[str, str]] = {
     "holdings.csv": "holdings",
@@ -47,6 +43,11 @@ _CONFIDENCE_DISPLAY: Final[dict[str, str]] = {
     "imex_or_rep": "IMEX or REP",
     "imex_then_rep_cross_check": "IMEX then REP cross-check",
     "local_discovery_required": "Local discovery required",
+}
+_REQUIREMENT_DISPLAY: Final[dict[str, str]] = {
+    "required": "Required",
+    "required_only_when_applicable": "Required only when applicable",
+    "optional": "Optional",
 }
 _PRACTICAL_GUIDANCE_ROWS: Final[tuple[tuple[str, str, str], ...]] = (
     (
@@ -137,7 +138,7 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
     """Return rendered contract markdown from the YAML contract."""
     datasets = _mapping(contract, "datasets")
     lines = [
-        "# Demo Extract Availability Contract",
+        "# PPAR Axys/APX Extract Requirements and Source Guidance",
         "",
         "Repository: AXYS / APX Reference Repository",
         "Scope: `ppar/setup_templates/axysapx_performance_comparison/snapshot_a` and",
@@ -220,10 +221,11 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
             "transaction translation workflows, but not as guaranteed columns in "
             "every posted-transaction export.",
             "",
-            "## Availability Matrix",
-            "",
         ]
     )
+
+    lines.extend(_extraction_requirements_section(datasets))
+    lines.extend(["## Availability Matrix", ""])
 
     for dataset_name, dataset in datasets.items():
         lines.extend(_dataset_table(dataset_name, _mapping(dataset, "columns")))
@@ -243,10 +245,7 @@ def render_markdown(contract: Mapping[str, Any]) -> str:
             "",
             "Before treating a site extract as equivalent to these demo files, collect:",
             "",
-            *[
-                f"{index}. {step}"
-                for index, step in enumerate(_LOCAL_VALIDATION_STEPS, start=1)
-            ],
+            *[f"{index}. {step}" for index, step in enumerate(_LOCAL_VALIDATION_STEPS, start=1)],
             "",
             "## Related References",
             "",
@@ -284,6 +283,85 @@ def _dataset_table(dataset_name: str, columns: Mapping[str, Any]) -> list[str]:
         )
     lines.extend(["", ""])
     return lines
+
+
+def _extraction_requirements_section(datasets: Mapping[str, Any]) -> list[str]:
+    """Return the practical three-category extraction checklist."""
+    lines = [
+        "## What You Need to Extract",
+        "",
+        "This is the user-facing checklist for making **Fully Explained** possible. "
+        "It intentionally uses only three labels:",
+        "",
+        "- **Required**: needed for the ordinary portfolio comparison.",
+        "- **Required only when applicable**: needed only for the named feature or "
+        "data condition.",
+        "- **Optional**: safe to omit; its absence alone does not prevent Fully Explained.",
+        "",
+        "These labels describe extraction needs. They are separate from PPAR's "
+        "internal validation and evidence-role rules.",
+        "",
+        "| Dataset | Dataset requirement | Why / likely source | "
+        "Required fields (when dataset applies) | "
+        "Required only when applicable | Optional fields |",
+        "|---|---|---|---|---|---|",
+    ]
+    for dataset_name, dataset in datasets.items():
+        dataset_map = _as_mapping(dataset)
+        columns = _mapping(dataset_map, "columns")
+        requirements = _mapping(dataset_map, "extraction_requirements")
+        _validate_extraction_partition(dataset_name, columns, requirements)
+
+        requirement = _required_text(requirements, "dataset")
+        conditional = _mapping(requirements, "required_only_when_applicable")
+        conditional_text = "<br>".join(
+            f"`{field}` — {_required_scalar_text(reason)}" for field, reason in conditional.items()
+        )
+        reason_and_source = (
+            f"{_required_text(requirements, 'reason')} "
+            f"Likely source: {_required_text(requirements, 'likely_source')}"
+        )
+        lines.append(
+            "| "
+            f"`{dataset_name}` | "
+            f"{_requirement_label(requirement)} | "
+            f"{_escape_table_text(reason_and_source)} | "
+            f"{_column_list(requirements, 'required')} | "
+            f"{_escape_table_text(conditional_text) if conditional_text else 'None'} | "
+            f"{_column_list(requirements, 'optional')} |"
+        )
+    lines.extend(["", ""])
+    return lines
+
+
+def _validate_extraction_partition(
+    dataset_name: str,
+    columns: Mapping[str, Any],
+    requirements: Mapping[str, Any],
+) -> None:
+    """Raise when extraction categories do not cover each demo column once."""
+    requirement = _required_text(requirements, "dataset")
+    if requirement not in _REQUIREMENT_DISPLAY:
+        raise ValueError(f"{dataset_name} has unsupported dataset requirement {requirement!r}.")
+
+    categories = {
+        "required": _text_list(requirements, "required"),
+        "required_only_when_applicable": list(
+            _mapping(requirements, "required_only_when_applicable")
+        ),
+        "optional": _text_list(requirements, "optional"),
+    }
+    categorized = [field for fields in categories.values() for field in fields]
+    duplicates = sorted(field for field in set(categorized) if categorized.count(field) > 1)
+    if duplicates:
+        raise ValueError(f"{dataset_name} extraction categories overlap: {', '.join(duplicates)}.")
+    if set(categorized) != set(columns):
+        missing = sorted(set(columns) - set(categorized))
+        unknown = sorted(set(categorized) - set(columns))
+        raise ValueError(
+            f"{dataset_name} extraction categories do not match columns; "
+            f"missing={missing}, unknown={unknown}."
+        )
 
 
 def _name_mapping_section(
@@ -330,9 +408,7 @@ def _name_mapping_table(dataset_name: str, columns: Mapping[str, Any]) -> list[s
     for column_name, metadata in columns.items():
         metadata_map = _as_mapping(metadata)
         axys_names = ", ".join(_required_text_list(metadata_map, "candidate_axys_names"))
-        report_labels = ", ".join(
-            _required_text_list(metadata_map, "candidate_report_labels")
-        )
+        report_labels = ", ".join(_required_text_list(metadata_map, "candidate_report_labels"))
         lines.append(
             "| "
             f"{_escape_table_text(dataset_label)} | "
@@ -355,8 +431,9 @@ def _source_strategy_section(
         "## Source Strategy Matrix",
         "",
         "This matrix translates availability confidence into implementation "
-        "guidance. `Blocking if missing` means ppar should not silently proceed "
-        "for that field in a workflow that depends on the corresponding dataset.",
+        "guidance about where each value is most likely to come from. Extraction "
+        "requirements are defined only by the three-category checklist above; "
+        "internal runtime guard flags are intentionally not shown here.",
         "",
         "| Label | Meaning |",
         "|---|---|",
@@ -383,9 +460,8 @@ def _source_strategy_table(dataset_name: str, columns: Mapping[str, Any]) -> lis
     lines = [
         f"### `{dataset_name}` Source Strategy",
         "",
-        "| Dataset | Demo column | Preferred source | Fallback source | "
-        "Context required | Blocking if missing | Notes |",
-        "|---|---|---|---|---|---|---|",
+        "| Dataset | Demo column | Preferred source | Fallback source | Notes |",
+        "|---|---|---|---|---|",
     ]
     for column_name, metadata in columns.items():
         metadata_map = _as_mapping(metadata)
@@ -395,8 +471,6 @@ def _source_strategy_table(dataset_name: str, columns: Mapping[str, Any]) -> lis
             f"`{column_name}` | "
             f"{_confidence_label(_required_text(metadata_map, 'preferred_source'))} | "
             f"{_confidence_label(_required_text(metadata_map, 'fallback_source'))} | "
-            f"{_bool_label(_required_bool(metadata_map, 'requires_context_for_semantics'))} | "
-            f"{_bool_label(_required_bool(metadata_map, 'blocking_if_missing'))} | "
             f"{_escape_table_text(_required_text(metadata_map, 'source_strategy_notes'))} |"
         )
     lines.extend(["", ""])
@@ -470,23 +544,43 @@ def _required_text_list(metadata: Mapping[str, Any], key: str) -> list[str]:
     return text_values
 
 
-def _required_bool(metadata: Mapping[str, Any], key: str) -> bool:
-    """Return a required boolean metadata value."""
+def _text_list(metadata: Mapping[str, Any], key: str) -> list[str]:
+    """Return a required, possibly empty, list of nonblank text values."""
     value = metadata.get(key)
-    if not isinstance(value, bool):
-        raise ValueError(f"Missing required boolean metadata field {key!r}.")
-    return value
+    if not isinstance(value, list):
+        raise ValueError(f"Missing required metadata list {key!r}.")
+    text_values = [str(item).strip() for item in value]
+    if any(not item for item in text_values):
+        raise ValueError(f"Metadata list {key!r} contains a blank value.")
+    return text_values
+
+
+def _column_list(metadata: Mapping[str, Any], key: str) -> str:
+    """Return a markdown field list, or ``None`` for an empty category."""
+    values = _text_list(metadata, key)
+    return ", ".join(f"`{value}`" for value in values) if values else "None"
+
+
+def _required_scalar_text(value: object) -> str:
+    """Return a required nonblank scalar value as text."""
+    text = str(value).strip()
+    if not text:
+        raise ValueError("Expected nonblank extraction-condition text.")
+    return text
+
+
+def _requirement_label(value: str) -> str:
+    """Return display text for an extraction-requirement label."""
+    try:
+        return _REQUIREMENT_DISPLAY[value]
+    except KeyError as error:
+        raise ValueError(f"Unsupported extraction requirement {value!r}.") from error
 
 
 def _confidence_label(value: object) -> str:
     """Return display text for a confidence label."""
     key = str(value)
     return _CONFIDENCE_DISPLAY.get(key, key.replace("_", " ").title())
-
-
-def _bool_label(value: bool) -> str:
-    """Return display text for a boolean metadata value."""
-    return "Yes" if value else "No"
 
 
 def _escape_table_text(value: object) -> str:

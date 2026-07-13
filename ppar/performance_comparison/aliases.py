@@ -169,6 +169,11 @@ HOLDINGS_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     ),
     pc_cols.COST: ("COST", "COST_BASIS", "BOOK_COST", "TAX_COST", "ORIG_COST"),
     pc_cols.ACCRUED: ("ACCRUED", "ACCRUED_INCOME", "ACCRUED_INT", "ACCRUAL"),
+    pc_cols.BASE_ACCRUED: (
+        "BASE_ACCRUED",
+        "BASE_ACCRUED_INCOME",
+        "BASE_ACCRUED_INT",
+    ),
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
     pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
 }
@@ -179,6 +184,12 @@ CASH_REQUIRED_ALIASES: Final[ColumnAliases] = {
 }
 CASH_OPTIONAL_ALIASES: Final[ColumnAliases] = {
     pc_cols.CURRENCY: ("CURRENCY", "CURRENCY_CODE", "CURR", "CCY"),
+    pc_cols.BASE_CURRENCY: ("BASE_CURRENCY", "BASE_CCY", "PORTFOLIO_CURRENCY"),
     pc_cols.CASH_BALANCE: ("CASH_BALANCE", "CASH", "CASH_BAL", "BALANCE"),
-    pc_cols.MARKET_VALUE: ("MARKET_VALUE", "MV", "BASE_VALUE"),
+    pc_cols.MARKET_VALUE: ("MARKET_VALUE", "MV"),
+    pc_cols.BASE_MARKET_VALUE: (
+        "BASE_MARKET_VALUE",
+        "BASE_MV",
+        "BASE_VALUE",
+    ),
 }

@@ -22,6 +22,7 @@ from ppar.performance_comparison.findings import (
     DIRECT_INPUT,
     EVIDENCE_ROLE,
     FINDING_CODE,
+    FROM_CURRENCY,
     FROM_DATE,
     IMPACT_POLICY,
     IMPACT_POLICY_CASH_BALANCE,
@@ -53,6 +54,7 @@ from ppar.performance_comparison.findings import (
     SUPPRESSED,
     TARGET_OUTPUT,
     THRU_DATE,
+    TO_CURRENCY,
     TRANSACTION_CODE,
     TRANSACTION_IMPACT_DIAGNOSTIC,
     TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE,
@@ -187,9 +189,7 @@ IMPACT_METHOD_SECURITY_RETURN_DELTA_TIMES_WEIGHT = (
 IMPACT_METHOD_SOURCE_FIELD_DELTA_OVER_BEGIN_MV = (
     ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value
 )
-IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = (
-    ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value
-)
+IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA = ContributionImpactMethod.VENDOR_CONTRIBUTION_DELTA.value
 IMPACT_METHOD_TRANSACTION_AMOUNT_DELTA_OVER_DENOMINATOR = (
     TransactionImpactMethod.TRANSACTION_AMOUNT_DELTA_OVER_RETURN_DENOMINATOR.value
 )
@@ -205,11 +205,9 @@ IMPACT_METHOD_HOLDING_MARKET_VALUE_DELTA_OVER_DENOMINATOR = (
 IMPACT_METHOD_HOLDING_ACCRUED_DELTA_OVER_DENOMINATOR = (
     HoldingImpactMethod.ACCRUED_DELTA_OVER_RETURN_DENOMINATOR.value
 )
-IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR = (
-    HoldingImpactMethod[
-        "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
-    ].value
-)
+IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR = HoldingImpactMethod[
+    "QUANTITY_DELTA_TIMES_SNAPSHOT_A_UNIT_MARKET_VALUE_OVER_RETURN_DENOMINATOR"
+].value
 IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
@@ -255,12 +253,8 @@ CROSS_CHECK_MINUS_FLOW_IMPACT = "cross_check_minus_flow_impact"
 RECONCILIATION_STATUS = "reconciliation_status"
 RECONCILIATION_STATUS_ALIGNED = "aligned"
 RECONCILIATION_STATUS_DIFFERENT = "different"
-RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA = (
-    "missing_portfolio_flow_delta"
-)
-RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK = (
-    "missing_transaction_cross_check"
-)
+RECONCILIATION_STATUS_MISSING_PORTFOLIO_FLOW_DELTA = "missing_portfolio_flow_delta"
+RECONCILIATION_STATUS_MISSING_TRANSACTION_CROSS_CHECK = "missing_transaction_cross_check"
 _CROSS_CHECK_RECONCILIATION_TOLERANCE = 1e-12
 PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     PORTFOLIO_ID,
@@ -276,6 +270,8 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     SOURCE_FILE,
     INPUT_DATE,
     SOURCE_COLUMN,
+    FROM_CURRENCY,
+    TO_CURRENCY,
     TRANSACTION_CODE,
     TRANSACTION_CATEGORY,
     CASH_FLOW_SIGN,
@@ -443,9 +439,7 @@ def portfolio_period_summary(
     active_index = _portfolio_period_index(active_findings)
     all_index = _portfolio_period_index(findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_portfolio_period_findings(
-            active_findings, active_index, target
-        )
+        related_active = _indexed_portfolio_period_findings(active_findings, active_index, target)
         related_all = _indexed_portfolio_period_findings(findings, all_index, target)
         role_counts = _role_summary_counts(related_active)
         dataset_counts = _column_counts(related_active, DATASET)
@@ -456,9 +450,7 @@ def portfolio_period_summary(
                 THRU_DATE: target[THRU_DATE],
                 PORTFOLIO_RETURN_DELTA: target[DELTA_B_MINUS_A],
                 FINDING_COUNT: related_active.height,
-                PORTFOLIO_FINDING_COUNT: dataset_counts.get(
-                    pc_cols.PORTFOLIO_PERFORMANCE, 0
-                ),
+                PORTFOLIO_FINDING_COUNT: dataset_counts.get(pc_cols.PORTFOLIO_PERFORMANCE, 0),
                 **role_counts,
                 FX_RATE_FINDING_COUNT: dataset_counts.get(pc_cols.FX_RATES, 0),
                 TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
@@ -503,9 +495,7 @@ def portfolio_period_evidence_breakdown(
     rows: list[dict[str, object]] = []
     active_index = _portfolio_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_portfolio_period_findings(
-            active_findings, active_index, target
-        )
+        related_active = _indexed_portfolio_period_findings(active_findings, active_index, target)
         rows.extend(_evidence_breakdown_rows(target, related_active))
     return pl.DataFrame(rows, infer_schema_length=None).select(
         PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS
@@ -546,9 +536,7 @@ def security_period_summary(
     active_index = _security_period_index(active_findings)
     all_index = _security_period_index(findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_security_period_findings(
-            active_findings, active_index, target
-        )
+        related_active = _indexed_security_period_findings(active_findings, active_index, target)
         related_all = _indexed_security_period_findings(findings, all_index, target)
         role_counts = _role_summary_counts(related_active)
         dataset_counts = _column_counts(related_active, DATASET)
@@ -560,9 +548,7 @@ def security_period_summary(
                 THRU_DATE: target[THRU_DATE],
                 SECURITY_RETURN_DELTA: target[DELTA_B_MINUS_A],
                 FINDING_COUNT: related_active.height,
-                SECURITY_FINDING_COUNT: dataset_counts.get(
-                    pc_cols.SECURITY_PERFORMANCE, 0
-                ),
+                SECURITY_FINDING_COUNT: dataset_counts.get(pc_cols.SECURITY_PERFORMANCE, 0),
                 **role_counts,
                 TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
                 HOLDING_FINDING_COUNT: dataset_counts.get(pc_cols.HOLDINGS, 0),
@@ -605,9 +591,7 @@ def security_period_evidence_breakdown(
     rows: list[dict[str, object]] = []
     active_index = _security_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_security_period_findings(
-            active_findings, active_index, target
-        )
+        related_active = _indexed_security_period_findings(active_findings, active_index, target)
         rows.extend(_security_evidence_breakdown_rows(target, related_active))
     return pl.DataFrame(rows, infer_schema_length=None).select(
         SECURITY_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS
@@ -647,9 +631,7 @@ def rank_portfolio_period_evidence(
     rows: list[dict[str, object]] = []
     active_index = _portfolio_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_portfolio_period_findings(
-            active_findings, active_index, target
-        )
+        related_active = _indexed_portfolio_period_findings(active_findings, active_index, target)
         ranked_rows = sorted(
             (
                 _ranked_evidence_row(target, finding)
@@ -701,9 +683,7 @@ def rank_security_period_evidence(
     rows: list[dict[str, object]] = []
     active_index = _security_period_index(active_findings)
     for target in target_findings.iter_rows(named=True):
-        related_active = _indexed_security_period_findings(
-            active_findings, active_index, target
-        )
+        related_active = _indexed_security_period_findings(active_findings, active_index, target)
         ranked_rows = sorted(
             (
                 _ranked_evidence_row(target, finding)
@@ -748,10 +728,7 @@ def portfolio_period_contribution_candidates(
     if ranking.is_empty():
         return _empty_portfolio_period_contribution_candidates()
 
-    rows = [
-        _contribution_candidate_row(row)
-        for row in ranking.iter_rows(named=True)
-    ]
+    rows = [_contribution_candidate_row(row) for row in ranking.iter_rows(named=True)]
     return pl.DataFrame(rows, infer_schema_length=None).select(
         PORTFOLIO_PERIOD_CONTRIBUTION_CANDIDATE_COLUMNS
     )
@@ -813,9 +790,7 @@ def top_evidence_table(
         Ranked contribution-candidate rows limited within each portfolio period.
     """
     candidates = (
-        portfolio_period_contribution_candidates(findings)
-        if _candidates is None
-        else _candidates
+        portfolio_period_contribution_candidates(findings) if _candidates is None else _candidates
     )
     if candidates.is_empty():
         return candidates
@@ -846,9 +821,7 @@ def security_top_evidence_table(
         Ranked contribution-candidate rows limited within each security period.
     """
     candidates = (
-        security_period_contribution_candidates(findings)
-        if _candidates is None
-        else _candidates
+        security_period_contribution_candidates(findings) if _candidates is None else _candidates
     )
     if candidates.is_empty():
         return candidates
@@ -1061,9 +1034,7 @@ def portfolio_period_transaction_cross_checks(
         for key, bucket_rows in buckets.items()
     ]
     sorted_rows = sorted(rows, key=_portfolio_period_transaction_cross_check_sort_key)
-    return pl.DataFrame(sorted_rows).select(
-        PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS
-    )
+    return pl.DataFrame(sorted_rows).select(PORTFOLIO_PERIOD_TRANSACTION_CROSS_CHECK_COLUMNS)
 
 
 def portfolio_period_flow_cross_check_reconciliation(
@@ -1167,8 +1138,7 @@ def transaction_activity_summary(
         buckets.setdefault(key, []).append(row)
 
     rows = [
-        _transaction_activity_summary_row(key, bucket_rows)
-        for key, bucket_rows in buckets.items()
+        _transaction_activity_summary_row(key, bucket_rows) for key, bucket_rows in buckets.items()
     ]
     sorted_rows = sorted(rows, key=_transaction_activity_summary_sort_key)
     return pl.DataFrame(sorted_rows).select(TRANSACTION_ACTIVITY_SUMMARY_COLUMNS)
@@ -1204,9 +1174,11 @@ def transaction_matching_diagnostics(
         return _empty_transaction_matching_diagnostics()
 
     rows = []
-    for row in transaction_findings.group_by(TRANSACTION_MATCH_STATUS).len(
-        name=FINDING_COUNT
-    ).iter_rows(named=True):
+    for row in (
+        transaction_findings.group_by(TRANSACTION_MATCH_STATUS)
+        .len(name=FINDING_COUNT)
+        .iter_rows(named=True)
+    ):
         match_status = row[TRANSACTION_MATCH_STATUS]
         rows.append(
             {
@@ -1320,11 +1292,7 @@ def _indexed_portfolio_period_findings(
         (portfolio_id, target[FROM_DATE], target[THRU_DATE]),
         (portfolio_id, None, None),
     )
-    row_numbers = sorted(
-        row_number
-        for key in keys
-        for row_number in index.get(key, ())
-    )
+    row_numbers = sorted(row_number for key in keys for row_number in index.get(key, ()))
     if not row_numbers:
         return findings.clear()
     return findings[row_numbers]
@@ -1359,11 +1327,7 @@ def _indexed_security_period_findings(
         (security_id, portfolio_id, None, None),
         (security_id, None, None, None),
     )
-    row_numbers = sorted(
-        row_number
-        for key in keys
-        for row_number in index.get(key, ())
-    )
+    row_numbers = sorted(row_number for key in keys for row_number in index.get(key, ()))
     if not row_numbers:
         return findings.clear()
     return findings[row_numbers]
@@ -1380,10 +1344,7 @@ def _related_portfolio_period_findings(
     return findings.filter(
         (pl.col(PORTFOLIO_ID) == portfolio_id)
         & (
-            (
-                (pl.col(FROM_DATE) == from_date)
-                & (pl.col(THRU_DATE) == thru_date)
-            )
+            ((pl.col(FROM_DATE) == from_date) & (pl.col(THRU_DATE) == thru_date))
             | (pl.col(FROM_DATE).is_null() & pl.col(THRU_DATE).is_null())
         )
     )
@@ -1400,15 +1361,9 @@ def _related_security_period_findings(
     thru_date = target[THRU_DATE]
     return findings.filter(
         (pl.col(SECURITY_ID) == security_id)
+        & ((pl.col(PORTFOLIO_ID) == portfolio_id) | pl.col(PORTFOLIO_ID).is_null())
         & (
-            (pl.col(PORTFOLIO_ID) == portfolio_id)
-            | pl.col(PORTFOLIO_ID).is_null()
-        )
-        & (
-            (
-                (pl.col(FROM_DATE) == from_date)
-                & (pl.col(THRU_DATE) == thru_date)
-            )
+            ((pl.col(FROM_DATE) == from_date) & (pl.col(THRU_DATE) == thru_date))
             | (pl.col(FROM_DATE).is_null() & pl.col(THRU_DATE).is_null())
         )
     )
@@ -1662,6 +1617,8 @@ def _ranked_evidence_row(
         SOURCE_FILE: finding[SOURCE_FILE],
         INPUT_DATE: finding[INPUT_DATE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
+        FROM_CURRENCY: finding[FROM_CURRENCY],
+        TO_CURRENCY: finding[TO_CURRENCY],
         TRANSACTION_CODE: finding[TRANSACTION_CODE],
         TRANSACTION_CATEGORY: finding[TRANSACTION_CATEGORY],
         CASH_FLOW_SIGN: finding[CASH_FLOW_SIGN],
@@ -1670,9 +1627,7 @@ def _ranked_evidence_row(
         IMPACT_POLICY: finding[IMPACT_POLICY],
         TRANSACTION_IMPACT_POLICY: finding[TRANSACTION_IMPACT_POLICY],
         TRANSACTION_IMPACT_DIAGNOSTIC: finding[TRANSACTION_IMPACT_DIAGNOSTIC],
-        TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (
-            finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]
-        ),
+        TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE: (finding[TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE]),
         DELTA_B_MINUS_A: delta,
         SNAPSHOT_A_VALUE: finding[SNAPSHOT_A_VALUE],
         SNAPSHOT_B_VALUE: finding[SNAPSHOT_B_VALUE],
@@ -1798,7 +1753,10 @@ def _estimated_security_return_impact(
             ),
         }
 
-    if row[DATASET] == pc_cols.HOLDINGS and row[SOURCE_COLUMN] == pc_cols.ACCRUED:
+    if (
+        row[DATASET] == pc_cols.HOLDINGS
+        and row[SOURCE_COLUMN] in {pc_cols.ACCRUED, pc_cols.BASE_ACCRUED}
+    ):
         return {
             ESTIMATED_RETURN_IMPACT: delta / security_denominator,
             IMPACT_BASIS: IMPACT_BASIS_SECURITY_HOLDING_ACCRUED,
@@ -1818,9 +1776,7 @@ def _estimated_security_return_impact(
             ESTIMATED_RETURN_IMPACT: (delta * unit_market_value) / security_denominator,
             IMPACT_BASIS: IMPACT_BASIS_SECURITY_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: (
-                IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR
-            ),
+            IMPACT_METHOD: (IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR),
             IMPACT_MESSAGE: (
                 "Approximate security-return impact uses the holding quantity delta "
                 "multiplied by snapshot A unit market value, then divided by "
@@ -1882,8 +1838,7 @@ def _estimated_security_transaction_flow_impact(
 
     security_flow_delta = -delta
     return {
-        ESTIMATED_RETURN_IMPACT: (security_flow_delta * flow_weight)
-        / security_denominator,
+        ESTIMATED_RETURN_IMPACT: (security_flow_delta * flow_weight) / security_denominator,
         IMPACT_BASIS: IMPACT_BASIS_SECURITY_TRANSACTION_FLOW,
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
         IMPACT_METHOD: IMPACT_METHOD_SECURITY_TRANSACTION_FLOW_MODIFIED_DIETZ,
@@ -1911,8 +1866,7 @@ def _no_security_return_estimate() -> dict[str, object]:
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
         IMPACT_METHOD: None,
         IMPACT_MESSAGE: (
-            "No defensible security-return impact estimate is available for this "
-            "finding yet."
+            "No defensible security-return impact estimate is available for this " "finding yet."
         ),
     }
 
@@ -1931,9 +1885,7 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ESTIMATED_RETURN_IMPACT: delta_float * exposure / denominator,
             IMPACT_BASIS: IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: (
-                IMPACT_METHOD_FX_RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_DENOMINATOR
-            ),
+            IMPACT_METHOD: (IMPACT_METHOD_FX_RATE_DELTA_TIMES_LOCAL_EXPOSURE_OVER_DENOMINATOR),
             IMPACT_MESSAGE: (
                 "Approximate impact uses the FX-rate delta multiplied by the "
                 "unchanged snapshot A local-currency exposure, divided by the "
@@ -1958,7 +1910,7 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "Uses the vendor-provided security contribution delta as a "
                 "related-output impact estimate, not as root-cause attribution."
             ),
-    }
+        }
     if _is_portfolio_source_field_impact_candidate(row):
         delta_float = _number_value(delta)
         denominator = _number_value(row[RETURN_DENOMINATOR])
@@ -2048,9 +2000,7 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ESTIMATED_RETURN_IMPACT: (delta_float * unit_market_value) / denominator,
             IMPACT_BASIS: IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: (
-                IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR
-            ),
+            IMPACT_METHOD: (IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR),
             IMPACT_MESSAGE: (
                 "Approximate impact uses the holding quantity delta multiplied "
                 "by snapshot A unit market value, then divided by the return "
@@ -2117,8 +2067,7 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
         IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
         IMPACT_METHOD: None,
         IMPACT_MESSAGE: (
-            "No defensible return-impact estimate is available for this "
-            "finding yet."
+            "No defensible return-impact estimate is available for this " "finding yet."
         ),
     }
 
@@ -2206,7 +2155,7 @@ def _is_holding_market_value_impact_candidate(row: dict[str, object]) -> bool:
     denominator = row[RETURN_DENOMINATOR]
     return (
         row[DATASET] == pc_cols.HOLDINGS
-        and row[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
+        and row[SOURCE_COLUMN] in {pc_cols.MARKET_VALUE, pc_cols.BASE_MARKET_VALUE}
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_MARKET_VALUE
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
@@ -2222,7 +2171,7 @@ def _is_holding_accrued_impact_candidate(row: dict[str, object]) -> bool:
     denominator = row[RETURN_DENOMINATOR]
     return (
         row[DATASET] == pc_cols.HOLDINGS
-        and row[SOURCE_COLUMN] == pc_cols.ACCRUED
+        and row[SOURCE_COLUMN] in {pc_cols.ACCRUED, pc_cols.BASE_ACCRUED}
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_ACCRUED
         and isinstance(delta, (int, float))
         and not isinstance(delta, bool)
@@ -2263,6 +2212,7 @@ def _is_cash_impact_candidate(row: dict[str, object]) -> bool:
     expected_policy = {
         pc_cols.CASH_BALANCE: IMPACT_POLICY_CASH_BALANCE,
         pc_cols.MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
+        pc_cols.BASE_MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
     }.get(source_column)
     return (
         row[DATASET] == pc_cols.CASH
@@ -2311,9 +2261,7 @@ def _has_evidence_only_impact_policy(row: dict[str, object]) -> bool:
 def _transaction_performance_amount_impact_message(row: dict[str, object]) -> str:
     """Return a provenance-aware transaction amount impact message."""
     semantics_source = row.get(TRANSACTION_SEMANTICS_SOURCE)
-    source_text = tx_diagnostics.readable_transaction_semantics_source(
-        semantics_source
-    )
+    source_text = tx_diagnostics.readable_transaction_semantics_source(semantics_source)
     amount_basis = (
         "explicit base-currency transaction amount delta"
         if row.get(SOURCE_COLUMN) == pc_cols.BASE_AMOUNT
@@ -2418,13 +2366,9 @@ def _impact_coverage_summary_row(
     transactions: list[dict[str, object]],
 ) -> dict[str, object]:
     """Return one cause-area estimate-coverage row for a portfolio period."""
-    estimate_rows = [
-        cause for cause in causes if cause.get(ESTIMATED_RETURN_IMPACT) is not None
-    ]
+    estimate_rows = [cause for cause in causes if cause.get(ESTIMATED_RETURN_IMPACT) is not None]
     evidence_only_rows = [
-        cause
-        for cause in causes
-        if cause.get(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE
+        cause for cause in causes if cause.get(IMPACT_BASIS) == IMPACT_BASIS_NO_ESTIMATE
     ]
     missing_inputs = _coverage_missing_impact_inputs(
         evidence_only_rows,
@@ -2456,9 +2400,7 @@ def _impact_coverage_summary_row(
         EVIDENCE_ONLY_AREAS: _join_unique(
             str(cause[ROOT_CAUSE_AREA]) for cause in evidence_only_rows
         ),
-        TRANSACTION_SEMANTICS_SOURCES: _period_transaction_semantics_sources(
-            transactions
-        ),
+        TRANSACTION_SEMANTICS_SOURCES: _period_transaction_semantics_sources(transactions),
         MISSING_IMPACT_INPUTS: missing_inputs,
         IMPACT_COVERAGE_STATUS: coverage_status,
         IMPACT_COVERAGE_REVIEW_NOTE: _impact_coverage_review_note(coverage_status),
@@ -2615,9 +2557,7 @@ def _summary_rows_by_period(
     table: pl.DataFrame,
 ) -> dict[tuple[object, object, object], list[dict[str, object]]]:
     """Index summary rows once for repeated portfolio-period lookups."""
-    rows_by_period: dict[
-        tuple[object, object, object], list[dict[str, object]]
-    ] = {}
+    rows_by_period: dict[tuple[object, object, object], list[dict[str, object]]] = {}
     for row in table.iter_rows(named=True):
         rows_by_period.setdefault(_summary_period_key(row), []).append(row)
     return rows_by_period
@@ -2647,11 +2587,7 @@ def _preferred_estimate_rows(rows: list[dict[str, object]]) -> list[dict[str, ob
         available for the same cause bucket.
     """
     if any(row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION for row in rows):
-        return [
-            row
-            for row in rows
-            if row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION
-        ]
+        return [row for row in rows if row[IMPACT_BASIS] == IMPACT_BASIS_SECURITY_CONTRIBUTION]
     performance_input_rows = [
         row
         for row in rows
@@ -2672,9 +2608,7 @@ def _preferred_estimate_rows(rows: list[dict[str, object]]) -> list[dict[str, ob
 def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
     """Return the aggregate impact basis for a cause-area bucket."""
     bases = {
-        str(row[IMPACT_BASIS])
-        for row in rows
-        if row[IMPACT_BASIS] != IMPACT_BASIS_NO_ESTIMATE
+        str(row[IMPACT_BASIS]) for row in rows if row[IMPACT_BASIS] != IMPACT_BASIS_NO_ESTIMATE
     }
     if IMPACT_BASIS_SECURITY_CONTRIBUTION in bases:
         return IMPACT_BASIS_SECURITY_CONTRIBUTION
@@ -2770,8 +2704,7 @@ def _portfolio_period_cause_summary_sort_key(
     estimated_impact = row[ESTIMATED_RETURN_IMPACT]
     absolute_impact = (
         abs(float(estimated_impact))
-        if isinstance(estimated_impact, (int, float))
-        and not isinstance(estimated_impact, bool)
+        if isinstance(estimated_impact, (int, float)) and not isinstance(estimated_impact, bool)
         else -1.0
     )
     finding_count = row[FINDING_COUNT]
@@ -2840,8 +2773,7 @@ def _portfolio_period_transaction_cross_check_row(
     estimates = [
         value
         for row in rows
-        if (value := _number_value(row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE)))
-        is not None
+        if (value := _number_value(row.get(TRANSACTION_IMPACT_DIAGNOSTIC_ESTIMATE))) is not None
     ]
     diagnostics = sorted(
         {
@@ -2851,11 +2783,7 @@ def _portfolio_period_transaction_cross_check_row(
         }
     )
     policies = sorted(
-        {
-            str(row[TRANSACTION_IMPACT_POLICY])
-            for row in rows
-            if row.get(TRANSACTION_IMPACT_POLICY)
-        }
+        {str(row[TRANSACTION_IMPACT_POLICY]) for row in rows if row.get(TRANSACTION_IMPACT_POLICY)}
     )
     impact_message = (
         "Transaction impact cross-checks are review-only and are not "
@@ -2949,9 +2877,7 @@ def _portfolio_period_flow_cross_check_reconciliation_row(
         CROSS_CHECK_ESTIMATE_TOTAL: cross_check_total,
         CROSS_CHECK_MINUS_FLOW_IMPACT: difference,
         TRANSACTION_IMPACT_POLICIES: (
-            None
-            if cross_check_row is None
-            else cross_check_row[TRANSACTION_IMPACT_POLICIES]
+            None if cross_check_row is None else cross_check_row[TRANSACTION_IMPACT_POLICIES]
         ),
         RECONCILIATION_STATUS: status,
         IMPACT_MESSAGE: _flow_cross_check_reconciliation_message(status),
@@ -2974,11 +2900,7 @@ def _flow_impact_estimate(flow_row: dict[str, object] | None) -> float | None:
     denominator = flow_row.get(RETURN_DENOMINATOR)
     delta_float = _number_value(delta)
     denominator_float = _number_value(denominator)
-    if (
-        delta_float is not None
-        and denominator_float is not None
-        and denominator_float != 0.0
-    ):
+    if delta_float is not None and denominator_float is not None and denominator_float != 0.0:
         return delta_float / denominator_float
     return None
 
@@ -3182,11 +3104,7 @@ def _transaction_impact_diagnostic_inputs(value: object) -> list[str]:
     prefix = "modified_dietz missing inputs: "
     if value.startswith(prefix):
         missing = value.removeprefix(prefix)
-        return [
-            f"modified_dietz {part.strip()}"
-            for part in missing.split(",")
-            if part.strip()
-        ]
+        return [f"modified_dietz {part.strip()}" for part in missing.split(",") if part.strip()]
     return []
 
 
@@ -3378,6 +3296,8 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             SOURCE_FILE: pl.String,
             INPUT_DATE: pl.Date,
             SOURCE_COLUMN: pl.String,
+            FROM_CURRENCY: pl.String,
+            TO_CURRENCY: pl.String,
             TRANSACTION_CODE: pl.String,
             TRANSACTION_CATEGORY: pl.String,
             CASH_FLOW_SIGN: pl.String,

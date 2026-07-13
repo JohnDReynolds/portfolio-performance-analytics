@@ -450,7 +450,7 @@ class TestPackageMetadata(unittest.TestCase):
             "Allowed values: portfolio, security",
             "Usually the original/older source-data extract",
             "security_performance",
-            "Optional for the first portfolio-only onboarding pass",
+            "Required only when applicable: the file is needed for security-level",
             "modified_dietz is the supported onboarding method",
             "beginning_value_source and ending_value_source normally stay holdings",
             "Buys and sells are security-level flows",
@@ -554,6 +554,29 @@ class TestPackageMetadata(unittest.TestCase):
                 "run_audit.py"
             ).exists()
         )
+
+    def test_eventual_axys_integration_reference_is_documented(self) -> None:
+        """The roadmap parks advanced Axys/APX integration publishing explicitly."""
+        roadmap = Path("docs/roadmap.md").read_text(encoding=util.ENCODING)
+
+        self.assertIn("| Axys/APX integration reference |", roadmap)
+        self.assertIn("do not copy the full research archive", roadmap)
+        self.assertIn("available to installed-package users", roadmap)
+
+    def test_common_core_export_reference_avoids_unverified_imex_recipes(self) -> None:
+        """The export-planning note does not present invented native profiles."""
+        reference = Path("docs/axysapx_common_core_export.md").read_text(
+            encoding=util.ENCODING
+        )
+
+        self.assertIn("not an official", reference)
+        self.assertIn("## Extraction Planning Worksheet", reference)
+        self.assertIn("PPAR-normalized filenames", reference)
+        self.assertIn("REP performance report preferred", reference)
+        self.assertIn("Unknown pending local discovery", reference)
+        self.assertNotIn("PORTPERF_COMMON", reference)
+        self.assertNotIn("SECPERF_COMMON", reference)
+        self.assertNotIn("Axys/APX Native Dataset", reference)
 
     def test_user_installed_analytics_paths_do_not_depend_on_demos(self) -> None:
         """Installed analytics entrypoints avoid maintainer demo helper modules."""
@@ -1957,7 +1980,15 @@ class TestPackageMetadata(unittest.TestCase):
         with holdings_path.open(encoding=util.ENCODING, newline="") as file:
             holding_ids = {row["SEC"] for row in csv.DictReader(file)}
 
-        self.assertEqual(portfolio_codes, {"ALPHA", "BALANCED", "INCOME"})
+        self.assertEqual(
+            portfolio_codes,
+            {
+                "ALPHA",
+                "BALANCED",
+                "BALANCED_CONTRIBUTION",
+                "INCOME",
+            },
+        )
         self.assertIn("AAPL", holding_ids)
         self.assertIn("NVDA", holding_ids)
         self.assertIn("CASHUSD", holding_ids)
@@ -2359,7 +2390,7 @@ class TestPackageMetadata(unittest.TestCase):
 
         aapl_periods = {
             "ALPHA": ("2026-05-01", "2026-05-29", "2026-05-29"),
-            "BALANCED": ("2026-05-01", "2026-05-08", "2026-05-08"),
+            "BALANCED": ("2026-02-28", "2026-03-31", "2026-03-31"),
             "INCOME": ("2026-05-01", "2026-05-08", "2026-05-08"),
         }
         for portfolio, (from_date, thru_date, holding_date) in aapl_periods.items():

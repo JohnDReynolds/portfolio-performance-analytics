@@ -3,6 +3,11 @@
 These constants are intentionally public. They are the canonical schema
 vocabulary shared by loaders, comparison logic, reports, tests, and downstream
 callers that need stable output column names.
+
+Detailed unqualified monetary fields use the row ``currency``. Detailed
+``base_`` monetary fields use portfolio ``base_currency``. Monetary fields in
+portfolio/security performance datasets are inherently portfolio-base values.
+FX rates use explicit ``from_currency`` and ``to_currency`` units.
 """
 
 __all__ = [
@@ -67,6 +72,7 @@ __all__ = [
     "QUANTITY",
     "AMOUNT",
     "BASE_AMOUNT",
+    "BASE_ACCRUED",
     "LOCAL_EXPOSURE",
     "COMMISSION",
     "BROKER",
@@ -158,6 +164,7 @@ TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 QUANTITY = "quantity"
 AMOUNT = "amount"
 BASE_AMOUNT = "base_amount"
+BASE_ACCRUED = "base_accrued"
 LOCAL_EXPOSURE = "local_exposure"
 COMMISSION = "commission"
 BROKER = "broker"
@@ -295,6 +302,7 @@ HOLDINGS_OPTIONAL_COLUMNS = (
     PRICE,
     MARKET_VALUE,
     BASE_MARKET_VALUE,
+    BASE_ACCRUED,
     COST,
     ACCRUED,
     CURRENCY,
@@ -313,8 +321,10 @@ CASH_REQUIRED_COLUMNS = (
 
 CASH_OPTIONAL_COLUMNS = (
     CURRENCY,
+    BASE_CURRENCY,
     CASH_BALANCE,
     MARKET_VALUE,
+    BASE_MARKET_VALUE,
 )
 
 CASH_COLUMNS = (
