@@ -12,6 +12,8 @@ import polars as pl
 from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison.currency_basis import normalize_currency_columns
+from ppar.performance_comparison.period_linking import validate_portfolio_periods
 from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 import ppar.utilities as util
@@ -64,20 +66,29 @@ class PortfolioPerformanceLoader:
             pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
-        return source_loader.require_numeric_columns(
+        frame = normalize_currency_columns(
+            source_loader.require_numeric_columns(
+                frame,
+                columns=(
+                    pc_cols.PORTFOLIO_RETURN,
+                    pc_cols.BEGIN_MARKET_VALUE,
+                    pc_cols.END_MARKET_VALUE,
+                    pc_cols.FLOW,
+                    pc_cols.INCOME,
+                    pc_cols.GAIN_LOSS,
+                ),
+                dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
+                path=path,
+                specification_path=self._specification.path,
+            )
+        )
+        validate_portfolio_periods(
             frame,
-            columns=(
-                pc_cols.PORTFOLIO_RETURN,
-                pc_cols.BEGIN_MARKET_VALUE,
-                pc_cols.END_MARKET_VALUE,
-                pc_cols.FLOW,
-                pc_cols.INCOME,
-                pc_cols.GAIN_LOSS,
-            ),
             dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
             path=path,
             specification_path=self._specification.path,
         )
+        return frame
 
     def _portfolio_performance_path(self, snapshot_key: SnapshotKey) -> util.PathLike:
         """Return the resolved portfolio performance path for a snapshot."""

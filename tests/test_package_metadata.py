@@ -34,7 +34,6 @@ from ppar.performance_comparison import runner as performance_comparison_runner
 from ppar.performance_comparison import report as performance_comparison_report
 from ppar.performance_comparison import findings as performance_comparison_findings
 from ppar.performance_comparison.methods import (
-    CashImpactMethod,
     ContributionImpactMethod,
     FxRateImpactMethod,
     HoldingImpactMethod,
@@ -70,7 +69,6 @@ from ppar.performance_comparison.return_reconstruction import (
     security_return_reconstruction_checks,
 )
 from ppar.performance_comparison import (
-    CashLoader,
     ComparisonFile,
     ComparisonSnapshot,
     CONTEXT,
@@ -1843,7 +1841,7 @@ class TestPackageMetadata(unittest.TestCase):
             "performance_comparison_holding_scenarios.csv",
             "performance_comparison_scenario_calendar.csv",
             "performance_comparison_period_split_plan.csv",
-            "two-difference review target",
+            "two-independent-change review target",
             "Empty split backlog",
             "rebuild_performance_comparison_demo_data.py",
             "Use `--write` only when you intend to rewrite tracked packaged CSV assets.",
@@ -2605,17 +2603,6 @@ class TestPackageMetadata(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            performance_comparison_findings.IMPACT_POLICY_CASH_BALANCE,
-            f"cash_balance:{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}",
-        )
-        self.assertEqual(
-            performance_comparison_findings.IMPACT_POLICY_CASH_MARKET_VALUE,
-            (
-                "cash_market_value:"
-                f"{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}"
-            ),
-        )
-        self.assertEqual(
             performance_comparison_findings.TRANSACTION_IMPACT_POLICY_EXTERNAL_FLOW_EVIDENCE_ONLY,
             f"external_flow:{TransactionImpactMethod.EVIDENCE_ONLY.value}",
         )
@@ -2645,7 +2632,6 @@ class TestPackageMetadata(unittest.TestCase):
     def test_public_performance_comparison_import_contract(self) -> None:
         """The documented performance comparison exports remain importable."""
         expected_exports = {
-            "CashLoader": CashLoader,
             "ComparisonFile": ComparisonFile,
             "ComparisonSnapshot": ComparisonSnapshot,
             "CONTEXT": CONTEXT,

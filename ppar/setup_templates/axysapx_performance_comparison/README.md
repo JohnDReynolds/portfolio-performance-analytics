@@ -151,6 +151,9 @@ differences from identifiable input differences and other evidence:
   Transaction match status appears here for audit and troubleshooting; the
   separate `transaction_matching_diagnostics.csv` artifact is row-identity audit
   support rather than a main review sheet.
+- `supporting_files/cause_lineage.csv`: machine-readable trace from every
+  report cause back to its source finding fingerprint. This is primarily for
+  integration and invariant validation, not normal reviewer workflow.
 
 Data used:
 
@@ -325,7 +328,12 @@ The workbook uses a small field-role model:
 | `performance_input` | `holdings.market_value`, `holdings.base_market_value`, `holdings.accrued`, `holdings.base_accrued`, `transactions.amount`, `transactions.base_amount` | Additive rows on the `Performance Difference Causes` sheet when enough inputs are available. An unqualified detailed value is counted only when its row currency equals base currency; otherwise its explicit `base_` counterpart is counted. |
 | `input_component` | `holdings.quantity`, `holdings.price`, `fx_rates.fx_rate`, transaction quantity/price/commission | Shown beside related performance inputs when useful, or kept in `supporting_files/source_detail.csv` as support for the related performance input. |
 | `reported_performance_component` | portfolio/security performance return, income, gain/loss, contribution, weight, market value | Compared and kept as reporting diagnostics in the audit trail; not treated as root-cause input differences. |
-| `context` | holding cost, unsupported fields | Kept in `supporting_files/source_detail.csv` as review context. |
+| `context` | explicitly classified fields such as holding cost | Kept in `supporting_files/source_detail.csv` as review context. |
+
+An unknown compared field does not silently become context. PPAR stops until
+the field receives an explicit accounting role, and a YAML suppression cannot
+bypass that classification decision. Impact-policy requirements are derived
+from the role table above.
 
 Missing transaction semantics are still a hard stop for user-facing bundle
 generation because transaction amount attribution depends on transaction-code

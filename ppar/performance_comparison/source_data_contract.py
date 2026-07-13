@@ -75,12 +75,6 @@ _SOURCE_DATA_CONTRACT: Final[tuple[SourceDataDatasetContract, ...]] = (
         ),
     ),
     SourceDataDatasetContract(
-        name=pc_cols.CASH,
-        required_columns=pc_cols.CASH_REQUIRED_COLUMNS,
-        optional_columns=pc_cols.CASH_OPTIONAL_COLUMNS,
-        required_when="cash rows are used as source-data evidence",
-    ),
-    SourceDataDatasetContract(
         name=pc_cols.FX_RATES,
         required_columns=pc_cols.FX_RATES_REQUIRED_COLUMNS,
         optional_columns=pc_cols.FX_RATES_OPTIONAL_COLUMNS,

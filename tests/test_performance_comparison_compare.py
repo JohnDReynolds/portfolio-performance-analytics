@@ -20,7 +20,6 @@ from ppar.performance_comparison import (
 )
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.policies import (
-    _cash_impact_policies,
     _fx_rate_impact_policies,
     _modified_dietz_external_flow_eligibility,
     _holding_impact_policies,
@@ -41,8 +40,6 @@ from ppar.performance_comparison.findings import (
     FINDING_CODE,
     FROM_DATE,
     IMPACT_POLICY,
-    IMPACT_POLICY_CASH_BALANCE,
-    IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_HOLDING_ACCRUED,
     IMPACT_POLICY_HOLDING_MARKET_VALUE,
@@ -50,7 +47,6 @@ from ppar.performance_comparison.findings import (
     IMPACT_POLICY_PRICE_WEIGHTED,
     IMPACT_INPUT_VALUE,
     PORTFOLIO_ID,
-    PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_MV,
     PC_HOLD_ACCR,
@@ -557,40 +553,6 @@ def _write_holding_period_specification(directory: Path) -> Path:
     return specification_path
 
 
-def _write_cash_period_specification(directory: Path) -> Path:
-    """Write a minimal cash comparison fixture with a containing period."""
-    for snapshot_name, cash_balance, market_value, portfolio_return in (
-        ("snapshot_a", "1000.00", "1000.00", "0.0100"),
-        ("snapshot_b", "1010.00", "1015.00", "0.0110"),
-    ):
-        snapshot_path = directory / snapshot_name
-        snapshot_path.mkdir()
-        (snapshot_path / "portperf.csv").write_text(
-            "PORTFOLIO_CODE,FROM_DATE,THRU_DATE,BEGIN_MV,PORT_RETURN\n"
-            f"PORT_A,2025-05-01,2025-05-31,1000.00,{portfolio_return}\n",
-            encoding="utf-8",
-        )
-        (snapshot_path / "cash.csv").write_text(
-            "PORT,CASH_DATE,CURRENCY,CASH_BALANCE,MARKET_VALUE\n"
-            f"PORT_A,2025-05-31,USD,{cash_balance},{market_value}\n",
-            encoding="utf-8",
-        )
-
-    specification = {
-        "snapshots": {
-            "a": {"path": "snapshot_a"},
-            "b": {"path": "snapshot_b"},
-        },
-        "files": {
-            "portfolio_performance": "portperf.csv",
-            "cash": "cash.csv",
-        },
-    }
-    specification_path = directory / "ppar_performance_comparison.yaml"
-    specification_path.write_text(yaml.safe_dump(specification), encoding="utf-8")
-    return specification_path
-
-
 def _write_multi_portfolio_holding_price_specification(
     directory: Path,
     *,
@@ -742,8 +704,6 @@ class TestPerformanceComparison(unittest.TestCase):
     _restatement_security_findings: list[Finding]
     _baseline_holding_findings: list[Finding]
     _restatement_holding_findings: list[Finding]
-    _baseline_cash_findings: list[Finding]
-    _restatement_cash_findings: list[Finding]
     _baseline_fx_rate_findings: list[Finding]
     _restatement_fx_rate_findings: list[Finding]
     _baseline_transaction_findings: list[Finding]
@@ -769,8 +729,6 @@ class TestPerformanceComparison(unittest.TestCase):
         cls._restatement_security_findings = restatement.compare_security_performance()
         cls._baseline_holding_findings = baseline.compare_holdings()
         cls._restatement_holding_findings = restatement.compare_holdings()
-        cls._baseline_cash_findings = baseline.compare_cash()
-        cls._restatement_cash_findings = restatement.compare_cash()
         cls._baseline_fx_rate_findings = baseline.compare_fx_rates()
         cls._restatement_fx_rate_findings = restatement.compare_fx_rates()
         cls._baseline_transaction_findings = baseline.compare_transactions()
@@ -970,7 +928,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertIn(PC_HOLD_QTY, finding_codes)
         self.assertIn(PC_HOLD_COST, finding_codes)
         self.assertIn(PC_HOLD_ACCR, finding_codes)
-        self.assertIn(PC_CASH_MV, finding_codes)
+        self.assertIn(PC_HOLD_MV, finding_codes)
         self.assertIn(PC_FX_RATE, finding_codes)
         self.assertIn(PC_TXN_AMT, finding_codes)
         self.assertIn(PC_TXN_QTY, finding_codes)
@@ -1003,7 +961,7 @@ class TestPerformanceComparison(unittest.TestCase):
         self.assertNotIn(PC_SEC_RET, role_by_code)
         self.assertEqual(role_by_code[PC_HOLD_QTY], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_HOLD_COST], CONTEXT)
-        self.assertEqual(role_by_code[PC_CASH_MV], DIRECT_INPUT)
+        self.assertEqual(role_by_code[PC_HOLD_MV], DIRECT_INPUT)
         self.assertEqual(role_by_code[PC_FX_RATE], CONTEXT)
         self.assertEqual(role_by_code[PC_TXN_AMT], DIRECT_INPUT)
 
@@ -1385,122 +1343,22 @@ class TestPerformanceComparison(unittest.TestCase):
                 f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}holdings.cost",
             )
 
-    def test_identical_baseline_snapshots_have_no_cash_findings(self) -> None:
-        """The baseline fixture compares identical cash rows."""
-        findings = list(self._baseline_cash_findings)
-
-        self.assertEqual(findings, [])
-
-    def test_restatement_fixture_reports_cash_changes(self) -> None:
-        """The restatement fixture reports controlled cash-level changes."""
-        findings = list(self._restatement_cash_findings)
-        finding_dicts = [finding.to_dict() for finding in findings]
-        cash_balance_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_CASH_MV
-            and finding[SOURCE_COLUMN] == pc_cols.CASH_BALANCE
+    def test_restatement_fixture_models_cash_as_a_holding(self) -> None:
+        """The controlled cash change remains a CASHUSD holding restatement."""
+        cash_findings = [
+            finding.to_dict()
+            for finding in self._restatement_holding_findings
+            if finding.security_id == "CASHUSD"
         ]
-        market_value_findings = [
-            finding
-            for finding in finding_dicts
-            if finding[FINDING_CODE] == PC_CASH_MV
-            and finding[SOURCE_COLUMN] == pc_cols.MARKET_VALUE
-        ]
+        changes = {
+            finding[SOURCE_COLUMN]: finding[DELTA_B_MINUS_A]
+            for finding in cash_findings
+        }
 
-        self.assertEqual(len(cash_balance_findings), 1)
-        self.assertAlmostEqual(
-            cast(float, cash_balance_findings[0][DELTA_B_MINUS_A]),
-            500.0,
-        )
-        self.assertEqual(len(market_value_findings), 1)
-        self.assertAlmostEqual(
-            cast(float, market_value_findings[0][DELTA_B_MINUS_A]),
-            500.0,
-        )
-
-    def test_cash_changes_link_to_containing_portfolio_period(self) -> None:
-        """Changed cash rows inherit the containing portfolio period."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_cash_period_specification(Path(temp_dir))
-            specification = PerformanceComparisonSpecification(specification_path)
-
-            findings = PerformanceComparison(specification).compare()
-            finding_dicts = [finding.to_dict() for finding in findings]
-            cash_balance_finding = next(
-                finding
-                for finding in finding_dicts
-                if finding[FINDING_CODE] == PC_CASH_MV
-            )
-
-            self.assertEqual(str(cash_balance_finding[FROM_DATE]), "2025-05-01")
-            self.assertEqual(str(cash_balance_finding[THRU_DATE]), "2025-05-31")
-
-    def test_cash_impact_policy_is_loaded_from_yaml(self) -> None:
-        """Explicit cash impact policy is carried into findings."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            specification_path = _write_cash_period_specification(Path(temp_dir))
-            configuration = yaml.safe_load(
-                specification_path.read_text(encoding="utf-8")
-            )
-            configuration["cash_impact_methods"] = {
-                "cash_balance": {
-                    "method": "cash_delta_over_return_denominator",
-                    "denominator_source": "begin_market_value",
-                },
-                "market_value": {
-                    "method": "cash_delta_over_return_denominator",
-                    "denominator_source": "begin_market_value",
-                },
-            }
-            specification_path.write_text(
-                yaml.safe_dump(configuration),
-                encoding="utf-8",
-            )
-            specification = PerformanceComparisonSpecification(specification_path)
-
-            policies = _cash_impact_policies(specification)
-            findings = PerformanceComparison(specification).compare()
-            candidates = portfolio_period_contribution_candidates(
-                findings_to_polars(findings)
-            )
-            balance_finding = next(
-                finding.to_dict()
-                for finding in findings
-                if finding.source_column == pc_cols.CASH_BALANCE
-            )
-            market_value_finding = next(
-                finding.to_dict()
-                for finding in findings
-                if finding.source_column == pc_cols.MARKET_VALUE
-            )
-            balance_candidate = candidates.filter(
-                pl.col("source_column") == pc_cols.CASH_BALANCE
-            ).row(0, named=True)
-            market_value_candidate = candidates.filter(
-                pl.col("source_column") == pc_cols.MARKET_VALUE
-            ).row(0, named=True)
-
-            self.assertEqual(policies[pc_cols.CASH_BALANCE], IMPACT_POLICY_CASH_BALANCE)
-            self.assertEqual(
-                policies[pc_cols.MARKET_VALUE],
-                IMPACT_POLICY_CASH_MARKET_VALUE,
-            )
-            self.assertEqual(balance_finding[IMPACT_POLICY], IMPACT_POLICY_CASH_BALANCE)
-            self.assertEqual(
-                market_value_finding[IMPACT_POLICY],
-                IMPACT_POLICY_CASH_MARKET_VALUE,
-            )
-            self.assertEqual(balance_finding[RETURN_DENOMINATOR], 1000.0)
-            self.assertEqual(market_value_finding[RETURN_DENOMINATOR], 1000.0)
-            self.assertAlmostEqual(
-                balance_candidate[ESTIMATED_RETURN_IMPACT],
-                0.01,
-            )
-            self.assertAlmostEqual(
-                market_value_candidate[ESTIMATED_RETURN_IMPACT],
-                0.015,
-            )
+        self.assertEqual(changes[pc_cols.QUANTITY], 500.0)
+        self.assertEqual(changes[pc_cols.MARKET_VALUE], 500.0)
+        self.assertEqual(str(cash_findings[0][FROM_DATE]), "2025-05-30")
+        self.assertEqual(str(cash_findings[0][THRU_DATE]), "2025-05-30")
 
     def test_price_policy_is_loaded_from_yaml(self) -> None:
         """Explicit price impact policy is carried into holding price findings."""
@@ -2759,55 +2617,6 @@ class TestPerformanceComparison(unittest.TestCase):
                         specification_path.read_text(encoding="utf-8")
                     )
                     configuration["price_impact_methods"] = price_impact_methods
-                    specification_path.write_text(
-                        yaml.safe_dump(configuration),
-                        encoding="utf-8",
-                    )
-
-                    with self.assertRaises(PpaError) as context:
-                        PerformanceComparison(
-                            PerformanceComparisonSpecification(specification_path)
-                        )
-
-                    self.assertIn(expected_message, str(context.exception))
-
-    def test_cash_impact_methods_reject_malformed_yaml(self) -> None:
-        """Cash impact method YAML must use the supported contract."""
-        scenarios = [
-            ("not-a-mapping", "cash_impact_methods must be a mapping"),
-            ({"unsupported": {"method": "x"}}, "unsupported"),
-            ({"cash_balance": "estimate"}, "cash_balance must be a mapping"),
-            ({"cash_balance": {}}, "cash_balance is missing required keys"),
-            (
-                {
-                    "cash_balance": {
-                        "method": "unsupported",
-                        "denominator_source": "begin_market_value",
-                    }
-                },
-                "cash_balance.method must be",
-            ),
-            (
-                {
-                    "market_value": {
-                        "method": "cash_delta_over_return_denominator",
-                        "denominator_source": "ending_market_value",
-                    }
-                },
-                "market_value.denominator_source must be one of",
-            ),
-        ]
-
-        for cash_impact_methods, expected_message in scenarios:
-            with self.subTest(cash_impact_methods=cash_impact_methods):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    specification_path = _write_cash_period_specification(
-                        Path(temp_dir)
-                    )
-                    configuration = yaml.safe_load(
-                        specification_path.read_text(encoding="utf-8")
-                    )
-                    configuration["cash_impact_methods"] = cash_impact_methods
                     specification_path.write_text(
                         yaml.safe_dump(configuration),
                         encoding="utf-8",

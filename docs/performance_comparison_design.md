@@ -25,14 +25,14 @@ The core question is:
 
 The feature will compare two snapshot directories. Each snapshot contains
 vendor exports such as portfolio performance, security performance, FX rates,
-transactions, holdings, and cash.
+transactions, and holdings.
 
 This should not be treated as an Axys/APX-only feature. The comparison engine
 should operate on normalized internal datasets. Vendor-specific behavior should
 live in small normalization adapters, with Axys/APX as the first likely adapter.
 
 The first implementation should stay intentionally narrow: compare normalized
-portfolio performance, security performance, holdings, cash, FX rates, and
+portfolio performance, security performance, holdings, FX rates, and
 transactions rows, report material changes, and produce a
 clear finding model. Deeper causal inference can be added after the finding
 model is stable.
@@ -52,7 +52,6 @@ Implemented normalized comparison datasets:
 - `fx_rates`
 - `transactions`
 - `holdings`
-- `cash`
 
 Implemented output helpers:
 
@@ -103,15 +102,29 @@ Current workbook field roles:
   fields such as return, income, gain/loss, contribution, weight, and market
   value. These remain reporting diagnostics and are not treated as underlying
   causes.
-- `context`: review-only supporting fields such as holding cost,
-  security reference fields, and unknown fields. These remain in the
+- `context`: explicitly classified review-only supporting fields such as
+  holding cost and security reference fields. These remain in the
   `supporting_files/source_detail.csv` unless they are direct inputs to a supported performance
   explanation.
 
-The packaged user-facing performance-comparison demos represent cash as a
-`CASHUSD` row in the holdings file rather than as a separate `cash.csv` file.
-The generic comparison engine still supports a normalized `cash` dataset for
-other integrations and test fixtures.
+Unknown compared fields do not default to context. They stop processing until
+their accounting role is explicitly classified; suppression cannot bypass that
+decision. YAML impact-policy requirements are derived from these roles rather
+than maintained in a second field-name list.
+
+Cash has one normalized representation: a holding such as `CASHUSD`, `CASHEUR`,
+or `CASHGBP`. A source-specific adapter may convert a cash-ledger export into
+holding rows, but `cash` is not a separate comparison dataset. This prevents
+two source files from claiming the same beginning or ending valuation effect.
+
+Financial-input integrity is fail-closed. Currency codes are normalized and
+shape-validated; foreign countable monetary values require explicit base-value
+counterparts; same-currency local/base values must agree; portfolio FX quotes
+must target the portfolio base currency; and performance periods may not be
+reversed or overlap. Changed dated evidence is audited for unambiguous period
+assignment. Historical/carry-forward evidence may stay visible, but only
+in-period transaction/split rows and explicit prior-day beginning holdings/FX
+rows may own explained performance.
 
 Current report vocabulary:
 
@@ -120,7 +133,15 @@ Current report vocabulary:
   and leaves `Unexplained Difference` blank when a row is fully explained.
 - `Performance Difference Causes`: source-data rows that are counted in
   `Explained Difference`.
-- `supporting_files/source_detail.csv`: detailed finding rows used for audit and troubleshooting.
+- `supporting_files/findings.csv`: complete lossless finding audit trail,
+  including suppressed rows, stable logical source-record locators, and
+  explicit safety dispositions.
+- `supporting_files/cause_lineage.csv`: internal cause rows with backward
+  finding fingerprints, stable locators, lineage type, economic-effect ID, and
+  counted-owner disposition. It supports integration and invariant validation;
+  it is not another reviewer-facing workbook sheet.
+- `supporting_files/source_detail.csv`: reviewer-friendly active finding rows
+  used for audit and troubleshooting.
 - `transaction_matching_diagnostics.csv`: supplementary transaction row-identity
   counts, confidence, interpretation, and review notes for audit use.
 - `Transaction Code`: the source transaction code from the input file, such as
@@ -128,10 +149,10 @@ Current report vocabulary:
 - `Transaction Category`: ppar's normalized interpretation of a transaction code
   for comparison logic and reviewer explanations.
 
-Report construction enforces this vocabulary as an arithmetic invariant. For
-every portfolio period, the sum of `Performance Difference Explained` in the
-causes table must equal `Explained Difference` in the main table. A `Fully
-Explained` period must also have equal performance and explained differences
+Report construction enforces this vocabulary as an arithmetic invariant. At
+portfolio and security grain, the sum of `Performance Difference Explained` in
+the causes table must equal `Explained Difference` in the main table. A `Fully
+Explained` result must also have equal performance and explained differences
 and zero unexplained difference. The checks run before workbook construction
 and again on the serialized six-decimal workbook cells; a mismatch stops report
 generation as an unexpected logic error.
@@ -178,7 +199,6 @@ Public YAML impact method values are centralized in:
   `market_value_delta_over_return_denominator`, and
   `accrued_delta_over_return_denominator`.
 - `PriceImpactMethod`: `price_delta_over_snapshot_a_price_times_weight`.
-- `CashImpactMethod`: `cash_delta_over_return_denominator`.
 - `FxRateImpactMethod`: `evidence_only`.
 Transaction sign/flow semantics are centralized in:
 
@@ -232,6 +252,11 @@ This worksheet is deliberately separate from both primary evidence sheets:
 - `Data Audit Issues` reports consistency checks across source-data relationships,
   whether or not those checks explain a performance difference.
 
+Beginning/ending market-value continuity is a mandatory financial-integrity
+check at portfolio and security grain. A mismatch remains visible in this
+worksheet even when optional Data Audit checks are disabled because both values
+participate directly in return calculations.
+
 Checks should run on the union of Snapshot A and Snapshot B. A reviewer should
 be able to see an issue that appears only in Snapshot A, only in Snapshot B, or
 in both snapshots. Include a `Snapshot` column so the report can distinguish
@@ -280,7 +305,8 @@ data_audit_checks:
 
 Interpretation:
 
-- `data_audit_checks.enabled`: master switch for the Data Audit Issues worksheet.
+- `data_audit_checks.enabled`: master switch for optional consistency checks;
+  mandatory beginning/ending continuity findings remain active.
 - Each issue type is enabled by default when the worksheet is enabled. Set
   `enabled: false` under one issue type to opt out of that check.
 - `only`: optional exact-match include filters. A row must match every listed
@@ -382,7 +408,6 @@ schema details.
 ppar/performance_comparison/
   __init__.py
   aliases.py
-  cash.py
   schema.py
   specification.py
   source_loader.py
@@ -404,8 +429,8 @@ Current responsibilities:
 - `source_loader.py`: Load one snapshot directory, resolve optional files, and
   normalize configured columns.
 - `compare.py`: Compare normalized snapshot A/snapshot B data sets.
-- Dataset modules such as `fx_rates.py`, `transactions.py`,
-  `holdings.py`, and `cash.py`: dataset-specific loading, comparison keys,
+- Dataset modules such as `fx_rates.py`, `transactions.py`, and
+  `holdings.py`: dataset-specific loading, comparison keys,
   changed-column rules, and default aliases.
 - `period_linking.py`: Link dated evidence to containing portfolio periods
   where the linkage is conservative.
@@ -452,7 +477,6 @@ engine. Initial normalized datasets include:
 - `fx_rates`
 - `transactions`
 - `holdings`
-- `cash`
 
 Normalization should be conservative: preserve useful source columns when they
 help explain differences, but present required comparison fields with standard
@@ -534,8 +558,8 @@ columns when useful.
 - `rate_type`
 
 `fx_rates` represents exchange rates, not currency holdings or cash
-balances. Currency exposure belongs in holdings, cash, transactions, or
-valuation datasets.
+balances. Currency exposure belongs in holdings, transactions, or valuation
+datasets.
 
 Required FX values must be complete, and `fx_rate` must be finite and strictly
 positive. A normalized row is unique by currency pair, rate date, and any
@@ -894,17 +918,6 @@ remain context evidence. When YAML sets
 `holding_impact_methods.cost.method: evidence_only`, they move to
 underlying-cause review rows without receiving return-impact estimates.
 
-`cash` required columns:
-
-- `portfolio_id`
-- `cash_date`
-
-`cash` useful optional columns:
-
-- `currency`
-- `cash_balance`
-- `market_value`
-
 Missing required columns should prevent that specific dataset from loading. If
 the dataset is optional, the comparison should continue with a finding or report
 note that explanation depth is limited. Missing optional columns should produce
@@ -1002,6 +1015,9 @@ Candidate fields:
 - `from_date`: Optional period start.
 - `thru_date`: Optional period end.
 - `source_file`: Configured source file associated with the finding.
+- `source_record_locator`: Stable identifier derived from the normalized
+  logical record key. It does not depend on the record's physical CSV row
+  number.
 - `source_column`: Source column associated with the finding.
 - `message`: Human-readable explanation.
 - `suppressed`: Whether a suppression rule hid the finding from normal output.
@@ -1022,7 +1038,7 @@ performance deltas. They are related output deltas: useful context, but not the
 underlying input change that caused portfolio performance to move.
 
 Root-cause evidence should come from input/source-like datasets such as
-holdings, FX rates, transactions, cash, market values, accruals, income, and
+holdings, FX rates, transactions, market values, accruals, income, and
 other source fields. Security master and classification changes can provide
 useful context, but are often not numeric causes by themselves.
 
@@ -1089,8 +1105,6 @@ The first-pass role model should remain intentionally small:
   and amount changes can drive performance inputs.
 - `holdings`: `direct_input` because quantity, market value, price, and
   accrued-balance changes can drive performance inputs.
-- `cash`: `direct_input` because cash balance and cash market value changes can
-  drive portfolio-level valuation and return inputs.
 
 ## Finding Codes
 
@@ -1119,7 +1133,6 @@ PC-TXN-PRICE    Transaction price changed
 PC-HOLD-QTY      Holding quantity changed
 PC-HOLD-MV       Holding market value changed
 PC-HOLD-ACCR     Holding accrued amount changed
-PC-CASH-MV      Cash balance or cash market value changed
 PC-REF-ID       Security identifier/reference field changed
 PC-REF-CLASS    Security classification changed
 PC-RESIDUAL     Unexplained residual remains
@@ -1223,7 +1236,6 @@ files:
     path: transactions.csv
     required: true
   holdings: holdings.csv
-  cash: cash.csv
 
 tolerances:
   return: 0.000001
@@ -1362,8 +1374,8 @@ files for `portfolio_performance_columns` and `security_performance_columns`.
 For mapped columns, the explicit schema mapping is authoritative. Built-in
 aliases remain the fallback for columns not mapped in the schema file.
 
-Comparison-only datasets such as FX rates, transactions, holdings,
-and cash currently use the performance-comparison alias/default layer. They do
+Comparison-only datasets such as FX rates, transactions, and holdings currently
+use the performance-comparison alias/default layer. They do
 not require entries in `axysapx_column_mappings.yaml`.
 
 Inline snapshot-specific schema mappings remain a future step. The current
@@ -1498,7 +1510,7 @@ Current output layers:
   `related_output`.
 
 Portfolio performance is the authoritative source of portfolio base currency.
-When it is available, holdings, transactions, and cash inherit a missing row-level
+When it is available, holdings and transactions inherit a missing row-level
 base currency from the portfolio and fail validation if they contradict it.
 Security-performance beginning/ending market value, income, and gain/loss are
 compared as related reported-output diagnostics alongside return, weight, and
@@ -1506,7 +1518,7 @@ contribution.
 
 Normalized monetary names use one currency-basis rule:
 
-- unqualified monetary fields in holdings, transactions, and cash use the row
+- unqualified monetary fields in holdings and transactions use the row
   `currency`;
 - `base_` monetary fields in those detailed datasets use portfolio
   `base_currency`;
@@ -1518,9 +1530,9 @@ PPAR does not add `local_` duplicates because row currency is already the
 detailed-data default. A detailed unqualified value may enter Modified Dietz
 without translation only when row and base currencies are equal (or when a
 legacy single-currency extract omits both currency fields). A nonzero foreign
-holding market value, accrued balance, transaction amount, or cash value must
-provide `base_market_value`, `base_accrued`, `base_amount`, or the applicable
-base-cash value. Missing translation fails reconstruction rather than silently
+holding market value, accrued balance, or transaction amount must provide
+`base_market_value`, `base_accrued`, or `base_amount`. Missing translation
+fails reconstruction rather than silently
 treating local currency as base currency.
 
 This is intentionally not a final report format. It gives callers stable
@@ -1535,9 +1547,8 @@ does not imply that the system has calculated causal contribution.
 
 Implemented period-linking rules:
 
-- `transactions`, `holdings`, and `cash` findings link directly to portfolio
-  periods by `portfolio_id` plus their source date. The source date is
-  `transaction_date`, `holding_date`, or `cash_date`, respectively.
+- `transactions` and `holdings` findings link directly to portfolio periods by
+  `portfolio_id` plus `transaction_date` or `holding_date`, respectively.
 - When more than one configured portfolio period contains the source date, the
   finding links to the narrowest containing period for that portfolio.
 - Unmatched dated evidence keeps null period fields.
@@ -1555,7 +1566,7 @@ security-period output because they share a security identifier and date. FX
 The current evidence model is useful, but it should not be overstated.
 
 - Evidence counts are not contribution amounts. A portfolio-period summary can
-  say that related price, transaction, holding, cash, or security-output
+  say that related price, transaction, holding, or security-output
   findings exist; it does not yet calculate how much each item explains of the
   portfolio return delta.
 - Portfolio-period evidence rankings are review-priority heuristics. They help
@@ -1568,7 +1579,7 @@ The current evidence model is useful, but it should not be overstated.
   amounts can be reported as changed transactions. Without it, conservative
   fallback matching may report one drop and one add rather than guessing two
   similar rows are the same transaction.
-- Changed transaction, holding, and cash findings are linked to the narrowest
+- Changed transaction and holding findings are linked to the narrowest
   configured portfolio performance period for the same portfolio when their
   source date falls inside that period. Unmatched dated evidence findings keep
   null period fields.
@@ -1577,7 +1588,7 @@ The current evidence model is useful, but it should not be overstated.
 - Security-period summaries are optional. The portfolio-period explanation path
   must continue to work when `security_performance` is absent.
 - The implementation compares source evidence. It does not recalculate TWR from
-  raw transactions, holdings, or cash.
+  raw transactions or holdings.
 
 ## Contribution Ranking Direction
 
@@ -1745,19 +1756,7 @@ Current supported impact estimates:
      `begin_market_value`.
    - This is intentionally a low-confidence screening estimate because accrued
      balances depend on source income accrual and pricing conventions.
-8. Cash balance and cash market value delta:
-   - `impact_basis = cash_balance` or `cash_market_value`
-   - `impact_method = cash_delta_over_return_denominator`
-   - `impact_confidence = low`
-   - Formula: `cash_source_field_delta / return_denominator`.
-   - Applies only when YAML explicitly configures
-     `cash_impact_methods.cash_balance.method` or
-     `cash_impact_methods.market_value.method` as
-     `cash_delta_over_return_denominator` and `denominator_source` as
-     `begin_market_value`.
-   - This is intentionally a low-confidence screening estimate because cash
-     balances may reflect transactions, FX, income, fees, or booking changes.
-9. Holding quantity delta:
+8. Holding quantity delta:
    - `impact_basis = holding_quantity_unit_market_value`
    - `impact_method =
      quantity_delta_times_snapshot_a_unit_market_value_over_return_denominator`
@@ -1803,7 +1802,7 @@ denominator, and linkage are available.
 hatch. It does not create `estimated_return_impact`; instead, workbook rows are
 marked review-only and `Explanation` says the row is configured as
 evidence-only. This keeps intentionally review-only changes from looking like
-missing setup. Supported dataset keys are `cash`, `fx_rates`, `holdings`, and
+missing setup. Supported dataset keys are `fx_rates`, `holdings`, and
 `transactions`; each dataset may list only fields that the comparison engine
 already compares.
 
@@ -1865,15 +1864,17 @@ be interpreted as a calculated residual.
 Report bundles can be written with `write_performance_comparison_report_bundle()`.
 The bundle contains the HTML report, raw findings, current report helper tables
 as CSV files, a short `README.md`, a compact `review_summary.json`, and a JSON
-manifest with options, counts, artifact names, and row counts. This makes
-reviewer handoffs reproducible without coupling the comparison engine to a
-future Axys/APX-specific presentation layer.
+manifest with options, counts, artifact names, typed semantic fingerprints, and
+canonical review-sheet display fingerprints. This makes reviewer handoffs
+reproducible without coupling the comparison engine to a future
+Axys/APX-specific presentation layer.
 
 Use `report_bundle_contract()` when code or review automation needs to inspect
 the generated-bundle handoff shape. The helper returns the portfolio/security
 audit filenames, required artifact keys, manifest keys, review entrypoints,
-review-summary keys, Modified Dietz review basis, and review vocabulary keys. It
-is a contract surface for the bundle. It remains
+review-summary keys, normalization version, declared volatile metadata,
+Modified Dietz review basis, and review vocabulary keys. It is a contract
+surface for the bundle. It remains
 not a new transaction-classification or accounting layer.
 
 The intended bundle review order starts in the generated report files:
@@ -1890,7 +1891,9 @@ The generated artifacts fall into a small taxonomy:
 - first-stop review surfaces: `portfolio_audit.*` or `security_audit.*`;
 - reviewer handoff metadata: `README.md`, `manifest.json`, and
   `review_summary.json`;
-- audit/export backbone: `findings.csv`, `needs_review_summary.csv`,
+- audit/export backbone: `findings.csv`, `performance_differences.csv`,
+  `performance_difference_causes.csv`, `x_ref_issues.csv`,
+  `needs_review_summary.csv`,
   `portfolio_period_summary.csv`, `cause_summary.csv`, `impact_estimates.csv`,
   `impact_coverage.csv`, `top_evidence.csv`, and `residual_status.csv`;
 - supplementary diagnostics: `context_evidence_summary.csv`,
@@ -1913,8 +1916,11 @@ The `ppar.performance_comparison.cli.report_bundle` package CLI module
 exposes the same bundle workflow for comparison YAML files.
 Existing bundles can be checked with
 `ppar.performance_comparison.cli.validate_bundle`, which verifies required
-artifacts, manifest artifact names, CSV row counts, empty-table headers, and
-the optional XLSX workbook when the manifest includes one.
+artifacts, manifest metadata, typed CSV content, canonical HTML/XLSX review
+content, empty-table headers, and the optional XLSX workbook when the manifest
+includes one. Manifest version 3 excludes only its generation timestamp and
+XLSX creation/package timestamps from normalized repeatability; statuses,
+financial values, labels, causes, evidence rows, and ordering remain covered.
 Packaged demo scenario coverage can be checked with
 `ppar.performance_comparison.cli.validate_demo_matrix`, which verifies that
 the current YAML fixtures still produce the reviewer-facing scenarios named in
@@ -1945,8 +1951,8 @@ unexplained remainder. In the security demo, it shows security-level return
 differences when security-performance rows changed, and it adds explicit
 no-difference rows for changed portfolio periods with no security-level return
 difference. The
-`Performance Difference Causes` sheet lists input rows such as holdings, transactions,
-cash, and FX rates; its `B - A Difference` values are raw input-value
+`Performance Difference Causes` sheet lists input rows such as holdings,
+transactions, and FX rates; its `B - A Difference` values are raw input-value
 differences, and its `Performance Difference Explained` values appear only when
 ppar has a defensible input-level explanation. User-facing bundle generation
 now requires every changed source-data field that ppar knows how to classify to
@@ -2202,8 +2208,8 @@ The public command and demo surface is implemented for the current checkpoint.
 ## Long-Term Dataset Watchlist
 
 The current normalized dataset set already covers the first useful comparison
-surface: portfolio performance, security performance, holdings, cash,
-transactions, and FX rates. Additional
+surface: portfolio performance, security performance, holdings, transactions,
+and FX rates. Additional
 datasets should be added only when real source files expose evidence that is
 not adequately represented by those existing datasets.
 

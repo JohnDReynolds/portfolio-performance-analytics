@@ -1545,7 +1545,6 @@ class TestPerformanceComparisonCli(unittest.TestCase):
         )
         self.assertIn("Missing optional files: none", result.stdout)
         self.assertIn("Contribution impact methods: none", result.stdout)
-        self.assertIn("Cash impact methods: none", result.stdout)
         self.assertIn("FX rate impact methods: none", result.stdout)
         self.assertIn("Evidence-only impact methods: fx_rates, splits", result.stdout)
         self.assertIn("Transaction rules configured: 15", result.stdout)

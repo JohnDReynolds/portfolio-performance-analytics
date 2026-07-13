@@ -119,12 +119,11 @@ remain authoritative.
 | FX / currency | `BASE_CURRENCY` | `base_currency_code` | `BASE_CURR`, `BASE_CCY`, `TO_CCY` | Unknown pending local discovery |
 | FX / currency | `RATE` | `fx_rate` | `FX_RATE`, `EXCH_RATE`, `EXCHANGE_RATE` | Unknown pending local discovery |
 
-### Cash
+### Cash Holdings
 
-| PPAR dataset | Candidate source/report label | Canonical meaning | Other candidate labels | Value availability confidence |
-| --- | --- | --- | --- | --- |
-| cash | `PORT` | `portfolio_id` | `ACCOUNT`, `ACCT`, `PORTFOLIO` | High |
-| cash | `DATE` | `as_of_date` | `AS_OF_DATE`, `BALANCE_DATE` | High |
-| cash | `CURRENCY` | `currency_code` | `CURR`, `CCY` | High |
-| cash | `CASH` | `cash_balance` | `CASH_BAL`, `BALANCE`, `CASH_BALANCE` | Medium |
-| cash | `MV` | `market_value_base` | `MARKET_VALUE`, `BASE_VALUE`, `VALUE` | Medium |
+PPAR does not define a separate cash dataset. Normalize cash balances as
+holdings such as `CASHUSD`, `CASHEUR`, or `CASHGBP`. Use holding `quantity` for
+the currency units, `price` (normally `1.0`) for local unit value,
+`market_value` for row-currency value, and `base_market_value` for translated
+portfolio-base value. A cash-ledger export requires an adapter into that single
+holdings representation.

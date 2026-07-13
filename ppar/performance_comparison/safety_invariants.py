@@ -1,8 +1,8 @@
 """Catalog the intended Performance Auditing safety invariants.
 
 This module is an executable design catalog, not an enforcement layer. It gives
-later safety-net phases stable identifiers, failure classifications, and scoped
-guarantees without changing comparison or report behavior in Phase 1.
+the completed safety-net program stable identifiers, failure classifications,
+scoped guarantees, and links to the controls that enforce them.
 """
 
 from __future__ import annotations
@@ -46,10 +46,10 @@ class SafetyInvariant:
         name: Short reviewer-oriented name.
         guarantee: State that must hold when the invariant is fully enforced.
         failure_class: Primary way a violation must surface.
-        coverage: Current enforcement coverage after the Phase 1 audit.
-        existing_controls: Current code or test controls that partially enforce it.
+        coverage: Current enforcement coverage.
+        existing_controls: Current code or test controls that enforce it.
         known_gaps: Specific behavior still required for full enforcement.
-        implementation_phase: Planned phase in the safety-net program.
+        implementation_phase: Implementation phase in the safety-net program.
     """
 
     identifier: str
@@ -87,17 +87,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "difference silently disappears between comparison and report output."
         ),
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "PerformanceComparison.compare emits normalized findings.",
-            "findings.csv retains suppressed and unsuppressed findings.",
-            "Unknown normalized fields default to review context.",
+            "findings.csv retains every suppressed and unsuppressed source finding.",
+            "Every persisted finding has a sequence, fingerprint, and disposition.",
+            "Every cause row is preserved while its disposition is assigned.",
+            "Bundle validation rejects missing or invalid disposition metadata.",
         ),
-        known_gaps=(
-            "No end-to-end assertion assigns every finding a visible disposition.",
-            "source_detail.csv and primary reports exclude suppressed findings.",
-            "Tolerance exclusions have no explicit audit record.",
-        ),
+        known_gaps=(),
         implementation_phase=2,
     ),
     SafetyInvariant(
@@ -108,16 +105,15 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "even when several source rows describe it."
         ),
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
             "Field roles separate performance inputs from input components.",
             "Evidence-only and cross-check-only policies exclude support from totals.",
-            "Workbook cause promotion selects counted and supporting rows separately.",
+            "Every cause has an economic-effect ID and at most one counted owner.",
+            "Support-only representations are prohibited from owning an explanation.",
+            "Cash holdings count value once while retaining quantity as evidence.",
         ),
-        known_gaps=(
-            "No stable economic-effect identity or counted-cause ownership record.",
-            "No universal assertion rejects two counted representations of one effect.",
-        ),
+        known_gaps=(),
         implementation_phase=2,
     ),
     SafetyInvariant(
@@ -128,17 +124,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "Explained Difference and Performance Difference within declared precision."
         ),
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Portfolio cause totals reconcile before workbook construction.",
+            "Portfolio and security cause totals reconcile before construction.",
             "Displayed six-decimal values reconcile before serialization.",
-            "Serialized portfolio workbook cells reconcile after construction.",
+            "Serialized portfolio and security workbook cells reconcile.",
             "Modified Dietz formula components must remain visible in causes.",
         ),
-        known_gaps=(
-            "Equivalent security-grain assertions are not centralized.",
-            "Semantic parity across HTML, XLSX, and CSV is not yet asserted.",
-        ),
+        known_gaps=(),
         implementation_phase=2,
     ),
     SafetyInvariant(
@@ -149,15 +142,13 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "produce a visible source-data review finding."
         ),
         failure_class=InvariantFailureClass.VISIBLE_REVIEW_FINDING,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Carry-forward beginning-value differences remain visible in causes.",
-            "Return reconstruction reports missing beginning or ending inputs.",
+            "Portfolio and security prior-end/next-begin values are checked per snapshot.",
+            "Continuity mismatches remain mandatory Data Audit Issues.",
+            "The continuity check cannot be disabled with optional audit checks.",
         ),
-        known_gaps=(
-            "No general within-snapshot continuity comparison exists across periods.",
-            "Cash, accrued value, and market value do not share one continuity rule.",
-        ),
+        known_gaps=(),
         implementation_phase=3,
     ),
     SafetyInvariant(
@@ -168,15 +159,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "difference traces forward to its report disposition."
         ),
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Findings retain dataset, source file, source column, keys, and dates.",
-            "Cause rows retain reconstruction-component and policy metadata.",
+            "Every finding has a stable logical source-record locator.",
+            "Source-backed causes retain source-finding fingerprints.",
+            "Derived formula and no-cause disposition rows have explicit lineage types.",
+            "Bundle validation checks persisted findings and cause-lineage artifacts.",
         ),
-        known_gaps=(
-            "Findings lack a universal stable source-record locator.",
-            "No reverse-lineage assertion covers every reportable finding.",
-        ),
+        known_gaps=(),
         implementation_phase=4,
     ),
     SafetyInvariant(
@@ -187,17 +177,16 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "incompatible units are never added."
         ),
         failure_class=InvariantFailureClass.SOURCE_CONTRACT_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
             "Portfolio performance supplies authoritative base currency.",
             "Foreign Modified Dietz inputs require explicit base-currency values.",
             "FX rates retain explicit from-currency and to-currency direction.",
+            "All supplied currency codes are normalized and shape-validated.",
+            "Foreign countable values require explicit base-currency counterparts.",
+            "Same-currency local/base values and portfolio FX quote units must agree.",
         ),
-        known_gaps=(
-            "Currency codes are normalized but not comprehensively validated.",
-            "Local value, FX rate, and supplied base value are not reconciled.",
-            "Unit metadata is not attached to every counted numeric value.",
-        ),
+        known_gaps=(),
         implementation_phase=3,
     ),
     SafetyInvariant(
@@ -208,16 +197,16 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "rule, and out-of-period evidence cannot be silently counted."
         ),
         failure_class=InvariantFailureClass.SOURCE_CONTRACT_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
             "Modified Dietz validates beginning-of-day and end-of-day flow rules.",
             "Comparison keys and normalized dates are validated by source loaders.",
-            "Demo transactions must map to exactly one inclusive performance period.",
+            "Reversed and overlapping performance periods fail the source contract.",
+            "Changed dated evidence is audited across every supported detailed dataset.",
+            "Multiply assigned evidence fails and unassigned evidence cannot own impact.",
+            "Prior-day holdings and FX values are the only counted beginning boundary.",
         ),
-        known_gaps=(
-            "Production comparison lacks one exhaustive dated-evidence assignment audit.",
-            "Unassigned and multiply assigned evidence lack a common visible treatment.",
-        ),
+        known_gaps=(),
         implementation_phase=3,
     ),
     SafetyInvariant(
@@ -228,16 +217,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "portfolio, period, source change, and reviewer-visible result."
         ),
         failure_class=InvariantFailureClass.DEMO_MAINTENANCE_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Independent scenario inventory rejects removed or unregistered keys.",
-            "Scenario calendar and rebuild audits protect generated rows and residuals.",
+            "Validated inventory protects economic meaning and calendar semantics.",
+            "Source-input dates must remain in each scenario's declared source period.",
+            "Actual report status and disposition must match the scenario contract.",
             "Scenario-specific tests protect important transaction examples.",
         ),
-        known_gaps=(
-            "The inventory protects identity and reason, not a complete semantic contract.",
-            "Expected report disposition is distributed across scripts and tests.",
-        ),
+        known_gaps=(),
         implementation_phase=5,
     ),
     SafetyInvariant(
@@ -248,17 +235,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "carry-forward effects remain visible and are not treated as new changes."
         ),
         failure_class=InvariantFailureClass.DEMO_MAINTENANCE_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Scenario calendar records expected difference-row density by period.",
-            "Period-split audit rejects periods above the current readability target.",
-            "Generated causal-story coverage detects unregistered causal securities.",
+            "Fixture metadata assigns scenario rows to independent economic-change IDs.",
+            "Source-period counts fail when they exceed the two-change budget.",
+            "Paired accounting legs share one economic identity.",
+            "Carry-forward effects are explicit and must remain visible in later causes.",
         ),
-        known_gaps=(
-            "The current target permits one or two differences rather than a declared "
-            "independent economic-change count.",
-            "Carry-forward classification is explanatory text rather than fixture metadata.",
-        ),
+        known_gaps=(),
         implementation_phase=5,
     ),
     SafetyInvariant(
@@ -269,16 +253,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "visible review evidence."
         ),
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Bundle validation checks required artifacts, headers, and CSV row counts.",
-            "Workbook construction rechecks portfolio explanation arithmetic.",
-            "Manifest and review-summary metadata are cross-validated.",
+            "Every review sheet has a canonical internal display fingerprint.",
+            "Every persisted review table has a typed semantic CSV fingerprint.",
+            "Bundle validation compares HTML and XLSX with canonical review content.",
+            "Content mutation tests cover CSV, HTML, XLSX, and manifest drift.",
         ),
-        known_gaps=(
-            "No normalized semantic comparison spans every report format.",
-            "Artifact validation checks shape more thoroughly than content parity.",
-        ),
+        known_gaps=(),
         implementation_phase=6,
     ),
     SafetyInvariant(
@@ -289,15 +271,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "ordering, statuses, and financial values after volatile metadata is removed."
         ),
         failure_class=InvariantFailureClass.INTERNAL_LOGIC_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Many reviewer tables apply explicit stable sort keys.",
-            "JSON output uses sorted keys and schemas use fixed column order.",
+            "Manifest v3 records ordered typed table and display fingerprints.",
+            "The public contract declares the exact volatile metadata exclusions.",
+            "A normalized bundle fingerprint covers all nonvolatile manifest semantics.",
+            "Repeat-run tests compare normalized manifests and deterministic artifacts.",
         ),
-        known_gaps=(
-            "No repeat-run equivalence test covers normalized bundle content.",
-            "Volatile timestamps and XLSX package metadata lack a canonical exclusion rule.",
-        ),
+        known_gaps=(),
         implementation_phase=6,
     ),
     SafetyInvariant(
@@ -308,16 +289,14 @@ SAFETY_INVARIANTS: Final[tuple[SafetyInvariant, ...]] = (
             "its unit, sign, timing, role, and attribution policy are explicit."
         ),
         failure_class=InvariantFailureClass.SOURCE_CONTRACT_ERROR,
-        coverage=InvariantCoverage.PARTIAL,
+        coverage=InvariantCoverage.ENFORCED,
         existing_controls=(
-            "Unknown fields default to nonadditive context.",
-            "Strict bundle generation rejects known fields without explicit YAML policy.",
+            "Every comparison-surface field must have an explicit accounting role.",
+            "Impact-policy requirements derive from performance-input roles.",
+            "Unknown changed fields fail even when suppressed by YAML.",
             "Ambiguous transaction semantics and unsafe currency inputs fail closed.",
         ),
-        known_gaps=(
-            "Policy-completeness checks enumerate fields instead of deriving from roles.",
-            "New fields can default to context without an explicit classification decision.",
-        ),
+        known_gaps=(),
         implementation_phase=4,
     ),
 )

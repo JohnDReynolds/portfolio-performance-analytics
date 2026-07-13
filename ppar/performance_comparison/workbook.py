@@ -218,7 +218,7 @@ def write_review_workbook_sheets(
 
 
 def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
-    """Raise unless fully explained portfolio cells reconcile after serialization.
+    """Raise unless explanation cells reconcile after workbook serialization.
 
     Raises:
         PpaError: If the values that will be written to the two reviewer-facing
@@ -231,10 +231,6 @@ def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
     summary = workbook[summary_name]
     causes = workbook[causes_name]
     summary_columns = _worksheet_column_indexes(summary)
-    # Security workbooks reconcile at a different grain. This invariant is the
-    # portfolio-period contract between the two sheets named by the reviewer.
-    if "Security" in summary_columns:
-        return
     cause_columns = _worksheet_column_indexes(causes)
     required_summary = {
         "Portfolio",
@@ -251,14 +247,23 @@ def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
         "Thru Date",
         "Performance Difference Explained",
     }
+    if "Security" in summary_columns:
+        required_summary.add("Security")
+        required_causes.add("Security")
     if not required_summary.issubset(summary_columns) or not required_causes.issubset(
         cause_columns
     ):
         return
 
-    cause_impacts: dict[tuple[object, object, object], list[float]] = {}
+    cause_impacts: dict[tuple[object, ...], list[float]] = {}
+    include_security = "Security" in summary_columns
     for row_index in range(2, causes.max_row + 1):
-        key = _worksheet_period_key(causes, cause_columns, row_index)
+        key = _worksheet_period_key(
+            causes,
+            cause_columns,
+            row_index,
+            include_security=include_security,
+        )
         impact = causes.cell(
             row=row_index,
             column=cause_columns["Performance Difference Explained"],
@@ -268,9 +273,12 @@ def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
 
     for row_index in range(2, summary.max_row + 1):
         status = summary.cell(row=row_index, column=summary_columns["Status"]).value
-        if status != "Fully Explained":
-            continue
-        key = _worksheet_period_key(summary, summary_columns, row_index)
+        key = _worksheet_period_key(
+            summary,
+            summary_columns,
+            row_index,
+            include_security=include_security,
+        )
         explained = _worksheet_numeric_value(
             summary,
             summary_columns["Explained Difference"],
@@ -284,16 +292,18 @@ def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
         cause_total = round(math.fsum(cause_impacts.get(key, [])), 6)
         if cause_total != round(explained, 6):
             raise PpaError(
-                "Written workbook explanation invariant failed for "
-                f"{key[0]} {key[1]} through {key[2]}: Performance Difference "
+                "SN-03 written workbook explanation invariant failed for "
+                f"{_worksheet_primary_key_text(key)}: Performance Difference "
                 f"Causes sum {cause_total:.6f} does not equal Explained Difference "
                 f"{explained:.6f}.",
                 999,
             )
+        if status != "Fully Explained":
+            continue
         if round(performance, 6) != round(explained, 6):
             raise PpaError(
-                "Written workbook Fully Explained invariant failed for "
-                f"{key[0]} {key[1]} through {key[2]}: Performance Difference "
+                "SN-03 written workbook Fully Explained invariant failed for "
+                f"{_worksheet_primary_key_text(key)}: Performance Difference "
                 f"{performance:.6f} does not equal Explained Difference "
                 f"{explained:.6f}.",
                 999,
@@ -304,8 +314,8 @@ def _assert_written_portfolio_explanations_reconcile(workbook: Any) -> None:
         ).value
         if unexplained not in {None, 0}:
             raise PpaError(
-                "Written workbook Fully Explained invariant failed for "
-                f"{key[0]} {key[1]} through {key[2]}: Unexplained Difference "
+                "SN-03 written workbook Fully Explained invariant failed for "
+                f"{_worksheet_primary_key_text(key)}: Unexplained Difference "
                 "is not zero.",
                 999,
             )
@@ -324,13 +334,27 @@ def _worksheet_period_key(
     worksheet: Any,
     columns: Mapping[str, int],
     row_index: int,
-) -> tuple[object, object, object]:
-    """Return a portfolio-period key from serialized worksheet cells."""
-    return (
+    *,
+    include_security: bool = False,
+) -> tuple[object, ...]:
+    """Return a portfolio- or security-period key from worksheet cells."""
+    key = (
         worksheet.cell(row=row_index, column=columns["Portfolio"]).value,
         worksheet.cell(row=row_index, column=columns["From Date"]).value,
         worksheet.cell(row=row_index, column=columns["Thru Date"]).value,
     )
+    if not include_security:
+        return key
+    return (
+        *key,
+        worksheet.cell(row=row_index, column=columns["Security"]).value,
+    )
+
+
+def _worksheet_primary_key_text(key: Sequence[object]) -> str:
+    """Return a concise workbook key label for invariant errors."""
+    security = f" security {key[3]}" if len(key) > 3 else ""
+    return f"{key[0]}{security} {key[1]} through {key[2]}"
 
 
 def _worksheet_numeric_value(
@@ -635,6 +659,9 @@ def _is_workbook_numeric_column(column_name: str) -> bool:
         pc_cols.PORTFOLIO_RETURN,
         pc_cols.SECURITY_RETURN,
         "change",
+        "difference",
+        "value_a",
+        "value_b",
         "performance_change",
         "estimated_cause_total",
         "unexplained_change",
@@ -675,7 +702,6 @@ def _is_workbook_numeric_column(column_name: str) -> bool:
         "income_a",
         "income_b",
         "income_difference",
-        "row_count",
     }
 
 

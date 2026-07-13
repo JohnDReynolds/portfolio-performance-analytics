@@ -14,9 +14,11 @@ import polars as pl
 import ppar.utilities as util
 from ppar.errors import PpaError
 from ppar.performance_comparison import bundle as _pc_bundle
+from ppar.performance_comparison import conservation as _pc_conservation
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
+from ppar.performance_comparison import lineage as _pc_lineage
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import review_model as _pc_review_model
@@ -383,9 +385,15 @@ def write_performance_comparison_report_bundle(
     if include_workbook:
         _pc_workbook.ensure_openpyxl_installed()
 
+    _pc_lineage.assert_finding_source_lineage(findings)
+    finding_audit_trail = _pc_conservation.finding_audit_trail(findings)
+    _pc_conservation.assert_complete_finding_audit_trail(
+        findings,
+        finding_audit_trail,
+    )
     active_findings = _active_findings(findings)
     if require_complete_yaml_setup:
-        _pc_runner.validate_yaml_setup_complete(active_findings)
+        _pc_runner.validate_yaml_setup_complete(findings)
     if require_causal_attribution:
         _pc_runner.validate_causal_attribution_ready(active_findings)
 
@@ -420,6 +428,15 @@ def write_performance_comparison_report_bundle(
         _reconstruction_cache=reconstruction_cache,
         _table_cache=table_cache,
     )
+    cause_sheet = next(
+        sheet
+        for sheet in workbook_sheets
+        if sheet.artifact_name
+        == _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT
+    )
+    tables[_pc_review_model.CAUSE_LINEAGE_ARTIFACT] = cause_sheet.table
+    for sheet in workbook_sheets:
+        tables[sheet.artifact_name] = sheet.table
     _remove_legacy_root_supporting_files(
         bundle_directory,
         table_names=tuple(tables.keys()),
@@ -442,7 +459,7 @@ def write_performance_comparison_report_bundle(
     )
     paths["html_report"] = html_report_path
     paths["findings"] = _pc_bundle.write_csv_artifact(
-        findings,
+        finding_audit_trail,
         supporting_files_directory / "findings.csv",
     )
     for name, table in tables.items():
@@ -476,6 +493,7 @@ def write_performance_comparison_report_bundle(
         comparison_path=comparison_path,
         artifact_paths=paths,
         tables=tables,
+        review_sheets=workbook_sheets,
         bundle_root=bundle_directory,
     )
     manifest_data = json.loads(manifest_path.read_text(encoding=util.ENCODING))

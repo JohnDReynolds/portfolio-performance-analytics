@@ -14,8 +14,11 @@ import polars as pl
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison import lineage as pc_lineage
 from ppar.performance_comparison import field_roles as _field_roles
-from ppar.performance_comparison.cash import CashLoader
+from ppar.performance_comparison.financial_integrity import (
+    validate_financial_input_integrity,
+)
 from ppar.performance_comparison.currency_basis import row_uses_foreign_currency
 from ppar.performance_comparison.findings import (
     CONFIDENCE_HIGH,
@@ -32,7 +35,6 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_MATCH_STATUS_ID_MATCH,
     TRANSACTION_MATCH_STATUS_MISSING_FROM_SNAPSHOT_B,
     TRANSACTION_MATCH_STATUS_SINGLETON_FALLBACK_MATCH,
-    PC_CASH_MV,
     PC_FX_RATE,
     PC_PORT_FLOW,
     PC_PORT_MV,
@@ -76,7 +78,6 @@ from ppar.performance_comparison.policies import (
     _TRANSACTION_COMMISSION_KEY,
     _TRANSACTION_PRICE_KEY,
     _TRANSACTION_QUANTITY_KEY,
-    _cash_impact_policies,
     _contribution_impact_policies,
     _evidence_only_impact_policies,
     _fx_rate_impact_policies,
@@ -123,11 +124,6 @@ _HOLDINGS_KEY_COLUMNS: Final[tuple[str, str, str]] = (
     pc_cols.PORTFOLIO_ID,
     pc_cols.SECURITY_ID,
     pc_cols.HOLDING_DATE,
-)
-_CASH_KEY_COLUMNS: Final[tuple[str, str, str]] = (
-    pc_cols.PORTFOLIO_ID,
-    pc_cols.CASH_DATE,
-    pc_cols.CURRENCY,
 )
 _FX_RATE_KEY_COLUMNS: Final[tuple[str, ...]] = (
     pc_cols.PORTFOLIO_ID,
@@ -184,11 +180,6 @@ _HOLDINGS_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.ACCRUED: PC_HOLD_ACCR,
     pc_cols.BASE_ACCRUED: PC_HOLD_ACCR,
 }
-_CASH_COMPARE_COLUMNS: Final[dict[str, str]] = {
-    pc_cols.CASH_BALANCE: PC_CASH_MV,
-    pc_cols.MARKET_VALUE: PC_CASH_MV,
-    pc_cols.BASE_MARKET_VALUE: PC_CASH_MV,
-}
 _FX_RATE_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.FX_RATE: PC_FX_RATE,
 }
@@ -202,12 +193,19 @@ _TRANSACTION_COMPARE_COLUMNS: Final[dict[str, str]] = {
     pc_cols.PRICE: PC_TXN_PRICE,
     pc_cols.COMMISSION: PC_TXN_COMM,
 }
+_COMPARISON_FIELDS_BY_DATASET: Final[dict[str, tuple[str, ...]]] = {
+    pc_cols.PORTFOLIO_PERFORMANCE: tuple(_PORTFOLIO_COMPARE_COLUMNS),
+    pc_cols.SECURITY_PERFORMANCE: tuple(_SECURITY_COMPARE_COLUMNS),
+    pc_cols.HOLDINGS: tuple(_HOLDINGS_COMPARE_COLUMNS),
+    pc_cols.FX_RATES: tuple(_FX_RATE_COMPARE_COLUMNS),
+    pc_cols.SPLITS: tuple(_SPLITS_COMPARE_COLUMNS),
+    pc_cols.TRANSACTIONS: tuple(_TRANSACTION_COMPARE_COLUMNS),
+}
 _DIRECT_INPUT_DATASETS: Final[frozenset[str]] = frozenset(
     {
         pc_cols.FX_RATES,
         pc_cols.TRANSACTIONS,
         pc_cols.HOLDINGS,
-        pc_cols.CASH,
     }
 )
 _DEFAULT_TOLERANCES: Final[dict[str, float]] = {
@@ -236,7 +234,6 @@ _COLUMN_TOLERANCE_KEYS: Final[dict[str, str]] = {
     pc_cols.COST: "market_value",
     pc_cols.ACCRUED: "market_value",
     pc_cols.BASE_ACCRUED: "market_value",
-    pc_cols.CASH_BALANCE: "market_value",
     pc_cols.PRICE: "price",
     pc_cols.SPLIT_FACTOR: "split_factor",
     pc_cols.FX_RATE: "fx_rate",
@@ -254,7 +251,6 @@ class PerformanceComparison:
         _portfolio_loader: Loader for normalized portfolio performance rows.
         _security_loader: Loader for normalized security performance rows.
         _holdings_loader: Loader for normalized holding rows.
-        _cash_loader: Loader for normalized cash rows.
         _fx_rates_loader: Loader for normalized FX rate rows.
         _splits_loader: Loader for optional normalized split-factor rows.
         _transactions_loader: Loader for normalized transaction rows.
@@ -266,8 +262,6 @@ class PerformanceComparison:
             labels keyed by source column.
         _price_impact_policies: YAML-configured price impact policy labels
             keyed by source column.
-        _cash_impact_policies: YAML-configured cash impact policy labels keyed
-            by source column.
         _fx_rate_impact_policies: YAML-configured FX rate impact policy labels
             keyed by source column.
         _evidence_only_impact_policies: YAML-configured evidence-only policy
@@ -280,11 +274,11 @@ class PerformanceComparison:
         Args:
             specification: Parsed comparison specification.
         """
+        _field_roles.assert_comparison_fields_classified(_COMPARISON_FIELDS_BY_DATASET)
         self._specification = specification
         self._portfolio_loader = PortfolioPerformanceLoader(specification)
         self._security_loader = SecurityPerformanceLoader(specification)
         self._holdings_loader = HoldingsLoader(specification)
-        self._cash_loader = CashLoader(specification)
         self._fx_rates_loader = FxRatesLoader(specification)
         self._splits_loader = SplitsLoader(specification)
         self._transactions_loader = TransactionsLoader(specification)
@@ -293,7 +287,6 @@ class PerformanceComparison:
         self._contribution_impact_policies = _contribution_impact_policies(specification)
         self._holding_impact_policies = _holding_impact_policies(specification)
         self._price_impact_policies = _price_impact_policies(specification)
-        self._cash_impact_policies = _cash_impact_policies(specification)
         self._fx_rate_impact_policies = _fx_rate_impact_policies(specification)
         self._evidence_only_impact_policies = _evidence_only_impact_policies(specification)
 
@@ -317,9 +310,9 @@ class PerformanceComparison:
             Findings for the configured primary performance-result dataset plus
             shared source-data findings.
         """
+        validate_financial_input_integrity(self._specification)
         findings = self._primary_performance_findings()
         findings.extend(self.compare_holdings())
-        findings.extend(self.compare_cash())
         findings.extend(self.compare_fx_rates())
         findings.extend(self.compare_splits())
         findings.extend(self.compare_transactions())
@@ -401,45 +394,6 @@ class PerformanceComparison:
                 portfolio_periods,
                 return_denominators=return_denominators,
                 return_weights=return_weights,
-            )
-        )
-        return findings
-
-    def compare_cash(self) -> list[Finding]:
-        """Compare cash rows for snapshots A and B.
-
-        Returns:
-            Findings for added/dropped rows and material cash balance or market
-            value changes. Returns an empty list when the optional cash dataset
-            is unavailable.
-        """
-        snapshot_a = self._cash_loader.load("a")
-        snapshot_b = self._cash_loader.load("b")
-        if snapshot_a is None or snapshot_b is None:
-            return []
-
-        portfolio_periods = portfolio_period_lookup(self._portfolio_periods())
-        return_denominators = self._portfolio_period_return_denominators()
-        key_columns = self._cash_key_columns(snapshot_a, snapshot_b)
-        findings = self._row_presence_findings(
-            snapshot_a,
-            snapshot_b,
-            key_columns,
-            PC_ROW_ADD,
-            PC_ROW_DROP,
-            pc_cols.CASH,
-            "Cash row appears only in snapshot B.",
-            "Cash row appears only in snapshot A.",
-        )
-        findings.extend(
-            self._changed_value_findings(
-                snapshot_a,
-                snapshot_b,
-                key_columns,
-                _CASH_COMPARE_COLUMNS,
-                pc_cols.CASH,
-                portfolio_periods,
-                return_denominators=return_denominators,
             )
         )
         return findings
@@ -606,6 +560,12 @@ class PerformanceComparison:
                         thru_date=thru_date,
                         input_date=row.get(pc_cols.SPLIT_DATE),
                         source_file=source_file,
+                        source_record_locator=pc_lineage.source_record_locator(
+                            pc_cols.SPLITS,
+                            source_file,
+                            row,
+                            _SPLITS_KEY_COLUMNS,
+                        ),
                         source_column=pc_cols.SPLIT_FACTOR,
                         impact_policy=self._impact_policy(
                             pc_cols.SPLITS,
@@ -951,6 +911,7 @@ class PerformanceComparison:
             findings.extend(
                 self._transaction_presence_findings_for_row(
                     row,
+                    key_columns,
                     code,
                     message,
                     transaction_match_status,
@@ -964,6 +925,7 @@ class PerformanceComparison:
     def _transaction_presence_findings_for_row(
         self,
         row: Mapping[str, object],
+        key_columns: tuple[str, ...],
         code: str,
         message: str,
         transaction_match_status: TransactionMatchStatus,
@@ -974,6 +936,7 @@ class PerformanceComparison:
         """Return dated transaction add/drop findings from one source row."""
         amount_finding = self._transaction_presence_finding(
             row,
+            key_columns,
             code,
             message,
             transaction_match_status,
@@ -985,6 +948,7 @@ class PerformanceComparison:
         component_findings = [
             self._transaction_presence_finding(
                 row,
+                key_columns,
                 _TRANSACTION_COMPARE_COLUMNS[column],
                 message,
                 transaction_match_status,
@@ -1002,6 +966,7 @@ class PerformanceComparison:
     def _transaction_presence_finding(
         self,
         row: Mapping[str, object],
+        key_columns: tuple[str, ...],
         code: str,
         message: str,
         transaction_match_status: TransactionMatchStatus,
@@ -1035,6 +1000,7 @@ class PerformanceComparison:
             pc_cols.TRANSACTIONS,
             source_column,
         )
+        source_file = self._source_file(pc_cols.TRANSACTIONS)
         return Finding(
             code=code,
             severity=SEVERITY_INFORMATIONAL,
@@ -1050,7 +1016,13 @@ class PerformanceComparison:
             from_date=from_date,
             thru_date=thru_date,
             input_date=self._input_date(row, pc_cols.TRANSACTIONS),
-            source_file=self._source_file(pc_cols.TRANSACTIONS),
+            source_file=source_file,
+            source_record_locator=pc_lineage.source_record_locator(
+                pc_cols.TRANSACTIONS,
+                source_file,
+                row,
+                key_columns,
+            ),
             source_column=source_column,
             transaction_code=self._transaction_code(row, pc_cols.TRANSACTIONS),
             transaction_category=self._transaction_category(row, pc_cols.TRANSACTIONS),
@@ -1171,6 +1143,12 @@ class PerformanceComparison:
                         thru_date=row.get(pc_cols.THRU_DATE),
                         input_date=self._input_date(row, dataset),
                         source_file=source_file,
+                        source_record_locator=pc_lineage.source_record_locator(
+                            dataset,
+                            source_file,
+                            row,
+                            key_columns,
+                        ),
                         source_column=column,
                         transaction_code=self._transaction_code(row, dataset),
                         transaction_category=self._transaction_category(row, dataset),
@@ -1304,6 +1282,12 @@ class PerformanceComparison:
                             thru_date=thru_date,
                             input_date=self._input_date(row, dataset),
                             source_file=source_file,
+                            source_record_locator=pc_lineage.source_record_locator(
+                                dataset,
+                                source_file,
+                                row,
+                                key_columns,
+                            ),
                             source_column=column,
                             from_currency=(
                                 row.get(pc_cols.FROM_CURRENCY)
@@ -1472,6 +1456,13 @@ class PerformanceComparison:
                     thru_date=row_context.get(pc_cols.THRU_DATE),
                     input_date=self._input_date(row_context, pc_cols.TRANSACTIONS),
                     source_file=source_file,
+                    source_record_locator=pc_lineage.source_record_locator(
+                        pc_cols.TRANSACTIONS,
+                        source_file,
+                        row_context,
+                        key_columns,
+                        qualifier="ambiguous_fallback_group",
+                    ),
                     transaction_match_status=(TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH),
                     snapshot_a_value=row.get("snapshot_a_count"),
                     snapshot_b_value=row.get("snapshot_b_count"),
@@ -1712,7 +1703,6 @@ class PerformanceComparison:
                 in {
                     pc_cols.HOLDINGS,
                     pc_cols.TRANSACTIONS,
-                    pc_cols.CASH,
                     pc_cols.FX_RATES,
                 }
                 and portfolio_id is not None
@@ -1908,18 +1898,6 @@ class PerformanceComparison:
         return weights
 
     @staticmethod
-    def _cash_key_columns(
-        snapshot_a: pl.DataFrame,
-        snapshot_b: pl.DataFrame,
-    ) -> tuple[str, ...]:
-        """Return cash comparison key columns, including currency when present."""
-        return PerformanceComparison._optional_key_columns(
-            snapshot_a,
-            snapshot_b,
-            _CASH_KEY_COLUMNS,
-        )
-
-    @staticmethod
     def _optional_key_columns(
         snapshot_a: pl.DataFrame,
         snapshot_b: pl.DataFrame,
@@ -1982,6 +1960,12 @@ class PerformanceComparison:
             thru_date=thru_date,
             input_date=PerformanceComparison._input_date(row_context, dataset),
             source_file=source_file,
+            source_record_locator=pc_lineage.source_record_locator(
+                dataset,
+                source_file,
+                row_context,
+                key_columns,
+            ),
             transaction_match_status=transaction_match_status,
             message=message,
         )
@@ -1993,7 +1977,6 @@ class PerformanceComparison:
             pc_cols.HOLDINGS: pc_cols.HOLDING_DATE,
             pc_cols.TRANSACTIONS: pc_cols.TRANSACTION_DATE,
             pc_cols.FX_RATES: pc_cols.RATE_DATE,
-            pc_cols.CASH: pc_cols.CASH_DATE,
             pc_cols.SPLITS: pc_cols.SPLIT_DATE,
         }
         date_column = date_column_by_dataset.get(dataset)
@@ -2100,15 +2083,6 @@ class PerformanceComparison:
             policy = self._holding_impact_policies.get(holding_policy_column)
             if policy is not None:
                 return policy
-        if dataset == pc_cols.CASH:
-            cash_policy_column = (
-                pc_cols.MARKET_VALUE
-                if source_column == pc_cols.BASE_MARKET_VALUE
-                else source_column
-            )
-            policy = self._cash_impact_policies.get(cash_policy_column)
-            if policy is not None:
-                return policy
         if dataset == pc_cols.FX_RATES:
             policy = self._fx_rate_impact_policies.get(source_column)
             if policy is not None:
@@ -2146,19 +2120,5 @@ class PerformanceComparison:
                 return (
                     f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
                     f"holdings.{source_column}_redundant"
-                )
-        if dataset == pc_cols.CASH:
-            if source_column in {
-                pc_cols.CASH_BALANCE,
-                pc_cols.MARKET_VALUE,
-            } and is_foreign_currency:
-                return (
-                    f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
-                    f"cash.{source_column}_row_currency"
-                )
-            if source_column == pc_cols.BASE_MARKET_VALUE and not is_foreign_currency:
-                return (
-                    f"{IMPACT_POLICY_EVIDENCE_ONLY_PREFIX}"
-                    "cash.base_market_value_redundant"
                 )
         return self._impact_policy(dataset, source_column)

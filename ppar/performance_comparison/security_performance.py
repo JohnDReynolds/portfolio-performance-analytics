@@ -9,8 +9,14 @@ import polars as pl
 from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison.base_currency import with_authoritative_base_currency
+from ppar.performance_comparison.currency_basis import normalize_currency_columns
+from ppar.performance_comparison.period_linking import validate_portfolio_periods
 from ppar.performance_comparison import source_loader
-from ppar.performance_comparison.portfolio_performance import SnapshotKey
+from ppar.performance_comparison.portfolio_performance import (
+    PortfolioPerformanceLoader,
+    SnapshotKey,
+)
 from ppar.performance_comparison.specification import (
     SECURITY_COMPARISON_LEVEL,
     PerformanceComparisonSpecification,
@@ -70,20 +76,39 @@ class SecurityPerformanceLoader:
             pl.col(pc_cols.FROM_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
             pl.col(pc_cols.THRU_DATE).str.strptime(pl.Date, "%Y-%m-%d", strict=True),
         )
-        return source_loader.require_numeric_columns(
+        frame = normalize_currency_columns(
+            source_loader.require_numeric_columns(
+                frame,
+                columns=(
+                    pc_cols.SECURITY_RETURN,
+                    pc_cols.WEIGHT,
+                    pc_cols.CONTRIBUTION,
+                    pc_cols.BEGIN_MARKET_VALUE,
+                    pc_cols.END_MARKET_VALUE,
+                    pc_cols.INCOME,
+                    pc_cols.GAIN_LOSS,
+                ),
+                dataset_name=pc_cols.SECURITY_PERFORMANCE,
+                path=path,
+                specification_path=self._specification.path,
+            )
+        )
+        validate_portfolio_periods(
             frame,
-            columns=(
-                pc_cols.SECURITY_RETURN,
-                pc_cols.WEIGHT,
-                pc_cols.CONTRIBUTION,
-                pc_cols.BEGIN_MARKET_VALUE,
-                pc_cols.END_MARKET_VALUE,
-                pc_cols.INCOME,
-                pc_cols.GAIN_LOSS,
-            ),
             dataset_name=pc_cols.SECURITY_PERFORMANCE,
             path=path,
             specification_path=self._specification.path,
+        )
+        if pc_cols.PORTFOLIO_PERFORMANCE not in self._specification.files:
+            return frame
+        return normalize_currency_columns(
+            with_authoritative_base_currency(
+                frame,
+                PortfolioPerformanceLoader(self._specification).load(snapshot_key),
+                dataset_name=pc_cols.SECURITY_PERFORMANCE,
+                path=path,
+                specification_path=self._specification.path,
+            )
         )
 
     def _error_message(self, message: str) -> str:

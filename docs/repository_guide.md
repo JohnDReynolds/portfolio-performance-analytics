@@ -67,7 +67,7 @@ Performance Comparison sub-feature.
 | `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Rebuilds and audits packaged performance-comparison demo accounting. | Refresh scenario-derived `holdings.csv` plus derived `secperf.csv`/`portperf.csv` and verify fixture consistency after demo-data edits. |
 | `scripts/audit_performance_comparison_demo_data.py` | Wrapper around the packaged demo-data audit. | Backward-compatible audit command. |
 | `ppar.performance_comparison.cli.report_bundle` | Writes HTML, CSV, manifest, and optional XLSX workbook artifacts for a comparison YAML. | Generate review bundles and workbooks. |
-| `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check that expected artifacts and manifest references exist. |
+| `ppar.performance_comparison.cli.validate_bundle` | Validates a generated report bundle. | Check artifacts plus CSV/HTML/XLSX semantic parity and normalized integrity metadata. |
 | `ppar.performance_comparison.cli.validate_demo_matrix` | Validates Performance Comparison scenario fixtures. | Prove validation fixtures still cover documented scenarios. |
 | `ppar.performance_comparison.cli.validate_config` | Validates a comparison YAML file. | Catch source-data and YAML setup issues before generating reports. |
 
@@ -138,8 +138,9 @@ lab, not as hand-edited CSV examples. The durable source-of-truth files are:
 | --- | --- |
 | `scripts/operational_demo_data/derive_operational_demo_data.py` | Base portfolios, selected securities, baseline holdings, baseline transactions, and synthetic Axys/APX-style performance rows. |
 | `scripts/operational_demo_data/performance_comparison_transaction_scenarios.csv` | Snapshot B transaction adjustments and inserted transaction rows. |
-| `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and cost-only review examples. |
-| `scripts/operational_demo_data/performance_comparison_scenario_calendar.csv` | Scenario-to-period map that keeps packaged demo periods at or below the two-difference review target. |
+| `scripts/operational_demo_data/performance_comparison_holding_scenarios.csv` | Snapshot B explicit holding restatements, including split-processing, accrual, valuation, and maintainer-only cost context. |
+| `scripts/operational_demo_data/performance_comparison_scenario_calendar.csv` | Operational map from physical scenario rows to reviewer story periods. |
+| `scripts/operational_demo_data/performance_comparison_scenario_inventory.csv` | Validated semantic contract that keeps each source period within the two-independent-change review target and protects report outcomes plus carry-forward behavior. |
 | `scripts/operational_demo_data/performance_comparison_period_split_plan.csv` | Empty split backlog. Add rows only when a future scenario makes a period too crowded again. |
 | `scripts/operational_demo_data/rebuild_performance_comparison_demo_data.py` | Applies transaction scenarios, derives transaction-driven holdings, rebuilds `secperf.csv`/`portperf.csv`, strips internal fields from packaged CSVs, and audits drift. |
 | `ppar/setup_templates/axysapx_performance_comparison/axysapx_performance_comparison.yaml` | User-facing interpretation contract: file names, column mappings, transaction rules, field roles, reconstruction settings, and report level. |
@@ -173,7 +174,7 @@ Current packaged scenario inventory:
 | `91282Y2Y1` `in` row | Ordinary interest income plus related holding/accrual evidence. |
 | `36225MBS1` `pd` row | MBS principal paydown with portfolio-cash destination evidence. |
 | `91282Y5Y1` `by`/`pa` and `sl`/`sa` rows | Paired fixed-income trade and accrued-interest settlement examples. |
-| `91282Y5Y1` cost-only row | Review evidence that should not become a Modified Dietz cause. |
+| `91282Y5Y1` cost-only row | Maintainer-only fixture context proving stripped cost cannot become a Modified Dietz cause. |
 
 ## Common Workflows
 
@@ -265,7 +266,8 @@ Code that needs to inspect the generated report-bundle handoff surface should
 use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
 the portfolio/security audit filenames, required artifact keys, manifest keys,
 review entrypoints, review-summary keys, Modified Dietz review basis, and review
-vocabulary keys.
+vocabulary keys. It also declares the normalization version and the exact
+timestamp/package metadata excluded from repeat-run equivalence.
 
 For Python integrations, prefer the package-root workflow helpers:
 `compare_snapshots()`, `write_performance_comparison_report_bundle()`,
@@ -422,7 +424,10 @@ Performance comparison report bundles include:
   when generated.
 - `needs_review_summary.csv`: changed periods and suggested review notes.
 - `findings.csv`: complete finding-level audit trail.
-- `manifest.json`: machine-readable artifact inventory.
+- `performance_differences.csv`, `performance_difference_causes.csv`, and
+  `x_ref_issues.csv`: supporting CSV counterparts of the visible review sheets.
+- `manifest.json`: machine-readable artifact inventory, typed table hashes,
+  review-sheet display hashes, and normalized bundle fingerprint.
 - `README.md`: generated bundle handoff notes.
 
 The generated bundle README is not source documentation. It describes one

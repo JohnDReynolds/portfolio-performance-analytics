@@ -37,6 +37,8 @@
 #   transaction or impact rules.
 # - Leave transaction rules and impact methods alone until validation or
 #   reviewed site evidence proves a site-specific override is needed.
+# - PPAR fails closed when a newly supported comparison field has no explicit
+#   accounting role. A suppression rule cannot silently classify that field.
 
 comparison:
   # Human-readable name stored in generated report metadata.
@@ -101,12 +103,17 @@ files:
   # not by changing filenames.
   #
   # Currency naming rule:
-  #   In holdings, transactions, and cash, an unqualified monetary field is in
+  #   In holdings and transactions, an unqualified monetary field is in
   #   the row CURRENCY. A BASE_ field is the translated value in portfolio
   #   BASE_CURRENCY. Portfolio/security performance monetary fields are
   #   inherently in portfolio BASE_CURRENCY and therefore stay unprefixed.
   #   FX_RATE is TO_CURRENCY units per one FROM_CURRENCY unit. Do not introduce
   #   LOCAL_ duplicates; row currency is already the detailed-data default.
+  #   Currency codes must be three letters. Foreign countable values require
+  #   their BASE_ counterpart, and portfolio FX quotes must target the portfolio
+  #   BASE_CURRENCY.
+  #   Cash is represented only as holdings such as CASHUSD, CASHEUR, or
+  #   CASHGBP; there is no separate cash dataset.
   #
   # portfolio_performance:
   #   Required fields: PORTFOLIO_CODE, FROM_DATE, THRU_DATE, PORT_RETURN.
@@ -174,6 +181,8 @@ data_audit_checks:
   #   consistency checks across the union of Snapshot A and Snapshot B. They do
   #   not change Performance Difference Explained and they are not Source Detail
   #   rows.
+  #   Prior-ending/next-beginning market-value continuity is a mandatory safety
+  #   check and remains visible even if optional checks below are disabled.
   #
   # Review philosophy:
   #   Start narrow. Add only/exclude filters and tolerances before using broad

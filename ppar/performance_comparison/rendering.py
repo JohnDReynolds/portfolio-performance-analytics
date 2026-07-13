@@ -337,6 +337,8 @@ def format_value(value: object) -> str:
     if value is None:
         return ""
     if isinstance(value, float):
+        if round(value, 6) == 0:
+            return "0.000000"
         return f"{value:.6f}"
     if isinstance(value, bool):
         return "yes" if value else "no"

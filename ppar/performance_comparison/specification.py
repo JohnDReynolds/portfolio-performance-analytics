@@ -46,10 +46,10 @@ _SUPPORTED_FILE_KEYS: Final[frozenset[str]] = frozenset(
         "splits",
         "holdings",
         "transactions",
-        "cash",
         "fx_rates",
     }
 )
+_REMOVED_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 PORTFOLIO_COMPARISON_LEVEL: Final[str] = "portfolio"
 SECURITY_COMPARISON_LEVEL: Final[str] = "security"
 COMPARISON_LEVELS: Final[frozenset[str]] = frozenset(
@@ -232,6 +232,7 @@ class PerformanceComparisonSpecification:
             raise PpaError(self._error_message("YAML must be a dictionary."), 504)
 
         self.values: dict[str, Any] = loaded_yaml
+        self._validate_removed_cash_configuration()
         self.comparison_level = self._comparison_level(comparison_level)
         self.portfolio_return_reconstruction = (
             self._portfolio_return_reconstruction()
@@ -242,6 +243,22 @@ class PerformanceComparisonSpecification:
         self.files = self._files()
         self._validate_reconstruction_files()
         self._validate_required_files()
+
+    def _validate_removed_cash_configuration(self) -> None:
+        """Reject the retired standalone cash-dataset policy section.
+
+        Raises:
+            PpaError: If legacy cash impact configuration remains in YAML.
+        """
+        if _REMOVED_CASH_IMPACT_METHODS_KEY not in self.values:
+            return
+        raise PpaError(
+            self._error_message(
+                "cash_impact_methods is not supported; represent cash as holdings "
+                "and use holding_impact_methods."
+            ),
+            504,
+        )
 
     def resolve_path(self, file_path: util.PathLike) -> Path:
         """Return an absolute or comparison-YAML-relative path.

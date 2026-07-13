@@ -1104,6 +1104,129 @@ class TestPerformanceComparisonDemoDataAudit(unittest.TestCase):
             any("not protected" in issue.detail for issue in unregistered_issues)
         )
 
+    def test_protected_inventory_detects_scenario_semantic_drift(self) -> None:
+        """A scenario cannot silently move to another portfolio or story period."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        calendar = rebuild_module._load_scenario_calendar(
+            rebuild_module._DEFAULT_SCENARIO_CALENDAR_PATH,
+        )
+        changed_calendar = calendar.copy()
+        changed_calendar.loc[0, "portfolio"] = "BALANCED"
+
+        issues = rebuild_module._audit_protected_scenario_inventory(
+            inventory=inventory,
+            calendar=changed_calendar,
+        )
+
+        self.assertTrue(
+            any(issue.check == "protected_scenario_semantics" for issue in issues)
+        )
+
+    def test_scenario_inventory_protects_outcomes_and_carry_forward(self) -> None:
+        """The contract names report outcomes and keeps carry-forward effects visible."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        aapl_carry = inventory[
+            inventory["scenario_key"].str.startswith("transaction:ALPHA0401:")
+        ].iloc[0]
+        cost_context = inventory[
+            inventory["scenario_family"].eq("cost_only_context")
+        ].iloc[0]
+
+        self.assertEqual(aapl_carry["source_from_date"], "2026-02-28")
+        self.assertEqual(aapl_carry["story_from_date"], "2026-04-01")
+        self.assertEqual(aapl_carry["carry_forward_status"], "carry_forward_effect")
+        self.assertEqual(aapl_carry["expected_report_disposition"], "counted_cause")
+        self.assertEqual(
+            cost_context["expected_report_disposition"],
+            "fixture_only_context",
+        )
+
+    def test_scenario_isolation_counts_economic_changes_not_fixture_rows(self) -> None:
+        """Paired legs count once and carry-forward stories do not create new changes."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        matrix = rebuild_module._scenario_isolation_matrix(inventory)
+        by_period = {
+            (
+                row["portfolio"],
+                row["source_from_date"],
+                row["source_thru_date"],
+            ): row
+            for row in matrix
+        }
+
+        short_period = by_period[("BALANCED", "2026-05-15", "2026-05-29")]
+        income_accrual = by_period[("INCOME", "2026-05-15", "2026-05-15")]
+        alpha_source = by_period[("ALPHA", "2026-02-28", "2026-03-31")]
+        alpha_story = by_period[("ALPHA", "2026-04-01", "2026-04-30")]
+        self.assertEqual(short_period["independent_change_count"], 1)
+        self.assertEqual(len(short_period["source_scenario_keys"]), 2)
+        self.assertEqual(income_accrual["independent_change_count"], 1)
+        self.assertEqual(len(income_accrual["source_scenario_keys"]), 2)
+        self.assertEqual(alpha_source["independent_change_count"], 1)
+        self.assertEqual(
+            alpha_story["visible_carry_forward_scenario_keys"],
+            [
+                "transaction:ALPHA0401:AAPL buy correction changes quantity "
+                "price commission and amount."
+            ],
+        )
+
+    def test_scenario_independent_change_contract_fails_closed(self) -> None:
+        """An unreviewed third economic change or stale count fails the audit."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        changed_inventory = pd.concat(
+            [
+                inventory,
+                inventory.iloc[[0]].assign(
+                    scenario_key="transaction:NEW:Unreviewed third change.",
+                    independent_change_id="alpha-jan-unreviewed-third-change",
+                ),
+            ],
+            ignore_index=True,
+        )
+
+        issues = rebuild_module._audit_scenario_independent_change_contract(
+            changed_inventory
+        )
+
+        self.assertTrue(
+            any(issue.check == "scenario_independent_change_count" for issue in issues)
+        )
+        self.assertTrue(
+            any(issue.check == "scenario_independent_change_budget" for issue in issues)
+        )
+
+    def test_scenario_report_contract_detects_expected_status_drift(self) -> None:
+        """Changing a protected report outcome is a demo-maintenance failure."""
+        rebuild_module = _load_rebuild_module()
+        inventory = rebuild_module._load_scenario_inventory(
+            rebuild_module._DEFAULT_SCENARIO_INVENTORY_PATH,
+        )
+        changed_inventory = inventory.copy()
+        mask = changed_inventory["scenario_key"].str.startswith(
+            "holding:BALANCED:MSFT:"
+        )
+        changed_inventory.loc[mask, "expected_period_status"] = "Fully Explained"
+
+        issues = rebuild_module._audit_scenario_report_contract(
+            inventory=changed_inventory,
+            comparison_path=_PACKAGED_COMPARISON_PATH,
+        )
+
+        self.assertTrue(any(issue.check == "scenario_report_status" for issue in issues))
+
     def test_scenario_calendar_density_confirms_simplified_periods(self) -> None:
         """The calendar confirms every demo period is within the density target."""
         rebuild_module = _load_rebuild_module()

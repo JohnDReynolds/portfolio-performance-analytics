@@ -13,7 +13,7 @@
 #   infer.
 # - Fields ending in "_column" contain Axys/APX export column names.
 # - Unknown fields are rejected so spelling mistakes fail loudly.
-# - In detailed holdings/transactions/cash data, unqualified monetary fields
+# - In detailed holdings/transactions data, unqualified monetary fields
 #   use the row currency; BASE_ fields use portfolio base currency.
 # - Portfolio/security performance monetary fields are inherently in portfolio
 #   base currency and remain unprefixed.

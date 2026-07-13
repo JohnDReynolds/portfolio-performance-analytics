@@ -21,7 +21,14 @@ _SAFETY_DOCUMENT = Path("docs/performance_comparison_safety_invariants.md")
 
 
 class TestPerformanceComparisonSafetyInvariants(unittest.TestCase):
-    """Protect the stable Phase 1 invariant definitions and audit baseline."""
+    """Protect the stable safety-net definitions and enforcement catalog."""
+
+    def test_completed_program_has_no_partial_invariants(self) -> None:
+        """All twelve safety nets remain fully enforced after Phase 6."""
+        self.assertEqual(
+            {invariant.coverage for invariant in SAFETY_INVARIANTS},
+            {InvariantCoverage.ENFORCED},
+        )
 
     def test_catalog_has_twelve_stable_unique_identifiers(self) -> None:
         """The twelve agreed safety nets retain stable ordered identifiers."""
@@ -39,7 +46,10 @@ class TestPerformanceComparisonSafetyInvariants(unittest.TestCase):
                 self.assertIsInstance(invariant.failure_class, InvariantFailureClass)
                 self.assertIsInstance(invariant.coverage, InvariantCoverage)
                 self.assertTrue(invariant.existing_controls)
-                self.assertTrue(invariant.known_gaps)
+                if invariant.coverage == InvariantCoverage.ENFORCED:
+                    self.assertFalse(invariant.known_gaps)
+                else:
+                    self.assertTrue(invariant.known_gaps)
                 self.assertIn(invariant.implementation_phase, range(2, 7))
                 self.assertIs(safety_invariant(invariant.identifier), invariant)
 

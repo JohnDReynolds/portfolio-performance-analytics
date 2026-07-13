@@ -10,6 +10,7 @@ from ppar.errors import PpaError
 from ppar.performance_comparison.compare import PerformanceComparison
 import ppar.performance_comparison.explain as _pc_explain
 import ppar.performance_comparison.field_roles as _field_roles
+import ppar.performance_comparison.lineage as _pc_lineage
 from ppar.performance_comparison.findings import (
     DATASET,
     DELTA_B_MINUS_A,
@@ -79,6 +80,7 @@ def compare_snapshots(
     )
     findings = PerformanceComparison(specification).compare()
     findings_table = findings_to_polars(findings)
+    _pc_lineage.assert_finding_source_lineage(findings_table)
     validate_findings = findings_table
     if not include_suppressed:
         validate_findings = validate_findings.filter(~pl.col(SUPPRESSED))
@@ -139,13 +141,14 @@ def validate_yaml_setup_complete(findings: pl.DataFrame) -> None:
             ``findings_to_polars``.
 
     Raises:
-        PpaError: If a changed source-data field that ppar knows how to classify
-            is not explicitly configured as additive, evidence-only, or
-            suppressed by YAML.
+        PpaError: If a changed field has no explicit accounting role, or a
+            classified performance input lacks additive, evidence-only, or
+            suppression YAML.
     """
-    active_findings = findings
-    if active_findings.is_empty():
+    if findings.is_empty():
         return
+    _validate_finding_field_classifications(findings)
+    active_findings = findings
     if SUPPRESSED in active_findings.columns:
         active_findings = active_findings.filter(~pl.col(SUPPRESSED))
     if active_findings.is_empty():
@@ -168,37 +171,28 @@ def validate_yaml_setup_complete(findings: pl.DataFrame) -> None:
 
 def _finding_requires_yaml_policy(row: dict[str, object]) -> bool:
     """Return whether a finding must be explicitly classified in YAML."""
-    evidence_role = row.get(EVIDENCE_ROLE)
-    if evidence_role not in {"direct_input", "context"}:
-        return False
-
-    dataset = row.get(DATASET)
     source_column = row.get(SOURCE_COLUMN)
-    if _field_roles.is_reported_performance_component(dataset, source_column):
+    if source_column is None:
         return False
-    if _field_roles.is_context(dataset, source_column):
-        return False
-    if dataset == pc_cols.TRANSACTIONS:
-        return source_column in {
-            pc_cols.AMOUNT,
-            pc_cols.QUANTITY,
-            pc_cols.PRICE,
-            pc_cols.COMMISSION,
-        }
-    if dataset == pc_cols.HOLDINGS:
-        return source_column in {
-            pc_cols.MARKET_VALUE,
-            pc_cols.ACCRUED,
-            pc_cols.QUANTITY,
-            pc_cols.COST,
-        }
-    if dataset == pc_cols.CASH:
-        return source_column in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}
-    if dataset == pc_cols.FX_RATES:
-        return source_column == pc_cols.FX_RATE
-    if dataset == pc_cols.PORTFOLIO_PERFORMANCE:
-        return source_column in {pc_cols.INCOME, pc_cols.GAIN_LOSS}
-    return False
+    dataset = row.get(DATASET)
+    return _field_roles.requires_explicit_impact_policy(dataset, source_column)
+
+
+def _validate_finding_field_classifications(findings: pl.DataFrame) -> None:
+    """Raise if any changed field lacks an explicit accounting role.
+
+    Suppression is intentionally ignored here: YAML may decide how a known
+    field is treated, but it cannot silently classify a newly introduced field.
+    """
+    if SOURCE_COLUMN not in findings.columns or DATASET not in findings.columns:
+        return
+    for dataset, source_column in findings.select(
+        DATASET,
+        SOURCE_COLUMN,
+    ).unique().iter_rows():
+        if source_column is None:
+            continue
+        _field_roles.requires_explicit_impact_policy(dataset, source_column)
 
 
 def _finding_has_yaml_policy(row: dict[str, object]) -> bool:

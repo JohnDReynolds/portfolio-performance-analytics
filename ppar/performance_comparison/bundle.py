@@ -5,7 +5,7 @@ from __future__ import annotations
 # Python imports
 import datetime as dt
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 # Third-party imports
@@ -13,7 +13,10 @@ import polars as pl
 
 # Project imports
 import ppar.utilities as util
+from ppar.performance_comparison import conservation as _pc_conservation
 from ppar.performance_comparison import extract_contract as _pc_extract_contract
+from ppar.performance_comparison import lineage as _pc_lineage
+from ppar.performance_comparison import output_integrity as _pc_output_integrity
 from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import workbook as _pc_workbook
 from ppar.performance_comparison.specification import (
@@ -48,6 +51,10 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "review_summary",
     "findings",
     "source_detail",
+    _pc_review_model.PERFORMANCE_DIFFERENCES_ARTIFACT,
+    _pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
+    _pc_review_model.X_REF_ISSUES_ARTIFACT,
+    _pc_review_model.CAUSE_LINEAGE_ARTIFACT,
     "needs_review_summary",
     "portfolio_period_summary",
     "cause_summary",
@@ -62,7 +69,7 @@ REPORT_BUNDLE_REQUIRED_ARTIFACTS = (
     "transaction_matching_diagnostics",
     "top_evidence",
 )
-_REPORT_BUNDLE_MANIFEST_VERSION = 1
+_REPORT_BUNDLE_MANIFEST_VERSION = 3
 _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "bundle_type",
     "manifest_version",
@@ -75,6 +82,7 @@ _REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS = (
     "artifacts",
     "tables",
     "review_entrypoints",
+    "output_integrity",
 )
 _REPORT_BUNDLE_REQUIRED_REVIEW_ENTRYPOINTS = (
     "primary_review",
@@ -173,6 +181,8 @@ def report_bundle_contract() -> dict[str, object]:
         },
         "required_artifacts": list(REPORT_BUNDLE_REQUIRED_ARTIFACTS),
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
+        "normalization_version": _pc_output_integrity.NORMALIZATION_VERSION,
+        "volatile_metadata": list(_pc_output_integrity.VOLATILE_METADATA),
         "required_manifest_keys": list(_REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS),
         "required_review_entrypoints": list(
             _REPORT_BUNDLE_REQUIRED_REVIEW_ENTRYPOINTS
@@ -268,7 +278,8 @@ def write_report_bundle_readme(
         "## Audit/Export Files",
         "",
         f"- `{SUPPORTING_FILES_DIRECTORY}/findings.csv`: complete finding-level "
-        "comparison output.",
+        "comparison output, including suppressed rows and explicit safety "
+        "dispositions.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/source_detail.csv`: reviewer-friendly "
         "finding-level audit trail formerly rendered in HTML and XLSX.",
         f"- `{SUPPORTING_FILES_DIRECTORY}/manifest.json`: machine-readable artifact "
@@ -306,6 +317,7 @@ def write_report_bundle_manifest(
     comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
+    review_sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
     bundle_root: Path | None = None,
 ) -> Path:
     """Write a report-bundle JSON manifest.
@@ -323,6 +335,8 @@ def write_report_bundle_manifest(
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
+        review_sheets: Canonical internal tables shared by HTML, XLSX, and the
+            review-sheet CSV artifacts.
         bundle_root: Report bundle root directory used for manifest-relative
             artifact references. Defaults to the manifest output directory.
 
@@ -338,6 +352,7 @@ def write_report_bundle_manifest(
         comparison_path=comparison_path,
         artifact_paths=artifact_paths,
         tables=tables,
+        review_sheets=review_sheets,
         bundle_root=bundle_root or output_path.parent,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -409,6 +424,7 @@ def report_bundle_manifest(
     comparison_path: util.PathLike | None = None,
     artifact_paths: Mapping[str, Path],
     tables: Mapping[str, pl.DataFrame],
+    review_sheets: Sequence[_pc_workbook.ReviewWorkbookSheet],
     bundle_root: Path | None = None,
 ) -> dict[str, object]:
     """Return JSON-serializable metadata for a report bundle.
@@ -424,6 +440,7 @@ def report_bundle_manifest(
             bundle.
         artifact_paths: Bundle artifact paths keyed by artifact name.
         tables: Named helper tables included as CSV artifacts.
+        review_sheets: Canonical internal tables shared by review formats.
         bundle_root: Report bundle root directory used for manifest-relative
             artifact references. Defaults to the current directory.
 
@@ -435,7 +452,8 @@ def report_bundle_manifest(
         artifact_paths,
         bundle_root=bundle_root or Path("."),
     )
-    return {
+    persisted_findings = _pc_conservation.finding_audit_trail(findings)
+    manifest = {
         "bundle_type": "performance_comparison_report",
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
         "created_at": dt.datetime.now(dt.UTC).isoformat(),
@@ -456,9 +474,11 @@ def report_bundle_manifest(
         ),
         "artifacts": artifact_references,
         "tables": {
-            "findings": {"rows": findings.height},
+            "findings": _pc_output_integrity.table_manifest_metadata(
+                persisted_findings
+            ),
             **{
-                name: {"rows": table.height}
+                name: _pc_output_integrity.table_manifest_metadata(table)
                 for name, table in sorted(tables.items())
             },
         },
@@ -466,7 +486,11 @@ def report_bundle_manifest(
             artifact_references,
             include_reconstruction_diagnostics=include_reconstruction_diagnostics,
         ),
+        "output_integrity": _pc_output_integrity.output_integrity_metadata(
+            review_sheets
+        ),
     }
+    return _pc_output_integrity.with_normalized_bundle_fingerprint(manifest)
 
 
 def _report_bundle_source_context(
@@ -598,7 +622,16 @@ def report_bundle_validation_issues(bundle_directory: util.PathLike) -> list[str
     issues.extend(_report_bundle_transaction_semantics_issues(manifest))
     issues.extend(_report_bundle_review_summary_issues(bundle_path, manifest, artifacts))
     issues.extend(_report_bundle_table_issues(bundle_path, artifacts, tables))
+    issues.extend(_report_bundle_lineage_issues(bundle_path, artifacts))
     issues.extend(_report_bundle_workbook_issues(bundle_path, artifacts))
+    issues.extend(
+        _pc_output_integrity.report_bundle_output_integrity_issues(
+            bundle_path,
+            manifest,
+            artifacts,
+            tables,
+        )
+    )
     return issues
 
 
@@ -611,6 +644,16 @@ def _report_bundle_readme_table_lines(tables: Mapping[str, pl.DataFrame]) -> lis
         ),
         "portfolio_period_summary": "portfolio-period return-change summary",
         "cause_summary": "cause-area summary with explained-change methods",
+        "performance_differences": (
+            "canonical CSV counterpart of the primary HTML/XLSX review sheet"
+        ),
+        "performance_difference_causes": (
+            "canonical CSV counterpart of the formula-input cause sheet"
+        ),
+        "x_ref_issues": (
+            "canonical CSV counterpart of the Data Audit Issues sheet"
+        ),
+        "cause_lineage": "machine-readable cause-to-finding source lineage",
         "impact_estimates": "currently quantified impact estimates",
         "impact_coverage": "period-level estimate coverage and missing inputs",
         "context_evidence_summary": (
@@ -950,7 +993,30 @@ def _csv_table_validation_issues(
         )
     if expected_rows == 0 and not _csv_file_has_header(csv_path):
         issues.append(f"table {table_name!r} is empty and has no header")
+    if table_name == "findings":
+        issues.extend(_finding_audit_trail_issues(table))
+    if table_name == _pc_review_model.CAUSE_LINEAGE_ARTIFACT:
+        issues.extend(_pc_lineage.persisted_cause_lineage_issues(table))
     return issues
+
+
+def _finding_audit_trail_issues(table: pl.DataFrame) -> list[str]:
+    """Return SN-01 validation issues for the persisted complete audit trail."""
+    return _pc_conservation.persisted_finding_audit_trail_issues(table)
+
+
+def _report_bundle_lineage_issues(bundle_path: Path, artifacts: Mapping[str, object]) -> list[str]:
+    """Return cross-artifact finding-to-cause lineage issues."""
+    finding_file = artifacts.get("findings")
+    cause_file = artifacts.get(_pc_review_model.CAUSE_LINEAGE_ARTIFACT)
+    if not isinstance(finding_file, str) or not isinstance(cause_file, str):
+        return []
+    try:
+        findings = pl.read_csv(bundle_path / finding_file)
+        causes = pl.read_csv(bundle_path / cause_file)
+    except (OSError, pl.exceptions.PolarsError):
+        return []
+    return _pc_lineage.persisted_cross_artifact_lineage_issues(findings, causes)
 
 
 def _csv_file_has_header(csv_path: Path) -> bool:

@@ -24,7 +24,7 @@ import argparse
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 # Third-party imports
 import pandas as pd
@@ -43,6 +43,7 @@ from ppar.performance_comparison.workbook_tables import (
     _workbook_security_changes_table,
     _workbook_underlying_causes_table,
 )
+from ppar.performance_comparison.x_ref import x_ref_issues_table
 
 
 _REPO_ROOT: Final = Path(__file__).resolve().parents[2]
@@ -222,7 +223,49 @@ _SCENARIO_CALENDAR_NUMERIC_COLUMNS: Final = [
     "current_expected_difference_rows",
     "future_max_expected_differences",
 ]
-_SCENARIO_INVENTORY_COLUMNS: Final = ["scenario_key", "protection_reason"]
+_SCENARIO_INVENTORY_COLUMNS: Final = [
+    "scenario_key",
+    "protection_reason",
+    "economic_meaning",
+    "scenario_source",
+    "portfolio",
+    "source_from_date",
+    "source_thru_date",
+    "story_from_date",
+    "story_thru_date",
+    "scenario_family",
+    "primary_security",
+    "expected_report_disposition",
+    "expected_period_status",
+    "independent_change_id",
+    "source_period_independent_changes",
+    "carry_forward_status",
+]
+_SCENARIO_INVENTORY_NUMERIC_COLUMNS: Final = [
+    "source_period_independent_changes",
+]
+_SCENARIO_REPORT_DISPOSITIONS: Final = {
+    "counted_cause",
+    "data_audit_issue",
+    "fixture_only_context",
+    "review_evidence",
+}
+_SCENARIO_PERIOD_STATUSES: Final = {
+    "Fully Explained",
+    "No Performance Difference",
+    "Partly Explained",
+    "Unexplained",
+}
+_SCENARIO_CARRY_FORWARD_STATUSES: Final = {
+    "carry_forward_effect",
+    "originating_change",
+}
+_SCENARIO_X_REF_ISSUE_TYPES: Final = {
+    "x_ref_dividend_rate": "dividend_rate",
+    "x_ref_holdings_accrued_rate": "holdings_accrued_rate",
+    "x_ref_pa_sa_rate": "pa_sa_rate",
+}
+_SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES: Final = 2
 _SCENARIO_PERIOD_TARGET_MAX_DIFFERENCE_ROWS: Final = 2
 _BALANCED_APRIL_PERIOD: Final = ("2026-04-01", "2026-04-30")
 _BALANCED_APRIL_SUBPERIODS: Final = (
@@ -505,12 +548,16 @@ def main() -> int:
         period_split_plan_path=args.period_split_plan_path,
     )
     scenario_calendar = _load_scenario_calendar(args.scenario_calendar_path)
+    scenario_inventory = _load_scenario_inventory(args.scenario_inventory_path)
     period_split_plan = _load_period_split_plan(args.period_split_plan_path)
     summary["scenario_calendar_density"] = _scenario_calendar_density(
         scenario_calendar,
     )
     summary["scenario_readability_matrix"] = _scenario_readability_matrix(
         scenario_calendar,
+    )
+    summary["scenario_isolation_matrix"] = _scenario_isolation_matrix(
+        scenario_inventory,
     )
     summary["scenario_period_split_plan"] = _scenario_period_split_plan_summary(
         period_split_plan,
@@ -612,10 +659,17 @@ def audit_demo_data(
         )
     )
     scenario_calendar = _load_scenario_calendar(scenario_calendar_path)
+    scenario_inventory = _load_scenario_inventory(scenario_inventory_path)
     issues.extend(
         _audit_protected_scenario_inventory(
-            inventory=_load_scenario_inventory(scenario_inventory_path),
+            inventory=scenario_inventory,
             calendar=scenario_calendar,
+            comparison_path=comparison_path,
+            holding_scenarios=_load_holding_scenarios(holding_scenarios_path),
+            transaction_scenarios=_load_transaction_scenarios(
+                transaction_scenarios_path
+            ),
+            axys_directory=axys_directory,
         )
     )
     issues.extend(
@@ -637,8 +691,18 @@ def _audit_protected_scenario_inventory(
     *,
     inventory: pd.DataFrame,
     calendar: pd.DataFrame,
+    comparison_path: Path = _DEFAULT_COMPARISON_PATH,
+    holding_scenarios: HoldingScenarioSet | None = None,
+    transaction_scenarios: TransactionScenarioSet | None = None,
+    axys_directory: Path = _DEFAULT_AXYS_DIRECTORY,
 ) -> list[AuditIssue]:
-    """Return issues when a named demo scenario is removed or left unprotected."""
+    """Return issues when a protected demo scenario changes meaning or outcome.
+
+    The independent inventory is deliberately stricter than the operational
+    calendar. It protects each scenario's source period, report period,
+    economic identity, report disposition, and carry-forward treatment so a
+    fixture edit cannot silently rewrite the demo's review story.
+    """
     protected_keys = set(inventory["scenario_key"].astype(str))
     calendar_keys = set(calendar["scenario_key"].astype(str))
     issues = [
@@ -658,7 +722,410 @@ def _audit_protected_scenario_inventory(
         )
         for scenario_key in sorted(calendar_keys - protected_keys)
     )
+    if issues:
+        return issues
+
+    calendar_by_key = calendar.set_index("scenario_key", drop=False)
+    contract_columns = {
+        "scenario_source": "scenario_source",
+        "portfolio": "portfolio",
+        "story_from_date": "from_date",
+        "story_thru_date": "thru_date",
+        "scenario_family": "scenario_family",
+        "primary_security": "primary_security",
+    }
+    for row in inventory.itertuples(index=False):
+        calendar_row = calendar_by_key.loc[str(row.scenario_key)]
+        for inventory_column, calendar_column in contract_columns.items():
+            expected = str(getattr(row, inventory_column))
+            actual = str(calendar_row[calendar_column])
+            if expected != actual:
+                issues.append(
+                    AuditIssue(
+                        check="protected_scenario_semantics",
+                        portfolio=str(row.portfolio),
+                        from_date=str(row.story_from_date),
+                        thru_date=str(row.story_thru_date),
+                        detail=(
+                            "Protected scenario meaning changed without an explicit "
+                            f"inventory update: {row.scenario_key}; "
+                            f"{inventory_column} expected={expected}; actual={actual}."
+                        ),
+                    )
+                )
+
+    issues.extend(_audit_scenario_independent_change_contract(inventory))
+    issues.extend(
+        _audit_scenario_source_period_contract(
+            inventory=inventory,
+            holding_scenarios=(
+                holding_scenarios
+                or _load_holding_scenarios(_DEFAULT_HOLDING_SCENARIOS_PATH)
+            ),
+            transaction_scenarios=(
+                transaction_scenarios
+                or _load_transaction_scenarios(_DEFAULT_TRANSACTION_SCENARIOS_PATH)
+            ),
+            axys_directory=axys_directory,
+        )
+    )
+    issues.extend(
+        _audit_scenario_report_contract(
+            inventory=inventory,
+            comparison_path=comparison_path,
+        )
+    )
     return issues
+
+
+def _audit_scenario_independent_change_contract(
+    inventory: pd.DataFrame,
+) -> list[AuditIssue]:
+    """Return issues when a source period exceeds its economic-change contract."""
+    issues: list[AuditIssue] = []
+    period_columns = ["portfolio", "source_from_date", "source_thru_date"]
+    for period_key, period_rows in inventory.groupby(period_columns, sort=True):
+        portfolio, from_date, thru_date = (str(value) for value in period_key)
+        actual_count = int(period_rows["independent_change_id"].nunique())
+        declared_counts = set(period_rows["source_period_independent_changes"].astype(int))
+        if declared_counts != {actual_count}:
+            issues.append(
+                AuditIssue(
+                    check="scenario_independent_change_count",
+                    portfolio=portfolio,
+                    from_date=from_date,
+                    thru_date=thru_date,
+                    detail=(
+                        "Source-period independent-change count does not match "
+                        f"the protected scenario IDs: declared={sorted(declared_counts)}; "
+                        f"actual={actual_count}."
+                    ),
+                )
+            )
+        if actual_count > _SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES:
+            issues.append(
+                AuditIssue(
+                    check="scenario_independent_change_budget",
+                    portfolio=portfolio,
+                    from_date=from_date,
+                    thru_date=thru_date,
+                    detail=(
+                        "Source period exceeds the protected independent-change "
+                        f"budget: actual={actual_count}; "
+                        f"maximum={_SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES}."
+                    ),
+                )
+            )
+    return issues
+
+
+def _audit_scenario_source_period_contract(
+    *,
+    inventory: pd.DataFrame,
+    holding_scenarios: HoldingScenarioSet,
+    transaction_scenarios: TransactionScenarioSet,
+    axys_directory: Path,
+) -> list[AuditIssue]:
+    """Return issues when fixture input dates drift outside protected periods."""
+    actual_inputs = _scenario_source_inputs(
+        holding_scenarios=holding_scenarios,
+        transaction_scenarios=transaction_scenarios,
+        axys_directory=axys_directory,
+    )
+    issues: list[AuditIssue] = []
+    for row in inventory.itertuples(index=False):
+        source_input = actual_inputs.get(str(row.scenario_key))
+        if source_input is None:
+            issues.append(
+                AuditIssue(
+                    check="scenario_source_period",
+                    detail=f"Protected scenario has no fixture source input: {row.scenario_key}.",
+                )
+            )
+            continue
+        actual_portfolio, input_date = source_input
+        actual_period = _portfolio_period_containing_date(
+            axys_directory=axys_directory,
+            portfolio=actual_portfolio,
+            input_date=input_date,
+        )
+        expected_period = (
+            str(row.portfolio),
+            str(row.source_from_date),
+            str(row.source_thru_date),
+        )
+        if actual_period != expected_period:
+            issues.append(
+                AuditIssue(
+                    check="scenario_source_period",
+                    portfolio=str(row.portfolio),
+                    from_date=str(row.source_from_date),
+                    thru_date=str(row.source_thru_date),
+                    detail=(
+                        "Protected scenario source period changed: "
+                        f"{row.scenario_key}; expected={expected_period}; "
+                        f"actual={actual_period}; input_date={input_date}."
+                    ),
+                )
+            )
+    return issues
+
+
+def _scenario_source_inputs(
+    *,
+    holding_scenarios: HoldingScenarioSet,
+    transaction_scenarios: TransactionScenarioSet,
+    axys_directory: Path,
+) -> dict[str, tuple[str, str]]:
+    """Return each named scenario's actual portfolio and source-input date."""
+    source_inputs: dict[str, tuple[str, str]] = {}
+    base_transactions = _read_packaged_transactions(
+        axys_directory / _BASE_SNAPSHOT_DIRECTORY / "transactions.csv"
+    ).set_index("TRANSACTION_ID", drop=False)
+    for adjustment in transaction_scenarios.adjustments:
+        if adjustment.action == "insert":
+            portfolio = str(adjustment.values["PORT"])
+            input_date = str(adjustment.values["TRANSACTION_DATE"])
+        else:
+            base_row = base_transactions.loc[adjustment.transaction_id]
+            portfolio = str(base_row["PORT"])
+            input_date = pd.Timestamp(str(base_row["TRANSACTION_DATE"])).date().isoformat()
+        source_inputs[_transaction_scenario_calendar_key(adjustment)] = (
+            portfolio,
+            pd.Timestamp(input_date).date().isoformat(),
+        )
+    for adjustment in holding_scenarios.adjustments:
+        source_inputs[_holding_scenario_calendar_key(adjustment)] = (
+            adjustment.portfolio,
+            adjustment.holding_date,
+        )
+    source_inputs.update(
+        {
+            "multicurrency:BALANCED:SAP.DE:2026-04-15:EUR dividend correction": (
+                "BALANCED",
+                "2026-04-15",
+            ),
+            "multicurrency:BALANCED:SHEL.L:2026-04-30:GBP FX correction": (
+                "BALANCED",
+                "2026-04-30",
+            ),
+        }
+    )
+    return source_inputs
+
+
+def _portfolio_period_containing_date(
+    *,
+    axys_directory: Path,
+    portfolio: str,
+    input_date: str,
+) -> tuple[str, str, str] | None:
+    """Return the unique packaged portfolio period containing an input date."""
+    date_value = pd.Timestamp(input_date)
+    matches: set[tuple[str, str, str]] = set()
+    for snapshot_name in _SNAPSHOT_DIRECTORIES:
+        portperf = pd.read_csv(axys_directory / snapshot_name / "portperf.csv")
+        portfolio_rows = portperf[portperf["PORTFOLIO_CODE"].astype(str).eq(portfolio)]
+        for row in portfolio_rows.itertuples(index=False):
+            if (
+                pd.Timestamp(str(row.FROM_DATE))
+                <= date_value
+                <= pd.Timestamp(str(row.THRU_DATE))
+            ):
+                matches.add((portfolio, str(row.FROM_DATE), str(row.THRU_DATE)))
+    if len(matches) != 1:
+        return None
+    return matches.pop()
+
+
+def _audit_scenario_report_contract(
+    *,
+    inventory: pd.DataFrame,
+    comparison_path: Path,
+) -> list[AuditIssue]:
+    """Return issues when a protected scenario's reviewer-visible result drifts."""
+    findings = compare_snapshots(comparison_path, require_causal_attribution=True)
+    portfolio_changes = _workbook_portfolio_changes_table(
+        findings,
+        comparison_path=comparison_path,
+    )
+    causes = _workbook_underlying_causes_table(
+        findings,
+        comparison_path=comparison_path,
+    )
+    x_ref_issues = x_ref_issues_table(comparison_path)
+    statuses = {
+        (
+            str(row["portfolio_id"]),
+            row["from_date"].isoformat(),
+            row["thru_date"].isoformat(),
+        ): str(row["review_status"])
+        for row in portfolio_changes.iter_rows(named=True)
+    }
+    finding_rows = list(findings.iter_rows(named=True))
+    cause_rows = list(causes.iter_rows(named=True))
+    x_ref_rows = list(x_ref_issues.iter_rows(named=True))
+    issues: list[AuditIssue] = []
+    for row in inventory.itertuples(index=False):
+        period_key = (
+            str(row.portfolio),
+            str(row.story_from_date),
+            str(row.story_thru_date),
+        )
+        actual_status = statuses.get(period_key, "No Performance Difference")
+        if actual_status != str(row.expected_period_status):
+            issues.append(
+                AuditIssue(
+                    check="scenario_report_status",
+                    portfolio=period_key[0],
+                    from_date=period_key[1],
+                    thru_date=period_key[2],
+                    detail=(
+                        "Protected scenario report status changed: "
+                        f"{row.scenario_key}; expected={row.expected_period_status}; "
+                        f"actual={actual_status}."
+                    ),
+                )
+            )
+
+        matching_findings = [
+            finding
+            for finding in finding_rows
+            if _report_row_matches_scenario(finding, row, date_field="input_date")
+        ]
+        matching_causes = [
+            cause
+            for cause in cause_rows
+            if _report_row_matches_scenario(cause, row, date_field="as_of_date")
+        ]
+        if str(row.expected_report_disposition) == "fixture_only_context":
+            if matching_findings or matching_causes:
+                issues.append(
+                    _scenario_disposition_issue(
+                        row,
+                        "Fixture-only context unexpectedly entered report evidence.",
+                    )
+                )
+            continue
+        if str(row.expected_report_disposition) == "data_audit_issue":
+            expected_issue_type = _SCENARIO_X_REF_ISSUE_TYPES.get(
+                str(row.scenario_family)
+            )
+            matching_x_ref = [
+                issue
+                for issue in x_ref_rows
+                if str(issue.get("portfolio_id") or "") == str(row.portfolio)
+                and str(issue.get("security_id") or "") == str(row.primary_security)
+                and str(issue.get("issue_type") or "") == expected_issue_type
+                and _date_is_within(
+                    issue.get("as_of_date"),
+                    str(row.source_from_date),
+                    str(row.source_thru_date),
+                )
+            ]
+            if expected_issue_type is None:
+                issues.append(
+                    _scenario_disposition_issue(
+                        row,
+                        "Data Audit scenario family has no protected issue type.",
+                    )
+                )
+            elif not matching_x_ref:
+                issues.append(_scenario_disposition_issue(row, "Data Audit issue is absent."))
+            continue
+
+        if not matching_findings and not matching_causes:
+            issues.append(
+                _scenario_disposition_issue(
+                    row,
+                    "Primary-security evidence is absent from the report tables.",
+                )
+            )
+            continue
+        if str(row.expected_report_disposition) == "counted_cause":
+            counted_causes = [
+                cause
+                for cause in cause_rows
+                if _report_row_period_key(cause) == period_key
+                and str(cause.get("safety_disposition") or "") == "counted_cause"
+            ]
+            if not counted_causes:
+                issues.append(
+                    _scenario_disposition_issue(
+                        row,
+                        "Story period has no counted Performance Difference Cause.",
+                    )
+                )
+        if str(row.carry_forward_status) == "carry_forward_effect":
+            carried_causes = [
+                cause
+                for cause in matching_causes
+                if cause.get("as_of_date") is not None
+                and str(cause["as_of_date"]) < str(row.story_from_date)
+            ]
+            if not carried_causes:
+                issues.append(
+                    _scenario_disposition_issue(
+                        row,
+                        "Carry-forward effect is not visible as a beginning-period cause.",
+                    )
+                )
+    return issues
+
+
+def _report_row_matches_scenario(
+    report_row: dict[str, object],
+    scenario_row: Any,
+    *,
+    date_field: str,
+) -> bool:
+    """Return whether a finding or cause is evidence for one scenario story."""
+    return (
+        _report_row_period_key(report_row)
+        == (
+            str(scenario_row.portfolio),
+            str(scenario_row.story_from_date),
+            str(scenario_row.story_thru_date),
+        )
+        and str(report_row.get("security_id") or "")
+        == str(scenario_row.primary_security)
+        and (
+            report_row.get(date_field) is None
+            or _date_is_within(
+                report_row.get(date_field),
+                str(scenario_row.source_from_date),
+                str(scenario_row.story_thru_date),
+            )
+        )
+    )
+
+
+def _report_row_period_key(report_row: dict[str, object]) -> tuple[str, str, str]:
+    """Return a normalized portfolio-period key for one report row."""
+    return (
+        str(report_row.get("portfolio_id") or ""),
+        str(report_row.get("from_date") or ""),
+        str(report_row.get("thru_date") or ""),
+    )
+
+
+def _date_is_within(value: object, from_date: str, thru_date: str) -> bool:
+    """Return whether a date-like value is inside an inclusive ISO-date range."""
+    if value is None:
+        return False
+    date_text = pd.Timestamp(str(value)).date().isoformat()
+    return from_date <= date_text <= thru_date
+
+
+def _scenario_disposition_issue(row: Any, detail: str) -> AuditIssue:
+    """Return a consistently keyed scenario report-disposition issue."""
+    return AuditIssue(
+        check="scenario_report_disposition",
+        portfolio=str(row.portfolio),
+        from_date=str(row.story_from_date),
+        thru_date=str(row.story_thru_date),
+        detail=f"Protected scenario disposition changed: {row.scenario_key}; {detail}",
+    )
 
 
 def _audit_generated_causal_story_coverage(
@@ -2367,17 +2834,16 @@ def _load_scenario_calendar(path: Path) -> pd.DataFrame:
 
 
 def _load_scenario_inventory(path: Path) -> pd.DataFrame:
-    """Return the independent inventory of protected named demo scenarios.
+    """Return the independent semantic contract for named demo scenarios.
 
     Args:
-        path: CSV containing every scenario key that must remain registered.
+        path: CSV containing every protected scenario and its expected meaning.
 
     Returns:
         Validated protected scenario rows in file order.
 
     Raises:
-        ValueError: If columns are unexpected or keys/reasons are blank or
-            duplicated.
+        ValueError: If columns, values, dates, counts, or keys are invalid.
     """
     inventory = pd.read_csv(path, keep_default_na=False)
     if list(inventory.columns) != _SCENARIO_INVENTORY_COLUMNS:
@@ -2385,16 +2851,117 @@ def _load_scenario_inventory(path: Path) -> pd.DataFrame:
             "Scenario inventory CSV columns must exactly match "
             f"{_SCENARIO_INVENTORY_COLUMNS}; actual={list(inventory.columns)}."
         )
-    blank_rows = inventory[_SCENARIO_INVENTORY_COLUMNS].map(
+    text_columns = [
+        column
+        for column in _SCENARIO_INVENTORY_COLUMNS
+        if column not in _SCENARIO_INVENTORY_NUMERIC_COLUMNS
+    ]
+    blank_rows = inventory[text_columns].map(
         lambda value: not str(value).strip()
     )
     if bool(blank_rows.any().any()):
-        raise ValueError("Scenario inventory keys and protection reasons must not be blank.")
+        raise ValueError("Scenario inventory text values must not be blank.")
     duplicate_keys = inventory.duplicated(["scenario_key"], keep=False)
     if bool(duplicate_keys.any()):
         duplicates = inventory.loc[duplicate_keys, ["scenario_key"]].to_dict("records")
         raise ValueError(f"Duplicate protected scenario keys are not allowed: {duplicates}.")
+
+    inventory = inventory.copy()
+    date_columns = [
+        "source_from_date",
+        "source_thru_date",
+        "story_from_date",
+        "story_thru_date",
+    ]
+    for column in date_columns:
+        parsed_dates = pd.to_datetime(inventory[column], errors="coerce")
+        if bool(parsed_dates.isna().any()):
+            raise ValueError(f"Scenario inventory {column} values must be dates.")
+        canonical_dates = parsed_dates.dt.strftime("%Y-%m-%d")
+        if not canonical_dates.equals(inventory[column].astype(str)):
+            raise ValueError(
+                f"Scenario inventory {column} values must use YYYY-MM-DD format."
+            )
+
+    converted_counts = pd.to_numeric(
+        inventory["source_period_independent_changes"],
+        errors="coerce",
+    )
+    if bool(converted_counts.isna().any()) or not bool(
+        converted_counts.mod(1).eq(0).all()
+    ):
+        raise ValueError("Scenario independent-change counts must be whole numbers.")
+    inventory["source_period_independent_changes"] = converted_counts.astype(int)
+    invalid_counts = (
+        inventory["source_period_independent_changes"].le(0)
+        | inventory["source_period_independent_changes"].gt(
+            _SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES
+        )
+    )
+    if bool(invalid_counts.any()):
+        raise ValueError(
+            "Scenario independent-change counts must be between 1 and "
+            f"{_SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES}."
+        )
+
+    _validate_scenario_inventory_enum(
+        inventory,
+        "expected_report_disposition",
+        _SCENARIO_REPORT_DISPOSITIONS,
+    )
+    _validate_scenario_inventory_enum(
+        inventory,
+        "expected_period_status",
+        _SCENARIO_PERIOD_STATUSES,
+    )
+    _validate_scenario_inventory_enum(
+        inventory,
+        "carry_forward_status",
+        _SCENARIO_CARRY_FORWARD_STATUSES,
+    )
+    invalid_source_periods = inventory["source_from_date"].gt(
+        inventory["source_thru_date"]
+    )
+    invalid_story_periods = inventory["story_from_date"].gt(
+        inventory["story_thru_date"]
+    )
+    if bool(invalid_source_periods.any()) or bool(invalid_story_periods.any()):
+        raise ValueError("Scenario inventory periods must not end before they begin.")
+
+    same_period = (
+        inventory["source_from_date"].eq(inventory["story_from_date"])
+        & inventory["source_thru_date"].eq(inventory["story_thru_date"])
+    )
+    originating = inventory["carry_forward_status"].eq("originating_change")
+    if not bool(same_period.eq(originating).all()):
+        raise ValueError(
+            "Originating scenarios must use the same source and story period; "
+            "different periods must be declared carry_forward_effect."
+        )
+    carry_rows = inventory["carry_forward_status"].eq("carry_forward_effect")
+    if bool(
+        inventory.loc[carry_rows, "source_thru_date"]
+        .ge(inventory.loc[carry_rows, "story_from_date"])
+        .any()
+    ):
+        raise ValueError(
+            "Carry-forward source periods must end before their story period begins."
+        )
     return inventory
+
+
+def _validate_scenario_inventory_enum(
+    inventory: pd.DataFrame,
+    column: str,
+    allowed_values: set[str],
+) -> None:
+    """Raise when a scenario-contract column contains unsupported values."""
+    unknown_values = sorted(set(inventory[column].astype(str)) - allowed_values)
+    if unknown_values:
+        raise ValueError(
+            f"Scenario inventory {column} values must be one of "
+            f"{sorted(allowed_values)}; unsupported={unknown_values}."
+        )
 
 
 def _load_period_split_plan(path: Path) -> pd.DataFrame:
@@ -3177,6 +3744,63 @@ def _scenario_readability_matrix(calendar: pd.DataFrame) -> list[dict[str, objec
             }
         )
     return matrix_rows
+
+
+def _scenario_isolation_matrix(inventory: pd.DataFrame) -> list[dict[str, object]]:
+    """Return protected independent-change and carry-forward counts by period.
+
+    Physical fixture rows are intentionally not counted here. Paired accounting
+    legs may share one economic-change ID, while carry-forward effects remain
+    visible in their later story period without being misclassified as a new
+    source change there.
+    """
+    rows: list[dict[str, object]] = []
+    source_period_keys = {
+        (str(row.portfolio), str(row.source_from_date), str(row.source_thru_date))
+        for row in inventory.itertuples(index=False)
+    }
+    story_period_keys = {
+        (str(row.portfolio), str(row.story_from_date), str(row.story_thru_date))
+        for row in inventory.itertuples(index=False)
+    }
+    for portfolio, from_date, thru_date in sorted(source_period_keys | story_period_keys):
+        source_rows = inventory[
+            inventory["portfolio"].astype(str).eq(portfolio)
+            & inventory["source_from_date"].astype(str).eq(from_date)
+            & inventory["source_thru_date"].astype(str).eq(thru_date)
+        ]
+        carry_rows = inventory[
+            inventory["portfolio"].astype(str).eq(portfolio)
+            & inventory["story_from_date"].astype(str).eq(from_date)
+            & inventory["story_thru_date"].astype(str).eq(thru_date)
+            & inventory["carry_forward_status"].eq("carry_forward_effect")
+        ]
+        independent_ids = sorted(
+            set(source_rows["independent_change_id"].astype(str))
+        )
+        source_scenario_keys = sorted(set(source_rows["scenario_key"].astype(str)))
+        carry_forward_keys = sorted(
+            set(carry_rows["scenario_key"].astype(str))
+        )
+        rows.append(
+            {
+                "portfolio": portfolio,
+                "source_from_date": from_date,
+                "source_thru_date": thru_date,
+                "independent_change_count": len(independent_ids),
+                "maximum_independent_changes": (
+                    _SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES
+                ),
+                "within_budget": (
+                    len(independent_ids)
+                    <= _SCENARIO_PERIOD_MAX_INDEPENDENT_CHANGES
+                ),
+                "independent_change_ids": independent_ids,
+                "source_scenario_keys": source_scenario_keys,
+                "visible_carry_forward_scenario_keys": carry_forward_keys,
+            }
+        )
+    return rows
 
 
 def _audit_period_split_plan(

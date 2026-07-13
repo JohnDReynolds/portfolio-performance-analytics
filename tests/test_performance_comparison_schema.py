@@ -68,10 +68,6 @@ class TestPerformanceComparisonSchema(unittest.TestCase):
             pc_cols.HOLDINGS_REQUIRED_COLUMNS,
             (pc_cols.PORTFOLIO_ID, pc_cols.SECURITY_ID, pc_cols.HOLDING_DATE),
         )
-        self.assertEqual(
-            pc_cols.CASH_REQUIRED_COLUMNS,
-            (pc_cols.PORTFOLIO_ID, pc_cols.CASH_DATE),
-        )
 
 
 if __name__ == "__main__":

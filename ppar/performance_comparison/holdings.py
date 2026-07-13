@@ -9,6 +9,7 @@ import polars as pl
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.base_currency import with_authoritative_base_currency
+from ppar.performance_comparison.currency_basis import normalize_currency_columns
 from ppar.performance_comparison import source_loader
 from ppar.performance_comparison.portfolio_performance import (
     PortfolioPerformanceLoader,
@@ -81,10 +82,12 @@ class HoldingsLoader:
             path=path,
             specification_path=self._specification.path,
         )
-        return with_authoritative_base_currency(
-            frame,
-            PortfolioPerformanceLoader(self._specification).load(snapshot_key),
-            dataset_name=pc_cols.HOLDINGS,
-            path=path,
-            specification_path=self._specification.path,
+        return normalize_currency_columns(
+            with_authoritative_base_currency(
+                frame,
+                PortfolioPerformanceLoader(self._specification).load(snapshot_key),
+                dataset_name=pc_cols.HOLDINGS,
+                path=path,
+                specification_path=self._specification.path,
+            )
         )

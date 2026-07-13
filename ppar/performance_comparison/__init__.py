@@ -11,7 +11,6 @@ from ppar.performance_comparison.bundle import (
     report_bundle_contract,
     report_bundle_validation_issues,
 )
-from ppar.performance_comparison.cash import CashLoader
 from ppar.performance_comparison import schema
 from ppar.performance_comparison.compare import PerformanceComparison
 from ppar.performance_comparison.explain import (
@@ -66,7 +65,6 @@ from ppar.performance_comparison.transactions import TransactionsLoader
 
 __all__ = [
     # Source-data loaders and comparison specification objects.
-    "CashLoader",
     "ComparisonFile",
     "ComparisonSnapshot",
     "FxRatesLoader",

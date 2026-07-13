@@ -15,9 +15,11 @@ import polars as pl
 import ppar.utilities as util
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
+from ppar.performance_comparison import conservation as _pc_conservation
 from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison import explain as _pc_explain
 from ppar.performance_comparison import findings as _pc_findings
+from ppar.performance_comparison import lineage as _pc_lineage
 from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_keys as _pc_review_keys
 from ppar.performance_comparison import review_model as _pc_review_model
@@ -144,11 +146,6 @@ _RECONSTRUCTION_ROLE_METADATA = {
 }
 _WORKBOOK_UNEXPLAINED_TOLERANCE = 0.0000005
 _WORKBOOK_PROMOTABLE_EVIDENCE_COLUMNS = {
-    pc_cols.CASH: {
-        pc_cols.CASH_BALANCE,
-        pc_cols.MARKET_VALUE,
-        pc_cols.BASE_MARKET_VALUE,
-    },
     pc_cols.FX_RATES: {pc_cols.FX_RATE},
     pc_cols.HOLDINGS: {
         pc_cols.ACCRUED,
@@ -629,6 +626,7 @@ def _shared_detail_sheets(
     """Return detail sheets shared by portfolio and security workflows."""
     causes_table = _workbook_underlying_causes_table(
         active_findings,
+        lineage_findings=findings,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
         primary_changes_table=primary_changes_table,
@@ -641,19 +639,28 @@ def _shared_detail_sheets(
             active_keys=table_cache.active_portfolio_keys(),
             reconstruction_cache=reconstruction_cache,
         )
-        _assert_portfolio_explanation_invariants(
-            primary_changes_table,
-            causes_table,
-            formula_rows,
+    else:
+        formula_rows = _workbook_security_reconstruction_formula_rows(
+            comparison_path,
+            active_keys=table_cache.active_security_keys(),
+            reconstruction_cache=reconstruction_cache,
         )
-        causes_table = _workbook_reconcile_displayed_explained_values(
-            primary_changes_table,
-            causes_table,
-        )
-        _assert_displayed_portfolio_explanation_reconciliation(
-            primary_changes_table,
-            causes_table,
-        )
+    _assert_explanation_invariants(
+        primary_changes_table,
+        causes_table,
+        formula_rows,
+        comparison_level=comparison_level,
+    )
+    causes_table = _workbook_reconcile_displayed_explained_values(
+        primary_changes_table,
+        causes_table,
+        comparison_level=comparison_level,
+    )
+    _assert_displayed_explanation_reconciliation(
+        primary_changes_table,
+        causes_table,
+        comparison_level=comparison_level,
+    )
     detail_sheets = [
         _pc_workbook.ReviewWorkbookSheet(
             artifact_name=_pc_review_model.PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT,
@@ -682,24 +689,44 @@ def _assert_portfolio_explanation_invariants(
     causes: pl.DataFrame,
     formula_rows: Sequence[Mapping[str, object]],
 ) -> None:
-    """Raise when portfolio explanation arithmetic or formula coverage diverges.
+    """Raise when portfolio explanation arithmetic or formula coverage diverges."""
+    _assert_explanation_invariants(
+        primary_changes,
+        causes,
+        formula_rows,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
+
+
+def _assert_explanation_invariants(
+    primary_changes: pl.DataFrame,
+    causes: pl.DataFrame,
+    formula_rows: Sequence[Mapping[str, object]],
+    *,
+    comparison_level: str,
+) -> None:
+    """Raise when explanation arithmetic or formula coverage diverges.
 
     Raises:
         PpaError: If cause impacts do not reconcile to the summary, a fully
             explained period does not reconcile to its performance difference,
             or a Modified Dietz formula component is absent from the causes.
     """
-    cause_totals = _workbook_cause_impact_totals(causes, displayed=False)
+    cause_totals = _workbook_cause_impact_totals(
+        causes,
+        displayed=False,
+        comparison_level=comparison_level,
+    )
     for row in primary_changes.iter_rows(named=True):
-        key = _workbook_period_key(row)
-        if not _workbook_is_real_period_key(key):
+        key = _workbook_primary_key(row, comparison_level)
+        if not _workbook_is_real_primary_key(key, comparison_level):
             continue
         explained = _number_or_none(row.get(_ESTIMATED_CAUSE_TOTAL)) or 0.0
         cause_total = cause_totals.get(key, 0.0)
         if abs(explained - cause_total) > 0.000000000001:
             raise PpaError(
-                "Portfolio explanation invariant failed for "
-                f"{_workbook_period_key_text(key)}: causes total {cause_total:.12f} "
+                "SN-03 explanation invariant failed for "
+                f"{_workbook_primary_key_text(key)}: causes total {cause_total:.12f} "
                 f"does not equal Explained Difference {explained:.12f}.",
                 999,
             )
@@ -708,15 +735,26 @@ def _assert_portfolio_explanation_invariants(
         performance_difference = _number_or_none(row.get(_PERFORMANCE_CHANGE)) or 0.0
         if abs(performance_difference - explained) > _WORKBOOK_UNEXPLAINED_TOLERANCE:
             raise PpaError(
-                "Fully Explained invariant failed for "
-                f"{_workbook_period_key_text(key)}: Performance Difference "
+                "SN-03 Fully Explained invariant failed for "
+                f"{_workbook_primary_key_text(key)}: Performance Difference "
                 f"{performance_difference:.12f} does not equal Explained Difference "
                 f"{explained:.12f}.",
                 999,
             )
+        unexplained = _number_or_none(row.get(_UNEXPLAINED_CHANGE))
+        if unexplained is not None and abs(unexplained) > _WORKBOOK_UNEXPLAINED_TOLERANCE:
+            raise PpaError(
+                "SN-03 Fully Explained invariant failed for "
+                f"{_workbook_primary_key_text(key)}: Unexplained Difference "
+                f"{unexplained:.12f} is not zero.",
+                999,
+            )
 
     expected_components = {
-        (*_workbook_period_key(row), _format_value(row.get(_pc_findings.SOURCE_COLUMN)))
+        (
+            *_workbook_primary_key(row, comparison_level),
+            _format_value(row.get(_pc_findings.SOURCE_COLUMN)),
+        )
         for row in formula_rows
         if _number_or_none(row.get(_ESTIMATED_IMPACT)) is not None
     }
@@ -724,7 +762,7 @@ def _assert_portfolio_explanation_invariants(
     for row in causes.iter_rows(named=True):
         components = _format_value(row.get(_WORKBOOK_RECONSTRUCTION_COMPONENTS))
         observed_components.update(
-            (*_workbook_period_key(row), component)
+            (*_workbook_primary_key(row, comparison_level), component)
             for component in components.split("|")
             if component
         )
@@ -734,10 +772,11 @@ def _assert_portfolio_explanation_invariants(
     )
     if missing_components:
         missing = missing_components[0]
+        key_length = 4 if comparison_level == SECURITY_COMPARISON_LEVEL else 3
         raise PpaError(
             "Modified Dietz evidence invariant failed for "
-            f"{_workbook_period_key_text(missing[:3])}: formula component "
-            f"{missing[3]!r} is absent from Performance Difference Causes.",
+            f"{_workbook_primary_key_text(missing[:key_length])}: formula component "
+            f"{missing[key_length]!r} is absent from Performance Difference Causes.",
             999,
         )
 
@@ -745,24 +784,32 @@ def _assert_portfolio_explanation_invariants(
 def _workbook_reconcile_displayed_explained_values(
     primary_changes: pl.DataFrame,
     causes: pl.DataFrame,
+    *,
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
 ) -> pl.DataFrame:
     """Allocate six-decimal presentation residuals to a counted cause row."""
     if causes.is_empty():
         return causes
     target_by_key = {
-        _workbook_period_key(row): round(
+        _workbook_primary_key(row, comparison_level): round(
             _number_or_none(row.get(_ESTIMATED_CAUSE_TOTAL)) or 0.0,
             6,
         )
         for row in primary_changes.iter_rows(named=True)
-        if _workbook_is_real_period_key(_workbook_period_key(row))
+        if _workbook_is_real_primary_key(
+            _workbook_primary_key(row, comparison_level),
+            comparison_level,
+        )
     }
     rows = causes.to_dicts()
-    indexes_by_key: dict[tuple[object, object, object], list[int]] = {}
+    indexes_by_key: dict[tuple[object, ...], list[int]] = {}
     for index, row in enumerate(rows):
         if _number_or_none(row.get(_ESTIMATED_IMPACT)) is None:
             continue
-        indexes_by_key.setdefault(_workbook_period_key(row), []).append(index)
+        indexes_by_key.setdefault(
+            _workbook_primary_key(row, comparison_level),
+            [],
+        ).append(index)
     for key, target in target_by_key.items():
         indexes = indexes_by_key.get(key, [])
         displayed_total = round(
@@ -791,18 +838,36 @@ def _assert_displayed_portfolio_explanation_reconciliation(
     primary_changes: pl.DataFrame,
     causes: pl.DataFrame,
 ) -> None:
+    """Raise unless portfolio six-decimal cause totals equal summary totals."""
+    _assert_displayed_explanation_reconciliation(
+        primary_changes,
+        causes,
+        comparison_level=PORTFOLIO_COMPARISON_LEVEL,
+    )
+
+
+def _assert_displayed_explanation_reconciliation(
+    primary_changes: pl.DataFrame,
+    causes: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> None:
     """Raise unless serialized six-decimal cause totals equal summary totals."""
-    cause_totals = _workbook_cause_impact_totals(causes, displayed=True)
+    cause_totals = _workbook_cause_impact_totals(
+        causes,
+        displayed=True,
+        comparison_level=comparison_level,
+    )
     for row in primary_changes.iter_rows(named=True):
-        key = _workbook_period_key(row)
-        if not _workbook_is_real_period_key(key):
+        key = _workbook_primary_key(row, comparison_level)
+        if not _workbook_is_real_primary_key(key, comparison_level):
             continue
         explained = round(_number_or_none(row.get(_ESTIMATED_CAUSE_TOTAL)) or 0.0, 6)
         cause_total = cause_totals.get(key, 0.0)
         if cause_total != explained:
             raise PpaError(
-                "Displayed portfolio explanation invariant failed for "
-                f"{_workbook_period_key_text(key)}: workbook causes total "
+                "SN-03 displayed explanation invariant failed for "
+                f"{_workbook_primary_key_text(key)}: workbook causes total "
                 f"{cause_total:.6f} does not equal workbook Explained Difference "
                 f"{explained:.6f}.",
                 999,
@@ -813,29 +878,39 @@ def _workbook_cause_impact_totals(
     causes: pl.DataFrame,
     *,
     displayed: bool,
-) -> dict[tuple[object, object, object], float]:
-    """Return cause impact totals by portfolio period."""
-    totals: dict[tuple[object, object, object], float] = {}
+    comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
+) -> dict[tuple[object, ...], float]:
+    """Return cause impact totals at the configured report grain."""
+    totals: dict[tuple[object, ...], float] = {}
     for row in causes.iter_rows(named=True):
         impact = _number_or_none(row.get(_ESTIMATED_IMPACT))
         if impact is None:
             continue
         value = round(impact, 6) if displayed else impact
-        key = _workbook_period_key(row)
+        key = _workbook_primary_key(row, comparison_level)
         totals[key] = totals.get(key, 0.0) + value
     if displayed:
         return {key: round(value, 6) for key, value in totals.items()}
     return totals
 
 
-def _workbook_is_real_period_key(key: Sequence[object]) -> bool:
-    """Return whether a workbook key represents an actual dated period."""
-    return len(key) >= 3 and key[1] is not None and key[2] is not None
+def _workbook_is_real_primary_key(
+    key: Sequence[object],
+    comparison_level: str,
+) -> bool:
+    """Return whether a workbook key represents an actual review period."""
+    if len(key) < 3 or key[1] is None or key[2] is None:
+        return False
+    return not (
+        comparison_level == SECURITY_COMPARISON_LEVEL
+        and (len(key) < 4 or key[3] is None)
+    )
 
 
-def _workbook_period_key_text(key: Sequence[object]) -> str:
-    """Return a concise portfolio-period label for invariant failures."""
-    return f"{key[0]} {key[1]} through {key[2]}"
+def _workbook_primary_key_text(key: Sequence[object]) -> str:
+    """Return a concise review-period label for invariant failures."""
+    security = f" security {key[3]}" if len(key) > 3 else ""
+    return f"{key[0]}{security} {key[1]} through {key[2]}"
 
 
 def _workbook_portfolio_changes_table(
@@ -2003,13 +2078,28 @@ def _workbook_ranked_changed_rows_for_level(
 def _workbook_underlying_causes_table(
     findings: pl.DataFrame,
     *,
+    lineage_findings: pl.DataFrame | None = None,
     comparison_path: util.PathLike | None = None,
     comparison_level: str = PORTFOLIO_COMPARISON_LEVEL,
     primary_changes_table: pl.DataFrame | None = None,
     table_cache: _WorkbookTableCache | None = None,
     reconstruction_cache: _WorkbookReconstructionCache | None = None,
 ) -> pl.DataFrame:
-    """Return input rows that may directly explain performance differences."""
+    """Return input rows that may directly explain performance differences.
+
+    Args:
+        findings: Active findings used to construct visible cause rows.
+        lineage_findings: Complete findings, including suppressed rows, used
+            to bind cause rows to the persisted audit-trail fingerprints.
+        comparison_path: Optional comparison YAML path.
+        comparison_level: Portfolio or security comparison grain.
+        primary_changes_table: Optional precomputed primary changes table.
+        table_cache: Optional shared workbook table cache.
+        reconstruction_cache: Optional shared return-reconstruction cache.
+
+    Returns:
+        Internal cause table with conservation and source-lineage metadata.
+    """
     reconstruction_cache = _resolved_reconstruction_cache(
         comparison_path,
         reconstruction_cache,
@@ -2157,11 +2247,37 @@ def _workbook_underlying_causes_table(
         )
     )
     if not rows:
-        return _workbook_empty_changed_item_table()
-    return _workbook_sorted_table(
-        pl.DataFrame(rows, infer_schema_length=None),
-        _workbook_left_review_sort_columns(),
+        original_table = _workbook_empty_changed_item_table()
+    else:
+        original_table = _workbook_sorted_table(
+            pl.DataFrame(rows, infer_schema_length=None),
+            _workbook_left_review_sort_columns(),
+        )
+    return _workbook_cause_safety_table(
+        original_table,
+        findings if lineage_findings is None else lineage_findings,
+        comparison_level=comparison_level,
     )
+
+
+def _workbook_cause_safety_table(
+    causes: pl.DataFrame,
+    findings: pl.DataFrame,
+    *,
+    comparison_level: str,
+) -> pl.DataFrame:
+    """Return cause rows with lineage and conservation invariants enforced."""
+    lineage_table = _pc_lineage.cause_lineage_table(causes, findings)
+    conservation_table = _pc_conservation.cause_conservation_table(
+        lineage_table,
+        comparison_level=comparison_level,
+    )
+    _pc_conservation.assert_cause_conservation(
+        lineage_table,
+        conservation_table,
+        comparison_level=comparison_level,
+    )
+    return conservation_table
 
 
 def _workbook_formula_source_attributed_rows(
@@ -3328,8 +3444,15 @@ def _workbook_changed_item_row(
             comparison_path=comparison_path,
         ),
         _pc_findings.DATASET: row.get(_pc_findings.DATASET),
+        _pc_findings.SOURCE_RECORD_LOCATOR: row.get(
+            _pc_findings.SOURCE_RECORD_LOCATOR
+        ),
         _pc_findings.SOURCE_COLUMN: row.get(_pc_findings.SOURCE_COLUMN),
         _pc_findings.FINDING_CODE: row.get(_pc_findings.FINDING_CODE),
+        _pc_findings.TRANSACTION_CODE: row.get(_pc_findings.TRANSACTION_CODE),
+        _pc_findings.TRANSACTION_CATEGORY: row.get(
+            _pc_findings.TRANSACTION_CATEGORY
+        ),
         _pc_explain.REVIEW_RANK: row.get(_pc_explain.REVIEW_RANK),
         _USE_PRIORITY: _workbook_use_priority(row_use),
         _WORKBOOK_RECONSTRUCTION_COMPONENTS: row.get(
@@ -3499,7 +3622,6 @@ def _workbook_review_note(
             source_column,
         ),
         pc_cols.HOLDINGS: _workbook_review_change_action("holding", source_column),
-        pc_cols.CASH: _workbook_review_change_action("cash", source_column),
     }
     return dataset_actions.get(
         dataset,
@@ -3523,8 +3645,6 @@ def _workbook_source_row_explanation(
         return _workbook_transaction_component_explanation(row, source_column)
     if dataset == pc_cols.SPLITS and source_column == pc_cols.SPLIT_FACTOR:
         return _workbook_split_factor_explanation(row)
-    if dataset == pc_cols.CASH:
-        return _workbook_cash_detail_explanation(row, source_column)
     return ""
 
 
@@ -3654,13 +3774,6 @@ def _workbook_review_guidance(
             "holding_impact_methods.market_value.denominator_source in "
             f"{yaml_path}."
         )
-    if dataset == pc_cols.CASH:
-        if source_column not in {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}:
-            return f"No supported YAML impact method exists yet for {dataset_column}."
-        return (
-            f"Specify the YAML cash_impact_methods.{source_column}.method and "
-            f"cash_impact_methods.{source_column}.denominator_source in {yaml_path}."
-        )
     if dataset == pc_cols.FX_RATES:
         if source_column != pc_cols.FX_RATE:
             return f"No supported YAML impact method exists yet for {dataset_column}."
@@ -3685,7 +3798,7 @@ def _workbook_related_input_guidance(
         return _workbook_holding_detail_explanation(row, source_column)
     if dataset == pc_cols.TRANSACTIONS:
         return _workbook_transaction_component_explanation(row, source_column)
-    return "This source-data change supports the related counted row."
+    return "Review-only supporting evidence for the related counted row."
 
 
 def _workbook_transaction_reconstruction_flow_guidance(
@@ -3817,18 +3930,6 @@ def _workbook_fx_rate_support_explanation(row: Mapping[str, object]) -> str:
         f"{pair_prefix} {rate_change}{quote_suffix}; "
         f"{security_prefix}{target_field} shows the counted {to_currency or 'base-currency'} "
         f"effect of {_workbook_change_amount_text(base_value_change)}."
-    )
-
-
-def _workbook_cash_detail_explanation(
-    row: Mapping[str, object],
-    source_column: str,
-) -> str:
-    """Return plain-language explanation for cash source rows."""
-    change_value = _workbook_row_change_value(row)
-    return (
-        f"Cash {source_column} {_workbook_increased_or_decreased(change_value)} "
-        f"by {_workbook_change_amount_text(change_value)}."
     )
 
 
@@ -4054,11 +4155,6 @@ def _workbook_missing_impact_input_setup(dataset: str, source_column: str) -> st
             "This holding changed. The beginning or ending portfolio value row "
             "shows the counted effect."
         )
-    if dataset == pc_cols.CASH:
-        return (
-            "Configured cash impact method is present, but this row still cannot "
-            "be estimated. Review return denominator and cash input values."
-        )
     return (
         "Configured YAML impact method is present, but this row still cannot be "
         "estimated. Review the inputs required by that method."
@@ -4071,8 +4167,6 @@ def _workbook_missing_impact_method_action(dataset: str, source_column: str) -> 
         return _workbook_add_method_action("transaction", source_column)
     if dataset == pc_cols.HOLDINGS:
         return _workbook_add_method_action("holding", source_column)
-    if dataset == pc_cols.CASH:
-        return _workbook_add_method_action("cash", source_column)
     return _workbook_add_method_action("input", source_column)
 
 
@@ -4119,8 +4213,11 @@ def _workbook_empty_changed_item_table() -> pl.DataFrame:
             _REVIEW_NOTE: pl.String,
             _REVIEW_GUIDANCE: pl.String,
             _pc_findings.DATASET: pl.String,
+            _pc_findings.SOURCE_RECORD_LOCATOR: pl.String,
             _pc_findings.SOURCE_COLUMN: pl.String,
             _pc_findings.FINDING_CODE: pl.String,
+            _pc_findings.TRANSACTION_CODE: pl.String,
+            _pc_findings.TRANSACTION_CATEGORY: pl.String,
             _pc_explain.REVIEW_RANK: pl.Int64,
             _USE_PRIORITY: pl.Int64,
             _REVIEW_KEY: pl.String,

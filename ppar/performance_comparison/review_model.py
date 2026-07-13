@@ -21,6 +21,7 @@ SECURITY_AUDIT_FILE_STEM: Final[str] = "security_audit"
 
 PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
 PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT: Final[str] = "performance_difference_causes"
+CAUSE_LINEAGE_ARTIFACT: Final[str] = "cause_lineage"
 X_REF_ISSUES_ARTIFACT: Final[str] = "x_ref_issues"
 SOURCE_DETAIL_ARTIFACT: Final[str] = "raw_audit_trail"
 TRANSACTION_MATCHING_DIAGNOSTICS_ARTIFACT: Final[str] = (

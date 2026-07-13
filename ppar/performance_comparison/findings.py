@@ -17,7 +17,6 @@ import polars as pl
 
 # Project imports
 from ppar.performance_comparison.methods import (
-    CashImpactMethod,
     ContributionImpactMethod,
     FxRateImpactMethod,
     HoldingImpactMethod,
@@ -47,6 +46,7 @@ __all__ = [
     "THRU_DATE",
     "INPUT_DATE",
     "SOURCE_FILE",
+    "SOURCE_RECORD_LOCATOR",
     "SOURCE_COLUMN",
     "FROM_CURRENCY",
     "TO_CURRENCY",
@@ -65,8 +65,6 @@ __all__ = [
     "TRANSACTION_MATCH_STATUS_AMBIGUOUS_FALLBACK_MATCH",
     "IMPACT_POLICY",
     "IMPACT_POLICY_EVIDENCE_ONLY_PREFIX",
-    "IMPACT_POLICY_CASH_BALANCE",
-    "IMPACT_POLICY_CASH_MARKET_VALUE",
     "IMPACT_POLICY_HOLDING_ACCRUED",
     "IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD",
     "IMPACT_POLICY_HOLDING_MARKET_VALUE",
@@ -101,7 +99,6 @@ __all__ = [
     "PC_HOLD_MV",
     "PC_HOLD_COST",
     "PC_HOLD_ACCR",
-    "PC_CASH_MV",
     "PC_PRICE",
     "PC_FX_RATE",
     "PC_TXN_ADD",
@@ -140,6 +137,7 @@ FROM_DATE = "from_date"
 THRU_DATE = "thru_date"
 INPUT_DATE = "input_date"
 SOURCE_FILE = "source_file"
+SOURCE_RECORD_LOCATOR = "source_record_locator"
 SOURCE_COLUMN = "source_column"
 FROM_CURRENCY = "from_currency"
 TO_CURRENCY = "to_currency"
@@ -151,12 +149,6 @@ TRANSACTION_SEMANTICS_SOURCE = "transaction_semantics_source"
 TRANSACTION_MATCH_STATUS = "transaction_match_status"
 IMPACT_POLICY = "impact_policy"
 IMPACT_POLICY_EVIDENCE_ONLY_PREFIX = "evidence_only:"
-IMPACT_POLICY_CASH_BALANCE = (
-    f"cash_balance:{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}"
-)
-IMPACT_POLICY_CASH_MARKET_VALUE = (
-    f"cash_market_value:{CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value}"
-)
 IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD = (
     "portfolio_source_field:"
     f"{ContributionImpactMethod.SOURCE_FIELD_DELTA_OVER_BEGIN_MARKET_VALUE.value}"
@@ -224,7 +216,6 @@ PC_HOLD_QTY: Final[str] = "PC-HOLD-QTY"
 PC_HOLD_MV: Final[str] = "PC-HOLD-MV"
 PC_HOLD_COST: Final[str] = "PC-HOLD-COST"
 PC_HOLD_ACCR: Final[str] = "PC-HOLD-ACCR"
-PC_CASH_MV: Final[str] = "PC-CASH-MV"
 PC_PRICE: Final[str] = "PC-PRICE"
 PC_FX_RATE: Final[str] = "PC-FX-RATE"
 PC_TXN_ADD: Final[str] = "PC-TXN-ADD"
@@ -312,6 +303,7 @@ FINDING_COLUMNS: Final[tuple[str, ...]] = (
     THRU_DATE,
     INPUT_DATE,
     SOURCE_FILE,
+    SOURCE_RECORD_LOCATOR,
     SOURCE_COLUMN,
     FROM_CURRENCY,
     TO_CURRENCY,
@@ -353,6 +345,10 @@ class Finding:
         input_date: Optional date represented by the changed input row.
         source_file: Optional configured source file associated with the
             finding.
+        source_record_locator: Stable logical-record identifier within the
+            configured source dataset. It is based on normalized comparison
+            keys rather than a physical row number, so file reordering does
+            not break lineage.
         source_column: Optional normalized column associated with the finding.
         from_currency: Optional local/source currency for FX-rate findings.
         to_currency: Optional quote/base currency for FX-rate findings.
@@ -398,6 +394,7 @@ class Finding:
     thru_date: object | None = None
     input_date: object | None = None
     source_file: str | None = None
+    source_record_locator: str | None = None
     source_column: str | None = None
     from_currency: object | None = None
     to_currency: object | None = None
@@ -434,6 +431,7 @@ class Finding:
             THRU_DATE: self.thru_date,
             INPUT_DATE: self.input_date,
             SOURCE_FILE: self.source_file,
+            SOURCE_RECORD_LOCATOR: self.source_record_locator,
             SOURCE_COLUMN: self.source_column,
             FROM_CURRENCY: self.from_currency,
             TO_CURRENCY: self.to_currency,

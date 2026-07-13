@@ -25,8 +25,6 @@ from ppar.performance_comparison.findings import (
     FROM_CURRENCY,
     FROM_DATE,
     IMPACT_POLICY,
-    IMPACT_POLICY_CASH_BALANCE,
-    IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
@@ -51,6 +49,7 @@ from ppar.performance_comparison.findings import (
     SNAPSHOT_B_VALUE,
     SOURCE_COLUMN,
     SOURCE_FILE,
+    SOURCE_RECORD_LOCATOR,
     SUPPRESSED,
     TARGET_OUTPUT,
     THRU_DATE,
@@ -67,7 +66,6 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_SEMANTICS_SOURCE,
 )
 from ppar.performance_comparison.methods import (
-    CashImpactMethod,
     ContributionImpactMethod,
     FxRateImpactMethod,
     ModifiedDietzDoubleCountPolicy,
@@ -104,7 +102,6 @@ EVIDENCE_GROUP = "evidence_group"
 FX_RATE_FINDING_COUNT = "fx_rate_finding_count"
 TRANSACTION_FINDING_COUNT = "transaction_finding_count"
 HOLDING_FINDING_COUNT = "holding_finding_count"
-CASH_FINDING_COUNT = "cash_finding_count"
 HAS_SUPPRESSED_FINDINGS = "has_suppressed_findings"
 PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     PORTFOLIO_ID,
@@ -119,7 +116,6 @@ PORTFOLIO_PERIOD_SUMMARY_COLUMNS = (
     FX_RATE_FINDING_COUNT,
     TRANSACTION_FINDING_COUNT,
     HOLDING_FINDING_COUNT,
-    CASH_FINDING_COUNT,
     HAS_SUPPRESSED_FINDINGS,
 )
 PORTFOLIO_PERIOD_EVIDENCE_BREAKDOWN_COLUMNS = (
@@ -164,8 +160,6 @@ IMPACT_CONFIDENCE = "impact_confidence"
 IMPACT_METHOD = "impact_method"
 IMPACT_MESSAGE = "impact_message"
 IMPACT_BASIS_NO_ESTIMATE = "no_estimate"
-IMPACT_BASIS_CASH_BALANCE = "cash_balance"
-IMPACT_BASIS_CASH_MARKET_VALUE = "cash_market_value"
 IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD = "portfolio_source_field"
 IMPACT_BASIS_HOLDING_ACCRUED = "holding_accrued"
 IMPACT_BASIS_HOLDING_MARKET_VALUE = "holding_market_value"
@@ -211,15 +205,11 @@ IMPACT_METHOD_HOLDING_QUANTITY_UNIT_MARKET_VALUE_OVER_DENOMINATOR = HoldingImpac
 IMPACT_METHOD_PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
 )
-IMPACT_METHOD_CASH_DELTA_OVER_DENOMINATOR = (
-    CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
-)
 ROOT_CAUSE_AREA = "root_cause_area"
 ROOT_CAUSE_SECURITY_RETURN_OR_CONTRIBUTION = "security_return_or_contribution"
 ROOT_CAUSE_MARKET_VALUE_OR_HOLDING = "market_value_or_holding"
 ROOT_CAUSE_TRANSACTION_ACTIVITY = "transaction_activity"
 ROOT_CAUSE_FX_RATE = "fx_rate"
-ROOT_CAUSE_CASH = "cash"
 ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT = "portfolio_performance_input"
 ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE = "classification_or_reference"
 ROOT_CAUSE_UNEXPLAINED = "unexplained"
@@ -268,6 +258,7 @@ PORTFOLIO_PERIOD_EVIDENCE_RANKING_COLUMNS = (
     EVIDENCE_ROLE,
     SECURITY_ID,
     SOURCE_FILE,
+    SOURCE_RECORD_LOCATOR,
     INPUT_DATE,
     SOURCE_COLUMN,
     FROM_CURRENCY,
@@ -455,7 +446,6 @@ def portfolio_period_summary(
                 FX_RATE_FINDING_COUNT: dataset_counts.get(pc_cols.FX_RATES, 0),
                 TRANSACTION_FINDING_COUNT: dataset_counts.get(pc_cols.TRANSACTIONS, 0),
                 HOLDING_FINDING_COUNT: dataset_counts.get(pc_cols.HOLDINGS, 0),
-                CASH_FINDING_COUNT: dataset_counts.get(pc_cols.CASH, 0),
                 HAS_SUPPRESSED_FINDINGS: _has_suppressed_findings(related_all),
             }
         )
@@ -1456,11 +1446,6 @@ def _evidence_breakdown_rows(
             _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.HOLDINGS),
         ),
         (
-            DIRECT_INPUT,
-            pc_cols.CASH,
-            _role_dataset_count(related_findings, DIRECT_INPUT, pc_cols.CASH),
-        ),
-        (
             RELATED_OUTPUT,
             pc_cols.SECURITY_PERFORMANCE,
             _role_dataset_count(
@@ -1615,6 +1600,7 @@ def _ranked_evidence_row(
         EVIDENCE_ROLE: finding[EVIDENCE_ROLE],
         SECURITY_ID: finding[SECURITY_ID],
         SOURCE_FILE: finding[SOURCE_FILE],
+        SOURCE_RECORD_LOCATOR: finding[SOURCE_RECORD_LOCATOR],
         INPUT_DATE: finding[INPUT_DATE],
         SOURCE_COLUMN: finding[SOURCE_COLUMN],
         FROM_CURRENCY: finding[FROM_CURRENCY],
@@ -2009,28 +1995,6 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "classification effects."
             ),
         }
-    if _is_cash_impact_candidate(row):
-        delta_float = _number_value(delta)
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        assert delta_float is not None
-        assert denominator is not None
-        impact_basis = (
-            IMPACT_BASIS_CASH_BALANCE
-            if row[SOURCE_COLUMN] == pc_cols.CASH_BALANCE
-            else IMPACT_BASIS_CASH_MARKET_VALUE
-        )
-        return {
-            ESTIMATED_RETURN_IMPACT: delta_float / denominator,
-            IMPACT_BASIS: impact_basis,
-            IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_LOW,
-            IMPACT_METHOD: IMPACT_METHOD_CASH_DELTA_OVER_DENOMINATOR,
-            IMPACT_MESSAGE: (
-                "Approximate impact uses the cash source-field delta divided "
-                "by the return denominator. Treat as a low-confidence screening "
-                "estimate because cash balances may reflect transactions, FX, "
-                "income, fees, or booking changes."
-            ),
-        }
     if _is_price_weighted_impact_candidate(row):
         delta_float = _number_value(delta)
         snapshot_a_price = _number_value(row[SNAPSHOT_A_VALUE])
@@ -2202,30 +2166,6 @@ def _is_holding_quantity_unit_market_value_impact_candidate(
     )
 
 
-def _is_cash_impact_candidate(row: dict[str, object]) -> bool:
-    """Return whether a cash row supports a rough return impact estimate."""
-    delta = row[DELTA_B_MINUS_A]
-    denominator = row[RETURN_DENOMINATOR]
-    source_column = row[SOURCE_COLUMN]
-    if not isinstance(source_column, str):
-        return False
-    expected_policy = {
-        pc_cols.CASH_BALANCE: IMPACT_POLICY_CASH_BALANCE,
-        pc_cols.MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
-        pc_cols.BASE_MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
-    }.get(source_column)
-    return (
-        row[DATASET] == pc_cols.CASH
-        and expected_policy is not None
-        and row.get(IMPACT_POLICY) == expected_policy
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(denominator, (int, float))
-        and not isinstance(denominator, bool)
-        and float(denominator) != 0.0
-    )
-
-
 def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
     """Return whether a price row supports a weighted price-return estimate."""
     delta = row[DELTA_B_MINUS_A]
@@ -2292,7 +2232,6 @@ def _root_cause_area(row: dict[str, object]) -> str:
         pc_cols.HOLDINGS: ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
         pc_cols.TRANSACTIONS: ROOT_CAUSE_TRANSACTION_ACTIVITY,
         pc_cols.FX_RATES: ROOT_CAUSE_FX_RATE,
-        pc_cols.CASH: ROOT_CAUSE_CASH,
         pc_cols.PORTFOLIO_PERFORMANCE: ROOT_CAUSE_PORTFOLIO_PERFORMANCE_INPUT,
     }
     dataset = row[DATASET]
@@ -2500,7 +2439,6 @@ def _coverage_missing_impact_inputs(
                 )
         elif cause_area in {
             ROOT_CAUSE_MARKET_VALUE_OR_HOLDING,
-            ROOT_CAUSE_CASH,
             ROOT_CAUSE_CLASSIFICATION_OR_REFERENCE,
         }:
             _extend_unique(missing_inputs, ["return-impact method"])
@@ -2626,10 +2564,6 @@ def _summary_impact_basis(rows: list[dict[str, object]]) -> str:
         return IMPACT_BASIS_HOLDING_ACCRUED
     if IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE in bases:
         return IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE
-    if IMPACT_BASIS_CASH_BALANCE in bases:
-        return IMPACT_BASIS_CASH_BALANCE
-    if IMPACT_BASIS_CASH_MARKET_VALUE in bases:
-        return IMPACT_BASIS_CASH_MARKET_VALUE
     if IMPACT_BASIS_PRICE_WEIGHTED in bases:
         return IMPACT_BASIS_PRICE_WEIGHTED
     return IMPACT_BASIS_NO_ESTIMATE
@@ -3177,7 +3111,6 @@ def _dataset_priority_score(dataset: str) -> int:
         pc_cols.PORTFOLIO_PERFORMANCE: 40,
         pc_cols.TRANSACTIONS: 35,
         pc_cols.HOLDINGS: 35,
-        pc_cols.CASH: 30,
         pc_cols.FX_RATES: 25,
         pc_cols.SECURITY_PERFORMANCE: 10,
     }.get(dataset, 0)
@@ -3223,7 +3156,6 @@ def _empty_portfolio_period_summary() -> pl.DataFrame:
             FX_RATE_FINDING_COUNT: pl.UInt32,
             TRANSACTION_FINDING_COUNT: pl.UInt32,
             HOLDING_FINDING_COUNT: pl.UInt32,
-            CASH_FINDING_COUNT: pl.UInt32,
             HAS_SUPPRESSED_FINDINGS: pl.Boolean,
         }
     )
@@ -3294,6 +3226,7 @@ def _empty_portfolio_period_evidence_ranking() -> pl.DataFrame:
             EVIDENCE_ROLE: pl.String,
             SECURITY_ID: pl.String,
             SOURCE_FILE: pl.String,
+            SOURCE_RECORD_LOCATOR: pl.String,
             INPUT_DATE: pl.Date,
             SOURCE_COLUMN: pl.String,
             FROM_CURRENCY: pl.String,

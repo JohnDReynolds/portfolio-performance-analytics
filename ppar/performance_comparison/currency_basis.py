@@ -7,6 +7,9 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Final
 
+# Third-party imports
+import polars as pl
+
 # Project imports
 from ppar.performance_comparison import schema as pc_cols
 
@@ -18,6 +21,7 @@ __all__ = [
     "CURRENCY_PAIR_BASIS",
     "base_currency_monetary_value",
     "monetary_field_currency_basis",
+    "normalize_currency_columns",
     "row_uses_foreign_currency",
 ]
 
@@ -46,8 +50,6 @@ _ROW_CURRENCY_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
     (pc_cols.TRANSACTIONS, pc_cols.PRICE),
     (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
     (pc_cols.TRANSACTIONS, pc_cols.COMMISSION),
-    (pc_cols.CASH, pc_cols.CASH_BALANCE),
-    (pc_cols.CASH, pc_cols.MARKET_VALUE),
 }
 _PORTFOLIO_BASE_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
     (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.BEGIN_MARKET_VALUE),
@@ -62,8 +64,32 @@ _PORTFOLIO_BASE_MONETARY_FIELDS: Final[set[tuple[str, str]]] = {
     (pc_cols.HOLDINGS, pc_cols.BASE_MARKET_VALUE),
     (pc_cols.HOLDINGS, pc_cols.BASE_ACCRUED),
     (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT),
-    (pc_cols.CASH, pc_cols.BASE_MARKET_VALUE),
 }
+_CURRENCY_COLUMNS: Final[tuple[str, ...]] = (
+    pc_cols.CURRENCY,
+    pc_cols.BASE_CURRENCY,
+    pc_cols.FROM_CURRENCY,
+    pc_cols.TO_CURRENCY,
+)
+
+
+def normalize_currency_columns(frame: pl.DataFrame) -> pl.DataFrame:
+    """Return a frame with supplied currency codes stripped and uppercased.
+
+    Args:
+        frame: Normalized source frame.
+
+    Returns:
+        Frame with existing currency columns normalized. Blank values remain
+        blank so required-value validation can report them explicitly.
+    """
+    columns = [column for column in _CURRENCY_COLUMNS if column in frame.columns]
+    if not columns:
+        return frame
+    return frame.with_columns(
+        pl.col(column).cast(pl.String).str.strip_chars().str.to_uppercase().alias(column)
+        for column in columns
+    )
 
 
 def monetary_field_currency_basis(dataset: object, source_column: object) -> str | None:

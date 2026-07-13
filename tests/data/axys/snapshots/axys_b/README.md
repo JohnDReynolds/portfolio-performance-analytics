@@ -23,9 +23,8 @@ Files:
 - classification_lookup.csv: lookup-table classification source
 - unreachable_target_secperf.csv: intentionally unreconcilable validation rows
 - transactions.csv: posted transaction-style activity, >=100 rows per portfolio
-- holdings.csv: month-end holding snapshots, including CASHUSD
+- holdings.csv: month-end holding snapshots, including all cash balances as CASHUSD
 - fx_rates.csv: daily FX rates
-- cash.csv: month-end cash balances by portfolio/currency
 
 Shared fixture configuration lives one directory above this snapshot:
 

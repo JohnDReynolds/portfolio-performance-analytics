@@ -138,20 +138,26 @@ Deliverables even though the Axys/APX seed is accepted.
 
 ### Safety-Net Implementation Program
 
-Phase 1 is complete: the twelve invariants now have stable identifiers, scoped
-guarantees, failure classifications, current-control inventories, and explicit
-gaps. The executable catalog lives in
+Phases 1 through 6 are complete. The twelve invariants have stable identifiers,
+scoped guarantees, failure classifications, current-control inventories, and
+explicit gaps. Conservation now enforces no lost differences, no double
+counting, and complete Fully Explained arithmetic at portfolio and security
+grain. The Phase 2 cleanup also removed the overlapping standalone `cash`
+dataset; all cash balances now use the holdings contract. The executable catalog
+now also enforces continuity visibility, currency/unit safety, and dated-input
+period boundaries. Phase 4 adds stable logical source-record locators,
+bidirectional cause lineage, and role-derived fail-closed policy coverage. It lives in
 `ppar.performance_comparison.safety_invariants`; the design and implementation
 sequence live in
 [`performance_comparison_safety_invariants.md`](performance_comparison_safety_invariants.md).
-
-Remaining sequence:
-
-1. Phase 2 — conservation of explanations (`SN-01` through `SN-03`);
-2. Phase 3 — financial input integrity (`SN-04`, `SN-06`, and `SN-07`);
-3. Phase 4 — lineage and policy coverage (`SN-05` and `SN-12`);
-4. Phase 5 — demo preservation and isolation (`SN-08` and `SN-09`); and
-5. Phase 6 — report parity and determinism (`SN-10` and `SN-11`).
+Phase 5 adds a validated demo-story contract: actual source periods, expected
+report outcomes, independent economic-change IDs, and explicit carry-forward
+effects now fail closed when fixtures drift.
+Phase 6 adds canonical typed fingerprints for persisted CSV tables and canonical
+display fingerprints for every review sheet. Bundle validation now fails when
+HTML, XLSX, CSV, or manifest semantics drift. Manifest version 3 declares the
+only volatile timestamp/package metadata exclusions, and repeat-run tests prove
+normalized outputs are deterministic.
 
 ### Near-Term Release Hardening
 

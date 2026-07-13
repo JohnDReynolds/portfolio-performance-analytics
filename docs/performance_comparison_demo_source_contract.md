@@ -80,11 +80,10 @@ the target performance dataset:
 | `security_performance` | `comparison.level` is `security`, or `security_return_reconstruction` is configured. | `portfolio_id`, `security_id`, `from_date`, `thru_date`, `security_return` |
 | `holdings` | Portfolio or security return reconstruction is configured, or holding fields are used as performance explanations. | `portfolio_id`, `security_id`, `holding_date` |
 | `transactions` | Portfolio or security return reconstruction is configured, or transaction fields are used as performance explanations. | `portfolio_id`, `security_id`, `transaction_date` |
-| `cash` | Cash rows are used as source-data evidence. | `portfolio_id`, `cash_date` |
 | `fx_rates` | Optional evidence links a rate change to a counted base-currency value. | `from_currency`, `to_currency`, `rate_date`, `fx_rate`; add `portfolio_id` and `local_exposure` for report linkage |
 
 Currency basis follows the normalized field name and dataset scope. In
-holdings, transactions, and cash, unqualified monetary fields use the row
+holdings and transactions, unqualified monetary fields use the row
 `currency`; `base_` fields use portfolio `base_currency`. Portfolio/security
 performance monetary fields are inherently base-currency values and remain
 unprefixed. `fx_rates.fx_rate` is `to_currency` units per one `from_currency`
@@ -92,14 +91,21 @@ unit. PPAR does not create parallel `local_` names because row currency is the
 detailed-data default.
 
 Modified Dietz never treats an explicitly foreign unqualified value as base
-currency. Foreign holdings, accrued income, transactions, and cash must supply
-the applicable `base_market_value`, `base_accrued`, `base_amount`, or base cash
-value before that amount can be counted.
+currency. Foreign holdings, accrued income, and transactions must supply the
+applicable `base_market_value`, `base_accrued`, or `base_amount` before that
+amount can be counted. Cash balances are holdings, not a separate dataset.
 
 Normalized FX rows must provide nonblank pair currencies and dates and a finite,
 strictly positive rate. Pair/date rows must also be unique within the available
 `rate_source` and `rate_type` provenance. These are ppar input-integrity rules,
 not claims about Axys quote conventions or native FX storage.
+
+All supplied currency values are normalized to uppercase three-letter codes.
+For a foreign row, a nonzero `holdings.market_value`, `holdings.accrued`, or
+`transactions.amount` requires its explicit base-currency counterpart before
+comparison. When row and base currency are the same, supplied local/base values
+must agree. A portfolio-specific FX quote must use portfolio `base_currency` as
+its `to_currency`.
 
 Configured required datasets must exist in both snapshots. If a required source
 file is missing, if a required normalized column cannot be resolved from the
@@ -139,10 +145,20 @@ Every intentional transaction, holding, and multi-currency demo story is named
 in `scripts/operational_demo_data/performance_comparison_scenario_calendar.csv`
 and independently protected in
 `performance_comparison_scenario_inventory.csv` in the same directory. The
-rebuild audit fails if a protected scenario disappears or if a new scenario is
-added without inventory registration. Removing or replacing a scenario must
-therefore be an explicit, separately reviewable inventory change; matching only
-the old transaction-type counts is not sufficient.
+inventory is a complete semantic contract rather than a list of names. It
+protects economic meaning, portfolio, actual source period, reviewer story
+period, scenario family, primary security, expected report disposition/status,
+independent economic-change identity, and carry-forward treatment. The rebuild
+audit checks those declarations against the scenario calendar, fixture input
+dates, and generated report tables. Removing, moving, replacing, or changing a
+scenario's outcome therefore requires an explicit, separately reviewable
+inventory change; matching only old transaction-type counts is not sufficient.
+
+The source-period budget counts independent economic changes, not physical CSV
+rows. Paired fixed-income settlement legs, the TSLA short/cover cycle, and the
+INCOME holding/interest pair each count as one economic story. A carried
+beginning-value effect remains visible in its later report period but does not
+pretend to be a new source change in that later period.
 
 The March `BALANCED0403` contribution restatement uses the standalone
 `BALANCED_CONTRIBUTION` portfolio. This preserves a real `li` external-flow and
@@ -257,6 +273,13 @@ field names or cash-account storage.
 The demo treats `FROM_DATE` and `THRU_DATE` as inclusive. The beginning holdings
 date for a period is the calendar day immediately before `FROM_DATE`; the ending
 holdings date is `THRU_DATE`.
+
+Performance periods may not be reversed or overlap. Changed dated evidence is
+checked against the periods for its portfolio. Multiple matches are a source-
+contract error. Historical evidence outside an assigned formula boundary may
+remain visible for carry-forward review but cannot own an explained amount. A
+prior-day holding or FX value assigned as the beginning boundary is a Modified
+Dietz input and may own `Performance Difference Explained`.
 
 For transaction rows, `TRANSACTION_DATE` is the economic as-of date used by the
 demo return-reconstruction rules. It represents the trade date or ex-date for

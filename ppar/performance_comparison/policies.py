@@ -12,8 +12,6 @@ from typing import Final, cast
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.findings import (
-    IMPACT_POLICY_CASH_BALANCE,
-    IMPACT_POLICY_CASH_MARKET_VALUE,
     IMPACT_POLICY_EVIDENCE_ONLY_PREFIX,
     IMPACT_POLICY_FX_RATE_EXPOSURE,
     IMPACT_POLICY_HOLDING_ACCRUED,
@@ -28,7 +26,6 @@ from ppar.performance_comparison.findings import (
     TRANSACTION_IMPACT_POLICY_SECURITY_FLOW_MODIFIED_DIETZ,
 )
 from ppar.performance_comparison.methods import (
-    CashImpactMethod,
     ContributionImpactMethod,
     FxRateImpactMethod,
     ModifiedDietzDayCount,
@@ -57,7 +54,6 @@ _TRANSACTION_IMPACT_METHODS_KEY: Final[str] = "transaction_impact_methods"
 _CONTRIBUTION_IMPACT_METHODS_KEY: Final[str] = "contribution_impact_methods"
 _HOLDING_IMPACT_METHODS_KEY: Final[str] = "holding_impact_methods"
 _PRICE_IMPACT_METHODS_KEY: Final[str] = "price_impact_methods"
-_CASH_IMPACT_METHODS_KEY: Final[str] = "cash_impact_methods"
 _FX_RATE_IMPACT_METHODS_KEY: Final[str] = "fx_rate_impact_methods"
 _EVIDENCE_ONLY_IMPACT_METHODS_KEY: Final[str] = "evidence_only_impact_methods"
 _SECURITY_RETURN_IMPACT_METHODS_KEY: Final[str] = "security_return_impact_methods"
@@ -99,9 +95,6 @@ _HOLDING_QUANTITY_UNIT_MARKET_VALUE_METHOD: Final[str] = HoldingImpactMethod[
 ].value
 _PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT_METHOD: Final[str] = (
     PriceImpactMethod.PRICE_DELTA_OVER_SNAPSHOT_A_PRICE_TIMES_WEIGHT.value
-)
-_CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD: Final[str] = (
-    CashImpactMethod.CASH_DELTA_OVER_RETURN_DENOMINATOR.value
 )
 _FX_RATE_EVIDENCE_ONLY_METHOD: Final[str] = FxRateImpactMethod.EVIDENCE_ONLY.value
 _FX_RATE_EXPOSURE_METHOD: Final[str] = (
@@ -183,12 +176,6 @@ _PRICE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
         _WEIGHT_SOURCE_KEY,
     }
 )
-_CASH_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        _METHOD_KEY,
-        _DENOMINATOR_SOURCE_KEY,
-    }
-)
 _FX_RATE_EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
@@ -234,9 +221,6 @@ _HOLDING_QUANTITY_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
 _PRICE_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
     _WEIGHT_SOURCE_KEY: frozenset({"snapshot_a_weight"}),
 }
-_CASH_ALLOWED_VALUES: Final[dict[str, frozenset[str]]] = {
-    _DENOMINATOR_SOURCE_KEY: frozenset({"begin_market_value"}),
-}
 _EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     {
         _METHOD_KEY,
@@ -244,7 +228,6 @@ _EVIDENCE_ONLY_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
     }
 )
 _EVIDENCE_ONLY_SUPPORTED_SOURCE_FIELDS: Final[dict[str, frozenset[str]]] = {
-    pc_cols.CASH: frozenset({pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}),
     pc_cols.FX_RATES: frozenset({pc_cols.FX_RATE}),
     pc_cols.HOLDINGS: frozenset(
         {
@@ -884,85 +867,6 @@ def _price_impact_policies(
             _PRICE_ALLOWED_VALUES,
         )
         policies[pc_cols.PRICE] = IMPACT_POLICY_PRICE_WEIGHTED
-    return policies
-
-
-def _cash_impact_policies(
-    specification: PerformanceComparisonSpecification,
-) -> dict[str, str]:
-    """Return validated YAML-selected cash impact policies.
-
-    Args:
-        specification: Parsed comparison specification.
-
-    Returns:
-        Policy labels keyed by cash source column. Missing configuration
-        returns an empty mapping, which leaves cash rows as evidence-only.
-
-    Raises:
-        PpaError: If cash impact method configuration is malformed or names an
-            unsupported method.
-    """
-    methods_value = specification.values.get(_CASH_IMPACT_METHODS_KEY, {})
-    if methods_value is None:
-        return {}
-    if not isinstance(methods_value, dict):
-        raise PpaError(
-            (f"{specification.path}: {_CASH_IMPACT_METHODS_KEY} " "must be a mapping."),
-            504,
-        )
-
-    supported_keys = {pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE}
-    unsupported_keys = set(methods_value) - supported_keys
-    if unsupported_keys:
-        unsupported = ", ".join(sorted(str(key) for key in unsupported_keys))
-        raise PpaError(
-            (
-                f"{specification.path}: unsupported "
-                f"{_CASH_IMPACT_METHODS_KEY} keys: {unsupported}."
-            ),
-            504,
-        )
-
-    policies: dict[str, str] = {
-        pc_cols.CASH_BALANCE: IMPACT_POLICY_CASH_BALANCE,
-        pc_cols.MARKET_VALUE: IMPACT_POLICY_CASH_MARKET_VALUE,
-    }
-    for source_column in (pc_cols.CASH_BALANCE, pc_cols.MARKET_VALUE):
-        method_value = methods_value.get(source_column)
-        if method_value is None:
-            continue
-        policy = _require_policy_mapping(
-            specification,
-            _CASH_IMPACT_METHODS_KEY,
-            source_column,
-            method_value,
-        )
-        _validate_policy_keys(
-            specification,
-            _CASH_IMPACT_METHODS_KEY,
-            source_column,
-            policy,
-            _CASH_REQUIRED_KEYS,
-        )
-        _validate_policy_method(
-            specification,
-            _CASH_IMPACT_METHODS_KEY,
-            source_column,
-            policy,
-            _CASH_DELTA_OVER_RETURN_DENOMINATOR_METHOD,
-        )
-        _validate_allowed_policy_values(
-            specification,
-            _CASH_IMPACT_METHODS_KEY,
-            source_column,
-            policy,
-            _CASH_ALLOWED_VALUES,
-        )
-        if source_column == pc_cols.CASH_BALANCE:
-            policies[source_column] = IMPACT_POLICY_CASH_BALANCE
-        else:
-            policies[source_column] = IMPACT_POLICY_CASH_MARKET_VALUE
     return policies
 
 

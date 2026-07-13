@@ -5,6 +5,9 @@ from __future__ import annotations
 # Python imports
 import unittest
 
+# Third-party imports
+import polars as pl
+
 # Project imports
 from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
@@ -15,6 +18,7 @@ from ppar.performance_comparison.currency_basis import (
     ROW_CURRENCY_BASIS,
     base_currency_monetary_value,
     monetary_field_currency_basis,
+    normalize_currency_columns,
 )
 from ppar.performance_comparison import return_reconstruction as _reconstruction
 
@@ -29,7 +33,6 @@ class TestPerformanceComparisonCurrencyBasis(unittest.TestCase):
             (pc_cols.HOLDINGS, pc_cols.MARKET_VALUE),
             (pc_cols.HOLDINGS, pc_cols.ACCRUED),
             (pc_cols.TRANSACTIONS, pc_cols.AMOUNT),
-            (pc_cols.CASH, pc_cols.CASH_BALANCE),
         ):
             with self.subTest(dataset=dataset, source_column=source_column):
                 self.assertEqual(
@@ -37,13 +40,30 @@ class TestPerformanceComparisonCurrencyBasis(unittest.TestCase):
                     ROW_CURRENCY_BASIS,
                 )
 
+    def test_currency_codes_are_normalized_at_the_source_boundary(self) -> None:
+        """Currency comparisons use stripped uppercase normalized values."""
+        frame = pl.DataFrame(
+            {
+                pc_cols.CURRENCY: [" eur "],
+                pc_cols.BASE_CURRENCY: ["usd"],
+                pc_cols.FROM_CURRENCY: [" gbp"],
+                pc_cols.TO_CURRENCY: [" usd "],
+            }
+        )
+
+        normalized = normalize_currency_columns(frame).row(0, named=True)
+
+        self.assertEqual(normalized[pc_cols.CURRENCY], "EUR")
+        self.assertEqual(normalized[pc_cols.BASE_CURRENCY], "USD")
+        self.assertEqual(normalized[pc_cols.FROM_CURRENCY], "GBP")
+        self.assertEqual(normalized[pc_cols.TO_CURRENCY], "USD")
+
     def test_explicit_and_inherent_base_fields_use_portfolio_currency(self) -> None:
         """Detailed base_ and portfolio-performance values use base currency."""
         for dataset, source_column in (
             (pc_cols.HOLDINGS, pc_cols.BASE_MARKET_VALUE),
             (pc_cols.HOLDINGS, pc_cols.BASE_ACCRUED),
             (pc_cols.TRANSACTIONS, pc_cols.BASE_AMOUNT),
-            (pc_cols.CASH, pc_cols.BASE_MARKET_VALUE),
             (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.BEGIN_MARKET_VALUE),
             (pc_cols.PORTFOLIO_PERFORMANCE, pc_cols.FLOW),
         ):

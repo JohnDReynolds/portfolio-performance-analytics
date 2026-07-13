@@ -8,6 +8,7 @@ import unittest
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.period_linking import (
     period_context_for_dated_evidence,
@@ -185,27 +186,8 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
             (dt.date(2025, 5, 1), dt.date(2025, 5, 31)),
         )
 
-    def test_period_context_for_dated_evidence_links_cash_period(self) -> None:
-        """Cash rows are linked to the portfolio period containing cash date."""
-        row = {
-            pc_cols.PORTFOLIO_ID: "PORT_A",
-            pc_cols.CASH_DATE: dt.date(2025, 5, 31),
-        }
-        portfolio_periods = _portfolio_periods()
-
-        period_context = period_context_for_dated_evidence(
-            row,
-            pc_cols.CASH,
-            portfolio_periods,
-        )
-
-        self.assertEqual(
-            period_context,
-            (dt.date(2025, 5, 1), dt.date(2025, 5, 31)),
-        )
-
-    def test_period_context_for_dated_evidence_prefers_narrowest_period(self) -> None:
-        """A dated evidence row maps to the narrowest containing portfolio period."""
+    def test_period_context_for_dated_evidence_rejects_multiple_periods(self) -> None:
+        """A dated evidence row cannot be assigned by an arbitrary tie-breaker."""
         row = {
             pc_cols.PORTFOLIO_ID: "PORT_A",
             pc_cols.TRANSACTION_DATE: dt.date(2025, 5, 15),
@@ -224,16 +206,12 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
             }
         )
 
-        period_context = period_context_for_dated_evidence(
-            row,
-            pc_cols.TRANSACTIONS,
-            portfolio_periods,
-        )
-
-        self.assertEqual(
-            period_context,
-            (dt.date(2025, 5, 15), dt.date(2025, 5, 15)),
-        )
+        with self.assertRaisesRegex(PpaError, "SN-07.*multiple periods"):
+            period_context_for_dated_evidence(
+                row,
+                pc_cols.TRANSACTIONS,
+                portfolio_periods,
+            )
 
     def test_period_context_for_dated_evidence_returns_empty_for_unmatched_rows(
         self,

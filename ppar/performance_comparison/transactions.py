@@ -20,6 +20,7 @@ from ppar.errors import PpaError
 from ppar.performance_comparison import aliases
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.base_currency import with_authoritative_base_currency
+from ppar.performance_comparison.currency_basis import normalize_currency_columns
 from ppar.performance_comparison.extract_contract import (
     validate_transaction_extract_contract,
 )
@@ -407,12 +408,14 @@ class TransactionsLoader:
             path=path,
             specification_path=self._specification.path,
         )
-        return with_authoritative_base_currency(
-            frame,
-            PortfolioPerformanceLoader(self._specification).load(snapshot_key),
-            dataset_name=pc_cols.TRANSACTIONS,
-            path=path,
-            specification_path=self._specification.path,
+        return normalize_currency_columns(
+            with_authoritative_base_currency(
+                frame,
+                PortfolioPerformanceLoader(self._specification).load(snapshot_key),
+                dataset_name=pc_cols.TRANSACTIONS,
+                path=path,
+                specification_path=self._specification.path,
+            )
         )
 
     def _transaction_rules(self) -> dict[str, tuple[_TransactionRule, ...]]:

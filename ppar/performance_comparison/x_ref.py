@@ -21,7 +21,11 @@ import polars as pl
 import ppar.utilities as util
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.holdings import HoldingsLoader
-from ppar.performance_comparison.portfolio_performance import SnapshotKey
+from ppar.performance_comparison.portfolio_performance import (
+    PortfolioPerformanceLoader,
+    SnapshotKey,
+)
+from ppar.performance_comparison.security_performance import SecurityPerformanceLoader
 from ppar.performance_comparison.specification import PerformanceComparisonSpecification
 from ppar.performance_comparison.transactions import TransactionsLoader
 
@@ -42,6 +46,8 @@ ISSUE_HOLDINGS_ACCRUED_RATE: Final[str] = "holdings_accrued_rate"
 ISSUE_HOLDINGS_PRICE_RANGE: Final[str] = "holdings_price_range"
 ISSUE_MISSING_DIVIDEND: Final[str] = "missing_dividend"
 ISSUE_PA_SA_RATE: Final[str] = "pa_sa_rate"
+ISSUE_PORTFOLIO_MV_CONTINUITY: Final[str] = "portfolio_market_value_continuity"
+ISSUE_SECURITY_MV_CONTINUITY: Final[str] = "security_market_value_continuity"
 ISSUE_TRANSACTIONS_PRICE_RANGE: Final[str] = "transactions_price_range"
 
 X_REF_ISSUE_COLUMNS: Final[tuple[str, ...]] = (
@@ -140,15 +146,36 @@ def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
 
     specification = PerformanceComparisonSpecification(comparison_path)
     config = _x_ref_config(specification.values)
-    if not _config_enabled(config):
-        return _empty_issues_table()
-
+    portfolio_performance = _snapshot_frames(
+        PortfolioPerformanceLoader(specification),
+        pc_cols.PORTFOLIO_PERFORMANCE,
+    )
+    security_performance = _snapshot_frames(
+        SecurityPerformanceLoader(specification),
+        pc_cols.SECURITY_PERFORMANCE,
+    )
     holdings = _snapshot_frames(HoldingsLoader(specification), pc_cols.HOLDINGS)
     transactions = _snapshot_frames(
         TransactionsLoader(specification),
         pc_cols.TRANSACTIONS,
     )
     rows: list[dict[str, object]] = []
+    rows.extend(
+        _market_value_continuity_issues(
+            portfolio_performance,
+            config,
+            dataset_name=pc_cols.PORTFOLIO_PERFORMANCE,
+        )
+    )
+    rows.extend(
+        _market_value_continuity_issues(
+            security_performance,
+            config,
+            dataset_name=pc_cols.SECURITY_PERFORMANCE,
+        )
+    )
+    if not _config_enabled(config):
+        return _issues_table(rows)
     rows.extend(_duplicate_transaction_issues(transactions, config))
     rows.extend(_holding_price_range_issues(holdings, config))
     rows.extend(_transaction_price_range_issues(transactions, config))
@@ -156,6 +183,91 @@ def x_ref_issues_table(comparison_path: util.PathLike | None) -> pl.DataFrame:
     rows.extend(_missing_dividend_issues(holdings, transactions, config))
     rows.extend(_holdings_accrued_rate_issues(holdings, config))
     return _issues_table(rows)
+
+
+def _market_value_continuity_issues(
+    performance_frames: Iterable[pl.DataFrame],
+    config: Mapping[str, object],
+    *,
+    dataset_name: str,
+) -> list[dict[str, object]]:
+    """Return prior-ending versus next-beginning market-value issues.
+
+    Continuity is a mandatory financial-integrity check. Unlike optional Data
+    Audit checks, it remains active when ``data_audit_checks.enabled`` is false
+    because these values directly participate in Modified Dietz.
+    """
+    issue_type = (
+        ISSUE_SECURITY_MV_CONTINUITY
+        if dataset_name == pc_cols.SECURITY_PERFORMANCE
+        else ISSUE_PORTFOLIO_MV_CONTINUITY
+    )
+    tolerance = _tolerance(config, issue_type)
+    if tolerance == _Tolerance(absolute=0.0, percent=0.0):
+        tolerance = _Tolerance(absolute=0.01, percent=0.0)
+    grouping_columns = [SNAPSHOT, pc_cols.PORTFOLIO_ID]
+    if dataset_name == pc_cols.SECURITY_PERFORMANCE:
+        grouping_columns.append(pc_cols.SECURITY_ID)
+
+    rows: list[dict[str, object]] = []
+    for frame in performance_frames:
+        if not {
+            pc_cols.BEGIN_MARKET_VALUE,
+            pc_cols.END_MARKET_VALUE,
+        }.issubset(frame.columns):
+            continue
+        groups = frame.partition_by(grouping_columns, maintain_order=True)
+        for group in groups:
+            ordered_rows = sorted(
+                group.iter_rows(named=True),
+                key=lambda row: (
+                    _date(row.get(pc_cols.FROM_DATE)) or dt.date.min,
+                    _date(row.get(pc_cols.THRU_DATE)) or dt.date.min,
+                ),
+            )
+            for prior, current in zip(ordered_rows, ordered_rows[1:]):
+                prior_thru = _date(prior.get(pc_cols.THRU_DATE))
+                current_from = _date(current.get(pc_cols.FROM_DATE))
+                if (
+                    prior_thru is None
+                    or current_from is None
+                    or current_from != prior_thru + dt.timedelta(days=1)
+                ):
+                    continue
+                prior_end = _number(prior.get(pc_cols.END_MARKET_VALUE))
+                current_begin = _number(current.get(pc_cols.BEGIN_MARKET_VALUE))
+                if prior_end is None or current_begin is None:
+                    continue
+                difference = current_begin - prior_end
+                if abs(difference) <= tolerance.threshold(prior_end):
+                    continue
+                security_id = _text(current.get(pc_cols.SECURITY_ID))
+                scope = f"portfolio {current.get(pc_cols.PORTFOLIO_ID)}"
+                if security_id:
+                    scope += f", security {security_id}"
+                rows.append(
+                    _issue_row(
+                        snapshot=_text(current.get(SNAPSHOT)),
+                        portfolio_id=_text(current.get(pc_cols.PORTFOLIO_ID)),
+                        as_of_date=current_from,
+                        dataset_field=(
+                            f"{dataset_name}.end_market_value -> "
+                            f"{dataset_name}.begin_market_value"
+                        ),
+                        security_id=security_id,
+                        issue_type=issue_type,
+                        value_a=prior_end,
+                        value_b=current_begin,
+                        difference=difference,
+                        tolerance=tolerance.description(),
+                        explanation=(
+                            f"SN-04 continuity mismatch for {scope}: prior ending "
+                            f"market value {prior_end:,.2f} does not equal next "
+                            f"beginning market value {current_begin:,.2f}."
+                        ),
+                    )
+                )
+    return rows
 
 
 def _empty_issues_table() -> pl.DataFrame:

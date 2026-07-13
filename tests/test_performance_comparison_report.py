@@ -5,6 +5,8 @@ from collections.abc import Mapping
 import importlib
 import json
 from pathlib import Path
+import re
+import shutil
 import tempfile
 from typing import Any, cast
 import unittest
@@ -409,7 +411,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                         "review_workbook": "security_audit.xlsx",
                     },
                 },
-                "manifest_version": 1,
+                "manifest_version": 3,
+                "normalization_version": 1,
+                "volatile_metadata": [
+                    "manifest.created_at",
+                    "xlsx.core_properties.created",
+                    "xlsx.core_properties.modified",
+                    "xlsx.zip_entry_timestamps",
+                ],
                 "required_artifacts": [
                     "html_report",
                     "readme",
@@ -417,6 +426,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "review_summary",
                     "findings",
                     "source_detail",
+                    "performance_differences",
+                    "performance_difference_causes",
+                    "x_ref_issues",
+                    "cause_lineage",
                     "needs_review_summary",
                     "portfolio_period_summary",
                     "cause_summary",
@@ -443,6 +456,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                     "artifacts",
                     "tables",
                     "review_entrypoints",
+                    "output_integrity",
                 ],
                 "required_review_entrypoints": [
                     "primary_review",
@@ -700,6 +714,30 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertEqual(manifest["tables"]["needs_review_summary"]["rows"], 1)
             self.assertEqual(manifest["tables"]["context_evidence_summary"]["rows"], 2)
             self.assertEqual(manifest["tables"]["context_evidence"]["rows"], 2)
+            integrity = manifest["output_integrity"]
+            self.assertEqual(integrity["normalization_version"], 1)
+            self.assertEqual(
+                integrity["volatile_metadata"],
+                contract["volatile_metadata"],
+            )
+            self.assertEqual(len(integrity["bundle_fingerprint"]), 64)
+            self.assertEqual(
+                set(integrity["review_sheets"]),
+                {
+                    "performance_differences",
+                    "performance_difference_causes",
+                    "x_ref_issues",
+                },
+            )
+            for metadata in manifest["tables"].values():
+                self.assertEqual(len(metadata["columns"]), len(metadata["column_types"]))
+                self.assertEqual(len(metadata["semantic_sha256"]), 64)
+            for metadata in integrity["review_sheets"].values():
+                self.assertEqual(
+                    len(metadata["internal_columns"]),
+                    len(metadata["display_headers"]),
+                )
+                self.assertEqual(len(metadata["display_sha256"]), 64)
 
             review_summary = cast(
                 dict[str, Any],
@@ -822,7 +860,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             self.assertIn("transaction_semantics_sources", impact_coverage.columns)
             self.assertIn("impact_coverage_status", impact_coverage.columns)
             self.assertIn("impact_coverage_review_note", impact_coverage.columns)
-            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 2)
+            self.assertEqual(impact_coverage["estimated_cause_area_count"][0], 1)
             self.assertEqual(impact_coverage["impact_coverage_status"][0], "partial_estimates")
 
             context_evidence = pl.read_csv(paths["context_evidence"])
@@ -1611,7 +1649,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 underlying_causes_sheet[f"K{row}"].value
                 for row in range(2, underlying_causes_sheet.max_row + 1)
             ]
-            self.assertTrue(any(setup in (None, "") for setup in required_setup))
+            self.assertTrue(all(setup not in (None, "") for setup in required_setup))
             self.assertEqual(underlying_causes_sheet.max_column, 11)
 
             self.assertNotIn("Source Detail", workbook.sheetnames)
@@ -1969,6 +2007,150 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn("table 'top_evidence' row count is 0, expected 10", issues)
+
+    def test_report_bundle_validation_catches_cross_format_content_drift(self) -> None:
+        """Semantic validation fails closed when any review format is mutated."""
+        openpyxl: Any = importlib.import_module("openpyxl")
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = root / "baseline"
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                baseline,
+                include_workbook=True,
+                require_complete_yaml_setup=False,
+            )
+
+            csv_bundle = root / "csv_mutation"
+            shutil.copytree(baseline, csv_bundle)
+            csv_path = csv_bundle / paths["performance_differences"].relative_to(
+                baseline
+            )
+            csv_table = pl.read_csv(csv_path)
+            csv_table = csv_table.with_columns(
+                pl.when(pl.int_range(pl.len()) == 0)
+                .then(pl.lit("CORRUPTED"))
+                .otherwise(pl.col("review_status"))
+                .alias("review_status")
+            )
+            csv_table.write_csv(csv_path)
+            self.assertIn(
+                "table 'performance_differences' semantic fingerprint does not match",
+                report_bundle_validation_issues(csv_bundle),
+            )
+
+            html_bundle = root / "html_mutation"
+            shutil.copytree(baseline, html_bundle)
+            html_path = html_bundle / paths["html_report"].relative_to(baseline)
+            html = html_path.read_text(encoding="utf-8")
+            mutated_html, replacement_count = re.subn(
+                r"(<tbody>\s*<tr[^>]*>\s*<td[^>]*>).*?(</td>)",
+                r"\1CORRUPTED\2",
+                html,
+                count=1,
+                flags=re.DOTALL,
+            )
+            self.assertEqual(replacement_count, 1)
+            html_path.write_text(mutated_html, encoding="utf-8")
+            self.assertIn(
+                "HTML review table 'Performance Differences' parity failed",
+                report_bundle_validation_issues(html_bundle),
+            )
+
+            xlsx_bundle = root / "xlsx_mutation"
+            shutil.copytree(baseline, xlsx_bundle)
+            workbook_path = xlsx_bundle / paths["review_workbook"].relative_to(
+                baseline
+            )
+            workbook = openpyxl.load_workbook(workbook_path)
+            workbook["Performance Differences"]["A2"] = "CORRUPTED"
+            workbook.save(workbook_path)
+            self.assertIn(
+                "XLSX review sheet 'Performance Differences' parity failed",
+                report_bundle_validation_issues(xlsx_bundle),
+            )
+
+            manifest_bundle = root / "manifest_mutation"
+            shutil.copytree(baseline, manifest_bundle)
+            manifest_path = manifest_bundle / paths["manifest"].relative_to(baseline)
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["title"] = "CORRUPTED"
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            self.assertIn(
+                "manifest normalized bundle fingerprint does not match",
+                report_bundle_validation_issues(manifest_bundle),
+            )
+
+            volatile_bundle = root / "volatile_mutation"
+            shutil.copytree(baseline, volatile_bundle)
+            manifest_path = volatile_bundle / paths["manifest"].relative_to(baseline)
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["created_at"] = "declared-volatile-value"
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(report_bundle_validation_issues(volatile_bundle), [])
+
+    def test_report_bundle_generation_is_semantically_repeatable(self) -> None:
+        """Identical normalized inputs produce identical nonvolatile outputs."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first_paths = write_performance_comparison_report_bundle(
+                findings,
+                root / "first",
+                include_workbook=True,
+                require_complete_yaml_setup=False,
+            )
+            second_paths = write_performance_comparison_report_bundle(
+                findings,
+                root / "second",
+                include_workbook=True,
+                require_complete_yaml_setup=False,
+            )
+
+            first_manifest = json.loads(
+                first_paths["manifest"].read_text(encoding="utf-8")
+            )
+            second_manifest = json.loads(
+                second_paths["manifest"].read_text(encoding="utf-8")
+            )
+            first_manifest.pop("created_at")
+            second_manifest.pop("created_at")
+            self.assertEqual(first_manifest, second_manifest)
+            self.assertEqual(
+                first_manifest["output_integrity"]["bundle_fingerprint"],
+                second_manifest["output_integrity"]["bundle_fingerprint"],
+            )
+
+            raw_deterministic_artifacts = {
+                name
+                for name in first_paths
+                if name not in {"manifest", "review_workbook"}
+            }
+            self.assertEqual(raw_deterministic_artifacts, set(second_paths) - {
+                "manifest",
+                "review_workbook",
+            })
+            for artifact_name in raw_deterministic_artifacts:
+                self.assertEqual(
+                    first_paths[artifact_name].read_bytes(),
+                    second_paths[artifact_name].read_bytes(),
+                    artifact_name,
+                )
+            self.assertEqual(
+                report_bundle_validation_issues(first_paths["readme"].parent),
+                [],
+            )
+            self.assertEqual(
+                report_bundle_validation_issues(second_paths["readme"].parent),
+                [],
+            )
 
     def test_report_bundle_write_fails_if_validation_fails(self) -> None:
         """Bundle writing raises if post-write validation detects corruption."""

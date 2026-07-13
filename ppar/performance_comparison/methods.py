@@ -54,12 +54,6 @@ class PriceImpactMethod(StrEnum):
     )
 
 
-class CashImpactMethod(StrEnum):
-    """Supported `cash_impact_methods` YAML method names."""
-
-    CASH_DELTA_OVER_RETURN_DENOMINATOR = "cash_delta_over_return_denominator"
-
-
 class FxRateImpactMethod(StrEnum):
     """Supported `fx_rate_impact_methods` YAML method names."""
 
