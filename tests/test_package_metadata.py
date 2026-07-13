@@ -347,16 +347,16 @@ class TestPackageMetadata(unittest.TestCase):
         )
         normalized_axys_readme = " ".join(axys_readme.split())
 
-        self.assertIn("report.xlsx", root_readme)
-        self.assertIn("report.html", root_readme)
-        self.assertNotIn("Open `report.xlsx` when present", root_readme)
+        self.assertIn("portfolio_audit.xlsx", root_readme)
+        self.assertIn("security_audit.html", root_readme)
+        self.assertNotIn("Open `portfolio_audit.xlsx` when present", root_readme)
         self.assertNotIn("CSV artifacts support audit traceability", root_readme)
-        self.assertIn("use `report.html` for browser review", axys_readme.lower())
+        self.assertIn("html audit for browser review", axys_readme.lower())
         self.assertIn("CSV artifacts", axys_readme)
         self.assertIn("supporting detail and traceability", axys_readme)
         self.assertNotIn("same review model in a browser", root_readme)
         self.assertNotIn("same review model in a browser", axys_readme)
-        self.assertIn("Open `report.xlsx` for review", normalized_axys_readme)
+        self.assertIn("Open `portfolio_audit.xlsx`", normalized_axys_readme)
 
     def test_manifest_keeps_source_distribution_resources(self) -> None:
         """The source distribution manifest includes checkout scripts and demo data."""
@@ -529,8 +529,8 @@ class TestPackageMetadata(unittest.TestCase):
             "ppar analytics ./my_ppar_data/analytics",
             "ppar audit ./my_ppar_data/audit",
             "Output goes here:",
-            "audit/output/portfolio/report.xlsx",
-            "audit/output/security/report.xlsx",
+            "audit/output/portfolio/portfolio_audit.xlsx",
+            "audit/output/security/security_audit.xlsx",
             "analytics/output/*.html",
             "analytics/output/*.png",
             "my_ppar_data/",
@@ -573,7 +573,10 @@ class TestPackageMetadata(unittest.TestCase):
         """The top-level README keeps user-facing workflow terms consistent."""
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
-        self.assertIn("PPAR uses local Axys/APX data for two main workflows", readme)
+        self.assertIn(
+            "PPAR is a Python package that uses local Axys/APX data for two main workflows",
+            readme,
+        )
         self.assertLess(
             readme.index("## Performance Auditing"),
             readme.index("## Performance Analytics"),
@@ -1786,7 +1789,7 @@ class TestPackageMetadata(unittest.TestCase):
             "scripts/check_performance_comparison_demo_health.py",
             "/tmp/ppar_smoke_site/audit/output/portfolio",
             "/tmp/ppar_smoke_site/audit/output/security",
-            "report.xlsx",
+            "portfolio_audit.xlsx",
             "report_bundle_contract()",
             "prefer the package-root workflow helpers",
             "direct-submodule imports",
@@ -1889,8 +1892,8 @@ class TestPackageMetadata(unittest.TestCase):
             "run_audit.py",
             "output/portfolio",
             "output/security",
-            "report.xlsx",
-            "report.html",
+            "portfolio_audit.*",
+            "security_audit.*",
             "review_summary.json",
             "report_bundle_contract()",
             "not a new transaction-classification or accounting layer",

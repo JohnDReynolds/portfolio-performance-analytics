@@ -114,6 +114,27 @@ def _workbook_date_text(value: object) -> str:
 class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
     """Validate reviewer-facing workbook presentation invariants."""
 
+    def test_audit_file_names_are_level_specific(self) -> None:
+        """Audit artifact names identify their portfolio or security level."""
+        self.assertEqual(
+            _pc_review_model.html_report_file_name("portfolio"),
+            "portfolio_audit.html",
+        )
+        self.assertEqual(
+            _pc_review_model.review_workbook_file_name("portfolio"),
+            "portfolio_audit.xlsx",
+        )
+        self.assertEqual(
+            _pc_review_model.html_report_file_name("security"),
+            "security_audit.html",
+        )
+        self.assertEqual(
+            _pc_review_model.review_workbook_file_name("security"),
+            "security_audit.xlsx",
+        )
+        with self.assertRaisesRegex(ValueError, "Unsupported comparison level"):
+            _pc_review_model.audit_file_stem("account")
+
     def test_review_workbook_contract_remains_reviewer_oriented(self) -> None:
         """Generated workbook uses stable, action-oriented sheets and columns."""
         openpyxl: Any = importlib.import_module("openpyxl")
@@ -139,7 +160,7 @@ class TestPerformanceComparisonWorkbookContract(unittest.TestCase):
             readme = paths["readme"].read_text(encoding="utf-8")
             self.assertIn("supporting_files/source_detail.csv", readme)
             self.assertNotIn("## Primary Review Artifact", readme)
-            self.assertNotIn("Open `report.xlsx` first", readme)
+            self.assertNotIn("Open `portfolio_audit.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
             html_report = paths["html_report"].read_text(encoding="utf-8")
             self.assertIn("source-data differences", readme)

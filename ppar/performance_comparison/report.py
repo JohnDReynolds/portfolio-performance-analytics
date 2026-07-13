@@ -101,7 +101,6 @@ _CONTEXT_EVIDENCE_COLUMNS = (
 )
 _CONTEXT_NO_IMPACT_TREATMENT = "context only; not included in return-impact estimates"
 _REVIEW_WORKBOOK_ARTIFACT = _pc_workbook.REVIEW_WORKBOOK_ARTIFACT
-_REVIEW_WORKBOOK_FILE_NAME = _pc_workbook.REVIEW_WORKBOOK_FILE_NAME
 _html_section = _pc_rendering.html_section
 _html_review_key_row_id = _pc_rendering.html_review_key_row_id
 _html_id_token = _pc_rendering.html_id_token
@@ -392,6 +391,7 @@ def write_performance_comparison_report_bundle(
 
     bundle_directory = Path(output_directory)
     bundle_directory.mkdir(parents=True, exist_ok=True)
+    _remove_obsolete_report_files(bundle_directory)
     supporting_files_directory = (
         bundle_directory / _pc_bundle.SUPPORTING_FILES_DIRECTORY
     )
@@ -426,9 +426,13 @@ def write_performance_comparison_report_bundle(
     )
 
     paths: dict[str, Path] = {}
+    html_report_file_name = _pc_review_model.html_report_file_name(comparison_level)
+    review_workbook_file_name = _pc_review_model.review_workbook_file_name(
+        comparison_level
+    )
     html_report_path = _write_performance_comparison_html_report(
         findings,
-        bundle_directory / "report.html",
+        bundle_directory / html_report_file_name,
         title=title,
         comparison_path=comparison_path,
         comparison_level=comparison_level,
@@ -449,7 +453,7 @@ def write_performance_comparison_report_bundle(
     if include_workbook:
         paths[_REVIEW_WORKBOOK_ARTIFACT] = _pc_workbook.write_review_workbook_sheets(
             workbook_sheets or (),
-            bundle_directory / _REVIEW_WORKBOOK_FILE_NAME,
+            bundle_directory / review_workbook_file_name,
             column_tooltip=_pc_workbook_tables.workbook_column_tooltip,
         )
     paths["readme"] = _pc_bundle.write_report_bundle_readme(
@@ -507,6 +511,20 @@ def _remove_legacy_root_supporting_files(
             legacy_path = bundle_directory / f"{artifact_stem}{suffix}"
             if legacy_path.is_file():
                 legacy_path.unlink()
+
+
+def _remove_obsolete_report_files(bundle_directory: Path) -> None:
+    """Remove known report files before rebuilding a reused bundle directory."""
+    artifact_stems = {
+        "report",
+        _pc_review_model.PORTFOLIO_AUDIT_FILE_STEM,
+        _pc_review_model.SECURITY_AUDIT_FILE_STEM,
+    }
+    for artifact_stem in artifact_stems:
+        for suffix in (".html", ".xlsx"):
+            obsolete_path = bundle_directory / f"{artifact_stem}{suffix}"
+            if obsolete_path.is_file():
+                obsolete_path.unlink()
 
 
 def _report_bundle_tables(

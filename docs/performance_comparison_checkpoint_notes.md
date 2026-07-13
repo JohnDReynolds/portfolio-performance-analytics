@@ -9,7 +9,7 @@ future work belongs in
 
 At this checkpoint, the performance comparison XLSX work was workbook-first. For bundles
 generated with `--include-workbook`, reviewers should start with
-`report.xlsx`; `report.html` is a browser-friendly view of the same review
+the level-specific XLSX audit; its HTML counterpart is a browser-friendly view of the same review
 model, and CSV files are audit/export artifacts.
 
 The workbook sheets at this checkpoint were:
@@ -75,8 +75,8 @@ retired. The current smoke path generates demo output from a setup workspace:
 
 ## Key Decisions
 
-- Treat `report.xlsx` as the primary reviewer artifact.
-- Keep `report.html`, CSV files, and `manifest.json` for browser, audit, export,
+- Treat the level-specific XLSX audit as the primary reviewer artifact.
+- Keep its HTML counterpart, CSV files, and `manifest.json` for browser, audit, export,
   and validation uses.
 - Keep `openpyxl` as a regular runtime dependency because XLSX is the primary
   reviewer surface.
@@ -146,7 +146,7 @@ Regenerate the demo after workbook/report presentation changes:
 ## Open Questions
 
 - Standalone Markdown report generation was removed from the product surface;
-  generated review bundles use `report.html` and `report.xlsx`.
+  generated review bundles use `portfolio_audit.*` or `security_audit.*`.
 - Should generated CSV artifacts eventually move under an `exports/`
   subdirectory? This would reduce bundle clutter but would change paths and
   validators.

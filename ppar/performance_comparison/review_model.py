@@ -9,9 +9,15 @@ from __future__ import annotations
 
 from typing import Final
 
+from ppar.performance_comparison.specification import (
+    PORTFOLIO_COMPARISON_LEVEL,
+    SECURITY_COMPARISON_LEVEL,
+)
+
 HTML_REPORT_ARTIFACT: Final[str] = "html_report"
 REVIEW_WORKBOOK_ARTIFACT: Final[str] = "review_workbook"
-REVIEW_WORKBOOK_FILE_NAME: Final[str] = "report.xlsx"
+PORTFOLIO_AUDIT_FILE_STEM: Final[str] = "portfolio_audit"
+SECURITY_AUDIT_FILE_STEM: Final[str] = "security_audit"
 
 PERFORMANCE_DIFFERENCES_ARTIFACT: Final[str] = "performance_differences"
 PERFORMANCE_DIFFERENCE_CAUSES_ARTIFACT: Final[str] = "performance_difference_causes"
@@ -37,6 +43,35 @@ TRANSACTION_MATCHING_DIAGNOSTICS_SHEET: Final[str] = (
 )
 SOURCE_DETAIL_SHEET: Final[str] = "Source Detail"
 REVIEW_ORDER_SECTION: Final[str] = "Review Order"
+
+
+def audit_file_stem(comparison_level: str) -> str:
+    """Return the audit report filename stem for a comparison level.
+
+    Args:
+        comparison_level: Portfolio or security comparison level.
+
+    Returns:
+        ``portfolio_audit`` or ``security_audit``.
+
+    Raises:
+        ValueError: If the comparison level is unsupported.
+    """
+    if comparison_level == PORTFOLIO_COMPARISON_LEVEL:
+        return PORTFOLIO_AUDIT_FILE_STEM
+    if comparison_level == SECURITY_COMPARISON_LEVEL:
+        return SECURITY_AUDIT_FILE_STEM
+    raise ValueError(f"Unsupported comparison level: {comparison_level!r}")
+
+
+def html_report_file_name(comparison_level: str) -> str:
+    """Return the HTML audit filename for a comparison level."""
+    return f"{audit_file_stem(comparison_level)}.html"
+
+
+def review_workbook_file_name(comparison_level: str) -> str:
+    """Return the XLSX audit filename for a comparison level."""
+    return f"{audit_file_stem(comparison_level)}.xlsx"
 
 PRIMARY_REVIEW_SHEETS: Final[tuple[str, ...]] = (
     PERFORMANCE_DIFFERENCES_SHEET,

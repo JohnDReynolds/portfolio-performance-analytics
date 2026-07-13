@@ -1824,14 +1824,16 @@ reviewer handoffs reproducible without coupling the comparison engine to a
 future Axys/APX-specific presentation layer.
 
 Use `report_bundle_contract()` when code or review automation needs to inspect
-the generated-bundle handoff shape. The helper returns the required artifact
-keys, manifest keys, review entrypoints, review-summary keys, Modified Dietz
-review basis, and review vocabulary keys. It is a contract surface for the
-bundle, not a new transaction-classification or accounting layer.
+the generated-bundle handoff shape. The helper returns the portfolio/security
+audit filenames, required artifact keys, manifest keys, review entrypoints,
+review-summary keys, Modified Dietz review basis, and review vocabulary keys. It
+is a contract surface for the bundle. It remains
+not a new transaction-classification or accounting layer.
 
 The intended bundle review order starts in the generated report files:
 
-1. `report.xlsx`, when present, or `report.html` for browser review. Start with
+1. The level-specific XLSX audit, when present, or its HTML counterpart for
+   browser review. Start with
    `Performance Differences`, then use `Performance Difference Causes` to
    understand what explains each portfolio-period difference.
 2. `source_detail.csv` / `findings.csv`: complete finding-level audit output for
@@ -1839,7 +1841,7 @@ The intended bundle review order starts in the generated report files:
 
 The generated artifacts fall into a small taxonomy:
 
-- first-stop review surfaces: `report.xlsx` and `report.html`;
+- first-stop review surfaces: `portfolio_audit.*` or `security_audit.*`;
 - reviewer handoff metadata: `README.md`, `manifest.json`, and
   `review_summary.json`;
 - audit/export backbone: `findings.csv`, `needs_review_summary.csv`,
@@ -1948,9 +1950,8 @@ name the CSVs most relevant to each changed period.
 The packaged Axys/APX fixtures intentionally separate user-facing setup
 templates from validation fixtures. `ppar setup` installs the portfolio and
 security comparison starter file, `run_audit.py`. That setup-generated
-script writes `report.xlsx`,
-`report.html`, CSV artifacts, and a manifest under `output/portfolio` and
-`output/security`.
+script writes `portfolio_audit.*` and `security_audit.*`, plus CSV artifacts and
+a manifest under `output/portfolio` and `output/security`.
 
 The remaining YAML files are scenario-coverage fixtures for tests and
 validators:
@@ -2033,8 +2034,8 @@ ambiguous. Report bundles include this table as
 in the source detail, but the normal workbook and HTML review flow do not
 surface a standalone transaction-match section.
 
-Report bundles include `report.html` as the browser view of the same review
-model used by `report.xlsx`. The HTML artifact is intentionally conservative:
+Report bundles include a level-specific HTML audit as the browser view of the
+same review model used by its XLSX counterpart. The HTML artifact is intentionally conservative:
 it uses the same workbook table model, section ordering, column labels, and
 column tooltips as the workbook, with lightweight CSS and accessible table
 captions for browser review rather than separate HTML-specific analytics logic.

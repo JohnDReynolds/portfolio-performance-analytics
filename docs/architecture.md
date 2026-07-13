@@ -59,7 +59,7 @@ snapshot_a CSVs + snapshot_b CSVs
   -> normalized datasets
   -> source-data differences
   -> Modified Dietz evidence and explanation tables
-  -> report.xlsx and report.html
+  -> portfolio_audit.* or security_audit.*
 ```
 
 The performance-comparison engine does not try to rebuild a full accounting

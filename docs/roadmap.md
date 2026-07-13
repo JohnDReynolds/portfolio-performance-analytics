@@ -35,10 +35,10 @@ Start here when deciding what remains to do:
 
 The current Performance Auditing workflow is release-candidate quality for the
 packaged Axys/APX demo scope. The portfolio and security demos generate
-`report.xlsx`, `report.html`, review-summary metadata, manifests, and CSV audit
-artifacts. The generated reports focus on Modified Dietz evidence, source-data
-differences, Data Audit Issues, review-only context, and conservative
-transaction row identity.
+`portfolio_audit.*` and `security_audit.*`, review-summary metadata, manifests,
+and CSV audit artifacts. The generated reports focus on Modified Dietz
+evidence, source-data differences, Data Audit Issues, review-only context, and
+conservative transaction row identity.
 
 Completed guardrails now cover:
 
@@ -121,6 +121,10 @@ Completed guardrails now cover:
 - generated bundle vocabulary, package-resource entrypoints, distribution
   package-data boundaries, retired setup/command terminology, Performance Auditing
   README screenshots, and first-run onboarding language are validated.
+- portfolio and security review bundles use level-specific
+  `portfolio_audit.*` and `security_audit.*` entrypoint names; manifests,
+  generated READMEs, CLI output, and the public bundle contract share that
+  naming boundary.
 
 ## Current Open Items
 
@@ -1857,6 +1861,7 @@ Status: complete for the current report-bundle contract.
 
 `report_bundle_contract()` returns the stable generated-bundle handoff contract:
 
+- portfolio and security audit filenames;
 - required artifact keys;
 - manifest version and required manifest keys;
 - required review entrypoints;
@@ -2998,8 +3003,8 @@ The setup guide was dry-run in a temporary onboarding directory. Copying only
 `axysapx_performance_comparison.yaml` failed as expected because the YAML uses
 relative paths to the schema and Snapshot A/B folders. Copying the starter files
 together passed `validate_config` and generated both portfolio and security
-report bundles with `report.xlsx`, `report.html`, `manifest.json`, and support
-CSVs.
+report bundles with their level-specific audit XLSX/HTML files, `manifest.json`,
+and support CSVs.
 
 The setup guide now makes the starter layout explicit: keep the YAML, column
 mapping, extract guardrail file, and Snapshot A/B folders together, or edit the
@@ -3253,7 +3258,8 @@ Release-tag readiness for `v0.1.5` requires:
 
 - `v0.1.5`: Axys/APX setup, analytics and performance-comparison onboarding,
   single `ppar` CLI, packaged starter data, streamlined report commands,
-  marketing README refresh, and release artifact audit.
+  level-specific `portfolio_audit.*` and `security_audit.*` review artifacts,
+  marketing README and product-overview refresh, and release artifact audit.
 
 ### Phase 91: Publish Dry Run And Final Artifact Audit
 
@@ -3376,6 +3382,35 @@ tests assert that no scenario period needs another intra-month split and that
 the split-plan backlog remains empty. The supporting research notes still warn
 against broad, universal Axys/APX claims for these transaction codes; the
 packaged rows are plausible/defensible examples, not vendor-wide semantics.
+
+### Phase 97: Named Audit Artifacts And Release Requalification
+
+Status: complete for the `0.1.5` release-candidate artifact boundary.
+
+Portfolio and security review entrypoints now identify their review level:
+
+- portfolio bundles write `portfolio_audit.html` and, by default,
+  `portfolio_audit.xlsx`;
+- security bundles write `security_audit.html` and, by default,
+  `security_audit.xlsx`; and
+- rebuilding a bundle removes stale generic `report.*` files and wrong-level
+  audit files from the reused output directory.
+
+The filename mapping is centralized in `review_model.py` and exposed through
+`report_bundle_contract()`. Generated manifests, review summaries, bundle
+READMEs, CLI and setup-script output, validators, public documentation,
+screenshots, and the product-overview PDF use the same names. The old generic
+filenames are not retained as duplicate aliases because they would leave two
+apparently authoritative review entrypoints in one bundle; the `v0.1.5` release
+record calls out the intentional pre-1.0 output-contract change.
+
+The packaged portfolio and security bundles were regenerated and passed bundle
+validation. The setup-installed Python runners produced matching named audit
+artifacts, the scenario matrix passed, and the Analytics/Performance Auditing
+10x scale smoke passed. README screenshots and `PPAR.pdf` were refreshed, then
+the full project check completed with wheel and source-distribution build
+validation. No tag was moved and no artifact was published as part of this
+phase.
 
 ## Guiding Principle
 

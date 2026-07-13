@@ -20,8 +20,8 @@ attribution and Ex-Post Risk reports.
 
 Output goes here:
 
-- Performance Auditing: `audit/output/portfolio/report.xlsx` and
-  `audit/output/security/report.xlsx`
+- Performance Auditing: `audit/output/portfolio/portfolio_audit.xlsx` and
+  `audit/output/security/security_audit.xlsx`
 - Performance Analytics: `analytics/output/*.html` and `analytics/output/*.png`
 
 When you are ready to use your own data, open `my_ppar_data/README.md` and
@@ -79,8 +79,8 @@ ppar audit ./my_ppar_data/audit --report portfolio
 
 Output:
 
-- `my_ppar_data/audit/output/portfolio/report.xlsx`
-- `my_ppar_data/audit/output/portfolio/report.html`
+- `my_ppar_data/audit/output/portfolio/portfolio_audit.xlsx`
+- `my_ppar_data/audit/output/portfolio/portfolio_audit.html`
 - `my_ppar_data/audit/output/portfolio/supporting_files/manifest.json`
 - `my_ppar_data/audit/output/portfolio/supporting_files/*.csv`
 
@@ -92,8 +92,8 @@ ppar audit ./my_ppar_data/audit --report security
 
 Output:
 
-- `my_ppar_data/audit/output/security/report.xlsx`
-- `my_ppar_data/audit/output/security/report.html`
+- `my_ppar_data/audit/output/security/security_audit.xlsx`
+- `my_ppar_data/audit/output/security/security_audit.html`
 - `my_ppar_data/audit/output/security/supporting_files/manifest.json`
 - `my_ppar_data/audit/output/security/supporting_files/*.csv`
 
@@ -103,10 +103,11 @@ For a large site where HTML and CSV are sufficient, skip Excel creation:
 ppar audit ./my_ppar_data/audit --no-xlsx
 ```
 
-This retains `report.html` and every supporting file while omitting
-`report.xlsx`.
+This retains the level-specific HTML audit and every supporting file while
+omitting the XLSX audit.
 
-Open `report.xlsx` for review. Use `report.html` for browser review, and keep
+Open `portfolio_audit.xlsx` or `security_audit.xlsx` for review. Use the matching
+HTML audit for browser review, and keep
 the CSV artifacts for supporting detail and traceability. The
 report is designed for review, not for raw data export. It separates performance
 differences from identifiable input differences and other evidence:

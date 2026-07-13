@@ -1,5 +1,9 @@
 """Render the root README as a screen-oriented landscape PDF."""
 
+# The PDF and image renderers intentionally use the same self-contained Chrome
+# discovery and isolation flags so either release-asset script can run independently.
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 # Python imports

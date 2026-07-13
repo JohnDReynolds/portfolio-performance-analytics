@@ -94,7 +94,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--title",
         default="Performance Auditing Report",
-        help="Report title for report.html and optional report.xlsx.",
+        help="Report title for the level-specific HTML and optional XLSX audit.",
     )
     parser.add_argument(
         "--top-evidence-limit",
@@ -118,7 +118,7 @@ def _argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--include-workbook",
         action="store_true",
-        help="Write report.xlsx in addition to report.html and CSV artifacts.",
+        help="Write the level-specific XLSX audit in addition to HTML and CSV files.",
     )
     parser.add_argument(
         "--include-reconstruction-diagnostics",

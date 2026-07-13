@@ -22,7 +22,6 @@ from ppar.performance_comparison import rendering as _pc_rendering
 from ppar.performance_comparison import review_model as _pc_review_model
 
 REVIEW_WORKBOOK_ARTIFACT = _pc_review_model.REVIEW_WORKBOOK_ARTIFACT
-REVIEW_WORKBOOK_FILE_NAME = _pc_review_model.REVIEW_WORKBOOK_FILE_NAME
 WORKBOOK_NUMBER_FORMAT = "0.000000"
 _MINIMUM_COLUMN_WIDTHS = {
     _pc_findings.SNAPSHOT_A_VALUE: 16,
@@ -235,16 +234,16 @@ def workbook_artifact_issues(
         from openpyxl import load_workbook  # type: ignore[import-untyped]
     except ImportError:
         return [
-            "report.xlsx cannot be validated because dependency 'openpyxl' "
+            f"{artifact_file} cannot be validated because dependency 'openpyxl' "
             "is not installed"
         ]
 
     try:
         workbook = load_workbook(workbook_path, read_only=True, data_only=True)
     except Exception as error:  # pylint: disable=broad-exception-caught
-        return [f"report.xlsx could not be opened: {error}"]
+        return [f"{artifact_file} could not be opened: {error}"]
 
-    issues = _review_workbook_sheet_issues(workbook)
+    issues = _review_workbook_sheet_issues(workbook, artifact_file)
     workbook.close()
     return issues
 
@@ -581,32 +580,42 @@ def _workbook_column_width(
     return min(max(safe_width + 2, 8), cap + 2)
 
 
-def _review_workbook_sheet_issues(workbook: Any) -> list[str]:
+def _review_workbook_sheet_issues(workbook: Any, artifact_file: str) -> list[str]:
     """Return review workbook sheet and header validation issues."""
     issues: list[str] = []
     sheet_names = tuple(str(name) for name in workbook.sheetnames)
     if _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET not in sheet_names:
         issues.append(
-            "report.xlsx is missing primary sheet "
+            f"{artifact_file} is missing primary sheet "
             f"{_pc_review_model.PERFORMANCE_DIFFERENCES_SHEET!r}"
         )
     required_sheets: list[str] = list(SHARED_REVIEW_SHEETS)
     for sheet_name in (*PRIMARY_DIFFERENCE_SHEETS, *required_sheets):
         if sheet_name not in sheet_names:
             if sheet_name in SHARED_REVIEW_SHEETS:
-                issues.append(f"report.xlsx is missing sheet {sheet_name!r}")
+                issues.append(f"{artifact_file} is missing sheet {sheet_name!r}")
             continue
-        issues.extend(_review_workbook_header_issues(workbook[sheet_name], sheet_name))
+        issues.extend(
+            _review_workbook_header_issues(
+                workbook[sheet_name],
+                sheet_name,
+                artifact_file,
+            )
+        )
     return issues
 
 
-def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]:
+def _review_workbook_header_issues(
+    worksheet: Any,
+    sheet_name: str,
+    artifact_file: str,
+) -> list[str]:
     """Return header validation issues for one review workbook sheet."""
     rows = worksheet.iter_rows(min_row=1, max_row=1, values_only=True)
     try:
         headers = tuple(str(value) for value in next(rows) if value is not None)
     except StopIteration:
-        return [f"report.xlsx sheet {sheet_name!r} has no header row"]
+        return [f"{artifact_file} sheet {sheet_name!r} has no header row"]
 
     normalized_headers = tuple(_normalize_header(value) for value in headers)
     missing_headers = [
@@ -617,7 +626,7 @@ def _review_workbook_header_issues(worksheet: Any, sheet_name: str) -> list[str]
     if not missing_headers:
         return []
     return [
-        f"report.xlsx sheet {sheet_name!r} is missing headers "
+        f"{artifact_file} sheet {sheet_name!r} is missing headers "
         f"{missing_headers}"
     ]
 

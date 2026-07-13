@@ -313,9 +313,10 @@ def _run_setup_smoke_tests(runner: ReleaseCandidateRunner) -> None:
         )
 
 
-def _run_readme_image_refresh(runner: ReleaseCandidateRunner) -> None:
-    """Refresh README images from current generated demo outputs."""
+def _run_readme_asset_refresh(runner: ReleaseCandidateRunner) -> None:
+    """Refresh README images and the product-overview PDF."""
     runner.run([_VENV_PYTHON, "scripts/render_readme_images.py"])
+    runner.run([_VENV_PYTHON, "scripts/render_readme_pdf.py"])
 
 
 def _run_project_checks(
@@ -374,7 +375,7 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--refresh-images",
         action="store_true",
-        help="Refresh tracked README images under docs/images/readme.",
+        help="Refresh tracked README images and the root PPAR.pdf.",
     )
     parser.add_argument(
         "--quick",
@@ -451,13 +452,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     runner.run([_VENV_PYTHON, "-m", "ppar.performance_comparison.cli.validate_demo_matrix"])
     runner.complete("Scenario matrix")
 
-    runner.phase(7, "Optional README image refresh")
+    runner.phase(7, "Optional README release-asset refresh")
     if args.refresh_images:
-        _run_readme_image_refresh(runner)
-        runner.asset_note("README images under docs/images/readme may have been refreshed.")
-        runner.complete("README image refresh")
+        _run_readme_asset_refresh(runner)
+        runner.asset_note(
+            "README images under docs/images/readme and PPAR.pdf may have been refreshed."
+        )
+        runner.complete("README images and product-overview PDF")
     else:
-        runner.skip("README image refresh; use --refresh-images.")
+        runner.skip("README release-asset refresh; use --refresh-images.")
 
     runner.phase(8, "Run temporary large-site scale checks")
     runner.run([_VENV_PYTHON, "scripts/check_scale.py", "--scale", "10"])

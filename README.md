@@ -8,7 +8,7 @@ Performance Auditing and Performance Analytics.
    runs and produce custom output in CSV, Pandas, Polars, JSON, and XML formats.
 3. Everything runs locally, so your data stays inside your environment.
 
-[License](LICENSE)
+[Download the product overview (PDF)](PPAR.pdf) | [License](LICENSE)
 
 ---
 
@@ -201,10 +201,10 @@ Performance Auditing writes review packages:
 
 ```text
 audit/output/
-  portfolio/report.xlsx
-  portfolio/report.html
-  security/report.xlsx
-  security/report.html
+  portfolio/portfolio_audit.xlsx
+  portfolio/portfolio_audit.html
+  security/security_audit.xlsx
+  security/security_audit.html
 ```
 
 Performance Analytics writes attribution and ex-post risk reports and chart images:

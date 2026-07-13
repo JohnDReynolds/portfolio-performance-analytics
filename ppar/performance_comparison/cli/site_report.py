@@ -15,6 +15,7 @@ from ppar.performance_comparison import (
     compare_snapshots,
     write_performance_comparison_report_bundle,
 )
+from ppar.performance_comparison import review_model as _pc_review_model
 from ppar.performance_comparison import source_loader
 from ppar.performance_comparison import x_ref as _pc_x_ref
 from ppar.performance_comparison.specification import (
@@ -112,8 +113,8 @@ def run_report(
             must be complete.
         allow_incomplete_yaml: Whether diagnostic output may bypass the complete
             YAML setup guardrail.
-        include_workbook: Whether to write ``report.xlsx`` in addition to HTML
-            and supporting files.
+        include_workbook: Whether to write the level-specific XLSX audit in
+            addition to HTML and supporting files.
 
     Returns:
         Paths for the site folder, config file, and generated review artifacts.
@@ -237,7 +238,8 @@ def _argument_parser(
         "--no-xlsx",
         action="store_true",
         help=(
-            "Skip report.xlsx and write report.html plus supporting files. "
+            "Skip the level-specific XLSX audit and write HTML plus supporting "
+            "files. "
             "Use this for faster, lighter runs when HTML and CSV output are "
             "sufficient. Disabled by default."
         ),
@@ -255,9 +257,9 @@ def _argument_parser(
         "--include-reconstruction-diagnostics",
         action="store_true",
         help=(
-            "Add detailed return-reconstruction checks to report.xlsx, report.html, "
-            "and supporting CSVs. Useful for investigating how holdings and flows "
-            "reproduce reported returns. Disabled by default."
+            "Add detailed return-reconstruction checks to the audit workbook, HTML "
+            "report, and supporting CSVs. Useful for investigating how holdings and "
+            "flows reproduce reported returns. Disabled by default."
         ),
     )
     parser.add_argument(
@@ -358,10 +360,18 @@ def _write_report_bundle(
     )
     workbook = paths.get("review_workbook")
     if include_workbook and workbook is None:
-        raise PpaError(f"Report bundle did not write report.xlsx in {output_directory}.", 999)
+        workbook_name = _pc_review_model.review_workbook_file_name(comparison_level)
+        raise PpaError(
+            f"Report bundle did not write {workbook_name} in {output_directory}.",
+            999,
+        )
     html_report = paths.get("html_report")
     if html_report is None:
-        raise PpaError(f"Report bundle did not write report.html in {output_directory}.", 999)
+        html_name = _pc_review_model.html_report_file_name(comparison_level)
+        raise PpaError(
+            f"Report bundle did not write {html_name} in {output_directory}.",
+            999,
+        )
     return [workbook] if workbook is not None else [html_report]
 
 

@@ -157,6 +157,20 @@ def report_bundle_contract() -> dict[str, object]:
     """
     return {
         "bundle_type": "performance_comparison_report",
+        "audit_artifact_files": {
+            comparison_level: {
+                _pc_review_model.HTML_REPORT_ARTIFACT: (
+                    _pc_review_model.html_report_file_name(comparison_level)
+                ),
+                _pc_review_model.REVIEW_WORKBOOK_ARTIFACT: (
+                    _pc_review_model.review_workbook_file_name(comparison_level)
+                ),
+            }
+            for comparison_level in (
+                PORTFOLIO_COMPARISON_LEVEL,
+                SECURITY_COMPARISON_LEVEL,
+            )
+        },
         "required_artifacts": list(REPORT_BUNDLE_REQUIRED_ARTIFACTS),
         "manifest_version": _REPORT_BUNDLE_MANIFEST_VERSION,
         "required_manifest_keys": list(_REPORT_BUNDLE_REQUIRED_MANIFEST_KEYS),
@@ -206,11 +220,16 @@ def write_report_bundle_readme(
         Normalized destination path.
     """
     primary_sheet = _pc_review_model.PERFORMANCE_DIFFERENCES_SHEET
+    html_report_file_name = _pc_review_model.html_report_file_name(comparison_level)
+    review_workbook_file_name = _pc_review_model.review_workbook_file_name(
+        comparison_level
+    )
     first_review_step = (
-        f"1. Open `report.xlsx` when present; use `report.html` for browser "
+        f"1. Open `{review_workbook_file_name}` when present; use "
+        f"`{html_report_file_name}` for browser "
         f"review. Start with {primary_sheet}."
         if include_workbook
-        else f"1. Open `report.html`. Start with {primary_sheet}."
+        else f"1. Open `{html_report_file_name}`. Start with {primary_sheet}."
     )
     review_unit = _readme_review_unit(comparison_level)
     lines = [

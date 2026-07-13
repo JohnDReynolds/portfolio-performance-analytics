@@ -230,7 +230,8 @@ examples that users see in their local setup folder:
   /tmp/ppar_smoke_site/audit/output/security
 ```
 
-Open the generated `report.xlsx` when it is present. Use `report.html` for
+Open the generated `portfolio_audit.xlsx` or `security_audit.xlsx` when present.
+Use the matching HTML audit for
 browser review, and keep the CSV artifacts for supplementary diagnostics and
 audit traceability.
 
@@ -262,8 +263,9 @@ followed by `ppar audit`.
 
 Code that needs to inspect the generated report-bundle handoff surface should
 use `ppar.performance_comparison.report_bundle_contract()`. That helper returns
-the required artifact keys, manifest keys, review entrypoints, review-summary
-keys, Modified Dietz review basis, and review vocabulary keys.
+the portfolio/security audit filenames, required artifact keys, manifest keys,
+review entrypoints, review-summary keys, Modified Dietz review basis, and review
+vocabulary keys.
 
 For Python integrations, prefer the package-root workflow helpers:
 `compare_snapshots()`, `write_performance_comparison_report_bundle()`,
@@ -415,8 +417,9 @@ Generated output normally belongs under `_demo_output/`:
 
 Performance comparison report bundles include:
 
-- `report.html`: browser-friendly review report.
-- `report.xlsx`: primary Excel reviewer artifact when generated.
+- `portfolio_audit.html` or `security_audit.html`: browser-friendly review report.
+- `portfolio_audit.xlsx` or `security_audit.xlsx`: primary Excel reviewer artifact
+  when generated.
 - `needs_review_summary.csv`: changed periods and suggested review notes.
 - `findings.csv`: complete finding-level audit trail.
 - `manifest.json`: machine-readable artifact inventory.

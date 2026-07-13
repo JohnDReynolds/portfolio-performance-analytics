@@ -512,7 +512,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "audit"
                     / "output"
                     / "portfolio"
-                    / "report.xlsx"
+                    / "portfolio_audit.xlsx"
                 ).exists()
             )
             self.assertTrue(
@@ -521,7 +521,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     / "audit"
                     / "output"
                     / "security"
-                    / "report.xlsx"
+                    / "security_audit.xlsx"
                 ).exists()
             )
             self.assertTrue(
@@ -586,18 +586,19 @@ class TestPerformanceComparisonCli(unittest.TestCase):
 
             for report_level in ("portfolio", "security"):
                 with self.subTest(report_level=report_level):
-                    relative_html = Path(report_level) / "report.html"
+                    audit_stem = f"{report_level}_audit"
+                    relative_html = Path(report_level) / f"{audit_stem}.html"
                     self.assertEqual(
                         (cli_output / relative_html).read_text(encoding="utf-8"),
                         (script_output / relative_html).read_text(encoding="utf-8"),
                     )
                     cli_workbook = load_workbook(
-                        cli_output / report_level / "report.xlsx",
+                        cli_output / report_level / f"{audit_stem}.xlsx",
                         read_only=True,
                         data_only=False,
                     )
                     script_workbook = load_workbook(
-                        script_output / report_level / "report.xlsx",
+                        script_output / report_level / f"{audit_stem}.xlsx",
                         read_only=True,
                         data_only=False,
                     )
@@ -660,10 +661,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 },
             )
             self.assertEqual(
-                (cli_advanced / "portfolio" / "report.html").read_text(
+                (cli_advanced / "portfolio" / "portfolio_audit.html").read_text(
                     encoding="utf-8"
                 ),
-                (script_advanced / "portfolio" / "report.html").read_text(
+                (script_advanced / "portfolio" / "portfolio_audit.html").read_text(
                     encoding="utf-8"
                 ),
             )
@@ -877,8 +878,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertIn("output/portfolio/report.xlsx", result.stdout)
-            self.assertNotIn("output/security/report.xlsx", result.stdout)
+            self.assertIn("output/portfolio/portfolio_audit.xlsx", result.stdout)
+            self.assertNotIn("output/security/security_audit.xlsx", result.stdout)
             self.assertTrue((audit_directory / "output" / "portfolio").is_dir())
             self.assertFalse((audit_directory / "output" / "security").exists())
 
@@ -941,24 +942,33 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Open these files to review Performance Auditing output:",
                 result.stdout,
             )
-            self.assertIn("output/portfolio/report.xlsx", result.stdout)
-            self.assertIn("output/security/report.xlsx", result.stdout)
-            self.assertNotIn("output/portfolio/report.html", result.stdout)
-            self.assertNotIn("output/security/report.html", result.stdout)
+            self.assertIn("output/portfolio/portfolio_audit.xlsx", result.stdout)
+            self.assertIn("output/security/security_audit.xlsx", result.stdout)
+            self.assertNotIn("output/portfolio/portfolio_audit.html", result.stdout)
+            self.assertNotIn("output/security/security_audit.html", result.stdout)
             self.assertTrue((comparison_directory / "ppar.yaml").exists())
             self.assertTrue(
                 (
-                    comparison_directory / "output" / "portfolio" / "report.xlsx"
+                    comparison_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.xlsx"
                 ).exists()
             )
             self.assertTrue(
                 (
-                    comparison_directory / "output" / "portfolio" / "report.html"
+                    comparison_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.html"
                 ).exists()
             )
             self.assertTrue(
                 (
-                    comparison_directory / "output" / "security" / "report.xlsx"
+                    comparison_directory
+                    / "output"
+                    / "security"
+                    / "security_audit.xlsx"
                 ).exists()
             )
 
@@ -1006,13 +1016,22 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn("PPAR setup complete:", setup_result.stdout)
-            self.assertIn("output/portfolio/report.xlsx", portfolio_result.stdout)
+            self.assertIn(
+                "output/portfolio/portfolio_audit.xlsx",
+                portfolio_result.stdout,
+            )
             self.assertTrue(
                 (
-                    comparison_directory / "output" / "portfolio" / "report.xlsx"
+                    comparison_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.xlsx"
                 ).exists()
             )
-            self.assertIn("output/portfolio/report.xlsx", default_result.stdout)
+            self.assertIn(
+                "output/portfolio/portfolio_audit.xlsx",
+                default_result.stdout,
+            )
             self.assertIn(
                 "Security output skipped because files.security_performance is not available.",
                 default_result.stdout,
@@ -1048,16 +1067,22 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 "Open these files to review Performance Auditing output:",
                 result.stdout,
             )
-            self.assertIn("output/security/report.xlsx", result.stdout)
-            self.assertNotIn("output/security/report.html", result.stdout)
+            self.assertIn("output/security/security_audit.xlsx", result.stdout)
+            self.assertNotIn("output/security/security_audit.html", result.stdout)
             self.assertTrue(
                 (
-                    comparison_directory / "output" / "security" / "report.xlsx"
+                    comparison_directory
+                    / "output"
+                    / "security"
+                    / "security_audit.xlsx"
                 ).exists()
             )
             self.assertTrue(
                 (
-                    comparison_directory / "output" / "security" / "report.html"
+                    comparison_directory
+                    / "output"
+                    / "security"
+                    / "security_audit.html"
                 ).exists()
             )
             self.assertFalse((comparison_directory / "output" / "portfolio").exists())
@@ -1114,15 +1139,15 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                     "review_paths": [
                         Path("_demo_output")
                         / "performance_comparison_portfolio"
-                        / "report.xlsx",
+                        / "portfolio_audit.xlsx",
                     ],
                 }
             )
 
         output = stdout.getvalue()
         self.assertIn("Open these files to review Performance Auditing output:", output)
-        self.assertIn("report.xlsx", output)
-        self.assertNotIn("report.html", output)
+        self.assertIn("portfolio_audit.xlsx", output)
+        self.assertNotIn("portfolio_audit.html", output)
         self.assertNotIn("manifest.json", output)
         for phrase in _DEMO_QUIET_PHRASES:
             self.assertNotIn(phrase, output)
@@ -1216,7 +1241,12 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 (analytics_directory / "output" / "risk_statistics.html").exists()
             )
             self.assertTrue(
-                (comparison_directory / "output" / "portfolio" / "report.xlsx").exists()
+                (
+                    comparison_directory
+                    / "output"
+                    / "portfolio"
+                    / "portfolio_audit.xlsx"
+                ).exists()
             )
 
     def test_analytics_cli_resolves_relative_site_directory_once(self) -> None:
@@ -1298,7 +1328,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(str(output_directory), result.stdout)
-            self.assertTrue((output_directory / "report.html").exists())
+            self.assertTrue((output_directory / "portfolio_audit.html").exists())
             self.assertFalse((output_directory / "report.md").exists())
             supporting_files = output_directory / "supporting_files"
             self.assertTrue((supporting_files / "findings.csv").exists())
@@ -1307,7 +1337,9 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             self.assertTrue((supporting_files / "impact_coverage.csv").exists())
             self.assertTrue((supporting_files / "manifest.json").exists())
             self.assertTrue((supporting_files / "review_summary.json").exists())
-            report = (output_directory / "report.html").read_text(encoding="utf-8")
+            report = (output_directory / "portfolio_audit.html").read_text(
+                encoding="utf-8"
+            )
             self.assertIn("<h1>Script Bundle Report</h1>", report)
             self.assertIn("Performance Differences", report)
             self.assertIn("Performance Difference Causes", report)
@@ -1327,7 +1359,10 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 manifest["artifacts"]["context_evidence_summary"],
                 "supporting_files/context_evidence_summary.csv",
             )
-            self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
+            self.assertEqual(
+                manifest["artifacts"]["html_report"],
+                "portfolio_audit.html",
+            )
 
     def test_bundle_cli_module_accepts_comparison_level_override(self) -> None:
         """The bundle CLI can write a security report from a shared YAML file."""
@@ -1349,8 +1384,8 @@ class TestPerformanceComparisonCli(unittest.TestCase):
             )
 
             self.assertIn(str(output_directory), result.stdout)
-            self.assertTrue((output_directory / "report.html").exists())
-            self.assertTrue((output_directory / "report.xlsx").exists())
+            self.assertTrue((output_directory / "security_audit.html").exists())
+            self.assertTrue((output_directory / "security_audit.xlsx").exists())
             supporting_files = output_directory / "supporting_files"
             manifest = json.loads(
                 (supporting_files / "manifest.json").read_text(encoding="utf-8")
@@ -1421,7 +1456,7 @@ class TestPerformanceComparisonCli(unittest.TestCase):
                 result.stdout.index("Review workbook written to:"),
                 result.stdout.index("HTML report written to:"),
             )
-            self.assertTrue((output_directory / "report.xlsx").exists())
+            self.assertTrue((output_directory / "portfolio_audit.xlsx").exists())
             self.assertEqual(result.stderr, "")
 
     def test_validate_bundle_cli_module_accepts_valid_bundle(self) -> None:

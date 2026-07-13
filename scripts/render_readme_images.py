@@ -98,7 +98,10 @@ _PERFORMANCE_AUDIT_ISSUE_TYPES = {
     "holdings_price_range",
 }
 _PORTFOLIO_PERFORMANCE_AUDIT_HTML = (
-    _REPO_ROOT / "_demo_output" / "performance_comparison_portfolio" / "report.html"
+    _REPO_ROOT
+    / "_demo_output"
+    / "performance_comparison_portfolio"
+    / "portfolio_audit.html"
 )
 
 
@@ -121,6 +124,17 @@ def main() -> None:
             html_paths = _write_html_inputs(temp_dir, analytics, sector)
             for name, html_path in html_paths.items():
                 _render_cropped_jpg(chrome_path, html_path, temp_dir, name)
+        if args.only == "security-attribution":
+            analytics, sector = _analytics_outputs()
+            html_path = _write_html_inputs(temp_dir, analytics, sector)[
+                "OverallAttributionBySecurity"
+            ]
+            _render_cropped_jpg(
+                chrome_path,
+                html_path,
+                temp_dir,
+                "OverallAttributionBySecurity",
+            )
         if args.only == "risk-statistics":
             analytics, _sector = _analytics_outputs()
             html_path = temp_dir / "RiskStatistics.html"
@@ -154,7 +168,13 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--only",
-        choices=("all", "analytics", "risk-statistics", "performance-comparison"),
+        choices=(
+            "all",
+            "analytics",
+            "security-attribution",
+            "risk-statistics",
+            "performance-comparison",
+        ),
         default="all",
         help="Limit rendering to one image family. Defaults to all.",
     )
@@ -292,18 +312,22 @@ def _write_security_attribution_preview(html_path: Path) -> None:
     if len(body) != 1:
         raise ValueError("Security attribution preview is missing its table body")
     rows = body[0].xpath("./tr")
-    if len(rows) <= 21:
+    preview_row_count = 9
+    if len(rows) <= (preview_row_count * 2) + 1:
         raise ValueError("Security attribution preview does not have enough rows to trim")
 
     security_rows = rows[:-1]
     total_row = rows[-1]
-    retained_rows = [*security_rows[:10], *security_rows[-10:]]
+    retained_rows = [
+        *security_rows[:preview_row_count],
+        *security_rows[-preview_row_count:],
+    ]
     for row in rows:
         body[0].remove(row)
-    for row in retained_rows[:10]:
+    for row in retained_rows[:preview_row_count]:
         body[0].append(row)
     body[0].append(_security_ellipsis_row())
-    for row in retained_rows[10:]:
+    for row in retained_rows[preview_row_count:]:
         body[0].append(row)
     body[0].append(total_row)
 

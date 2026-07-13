@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
             # -------------------------------------------------------------
             # 3. Turn findings into the portable review bundle
             # -------------------------------------------------------------
-            # This writes report.xlsx, report.html, supporting CSV files, a
+            # This writes level-specific audit XLSX/HTML files, supporting CSVs, a
             # manifest, and bundle guidance. Edit the call below when building
             # a custom reporting or downstream-review workflow.
             bundle_paths = write_performance_comparison_report_bundle(

@@ -396,6 +396,16 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             report_bundle_contract(),
             {
                 "bundle_type": "performance_comparison_report",
+                "audit_artifact_files": {
+                    "portfolio": {
+                        "html_report": "portfolio_audit.html",
+                        "review_workbook": "portfolio_audit.xlsx",
+                    },
+                    "security": {
+                        "html_report": "security_audit.html",
+                        "review_workbook": "security_audit.xlsx",
+                    },
+                },
                 "manifest_version": 1,
                 "required_artifacts": [
                     "html_report",
@@ -616,7 +626,10 @@ class TestPerformanceComparisonReport(unittest.TestCase):
                 manifest["artifacts"]["manifest"],
                 "supporting_files/manifest.json",
             )
-            self.assertEqual(manifest["artifacts"]["html_report"], "report.html")
+            self.assertEqual(
+                manifest["artifacts"]["html_report"],
+                "portfolio_audit.html",
+            )
             self.assertEqual(manifest["artifacts"]["readme"], "README.md")
             self.assertEqual(
                 manifest["artifacts"]["review_summary"],
@@ -633,7 +646,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["primary_review"],
-                "report.html",
+                "portfolio_audit.html",
             )
             self.assertEqual(
                 manifest["review_entrypoints"]["period_triage"],
@@ -1354,13 +1367,14 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(
                 manifest["artifacts"]["review_workbook"],
-                "report.xlsx",
+                "portfolio_audit.xlsx",
             )
             readme = paths["readme"].read_text(encoding="utf-8")
-            self.assertNotIn("Open `report.xlsx` first", readme)
+            self.assertNotIn("Open `portfolio_audit.xlsx` first", readme)
             self.assertNotIn("same review model in a browser", readme)
             self.assertIn(
-                "1. Open `report.xlsx` when present; use `report.html` for "
+                "1. Open `portfolio_audit.xlsx` when present; use "
+                "`portfolio_audit.html` for "
                 "browser review.",
                 readme,
             )
@@ -1872,6 +1886,32 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues,
         )
 
+    def test_report_bundle_removes_obsolete_report_names(self) -> None:
+        """Rebuilding a bundle removes stale generic and wrong-level reports."""
+        findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory)
+            obsolete_paths = [
+                output_directory / "report.html",
+                output_directory / "report.xlsx",
+                output_directory / "security_audit.html",
+                output_directory / "security_audit.xlsx",
+            ]
+            for obsolete_path in obsolete_paths:
+                obsolete_path.write_text("stale", encoding="utf-8")
+
+            paths = write_performance_comparison_report_bundle(
+                findings,
+                output_directory,
+                include_workbook=False,
+                require_complete_yaml_setup=False,
+            )
+
+            self.assertEqual(paths["html_report"].name, "portfolio_audit.html")
+            self.assertFalse((output_directory / "portfolio_audit.xlsx").exists())
+            for obsolete_path in obsolete_paths:
+                self.assertFalse(obsolete_path.exists())
+
     def test_report_bundle_validation_catches_missing_review_workbook(self) -> None:
         """Bundle validation reports workbook artifacts that are absent."""
         findings = compare_snapshots(_RESTATEMENT_COMPARISON_PATH)
@@ -1886,7 +1926,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             paths["review_workbook"].unlink()
             issues = report_bundle_validation_issues(directory)
 
-        self.assertIn("artifact file 'report.xlsx' is missing", issues)
+        self.assertIn("artifact file 'portfolio_audit.xlsx' is missing", issues)
 
     def test_report_bundle_validation_catches_invalid_review_workbook(self) -> None:
         """Bundle validation checks workbook sheet structure."""
@@ -1907,7 +1947,7 @@ class TestPerformanceComparisonReport(unittest.TestCase):
             issues = report_bundle_validation_issues(directory)
 
         self.assertIn(
-            "report.xlsx is missing primary sheet 'Performance Differences'",
+            "portfolio_audit.xlsx is missing primary sheet 'Performance Differences'",
             issues,
         )
 
