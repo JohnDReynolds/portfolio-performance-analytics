@@ -157,12 +157,19 @@ class Attribution:
         """
         classification_label = util.normalize_optional_string(classification_label)
 
+        performance_pair = util.two_item_tuple(performances, "Attribution performances")
+
+        # Attribution owns independent calculated performances. Identifier
+        # equalization must never alter caller- or Analytics-owned inputs.
+        self._performances = tuple(performance.copy() for performance in performance_pair)
+
         # Set internal instance variables from the constructor parameters.
         self._classification = Classification(
-            classification_name, classification_data_source, performances
+            classification_name,
+            classification_data_source,
+            self._performances,
         )
         self._frequency = frequency
-        self._performances = performances
         self._classification_label = (
             self._classification.name
             if classification_label is None
@@ -176,11 +183,21 @@ class Attribution:
         self._df, self._detail_df = self._calculate_attribution()
         self._df_overall = self._calculate_df_overall()
 
-    def _add_total_row(self, df: pl.DataFrame) -> pl.DataFrame:
+        # Attribution is a financial calculation boundary. Run its inexpensive
+        # conservation checks before any report can expose the result.
+        self.audit()
+
+    def _add_total_row(
+        self,
+        df: pl.DataFrame,
+        label_total: bool = False,
+    ) -> pl.DataFrame:
         """Return a DataFrame with a total row appended.
 
         Args:
             df: DataFrame to summarize.
+            label_total: Whether presentation output should convert date columns
+                to strings and display ``"Total"`` in the final thru-date cell.
 
         Returns:
             DataFrame with one additional bottom row containing totals or
@@ -196,17 +213,8 @@ class Attribution:
 
         # Add the "Total" label to the total row.
         if cols.FROM_DATE in df.columns:
-            # Convert the date columns to strings just so "Total" can be added.
-            df = df.with_columns(
-                pl.col([cols.FROM_DATE, cols.THRU_DATE]).dt.strftime(
-                    util.DATE_FORMAT_STRING
-                )
-            )
-            total_row = total_row.cast(
-                {cols.FROM_DATE: pl.String, cols.THRU_DATE: pl.String}
-            )
             total_row[0, cols.FROM_DATE] = None
-            total_row[0, cols.THRU_DATE] = "Total"
+            total_row[0, cols.THRU_DATE] = None
 
         # Override the returns since they should be linked, not summed.
         if cols.ACTIVE_RETURN in df.columns:
@@ -226,8 +234,16 @@ class Attribution:
             for cum_col_name in cols.ALL_CUMULATIVE_COLUMNS:
                 total_row[0, cum_col_name] = df[-1, cum_col_name]
 
-        # Concatenate the total_row to the bottom of the df.
-        return df.vstack(total_row)
+        # Concatenate the total row without weakening machine-readable dtypes.
+        result = df.vstack(total_row)
+        if label_total and cols.FROM_DATE in result.columns:
+            result = result.with_columns(
+                pl.col([cols.FROM_DATE, cols.THRU_DATE]).dt.strftime(
+                    util.DATE_FORMAT_STRING
+                )
+            )
+            result[-1, cols.THRU_DATE] = "Total"
+        return result
 
     def audit(self) -> None:
         """Audit this attribution instance for internal consistency.
@@ -581,26 +597,6 @@ class Attribution:
                     * pl.col("_active_linking_coefficient")
                 ).alias(cols.SELECTION_EFFECT_SMOOTHED),
             )
-            .join(
-                portfolio.narrow_df.select(
-                    *cols.DATE_COLUMNS,
-                    pl.col(cols.IDENTIFIER).alias(cols.CLASSIFICATION_IDENTIFIER),
-                    pl.col(cols.RETURN).alias("_portfolio_display_return"),
-                ),
-                on=[*cols.DATE_COLUMNS, cols.CLASSIFICATION_IDENTIFIER],
-            )
-            .join(
-                benchmark.narrow_df.select(
-                    *cols.DATE_COLUMNS,
-                    pl.col(cols.IDENTIFIER).alias(cols.CLASSIFICATION_IDENTIFIER),
-                    pl.col(cols.RETURN).alias("_benchmark_display_return"),
-                ),
-                on=[*cols.DATE_COLUMNS, cols.CLASSIFICATION_IDENTIFIER],
-            )
-            .with_columns(
-                pl.col("_portfolio_display_return").alias(cols.PORTFOLIO_RETURN),
-                pl.col("_benchmark_display_return").alias(cols.BENCHMARK_RETURN),
-            )
             .with_columns(self._detail_derived_expressions())
             .select(
                 *cols.DATE_COLUMNS,
@@ -789,36 +785,39 @@ class Attribution:
         identifier sets.
         """
         portfolio, benchmark = self._performances
+        row_key = [*cols.DATE_COLUMNS, cols.IDENTIFIER]
         for target, source in ((portfolio, benchmark), (benchmark, portfolio)):
-            missing_identifiers = sorted(set(source.identifiers) - set(target.identifiers))
-            if missing_identifiers:
-                periods = target.narrow_df.select(
-                    *cols.DATE_COLUMNS,
-                    cols.QUANTITY_OF_DAYS,
-                    cols.TOTAL_RETURN,
-                ).unique()
-                missing_rows = (
-                    periods.join(
-                        source.narrow_df.filter(
-                            pl.col(cols.IDENTIFIER).is_in(missing_identifiers)
-                        ).select(
-                            *cols.DATE_COLUMNS,
-                            cols.IDENTIFIER,
-                            (pl.col(cols.RETURN) * 0.0).alias(cols.RETURN),
-                            (pl.col(cols.WEIGHT) * 0.0).alias(cols.WEIGHT),
-                            (pl.col(cols.CONTRIBUTION) * 0.0).alias(cols.CONTRIBUTION),
-                        ),
-                        on=cols.DATE_COLUMNS,
-                    )
-                    .select(target.narrow_df.columns)
+            missing_keys = source.narrow_df.select(row_key).join(
+                target.narrow_df.select(row_key),
+                on=row_key,
+                how="anti",
+            )
+            if missing_keys.is_empty():
+                continue
+            periods = target.narrow_df.select(
+                *cols.DATE_COLUMNS,
+                cols.QUANTITY_OF_DAYS,
+                cols.TOTAL_RETURN,
+            ).unique()
+            missing_rows = (
+                missing_keys.join(periods, on=cols.DATE_COLUMNS)
+                .with_columns(
+                    pl.lit(0.0).alias(cols.RETURN),
+                    pl.lit(0.0).alias(cols.WEIGHT),
+                    pl.lit(0.0).alias(cols.CONTRIBUTION),
                 )
-                target.reset_narrow_df(pl.concat([target.narrow_df, missing_rows]))
+                .select(target.narrow_df.columns)
+            )
+            target._replace_calculated_rows(  # pylint: disable=protected-access
+                pl.concat([target.narrow_df, missing_rows])
+            )
 
     def _fetch_dataframe(
         self,
         view: View,
         columns_to_sort: str | Sequence[str] | None = None,
         sort_descendings: bool | Sequence[bool] = False,
+        label_total: bool = False,
     ) -> pl.DataFrame:
         """Fetch the DataFrame for a view.
 
@@ -828,6 +827,7 @@ class Attribution:
                 by. Sorting is ignored for cumulative attribution.
             sort_descendings: Boolean or sequence of booleans indicating whether the
                 corresponding sort columns should be sorted descending.
+            label_total: Whether to add presentation text to a total-row date.
 
         Returns:
             DataFrame for the requested view, optionally sorted and with a total row
@@ -836,6 +836,73 @@ class Attribution:
         Raises:
             PpaError: If constructing a detailed view fails validation.
         """
+        if not isinstance(view, View):
+            raise PpaError(
+                repr(view),
+                205,
+                context={"view": repr(view)},
+            )
+        normalized_sort_columns: tuple[str, ...] = ()
+        if columns_to_sort is not None:
+            if isinstance(columns_to_sort, str):
+                normalized_sort_columns = (
+                    (columns_to_sort,) if columns_to_sort.strip() else ()
+                )
+            else:
+                try:
+                    normalized_sort_columns = tuple(columns_to_sort)
+                except TypeError as error:
+                    raise PpaError(
+                        "columns_to_sort must be a column name or sequence of names.",
+                        806,
+                        context={
+                            "option": "columns_to_sort",
+                            "value": repr(columns_to_sort),
+                        },
+                    ) from error
+            invalid_columns = [
+                column
+                for column in normalized_sort_columns
+                if not isinstance(column, str) or column not in _VIEW_COLUMN_NAMES[view]
+            ]
+            if invalid_columns:
+                raise PpaError(
+                    f"columns_to_sort contains {invalid_columns!r} for {view.value}.",
+                    806,
+                    context={
+                        "option": "columns_to_sort",
+                        "view": view.value,
+                        "invalid_columns": invalid_columns,
+                    },
+                )
+        if isinstance(sort_descendings, bool):
+            normalized_sort_descendings: bool | tuple[bool, ...] = sort_descendings
+        else:
+            try:
+                normalized_sort_descendings = tuple(sort_descendings)
+            except TypeError as error:
+                raise PpaError(
+                    "sort_descendings must be a boolean or sequence of booleans.",
+                    806,
+                    context={
+                        "option": "sort_descendings",
+                        "value": repr(sort_descendings),
+                    },
+                ) from error
+            if (
+                len(normalized_sort_descendings) != len(normalized_sort_columns)
+                or any(not isinstance(value, bool) for value in normalized_sort_descendings)
+            ):
+                raise PpaError(
+                    "sort_descendings must be a boolean or one boolean per sort column.",
+                    806,
+                    context={
+                        "option": "sort_descendings",
+                        "sort_column_count": len(normalized_sort_columns),
+                        "value_count": len(normalized_sort_descendings),
+                    },
+                )
+
         # Get the base dataframe associated with the view.
         match view:
             case View.CUMULATIVE_ATTRIBUTION | View.SUBPERIOD_SUMMARY:
@@ -849,18 +916,20 @@ class Attribution:
         # Sort the dataframe.  View.CUMULATIVE_ATTRIBUTION is not sortable, because it has
         # "cumulative" columns that are implicitly chronological.
         if (
-            columns_to_sort is not None
-            and not (isinstance(columns_to_sort, str) and not columns_to_sort.strip())
+            normalized_sort_columns
             and view != View.CUMULATIVE_ATTRIBUTION
         ):
-            lf = lf.sort(by=columns_to_sort, descending=sort_descendings)
+            lf = lf.sort(
+                by=normalized_sort_columns,
+                descending=normalized_sort_descendings,
+            )
 
         # Must collect() before adding the total_row
         df = lf.collect()
 
         # Add the total_row
         if view in (View.CUMULATIVE_ATTRIBUTION, View.OVERALL_ATTRIBUTION):
-            df = self._add_total_row(df)
+            df = self._add_total_row(df, label_total)
 
         # Return the dataframe.
         return df
@@ -1018,6 +1087,13 @@ class Attribution:
                 validation.
             ModuleNotFoundError: If chart rendering dependencies are not installed.
         """
+        if not isinstance(chart, Chart):
+            raise PpaError(
+                repr(chart),
+                206,
+                context={"chart": repr(chart)},
+            )
+
         # Keep chart rendering code out of normal imports until chart output is requested.
         from ppar._chart_console import prepare_chart_rendering
 
@@ -1154,7 +1230,12 @@ class Attribution:
             PpaError: If the requested table is too large for HTML rendering or view
                 construction fails validation.
         """
-        df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
+        df = self._fetch_dataframe(
+            view,
+            columns_to_sort,
+            sort_descendings,
+            label_total=True,
+        )
         if _MAXIMUM_HTML_ROWS < len(df):
             raise PpaError(f"{view.value}, Rows = {len(df)}", 204)
         return html_table.attribution_html(
@@ -1262,7 +1343,12 @@ class Attribution:
             PpaError: If the requested view has more than 1,010 rows or view
                 construction fails validation.
         """
-        df = self._fetch_dataframe(view, columns_to_sort, sort_descendings)
+        df = self._fetch_dataframe(
+            view,
+            columns_to_sort,
+            sort_descendings,
+            label_total=True,
+        )
 
         # Large HTML tables can be very slow. This commonly occurs for views
         # containing one row per subperiod and classification item.
@@ -1323,7 +1409,12 @@ class Attribution:
             PpaError: If view construction fails validation.
         """
         output.write_csv(
-            self._fetch_dataframe(view, columns_to_sort, sort_descendings),
+            self._fetch_dataframe(
+                view,
+                columns_to_sort,
+                sort_descendings,
+                label_total=True,
+            ),
             file_path,
             float_precision,
         )

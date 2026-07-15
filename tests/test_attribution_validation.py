@@ -89,6 +89,31 @@ class TestAttributionValidation(unittest.TestCase):
                     with self.assertRaisesRegex(PpaError, errs.ERRORS[204]):
                         output_method(View.OVERALL_ATTRIBUTION)
 
+    def test_runtime_audit_rejects_corrupted_smoothed_effect_total(self) -> None:
+        """A broken linked-effect total cannot survive the production audit."""
+        periods = (
+            (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+            (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+        )
+        portfolio = test_util.make_performance_df(
+            periods,
+            {"A": ([0.02, 0.03], [1.0, 1.0])},
+        )
+        benchmark = test_util.make_performance_df(
+            periods,
+            {"A": ([0.01, -0.01], [1.0, 1.0])},
+        )
+        attribution = Analytics(portfolio, benchmark).get_attribution()
+        # pylint: disable-next=protected-access
+        attribution._df_overall = attribution._df_overall.with_columns(
+            (pl.col(cols.TOTAL_EFFECT_SMOOTHED) + 0.01).alias(
+                cols.TOTAL_EFFECT_SMOOTHED
+            )
+        )
+
+        with self.assertRaisesRegex(PpaError, "does not foot when summed"):
+            attribution.audit()
+
 
 if __name__ == "__main__":
     unittest.main()

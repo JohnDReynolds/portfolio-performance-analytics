@@ -117,6 +117,23 @@ class ClassificationTests(unittest.TestCase):
             },
         )
 
+    def test_classification_dataframe_is_a_defensive_copy(self) -> None:
+        """Mutating a returned classification table cannot alter stored metadata."""
+        classification = Classification(
+            "Security",
+            {"A": "Alpha", "B": "Beta"},
+            (_named_performance(), _named_performance()),
+        )
+        returned = classification.df
+        returned[0, cols.CLASSIFICATION_NAME] = "Changed"
+
+        self.assertEqual(
+            classification.df.sort(cols.CLASSIFICATION_IDENTIFIER)[
+                cols.CLASSIFICATION_NAME
+            ].to_list(),
+            ["Alpha", "Beta"],
+        )
+
     def test_one_column_classification_source_raises_error_302(self) -> None:
         """Explicit classification sources must supply identifier and name columns."""
         source = pl.DataFrame({"identifier": ["A", "B"]})
@@ -161,6 +178,14 @@ class MappingTests(unittest.TestCase):
 
         self.assertEqual(dict(mapping.to_froms), {"HEALTH": ["A"]})
 
+    def test_mapping_dictionary_is_a_defensive_copy(self) -> None:
+        """Mutating a returned reverse mapping cannot alter stored mappings."""
+        mapping = Mapping(("A", "B"), {"A": "TECH", "B": "TECH"})
+        returned = mapping.to_froms
+        returned["TECH"].append("CHANGED")
+
+        self.assertEqual(dict(mapping.to_froms), {"TECH": ["A", "B"]})
+
     def test_one_column_mapping_source_raises_error_353(self) -> None:
         """Mapping sources must supply both from and to identifier columns."""
         with self.assertRaisesRegex(PpaError, errs.ERRORS[353]):
@@ -187,6 +212,74 @@ class MappingTests(unittest.TestCase):
         self.assertEqual(details[cols.CLASSIFICATION_NAME].item(), "Technology")
         self.assertAlmostEqual(details[cols.PORTFOLIO_WEIGHT].item(), 1.0)
         self.assertAlmostEqual(details[cols.PORTFOLIO_CONTRIB_SIMPLE].item(), 0.04)
+
+    def test_zero_weight_mapped_group_preserves_nonzero_contribution(self) -> None:
+        """Offsetting mapped weights do not erase their combined contribution."""
+        performance = pl.DataFrame(
+            {
+                cols.FROM_DATE: [dt.date(2024, 1, 1)] * 3,
+                cols.THRU_DATE: [dt.date(2024, 1, 31)] * 3,
+                cols.IDENTIFIER: ["LONG", "SHORT", "CORE"],
+                cols.RETURN: [0.10, -0.10, 0.0],
+                cols.WEIGHT: [0.50, -0.50, 1.0],
+            }
+        )
+        mapping = {"LONG": "HEDGE", "SHORT": "HEDGE", "CORE": "CORE"}
+        analytics = Analytics(
+            performance,
+            performance.clone(),
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
+        )
+
+        details = analytics.get_attribution(
+            "Strategy",
+            {"HEDGE": "Hedge", "CORE": "Core"},
+            (mapping, mapping),
+        ).to_polars(View.SUBPERIOD_ATTRIBUTION)
+        hedge = details.filter(pl.col(cols.CLASSIFICATION_IDENTIFIER) == "HEDGE")
+
+        self.assertAlmostEqual(hedge[cols.PORTFOLIO_WEIGHT].item(), 0.0)
+        self.assertAlmostEqual(hedge[cols.PORTFOLIO_CONTRIB_SIMPLE].item(), 0.10)
+        self.assertAlmostEqual(details[cols.PORTFOLIO_CONTRIB_SIMPLE].sum(), 0.10)
+
+    def test_attribution_cache_distinguishes_mapping_sources(self) -> None:
+        """A classification label alone cannot identify a mapped calculation."""
+        analytics = Analytics(
+            _narrow_performance(),
+            _narrow_performance(),
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
+        )
+        mapping = {"A": "TECH", "B": "TECH"}
+
+        first = analytics.get_attribution(
+            "Sector",
+            mapping_data_sources=(mapping, mapping),
+        )
+        mapping["B"] = "FIN"
+        second = analytics.get_attribution(
+            "Sector",
+            mapping_data_sources=(mapping, mapping),
+        )
+
+        self.assertIsNot(first, second)
+        self.assertEqual(
+            set(
+                first.to_polars(View.SUBPERIOD_ATTRIBUTION)[
+                    cols.CLASSIFICATION_IDENTIFIER
+                ].to_list()
+            ),
+            {"TECH"},
+        )
+        self.assertEqual(
+            set(
+                second.to_polars(View.SUBPERIOD_ATTRIBUTION)[
+                    cols.CLASSIFICATION_IDENTIFIER
+                ].to_list()
+            ),
+            {"TECH", "FIN"},
+        )
 
     def test_missing_required_mapping_source_raises_error_804(self) -> None:
         """A requested roll-up still requires an actual mapping source."""

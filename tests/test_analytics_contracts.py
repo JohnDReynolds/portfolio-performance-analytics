@@ -3,13 +3,16 @@
 # Python Imports
 import datetime as dt
 import unittest
+from unittest import mock
 
 # Third-Party Imports
 import polars as pl
 
 # Project Imports
 from ppar.analytics import Analytics
-from ppar.analytics.attribution import View
+from ppar.analytics.attribution import Attribution, View
+from ppar.analytics.frequency import Frequency
+from ppar.analytics.performance import Performance
 import ppar.analytics.schema as cols
 import ppar.errors as errs
 from ppar.errors import PpaError
@@ -95,6 +98,20 @@ class TestAnalyticsContracts(unittest.TestCase):
 
         self.assertIs(first, second)
 
+    def test_mapping_sources_require_exact_portfolio_benchmark_pair(self) -> None:
+        """Mapping setup rejects missing and silently ignored extra sources."""
+        analytics = Analytics(
+            _two_asset_performance(),
+            portfolio_classification_name="Security",
+        )
+        for mapping_sources in ((), ({"A": "TECH"},), (None, None, None)):
+            with self.subTest(length=len(mapping_sources)):
+                with self.assertRaisesRegex(PpaError, errs.ERRORS[805]):
+                    analytics.get_attribution(
+                        "Sector",
+                        mapping_data_sources=mapping_sources,
+                    )
+
     def test_detail_view_zero_fills_identifier_missing_from_benchmark(self) -> None:
         """Attribution aligns asymmetric holdings on one classification grid."""
         portfolio = _two_asset_performance().head(2)
@@ -112,6 +129,125 @@ class TestAnalyticsContracts(unittest.TestCase):
         self.assertEqual(b_row[cols.BENCHMARK_RETURN].item(), 0.0)
         self.assertEqual(b_row[cols.BENCHMARK_CONTRIB_SIMPLE].item(), 0.0)
 
+    def test_detail_view_zero_fills_identifiers_missing_in_individual_periods(self) -> None:
+        """Alignment preserves contributions when identifier membership changes."""
+        portfolio = pl.DataFrame(
+            {
+                cols.FROM_DATE: [
+                    dt.date(2024, 1, 1),
+                    dt.date(2024, 1, 1),
+                    dt.date(2024, 2, 1),
+                ],
+                cols.THRU_DATE: [
+                    dt.date(2024, 1, 31),
+                    dt.date(2024, 1, 31),
+                    dt.date(2024, 2, 29),
+                ],
+                cols.IDENTIFIER: ["A", "B", "A"],
+                cols.RETURN: [0.02, 0.10, 0.03],
+                cols.WEIGHT: [0.50, 0.50, 1.0],
+            }
+        )
+        benchmark = pl.DataFrame(
+            {
+                cols.FROM_DATE: [
+                    dt.date(2024, 1, 1),
+                    dt.date(2024, 2, 1),
+                    dt.date(2024, 2, 1),
+                ],
+                cols.THRU_DATE: [
+                    dt.date(2024, 1, 31),
+                    dt.date(2024, 2, 29),
+                    dt.date(2024, 2, 29),
+                ],
+                cols.IDENTIFIER: ["A", "A", "B"],
+                cols.RETURN: [0.01, 0.01, 0.04],
+                cols.WEIGHT: [1.0, 0.50, 0.50],
+            }
+        )
+
+        summary = Analytics(portfolio, benchmark).get_attribution().to_polars(
+            View.SUBPERIOD_SUMMARY
+        )
+
+        self.assertEqual(
+            summary[cols.PORTFOLIO_RETURN].round(12).to_list(),
+            [0.06, 0.03],
+        )
+        self.assertEqual(
+            summary[cols.BENCHMARK_RETURN].round(12).to_list(),
+            [0.01, 0.025],
+        )
+        self.assertEqual(
+            summary[cols.PORTFOLIO_CONTRIB_SIMPLE].round(12).to_list(),
+            [0.06, 0.03],
+        )
+        self.assertEqual(
+            summary[cols.BENCHMARK_CONTRIB_SIMPLE].round(12).to_list(),
+            [0.01, 0.025],
+        )
+
+    def test_consolidated_detail_displays_return_used_for_contribution(self) -> None:
+        """Displayed consolidated returns use the contribution calculation basis."""
+        periods = (
+            (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+            (dt.date(2024, 2, 1), dt.date(2024, 2, 29)),
+            (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
+        )
+        performance = pl.DataFrame(
+            {
+                cols.FROM_DATE: [period[0] for period in periods for _ in range(2)],
+                cols.THRU_DATE: [period[1] for period in periods for _ in range(2)],
+                cols.IDENTIFIER: ["A", "B"] * len(periods),
+                cols.RETURN: [0.10, -0.05] * len(periods),
+                cols.WEIGHT: [0.50, 0.50] * len(periods),
+            }
+        )
+
+        details = Analytics(
+            performance,
+            performance.clone(),
+            frequency=Frequency.QUARTERLY,
+        ).get_attribution().to_polars(View.SUBPERIOD_ATTRIBUTION)
+
+        calculated_contributions = (
+            details[cols.PORTFOLIO_WEIGHT] * details[cols.PORTFOLIO_RETURN]
+        )
+        self.assertTrue(
+            details[cols.PORTFOLIO_CONTRIB_SIMPLE]
+            .round(12)
+            .equals(calculated_contributions.round(12))
+        )
+
+    def test_attribution_is_audited_when_created(self) -> None:
+        """Normal attribution construction executes production invariants."""
+        with mock.patch.object(Attribution, "audit", autospec=True) as audit:
+            attribution = Analytics(_two_asset_performance()).get_attribution()
+
+        audit.assert_called_once_with(attribution)
+
+    def test_attribution_does_not_mutate_caller_performances(self) -> None:
+        """Identifier alignment operates on attribution-owned calculation copies."""
+        portfolio = Performance(_two_asset_performance().head(2))
+        benchmark = Performance(
+            _two_asset_performance()
+            .head(2)
+            .filter(pl.col(cols.IDENTIFIER) == "A")
+            .with_columns(pl.lit(1.0).alias(cols.WEIGHT))
+        )
+        portfolio_before = portfolio.narrow_df.clone()
+        benchmark_before = benchmark.narrow_df.clone()
+
+        Attribution(
+            (portfolio, benchmark),
+            classification_name=None,
+            classification_data_source=None,
+            frequency=Frequency.AS_OFTEN_AS_POSSIBLE,
+        )
+
+        self.assertTrue(portfolio.narrow_df.equals(portfolio_before))
+        self.assertTrue(benchmark.narrow_df.equals(benchmark_before))
+
     def test_total_rows_are_appended_only_to_aggregate_views(self) -> None:
         """Cumulative and overall views end in totals; detail views do not."""
         attribution = Analytics(_two_asset_performance()).get_attribution()
@@ -121,10 +257,21 @@ class TestAnalyticsContracts(unittest.TestCase):
         summary = attribution.to_polars(View.SUBPERIOD_SUMMARY)
         detail = attribution.to_polars(View.SUBPERIOD_ATTRIBUTION)
 
-        self.assertEqual(cumulative[cols.THRU_DATE].item(-1), "Total")
+        self.assertEqual(cumulative.schema[cols.THRU_DATE], pl.Date)
+        self.assertIsNone(cumulative[cols.THRU_DATE].item(-1))
+        self.assertIn(">Total<", attribution.to_html(View.CUMULATIVE_ATTRIBUTION))
         self.assertEqual(overall[cols.CLASSIFICATION_NAME].item(-1), "Total")
         self.assertEqual(summary.height, len(_PERIODS))
         self.assertEqual(detail.height, 2 * len(_PERIODS))
+
+    def test_schema_column_groups_are_immutable(self) -> None:
+        """Shared schema groupings cannot be changed by package consumers."""
+        for grouping in (
+            cols.DATE_COLUMNS,
+            cols.CLASSIFICATION_COLUMNS,
+            cols.VIEW_SUBPERIOD_ATTRIBUTION_COLUMNS,
+        ):
+            self.assertIsInstance(grouping, tuple)
 
     def test_overall_sorting_leaves_total_row_at_end(self) -> None:
         """Sorting orders holdings before the appended overall total row."""

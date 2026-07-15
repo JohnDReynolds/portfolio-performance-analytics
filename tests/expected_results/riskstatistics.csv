@@ -15,8 +15,8 @@ Quarterly Tracking Error,0.23513242,NaN,NaN,Benchmark-Relative Risk
 Annualized Tracking Error,0.47026484,NaN,NaN,Benchmark-Relative Risk
 Quarterly Sharpe Ratio,-0.02892990,-0.03383850,0.00490860,Risk-Adjusted Performance
 Annualized Sharpe Ratio,-0.05785980,-0.06767700,0.00981720,Risk-Adjusted Performance
-Quarterly Sortino Ratio,-0.07667863,-0.08114880,0.00447016,Risk-Adjusted Performance
-Annualized Sortino Ratio,-0.15335727,-0.16229759,0.00894032,Risk-Adjusted Performance
+Quarterly Sortino Ratio,0.36814223,1.09482693,-0.72668470,Risk-Adjusted Performance
+Annualized Sortino Ratio,0.73628446,2.18965386,-1.45336940,Risk-Adjusted Performance
 Quarterly Information Ratio,-0.01734706,NaN,NaN,Risk-Adjusted Performance
 Quarterly M_Squared,0.00436251,NaN,NaN,Risk-Adjusted Performance
 Quarterly Treynor Ratio,-0.00660841,NaN,NaN,Risk-Adjusted Performance

@@ -14,6 +14,29 @@ import polars as pl
 
 # Project Imports
 import ppar.utilities as util
+from ppar.errors import PpaError
+
+
+def _validate_float_precision(float_precision: int) -> None:
+    """Validate a public JSON or CSV floating-point precision.
+
+    Args:
+        float_precision: Requested number of decimal places.
+
+    Raises:
+        PpaError: If the precision is not an integer from 0 through 15.
+    """
+    if (
+        isinstance(float_precision, bool)
+        or not isinstance(float_precision, int)
+        or not 0 <= float_precision <= 15
+    ):
+        raise PpaError(
+            f"float_precision must be an integer from 0 through 15; got "
+            f"{float_precision!r}.",
+            806,
+            context={"option": "float_precision", "value": float_precision},
+        )
 
 
 def to_json(
@@ -32,6 +55,7 @@ def to_json(
     Returns:
         JSON string containing the serialized DataFrame.
     """
+    _validate_float_precision(float_precision)
     pandas_df = to_pandas(df)
     if date_format is None:
         return pandas_df.to_json(double_precision=float_precision)
@@ -75,4 +99,5 @@ def write_csv(
         float_precision: Number of decimal places to write for floating-point
             values.
     """
+    _validate_float_precision(float_precision)
     df.write_csv(Path(file_path), float_precision=float_precision)

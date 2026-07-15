@@ -23,16 +23,19 @@ class TestScaleCheck(unittest.TestCase):
     """Verify scale data stays coherent without running expensive workflows."""
 
     def test_scale_choices_include_release_candidate_stress_level(self) -> None:
-        """Large-site scale accepts routine increments and the 500x RC gate."""
-        for scale in (*range(10, 101, 10), 500):
+        """Large-site scale accepts routine, RC, and controlled stress levels."""
+        for scale in (*range(10, 101, 10), 500, 1000):
             self.assertEqual(
                 check_scale._parse_args(["--scale", str(scale)]).scale,
                 scale,
             )
-        for scale in (0, 1, 9, 11, 101, 499, 501, 30_000):
+        for scale in (0, 1, 9, 11, 101, 499, 501, 999, 1001, 30_000):
             with self.subTest(scale=scale):
                 with self.assertRaises(SystemExit):
                     check_scale._parse_args(["--scale", str(scale)])
+        self.assertEqual(check_scale._analytics_large_site_scale(100), 100)
+        self.assertEqual(check_scale._analytics_large_site_scale(500), 500)
+        self.assertEqual(check_scale._analytics_large_site_scale(1000), 500)
 
     def test_run_surfaces_captured_child_process_error(self) -> None:
         """Failed scale subprocesses retain the diagnostic stderr text."""
@@ -141,7 +144,7 @@ class TestScaleCheck(unittest.TestCase):
                 )
 
     def test_500x_observational_baseline_records_but_does_not_replace_gate(self) -> None:
-        """Maintained observations repeat the unchanged hard-gate parameters."""
+        """Maintained observations repeat the current hard-gate parameters."""
         baseline_path = Path(check_scale.__file__).with_name(
             "audit_scale_baseline_500x.json"
         )
@@ -179,7 +182,7 @@ class TestScaleCheck(unittest.TestCase):
         self.assertAlmostEqual(gate["failure_ratio_at_500x"], failure_ratio)
 
     def test_large_site_expansion_preserves_original_and_suffixes_copies(self) -> None:
-        """Portfolio copies retain source rows and use distinct identifiers."""
+        """Portfolio copies and the controlled change scope retain source rows."""
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "performance.csv"
             original = pl.DataFrame(
@@ -209,6 +212,42 @@ class TestScaleCheck(unittest.TestCase):
             ],
         )
         self.assertEqual(expanded["RETURN"].to_list(), [0.01, 0.02] * 3)
+
+        with tempfile.TemporaryDirectory() as directory:
+            site = Path(directory)
+            snapshot_a = site / "snapshot_a"
+            snapshot_b = site / "snapshot_b"
+            snapshot_a.mkdir()
+            snapshot_b.mkdir()
+            frame_a = pl.DataFrame(
+                {
+                    "PORTFOLIO_CODE": ["BALANCED", "INCOME"],
+                    "VALUE": [100.0, 200.0],
+                }
+            )
+            frame_b = pl.DataFrame(
+                {
+                    "PORTFOLIO_CODE": ["BALANCED", "INCOME"],
+                    "VALUE": [110.0, 220.0],
+                }
+            )
+            frame_a.write_csv(snapshot_a / "holdings.csv")
+            frame_b.write_csv(snapshot_b / "holdings.csv")
+
+            check_scale._retain_audit_changes_for_portfolios(
+                site,
+                frozenset({"BALANCED"}),
+            )
+            retained = pl.read_csv(snapshot_b / "holdings.csv").sort(
+                "PORTFOLIO_CODE"
+            )
+
+        self.assertEqual(retained["VALUE"].to_list(), [110.0, 200.0])
+        self.assertIsNone(check_scale._audit_changed_portfolio_scope(500))
+        self.assertEqual(
+            check_scale._audit_changed_portfolio_scope(1000),
+            frozenset({"BALANCED"}),
+        )
 
     def test_selected_expansion_scales_financials_and_aligns_references(self) -> None:
         """Unique securities preserve total weight/contribution and lookup coverage."""
@@ -411,11 +450,11 @@ class TestScaleCheck(unittest.TestCase):
     def test_audit_caps_reflect_observed_sublinear_growth(self) -> None:
         """Audit large-site and long-history caps catch meaningful regressions."""
         self.assertEqual(
-            check_scale._audit_large_site_scaling_result(100, 1.0, 22.91),
-            ("PASS", 22.91, 27.3, 28.6),
+            check_scale._audit_large_site_scaling_result(100, 1.0, 15.0),
+            ("PASS", 15.0, 16.05, 16.814285714285717),
         )
-        with self.assertRaisesRegex(RuntimeError, "28.60x time-ratio error cap"):
-            check_scale._audit_large_site_scaling_result(100, 1.0, 28.61)
+        with self.assertRaisesRegex(RuntimeError, "16.81x time-ratio error cap"):
+            check_scale._audit_large_site_scaling_result(100, 1.0, 16.82)
 
         self.assertEqual(
             check_scale._audit_history_scaling_result(1.0, 1.61),
@@ -428,16 +467,27 @@ class TestScaleCheck(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "2.00x time-ratio error cap"):
             check_scale._audit_history_scaling_result(1.0, 2.01)
 
-    def test_500x_audit_gate_uses_existing_formula_without_relaxation(self) -> None:
-        """The RC stress level derives its caps from the established formula."""
+    def test_audit_stress_caps_preserve_measured_headroom(self) -> None:
+        """The 500x and controlled 1000x caps catch meaningful regressions."""
         status, ratio, warning_ratio, error_ratio = (
-            check_scale._audit_large_site_scaling_result(500, 1.0, 120.0)
+            check_scale._audit_large_site_scaling_result(500, 1.0, 75.0)
         )
 
         self.assertEqual(status, "PASS")
-        self.assertEqual(ratio, 120.0)
-        self.assertAlmostEqual(warning_ratio, 132.3)
-        self.assertAlmostEqual(error_ratio, 138.6)
+        self.assertEqual(ratio, 75.0)
+        self.assertAlmostEqual(warning_ratio, 76.05)
+        self.assertAlmostEqual(error_ratio, 79.67142857142858)
+
+        status, ratio, warning_ratio, error_ratio = (
+            check_scale._audit_large_site_scaling_result(1000, 1.0, 90.0)
+        )
+
+        self.assertEqual(status, "WARN")
+        self.assertEqual(ratio, 90.0)
+        self.assertEqual(warning_ratio, 85.0)
+        self.assertEqual(error_ratio, 95.0)
+        with self.assertRaisesRegex(RuntimeError, "95.00x time-ratio error cap"):
+            check_scale._audit_large_site_scaling_result(1000, 1.0, 95.01)
 
     def test_release_candidate_runs_hard_500x_scale_gate(self) -> None:
         """The maintained RC batch includes the 500x scale command by default."""

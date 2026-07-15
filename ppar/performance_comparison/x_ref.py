@@ -19,6 +19,7 @@ import polars as pl
 
 # Project imports
 import ppar.utilities as util
+from ppar.errors import PpaError
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.holdings import HoldingsLoader
 from ppar.performance_comparison.portfolio_performance import (
@@ -259,9 +260,15 @@ def _market_value_continuity_issues(
         current_from = _date(current.get(pc_cols.FROM_DATE))
         prior_end = _number(current.get(_CONTINUITY_PRIOR_END_VALUE))
         current_begin = _number(current.get(_CONTINUITY_CURRENT_BEGIN_VALUE))
-        assert current_from is not None
-        assert prior_end is not None
-        assert current_begin is not None
+        if current_from is None or prior_end is None or current_begin is None:
+            raise PpaError(
+                "SN-04 continuity candidate contains invalid typed values.",
+                999,
+                context={
+                    "dataset": dataset_name,
+                    "portfolio_id": current.get(pc_cols.PORTFOLIO_ID),
+                },
+            )
         difference = current_begin - prior_end
         security_id = _text(current.get(pc_cols.SECURITY_ID))
         scope = f"portfolio {current.get(pc_cols.PORTFOLIO_ID)}"

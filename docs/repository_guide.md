@@ -81,6 +81,17 @@ Useful source-checkout checks:
 ./.venv/bin/python scripts/render_readme_images.py
 ```
 
+After major Audit or performance-sensitive changes, also run the maintained 500x
+regression gate:
+
+```bash
+./.venv/bin/python scripts/check_scale.py --scale 500
+```
+
+Do not recalibrate its warning or failure limits merely because a run fails. Treat a
+failure as a regression investigation unless a deliberate benchmark-policy change is
+reviewed separately.
+
 To refresh only the Performance Auditing README screenshots:
 
 ```bash
@@ -199,6 +210,21 @@ take several minutes.
 `scripts/audit_scale_baseline_500x.json` records the current machine-dependent
 500x timing, memory, phase, row-count, and output-size observations. It is an
 optimization reference, not permission to adjust the established scale gate.
+
+For an on-demand larger-input stress check, run:
+
+```bash
+./.venv/bin/python scripts/check_scale.py --scale 1000
+```
+
+The 1000x Audit fixture copies the full input volume but limits snapshot changes
+to the `BALANCED` portfolio. This keeps synthetic reviewer output below the
+unchanged 100,000-row production ceiling. The combined command retains the
+established Analytics large-site workload at 500x because the new level targets
+Audit input scaling. It does not replace the 500x release-candidate gate. Its
+separately measured runtime caps are 85x for a warning and 95x for a failure;
+the fully changed 10x through 500x workloads use the measured `1 + scale / 7`
+growth curve with 5% warning and 10% failure margins.
 
 By default, subcommand output is captured and only printed if a command fails.
 Use `--verbose` when you want the full underlying command output.
@@ -332,12 +358,20 @@ Use the full check before a larger handoff:
 Think of tests and validators as different tools:
 
 - Unit and integration tests under `tests/` protect code behavior.
+- Deterministic financial property and metamorphic tests protect calculation
+  identities, sign behavior, scaling behavior, and nonfinite-input boundaries.
 - Metadata tests protect packaging, public exports, and documentation promises.
 - Bundle validation checks generated artifact structure.
 - Demo matrix validation checks that test-only scenario fixtures still explain the
   intended review cases.
 - YAML validation checks configuration completeness and vocabulary before a
   comparison is run.
+- The 500x scale regression protects the established large-input runtime contract.
+
+Production report runs retain data-dependent accounting invariants, including
+no-lost-difference, no-double-counting, period-boundary, lineage, and explained-value
+reconciliation checks. Repository-wide structural checks and deliberately mutated
+failure probes belong in tests or batch validators instead of every user run.
 
 When changing report/workbook behavior, the most relevant focused tests are:
 

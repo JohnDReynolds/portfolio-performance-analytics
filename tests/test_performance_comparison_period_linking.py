@@ -49,6 +49,29 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
             }
         )
 
+        periods = portfolio_periods_from_snapshots(snapshot_a, snapshot_b)
+
+        self.assertEqual(
+            periods.to_dicts(),
+            [
+                {
+                    pc_cols.PORTFOLIO_ID: "PORT_A",
+                    pc_cols.FROM_DATE: dt.date(2025, 4, 1),
+                    pc_cols.THRU_DATE: dt.date(2025, 4, 30),
+                },
+                {
+                    pc_cols.PORTFOLIO_ID: "PORT_A",
+                    pc_cols.FROM_DATE: dt.date(2025, 5, 1),
+                    pc_cols.THRU_DATE: dt.date(2025, 5, 31),
+                },
+                {
+                    pc_cols.PORTFOLIO_ID: "PORT_B",
+                    pc_cols.FROM_DATE: dt.date(2025, 5, 1),
+                    pc_cols.THRU_DATE: dt.date(2025, 5, 31),
+                },
+            ],
+        )
+
     def test_security_periods_from_snapshots_returns_unique_sorted_periods(self) -> None:
         """Security periods are deduplicated across snapshots and sorted."""
         snapshot_a = pl.DataFrame(
@@ -100,29 +123,6 @@ class TestPerformanceComparisonPeriodLinking(unittest.TestCase):
                 {
                     pc_cols.PORTFOLIO_ID: "PORT_B",
                     pc_cols.SECURITY_ID: "AAPL",
-                    pc_cols.FROM_DATE: dt.date(2025, 5, 1),
-                    pc_cols.THRU_DATE: dt.date(2025, 5, 31),
-                },
-            ],
-        )
-
-        periods = portfolio_periods_from_snapshots(snapshot_a, snapshot_b)
-
-        self.assertEqual(
-            periods.to_dicts(),
-            [
-                {
-                    pc_cols.PORTFOLIO_ID: "PORT_A",
-                    pc_cols.FROM_DATE: dt.date(2025, 4, 1),
-                    pc_cols.THRU_DATE: dt.date(2025, 4, 30),
-                },
-                {
-                    pc_cols.PORTFOLIO_ID: "PORT_A",
-                    pc_cols.FROM_DATE: dt.date(2025, 5, 1),
-                    pc_cols.THRU_DATE: dt.date(2025, 5, 31),
-                },
-                {
-                    pc_cols.PORTFOLIO_ID: "PORT_B",
                     pc_cols.FROM_DATE: dt.date(2025, 5, 1),
                     pc_cols.THRU_DATE: dt.date(2025, 5, 31),
                 },

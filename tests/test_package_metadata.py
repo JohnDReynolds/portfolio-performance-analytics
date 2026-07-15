@@ -596,7 +596,8 @@ class TestPackageMetadata(unittest.TestCase):
         readme = Path("README.md").read_text(encoding=util.ENCODING)
 
         self.assertIn(
-            "PPAR is a Python package that uses local Axys/APX data for two main workflows",
+            "PPAR is a Python package that creates Performance Auditing and Performance\n"
+            "Analytics reports from local portfolio accounting data.",
             readme,
         )
         self.assertLess(
@@ -2850,6 +2851,19 @@ class TestPackageMetadata(unittest.TestCase):
         )
 
         subprocess.run([sys.executable, "-c", command], check=True)
+
+    def test_production_invariants_do_not_use_optimization_sensitive_asserts(self) -> None:
+        """Production checks remain active when Python optimization is enabled."""
+        violations: list[str] = []
+        for path in sorted(Path("ppar").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding=util.ENCODING))
+            violations.extend(
+                f"{path}:{node.lineno}"
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Assert)
+            )
+
+        self.assertEqual([], violations)
 
 
 if __name__ == "__main__":

@@ -74,10 +74,15 @@ class Classification:
             TypeError: If ``data_source`` is supplied and ``performances`` is
                 ``None``.
         """
+        if performances is not None:
+            performances = util.two_item_tuple(
+                performances, "Classification performances"
+            )
+
         # Get the 2-column dataframe [cols.CLASSIFICATION_IDENTIFIER, cols.CLASSIFICATION_NAME]
         if data_source is None or (isinstance(data_source, str) and not data_source.strip()):
             # Use the performances.classification_items.
-            self.name, self.df = Classification._load_from_performances(performances)
+            self.name, self._df = Classification._load_from_performances(performances)
         else:
             # Use the data_source.
             if performances is None:
@@ -86,12 +91,17 @@ class Classification:
             needed_items = list(
                 set(performances[0].identifiers) | set(performances[1].identifiers)
             )  # unique list of the union of portfolio and benchmark
-            self.df = util.load_datasource(
+            self._df = util.load_datasource(
                 data_source,
                 column_names=cols.CLASSIFICATION_COLUMNS,
                 needed_items=needed_items,
                 error_message=errs.ERRORS[302],
             )
+
+    @property
+    def df(self) -> pl.DataFrame:
+        """Return an independent classification metadata table."""
+        return self._df.clone()
 
     @staticmethod
     def _load_from_performances(

@@ -150,6 +150,28 @@ class TestMegaCapDemoDataContract(unittest.TestCase):
         self.assertGreater(len(sector_attribution), 0)
         self.assertIn("Cash", set(sector_attribution["Classification_Name"]))
 
+    def test_readme_risk_story_matches_quarterly_demo(self) -> None:
+        """README risk values remain synchronized with its quarterly demo."""
+        analytics = Analytics(
+            _PORTFOLIO_PATH,
+            _BENCHMARK_PATH,
+            portfolio_classification_name="Security",
+            benchmark_classification_name="Security",
+            frequency=Frequency.QUARTERLY,
+        )
+        risk = analytics.get_riskstatistics().to_pandas()
+        portfolio_sharpe = _risk_value(risk, "Annualized Sharpe Ratio", "Portfolio")
+        benchmark_sharpe = _risk_value(risk, "Annualized Sharpe Ratio", "Benchmark")
+        portfolio_sortino = _risk_value(risk, "Annualized Sortino Ratio", "Portfolio")
+        benchmark_sortino = _risk_value(risk, "Annualized Sortino Ratio", "Benchmark")
+        expected_story = (
+            f"Sharpe was about {portfolio_sharpe:.2f} versus {benchmark_sharpe:.2f}, and "
+            f"Sortino was about {portfolio_sortino:.2f} versus {benchmark_sortino:.2f}."
+        )
+        readme = " ".join(Path("README.md").read_text(encoding="utf-8").split())
+
+        self.assertIn(expected_story, readme)
+
     def test_axysapx_analytics_fixture_matches_canonical_performance(self) -> None:
         """Axys analytics demo data is a lossless wrapper around Mega-Cap data."""
         axys_data = AxysData(_AXYS_ANALYTICS_YAML)

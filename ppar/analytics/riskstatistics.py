@@ -10,6 +10,7 @@ for a portfolio and benchmark return series.
 import datetime as dt
 from enum import Enum
 import math
+from numbers import Real
 from typing import cast, Sequence
 
 # Third-Party Imports
@@ -129,42 +130,105 @@ class RiskStatistics:
                 symbol used when calculating and displaying value at risk.
 
         Raises:
-            PpaError: If ``frequency`` is
-                ``Frequency.AS_OFTEN_AS_POSSIBLE``, ``returns`` is not a
-                supported sequence type, the portfolio and benchmark return
-                series have different lengths, there are fewer than two
-                returns, or either return series contains NaN values.
+            PpaError: If the frequency, financial parameters, portfolio value,
+                input pair, return-source types, return dimensions, return
+                lengths, observation count, finite values, or Performance dates
+                fail validation.
         """
-        # Set and validate the frequency.
-        self._frequency = frequency
-        if self._frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
-            raise PpaError(f"{self._frequency}", 402)
+        # Validate public options before indexing either input pair.
+        if not isinstance(frequency, Frequency) or frequency == Frequency.AS_OFTEN_AS_POSSIBLE:
+            raise PpaError(f"{frequency}", 402)
+        return_pair = util.two_item_tuple(returns, "RiskStatistics returns")
+        portfolio_value_pair = util.two_item_tuple(
+            portfolio_value, "RiskStatistics portfolio_value"
+        )
 
-        # Set the currency symbol used when presenting the VaR.
-        self._currency_symbol = portfolio_value[1]
+        parameter_values = {
+            "annual_minimum_acceptable_return": annual_minimum_acceptable_return,
+            "annual_risk_free_rate": annual_risk_free_rate,
+            "confidence_level": confidence_level,
+            "portfolio_value": portfolio_value_pair[0],
+        }
+        invalid_parameter: str | None = None
+        for parameter, value in parameter_values.items():
+            if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(value):
+                invalid_parameter = parameter
+                break
+        if invalid_parameter is None and annual_minimum_acceptable_return <= -1.0:
+            invalid_parameter = "annual_minimum_acceptable_return"
+        if invalid_parameter is None and annual_risk_free_rate <= -1.0:
+            invalid_parameter = "annual_risk_free_rate"
+        if invalid_parameter is None and not 0.0 < confidence_level < 1.0:
+            invalid_parameter = "confidence_level"
+        if invalid_parameter is None and cast(Real, portfolio_value_pair[0]) < 0.0:
+            invalid_parameter = "portfolio_value"
+        if invalid_parameter is None and not isinstance(portfolio_value_pair[1], str):
+            invalid_parameter = "portfolio_value currency symbol"
+        if invalid_parameter is not None:
+            invalid_value = (
+                portfolio_value_pair
+                if invalid_parameter.startswith("portfolio_value")
+                else parameter_values[invalid_parameter]
+            )
+            raise PpaError(
+                f"{invalid_parameter}={invalid_value!r}.",
+                406,
+                context={"parameter": invalid_parameter, "value": invalid_value},
+            )
+
+        portfolio_value_amount = float(cast(Real, portfolio_value_pair[0]))
+        currency_symbol = cast(str, portfolio_value_pair[1])
+
+        # Set the validated frequency and currency symbol.
+        self._frequency = frequency
+        self._currency_symbol = currency_symbol
 
         # Set dates, names, and returns from the input parameters.
-        if isinstance(returns[0], Performance) and isinstance(returns[1], Performance):
-            portfolio_totals = returns[0].period_totals()
-            benchmark_totals = returns[1].period_totals()
+        if isinstance(return_pair[0], Performance) and isinstance(return_pair[1], Performance):
+            portfolio_totals = return_pair[0].period_totals()
+            benchmark_totals = return_pair[1].period_totals()
             self._from_date = portfolio_totals[cols.FROM_DATE][0]
             self._thru_date = portfolio_totals[cols.THRU_DATE][-1]
-            self._portfolio_name = returns[0].name
-            self._benchmark_name = returns[1].name
+            self._portfolio_name = return_pair[0].name
+            self._benchmark_name = return_pair[1].name
             self._portfolio_returns = portfolio_totals[cols.TOTAL_RETURN].to_numpy()
             self._benchmark_returns = benchmark_totals[cols.TOTAL_RETURN].to_numpy()
-            self._performances_to_audit = cast(Sequence[Performance], returns)
-        elif isinstance(returns[0], np.ndarray) and isinstance(returns[1], np.ndarray):
+            self._performances_to_audit = cast(Sequence[Performance], return_pair)
+        elif isinstance(return_pair[0], np.ndarray) and isinstance(return_pair[1], np.ndarray):
+            array_pair = cast(
+                tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+                return_pair,
+            )
+            for label, values in zip(("portfolio", "benchmark"), array_pair):
+                is_real_numeric = np.issubdtype(
+                    values.dtype, np.integer
+                ) or np.issubdtype(values.dtype, np.floating)
+                if values.ndim != 1 or not is_real_numeric:
+                    raise PpaError(
+                        f"{label} returns must be a one-dimensional numeric array.",
+                        407,
+                        context={
+                            "return_source": label,
+                            "dimensions": values.ndim,
+                            "dtype": str(values.dtype),
+                        },
+                    )
             self._from_date = dt.date.min
             self._thru_date = dt.date.max
             self._portfolio_name = "Portfolio"
             self._benchmark_name = "Benchmark"
-            self._portfolio_returns = returns[0]
-            self._benchmark_returns = returns[1]
+            self._portfolio_returns = array_pair[0]
+            self._benchmark_returns = array_pair[1]
             self._performances_to_audit = cast(Sequence[Performance], tuple())
         else:
-            # Should never reach here.
-            raise PpaError("Unknown returns type in RiskStatistics constructor.", 999)
+            raise PpaError(
+                "both items must be Performance objects or NumPy arrays.",
+                407,
+                context={
+                    "portfolio_type": type(return_pair[0]).__name__,
+                    "benchmark_type": type(return_pair[1]).__name__,
+                },
+            )
 
         # Now that self._portfolio_returns has been established, set self._quantity_of_returns.
         self._quantity_of_returns = len(self._portfolio_returns)
@@ -177,8 +241,14 @@ class RiskStatistics:
         if self._quantity_of_returns < _MINIMUM_QUANTITY_OF_RETURNS:
             raise PpaError(f"{self._quantity_of_returns}", 403)
 
-        # Validate that there are not any NaN values.
-        if np.any(np.isnan(self._portfolio_returns)) or np.any(np.isnan(self._benchmark_returns)):
+        # NaN and infinite observations cannot produce meaningful statistics.
+        try:
+            returns_are_finite = np.all(np.isfinite(self._portfolio_returns)) and np.all(
+                np.isfinite(self._benchmark_returns)
+            )
+        except TypeError as error:
+            raise PpaError("", 405) from error
+        if not returns_are_finite:
             raise PpaError("", 405)
 
         # If Performance objects were supplied directly, validate date alignment.
@@ -190,7 +260,7 @@ class RiskStatistics:
             annual_minimum_acceptable_return,
             annual_risk_free_rate,
             confidence_level,
-            portfolio_value[0],
+            portfolio_value_amount,
         )
 
         # Create self._df from the statistic_values dictionary.
@@ -199,12 +269,12 @@ class RiskStatistics:
         # Rename the non-annualized column names so the frequency is prepended, and
         # the currency symbol is prepended for the portfolio_value.
         self._df.columns = [
-            self._frequency_column_name(col, portfolio_value[0]) for col in self._df.columns
+            self._frequency_column_name(col, portfolio_value_amount) for col in self._df.columns
         ]
 
         # Create the final DataFrame.
         self._df = (
-            self._df  ############################pl.DataFrame(statistic_values)
+            self._df
             # Transpose 2 rows to 2 Portfolio and Benchmark columns.
             .transpose(include_header=True, column_names=("Portfolio", "Benchmark"))
             .lazy()
@@ -264,6 +334,8 @@ class RiskStatistics:
         covariance_matrix = np.cov(portfolio_returns, benchmark_returns, ddof=1)
         covariance = covariance_matrix[0, 1]
         benchmark_variance = np.var(benchmark_returns, ddof=1)
+        if np.isclose(benchmark_variance, 0.0):
+            return math.nan
         return cast(float, covariance / benchmark_variance)  # cast for mypy
 
     def _calculate_all_statistics(
@@ -338,8 +410,12 @@ class RiskStatistics:
             returns_below_mar = rets[rets < frequency_mar] - frequency_mar
 
             # Calculate the risk-free ratios.
-            excess_returns_mean, sharpe_ratio, sortino_ratio = (
+            excess_returns_mean, sharpe_ratio = (
                 RiskStatistics._calculate_risk_free_ratios(rets, frequency_rfr)
+            )
+            sortino_ratio = RiskStatistics._ratio_with_zero_denominator(
+                mean - frequency_mar,
+                downside_deviation,
             )
 
             if idx == 0:  # Portfolio
@@ -352,8 +428,18 @@ class RiskStatistics:
                 # Regression alpha here is the intercept implied by mean returns:
                 # alpha = portfolio_mean - beta * benchmark_mean.
                 alpha = mean - (beta * benchmark_mean)
-                correlation_coefficient = cast(
-                    float, np.corrcoef(self._portfolio_returns, self._benchmark_returns)[0, 1]
+                benchmark_stddev = float(np.std(self._benchmark_returns))
+                correlation_coefficient = (
+                    math.nan
+                    if np.isclose(stddev, 0.0)
+                    or np.isclose(benchmark_stddev, 0.0)
+                    else cast(
+                        float,
+                        np.corrcoef(
+                            self._portfolio_returns,
+                            self._benchmark_returns,
+                        )[0, 1],
+                    )
                 )
 
                 # Jensen's alpha measures excess return over the CAPM-implied
@@ -395,10 +481,9 @@ class RiskStatistics:
                         value = float(np.sum(returns_below_mar)) / self._quantity_of_returns
                     case _Statistic.INFORMATION_RATIO:
                         if idx == 0:
-                            value = (
-                                math.inf
-                                if active_returns_stddev == 0
-                                else float(np.mean(active_returns)) / active_returns_stddev
+                            value = RiskStatistics._ratio_with_zero_denominator(
+                                float(np.mean(active_returns)),
+                                active_returns_stddev,
                             )
                         else:
                             value = math.nan
@@ -442,12 +527,15 @@ class RiskStatistics:
                     case _Statistic.TREYNOR_RATIO:
                         if idx == 0:
                             # Treynor uses beta, not volatility, as the risk unit.
-                            # A zero-beta portfolio makes the ratio undefined; use
-                            # infinity to match the other zero-denominator ratios.
+                            # Preserve the excess-return sign when finite beta is
+                            # effectively zero. Nonfinite beta remains undefined.
                             value = (
-                                math.inf
-                                if not np.isfinite(beta) or np.isclose(beta, 0.0)
-                                else excess_returns_mean / beta
+                                math.nan
+                                if not np.isfinite(beta)
+                                else RiskStatistics._ratio_with_zero_denominator(
+                                    excess_returns_mean,
+                                    beta,
+                                )
                             )
                         else:
                             value = math.nan
@@ -464,7 +552,7 @@ class RiskStatistics:
     @staticmethod
     def _calculate_risk_free_ratios(
         returns: npt.NDArray[np.float64], frequency_rfr: float
-    ) -> tuple[float, float, float]:
+    ) -> tuple[float, float]:
         """Calculate risk-free-rate-adjusted performance ratios.
 
         Args:
@@ -473,8 +561,7 @@ class RiskStatistics:
                 frequency as ``returns``.
 
         Returns:
-            Tuple containing mean excess return, Sharpe ratio, and Sortino
-            ratio.
+            Tuple containing mean excess return and Sharpe ratio.
         """
         # The current model assumes one constant risk-free rate for all periods.
         # Under that assumption, subtracting the risk-free rate shifts the mean
@@ -482,25 +569,35 @@ class RiskStatistics:
         excess_returns = returns - frequency_rfr
         excess_returns_mean = excess_returns.mean()
 
-        # A zero-volatility positive excess-return series has an unbounded Sharpe
-        # ratio under this convention. The sign of infinity follows the numerator
-        # only indirectly here because historical tests expect a single +inf value.
+        # A zero-volatility nonzero excess-return series has an unbounded Sharpe
+        # ratio. Preserve the numerator's sign rather than always returning +inf.
         denom = excess_returns.std()
-        sharpe_ratio = np.inf if np.isclose(denom, 0.0) else excess_returns_mean / denom
+        sharpe_ratio = RiskStatistics._ratio_with_zero_denominator(
+            float(excess_returns_mean),
+            float(denom),
+        )
+        return float(excess_returns_mean), sharpe_ratio
 
-        # Sortino only treats returns below the risk-free rate as downside
-        # observations. Periods at or above the risk-free rate do not enter the
-        # downside standard deviation.
-        excess_returns_downside = excess_returns[excess_returns < 0]
-        excess_returns_downside_std = (
-            0.0 if len(excess_returns_downside) == 0 else excess_returns_downside.std()
-        )
-        sortino_ratio = (
-            np.inf
-            if excess_returns_downside_std == 0.0
-            else excess_returns_mean / excess_returns_downside.std()
-        )
-        return excess_returns_mean, sharpe_ratio, sortino_ratio
+    @staticmethod
+    def _ratio_with_zero_denominator(numerator: float, denominator: float) -> float:
+        """Divide while preserving sign for a finite zero denominator.
+
+        Args:
+            numerator: Ratio numerator.
+            denominator: Ratio denominator.
+
+        Returns:
+            The ordinary quotient, signed infinity for a nonzero numerator over
+            an effectively zero denominator, or ``NaN`` when the ratio is
+            indeterminate or either input is nonfinite.
+        """
+        if not math.isfinite(numerator) or not math.isfinite(denominator):
+            return math.nan
+        if np.isclose(denominator, 0.0):
+            if np.isclose(numerator, 0.0):
+                return math.nan
+            return math.copysign(math.inf, numerator)
+        return numerator / denominator
 
     @staticmethod
     def _deannualize_return(annual_return: float, qty_periods_per_year: int) -> float:
@@ -611,7 +708,7 @@ class RiskStatistics:
         Returns:
             Polars DataFrame containing the calculated risk statistics.
         """
-        return self._df
+        return self._df.clone()
 
     def to_table(self) -> html_table.HtmlTable:
         """Return the statistics as a lightweight HTML table object.

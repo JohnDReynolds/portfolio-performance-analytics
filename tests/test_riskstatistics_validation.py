@@ -53,6 +53,43 @@ class TestRiskStatisticsValidation(unittest.TestCase):
                 Frequency.MONTHLY,
             )
 
+    def test_infinite_returns_raise_error_405(self) -> None:
+        """Infinite observations cannot enter risk calculations."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[405]):
+            RiskStatistics(
+                (np.array([1.0, 2.0]), np.array([1.0, np.inf])),
+                Frequency.MONTHLY,
+            )
+
+    def test_invalid_financial_parameters_raise_error_406(self) -> None:
+        """Rates, confidence, portfolio value, and currency label are validated."""
+        returns = (np.array([0.01, 0.02]), np.array([0.01, 0.02]))
+        invalid_arguments = (
+            {"annual_minimum_acceptable_return": float("inf")},
+            {"annual_risk_free_rate": -1.0},
+            {"confidence_level": 0.0},
+            {"confidence_level": 1.0},
+            {"portfolio_value": (-1.0, "$")},
+            {"portfolio_value": (100_000.0, 1)},
+        )
+        for arguments in invalid_arguments:
+            with self.subTest(arguments=arguments):
+                with self.assertRaisesRegex(PpaError, errs.ERRORS[406]):
+                    RiskStatistics(returns, Frequency.MONTHLY, **arguments)  # type: ignore[arg-type]
+
+    def test_invalid_return_source_shapes_and_types_raise_error_407(self) -> None:
+        """Return inputs must be a homogeneous pair of one-dimensional arrays."""
+        invalid_returns = (
+            (np.array([[0.01, 0.02]]), np.array([[0.01, 0.02]])),
+            (np.array(["bad", "data"]), np.array(["bad", "data"])),
+            (np.array([0.01 + 0.02j, 0.03]), np.array([0.01, 0.02])),
+            (np.array([0.01, 0.02]), [0.01, 0.02]),
+        )
+        for returns in invalid_returns:
+            with self.subTest(returns=returns):
+                with self.assertRaisesRegex(PpaError, errs.ERRORS[407]):
+                    RiskStatistics(returns, Frequency.MONTHLY)  # type: ignore[arg-type]
+
     def test_annualized_statistics_are_nan_for_less_than_one_year(self) -> None:
         """Annualized statistics require at least one year of return periods."""
         risk_statistics = RiskStatistics(

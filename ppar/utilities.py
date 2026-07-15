@@ -9,7 +9,7 @@ import datetime as dt
 from enum import Enum
 import math
 from pathlib import Path
-from typing import Sequence, TypeAlias
+from typing import Sequence, TypeAlias, TypeVar
 
 # Third-Party Imports
 import numpy as np
@@ -47,6 +47,7 @@ __all__ = [
     "logarithmic_linking_coefficient_series",
     "logarithmic_smoothing_coefficients",
     "near_zero",
+    "two_item_tuple",
 ]
 
 # Types for type-checking.
@@ -65,6 +66,7 @@ DEFAULT_CURRENCY_SYMBOL = "$"
 DEFAULT_PORTFOLIO_VALUE = 100_000  # $100,000
 ENCODING = "utf-8"
 _UNDEFINED_RETURN = -1.0
+_T = TypeVar("_T")
 
 
 class Tolerance(Enum):
@@ -79,6 +81,36 @@ class Tolerance(Enum):
     LOW = 0.00000005
     MEDIUM = 0.0000000005
     HIGH = 0.0000000000005
+
+
+def two_item_tuple(values: Sequence[_T], context: str) -> tuple[_T, _T]:
+    """Normalize and validate a public two-item sequence.
+
+    Args:
+        values: Sequence expected to contain exactly two values.
+        context: Short description included in validation diagnostics.
+
+    Returns:
+        The two values as a tuple.
+
+    Raises:
+        PpaError: If ``values`` does not contain exactly two items.
+    """
+    try:
+        normalized = tuple(values)
+    except TypeError as error:
+        raise PpaError(
+            f"{context} received a non-sequence value.",
+            805,
+            context={"boundary": context, "value": repr(values)},
+        ) from error
+    if len(normalized) != 2:
+        raise PpaError(
+            f"{context} received {len(normalized)}.",
+            805,
+            context={"boundary": context, "item_count": len(normalized)},
+        )
+    return normalized
 
 
 def are_near(f1: float, f2: float, tolerance: Tolerance = Tolerance.HIGH) -> bool:

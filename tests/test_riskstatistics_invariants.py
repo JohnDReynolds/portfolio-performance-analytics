@@ -120,6 +120,63 @@ class TestRiskStatisticsInvariants(unittest.TestCase):
 
         self.assertTrue(math.isclose(downside_deviation, expected, abs_tol=1e-12))
 
+    def test_sortino_uses_mar_shortfalls_across_all_observations(self) -> None:
+        """Sortino uses the MAR numerator and full-population downside deviation."""
+        returns = [-0.02, 0.01, 0.03, -0.01]
+        risk_statistics = _monthly_risk_statistics(
+            returns,
+            returns,
+            annual_minimum_acceptable_return=0.0,
+            annual_risk_free_rate=0.12,
+        )
+
+        sortino = _portfolio_value(risk_statistics, "Monthly Sortino Ratio")
+        expected_downside_deviation = math.sqrt(((0.02**2) + (0.01**2)) / len(returns))
+        expected = (sum(returns) / len(returns)) / expected_downside_deviation
+
+        self.assertTrue(math.isclose(sortino, expected, abs_tol=1e-12))
+
+    def test_zero_volatility_ratios_preserve_negative_numerator_sign(self) -> None:
+        """Zero positive-risk denominators produce signed infinity."""
+        risk_statistics = _monthly_risk_statistics(
+            [-0.01, -0.01, -0.01, -0.01],
+            [-0.02, -0.01, 0.01, 0.02],
+            annual_minimum_acceptable_return=0.0,
+            annual_risk_free_rate=0.0,
+        )
+
+        sharpe = _portfolio_value(risk_statistics, "Monthly Sharpe Ratio")
+
+        self.assertTrue(math.isinf(sharpe))
+        self.assertLess(sharpe, 0.0)
+
+    def test_zero_tracking_error_information_ratio_preserves_sign(self) -> None:
+        """Constant negative active return produces negative infinity."""
+        benchmark = [0.01, 0.02, 0.03, 0.04]
+        portfolio = [value - 0.01 for value in benchmark]
+        risk_statistics = _monthly_risk_statistics(portfolio, benchmark)
+
+        information_ratio = _portfolio_value(
+            risk_statistics,
+            "Monthly Information Ratio",
+        )
+
+        self.assertTrue(math.isinf(information_ratio))
+        self.assertLess(information_ratio, 0.0)
+
+    def test_zero_beta_treynor_ratio_preserves_sign(self) -> None:
+        """Zero beta with negative excess return produces negative infinity."""
+        risk_statistics = _monthly_risk_statistics(
+            [0.01, -0.01, -0.01, 0.01],
+            [-0.02, -0.01, 0.01, 0.02],
+            annual_risk_free_rate=0.03,
+        )
+
+        treynor = _portfolio_value(risk_statistics, "Monthly Treynor Ratio")
+
+        self.assertTrue(math.isinf(treynor))
+        self.assertLess(treynor, 0.0)
+
     def test_value_at_risk_increases_with_confidence_level(self) -> None:
         """A more adverse lower-tail confidence level increases reported loss."""
         returns = [-0.04, -0.01, 0.02, 0.06]
@@ -170,6 +227,30 @@ class TestRiskStatisticsInvariants(unittest.TestCase):
 
         self.assertTrue(math.isclose(higher_var, 2 * lower_var, abs_tol=1e-9))
 
+    def test_regression_and_active_risk_statistics_obey_core_identities(self) -> None:
+        """R-squared, tracking error, and information ratio reconcile independently."""
+        portfolio = np.array([0.04, -0.01, 0.03, 0.00, 0.06, -0.02])
+        benchmark = np.array([0.02, -0.02, 0.01, 0.01, 0.03, -0.01])
+        risk_statistics = RiskStatistics((portfolio, benchmark), Frequency.MONTHLY)
+
+        correlation = _portfolio_value(risk_statistics, "Monthly Correlation")
+        r_squared = _portfolio_value(risk_statistics, "Monthly R-Squared")
+        tracking_error = _portfolio_value(risk_statistics, "Monthly Tracking Error")
+        information_ratio = _portfolio_value(risk_statistics, "Monthly Information Ratio")
+        active_returns = portfolio - benchmark
+
+        self.assertTrue(math.isclose(r_squared, correlation**2, abs_tol=1e-12))
+        self.assertTrue(
+            math.isclose(tracking_error, float(np.std(active_returns)), abs_tol=1e-12)
+        )
+        self.assertTrue(
+            math.isclose(
+                information_ratio,
+                float(np.mean(active_returns) / np.std(active_returns)),
+                abs_tol=1e-12,
+            )
+        )
+
     def test_equivalent_monthly_and_quarterly_means_annualize_equally(self) -> None:
         """Periodic means derived from one annual return annualize equally."""
         annual_return = 0.12
@@ -206,6 +287,17 @@ class TestRiskStatisticsInvariants(unittest.TestCase):
         second = analytics.get_riskstatistics()
 
         self.assertIs(first, second)
+
+    def test_polars_result_cannot_mutate_cached_statistics(self) -> None:
+        """Risk-statistics table retrieval returns a defensive DataFrame copy."""
+        risk_statistics = _monthly_risk_statistics(
+            [0.01, -0.02, 0.03, 0.04],
+            [0.00, -0.01, 0.02, 0.03],
+        )
+        returned = risk_statistics.to_polars()
+        returned[0, "Portfolio"] = 999.0
+
+        self.assertNotEqual(risk_statistics.to_polars()["Portfolio"].item(0), 999.0)
 
 
 if __name__ == "__main__":

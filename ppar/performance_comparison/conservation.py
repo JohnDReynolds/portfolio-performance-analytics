@@ -731,19 +731,16 @@ def _cached_fingerprint_value_encoder(
 def _json_value(value: object) -> object:
     """Return a deterministic JSON-compatible scalar value."""
     if value is None or isinstance(value, str | bool | int):
-        normalized = value
-    elif isinstance(value, float):
+        return value
+    if isinstance(value, float):
         if math.isnan(value):
-            normalized = "NaN"
-        elif math.isinf(value):
-            normalized = "Infinity" if value > 0 else "-Infinity"
-        else:
-            normalized = value
-    elif isinstance(value, dt.datetime | dt.date):
-        normalized = value.isoformat()
-    else:
-        normalized = str(value)
-    return normalized
+            return "NaN"
+        if math.isinf(value):
+            return "Infinity" if value > 0 else "-Infinity"
+        return value
+    if isinstance(value, dt.datetime | dt.date):
+        return value.isoformat()
+    return str(value)
 
 
 def _number_or_none(value: object) -> float | None:

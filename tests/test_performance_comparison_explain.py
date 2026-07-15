@@ -113,6 +113,7 @@ from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison.findings import (
     CONTEXT,
     DATASET,
+    DELTA_B_MINUS_A,
     DIRECT_INPUT,
     EVIDENCE_ROLE,
     FINDING_CODE,
@@ -125,9 +126,12 @@ from ppar.performance_comparison.findings import (
     PC_TXN_AMT,
     PORTFOLIO_ID,
     RELATED_OUTPUT,
+    IMPACT_INPUT_VALUE,
     RETURN_DENOMINATOR,
+    RETURN_WEIGHT,
     SECURITY_ID,
     SEVERITY_MATERIAL,
+    SNAPSHOT_A_VALUE,
     SOURCE_COLUMN,
     SUPPRESSED,
     TARGET_OUTPUT,
@@ -269,6 +273,7 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             pc_explain.portfolio_period_evidence_breakdown,
             portfolio_period_evidence_breakdown,
         )
+
         self.assertIs(
             pc_explain.portfolio_period_flow_cross_check_reconciliation,
             portfolio_period_flow_cross_check_reconciliation,
@@ -295,6 +300,38 @@ class TestPerformanceComparisonExplain(unittest.TestCase):
             pc_explain.transaction_matching_diagnostics,
             transaction_matching_diagnostics,
         )
+
+    def test_nonfinite_values_cannot_become_impact_estimate_numbers(self) -> None:
+        """Impact estimation rejects NaN and infinity at its numeric boundary."""
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                self.assertFalse(
+                    pc_explain._is_number(value)  # pylint: disable=protected-access
+                )
+                self.assertIsNone(
+                    pc_explain._number_value(value)  # pylint: disable=protected-access
+                )
+
+    def test_nonfinite_inputs_cannot_produce_portfolio_impact_estimates(self) -> None:
+        """Impact candidate screening fails closed for nonfinite arithmetic."""
+        base_row = {
+            DATASET: pc_cols.PORTFOLIO_PERFORMANCE,
+            SOURCE_COLUMN: pc_cols.INCOME,
+            IMPACT_POLICY: pc_explain.IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD,
+            DELTA_B_MINUS_A: 100.0,
+            RETURN_DENOMINATOR: 10_000.0,
+            RETURN_WEIGHT: None,
+            IMPACT_INPUT_VALUE: None,
+            SNAPSHOT_A_VALUE: None,
+        }
+        for field_name in (DELTA_B_MINUS_A, RETURN_DENOMINATOR):
+            for value in (float("nan"), float("inf"), float("-inf")):
+                with self.subTest(field_name=field_name, value=value):
+                    row = {**base_row, field_name: value}
+                    estimate = pc_explain._estimated_impact(  # pylint: disable=protected-access
+                        row
+                    )
+                    self.assertIsNone(estimate[ESTIMATED_RETURN_IMPACT])
 
     def test_portfolio_period_summary_groups_related_evidence(self) -> None:
         """Portfolio-period summary groups findings around return deltas."""

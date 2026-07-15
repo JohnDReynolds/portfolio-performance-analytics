@@ -7,6 +7,7 @@ linking coefficients.
 """
 
 # Python Imports
+import copy as copy_module
 import datetime as dt
 from pathlib import Path
 from typing import cast, Sequence
@@ -21,6 +22,17 @@ from ppar.errors import PpaError
 import ppar.utilities as util
 
 
+_CALCULATED_COLUMNS = (
+    *cols.DATE_COLUMNS,
+    cols.QUANTITY_OF_DAYS,
+    cols.TOTAL_RETURN,
+    cols.IDENTIFIER,
+    cols.RETURN,
+    cols.WEIGHT,
+    cols.CONTRIBUTION,
+)
+
+
 class Performance:
     """Hold narrow identifier-level returns and weights for one performance stream.
 
@@ -29,8 +41,8 @@ class Performance:
             by the performance data.
         classification_items: Optional classification identifier/name pairs
             extracted from source-data rows when a ``name`` column is present.
-        df: Alias for ``narrow_df`` retained for callers that access calculated
-            performance rows directly.
+        df: Independent compatibility snapshot of ``narrow_df`` retained for
+            callers that access calculated performance rows directly.
         error_message_context: Context string included in validation errors.
         identifiers: Sorted identifiers present in the performance rows.
         name: Optional descriptive name for the performance stream.
@@ -106,7 +118,28 @@ class Performance:
         self._calculate_rows()
         self.identifiers = sorted(self.narrow_df[cols.IDENTIFIER].unique().to_list())
         self._df_overall = pl.DataFrame()
-        self.df = self.narrow_df
+        self.df = self.narrow_df.clone()
+
+    def copy(self) -> "Performance":
+        """Return an independent copy of this calculated performance stream.
+
+        Returns:
+            Performance object with independent Polars DataFrames and cached
+            state. Mutating or realigning the returned object cannot affect the
+            source object.
+        """
+        # ``copy.copy`` preserves all validated scalar metadata. Pylint cannot
+        # infer the concrete type of that copy when the independent frames are
+        # replaced below.
+        # pylint: disable=attribute-defined-outside-init,protected-access
+        duplicate = copy_module.copy(self)
+        duplicate.classification_items = self.classification_items.clone()
+        duplicate.narrow_df = self.narrow_df.clone()
+        duplicate.identifiers = list(self.identifiers)
+        duplicate._df_overall = self._df_overall.clone()
+        duplicate.df = duplicate.narrow_df.clone()
+        # pylint: enable=attribute-defined-outside-init,protected-access
+        return duplicate
 
     def audit(self) -> None:
         """Validate internal consistency of this performance stream.
@@ -173,7 +206,9 @@ class Performance:
                 required classification does not match.
         """
         common_classification_name = util.normalize_optional_string(common_classification_name)
-        portfolio, benchmark = performances
+        portfolio, benchmark = util.two_item_tuple(
+            performances, "Performance.audit_performances performances"
+        )
         portfolio.audit()
         benchmark.audit()
         dates_days = [*cols.DATE_COLUMNS, cols.QUANTITY_OF_DAYS]
@@ -270,7 +305,10 @@ class Performance:
         Raises:
             PpaError: If a required value cannot be converted or is missing.
         """
-        dtypes: dict[type[pl.Date] | type[pl.Float64] | type[pl.String], list[str]] = {
+        dtypes: dict[
+            type[pl.Date] | type[pl.Float64] | type[pl.String],
+            Sequence[str],
+        ] = {
             pl.Date: cols.DATE_COLUMNS,
             pl.Float64: [cols.RETURN, cols.WEIGHT],
             pl.String: [cols.IDENTIFIER]
@@ -292,6 +330,7 @@ class Performance:
         if self.narrow_df.select(
             pl.any_horizontal(pl.all().is_null().any())
             | pl.any_horizontal(pl.col(float_columns).is_nan().any())
+            | pl.any_horizontal(pl.col(float_columns).is_infinite().any())
         ).item():
             raise PpaError(self.error_message_context, 104)
 
@@ -364,7 +403,7 @@ class Performance:
         """Return cached overall-period narrow identifier rows."""
         if self._df_overall.is_empty():
             self._df_overall = self._calculate_df_overall()
-        return self._df_overall
+        return self._df_overall.clone()
 
     def linking_coefficients(self) -> pl.Series:
         """Return logarithmic linking coefficients for each reporting period."""
@@ -415,13 +454,123 @@ class Performance:
         return cast(float, (self.period_totals()[cols.TOTAL_RETURN] + 1).product() - 1)
 
     def reset_narrow_df(self, df: pl.DataFrame) -> None:
-        """Replace calculated narrow rows and invalidate cached summaries.
+        """Replace calculated narrow rows after validating internal invariants.
 
         Args:
             df: Replacement calculated rows using the narrow performance
                 schema.
+
+        Raises:
+            PpaError: If calculated columns are missing or unexpected, values
+                are invalid, rows are duplicated, period metadata conflicts,
+                weights do not sum to one, or contributions do not foot to the
+                stored total return.
         """
+        replacement = self._validated_calculated_rows(df)
+        self._replace_calculated_rows(replacement, sort_rows=False)
+
+    def _replace_calculated_rows(
+        self,
+        df: pl.DataFrame,
+        *,
+        sort_rows: bool = True,
+    ) -> None:
+        """Take ownership of rows produced by a trusted internal calculation.
+
+        Full financial validation belongs at the public ``reset_narrow_df``
+        boundary and at the production Attribution/Risk audit boundary. Trusted
+        filters, consolidation, mapping, and zero-row alignment use this helper
+        to avoid repeating expensive group-by validation on the same rows.
+        """
+        if len(df.columns) != len(_CALCULATED_COLUMNS) or set(df.columns) != set(
+            _CALCULATED_COLUMNS
+        ):
+            raise PpaError(
+                f"{self.error_message_context}: calculated performance schema is invalid.",
+                999,
+            )
+        replacement = df.select(_CALCULATED_COLUMNS).clone()
+        if sort_rows:
+            replacement = replacement.sort([cols.THRU_DATE, cols.IDENTIFIER])
         self._df_overall = pl.DataFrame()
-        self.narrow_df = df.sort([cols.THRU_DATE, cols.IDENTIFIER])
+        self.narrow_df = replacement
         self.identifiers = sorted(self.narrow_df[cols.IDENTIFIER].unique().to_list())
-        self.df = self.narrow_df
+        self.df = self.narrow_df.clone()
+
+    def _validated_calculated_rows(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Return an owned, validated calculated-row DataFrame."""
+        if len(df.columns) != len(_CALCULATED_COLUMNS) or set(df.columns) != set(
+            _CALCULATED_COLUMNS
+        ):
+            raise PpaError(
+                f"{self.error_message_context}: calculated performance schema is invalid.",
+                999,
+            )
+        replacement = df.select(_CALCULATED_COLUMNS).clone()
+        if replacement.is_empty():
+            raise PpaError(self.error_message_context, 103)
+        if any(replacement.null_count().row(0)):
+            raise PpaError(self.error_message_context, 104)
+
+        float_columns = (
+            cols.TOTAL_RETURN,
+            cols.RETURN,
+            cols.WEIGHT,
+            cols.CONTRIBUTION,
+        )
+        finite_values = replacement.select(
+            *(pl.col(column).is_finite().all().alias(column) for column in float_columns)
+        )
+        if not all(finite_values.row(0)):
+            raise PpaError(self.error_message_context, 104)
+
+        duplicate_rows = replacement.group_by(
+            [*cols.DATE_COLUMNS, cols.IDENTIFIER]
+        ).len().filter(pl.col("len") > 1)
+        if not duplicate_rows.is_empty():
+            raise PpaError(self.error_message_context, 112)
+
+        expected_days = (
+            (pl.col(cols.THRU_DATE) - pl.col(cols.FROM_DATE)).dt.total_days() + 1
+        )
+        if not replacement.select(
+            (expected_days == pl.col(cols.QUANTITY_OF_DAYS)).all()
+        ).item():
+            raise PpaError(
+                f"{self.error_message_context}: calculated day counts are invalid.",
+                999,
+            )
+
+        period_metadata = replacement.group_by(cols.DATE_COLUMNS).agg(
+            pl.col(cols.QUANTITY_OF_DAYS).n_unique().alias("_day_count_values"),
+            pl.col(cols.TOTAL_RETURN).n_unique().alias("_total_return_values"),
+            pl.col(cols.WEIGHT).sum().alias("_weight_total"),
+            pl.col(cols.CONTRIBUTION).sum().alias("_contribution_total"),
+            pl.col(cols.TOTAL_RETURN).first().alias("_stored_total_return"),
+        )
+        if not period_metadata.select(
+            (
+                (pl.col("_day_count_values") == 1)
+                & (pl.col("_total_return_values") == 1)
+                & (pl.col("_weight_total").round(8) == 1.0)
+                & (
+                    pl.col("_contribution_total").round(11)
+                    == pl.col("_stored_total_return").round(11)
+                )
+            ).all()
+        ).item():
+            raise PpaError(
+                f"{self.error_message_context}: calculated period totals do not foot.",
+                999,
+            )
+
+        periods = replacement.select(cols.DATE_COLUMNS).unique().sort(cols.THRU_DATE)
+        if periods[cols.THRU_DATE].n_unique() != periods.height:
+            raise PpaError(self.error_message_context, 102)
+        if (periods[cols.FROM_DATE] > periods[cols.THRU_DATE]).any():
+            raise PpaError(self.error_message_context, 105)
+        if periods.height > 1 and (
+            periods[cols.FROM_DATE][1:] <= periods[cols.THRU_DATE][:-1]
+        ).any():
+            raise PpaError(self.error_message_context, 106)
+        return replacement.sort([cols.THRU_DATE, cols.IDENTIFIER])

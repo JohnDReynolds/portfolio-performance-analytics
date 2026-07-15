@@ -86,6 +86,14 @@ class Mapping:
         }
 
         # Create a reverse mapping from `to_column_name` to a list of `from_column_names`.
-        self.to_froms: defaultdict[str, list[str]] = defaultdict(list)
+        self._to_froms: defaultdict[str, list[str]] = defaultdict(list)
         for from_value, to_value in mappings.items():
-            self.to_froms[to_value].append(from_value)
+            self._to_froms[to_value].append(from_value)
+
+    @property
+    def to_froms(self) -> dict[str, list[str]]:
+        """Return an independent reverse-mapping dictionary."""
+        return {
+            to_value: list(from_values)
+            for to_value, from_values in self._to_froms.items()
+        }

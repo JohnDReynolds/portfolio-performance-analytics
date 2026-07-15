@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Observational reference for Audit scaling work; not a substitute for release gates.",
-  "captured_at": "2026-07-14",
+  "captured_at": "2026-07-15",
   "command": "./.venv/bin/python scripts/check_scale.py --scale 500",
   "environment": {
     "platform": "macOS arm64",
@@ -23,16 +23,16 @@
     "supporting_files_packaging": "compact_zip"
   },
   "established_gate": {
-    "scale_divisor": 4.0,
+    "scale_divisor": 7.0,
     "warning_multiplier": 1.05,
     "failure_multiplier": 1.1,
-    "warning_ratio_at_500x": 132.3,
-    "failure_ratio_at_500x": 138.6
+    "warning_ratio_at_500x": 76.05,
+    "failure_ratio_at_500x": 79.67142857142858
   },
   "scale_gate_observation": {
-    "baseline_seconds": 1.03,
-    "scaled_seconds": 75.59,
-    "elapsed_ratio": 73.59,
+    "baseline_seconds": 0.93,
+    "scaled_seconds": 64.14,
+    "elapsed_ratio": 69.0,
     "status": "PASS"
   },
   "optimization_observations": [
@@ -191,6 +191,7 @@
   "notes": [
     "Elapsed time and memory are machine-dependent observations, not hard-coded pass criteria.",
     "The established gate values are repeated here so threshold changes are explicit and reviewable.",
+    "On 2026-07-15, the Audit large-site curve was deliberately tightened from 1 + scale / 4 to 1 + scale / 7 after reviewing measured 10x through 500x results; the warning and failure margins remain 5 and 10 percent.",
     "The detailed phase profile remains the Phase A baseline; later gate observations show optimization progress.",
     "The Phase O gate measures the finalized default with both XLSX and HTML enabled, so it remains comparable with the earlier phases.",
     "Phase E adds independent --no-xlsx-output and --no-html-output controls; supplying both produces promoted CSV-only review files without weakening the row ceiling or financial assertions.",
@@ -234,6 +235,9 @@
     "Phase W preserved all 26,100 profiled 100x cause-lineage CSV rows byte-for-byte and every supporting CSV remained byte-identical; regenerated manifests and the temporary comparison-path string are intentionally run-specific.",
     "Phase W reduced profiled 100x cause-lineage and conservation processing from 1.307 seconds to 0.491 seconds and the full profile from 25.616 seconds to 25.071 seconds.",
     "Phase W reduced the 500x wall-clock observation from 70.10 seconds to 63.92 seconds while passing the unchanged hard gate; elapsed observations remain machine-dependent.",
+    "The rejected Phase X openpyxl write-only prototype preserved workbook values, formatting, comments, widths, filters, frozen panes, and SN-03 semantics exactly but did not improve execution time.",
+    "At 100x, the existing writer's 2.91-second median and approximately 363 MB peak RSS compared with 3.10 seconds and approximately 283 MB for write-only streaming; at 500x, 15.00 seconds and approximately 1.174 GB compared with 16.16 seconds and approximately 745 MB.",
+    "Streaming was therefore not adopted for the runtime objective, despite reducing observed peak process memory by approximately 22 percent at 100x and 36.5 percent at 500x.",
     "Phase measurements identify optimization targets and may include nested work; they are not additive accounting.",
     "Financial and reviewer-facing equivalence is enforced independently by scripts/check_scale.py."
   ]

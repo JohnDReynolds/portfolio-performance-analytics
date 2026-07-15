@@ -1,7 +1,7 @@
 # PPAR - Portfolio Performance Auditing & Analytics Reporting
 
-PPAR is a Python package that uses local Axys/APX data for two main workflows:
-Performance Auditing and Performance Analytics.
+PPAR is a Python package that creates Performance Auditing and Performance
+Analytics reports from local portfolio accounting data.
 
 1. You can generate standard charts, xlsx, and html output.
 2. Being built in Python, it is highly customizable.  You can automate batch
@@ -53,7 +53,7 @@ Typical questions from the below Mega-Cap Alpha vs Mega-Cap Benchmark demo:
   contributor, with roughly 351 bps of total attribution effect.
 - Did the portfolio take more risk than the benchmark? Slightly, but
   risk-adjusted results still improved: Sharpe was about 0.70 versus 0.67, and
-  Sortino was about 1.82 versus 1.74.
+  Sortino was about 1.96 versus 1.85.
 
 <img
   src="docs/images/readme/OverallAttributionByEconomicSector.png"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Python imports
 import datetime as dt
+import math
 
 # Project imports
 from ppar.performance_comparison.methods import ModifiedDietzInclusionRule
@@ -40,8 +41,10 @@ def modified_dietz_external_flow_impact(
         path. It should not be treated as regular additive attribution unless
         double-counting behavior is explicitly modeled.
     """
-    if denominator == 0:
-        raise ValueError("denominator must be nonzero")
+    if not math.isfinite(flow_delta):
+        raise ValueError("flow_delta must be finite")
+    if not math.isfinite(denominator) or denominator == 0:
+        raise ValueError("denominator must be finite and nonzero")
     flow_weight = modified_dietz_flow_weight(
         from_date=from_date,
         thru_date=thru_date,
@@ -94,7 +97,7 @@ def usable_modified_dietz_denominator(value: object) -> bool:
         value: Candidate denominator value.
 
     Returns:
-        ``True`` when the value is numeric, non-boolean, and nonzero.
+        ``True`` when the value is finite, numeric, non-boolean, and nonzero.
     """
     number = modified_dietz_float(value)
     return number is not None and number != 0
@@ -107,20 +110,22 @@ def usable_modified_dietz_number(value: object) -> bool:
         value: Candidate numeric value.
 
     Returns:
-        ``True`` when the value is numeric and non-boolean.
+        ``True`` when the value is finite, numeric, and non-boolean.
     """
     return modified_dietz_float(value) is not None
 
 
 def modified_dietz_float(value: object) -> float | None:
-    """Return a float for non-boolean numeric Modified Dietz values.
+    """Return a float for finite non-boolean numeric Modified Dietz values.
 
     Args:
         value: Candidate numeric value.
 
     Returns:
-        Float value, or ``None`` for booleans and non-numeric values.
+        Float value, or ``None`` for booleans, nonnumeric values, NaN, or
+        infinity.
     """
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
+        number = float(value)
+        return number if math.isfinite(number) else None
     return None

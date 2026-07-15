@@ -7,11 +7,13 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 import datetime as dt
+import math
 
 # Third-party imports
 import polars as pl
 
 # Project imports
+from ppar.errors import PpaError
 from ppar.performance_comparison import field_roles as _field_roles
 from ppar.performance_comparison import schema as pc_cols
 from ppar.performance_comparison import _transaction_diagnostics as tx_diagnostics
@@ -2254,12 +2256,9 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
     """Return the first-pass contribution-impact fields for one evidence row."""
     delta = row[DELTA_B_MINUS_A]
     if _is_fx_rate_local_exposure_impact_candidate(row):
-        delta_float = _number_value(delta)
-        exposure = _number_value(row[IMPACT_INPUT_VALUE])
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        assert delta_float is not None
-        assert exposure is not None
-        assert denominator is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        exposure = _required_impact_number(row[IMPACT_INPUT_VALUE], IMPACT_INPUT_VALUE)
+        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
         return {
             ESTIMATED_RETURN_IMPACT: delta_float * exposure / denominator,
             IMPACT_BASIS: IMPACT_BASIS_FX_RATE_LOCAL_EXPOSURE,
@@ -2273,15 +2272,15 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
                 "mechanics."
             ),
         }
+    contribution_delta = _number_value(delta)
     if (
         row[DATASET] == pc_cols.SECURITY_PERFORMANCE
         and row[SOURCE_COLUMN] == pc_cols.CONTRIBUTION
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_SECURITY_CONTRIBUTION
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
+        and contribution_delta is not None
     ):
         return {
-            ESTIMATED_RETURN_IMPACT: float(delta),
+            ESTIMATED_RETURN_IMPACT: contribution_delta,
             IMPACT_BASIS: IMPACT_BASIS_SECURITY_CONTRIBUTION,
             IMPACT_CONFIDENCE: IMPACT_CONFIDENCE_MEDIUM,
             IMPACT_METHOD: IMPACT_METHOD_VENDOR_CONTRIBUTION_DELTA,
@@ -2291,10 +2290,8 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_portfolio_source_field_impact_candidate(row):
-        delta_float = _number_value(delta)
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        assert delta_float is not None
-        assert denominator is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
             IMPACT_BASIS: IMPACT_BASIS_PORTFOLIO_SOURCE_FIELD,
@@ -2307,10 +2304,8 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_security_return_weighted_impact_candidate(row):
-        delta_float = _number_value(delta)
-        weight = _number_value(row[RETURN_WEIGHT])
-        assert delta_float is not None
-        assert weight is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        weight = _required_impact_number(row[RETURN_WEIGHT], RETURN_WEIGHT)
         return {
             ESTIMATED_RETURN_IMPACT: delta_float * weight,
             IMPACT_BASIS: IMPACT_BASIS_SECURITY_RETURN_WEIGHTED,
@@ -2323,10 +2318,8 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_transaction_performance_amount_impact_candidate(row):
-        delta_float = _number_value(delta)
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        assert delta_float is not None
-        assert denominator is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
             IMPACT_BASIS: IMPACT_BASIS_TRANSACTION_PERFORMANCE_AMOUNT,
@@ -2335,10 +2328,8 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             IMPACT_MESSAGE: _transaction_performance_amount_impact_message(row),
         }
     if _is_holding_market_value_impact_candidate(row):
-        delta_float = _number_value(delta)
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        assert delta_float is not None
-        assert denominator is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
             IMPACT_BASIS: IMPACT_BASIS_HOLDING_MARKET_VALUE,
@@ -2352,10 +2343,8 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_holding_accrued_impact_candidate(row):
-        delta_float = _number_value(delta)
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        assert delta_float is not None
-        assert denominator is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
         return {
             ESTIMATED_RETURN_IMPACT: delta_float / denominator,
             IMPACT_BASIS: IMPACT_BASIS_HOLDING_ACCRUED,
@@ -2369,12 +2358,11 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_holding_quantity_unit_market_value_impact_candidate(row):
-        delta_float = _number_value(delta)
-        denominator = _number_value(row[RETURN_DENOMINATOR])
-        unit_market_value = _number_value(row[IMPACT_INPUT_VALUE])
-        assert delta_float is not None
-        assert denominator is not None
-        assert unit_market_value is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        denominator = _required_impact_number(row[RETURN_DENOMINATOR], RETURN_DENOMINATOR)
+        unit_market_value = _required_impact_number(
+            row[IMPACT_INPUT_VALUE], IMPACT_INPUT_VALUE
+        )
         return {
             ESTIMATED_RETURN_IMPACT: (delta_float * unit_market_value) / denominator,
             IMPACT_BASIS: IMPACT_BASIS_HOLDING_QUANTITY_UNIT_MARKET_VALUE,
@@ -2389,12 +2377,11 @@ def _estimated_impact(row: dict[str, object]) -> dict[str, object]:
             ),
         }
     if _is_price_weighted_impact_candidate(row):
-        delta_float = _number_value(delta)
-        snapshot_a_price = _number_value(row[SNAPSHOT_A_VALUE])
-        weight = _number_value(row[RETURN_WEIGHT])
-        assert delta_float is not None
-        assert snapshot_a_price is not None
-        assert weight is not None
+        delta_float = _required_impact_number(delta, DELTA_B_MINUS_A)
+        snapshot_a_price = _required_impact_number(
+            row[SNAPSHOT_A_VALUE], SNAPSHOT_A_VALUE
+        )
+        weight = _required_impact_number(row[RETURN_WEIGHT], RETURN_WEIGHT)
         return {
             ESTIMATED_RETURN_IMPACT: (delta_float / snapshot_a_price) * weight,
             IMPACT_BASIS: IMPACT_BASIS_PRICE_WEIGHTED,
@@ -2437,11 +2424,8 @@ def _is_portfolio_source_field_impact_candidate(row: dict[str, object]) -> bool:
         row[DATASET] == pc_cols.PORTFOLIO_PERFORMANCE
         and row[SOURCE_COLUMN] in {pc_cols.INCOME, pc_cols.GAIN_LOSS}
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_PORTFOLIO_SOURCE_FIELD
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(denominator, (int, float))
-        and not isinstance(denominator, bool)
-        and float(denominator) != 0.0
+        and _number_value(delta) is not None
+        and _number_value(denominator) not in (None, 0.0)
     )
 
 
@@ -2453,11 +2437,8 @@ def _is_security_return_weighted_impact_candidate(row: dict[str, object]) -> boo
         row[DATASET] == pc_cols.SECURITY_PERFORMANCE
         and row[SOURCE_COLUMN] == pc_cols.SECURITY_RETURN
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_SECURITY_RETURN_WEIGHTED
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(weight, (int, float))
-        and not isinstance(weight, bool)
-        and float(weight) != 0.0
+        and _number_value(delta) is not None
+        and _number_value(weight) not in (None, 0.0)
     )
 
 
@@ -2482,11 +2463,8 @@ def _is_transaction_performance_amount_impact_candidate(
             TRANSACTION_CASH_FLOW_SIGN_POSITIVE,
             TRANSACTION_CASH_FLOW_SIGN_NEGATIVE,
         }
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(denominator, (int, float))
-        and not isinstance(denominator, bool)
-        and float(denominator) != 0.0
+        and _number_value(delta) is not None
+        and _number_value(denominator) not in (None, 0.0)
     )
 
 
@@ -2514,11 +2492,8 @@ def _is_holding_market_value_impact_candidate(row: dict[str, object]) -> bool:
         row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] in {pc_cols.MARKET_VALUE, pc_cols.BASE_MARKET_VALUE}
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_MARKET_VALUE
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(denominator, (int, float))
-        and not isinstance(denominator, bool)
-        and float(denominator) != 0.0
+        and _number_value(delta) is not None
+        and _number_value(denominator) not in (None, 0.0)
     )
 
 
@@ -2530,11 +2505,8 @@ def _is_holding_accrued_impact_candidate(row: dict[str, object]) -> bool:
         row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] in {pc_cols.ACCRUED, pc_cols.BASE_ACCRUED}
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_ACCRUED
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(denominator, (int, float))
-        and not isinstance(denominator, bool)
-        and float(denominator) != 0.0
+        and _number_value(delta) is not None
+        and _number_value(denominator) not in (None, 0.0)
     )
 
 
@@ -2549,13 +2521,9 @@ def _is_holding_quantity_unit_market_value_impact_candidate(
         row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] == pc_cols.QUANTITY
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_HOLDING_QUANTITY_UNIT_MARKET_VALUE
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(denominator, (int, float))
-        and not isinstance(denominator, bool)
-        and float(denominator) != 0.0
-        and isinstance(unit_market_value, (int, float))
-        and not isinstance(unit_market_value, bool)
+        and _number_value(delta) is not None
+        and _number_value(denominator) not in (None, 0.0)
+        and _number_value(unit_market_value) is not None
     )
 
 
@@ -2568,14 +2536,9 @@ def _is_price_weighted_impact_candidate(row: dict[str, object]) -> bool:
         row[DATASET] == pc_cols.HOLDINGS
         and row[SOURCE_COLUMN] == pc_cols.PRICE
         and row.get(IMPACT_POLICY) == IMPACT_POLICY_PRICE_WEIGHTED
-        and isinstance(delta, (int, float))
-        and not isinstance(delta, bool)
-        and isinstance(snapshot_a_price, (int, float))
-        and not isinstance(snapshot_a_price, bool)
-        and float(snapshot_a_price) != 0.0
-        and isinstance(weight, (int, float))
-        and not isinstance(weight, bool)
-        and float(weight) != 0.0
+        and _number_value(delta) is not None
+        and _number_value(snapshot_a_price) not in (None, 0.0)
+        and _number_value(weight) not in (None, 0.0)
     )
 
 
@@ -3132,15 +3095,40 @@ def _portfolio_period_transaction_cross_check_row(
 
 
 def _is_number(value: object) -> bool:
-    """Return whether a value is a non-boolean number."""
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    """Return whether a value is a finite non-boolean number."""
+    return _number_value(value) is not None
 
 
 def _number_value(value: object) -> float | None:
-    """Return a float for non-boolean numeric values."""
+    """Return a finite float for non-boolean numeric values."""
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
+        number = float(value)
+        return number if math.isfinite(number) else None
     return None
+
+
+def _required_impact_number(value: object, field_name: str) -> float:
+    """Return a finite number admitted by an impact-candidate predicate.
+
+    Args:
+        value: Candidate value already screened by an impact predicate.
+        field_name: Field included in an internal-invariant diagnostic.
+
+    Returns:
+        Finite numeric value.
+
+    Raises:
+        PpaError: If an impact predicate admitted a nonnumeric or nonfinite
+            calculation input.
+    """
+    number = _number_value(value)
+    if number is None:
+        raise PpaError(
+            f"Impact candidate admitted invalid {field_name}={value!r}.",
+            999,
+            context={"field": field_name, "value": repr(value)},
+        )
+    return number
 
 
 def _portfolio_period_transaction_cross_check_sort_key(

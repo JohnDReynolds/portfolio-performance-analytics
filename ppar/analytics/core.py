@@ -8,21 +8,66 @@ Attribution and RiskStatistics objects.
 
 # Python Imports
 import bisect
+from collections.abc import Hashable
 import datetime as dt
+import hashlib
+from pathlib import Path
 from typing import cast, Protocol, Sequence
 
 # Third-Party Imports
+import pandas as pd
 import polars as pl
 
 # Project Imports
 from ppar.analytics.attribution import Attribution
-from ppar.analytics.frequency import Frequency, date_matches_frequency
+from ppar.analytics.frequency import (
+    Frequency,
+    date_matches_frequency,
+    validate_frequency_coverage,
+)
 from ppar.analytics.mapping import Mapping
 from ppar.analytics.performance import Performance
 from ppar.analytics.riskstatistics import RiskStatistics
 import ppar.analytics.schema as cols
 from ppar.errors import PpaError
 import ppar.utilities as util
+
+
+_AttributionCacheKey = tuple[
+    str | None,
+    Hashable,
+    tuple[Hashable, Hashable],
+    str | None,
+]
+
+
+def _data_source_cache_token(source: util.AllDataSources | None) -> Hashable:
+    """Return a hashable token that identifies one attribution data source.
+
+    Tokens include source content so mutating an in-memory source or changing a
+    file cannot return an attribution calculated from stale cached inputs.
+    """
+    if source is None:
+        return None
+    if isinstance(source, str | Path):
+        path = Path(source).expanduser().resolve()
+        digest = (
+            hashlib.sha256(path.read_bytes()).digest()
+            if path.is_file()
+            else None
+        )
+        return ("path", str(path), digest)
+    if isinstance(source, dict):
+        return ("dict", tuple(sorted(source.items())))
+    if isinstance(source, pd.DataFrame):
+        value_hashes = pd.util.hash_pandas_object(source, index=True)
+        return (
+            "pandas",
+            tuple(str(column) for column in source.columns),
+            tuple(str(dtype) for dtype in source.dtypes),
+            value_hashes.to_numpy().tobytes(),
+        )
+    return ("polars", source.serialize())
 
 
 class AttributionSources(Protocol):  # pylint: disable=too-few-public-methods
@@ -160,7 +205,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         self._portfolio_value = portfolio_value
 
         # Initialize the internal data structures.
-        self._attributions: dict[str | None, Attribution] = {}  # key = classification_name
+        self._attributions: dict[_AttributionCacheKey, Attribution] = {}
         self._riskstatistics: RiskStatistics | None = None
 
         # Get a tuple of the two Performance objects. 0 = portfolio, 1 = benchmark.
@@ -192,13 +237,15 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         # Now that the dates have been firmly established, remove extraneous dates from
         # the Performance objects.
         for perf in self._performances:
-            perf.reset_narrow_df(
+            # Filtering preserves already-validated row order and arithmetic.
+            perf._replace_calculated_rows(  # pylint: disable=protected-access
                 perf.narrow_df.lazy()
                 .filter(
                     (self._from_date() <= pl.col(cols.THRU_DATE))
                     & (pl.col(cols.THRU_DATE) <= self._thru_date())
                 )
-                .collect()
+                .collect(),
+                sort_rows=False,
             )
 
         # Consolidate multiple subperiods (e.g. daily) into single periods (e.g. monthly) based on
@@ -312,6 +359,17 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         if len(subperiod_dates) == 0:
             raise PpaError(message_suffix, 202)
 
+        for source_periods in (df0, df1):
+            validate_frequency_coverage(
+                list(
+                    source_periods.select(cols.DATE_COLUMNS)
+                    .unique()
+                    .sort(cols.THRU_DATE)
+                    .iter_rows()
+                ),
+                self._frequency,
+            )
+
         # Return the common from and thru dates that define the subperiods.
         return subperiod_dates
 
@@ -350,7 +408,10 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
                 )
 
             if len(self._subperiod_dates) < quantity_of_periods:
-                performance.reset_narrow_df(self._consolidate_subperiods(performance))
+                performance._replace_calculated_rows(  # pylint: disable=protected-access
+                    self._consolidate_subperiods(performance),
+                    sort_rows=False,
+                )
 
     def _consolidate_subperiods(self, performance: Performance) -> pl.DataFrame:
         """Consolidate a Performance object into the aligned subperiods.
@@ -550,6 +611,9 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         if mapping_data_sources is None:
             mapping_data_sources = (None, None)
         else:
+            mapping_data_sources = util.two_item_tuple(
+                mapping_data_sources, "Analytics mapping_data_sources"
+            )
             mapping_data_sources = tuple(
                 None if isinstance(source, str) and not source.strip() else source
                 for source in mapping_data_sources
@@ -574,9 +638,19 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         ):
             raise PpaError("", 252)
 
-        # Return the attribution if it already exists in the cache.
-        if classification_name in self._attributions:
-            return self._attributions[classification_name]
+        cache_key: _AttributionCacheKey = (
+            classification_name,
+            _data_source_cache_token(classification_data_source),
+            (
+                _data_source_cache_token(mapping_data_sources[0]),
+                _data_source_cache_token(mapping_data_sources[1]),
+            ),
+            classification_label,
+        )
+
+        # Reuse only an attribution created from the same complete request.
+        if cache_key in self._attributions:
+            return self._attributions[cache_key]
 
         # Get the performances for the common classification_name.
         if classification_name is None:
@@ -595,7 +669,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
 
         # Now that both attribution performances are of the same common Classification,
         # calculate the Attribution.
-        self._attributions[classification_name] = Attribution(
+        self._attributions[cache_key] = Attribution(
             (attribution_performances[0], attribution_performances[1]),
             classification_name,
             classification_data_source,
@@ -604,7 +678,7 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
         )
 
         # Return the Attribution corresponding to classification_name.
-        return self._attributions[classification_name]
+        return self._attributions[cache_key]
 
     def get_attribution_for(
         self,
@@ -724,12 +798,30 @@ class Analytics:  # pylint: disable=too-many-instance-attributes
             )
             .select(
                 *cols.DATE_COLUMNS,
+                cols.QUANTITY_OF_DAYS,
+                cols.TOTAL_RETURN,
                 cols.IDENTIFIER,
                 cols.WEIGHT,
                 cols.RETURN,
+                cols.CONTRIBUTION,
             )
         )
 
-        return Performance(
-            mapped, name=performance.name, classification_name=to_classification_name
+        mapped_performance = Performance(
+            mapped.select(
+                *cols.DATE_COLUMNS,
+                cols.IDENTIFIER,
+                cols.WEIGHT,
+                cols.RETURN,
+            ),
+            name=performance.name,
+            classification_name=to_classification_name,
         )
+        # A mapped group can have zero net weight but a nonzero contribution
+        # when long and short constituents offset. Preserve the aggregated
+        # contribution because no finite group return can reconstruct it.
+        mapped_performance._replace_calculated_rows(  # pylint: disable=protected-access
+            mapped
+        )
+        mapped_performance.subperiods_have_been_consolidated = True
+        return mapped_performance

@@ -400,14 +400,13 @@ def _display_table_hash(
         ``rows`` payload as one JSON object. Streaming rows prevents manifest
         creation from retaining every reviewer-visible cell again at large sites.
     """
-    json_settings = {
-        "ensure_ascii": False,
-        "separators": (",", ":"),
-        "sort_keys": True,
-    }
     digest = hashlib.sha256()
     digest.update(b'{"columns":')
-    digest.update(json.dumps(list(headers), **json_settings).encode("utf-8"))
+    digest.update(
+        json.dumps(
+            list(headers), ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode("utf-8")
+    )
     digest.update(b',"rows":[')
     first_row = True
     for row in table.iter_rows(named=True):
@@ -415,7 +414,11 @@ def _display_table_hash(
             digest.update(b",")
         first_row = False
         values = [_display_value(row[column]) for column in columns]
-        digest.update(json.dumps(values, **json_settings).encode("utf-8"))
+        digest.update(
+            json.dumps(
+                values, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+            ).encode("utf-8")
+        )
     digest.update(b"]}")
     return digest.hexdigest()
 

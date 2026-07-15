@@ -40,7 +40,14 @@ _AUDIT_TEMPLATE = (
 _BASELINE_TIMEOUT_SECONDS = 60
 _PERFORMANCE_TIMING_SAMPLES = 3
 _PROCESS_TIMEOUT_GRACE_SECONDS = 5.0
-_ALLOWED_LARGE_SITE_SCALES = (*range(10, 101, 10), 500)
+_ALLOWED_LARGE_SITE_SCALES = (*range(10, 101, 10), 500, 1000)
+_MAX_ANALYTICS_LARGE_SITE_SCALE = 500
+_EXTREME_AUDIT_SCALE = 1000
+# A fully changed 1000x copy would intentionally exceed Audit's production
+# 100,000-row reviewer-output ceiling. Keep the full input volume while
+# limiting changed portfolios so this controlled stress check can complete
+# without weakening that safety guard.
+_EXTREME_AUDIT_CHANGED_PORTFOLIOS = frozenset({"BALANCED"})
 _SELECTED_WORKLOAD_SCALE = 10
 _LONG_HISTORY_SCALE = 5
 _HISTORY_BLOCK_YEARS = 5
@@ -48,10 +55,12 @@ _SCALING_WARNING_MULTIPLIER = 1.05
 _SCALING_FAILURE_MULTIPLIER = 1.10
 _ANALYTICS_SCALING_WARNING_RATIO = 1.05
 _ANALYTICS_SCALING_FAILURE_RATIO = 1.10
-# These Audit limits preserve the established 100x regression gate. A failure
-# requires performance investigation; new workload must not silently recalibrate
-# the limits upward.
-_AUDIT_LARGE_SITE_SCALE_DIVISOR = 4.0
+# The 10x through 500x measurements follow approximately ``1 + scale / 7``.
+# The 5% warning and 10% failure margins remain explicit regression headroom,
+# rather than preserving the much looser pre-optimization growth curve.
+_AUDIT_LARGE_SITE_SCALE_DIVISOR = 7.0
+_EXTREME_AUDIT_WARNING_RATIO = 85.0
+_EXTREME_AUDIT_FAILURE_RATIO = 95.0
 _AUDIT_HISTORY_WARNING_RATIO = 1.75
 _AUDIT_HISTORY_FAILURE_RATIO = 2.00
 
@@ -68,7 +77,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=10,
         help=(
             "Large-site multiplier from 10 through 100 in increments of 10, "
-            "or the 500x release-candidate stress level."
+            "the 500x release-candidate stress level, or the controlled 1000x "
+            "Audit large-input stress level (Analytics remains at 500x)."
         ),
     )
     return parser.parse_args(argv)
@@ -191,9 +201,7 @@ def _audit_large_site_scaling_result(
     scaled_elapsed: float,
 ) -> tuple[str, float, float, float]:
     """Return tighter caps for the observed Audit large-site growth curve."""
-    expected_ratio = 1.0 + factor / _AUDIT_LARGE_SITE_SCALE_DIVISOR
-    warning_ratio = expected_ratio * _SCALING_WARNING_MULTIPLIER
-    error_ratio = expected_ratio * _SCALING_FAILURE_MULTIPLIER
+    warning_ratio, error_ratio = _audit_large_site_caps(factor)
     if baseline_elapsed <= 0:
         raise ValueError("Audit large-site baseline time must be greater than zero.")
     ratio = scaled_elapsed / baseline_elapsed
@@ -205,6 +213,22 @@ def _audit_large_site_scaling_result(
         )
     status = "WARN" if ratio > warning_ratio else "PASS"
     return status, ratio, warning_ratio, error_ratio
+
+
+def _audit_large_site_caps(factor: int) -> tuple[float, float]:
+    """Return measured-curve caps for one Audit large-site workload.
+
+    The controlled 1000x fixture has materially fewer changed rows than the
+    fully changed 10x through 500x fixtures, so it has separately measured
+    caps instead of extrapolating either workload beyond its observed shape.
+    """
+    if factor == _EXTREME_AUDIT_SCALE:
+        return _EXTREME_AUDIT_WARNING_RATIO, _EXTREME_AUDIT_FAILURE_RATIO
+    expected_ratio = 1.0 + factor / _AUDIT_LARGE_SITE_SCALE_DIVISOR
+    return (
+        expected_ratio * _SCALING_WARNING_MULTIPLIER,
+        expected_ratio * _SCALING_FAILURE_MULTIPLIER,
+    )
 
 
 def _audit_history_scaling_result(
@@ -407,12 +431,19 @@ def _prepare_analytics(directory: Path, scale: int) -> tuple[Path, int]:
     return directory, pl.read_csv(directory / "secperf.csv").height
 
 
-def _prepare_audit(directory: Path, scale: int) -> tuple[Path, int]:
+def _prepare_audit(
+    directory: Path,
+    scale: int,
+    *,
+    changed_portfolios: frozenset[str] | None = None,
+) -> tuple[Path, int]:
     """Write one temporary Audit site and return its aggregate CSV row count."""
     shutil.copytree(_AUDIT_TEMPLATE, directory)
     (directory / "axysapx_performance_comparison.yaml").rename(
         directory / "ppar.yaml"
     )
+    if changed_portfolios is not None:
+        _retain_audit_changes_for_portfolios(directory, changed_portfolios)
     row_count = 0
     for snapshot_name in ("snapshot_a", "snapshot_b"):
         snapshot = directory / snapshot_name
@@ -425,6 +456,52 @@ def _prepare_audit(directory: Path, scale: int) -> tuple[Path, int]:
             frame.write_csv(path)
             row_count += frame.height
     return directory, row_count
+
+
+def _retain_audit_changes_for_portfolios(
+    site: Path,
+    changed_portfolios: frozenset[str],
+) -> None:
+    """Make nonselected Snapshot B portfolios identical to Snapshot A.
+
+    The controlled 1000x workload still reads and compares every copied input
+    row. Restricting actual differences prevents synthetic reviewer output from
+    crossing the same 100,000-row production ceiling that this test must retain.
+    """
+    snapshot_a = site / "snapshot_a"
+    snapshot_b = site / "snapshot_b"
+    for snapshot_b_path in snapshot_b.glob("*.csv"):
+        snapshot_a_path = snapshot_a / snapshot_b_path.name
+        if not snapshot_a_path.is_file():
+            continue
+        frame_a = pl.read_csv(snapshot_a_path)
+        frame_b = pl.read_csv(snapshot_b_path)
+        portfolio_column = next(
+            (
+                column_name
+                for column_name in ("PORTFOLIO_CODE", "PORT")
+                if column_name in frame_a.columns and column_name in frame_b.columns
+            ),
+            None,
+        )
+        if portfolio_column is None:
+            continue
+        selected = list(changed_portfolios)
+        retained_changes = frame_b.filter(pl.col(portfolio_column).is_in(selected))
+        unchanged_rows = frame_a.filter(~pl.col(portfolio_column).is_in(selected))
+        pl.concat((retained_changes, unchanged_rows)).write_csv(snapshot_b_path)
+
+
+def _audit_changed_portfolio_scope(scale: int) -> frozenset[str] | None:
+    """Return the controlled changed-portfolio scope for an Audit scale."""
+    if scale == _EXTREME_AUDIT_SCALE:
+        return _EXTREME_AUDIT_CHANGED_PORTFOLIOS
+    return None
+
+
+def _analytics_large_site_scale(requested_scale: int) -> int:
+    """Return the established Analytics workload for a combined scale run."""
+    return min(requested_scale, _MAX_ANALYTICS_LARGE_SITE_SCALE)
 
 
 def _prepare_long_history_audit(directory: Path) -> tuple[Path, int, set[int]]:
@@ -599,14 +676,21 @@ def _check_audit(workspace: Path, scale: int) -> tuple[int, float]:
     scaled_path = workspace / "audit_scaled"
     _require_workspace_path(workspace, baseline_path)
     _require_workspace_path(workspace, scaled_path)
-    baseline_site, baseline_rows = _prepare_audit(baseline_path, 1)
-    site, row_count = _prepare_audit(scaled_path, scale)
+    changed_portfolios = _audit_changed_portfolio_scope(scale)
+    baseline_site, baseline_rows = _prepare_audit(
+        baseline_path,
+        1,
+        changed_portfolios=changed_portfolios,
+    )
+    site, row_count = _prepare_audit(
+        scaled_path,
+        scale,
+        changed_portfolios=changed_portfolios,
+    )
     baseline_elapsed = _run(
         [sys.executable, "-m", "ppar.cli", "audit", baseline_site]
     )
-    expected_ratio = 1.0 + scale / _AUDIT_LARGE_SITE_SCALE_DIVISOR
-    error_ratio = expected_ratio * _SCALING_FAILURE_MULTIPLIER
-    warning_ratio = expected_ratio * _SCALING_WARNING_MULTIPLIER
+    warning_ratio, error_ratio = _audit_large_site_caps(scale)
     timeout_seconds = _scaled_timeout(baseline_elapsed, error_ratio)
     try:
         elapsed = _run(
@@ -878,7 +962,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         with tempfile.TemporaryDirectory(prefix="ppar_scale_check_") as directory:
             workspace = Path(directory)
-            _check_analytics(workspace, args.scale)
+            analytics_scale = _analytics_large_site_scale(args.scale)
+            if analytics_scale != args.scale:
+                print(
+                    f"INFO Analytics large-site remains {analytics_scale}x; "
+                    f"Audit large-site runs at {args.scale}x."
+                )
+            _check_analytics(workspace, analytics_scale)
             _check_audit(workspace, args.scale)
             _check_selected_analytics(workspace)
             _check_long_history_analytics(workspace)

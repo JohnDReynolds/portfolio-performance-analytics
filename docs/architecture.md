@@ -48,7 +48,7 @@ For Performance Analytics:
 Axys/APX portfolio and security performance CSVs
   -> analytics ppar.yaml
   -> ppar analytics
-  -> HTML/PNG/XLSX-style analytics outputs
+  -> HTML tables and PNG charts
 ```
 
 For Performance Comparison:
@@ -73,7 +73,7 @@ without calculating the unused primary performance level.
 Within each report view, the workbook, HTML, and supporting CSV layers reuse
 one set of portfolio-period summaries, contribution candidates, Modified Dietz
 formula rows, and context-evidence tables. The explanation, lineage,
-conservation, and displayed-value reconciliation assertions run against those
+conservation, and displayed-value reconciliation invariant checks run against those
 same cached tables; caching avoids reconstruction work but does not bypass a
 production safety check.
 
@@ -115,6 +115,34 @@ Performance Comparison YAML answers:
 The package should fail early when required YAML treatment is missing. Silent
 guessing is worse than a blocked setup because unexplained performance
 differences need an auditable reason.
+
+## Calculation And Validation Boundaries
+
+Performance Analytics and Performance Auditing validate different contracts:
+
+- Analytics validates normalized periods, identifiers, weights, classifications,
+  mappings, reporting-frequency coverage, and risk-statistic inputs before using
+  them in calculations.
+- Audit validates source mappings and accounting roles, then checks that every
+  source difference keeps a traceable disposition and that counted Modified
+  Dietz causes remain conserved and reconcile to the reviewer-facing totals.
+- A `Fully Explained` audit period is allowed only when its counted cause amounts
+  reconcile to its explained difference and its displayed cause amounts reconcile
+  after report rounding.
+
+Fixed-frequency Analytics validation is based on calendar-month, calendar-quarter,
+or calendar-year coverage. It does not use a market-holiday calendar and does not
+require adjacent dates. Weekends, holidays, and other within-period date gaps are
+therefore accepted; a wholly missing requested reporting bucket is rejected.
+
+These production checks protect outcomes that can vary with real user data. Broader
+structural checks, metamorphic financial tests, artifact parity checks, demo-matrix
+coverage, and scale regressions remain in the test and release-candidate layers so
+ordinary report runs do not repeatedly pay their full cost.
+
+Package validation failures use `PpaError`. Callers may inspect its stable `code`,
+human-readable `detail`, and copied machine-readable `context`; command-line entry
+points continue to present the complete formatted message.
 
 ## Report Boundary
 

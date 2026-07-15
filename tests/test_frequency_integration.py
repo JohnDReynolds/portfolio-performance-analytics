@@ -17,6 +17,8 @@ from ppar.analytics.attribution import View
 import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency
 from ppar.analytics.performance import Performance
+import ppar.errors as errs
+from ppar.errors import PpaError
 import ppar.utilities as util
 
 
@@ -127,6 +129,43 @@ class TestFrequencyIntegration(unittest.TestCase):
         self.assertEqual(len(output), 3)
         self.assertEqual(output[cols.FROM_DATE].item(0), dt.date(2021, 1, 1))
         self.assertEqual(output[cols.THRU_DATE].item(2), dt.date(2023, 12, 31))
+
+    def test_fixed_frequency_rejects_missing_source_coverage(self) -> None:
+        """A fixed monthly series cannot silently skip a month of source-data coverage."""
+        performance = test_util.make_performance_df(
+            (
+                (dt.date(2024, 1, 1), dt.date(2024, 1, 31)),
+                (dt.date(2024, 3, 1), dt.date(2024, 3, 31)),
+            ),
+            {"A": ([0.01, 0.02], [1.0, 1.0])},
+        )
+
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[253]):
+            Analytics(
+                performance,
+                performance.clone(),
+                frequency=Frequency.MONTHLY,
+            )
+
+    def test_fixed_frequency_allows_nonreporting_weekend_gap(self) -> None:
+        """Business-day source periods need not account for weekend dates."""
+        performance = test_util.make_performance_df(
+            (
+                (dt.date(2021, 1, 1), dt.date(2021, 1, 29)),
+                (dt.date(2021, 2, 1), dt.date(2021, 2, 28)),
+            ),
+            {"A": ([0.01, 0.02], [1.0, 1.0])},
+        )
+
+        analytics = Analytics(
+            performance,
+            performance.clone(),
+            frequency=Frequency.MONTHLY,
+        )
+
+        summary = analytics.get_attribution().to_polars(View.SUBPERIOD_SUMMARY)
+        self.assertEqual(summary.height, 1)
+        self.assertEqual(summary[cols.THRU_DATE].item(), dt.date(2021, 2, 28))
 
     def test_specify_dates(self) -> None:
         """Explicit dates filter the fixture performance rows inclusively."""

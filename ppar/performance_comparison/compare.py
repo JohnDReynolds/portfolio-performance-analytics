@@ -1782,29 +1782,17 @@ class PerformanceComparison:
             thru_date=thru_date,
             denominator=denominator,
         )
-        required_inputs_available = all(
-            [
-                dataset == pc_cols.TRANSACTIONS,
-                column == pc_cols.AMOUNT,
-                eligibility.eligible,
-                eligibility.flow_date is not None,
-                delta_float is not None,
-                denominator_float is not None,
-                isinstance(from_date, dt.date),
-                isinstance(thru_date, dt.date),
-                policy is not None,
-                policy is not None and policy.inclusion_rule is not None,
-            ]
-        )
-        if not required_inputs_available:
+        if not (
+            eligibility.eligible
+            and eligibility.flow_date is not None
+            and delta_float is not None
+            and denominator_float is not None
+            and isinstance(from_date, dt.date)
+            and isinstance(thru_date, dt.date)
+            and policy is not None
+            and policy.inclusion_rule is not None
+        ):
             return None
-        assert eligibility.flow_date is not None
-        assert isinstance(from_date, dt.date)
-        assert isinstance(thru_date, dt.date)
-        assert policy is not None
-        assert policy.inclusion_rule is not None
-        assert delta_float is not None
-        assert denominator_float is not None
         return _modified_dietz_external_flow_impact(
             flow_delta=delta_float,
             denominator=denominator_float,

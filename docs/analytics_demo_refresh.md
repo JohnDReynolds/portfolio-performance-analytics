@@ -145,6 +145,12 @@ packaged inputs. The useful values are:
 - Annualized Sharpe ratio for portfolio and benchmark.
 - Annualized Sortino ratio for portfolio and benchmark.
 
+Risk values must come from the current `RiskStatistics` implementation. In
+particular, the Sortino denominator is the root-mean-square shortfall across all
+observations relative to the periodic minimum acceptable return; observations with
+no shortfall contribute zero. Annualized values use the selected reporting
+frequency's periods per year.
+
 The README story should be concise and believable. Prefer phrasing like
 "public proxy" or "realistic, inspectable example" instead of implying exact
 index replication.
@@ -184,6 +190,7 @@ Run the full test suite:
 Before committing, check:
 
 - README story matches regenerated image titles and values.
+- `docs/images/readme/RiskStatistics.jpg` reflects the current risk formulas.
 - The optional generic analytics setup script uses the same packaged files.
 - `scripts/render_readme_images.py` uses the same packaged files.
 - `ppar/setup_templates/README.md` documents source provenance and any date

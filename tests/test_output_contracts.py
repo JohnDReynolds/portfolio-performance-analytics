@@ -21,6 +21,8 @@ import ppar.analytics.schema as cols
 from ppar.analytics.frequency import Frequency
 from ppar.analytics.html_table import ColumnSpec, HtmlTable, SpannerSpec, attribution_table
 from ppar.analytics.riskstatistics import RiskStatistics
+import ppar.errors as errs
+from ppar.errors import PpaError
 
 
 def _attribution() -> Attribution:
@@ -201,6 +203,39 @@ class TestAttributionOutputs(unittest.TestCase):
 
             self.assertTrue(output_path.is_file())
 
+    def test_invalid_view_and_sort_options_raise_ppar_errors(self) -> None:
+        """Output validation fails before leaking enum, key, or Polars errors."""
+        attribution = _attribution()
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[205]):
+            attribution.to_polars("bad view")  # type: ignore[arg-type]
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[806]):
+            attribution.to_polars(
+                View.OVERALL_ATTRIBUTION,
+                columns_to_sort="missing_column",
+            )
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[806]):
+            attribution.to_polars(
+                View.OVERALL_ATTRIBUTION,
+                columns_to_sort=[cols.CLASSIFICATION_NAME, cols.PORTFOLIO_RETURN],
+                sort_descendings=[True],
+            )
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[806]):
+            attribution.to_polars(
+                View.OVERALL_ATTRIBUTION,
+                columns_to_sort=1,  # type: ignore[arg-type]
+            )
+
+    def test_invalid_float_precision_raises_before_serialization(self) -> None:
+        """JSON and CSV precision use one bounded public contract."""
+        attribution = _attribution()
+        for precision in (-1, 16, True):
+            with self.subTest(precision=precision):
+                with self.assertRaisesRegex(PpaError, errs.ERRORS[806]):
+                    attribution.to_json(
+                        View.SUBPERIOD_SUMMARY,
+                        float_precision=precision,
+                    )
+
 
 class TestRiskStatisticsOutputs(unittest.TestCase):
     """Verify risk-statistics structured outputs retain labels and values."""
@@ -269,6 +304,11 @@ class TestRiskStatisticsOutputs(unittest.TestCase):
             _risk_statistics().write_csv(output_path)
 
             self.assertTrue(output_path.is_file())
+
+    def test_invalid_float_precision_raises_ppar_error(self) -> None:
+        """Risk serialization shares the bounded precision contract."""
+        with self.assertRaisesRegex(PpaError, errs.ERRORS[806]):
+            _risk_statistics().to_json(float_precision=16)
 
 
 if __name__ == "__main__":

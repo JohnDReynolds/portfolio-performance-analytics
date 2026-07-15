@@ -7,7 +7,10 @@ import unittest
 # Project imports
 from ppar.performance_comparison.modified_dietz import (
     modified_dietz_external_flow_impact,
+    modified_dietz_float,
     modified_dietz_flow_weight,
+    usable_modified_dietz_denominator,
+    usable_modified_dietz_number,
 )
 
 
@@ -98,6 +101,62 @@ class TestModifiedDietzDesign(unittest.TestCase):
             ),
             0.0,
         )
+
+    def test_every_flow_date_obeys_actual_days_timing_identities(self) -> None:
+        """Beginning/end timing differs by exactly one day throughout a period."""
+        from_date = date(2024, 2, 1)
+        thru_date = date(2024, 2, 29)
+        period_days = 29
+
+        for day_offset in range(period_days):
+            with self.subTest(day_offset=day_offset):
+                flow_date = date(2024, 2, day_offset + 1)
+                beginning_weight = modified_dietz_flow_weight(
+                    from_date=from_date,
+                    thru_date=thru_date,
+                    flow_date=flow_date,
+                    inclusion_rule="beginning_of_day",
+                )
+                end_weight = modified_dietz_flow_weight(
+                    from_date=from_date,
+                    thru_date=thru_date,
+                    flow_date=flow_date,
+                    inclusion_rule="end_of_day",
+                )
+
+                self.assertAlmostEqual(beginning_weight - end_weight, 1 / period_days)
+                self.assertGreaterEqual(end_weight, 0.0)
+                self.assertLessEqual(beginning_weight, 1.0)
+
+    def test_nonfinite_values_are_never_usable_modified_dietz_inputs(self) -> None:
+        """NaN and infinity cannot enter a Modified Dietz explanation."""
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                self.assertIsNone(modified_dietz_float(value))
+                self.assertFalse(usable_modified_dietz_number(value))
+                self.assertFalse(usable_modified_dietz_denominator(value))
+
+    def test_direct_impact_rejects_nonfinite_monetary_inputs(self) -> None:
+        """The public helper fails before nonfinite values can propagate."""
+        common_arguments = {
+            "from_date": date(2025, 1, 1),
+            "thru_date": date(2025, 1, 30),
+            "flow_date": date(2025, 1, 11),
+            "inclusion_rule": "beginning_of_day",
+        }
+        for flow_delta, denominator in (
+            (float("nan"), 10_000.0),
+            (float("inf"), 10_000.0),
+            (300.0, float("nan")),
+            (300.0, float("inf")),
+        ):
+            with self.subTest(flow_delta=flow_delta, denominator=denominator):
+                with self.assertRaises(ValueError):
+                    modified_dietz_external_flow_impact(
+                        flow_delta=flow_delta,
+                        denominator=denominator,
+                        **common_arguments,
+                    )
 
 
 if __name__ == "__main__":

@@ -127,6 +127,52 @@ class TestPerformanceNormalization(unittest.TestCase):
         self.assertAlmostEqual(float(first_period[cols.CONTRIBUTION].sum()), 0.04)
         self.assertAlmostEqual(first_period[cols.TOTAL_RETURN].unique().item(), 0.04)
 
+    def test_calculated_row_replacement_requires_complete_schema(self) -> None:
+        """Calculated-state replacement rejects an incomplete internal table."""
+        performance = Performance(_narrow_performance_df())
+
+        with self.assertRaises(PpaError):
+            performance.reset_narrow_df(
+                performance.narrow_df.drop(cols.TOTAL_RETURN)
+            )
+
+    def test_calculated_row_replacement_owns_its_dataframe(self) -> None:
+        """Later caller mutation cannot alter validated calculated state."""
+        performance = Performance(_narrow_performance_df())
+        replacement = performance.narrow_df.clone()
+        performance.reset_narrow_df(replacement)
+        replacement[0, cols.TOTAL_RETURN] = 999.0
+
+        self.assertNotEqual(performance.period_totals()[cols.TOTAL_RETURN].item(0), 999.0)
+
+    def test_calculated_row_replacement_requires_contribution_footing(self) -> None:
+        """Calculated contributions must sum to their stored period return."""
+        performance = Performance(_narrow_performance_df())
+        inconsistent = performance.narrow_df.with_columns(
+            pl.when(pl.col(cols.IDENTIFIER) == "A")
+            .then(pl.col(cols.CONTRIBUTION) + 0.01)
+            .otherwise(pl.col(cols.CONTRIBUTION))
+            .alias(cols.CONTRIBUTION)
+        )
+
+        with self.assertRaises(PpaError):
+            performance.reset_narrow_df(inconsistent)
+
+    def test_legacy_df_snapshot_cannot_mutate_narrow_rows(self) -> None:
+        """The compatibility ``df`` snapshot does not share mutable state."""
+        performance = Performance(_narrow_performance_df())
+        performance.df[0, cols.TOTAL_RETURN] = 999.0
+
+        self.assertNotEqual(performance.period_totals()[cols.TOTAL_RETURN].item(0), 999.0)
+
+    def test_overall_rows_are_a_defensive_copy(self) -> None:
+        """Mutating an overall result cannot alter its cached calculation."""
+        performance = Performance(_narrow_performance_df())
+        returned = performance.df_overall()
+        returned[0, cols.TOTAL_RETURN] = 999.0
+
+        self.assertNotEqual(performance.df_overall()[cols.TOTAL_RETURN].item(0), 999.0)
+
     def test_duplicate_thru_dates_raise_error_102(self) -> None:
         """Two different input periods may not share an thru date."""
         duplicate_dates = pl.DataFrame(
@@ -177,6 +223,20 @@ class TestPerformanceNormalization(unittest.TestCase):
 
         with self.assertRaisesRegex(PpaError, errs.ERRORS[104]):
             Performance(null_returns)
+
+    def test_infinite_returns_and_weights_raise_error_104(self) -> None:
+        """Infinite financial values are rejected with other invalid observations."""
+        for column_name in (cols.RETURN, cols.WEIGHT):
+            with self.subTest(column_name=column_name):
+                invalid = _narrow_performance_df().with_columns(
+                    pl.when(pl.col(cols.IDENTIFIER) == "A")
+                    .then(pl.lit(float("inf")))
+                    .otherwise(pl.col(column_name))
+                    .alias(column_name)
+                )
+
+                with self.assertRaisesRegex(PpaError, errs.ERRORS[104]):
+                    Performance(invalid)
 
     def test_from_date_after_thru_date_raises_error_105(self) -> None:
         """An input row may not start after its reporting date."""
